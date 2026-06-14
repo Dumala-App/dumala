@@ -368,13 +368,42 @@ export default function TacticsView({ players, teamCoach, teamName, onUpdatePlay
     }
   };
 
+  const getTacticsAttributes = (player: Player): NonNullable<TacticsPlayer['attributes']> => {
+    const base = player.baseAttributes || {
+      pace: 50,
+      stamina: 50,
+      agility: 50,
+      strength: 50,
+      firstTouch: 50,
+      shortPassing: 50
+    };
+    const positional = player.positionAttributes || {};
+    const average = (...values: number[]) => Math.round(values.reduce((sum, value) => sum + value, 0) / values.length);
+
+    const shooting = player.position === 'Forward'
+      ? average(positional.Finishing || 50, positional['Long Shots'] || 50)
+      : positional['Long Shots'] || 50;
+    const defending = player.position === 'Goalkeeper'
+      ? average(positional.Reflexes || 50, positional.Handling || 50)
+      : average(positional.Tackling || 50, positional.Positioning || 50);
+
+    return {
+      speed: base.pace,
+      shooting,
+      passing: base.shortPassing,
+      dribbling: average(base.agility, base.firstTouch),
+      defending,
+      physicalness: average(base.stamina, base.strength)
+    };
+  };
+
   // Convert active registered club players into state format
   const allEligiblePool: TacticsPlayer[] = useMemo(() => {
     return players
       .filter(p => !isStaffPosition(p.position))
       .map(p => {
-        // Calculate average rating
-        const attributesSum = p.attributes.speed + p.attributes.shooting + p.attributes.passing + p.attributes.dribbling + p.attributes.defending + p.attributes.physicalness;
+        const tacticsAttributes = getTacticsAttributes(p);
+        const attributesSum = Object.values(tacticsAttributes).reduce((sum, value) => sum + value, 0);
         const avg = Math.round(attributesSum / 6);
         return {
           id: p.id,
@@ -384,7 +413,7 @@ export default function TacticsView({ players, teamCoach, teamName, onUpdatePlay
           condition: 'B' as const,
           photoUrl: p.photoUrl,
           isLegend: false,
-          attributes: p.attributes,
+          attributes: tacticsAttributes,
           number: p.number,
           bio: p.bio,
           gamesPlayed: p.gamesPlayed,
