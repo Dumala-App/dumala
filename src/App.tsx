@@ -29,6 +29,7 @@ import {
   NotebookPen
 } from 'lucide-react';
 import { AnimatePresence } from 'motion/react';
+import { Analytics } from '@vercel/analytics/react';
 
 export default function App() {
   const [isOnboarded, setIsOnboarded] = useState<boolean>(() => {
@@ -709,6 +710,7 @@ export default function App() {
         </p>
       </footer>
 
+      <Analytics />
     </div>
   );
 }
