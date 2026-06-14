@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { Player, isStaffPosition } from '../types';
+import { STAFF_PLACEHOLDER } from '../playerPlaceholders';
 import { Shield, Zap, Search, RefreshCw, UserCheck, Play, Save, ChevronRight, HelpCircle, User, Info, BarChart2, Edit, Trash2, Plus, Check, Filter, Tag, BookOpen } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -98,8 +99,17 @@ export default function TacticsView({ players, teamCoach, teamName, onUpdatePlay
   });
   
   const [isEditingCoach, setIsEditingCoach] = useState<boolean>(false);
-  const [coachName, setCoachName] = useState<string>(() => localStorage.getItem('squad_coach_name') || teamCoach || 'Marcus Sterling');
-  const [coachPhoto, setCoachPhoto] = useState<string>(() => localStorage.getItem('squad_coach_photo') || 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&auto=format&fit=crop&q=80');
+  const rosterCoach = useMemo(() => {
+    const normalizedTeamCoach = teamCoach.trim().toLowerCase();
+    const staff = players.filter(player => isStaffPosition(player.position));
+
+    return staff.find(player => player.name.trim().toLowerCase() === normalizedTeamCoach)
+      || staff.find(player => player.position === 'Manager / Coach')
+      || staff.find(player => player.position.toLowerCase().includes('manager'))
+      || staff.find(player => player.position.toLowerCase().includes('coach'));
+  }, [players, teamCoach]);
+  const coachName = rosterCoach?.name || teamCoach || 'Team Manager';
+  const coachPhoto = rosterCoach?.photoUrl || STAFF_PLACEHOLDER;
   const [coachLevel, setCoachLevel] = useState<string>(() => localStorage.getItem('squad_coach_level') || 'Expert ★★★★★');
 
   const [playstyles, setPlaystyles] = useState<string[]>(() => {
@@ -124,14 +134,6 @@ export default function TacticsView({ players, teamCoach, teamName, onUpdatePlay
       setCustomFormationInput(MATCH_FORMAT_CONFIG[matchFormat].formations[0]);
     }
   }, [matchFormat]);
-
-  useEffect(() => {
-    localStorage.setItem('squad_coach_name', coachName);
-  }, [coachName]);
-
-  useEffect(() => {
-    localStorage.setItem('squad_coach_photo', coachPhoto);
-  }, [coachPhoto]);
 
   useEffect(() => {
     localStorage.setItem('squad_coach_level', coachLevel);
@@ -789,15 +791,19 @@ export default function TacticsView({ players, teamCoach, teamName, onUpdatePlay
                 </button>
               </div>
               
-              <div>
-                <label className="text-[9px] text-slate-400 uppercase tracking-widest font-black block mb-0.5">Coach Name</label>
-                <input 
-                  id="input-coach-name"
-                  type="text" 
-                  value={coachName} 
-                  onChange={(e) => setCoachName(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-800 text-slate-100 rounded-lg px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-amber-400"
-                />
+              <div className="rounded-lg border border-slate-800 bg-slate-950/70 p-2">
+                <span className="text-[9px] text-slate-400 uppercase tracking-widest font-black block mb-1">Roster Manager / Coach</span>
+                <div className="flex items-center gap-2">
+                  <img
+                    src={coachPhoto}
+                    alt={coachName}
+                    className="h-8 w-8 rounded-lg border border-amber-400/60 object-cover"
+                  />
+                  <span className="text-xs font-bold text-slate-100">{coachName}</span>
+                </div>
+                <p className="mt-1.5 text-[9px] leading-relaxed text-slate-500">
+                  Name and photo are synchronized from the Roster profile.
+                </p>
               </div>
 
               <div>
@@ -811,16 +817,6 @@ export default function TacticsView({ players, teamCoach, teamName, onUpdatePlay
                 />
               </div>
 
-              <div>
-                <label className="text-[9px] text-slate-400 uppercase tracking-widest font-black block mb-0.5">Photo Image URL</label>
-                <input 
-                  id="input-coach-photo"
-                  type="text" 
-                  value={coachPhoto} 
-                  onChange={(e) => setCoachPhoto(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-800 text-slate-300 font-mono text-[10px] rounded-lg px-2 py-1 focus:outline-none focus:ring-1 focus:ring-amber-400"
-                />
-              </div>
             </div>
           ) : (
             <div className="flex items-center justify-between gap-2">
