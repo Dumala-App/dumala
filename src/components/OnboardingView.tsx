@@ -74,9 +74,11 @@ export default function OnboardingView({ onComplete }: OnboardingViewProps) {
       <div className="w-full max-w-xl relative z-10">
         {/* Header Block */}
         <div className="text-center mb-10">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-400 to-cyan-300 text-slate-950 font-display font-black text-3xl shadow-xl shadow-blue-500/20 mb-6">
-            S
-          </div>
+          <img
+            src="/Dumala_logo.png"
+            alt="Dumala"
+            className="inline-block w-80 h-80 rounded-2xl object-contain mb-1"
+          />
           <h1 className="text-3xl md:text-4xl font-display font-black text-white tracking-tight mb-3">
             Build your <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-300 to-cyan-200">team hub</span>
           </h1>

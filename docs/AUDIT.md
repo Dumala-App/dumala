@@ -1,4 +1,4 @@
-# Stack Team Manager Codebase Audit
+# Dumala Codebase Audit
 
 Updated: 2026-06-14
 

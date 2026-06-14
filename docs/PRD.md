@@ -1,10 +1,10 @@
-# Stack Team Manager PRD
+# Dumala PRD
 
 Updated: 2026-06-14
 
 ## Product overview
 
-Stack Team Manager is a local-first web application for running a single sports club from one browser workspace. It combines team setup, roster management, match scheduling, standings tracking, training planning, tactics planning, announcements, disciplinary records, MVP awards, and lightweight backup flows in one interface.
+Dumala is a local-first web application for running a single sports club from one browser workspace. It combines team setup, roster management, match scheduling, standings tracking, training planning, tactics planning, announcements, disciplinary records, MVP awards, and lightweight backup flows in one interface.
 
 The current product behaves more like an operations dashboard for a coach, manager, or club organizer than a multi-user SaaS platform. The root application in this repository is treated as the current source of truth for this document.
 

@@ -1024,6 +1024,7 @@ interface ScheduledDrill {
   name: string;
   icon?: string;
   fatigueIncrease: number;
+  playerName?: string;
 }
 
 const DAYS_OF_WEEK = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'] as const;
@@ -1121,16 +1122,18 @@ export default function TrainingView({ players, onUpdatePlayer, games, onUpdateG
         
         const drillText = drills.map(d => `${d.icon} ${d.name}`).join(' & ');
         const workLoad = drills.reduce((sum, item) => sum + item.fatigueIncrease, 0);
+        const devPlayerNames = [...new Set(drills.filter(d => d.playerName).map(d => d.playerName))];
+        const playerLabel = devPlayerNames.length > 0 ? ` | Dev: ${devPlayerNames.join(', ')}` : '';
 
         const trainingGame: Game = {
           id: `training_sync_${dateInfo.dateStr}`,
-          opponent: `Training: ${drills.map(d => d.name).join(' + ')}`,
+          opponent: `Training: ${drills.map(d => d.name).join(' + ')}${playerLabel}`,
           date: dateInfo.dateStr,
           time: "10:00 AM",
           location: "Training Ground A",
           status: "Upcoming",
           type: "Training",
-          notes: `Squad Workload Target: +${workLoad}% intensity. Drills: ${drillText}. Prepare lightweight kits.`
+          notes: `Squad Workload Target: +${workLoad}% intensity. Drills: ${drillText}.${devPlayerNames.length > 0 ? ` Individual development for: ${devPlayerNames.join(', ')}.` : ''} Prepare lightweight kits.`
         };
         nextTrainingGames.push(trainingGame);
       }
@@ -1485,13 +1488,14 @@ export default function TrainingView({ players, onUpdatePlayer, games, onUpdateG
       ? { label: 'Needs recovery', color: 'text-amber-300', note: 'Keep at least two low-load days in the week.' }
       : { label: 'Balanced', color: 'text-emerald-300', note: 'Work and recovery are distributed well.' };
 
-  const addDrillsToDay = (drills: typeof CRITICAL_DRILLS, day: DayName) => {
+  const addDrillsToDay = (drills: typeof CRITICAL_DRILLS, day: DayName, playerName?: string) => {
     const scheduled = drills.map((drill, index) => ({
       id: `development-${day}-${Date.now()}-${index}`,
       drillId: drill.id,
       name: drill.name,
       icon: drill.icon,
-      fatigueIncrease: drill.fatigueIncrease
+      fatigueIncrease: drill.fatigueIncrease,
+      playerName
     }));
     setWeeklySchedule(prev => ({
       ...prev,
@@ -1501,14 +1505,30 @@ export default function TrainingView({ players, onUpdatePlayer, games, onUpdateG
 
   const handleCompleteDevelopmentSession = () => {
     if (!recommendedPlayer || selectedTrainingDrills.length === 0) return;
-    const nextAttributes = { ...recommendedPlayer.attributes };
+    const nextBaseAttrs = { ...(recommendedPlayer.baseAttributes || { pace: 50, stamina: 50, agility: 50, strength: 50, firstTouch: 50, shortPassing: 50 }) };
+    const nextPosAttrs = { ...(recommendedPlayer.positionAttributes || {}) };
+
+    const legacyToBase: Record<string, keyof Player['baseAttributes']> = {
+      speed: 'pace',
+      physicalness: 'strength',
+      stamina: 'stamina',
+      passing: 'shortPassing',
+      dribbling: 'firstTouch'
+    };
+
     selectedTrainingDrills.forEach(drill => {
       Object.entries(drill.statsBumps).forEach(([attribute, amount]) => {
-        const key = attribute as keyof Player['attributes'];
-        nextAttributes[key] = Math.min(99, nextAttributes[key] + amount);
+        const baseKey = legacyToBase[attribute];
+        if (baseKey) {
+          nextBaseAttrs[baseKey] = Math.min(99, nextBaseAttrs[baseKey] + amount);
+        } else {
+          const posKey = attribute.charAt(0).toUpperCase() + attribute.slice(1);
+          nextPosAttrs[posKey] = Math.min(99, (nextPosAttrs[posKey] || 50) + amount);
+        }
       });
     });
-    onUpdatePlayer({ ...recommendedPlayer, attributes: nextAttributes });
+
+    onUpdatePlayer({ ...recommendedPlayer, baseAttributes: nextBaseAttrs, positionAttributes: nextPosAttrs });
   };
 
   const toggleTrainingDrill = (drillId: string) => {
@@ -2352,7 +2372,7 @@ export default function TrainingView({ players, onUpdatePlayer, games, onUpdateG
                   </select>
                   <button
                     type="button"
-                    onClick={() => addDrillsToDay(selectedTrainingDrills, developmentDay)}
+                    onClick={() => addDrillsToDay(selectedTrainingDrills, developmentDay, recommendedPlayer?.name)}
                     disabled={selectedTrainingDrills.length === 0}
                     className="bg-blue-500 hover:bg-blue-400 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-xl px-3 py-2 text-[10px] font-black flex items-center gap-1.5"
                   >

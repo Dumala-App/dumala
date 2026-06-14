@@ -1,4 +1,4 @@
-# Stack Team Manager
+# Dumala
 
 A local-first sports club management web application for running a single team from one browser workspace. Built with React 19, TypeScript, Tailwind CSS v4, and Lucide icons.
 

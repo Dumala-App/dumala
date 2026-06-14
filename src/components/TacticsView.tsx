@@ -466,6 +466,53 @@ export default function TacticsView({ players, teamCoach, teamName, onUpdatePlay
     return defaultLineup;
   });
 
+  // Auto-populate empty lineup slots when players are added to the roster
+  useEffect(() => {
+    const size = MATCH_FORMAT_CONFIG[matchFormat].size;
+
+    setLineup(prev => {
+      const validIds = new Set(allEligiblePool.map(p => p.id));
+      const cleaned: { [key: number]: TacticsPlayer } = {};
+      Object.keys(prev).forEach(k => {
+        if (prev[+k] && validIds.has(prev[+k].id)) {
+          cleaned[+k] = prev[+k];
+        }
+      });
+
+      const hasEmptySlot = Array.from({ length: size }, (_, i) => i).some(i => !cleaned[i]);
+      if (!hasEmptySlot) return cleaned;
+
+      const assignedIds = new Set(Object.values(cleaned).filter(Boolean).map(p => p.id));
+      const unassigned = allEligiblePool.filter(p => !assignedIds.has(p.id));
+      if (unassigned.length === 0) return cleaned;
+
+      for (let i = 0; i < size; i++) {
+        if (!cleaned[i] && unassigned.length > 0) {
+          const p = unassigned.shift()!;
+          cleaned[i] = {
+            id: p.id,
+            name: p.name,
+            rating: p.rating,
+            position: p.position,
+            condition: 'B' as const,
+            photoUrl: p.photoUrl,
+            isLegend: false,
+            number: p.number,
+            bio: p.bio,
+            gamesPlayed: p.gamesPlayed,
+            points: p.points,
+            assists: p.assists,
+            cleanSheetsOrRebounds: p.cleanSheetsOrRebounds,
+            minutesPlayed: p.minutesPlayed,
+            mvpAwards: p.mvpAwards,
+            registrationStatus: p.registrationStatus
+          };
+        }
+      }
+      return cleaned;
+    });
+  }, [allEligiblePool, matchFormat]);
+
   // Save lineup configuration changes
   useEffect(() => {
     localStorage.setItem('stack_squad_lineup', JSON.stringify(lineup));
@@ -1010,7 +1057,7 @@ export default function TacticsView({ players, teamCoach, teamName, onUpdatePlay
           onPointerDown={handleFieldPointerDown}
           onPointerMove={handleFieldPointerMove}
           onPointerUp={handleFieldPointerUp}
-          className="relative w-full max-w-[720px] aspect-[7/10] mx-auto bg-[#132c1b] rounded-2xl overflow-hidden border border-emerald-900/60 shadow-lg select-none"
+          className="relative w-full max-w-[576px] aspect-[7/10] mx-auto bg-[#132c1b] rounded-2xl overflow-hidden border border-emerald-900/60 shadow-lg select-none"
         >
           
           {/* Soccer pitch physical markings overlay */}
@@ -1099,7 +1146,7 @@ export default function TacticsView({ players, teamCoach, teamName, onUpdatePlay
                       <span className="absolute bottom-[-5px] right-[-5px] w-2.5 h-2.5 border-b-2 border-r-2 border-cyan-400" />
                     </div>
                   )}
-                  <div className="relative w-18 h-22 rounded-lg bg-slate-900/50 border border-slate-700 p-0.5 shadow-xl flex flex-col items-center justify-center text-slate-500 hover:bg-slate-800 transition-all border-dashed select-none">
+                  <div className="relative w-14 h-18 rounded-lg bg-slate-900/50 border border-slate-700 p-0.5 shadow-xl flex flex-col items-center justify-center text-slate-500 hover:bg-slate-800 transition-all border-dashed select-none">
                     <span className="text-[10px] font-bold text-slate-400 opacity-60">EMPTY</span>
                     <span className="text-[10px] font-black text-slate-500 mt-1 uppercase tracking-wider">{pos.role}</span>
                   </div>
@@ -1141,7 +1188,7 @@ export default function TacticsView({ players, teamCoach, teamName, onUpdatePlay
                 )}
 
                 {/* Highly structured Gold Foil Player Card inspired by the eFootball design reference */}
-                <div className={`relative w-18 h-22 rounded-lg bg-gradient-to-b ${
+                <div className={`relative w-14 h-18 rounded-lg bg-gradient-to-b ${
                   player.isLegend ? 'from-amber-200 via-amber-400 to-amber-700' : 'from-indigo-300 via-blue-500 to-slate-800'
                 } p-0.5 shadow-xl shadow-black/80 flex flex-col justify-between overflow-hidden text-slate-100 hover:shadow-cyan-500/20 transition-all ${
                   getPlayerExtras(player.id).status === 'injured' ? 'opacity-60 saturate-50' : ''

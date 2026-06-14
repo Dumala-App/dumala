@@ -366,7 +366,7 @@ export default function App() {
   const handleImportBackup = async (file: File) => {
     const parsed: unknown = JSON.parse(await file.text());
     if (!parsed || typeof parsed !== 'object') {
-      throw new Error('The selected file is not a valid Stack Team Manager backup.');
+      throw new Error('The selected file is not a valid Dumala backup.');
     }
 
     const backup = parsed as Record<string, unknown>;
@@ -446,20 +446,20 @@ export default function App() {
             
             {/* Logo Brand Icon */}
             <div className="flex items-center gap-3 min-w-0">
-              <div 
+              <img
                 id="brand-logo"
+                src="/Dumala_logo.png"
+                alt="Dumala"
                 onClick={() => setCurrentTab('dashboard')}
-                className="w-10 h-10 bg-gradient-to-br from-blue-400 to-cyan-300 text-slate-950 rounded-xl flex items-center justify-center font-display font-extrabold text-lg shadow-lg shadow-blue-500/20 cursor-pointer transition-all hover:-translate-y-0.5 active:translate-y-0"
-              >
-                S
-              </div>
+                className="w-14 h-14 rounded-xl object-contain cursor-pointer transition-all hover:-translate-y-0.5 active:translate-y-0"
+              />
               <div>
                 <h1 
                   id="brand-title" 
                   onClick={() => setCurrentTab('dashboard')}
                   className="font-display font-extrabold text-sm sm:text-base tracking-tight cursor-pointer text-white hover:text-blue-100 transition-colors truncate"
                 >
-                  Stack Team
+                  Dumala
                 </h1>
                 <span id="brand-tagline" className="text-[10px] text-slate-400 block font-semibold truncate max-w-44">
                   {teamInfo?.name || "Team workspace"}
@@ -700,7 +700,7 @@ export default function App() {
       {/* Application Footer */}
       <footer id="app-footer" className="bg-[#07111f] text-slate-400 border-t border-white/10 py-6 text-center text-xs mt-12 space-y-2">
         <div className="flex justify-center gap-4 items-center flex-wrap">
-          <span className="font-display font-semibold text-slate-300">Stack Team Manager</span>
+          <span className="font-display font-semibold text-slate-300">Dumala</span>
           <span className="text-slate-700 font-sans">|</span>
           <span className="flex items-center gap-1">Designed with <Heart size={11} className="fill-rose-500 text-rose-500" /> for elite athletic clubs</span>
         </div>

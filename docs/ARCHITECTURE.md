@@ -1,10 +1,10 @@
-# Stack Team Manager Architecture
+# Dumala Architecture
 
 Updated: 2026-06-14
 
 ## Overview
 
-Stack Team Manager is a React single-page application served through a lightweight Express wrapper. The visible implementation is strongly client-side and local-first: most product behavior, state management, and persistence live in the browser rather than on the server.
+Dumala is a React single-page application served through a lightweight Express wrapper. The visible implementation is strongly client-side and local-first: most product behavior, state management, and persistence live in the browser rather than on the server.
 
 The app is designed around one active team workspace in one browser context. That design choice simplifies setup but also defines the current scale limit of the product.
 

@@ -1,4 +1,4 @@
-import { NotebookPen, Megaphone, FlaskConical, Rocket, Brain, Target, TrendingUp, BarChart3, Hash } from 'lucide-react';
+import { Megaphone, FlaskConical, Rocket, Brain, Target, TrendingUp, BarChart3, Hash } from 'lucide-react';
 
 export default function UpdatesView() {
   return (
@@ -6,18 +6,21 @@ export default function UpdatesView() {
       {/* Header */}
       <div className="bg-[#0f172a] text-white rounded-2xl p-6 shadow-lg border border-slate-800 relative overflow-hidden">
         <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none">
-          <NotebookPen size={180} className="stroke-[3]" />
+          <img src="/Dumala_logo.png" alt="" className="w-[160px] h-[160px] object-contain" />
         </div>
         <div className="relative z-10 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          <div className="space-y-1.5">
-            <div className="flex items-center gap-2">
-              <span className="bg-emerald-400 text-slate-950 text-[10px] font-black uppercase px-2 py-0.5 rounded tracking-widest">Dev Notes</span>
-              <span className="text-slate-400 text-xs font-mono">Updates &amp; Development Log</span>
+          <div className="flex items-center gap-4">
+            <img src="/Dumala_logo.png" alt="Dumala" className="w-14 h-14 rounded-xl object-contain shrink-0" />
+            <div className="space-y-1.5">
+              <div className="flex items-center gap-2">
+                <span className="bg-emerald-400 text-slate-950 text-[10px] font-black uppercase px-2 py-0.5 rounded tracking-widest">Dev Notes</span>
+                <span className="text-slate-400 text-xs font-mono">Updates &amp; Development Log</span>
+              </div>
+              <h2 className="text-2xl font-black tracking-tight">Dumala — Developer Updates &amp; Product Roadmap</h2>
+              <p className="text-slate-300 text-xs max-w-2xl leading-relaxed">
+                Stay informed about the purpose behind this app, current development status, and the vision for future features including the Football Player Rating &amp; Development System.
+              </p>
             </div>
-            <h2 className="text-2xl font-black tracking-tight">Developer Updates &amp; Product Roadmap</h2>
-            <p className="text-slate-300 text-xs max-w-2xl leading-relaxed">
-              Stay informed about the purpose behind this app, current development status, and the vision for future features including the Football Player Rating &amp; Development System.
-            </p>
           </div>
         </div>
       </div>
@@ -29,7 +32,7 @@ export default function UpdatesView() {
           <h3 className="font-black text-slate-800 text-sm uppercase tracking-wider">Purpose of the App</h3>
         </div>
         <p className="text-sm text-slate-600 leading-relaxed">
-          <strong>Stack Team Manager</strong> was built to solve a real problem: football coaches and club managers at the grassroots, amateur, and academy levels spend far too much time juggling disconnected tools. Team data lives in spreadsheets, chat threads, notebooks, and memory — scattered, fragile, and hard to act on.
+          <strong>Dumala</strong> was built to solve a real problem: football coaches and club managers at the grassroots, amateur, and academy levels spend far too much time juggling disconnected tools. Team data lives in spreadsheets, chat threads, notebooks, and memory — scattered, fragile, and hard to act on.
         </p>
         <p className="text-sm text-slate-600 leading-relaxed">
           This app consolidates the core operating loop of running a football team into one workspace. Roster management, match scheduling, result logging, training planning, tactical notes, discipline tracking, and MVP awards — all in a single interface designed specifically for the coach who wants to spend less time administering and more time coaching.
@@ -365,7 +368,7 @@ export default function UpdatesView() {
       {/* Footer Note */}
       <div className="text-center pb-4">
         <p className="text-[10px] text-slate-400">
-          Stack Team Manager — Beta Version · Built for coaches, shaped by feedback · Thank you for testing
+          Dumala — Beta Version · Built for coaches, shaped by feedback · Thank you for testing
         </p>
       </div>
     </div>

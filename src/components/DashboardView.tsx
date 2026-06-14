@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Game, Player, Standing, Announcement, TeamInfo } from '../types';
+import { Game, Player, Standing, Announcement, TeamInfo, isStaffPosition } from '../types';
 import {findUserStanding, sortStandings} from '../standings';
 import { Calendar, MapPin, Trophy, Shield, Megaphone, Star, Award, Zap, ArrowRight, CornerRightDown, TrendingUp, Edit, Upload, Link, Check, X, Image, Crown, Target, Flame, AlertCircle, Table, Users } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
@@ -701,8 +701,15 @@ export default function DashboardView({
             </thead>
             <tbody className="divide-y divide-slate-50">
               {[...players]
-                .filter(p => p.registrationStatus !== 'Pending')
-                .sort((a, b) => a.number - b.number)
+                .filter(p => !isStaffPosition(p.position))
+                .sort((a, b) => {
+                  const order = ['Forward', 'Midfielder', 'Defender', 'Goalkeeper'];
+                  const aIdx = order.indexOf(a.position);
+                  const bIdx = order.indexOf(b.position);
+                  const posA = aIdx === -1 ? 99 : aIdx;
+                  const posB = bIdx === -1 ? 99 : bIdx;
+                  return posA - posB;
+                })
                 .map(p => {
                   const hasCards = (p.yellowCards || 0) > 0 || (p.redCards || 0) > 0;
                   const isSuspended = p.registrationStatus === 'Suspended';

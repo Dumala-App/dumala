@@ -1,4 +1,4 @@
-# Stack Team Manager -- Production Launch Tasks
+# Dumala -- Production Launch Tasks
 
 Updated: 2026-06-14
 

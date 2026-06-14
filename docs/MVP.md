@@ -1,10 +1,10 @@
-# Stack Team Manager MVP
+# Dumala MVP
 
 Updated: 2026-06-14
 
 ## MVP objective
 
-The MVP for Stack Team Manager is a single-browser club operations workspace that lets one team operator set up a club, manage roster data, schedule events, record match results, maintain standings, log discipline, award MVP honours, plan training with a 52-drill library, track match availability, review opponent intel, publish announcements, and preserve core data locally. It is not a collaboration platform, a league network, or a full sports operations system.
+The MVP for Dumala is a single-browser club operations workspace that lets one team operator set up a club, manage roster data, schedule events, record match results, maintain standings, log discipline, award MVP honours, plan training with a 52-drill library, track match availability, review opponent intel, publish announcements, and preserve core data locally. It is not a collaboration platform, a league network, or a full sports operations system.
 
 This document defines the smallest product slice that should be considered release-ready based on the current codebase and the current product direction.
 

@@ -2,7 +2,7 @@
 setlocal
 
 cd /d "%~dp0"
-title Stack Team Manager
+title Dumala
 
 where node >nul 2>&1
 if errorlevel 1 (
@@ -18,7 +18,7 @@ if not exist "node_modules" (
   if errorlevel 1 goto :error
 )
 
-echo Starting Stack Team Manager at http://localhost:3000
+echo Starting Dumala at http://localhost:3000
 echo Press Ctrl+C to stop the server.
 echo.
 

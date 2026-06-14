@@ -1,4 +1,4 @@
-# Stack Team Manager Roadmap
+# Dumala Roadmap
 
 Updated: 2026-06-14
 

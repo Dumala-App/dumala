@@ -54,7 +54,7 @@ export default function FeedbackModal({teamName, onClose}: FeedbackModalProps) {
   ].join('\n');
 
   const openEmailFallback = () => {
-    const subject = encodeURIComponent(`[Stack Team Manager ${form.category}] ${form.subject}`);
+    const subject = encodeURIComponent(`[Dumala ${form.category}] ${form.subject}`);
     const body = encodeURIComponent(buildEmailBody());
     window.location.href = `mailto:${FEEDBACK_EMAIL}?subject=${subject}&body=${body}`;
   };
@@ -66,7 +66,7 @@ export default function FeedbackModal({teamName, onClose}: FeedbackModalProps) {
     setStatusMessage('');
 
     const payload = {
-      _subject: `[Stack Team Manager ${form.category}] ${form.subject}`,
+      _subject: `[Dumala ${form.category}] ${form.subject}`,
       _template: 'table',
       _captcha: 'false',
       _honey: '',
@@ -97,7 +97,7 @@ export default function FeedbackModal({teamName, onClose}: FeedbackModalProps) {
       if (!response.ok) throw new Error('Feedback service rejected the submission.');
 
       setStatus('success');
-      setStatusMessage('Feedback sent. Thank you for helping improve Stack Team Manager.');
+      setStatusMessage('Feedback sent. Thank you for helping improve Dumala.');
       setForm(INITIAL_FORM);
     } catch {
       setStatus('error');

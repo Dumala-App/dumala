@@ -1,6 +1,6 @@
 {
-  "name": "Sports Team Manager",
-  "description": "A sports team and league management application featuring team schedules, player profiles, performance stats, and standings.",
+  "name": "Dumala",
+  "description": "A football team management application featuring team schedules, player profiles, performance stats, and standings.",
   "requestFramePermissions": [],
   "majorCapabilities": []
 }
