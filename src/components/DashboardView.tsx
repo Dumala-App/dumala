@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Game, Player, Standing, Announcement, TeamInfo } from '../types';
+import {findUserStanding, sortStandings} from '../standings';
 import { Calendar, MapPin, Trophy, Shield, Megaphone, Star, Award, Zap, ArrowRight, CornerRightDown, TrendingUp, Edit, Upload, Link, Check, X, Image, Crown, Target, Flame, AlertCircle, Table, Users } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
@@ -190,8 +191,10 @@ export default function DashboardView({
   
   const nextMatch = upcomingGames[0];
 
-  // Find the user team in standings
-  const userTeam = standings.find(t => t.isUserTeam) || standings.find(t => t.teamName === teamInfo.name) || standings[1];
+  // Use the same ordering rules as the League table.
+  const rankedStandings = sortStandings(standings);
+  const userTeam = findUserStanding(rankedStandings, teamInfo.name);
+  const leagueRank = userTeam?.rank;
   
   // Calculate team's point trend over the last 10 games played
   const userCompletedGames = games
@@ -331,7 +334,9 @@ export default function DashboardView({
 
         <div className="flex gap-4 relative z-10 shrink-0 self-center sm:self-auto">
           <div className="bg-white/10 backdrop-blur-md border border-white/15 rounded-2xl p-4 text-center min-w-24 shadow-inner">
-            <span className="text-2xl font-display font-black text-amber-305">#2</span>
+            <span id="dashboard-league-rank" className="text-2xl font-display font-black text-amber-305">
+              {leagueRank ? `#${leagueRank}` : 'N/A'}
+            </span>
             <span className="block text-[10px] text-white/80 uppercase font-bold mt-1 tracking-wider">League Rank</span>
           </div>
           <div className="bg-white/10 backdrop-blur-md border border-white/15 rounded-2xl p-4 text-center min-w-24 shadow-inner">

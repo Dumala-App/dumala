@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Standing, TeamInfo, Player, PlayerOffense, MvpAwardRecord } from '../types';
+import {findUserStanding, sortStandings} from '../standings';
 import { 
   Trophy, RefreshCw, Star, Edit, Save, Plus, Trash2, CheckCircle, X, Sliders,
   Calendar, Edit3, Info, Archive, History, RotateCcw, AlertTriangle, ClipboardList, Award
@@ -268,17 +269,10 @@ export default function StandingsView({
     setBackupNotice('Backup removed.');
   };
 
-  // Sort standings by points desc, then goal difference desc, then goals for desc
-  const sortedStandings = [...standings].sort((a, b) => {
-    if (b.points !== a.points) return b.points - a.points;
-    const diffB = b.goalsFor - b.goalsAgainst;
-    const diffA = a.goalsFor - a.goalsAgainst;
-    if (diffB !== diffA) return diffB - diffA;
-    return b.goalsFor - a.goalsFor;
-  }).map((t, idx) => ({ ...t, rank: idx + 1 }));
+  const sortedStandings = sortStandings(standings);
 
   // Dynamic calculations for Hero rank cards
-  const userTeamInstance = sortedStandings.find(t => t.isUserTeam) || sortedStandings.find(t => t.teamName.toLowerCase() === teamName.toLowerCase());
+  const userTeamInstance = findUserStanding(sortedStandings, teamName);
   const userRank = userTeamInstance?.rank || "N/A";
   const userPoints = userTeamInstance?.points || 0;
   
