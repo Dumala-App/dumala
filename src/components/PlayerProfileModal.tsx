@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { Player, SPECIALTY_TRAITS, SpecialtyTrait, isStaffPosition, STAFF_POSITIONS } from '../types';
-import { X, Award, Shield, User, Zap, CircleDot, Activity, Save, Edit2, Briefcase, Calendar, Mail, Phone, AlertTriangle, Clock, Star } from 'lucide-react';
+import { X, Award, Shield, User, Zap, CircleDot, Activity, Save, Edit2, Briefcase, Calendar, Mail, Phone, AlertTriangle, Clock, Star, Trash2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   ResponsiveContainer,
@@ -39,11 +39,13 @@ interface PlayerProfileModalProps {
   player: Player;
   onClose: () => void;
   onUpdate: (updatedPlayer: Player) => void;
+  onRemove: (playerId: string) => void;
 }
 
-export default function PlayerProfileModal({ player, onClose, onUpdate }: PlayerProfileModalProps) {
+export default function PlayerProfileModal({ player, onClose, onUpdate, onRemove }: PlayerProfileModalProps) {
   const isStaff = isStaffPosition(player.position);
   const [isEditing, setIsEditing] = useState(false);
+  const [showRemoveConfirm, setShowRemoveConfirm] = useState(false);
   const [name, setName] = useState(player.name);
   const [number, setNumber] = useState(player.number);
   const [position, setPosition] = useState(player.position);
@@ -264,7 +266,7 @@ export default function PlayerProfileModal({ player, onClose, onUpdate }: Player
         initial={{ opacity: 0, scale: 0.97, y: 10 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.97, y: 10 }}
-        className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden text-slate-800 border border-slate-100 my-auto"
+        className="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden text-slate-800 border border-slate-100 my-auto"
         onClick={e => e.stopPropagation()}
       >
         {/* Modal Header Compact Banner */}
@@ -429,7 +431,7 @@ export default function PlayerProfileModal({ player, onClose, onUpdate }: Player
               )}
             </div>
 
-            <div className="shrink-0 pt-2 sm:pt-0">
+            <div className="shrink-0 self-center pt-2 sm:pt-0 flex flex-col items-center gap-1">
               {isEditing ? (
                 <button 
                   id="save-profile-btn"
@@ -442,14 +444,63 @@ export default function PlayerProfileModal({ player, onClose, onUpdate }: Player
                 <button 
                   id="edit-profile-btn"
                   onClick={() => setIsEditing(true)}
-                  className="bg-white/10 hover:bg-white/20 text-white font-black px-3.5 py-2 rounded-xl transition-all border border-white/15 flex items-center gap-1.5 text-xs uppercase tracking-wide"
+                  className="bg-white/10 hover:bg-white/20 text-white font-black px-1.5 py-1 rounded-md transition-all border border-white/15 inline-flex items-center justify-center gap-0.5 text-[7px] uppercase tracking-normal"
                 >
-                  <Edit2 size={13} /> Modify Profile
+                  <Edit2 size={8} /> Modify Profile
+                </button>
+              )}
+              {!isStaff && !isEditing && (
+                <button
+                  type="button"
+                  id="remove-player-profile-btn"
+                  onClick={() => setShowRemoveConfirm(true)}
+                  className="inline-flex items-center justify-center gap-0.5 rounded px-1 py-0.5 text-[6px] font-bold uppercase tracking-normal text-rose-300 transition hover:bg-rose-500/10 hover:text-rose-200"
+                >
+                  <Trash2 size={7} />
+                  Remove Player
                 </button>
               )}
             </div>
           </div>
         </div>
+
+        {showRemoveConfirm && (
+          <div className="absolute inset-0 z-20 flex items-center justify-center bg-slate-950/70 p-4 backdrop-blur-sm">
+            <div
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="remove-profile-player-title"
+              className="w-full max-w-sm rounded-2xl border border-slate-200 bg-white p-6 text-slate-800 shadow-2xl"
+            >
+              <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-xl bg-rose-100 text-rose-600">
+                <Trash2 size={19} />
+              </div>
+              <h3 id="remove-profile-player-title" className="font-display text-lg font-black text-slate-900">
+                Remove {player.name}?
+              </h3>
+              <p className="mt-2 text-xs font-medium leading-relaxed text-slate-600">
+                This permanently removes the player and their saved statistics from this browser.
+              </p>
+              <div className="mt-6 flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowRemoveConfirm(false)}
+                  className="rounded-xl border border-slate-200 bg-slate-100 px-4 py-2.5 text-xs font-bold text-slate-700 transition hover:bg-slate-200"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onRemove(player.id)}
+                  className="flex items-center gap-1.5 rounded-xl bg-rose-600 px-4 py-2.5 text-xs font-black text-white shadow-md transition hover:bg-rose-700"
+                >
+                  <Trash2 size={13} />
+                  Remove Player
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Modal Body Info Sections */}
         {isStaff ? (

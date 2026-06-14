@@ -28,19 +28,6 @@ import {
 } from 'lucide-react';
 import { AnimatePresence } from 'motion/react';
 
-export function getInitialStandings(userTeamName: string): Standing[] {
-  return [
-    { rank: 1, teamName: "Metro Knights", played: 14, won: 10, drawn: 2, lost: 2, goalsFor: 32, goalsAgainst: 12, points: 32 },
-    { rank: 2, teamName: userTeamName, played: 14, won: 8, drawn: 3, lost: 3, goalsFor: 28, goalsAgainst: 15, points: 27, isUserTeam: true },
-    { rank: 3, teamName: "Glacier Rovers", played: 14, won: 7, drawn: 4, lost: 3, goalsFor: 24, goalsAgainst: 18, points: 25 },
-    { rank: 4, teamName: "Vale United", played: 14, won: 6, drawn: 3, lost: 5, goalsFor: 21, goalsAgainst: 20, points: 21 },
-    { rank: 5, teamName: "Storm City FC", played: 14, won: 5, drawn: 4, lost: 5, goalsFor: 18, goalsAgainst: 19, points: 19 },
-    { rank: 6, teamName: "Beacon Athletic", played: 14, won: 4, drawn: 3, lost: 7, goalsFor: 16, goalsAgainst: 24, points: 15 },
-    { rank: 7, teamName: "Apex Hawks", played: 14, won: 3, drawn: 2, lost: 9, goalsFor: 13, goalsAgainst: 28, points: 11 },
-    { rank: 8, teamName: "Iron Coast Unity", played: 14, won: 2, drawn: 3, lost: 9, goalsFor: 10, goalsAgainst: 25, points: 9 }
-  ];
-}
-
 export default function App() {
   const [isOnboarded, setIsOnboarded] = useState<boolean>(() => {
     return localStorage.getItem('stack_team_onboarded') === 'true' || localStorage.getItem('stack_team_info') !== null;
@@ -81,14 +68,7 @@ export default function App() {
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        if (parsed && parsed.length > 0) return parsed;
-      } catch (e) {}
-    }
-    const infoSaved = localStorage.getItem('stack_team_info');
-    if (infoSaved) {
-      try {
-        const info = JSON.parse(infoSaved) as TeamInfo;
-        return getInitialStandings(info.name);
+        if (Array.isArray(parsed)) return parsed;
       } catch (e) {}
     }
     return [];
@@ -230,6 +210,11 @@ export default function App() {
   const handleUpdatePlayer = (updatedPlayer: Player) => {
     setPlayers(prev => prev.map(p => p.id === updatedPlayer.id ? updatedPlayer : p));
     setSelectedPlayer(updatedPlayer); // Update active modal focus
+  };
+
+  const handleRemovePlayer = (playerId: string) => {
+    setPlayers(prev => prev.filter(player => player.id !== playerId));
+    setSelectedPlayer(prev => prev?.id === playerId ? null : prev);
   };
 
   const handleAddGame = (newGame: Game) => {
@@ -388,9 +373,9 @@ export default function App() {
         onComplete={(team: TeamInfo, coachPlayer: Player) => {
           setTeamInfo(team);
           setPlayers([coachPlayer]);
-          const initialTable = getInitialStandings(team.name);
-          setStandings(initialTable);
-          localStorage.setItem('stack_team_standings', JSON.stringify(initialTable));
+          setStandings([]);
+          setCurrentTab('dashboard');
+          localStorage.setItem('stack_team_standings', JSON.stringify([]));
           setIsOnboarded(true);
           localStorage.setItem('stack_team_onboarded', 'true');
           localStorage.setItem('stack_team_info', JSON.stringify(team));
@@ -650,6 +635,7 @@ export default function App() {
             player={selectedPlayer}
             onClose={() => setSelectedPlayer(null)}
             onUpdate={handleUpdatePlayer}
+            onRemove={handleRemovePlayer}
           />
         )}
       </AnimatePresence>

@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { motion } from 'motion/react';
 import PlayerComparer from './PlayerComparer';
+import { getPlayerPlaceholder, STAFF_PLACEHOLDER } from '../playerPlaceholders';
 
 interface RosterViewProps {
   players: Player[];
@@ -54,7 +55,7 @@ export default function RosterView({ players, onAddPlayer, onSelectPlayer, onExp
   const handleClearCompare = () => {
     setSelectedCompareIds([]);
   };
-  
+
   // Add Player Form State
   const [isAdding, setIsAdding] = useState(false);
   const [newPlayerName, setNewPlayerName] = useState("");
@@ -88,18 +89,7 @@ export default function RosterView({ players, onAddPlayer, onSelectPlayer, onExp
     e.preventDefault();
     if (!newPlayerName.trim() || !newPlayerNumber) return;
 
-    const randomAvatars = [
-      "https://images.unsplash.com/photo-1543326119-9a32221fa690?w=150&auto=format&fit=crop&q=80",
-      "https://images.unsplash.com/photo-1508098682722-e99c43a406b2?w=150&auto=format&fit=crop&q=80",
-      "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80",
-      "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=150&auto=format&fit=crop&q=80",
-      "https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?w=150&auto=format&fit=crop&q=80",
-      "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=150&auto=format&fit=crop&q=80",
-      "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=150&auto=format&fit=crop&q=80",
-      "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80"
-    ];
-
-    const randomAvatar = newPlayerPhoto || randomAvatars[Math.floor(Math.random() * randomAvatars.length)];
+    const playerPhoto = newPlayerPhoto || getPlayerPlaceholder(newPlayerPos);
 
     const statsTemplate = {
       speed: Math.floor(Math.random() * 25) + 68,
@@ -116,7 +106,7 @@ export default function RosterView({ players, onAddPlayer, onSelectPlayer, onExp
       number: Number(newPlayerNumber),
       position: newPlayerPos,
       bio: newPlayerBio || `${newPlayerName} joined the roster. Highly motivated athlete.`,
-      photoUrl: randomAvatar,
+      photoUrl: playerPhoto,
       age: newPlayerAge ? Number(newPlayerAge) : undefined,
       height: newPlayerHeight ? Number(newPlayerHeight) : undefined,
       weight: newPlayerWeight ? Number(newPlayerWeight) : undefined,
@@ -163,16 +153,6 @@ export default function RosterView({ players, onAddPlayer, onSelectPlayer, onExp
     e.preventDefault();
     if (!newStaffName.trim()) return;
 
-    const randomStaffAvatars = [
-      "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&auto=format&fit=crop&q=80",
-      "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=150&auto=format&fit=crop&q=80",
-      "https://images.unsplash.com/photo-1560250097-0b93528c311a?w=150&auto=format&fit=crop&q=80",
-      "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80",
-      "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80",
-      "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&auto=format&fit=crop&q=80"
-    ];
-    const randomAvatar = newStaffPhoto || randomStaffAvatars[Math.floor(Math.random() * randomStaffAvatars.length)];
-
     const roleToSave = newStaffRole === "Other" && customStaffRole.trim() ? customStaffRole.trim() : newStaffRole;
 
     const newStaff: Player = {
@@ -181,7 +161,7 @@ export default function RosterView({ players, onAddPlayer, onSelectPlayer, onExp
       number: 0,
       position: roleToSave,
       bio: newStaffBio || `${newStaffName} has joined the management and staff team as ${roleToSave}.`,
-      photoUrl: randomAvatar,
+      photoUrl: newStaffPhoto || STAFF_PLACEHOLDER,
       email: newStaffEmail || undefined,
       phone: newStaffPhone || undefined,
       since: newStaffSince || undefined,
@@ -406,9 +386,9 @@ export default function RosterView({ players, onAddPlayer, onSelectPlayer, onExp
                 <div className="md:col-span-4 flex items-center gap-4 bg-slate-50 p-4 rounded-xl border border-slate-100">
                   <div className="relative shrink-0">
                     <img 
-                      src={newStaffPhoto || "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&auto=format&fit=crop&q=80"} 
+                      src={newStaffPhoto || STAFF_PLACEHOLDER}
                       alt="Staff Preview" 
-                      className="w-12 h-12 rounded-full object-cover border border-slate-200"
+                      className="w-12 h-12 rounded-full object-cover object-top border border-slate-200"
                     />
                   </div>
                   <div className="flex-1">
@@ -683,9 +663,9 @@ export default function RosterView({ players, onAddPlayer, onSelectPlayer, onExp
                 <div className="md:col-span-4 flex items-center gap-4 bg-slate-50 p-4 rounded-xl border border-slate-100">
                   <div className="relative shrink-0">
                     <img 
-                      src={newPlayerPhoto || "https://images.unsplash.com/photo-1543326119-9a32221fa690?w=150&auto=format&fit=crop&q=80"} 
+                      src={newPlayerPhoto || getPlayerPlaceholder(newPlayerPos)}
                       alt="Player Preview" 
-                      className="w-12 h-12 rounded-full object-cover border border-slate-200"
+                      className="w-12 h-12 rounded-full object-cover object-top border border-slate-200"
                     />
                   </div>
                   <div className="flex-1">
@@ -770,6 +750,86 @@ export default function RosterView({ players, onAddPlayer, onSelectPlayer, onExp
                   </select>
                 </div>
 
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Age</label>
+                  <input
+                    id="new-player-age-input"
+                    type="number"
+                    min="10"
+                    max="80"
+                    placeholder="e.g. 24"
+                    value={newPlayerAge}
+                    onChange={e => setNewPlayerAge(e.target.value)}
+                    className="w-full border border-slate-200 rounded-xl p-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Height (cm)</label>
+                  <input
+                    id="new-player-height-input"
+                    type="number"
+                    min="100"
+                    max="250"
+                    placeholder="e.g. 180"
+                    value={newPlayerHeight}
+                    onChange={e => setNewPlayerHeight(e.target.value)}
+                    className="w-full border border-slate-200 rounded-xl p-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Weight (kg)</label>
+                  <input
+                    id="new-player-weight-input"
+                    type="number"
+                    min="30"
+                    max="250"
+                    placeholder="e.g. 75"
+                    value={newPlayerWeight}
+                    onChange={e => setNewPlayerWeight(e.target.value)}
+                    className="w-full border border-slate-200 rounded-xl p-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  />
+                </div>
+
+                <div className="md:col-span-4 rounded-xl border border-slate-200 bg-slate-50 p-4">
+                  <div className="mb-3 flex items-center justify-between gap-3">
+                    <div>
+                      <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                        {newPlayerPos} Traits
+                      </label>
+                      <p className="mt-1 text-[10px] text-slate-400">Choose up to four traits for this player.</p>
+                    </div>
+                    <span className="rounded-lg border border-indigo-100 bg-indigo-50 px-2 py-1 text-[10px] font-black text-indigo-600">
+                      {newPlayerTraits.length}/4 selected
+                    </span>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {getAvailableTraits(newPlayerPos).map((trait) => {
+                      const isSelected = newPlayerTraits.includes(trait.label);
+                      const selectionLimitReached = newPlayerTraits.length >= 4 && !isSelected;
+
+                      return (
+                        <button
+                          key={trait.label}
+                          type="button"
+                          aria-pressed={isSelected}
+                          disabled={selectionLimitReached}
+                          onClick={() => handleToggleTrait(trait.label)}
+                          className={`rounded-lg border px-2.5 py-1.5 text-[10px] font-bold transition ${
+                            isSelected
+                              ? 'border-indigo-500 bg-indigo-600 text-white shadow-sm'
+                              : 'border-slate-200 bg-white text-slate-600 hover:border-indigo-300 hover:text-indigo-700 disabled:cursor-not-allowed disabled:opacity-40'
+                          }`}
+                        >
+                          <span className="mr-1">{trait.icon}</span>
+                          {trait.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
                 <div className="md:col-span-4">
                   <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Short Bio Statement (Optional)</label>
                   <textarea 
@@ -804,7 +864,7 @@ export default function RosterView({ players, onAddPlayer, onSelectPlayer, onExp
           )}
 
           {activeRoster.length > 0 ? (
-            <div id="roster-grid" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div id="roster-grid" className="grid grid-cols-1 items-stretch sm:grid-cols-2 lg:grid-cols-4 gap-4">
               {activeRoster.map((player) => {
                 const ovr = calculateOVR(player.attributes);
                 const attrs = player.attributes;
@@ -858,9 +918,9 @@ export default function RosterView({ players, onAddPlayer, onSelectPlayer, onExp
                     id={`player-${player.id}-card`}
                     key={player.id}
                     whileHover={{ y: -6, scale: 1.02 }}
-                    className="rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition-all cursor-pointer group flex flex-col"
+                    className="h-full rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition-all cursor-pointer group flex flex-col"
                     style={{
-                      background: 'linear-gradient(180deg, #1a1a2e 0%, #1a1a2e 50%, #16213e 100%)'
+                      background: '#1a1a2e'
                     }}
                     onClick={() => onSelectPlayer(player)}
                   >
@@ -947,7 +1007,7 @@ export default function RosterView({ players, onAddPlayer, onSelectPlayer, onExp
                     </div>
 
                     {/* Traits + age footer */}
-                    <div className="px-3.5 pb-3 flex items-center justify-between gap-2 bg-[#1a1a2e]">
+                    <div className="mt-auto min-h-10 px-3.5 pb-3 flex items-end justify-between gap-2 bg-[#1a1a2e]">
                       <div className="flex flex-wrap gap-1 max-w-[60%]">
                         {player.specialtyTraits && player.specialtyTraits.length > 0 ? (
                           player.specialtyTraits.slice(0, 2).map(trait => (
@@ -972,6 +1032,7 @@ export default function RosterView({ players, onAddPlayer, onSelectPlayer, onExp
                         {player.height && <span className="text-[10px] font-bold text-white/50">{player.height} cm</span>}
                       </div>
                     </div>
+
                   </motion.div>
                 );
               })}
