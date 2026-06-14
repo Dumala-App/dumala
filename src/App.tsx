@@ -10,6 +10,7 @@ import PlayerProfileModal from './components/PlayerProfileModal';
 import TacticsView from './components/TacticsView';
 import TrainingView from './components/TrainingView';
 import OnboardingView from './components/OnboardingView';
+import FeedbackModal from './components/FeedbackModal';
 
 import { 
   Shield, 
@@ -22,7 +23,8 @@ import {
   X,
   Sliders,
   Dumbbell,
-  RotateCcw
+  RotateCcw,
+  MessageSquare
 } from 'lucide-react';
 import { AnimatePresence } from 'motion/react';
 
@@ -367,6 +369,7 @@ export default function App() {
   };
 
   const [showResetConfirm, setShowResetConfirm] = useState(false);
+  const [showFeedback, setShowFeedback] = useState(false);
 
   const confirmResetApp = () => {
     localStorage.clear();
@@ -529,9 +532,22 @@ export default function App() {
           </div>
           <div className="flex gap-2 shrink-0">
             <span className="text-[10px] bg-emerald-50 text-emerald-700 font-bold px-2.5 py-1 rounded-lg border border-emerald-100">Saved locally</span>
+            <button
+              onClick={() => setShowFeedback(true)}
+              className="flex items-center gap-1 rounded-lg border border-indigo-100 bg-indigo-50 px-2.5 py-1 text-[10px] font-bold text-indigo-700 transition-colors hover:border-indigo-200 hover:bg-indigo-100"
+            >
+              <MessageSquare size={10} /> Feedback
+            </button>
             <button onClick={() => setShowResetConfirm(true)} className="text-[10px] bg-slate-50 text-slate-600 font-bold px-2.5 py-1 rounded-lg border border-slate-200 hover:bg-rose-50 hover:text-rose-700 hover:border-rose-100 transition-colors flex items-center gap-1"><RotateCcw size={10} /> Reset</button>
           </div>
         </div>
+
+        {showFeedback && (
+          <FeedbackModal
+            teamName={teamInfo.name}
+            onClose={() => setShowFeedback(false)}
+          />
+        )}
 
         {showResetConfirm && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4">

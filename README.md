@@ -10,6 +10,7 @@ A local-first sports club management web application for running a single team f
 - Maintain league standings, discipline history, and match awards
 - Build weekly plans from a 52-drill training library
 - Create tactics, lineups, announcements, and JSON backups
+- Collect tester feedback from inside the workspace and deliver it by email
 
 ## Data and testing limitations
 
