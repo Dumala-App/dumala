@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { Player, isStaffPosition, STAFF_POSITIONS, SPECIALTY_TRAITS, SpecialtyTrait } from '../types';
+import { Player, isStaffPosition, STAFF_POSITIONS, SPECIALTY_TRAITS, SpecialtyTrait, POSITION_ATTRIBUTES_MAP } from '../types';
 import { 
   UserPlus, Search, Shield, Plus, AlertCircle, Download, Upload,
   Award, ArrowLeftRight, Mail, Phone, Calendar
@@ -91,14 +91,20 @@ export default function RosterView({ players, onAddPlayer, onSelectPlayer, onExp
 
     const playerPhoto = newPlayerPhoto || getPlayerPlaceholder(newPlayerPos);
 
-    const statsTemplate = {
-      speed: Math.floor(Math.random() * 25) + 68,
-      shooting: Math.floor(Math.random() * 30) + 55,
-      passing: Math.floor(Math.random() * 30) + 58,
-      dribbling: Math.floor(Math.random() * 30) + 55,
-      defending: Math.floor(Math.random() * 45) + 38,
-      physicalness: Math.floor(Math.random() * 25) + 63
+    const baseAttributes = {
+      pace: Math.floor(Math.random() * 25) + 68,
+      stamina: Math.floor(Math.random() * 25) + 68,
+      agility: Math.floor(Math.random() * 25) + 68,
+      strength: Math.floor(Math.random() * 25) + 63,
+      firstTouch: Math.floor(Math.random() * 30) + 55,
+      shortPassing: Math.floor(Math.random() * 30) + 58
     };
+
+    const posKeys = POSITION_ATTRIBUTES_MAP[newPlayerPos] || [];
+    const positionAttributes: Record<string, number> = {};
+    posKeys.forEach(key => {
+      positionAttributes[key] = Math.floor(Math.random() * 30) + 55;
+    });
 
     const newPlayer: Player = {
       id: "p_" + Date.now(),
@@ -119,7 +125,8 @@ export default function RosterView({ players, onAddPlayer, onSelectPlayer, onExp
       mvpAwards: 0,
       yellowCards: 0,
       redCards: 0,
-      attributes: statsTemplate,
+      baseAttributes,
+      positionAttributes,
       registrationStatus: 'Active'
     };
 
@@ -173,14 +180,15 @@ export default function RosterView({ players, onAddPlayer, onSelectPlayer, onExp
       mvpAwards: 0,
       yellowCards: 0,
       redCards: 0,
-      attributes: {
-        speed: 50,
-        shooting: 50,
-        passing: 50,
-        dribbling: 50,
-        defending: 50,
-        physicalness: 50
+      baseAttributes: {
+        pace: 50,
+        stamina: 50,
+        agility: 50,
+        strength: 50,
+        firstTouch: 50,
+        shortPassing: 50
       },
+      positionAttributes: {},
       registrationStatus: 'Active'
     };
 
@@ -199,33 +207,41 @@ export default function RosterView({ players, onAddPlayer, onSelectPlayer, onExp
   };
 
   // Helper calculating dynamic player OVR
-  const calculateOVR = (attrs: Player['attributes']) => {
-    return Math.round(
-      (attrs.speed + 
-       attrs.shooting + 
-       attrs.passing + 
-       attrs.dribbling + 
-       attrs.defending + 
-       attrs.physicalness) / 6
-    );
+  const calculateOVR = (bAttrs: Player['baseAttributes'], pAttrs: Player['positionAttributes']) => {
+    if (!bAttrs) return 50;
+    
+    // Average base stats
+    const baseAvg = (bAttrs.pace + bAttrs.stamina + bAttrs.agility + bAttrs.strength + bAttrs.firstTouch + bAttrs.shortPassing) / 6;
+    
+    // Average position stats if they exist
+    const posKeys = Object.keys(pAttrs || {});
+    let posAvg = 0;
+    if (posKeys.length > 0) {
+      posAvg = posKeys.reduce((sum, key) => sum + pAttrs[key], 0) / posKeys.length;
+    }
+    
+    // Weighted combination: 60% base, 40% positional
+    return Math.round(posKeys.length > 0 ? (baseAvg * 0.6) + (posAvg * 0.4) : baseAvg);
   };
 
   // Helper getting deterministic specialized badges
   const getSpecializedTag = (player: Player) => {
-    const attrs = player.attributes;
-    const highestAttr = Object.entries(attrs).reduce((prev, curr) => prev[1] > curr[1] ? prev : curr);
+    const bAttrs = player.baseAttributes;
+    if (!bAttrs) return { label: "Stamina Tank", icon: "💪", style: "bg-slate-900/80 text-slate-200 border-slate-500/30" };
+    
+    const highestAttr = Object.entries(bAttrs).reduce((prev, curr) => prev[1] > curr[1] ? prev : curr);
     
     switch (highestAttr[0]) {
-      case 'speed': 
+      case 'pace': 
         return { label: "Speedster", icon: "⚡", style: "bg-blue-900/80 text-blue-200 border-blue-500/30" };
-      case 'shooting': 
-        return { label: "Sniper", icon: "🎯", style: "bg-rose-905 bg-rose-900/80 text-rose-200 border-rose-500/30" };
-      case 'passing': 
+      case 'strength': 
+        return { label: "Powerhouse", icon: "🏋️", style: "bg-rose-900/80 text-rose-200 border-rose-500/30" };
+      case 'shortPassing': 
         return { label: "Maestro", icon: "🪄", style: "bg-emerald-900/80 text-emerald-200 border-emerald-500/30" };
-      case 'dribbling': 
+      case 'agility': 
         return { label: "Magician", icon: "🕺", style: "bg-amber-900/80 text-amber-200 border-amber-500/30" };
-      case 'defending': 
-        return { label: "Sentinel", icon: "🧱", style: "bg-purple-900/80 text-purple-200 border-purple-500/30" };
+      case 'firstTouch': 
+        return { label: "Velcro", icon: "🧲", style: "bg-purple-900/80 text-purple-200 border-purple-500/30" };
       default: 
         return { label: "Stamina Tank", icon: "💪", style: "bg-slate-900/80 text-slate-200 border-slate-500/30" };
     }
@@ -866,8 +882,9 @@ export default function RosterView({ players, onAddPlayer, onSelectPlayer, onExp
           {activeRoster.length > 0 ? (
             <div id="roster-grid" className="grid grid-cols-1 items-stretch sm:grid-cols-2 lg:grid-cols-4 gap-4">
               {activeRoster.map((player) => {
-                const ovr = calculateOVR(player.attributes);
-                const attrs = player.attributes;
+                const ovr = calculateOVR(player.baseAttributes, player.positionAttributes);
+                const bAttr = player.baseAttributes || { pace: 50, stamina: 50, agility: 50, strength: 50, firstTouch: 50, shortPassing: 50 };
+                const pAttr = player.positionAttributes || {};
 
                 // Position-aware colors
                 const posColors: Record<string, string> = {
@@ -883,31 +900,31 @@ export default function RosterView({ players, onAddPlayer, onSelectPlayer, onExp
                 const getTopAttrs = () => {
                   if (player.position === 'Goalkeeper') {
                     return [
-                      { label: 'DIV', value: attrs.speed, color: 'bg-sky-500' },
-                      { label: 'HAN', value: attrs.defending, color: 'bg-yellow-500' },
-                      { label: 'KIC', value: attrs.shooting, color: 'bg-rose-500' },
-                      { label: 'REF', value: attrs.dribbling, color: 'bg-amber-500' }
+                      { label: 'DIV', value: pAttr['Diving'] || 50, color: 'bg-sky-500' },
+                      { label: 'HAN', value: pAttr['Handling'] || 50, color: 'bg-yellow-500' },
+                      { label: 'REF', value: pAttr['Reflexes'] || 50, color: 'bg-rose-500' },
+                      { label: 'PAC', value: bAttr.pace, color: 'bg-emerald-500' }
                     ];
                   } else if (player.position === 'Defender') {
                     return [
-                      { label: 'DEF', value: attrs.defending, color: 'bg-sky-500' },
-                      { label: 'PHY', value: attrs.physicalness, color: 'bg-purple-500' },
-                      { label: 'PAC', value: attrs.speed, color: 'bg-indigo-500' },
-                      { label: 'PAS', value: attrs.passing, color: 'bg-emerald-500' }
+                      { label: 'TAC', value: pAttr['Tackling'] || 50, color: 'bg-sky-500' },
+                      { label: 'STR', value: bAttr.strength, color: 'bg-purple-500' },
+                      { label: 'PAC', value: bAttr.pace, color: 'bg-indigo-500' },
+                      { label: 'PAS', value: bAttr.shortPassing, color: 'bg-emerald-500' }
                     ];
                   } else if (player.position === 'Midfielder') {
                     return [
-                      { label: 'PAS', value: attrs.passing, color: 'bg-emerald-500' },
-                      { label: 'DRI', value: attrs.dribbling, color: 'bg-amber-500' },
-                      { label: 'SHO', value: attrs.shooting, color: 'bg-rose-500' },
-                      { label: 'DEF', value: attrs.defending, color: 'bg-sky-500' }
+                      { label: 'PAS', value: bAttr.shortPassing, color: 'bg-emerald-500' },
+                      { label: 'VIS', value: pAttr['Vision'] || 50, color: 'bg-amber-500' },
+                      { label: 'AGI', value: bAttr.agility, color: 'bg-rose-500' },
+                      { label: 'STA', value: bAttr.stamina, color: 'bg-amber-400' }
                     ];
                   } else { // Forward
                     return [
-                      { label: 'SHO', value: attrs.shooting, color: 'bg-rose-500' },
-                      { label: 'PAC', value: attrs.speed, color: 'bg-indigo-500' },
-                      { label: 'DRI', value: attrs.dribbling, color: 'bg-amber-500' },
-                      { label: 'PHY', value: attrs.physicalness, color: 'bg-purple-500' }
+                      { label: 'FIN', value: pAttr['Finishing'] || 50, color: 'bg-rose-500' },
+                      { label: 'PAC', value: bAttr.pace, color: 'bg-indigo-500' },
+                      { label: 'AGI', value: bAttr.agility, color: 'bg-amber-500' },
+                      { label: 'STR', value: bAttr.strength, color: 'bg-purple-500' }
                     ];
                   }
                 };

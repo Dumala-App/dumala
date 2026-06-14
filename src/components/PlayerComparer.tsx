@@ -49,41 +49,57 @@ export default function PlayerComparer({
 
   // Helper calculating dynamic player OVR
   const calculateOVR = (player: Player) => {
-    const { speed, shooting, passing, dribbling, defending, physicalness } = player.attributes;
-    return Math.round((speed + shooting + passing + dribbling + defending + physicalness) / 6);
+    const bAttrs = player.baseAttributes;
+    if (!bAttrs) return 50;
+    
+    const baseAvg = (bAttrs.pace + bAttrs.stamina + bAttrs.agility + bAttrs.strength + bAttrs.firstTouch + bAttrs.shortPassing) / 6;
+    
+    const pAttrs = player.positionAttributes || {};
+    const posKeys = Object.keys(pAttrs);
+    let posAvg = 0;
+    if (posKeys.length > 0) {
+      posAvg = posKeys.reduce((sum, key) => sum + pAttrs[key], 0) / posKeys.length;
+    }
+    
+    return Math.round(posKeys.length > 0 ? (baseAvg * 0.6) + (posAvg * 0.4) : baseAvg);
   };
 
   // Construct Radar Chart Data
+  const getPlayerBaseAttr = (p: Player | null, attrKey: keyof Player['baseAttributes']) => {
+    if (!p || !p.baseAttributes) return 0;
+    return p.baseAttributes[attrKey];
+  };
+
   const radarData = [
     {
       attribute: 'Pace',
-      [player1?.name || 'Player 1']: player1?.attributes.speed || 0,
-      [player2?.name || 'Player 2']: player2?.attributes.speed || 0,
+      [player1?.name || 'Player 1']: getPlayerBaseAttr(player1, 'pace'),
+      [player2?.name || 'Player 2']: getPlayerBaseAttr(player2, 'pace'),
     },
     {
-      attribute: 'Shooting',
-      [player1?.name || 'Player 1']: player1?.attributes.shooting || 0,
-      [player2?.name || 'Player 2']: player2?.attributes.shooting || 0,
+      attribute: 'Stamina',
+      [player1?.name || 'Player 1']: getPlayerBaseAttr(player1, 'stamina'),
+      [player2?.name || 'Player 2']: getPlayerBaseAttr(player2, 'stamina'),
+    },
+    {
+      attribute: 'Agility',
+      [player1?.name || 'Player 1']: getPlayerBaseAttr(player1, 'agility'),
+      [player2?.name || 'Player 2']: getPlayerBaseAttr(player2, 'agility'),
+    },
+    {
+      attribute: 'Strength',
+      [player1?.name || 'Player 1']: getPlayerBaseAttr(player1, 'strength'),
+      [player2?.name || 'Player 2']: getPlayerBaseAttr(player2, 'strength'),
+    },
+    {
+      attribute: '1st Touch',
+      [player1?.name || 'Player 1']: getPlayerBaseAttr(player1, 'firstTouch'),
+      [player2?.name || 'Player 2']: getPlayerBaseAttr(player2, 'firstTouch'),
     },
     {
       attribute: 'Passing',
-      [player1?.name || 'Player 1']: player1?.attributes.passing || 0,
-      [player2?.name || 'Player 2']: player2?.attributes.passing || 0,
-    },
-    {
-      attribute: 'Dribbling',
-      [player1?.name || 'Player 1']: player1?.attributes.dribbling || 0,
-      [player2?.name || 'Player 2']: player2?.attributes.dribbling || 0,
-    },
-    {
-      attribute: 'Defending',
-      [player1?.name || 'Player 1']: player1?.attributes.defending || 0,
-      [player2?.name || 'Player 2']: player2?.attributes.defending || 0,
-    },
-    {
-      attribute: 'Physical',
-      [player1?.name || 'Player 1']: player1?.attributes.physicalness || 0,
-      [player2?.name || 'Player 2']: player2?.attributes.physicalness || 0,
+      [player1?.name || 'Player 1']: getPlayerBaseAttr(player1, 'shortPassing'),
+      [player2?.name || 'Player 2']: getPlayerBaseAttr(player2, 'shortPassing'),
     },
   ];
 
@@ -99,12 +115,12 @@ export default function PlayerComparer({
 
     // Attribute comparison definitions
     const attrs = [
-      { name: 'Pace', p1: player1.attributes.speed, p2: player2.attributes.speed },
-      { name: 'Shooting', p1: player1.attributes.shooting, p2: player2.attributes.shooting },
-      { name: 'Passing', p1: player1.attributes.passing, p2: player2.attributes.passing },
-      { name: 'Dribbling', p1: player1.attributes.dribbling, p2: player2.attributes.dribbling },
-      { name: 'Defending', p1: player1.attributes.defending, p2: player2.attributes.defending },
-      { name: 'Physical', p1: player1.attributes.physicalness, p2: player2.attributes.physicalness },
+      { name: 'Pace', p1: getPlayerBaseAttr(player1, 'pace'), p2: getPlayerBaseAttr(player2, 'pace') },
+      { name: 'Stamina', p1: getPlayerBaseAttr(player1, 'stamina'), p2: getPlayerBaseAttr(player2, 'stamina') },
+      { name: 'Agility', p1: getPlayerBaseAttr(player1, 'agility'), p2: getPlayerBaseAttr(player2, 'agility') },
+      { name: 'Strength', p1: getPlayerBaseAttr(player1, 'strength'), p2: getPlayerBaseAttr(player2, 'strength') },
+      { name: '1st Touch', p1: getPlayerBaseAttr(player1, 'firstTouch'), p2: getPlayerBaseAttr(player2, 'firstTouch') },
+      { name: 'Passing', p1: getPlayerBaseAttr(player1, 'shortPassing'), p2: getPlayerBaseAttr(player2, 'shortPassing') },
     ];
 
     const p1Best = attrs.reduce((prev, curr) => curr.p1 > prev.p1 ? curr : prev, attrs[0]);
@@ -121,23 +137,23 @@ export default function PlayerComparer({
     }
 
     // Identify specific attribute domains
-    const paceDiff = player1.attributes.speed - player2.attributes.speed;
-    const shootDiff = player1.attributes.shooting - player2.attributes.shooting;
-    const defenseDiff = player1.attributes.defending - player2.attributes.defending;
+    const paceDiff = getPlayerBaseAttr(player1, 'pace') - getPlayerBaseAttr(player2, 'pace');
+    const strengthDiff = getPlayerBaseAttr(player1, 'strength') - getPlayerBaseAttr(player2, 'strength');
+    const passDiff = getPlayerBaseAttr(player1, 'shortPassing') - getPlayerBaseAttr(player2, 'shortPassing');
 
     if (Math.abs(paceDiff) > 10) {
       const faster = paceDiff > 0 ? player1 : player2;
-      analysisString += `Specifically, ${faster.name} has a distinct pace advantage (+${Math.abs(paceDiff)} Speed), establishing strong counter-attacking capacity. `;
+      analysisString += `Specifically, ${faster.name} has a distinct pace advantage (+${Math.abs(paceDiff)} Pace), establishing strong counter-attacking capacity. `;
     }
 
-    if (Math.abs(shootDiff) > 12) {
-      const sharper = shootDiff > 0 ? player1 : player2;
-      analysisString += `${sharper.name} demonstrates sharper ball striking (+${Math.abs(shootDiff)} Shooting) to act as a primary scoring threat. `;
+    if (Math.abs(strengthDiff) > 12) {
+      const stronger = strengthDiff > 0 ? player1 : player2;
+      analysisString += `${stronger.name} demonstrates superior physicality (+${Math.abs(strengthDiff)} Strength) to act as a primary duel winner. `;
     }
 
-    if (Math.abs(defenseDiff) > 12) {
-      const defender = defenseDiff > 0 ? player1 : player2;
-      analysisString += `In shielding scenarios, ${defender.name} excels as a defensive anchor (+${Math.abs(defenseDiff)} Defending). `;
+    if (Math.abs(passDiff) > 12) {
+      const passer = passDiff > 0 ? player1 : player2;
+      analysisString += `In possession scenarios, ${passer.name} excels as a distributor (+${Math.abs(passDiff)} Passing). `;
     }
 
     return analysisString || `Both players bring balanced athletic work-rates, with minimal statistical variance across primary metrics. Ideal for fluid team interchange.`;

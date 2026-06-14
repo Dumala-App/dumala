@@ -81,24 +81,44 @@ Prepare for shared data and multi-user use cases.
 ### Exit condition
 The product is no longer limited to one browser as the only durable home of team data.
 
-## Phase 4: Stronger Operations Product
+## Phase 4: Football Player Rating & Development System
 
 ### Goal
-Turn the app from a local club workspace into a stronger operations product.
+Move beyond raw stats to structured player growth and benchmark tracking.
 
 ### Product priorities
-1. Expand training into true session planning with progress tracking and attendance.
-2. Decide whether tactics should become a flagship feature with richer planning and sharing.
-3. Add stronger reporting and season analytics (player trends, match-by-match breakdowns).
-4. Add league- or club-level import/export workflows if real customer use requires them.
+1. Create a structured player rating model combining coach input, match output, and drill execution.
+2. Establish positional benchmarks (forwards, midfielders, defenders, goalkeepers) across age bands.
+3. Track individual player development, regression, and readiness over time.
+4. Compare player growth against team averages and individual targets.
+5. Turn training sessions into measurable development signals rather than just scheduled events.
 
 ### Technical priorities
-1. Support richer historical event storage instead of only aggregate values.
-2. Add stronger auditability for important state changes (discipline, MVP, standings edits).
-3. Consider extracting event history into an independent event log.
+1. Build a time-series event engine for tracking rating changes.
+2. Introduce a scoring algorithm that normalizes different data types (e.g. subjective coach ratings vs objective clean sheets).
 
 ### Exit condition
-The product offers clear differentiation beyond a local admin dashboard and has a stronger long-term product identity.
+The product offers clear differentiation beyond a local admin dashboard by actively helping coaches evaluate and develop talent over a season.
+
+## Phase 5: AI Assistant & Advanced Match Intelligence
+
+### Goal
+Turn captured operational data into active coaching support and strategic intelligence.
+
+### Product priorities
+1. **AI Game & Training Analysis:** Analyze recent matches and training loads to summarize team performance.
+2. **AI Drill Recommendations:** Automatically suggest specific drills from the 52-drill library based on identified squad weaknesses and player development gaps.
+3. **AI Pre-Match Briefings:** Generate automated tactical focus points and opponent preparation checklists.
+4. Add tactical pattern recognition and trend analysis by player, unit, and squad.
+5. Consider video or event-linked analysis integration if requested by high-tier users.
+
+### Technical priorities
+1. Clarify and document the AI backend contract.
+2. Build the prompt engineering and context-assembly pipeline for pre-match and post-match AI generation.
+3. Introduce AI-generated coaching notes and development flags safely into the UI.
+
+### Exit condition
+The product acts as an intelligent assistant that helps coaches make faster, better decisions, proving the value of the underlying operational data.
 
 ## Suggested order of work
 

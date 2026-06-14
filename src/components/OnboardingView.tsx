@@ -52,14 +52,15 @@ export default function OnboardingView({ onComplete }: OnboardingViewProps) {
       mvpAwards: 0,
       yellowCards: 0,
       redCards: 0,
-      attributes: {
-        speed: 60,
-        shooting: 60,
-        passing: 75,
-        dribbling: 65,
-        defending: 65,
-        physicalness: 60
+      baseAttributes: {
+        pace: 60,
+        stamina: 60,
+        agility: 65,
+        strength: 60,
+        firstTouch: 65,
+        shortPassing: 75
       },
+      positionAttributes: {},
       registrationStatus: 'Active'
     };
 

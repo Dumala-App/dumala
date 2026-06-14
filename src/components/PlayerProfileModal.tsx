@@ -72,7 +72,8 @@ export default function PlayerProfileModal({ player, onClose, onUpdate, onRemove
   const [staffSince, setStaffSince] = useState(player.since || '');
   const [staffBio, setStaffBio] = useState(bio);
 
-  const [attributes, setAttributes] = useState(player.attributes);
+  const [baseAttributes, setBaseAttributes] = useState(player.baseAttributes || { pace: 50, stamina: 50, agility: 50, strength: 50, firstTouch: 50, shortPassing: 50 });
+  const [positionAttributes, setPositionAttributes] = useState(player.positionAttributes || {});
 
   const progressionData = useMemo(() => {
     const isGoalkeeper = position === 'Goalkeeper';
@@ -157,14 +158,22 @@ export default function PlayerProfileModal({ player, onClose, onUpdate, onRemove
         mvpAwards: Number(mvpAwards),
         yellowCards: Number(yellowCards),
         redCards: Number(redCards),
-        attributes
+        baseAttributes,
+        positionAttributes
       });
     }
     setIsEditing(false);
   };
 
-  const handleAttrChange = (key: keyof typeof player.attributes, val: number) => {
-    setAttributes(prev => ({
+  const handleBaseAttrChange = (key: keyof Player['baseAttributes'], val: number) => {
+    setBaseAttributes(prev => ({
+      ...prev,
+      [key]: val
+    }));
+  };
+
+  const handlePosAttrChange = (key: string, val: number) => {
+    setPositionAttributes(prev => ({
       ...prev,
       [key]: val
     }));
@@ -917,226 +926,108 @@ export default function PlayerProfileModal({ player, onClose, onUpdate, onRemove
             )}
           </div>
 
-          {/* Section B: Fifa Skill Radar metrics */}
-          <div className="bg-white p-4.5 rounded-xl shadow-sm border border-slate-200/50 flex flex-col justify-between">
-            <div className="space-y-3.5">
-              <h3 className="text-[10px] font-mono font-black uppercase tracking-wider text-slate-400 mb-2 flex items-center gap-1.5">
-                <Shield size={13} className="text-indigo-600" /> Ability Attributes
-              </h3>
+            {/* Section B: Base & Positional Attributes */}
+            <div className="bg-white p-4.5 rounded-xl shadow-sm border border-slate-200/50 flex flex-col justify-between">
+              <div className="space-y-3.5">
+                <h3 className="text-[10px] font-mono font-black uppercase tracking-wider text-slate-400 mb-2 flex items-center gap-1.5">
+                  <Shield size={13} className="text-indigo-600" /> Base Attributes
+                </h3>
 
-              {/* Overall Rating - top of attributes */}
-              <div className="flex items-center justify-between bg-slate-50 rounded-xl p-3 border border-slate-100">
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 bg-slate-900 rounded-full flex items-center justify-center border-2 border-amber-400 shadow-md shrink-0">
-                    <span id="overall-rating-score" className="text-base font-mono font-black text-amber-400">
-                      {Math.round(
-                        (attributes.speed + 
-                         attributes.shooting + 
-                         attributes.passing + 
-                         attributes.dribbling + 
-                         attributes.defending + 
-                         attributes.physicalness) / 6
-                      )}
-                    </span>
-                  </div>
-                  <div className="min-w-0">
-                    <span className="block text-[10px] text-slate-400 font-mono font-bold uppercase tracking-wider">Overall Rating</span>
-                    <span className="block text-[11px] text-slate-700 font-semibold leading-none">
-                      {Math.round((attributes.speed + attributes.shooting + attributes.passing + attributes.dribbling + attributes.defending + attributes.physicalness) / 6) >= 80 
-                        ? 'Elite Talent'
-                        : Math.round((attributes.speed + attributes.shooting + attributes.passing + attributes.dribbling + attributes.defending + attributes.physicalness) / 6) >= 70
-                        ? 'Reliable Starter'
-                        : 'Developing Asset'
-                      }
-                    </span>
-                  </div>
-                </div>
-                <span className="text-[9px] font-mono bg-white text-slate-500 px-2.5 py-1 rounded border border-slate-200 uppercase font-bold tracking-wider">Metric OVR</span>
-              </div>
-
-              {/* Separator */}
-              <div className="border-t border-slate-100" />
-
-              <div id="attributes-bars" className="space-y-2.5">
-                {/* Speed / Reflexes / Pace */}
-                <div className="space-y-1">
-                  <div className="flex justify-between text-[11px] font-bold">
-                    <span className="text-slate-500">
-                      {position === 'Goalkeeper' ? '🧤 Reflexes & Diving' : position === 'Defender' ? '⚡ Recovery Pace' : '⚡ Pace & Speed'}
-                    </span>
-                    <span className="text-indigo-650 font-mono">{attributes.speed}/99</span>
-                  </div>
-                  {isEditing ? (
-                    <input 
-                      id="edit-attr-speed"
-                      type="range" 
-                      min="10" 
-                      max="99" 
-                      value={attributes.speed} 
-                      onChange={e => handleAttrChange('speed', Number(e.target.value))}
-                      className="w-full accent-indigo-600 h-1.5"
-                    />
-                  ) : (
-                    <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
-                      <motion.div 
-                        initial={{ width: 0 }} 
-                        animate={{ width: `${attributes.speed}%` }} 
-                        transition={{ duration: 0.5 }}
-                        className={`h-full rounded-full ${position === 'Goalkeeper' ? 'bg-sky-500' : 'bg-indigo-500'}`} 
-                      />
+                {/* Overall Rating - top of attributes */}
+                <div className="flex items-center justify-between bg-slate-50 rounded-xl p-3 border border-slate-100">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 bg-slate-900 rounded-full flex items-center justify-center border-2 border-amber-400 shadow-md shrink-0">
+                      <span className="text-xl font-display font-black text-white">
+                        {Math.round((
+                          baseAttributes.pace + 
+                          baseAttributes.stamina + 
+                          baseAttributes.agility + 
+                          baseAttributes.strength + 
+                          baseAttributes.firstTouch + 
+                          baseAttributes.shortPassing
+                        ) / 6 * 0.6 + 
+                        (Object.keys(positionAttributes).length > 0 
+                          ? (Object.values(positionAttributes) as number[]).reduce((a: number, b: number) => a + b, 0) / Object.keys(positionAttributes).length * 0.4 
+                          : (baseAttributes.pace + baseAttributes.stamina + baseAttributes.agility + baseAttributes.strength + baseAttributes.firstTouch + baseAttributes.shortPassing) / 6 * 0.4)
+                        )}
+                      </span>
                     </div>
-                  )}
+                    <div>
+                      <div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Calculated OVR</div>
+                      <div className="text-xs font-semibold text-slate-700">Algorithm Rating</div>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-[10px] font-bold text-indigo-500 bg-indigo-50 px-2 py-0.5 rounded uppercase tracking-widest inline-block">
+                      {player.position} Model
+                    </div>
+                  </div>
                 </div>
 
-                {/* Shooting / Kicking / Aerial */}
-                <div className="space-y-1">
-                  <div className="flex justify-between text-[11px] font-bold">
-                    <span className="text-slate-500">
-                      {position === 'Goalkeeper' ? '🥾 Kicking & Distribution' : position === 'Defender' ? '🎯 Aerial Ability' : '🎯 Shooting & Finish'}
-                    </span>
-                    <span className="text-indigo-650 font-mono">{attributes.shooting}/99</span>
-                  </div>
-                  {isEditing ? (
-                    <input 
-                      id="edit-attr-shooting"
-                      type="range" 
-                      min="10" 
-                      max="99" 
-                      value={attributes.shooting} 
-                      onChange={e => handleAttrChange('shooting', Number(e.target.value))}
-                      className="w-full accent-indigo-600 h-1.5"
-                    />
-                  ) : (
-                    <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
-                      <motion.div 
-                        initial={{ width: 0 }} 
-                        animate={{ width: `${attributes.shooting}%` }} 
-                        transition={{ duration: 0.5 }}
-                        className="h-full bg-rose-500 rounded-full" 
-                      />
-                    </div>
-                  )}
+                <div className="grid grid-cols-2 gap-x-5 gap-y-2.5">
+                  {Object.entries(baseAttributes).map(([key, value]) => {
+                    const label = key === 'shortPassing' ? 'Short Pass' : key === 'firstTouch' ? 'First Touch' : key;
+                    const displayLabel = label.charAt(0).toUpperCase() + label.slice(1);
+                    return (
+                      <div key={key} className="flex flex-col gap-1 text-[10px]">
+                        <div className="flex justify-between font-bold text-slate-600">
+                          <span className="uppercase tracking-wider">{displayLabel}</span>
+                          <span className="font-mono">{value}</span>
+                        </div>
+                        {isEditing ? (
+                          <input 
+                            type="range" 
+                            min="1" max="99" 
+                            value={value} 
+                            onChange={(e) => handleBaseAttrChange(key as keyof Player['baseAttributes'], Number(e.target.value))}
+                            className="w-full h-1 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-indigo-600"
+                          />
+                        ) : (
+                          <div className="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
+                            <div 
+                              className="bg-indigo-500 h-1.5 rounded-full transition-all duration-500" 
+                              style={{ width: `${value}%` }} 
+                            />
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
 
-                {/* Passing / Throwing / Vision */}
-                <div className="space-y-1">
-                  <div className="flex justify-between text-[11px] font-bold">
-                    <span className="text-slate-500">
-                      {position === 'Goalkeeper' ? '🤾 Throwing & Range' : '👟 Passing & Vision'}
-                    </span>
-                    <span className="text-indigo-650 font-mono">{attributes.passing}/99</span>
-                  </div>
-                  {isEditing ? (
-                    <input 
-                      id="edit-attr-passing"
-                      type="range" 
-                      min="10" 
-                      max="99" 
-                      value={attributes.passing} 
-                      onChange={e => handleAttrChange('passing', Number(e.target.value))}
-                      className="w-full accent-indigo-600 h-1.5"
-                    />
-                  ) : (
-                    <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
-                      <motion.div 
-                        initial={{ width: 0 }} 
-                        animate={{ width: `${attributes.passing}%` }} 
-                        transition={{ duration: 0.5 }}
-                        className="h-full bg-emerald-500 rounded-full" 
-                      />
+                {Object.keys(positionAttributes).length > 0 && (
+                  <>
+                    <h3 className="text-[10px] font-mono font-black uppercase tracking-wider text-slate-400 mt-4 mb-2 flex items-center gap-1.5 pt-4 border-t border-slate-100">
+                      <Shield size={13} className="text-amber-500" /> Position Attributes
+                    </h3>
+                    <div className="grid grid-cols-2 gap-x-5 gap-y-2.5">
+                      {Object.entries(positionAttributes).map(([key, value]) => (
+                        <div key={key} className="flex flex-col gap-1 text-[10px]">
+                          <div className="flex justify-between font-bold text-slate-600">
+                            <span className="uppercase tracking-wider truncate mr-1">{key}</span>
+                            <span className="font-mono">{value}</span>
+                          </div>
+                          {isEditing ? (
+                            <input 
+                              type="range" 
+                              min="1" max="99" 
+                              value={value} 
+                              onChange={(e) => handlePosAttrChange(key, Number(e.target.value))}
+                              className="w-full h-1 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-amber-500"
+                            />
+                          ) : (
+                            <div className="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
+                              <div 
+                                className="bg-amber-500 h-1.5 rounded-full transition-all duration-500" 
+                                style={{ width: `${value}%` }} 
+                              />
+                            </div>
+                          )}
+                        </div>
+                      ))}
                     </div>
-                  )}
-                </div>
-
-                {/* Dribbling / Agility / Ball Control */}
-                <div className="space-y-1">
-                  <div className="flex justify-between text-[11px] font-bold">
-                    <span className="text-slate-500">
-                      {position === 'Goalkeeper' ? '🤸 Agility & Footwork' : position === 'Defender' ? '🕺 Ball Control' : '🕺 Dribble & Control'}
-                    </span>
-                    <span className="text-indigo-650 font-mono">{attributes.dribbling}/99</span>
-                  </div>
-                  {isEditing ? (
-                    <input 
-                      id="edit-attr-dribbling"
-                      type="range" 
-                      min="10" 
-                      max="99" 
-                      value={attributes.dribbling} 
-                      onChange={e => handleAttrChange('dribbling', Number(e.target.value))}
-                      className="w-full accent-indigo-600 h-1.5"
-                    />
-                  ) : (
-                    <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
-                      <motion.div 
-                        initial={{ width: 0 }} 
-                        animate={{ width: `${attributes.dribbling}%` }} 
-                        transition={{ duration: 0.5 }}
-                        className="h-full bg-amber-500 rounded-full" 
-                      />
-                    </div>
-                  )}
-                </div>
-
-                {/* Defending / Handling / Tackling */}
-                <div className="space-y-1">
-                  <div className="flex justify-between text-[11px] font-bold">
-                    <span className="text-slate-500">
-                      {position === 'Goalkeeper' ? '🧤 Shot Handling' : position === 'Defender' ? '🧱 Tackling & Marking' : '🧱 Defensive Guard'}
-                    </span>
-                    <span className="text-indigo-650 font-mono">{attributes.defending}/99</span>
-                  </div>
-                  {isEditing ? (
-                    <input 
-                      id="edit-attr-defending"
-                      type="range" 
-                      min="10" 
-                      max="99" 
-                      value={attributes.defending} 
-                      onChange={e => handleAttrChange('defending', Number(e.target.value))}
-                      className="w-full accent-indigo-600 h-1.5"
-                    />
-                  ) : (
-                    <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
-                      <motion.div 
-                        initial={{ width: 0 }} 
-                        animate={{ width: `${attributes.defending}%` }} 
-                        transition={{ duration: 0.5 }}
-                        className={`h-full rounded-full ${position === 'Goalkeeper' ? 'bg-yellow-500' : 'bg-sky-500'}`} 
-                      />
-                    </div>
-                  )}
-                </div>
-
-                {/* Physicalness / Command / Strength */}
-                <div className="space-y-1">
-                  <div className="flex justify-between text-[11px] font-bold">
-                    <span className="text-slate-500">
-                      {position === 'Goalkeeper' ? '📢 Command & Presence' : position === 'Defender' ? '💪 Strength & Aerial' : '💪 Physicality & Cardio'}
-                    </span>
-                    <span className="text-indigo-650 font-mono">{attributes.physicalness}/99</span>
-                  </div>
-                  {isEditing ? (
-                    <input 
-                      id="edit-attr-phys"
-                      type="range" 
-                      min="10" 
-                      max="99" 
-                      value={attributes.physicalness} 
-                      onChange={e => handleAttrChange('physicalness', Number(e.target.value))}
-                      className="w-full accent-indigo-600 h-1.5"
-                    />
-                  ) : (
-                    <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
-                      <motion.div 
-                        initial={{ width: 0 }} 
-                        animate={{ width: `${attributes.physicalness}%` }} 
-                        transition={{ duration: 0.5 }}
-                        className="h-full bg-purple-500 rounded-full" 
-                      />
-                    </div>
-                  )}
-                </div>
+                  </>
+                )}
               </div>
             </div>
 
@@ -1154,14 +1045,14 @@ export default function PlayerProfileModal({ player, onClose, onUpdate, onRemove
                   <div className="text-slate-400 font-bold mb-0.5">Key Strength</div>
                   <div className="font-mono font-black text-slate-700 text-[9px] leading-tight">
                     {(() => {
-                      const topAttr = Object.entries(attributes).reduce((a, b) => a[1] > b[1] ? a : b);
+                      const topAttr = Object.entries(baseAttributes).reduce((a, b) => a[1] > b[1] ? a : b);
                       const labels: Record<string, string> = {
-                        speed: position === 'Goalkeeper' ? 'Reflexes' : 'Pace',
-                        shooting: position === 'Goalkeeper' ? 'Kicking' : 'Shooting',
-                        passing: 'Passing',
-                        dribbling: 'Dribbling',
-                        defending: position === 'Goalkeeper' ? 'Handling' : 'Defending',
-                        physicalness: 'Physical'
+                        pace: 'Pace',
+                        stamina: 'Stamina',
+                        agility: 'Agility',
+                        strength: 'Strength',
+                        firstTouch: 'First Touch',
+                        shortPassing: 'Passing'
                       };
                       return `${labels[topAttr[0]]} (${topAttr[1]})`;
                     })()}
@@ -1185,7 +1076,6 @@ export default function PlayerProfileModal({ player, onClose, onUpdate, onRemove
                 </div>
               </div>
             </div>
-          </div>
 
           {/* Points Progression Chart - Fullwidth footer span */}
           <div id="points-progression-chart-card" className="col-span-1 md:col-span-2 bg-white p-4.5 rounded-xl shadow-sm border border-slate-200/50">

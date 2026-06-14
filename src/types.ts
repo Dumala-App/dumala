@@ -40,16 +40,25 @@ export interface Player {
   yellowCards: number;
   redCards: number;
   offenses?: PlayerOffense[];
-  attributes: {
-    speed: number;
-    shooting: number;
-    passing: number;
-    dribbling: number;
-    defending: number;
-    physicalness: number;
+  baseAttributes: {
+    pace: number;
+    stamina: number;
+    agility: number;
+    strength: number;
+    firstTouch: number;
+    shortPassing: number;
   };
+  positionAttributes: Record<string, number>;
+  attributes?: any; // Deprecated, kept for migration type safety
   registrationStatus: 'Active' | 'Pending' | 'Suspended';
 }
+
+export const POSITION_ATTRIBUTES_MAP: Record<string, string[]> = {
+  Forward: ['Finishing', 'Long Shots', 'Offensive 1v1', 'Attacking Heading'],
+  Midfielder: ['Long Passing', 'Vision', 'Ball Retention', 'Pressing'],
+  Defender: ['Tackling', 'Defensive Heading', 'Positioning', 'Crossing'],
+  Goalkeeper: ['Reflexes', 'Handling', 'Diving', 'Distribution']
+};
 
 export interface SpecialtyTrait {
   label: string;

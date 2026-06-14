@@ -10,6 +10,7 @@ import PlayerProfileModal from './components/PlayerProfileModal';
 import TacticsView from './components/TacticsView';
 import TrainingView from './components/TrainingView';
 import OnboardingView from './components/OnboardingView';
+import UpdatesView from './components/UpdatesView';
 import FeedbackModal from './components/FeedbackModal';
 
 import { 
@@ -24,7 +25,8 @@ import {
   Sliders,
   Dumbbell,
   RotateCcw,
-  MessageSquare
+  MessageSquare,
+  NotebookPen
 } from 'lucide-react';
 import { AnimatePresence } from 'motion/react';
 
@@ -32,7 +34,7 @@ export default function App() {
   const [isOnboarded, setIsOnboarded] = useState<boolean>(() => {
     return localStorage.getItem('stack_team_onboarded') === 'true' || localStorage.getItem('stack_team_info') !== null;
   });
-  const [currentTab, setCurrentTab] = useState<'dashboard' | 'roster' | 'schedule' | 'standings' | 'announcements' | 'tactics' | 'training'>('dashboard');
+  const [currentTab, setCurrentTab] = useState<'dashboard' | 'roster' | 'schedule' | 'standings' | 'announcements' | 'tactics' | 'training' | 'updates'>('dashboard');
   
   // Local Storage state hooks
   const [teamInfo, setTeamInfo] = useState<TeamInfo | null>(() => {
@@ -46,13 +48,62 @@ export default function App() {
     if (saved) {
       try {
         const parsed = JSON.parse(saved) as Player[];
-        // Migrate: ensure all players have yellowCards/redCards fields
-        return parsed.map(p => ({
-          ...p,
-          yellowCards: typeof p.yellowCards === 'number' ? p.yellowCards : 0,
-          redCards: typeof p.redCards === 'number' ? p.redCards : 0,
-          offenses: Array.isArray(p.offenses) ? p.offenses : []
-        }));
+        // Migrate: ensure all players have yellowCards/redCards fields and new attribute schema
+        return parsed.map(p => {
+          let baseAttributes = p.baseAttributes;
+          let positionAttributes = p.positionAttributes;
+          
+          // Migrate old attributes to new schema if baseAttributes doesn't exist
+          if (!baseAttributes && p.attributes) {
+            baseAttributes = {
+              pace: p.attributes.speed || 50,
+              stamina: p.attributes.physicalness || 50,
+              agility: p.attributes.dribbling || 50,
+              strength: p.attributes.physicalness || 50,
+              firstTouch: p.attributes.dribbling || 50,
+              shortPassing: p.attributes.passing || 50
+            };
+            
+            // Map old shooting/defending to position attributes based on role
+            positionAttributes = {};
+            const posAttrs = ['Finishing', 'Long Shots', 'Offensive 1v1', 'Attacking Heading', 
+                             'Long Passing', 'Vision', 'Ball Retention', 'Pressing',
+                             'Tackling', 'Defensive Heading', 'Positioning', 'Crossing',
+                             'Reflexes', 'Handling', 'Diving', 'Distribution'];
+                             
+            // Just populate standard defaults mapped loosely from old stats
+            const primaryOffense = p.attributes.shooting || 50;
+            const primaryDefense = p.attributes.defending || 50;
+            const primaryPass = p.attributes.passing || 50;
+            
+            if (p.position === 'Forward') {
+              positionAttributes = { 'Finishing': primaryOffense, 'Long Shots': primaryOffense, 'Offensive 1v1': p.attributes.dribbling || 50, 'Attacking Heading': primaryOffense };
+            } else if (p.position === 'Midfielder') {
+              positionAttributes = { 'Long Passing': primaryPass, 'Vision': primaryPass, 'Ball Retention': p.attributes.dribbling || 50, 'Pressing': primaryDefense };
+            } else if (p.position === 'Defender') {
+              positionAttributes = { 'Tackling': primaryDefense, 'Defensive Heading': primaryDefense, 'Positioning': primaryDefense, 'Crossing': primaryPass };
+            } else if (p.position === 'Goalkeeper') {
+              positionAttributes = { 'Reflexes': primaryDefense, 'Handling': primaryDefense, 'Diving': primaryDefense, 'Distribution': primaryPass };
+            }
+          }
+
+          // Fallback if completely missing
+          if (!baseAttributes) {
+            baseAttributes = { pace: 50, stamina: 50, agility: 50, strength: 50, firstTouch: 50, shortPassing: 50 };
+          }
+          if (!positionAttributes) {
+            positionAttributes = {};
+          }
+
+          return {
+            ...p,
+            yellowCards: typeof p.yellowCards === 'number' ? p.yellowCards : 0,
+            redCards: typeof p.redCards === 'number' ? p.redCards : 0,
+            offenses: Array.isArray(p.offenses) ? p.offenses : [],
+            baseAttributes,
+            positionAttributes
+          };
+        });
       } catch {}
     }
     return [];
@@ -425,7 +476,8 @@ export default function App() {
                 { id: 'training', label: 'Training', icon: Dumbbell },
                 { id: 'schedule', label: 'Schedule', icon: Calendar },
                 { id: 'standings', label: 'League', icon: Trophy },
-                { id: 'announcements', label: 'Updates', icon: Megaphone }
+                { id: 'announcements', label: 'Updates', icon: Megaphone },
+                { id: 'updates', label: 'Dev Notes', icon: NotebookPen }
               ].map((tab) => {
                 const TabIcon = tab.icon;
                 const isActive = currentTab === tab.id;
@@ -474,7 +526,8 @@ export default function App() {
               { id: 'training', label: 'Training', icon: Dumbbell },
               { id: 'schedule', label: 'Schedule', icon: Calendar },
               { id: 'standings', label: 'League', icon: Trophy },
-              { id: 'announcements', label: 'Updates', icon: Megaphone }
+              { id: 'announcements', label: 'Updates', icon: Megaphone },
+              { id: 'updates', label: 'Dev Notes', icon: NotebookPen }
             ].map((tab) => {
               const TabIcon = tab.icon;
               const isActive = currentTab === tab.id;
@@ -623,6 +676,10 @@ export default function App() {
               onAddAnnouncement={handleAddAnnouncement}
               onDeleteAnnouncement={handleDeleteAnnouncement}
             />
+          )}
+
+          {currentTab === 'updates' && (
+            <UpdatesView />
           )}
         </div>
 

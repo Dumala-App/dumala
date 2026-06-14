@@ -1393,21 +1393,21 @@ export default function TrainingView({ players, onUpdatePlayer, games, onUpdateG
     }
   };
 
-  const calculateOVR = (attrs: Player['attributes']) => {
-    return Math.round(
-      (attrs.speed + 
-       attrs.shooting + 
-       attrs.passing + 
-       attrs.dribbling + 
-       attrs.defending + 
-       attrs.physicalness) / 6
-    );
+  const calculateOVR = (bAttrs: Player['baseAttributes'], pAttrs: Player['positionAttributes']) => {
+    if (!bAttrs) return 50;
+    const baseAvg = (bAttrs.pace + bAttrs.stamina + bAttrs.agility + bAttrs.strength + bAttrs.firstTouch + bAttrs.shortPassing) / 6;
+    const posKeys = Object.keys(pAttrs || {});
+    let posAvg = 0;
+    if (posKeys.length > 0) {
+      posAvg = (Object.values(pAttrs) as number[]).reduce((a: number, b: number) => a + b, 0) / posKeys.length;
+    }
+    return Math.round(posKeys.length > 0 ? (baseAvg * 0.6) + (posAvg * 0.4) : baseAvg);
   };
 
   // Find info about a player selected for recommendation
   const recommendedPlayer = players.find(p => p.id === recommendPlayerId);
   const rankedPlayerAttributes = recommendedPlayer
-    ? Object.entries(recommendedPlayer.attributes).sort((a, b) => b[1] - a[1])
+    ? Object.entries(recommendedPlayer.baseAttributes || {}).sort((a, b) => b[1] - a[1])
     : [];
   const strongestPlayerAttributes = rankedPlayerAttributes.slice(0, 2);
   const playerGoalContributions = recommendedPlayer
@@ -1415,23 +1415,22 @@ export default function TrainingView({ players, onUpdatePlayer, games, onUpdateG
     : 0;
 
   const getPlayerGrowthNeeds = (player: Player) => {
-    const attrs = player.attributes;
-    const sorted = Object.entries(attrs).sort((a, b) => a[1] - b[1]);
-    const lowestAttr = sorted[0][0]; // e.g., "shooting"
+    const attrs = player.baseAttributes || { pace: 50, stamina: 50, agility: 50, strength: 50, firstTouch: 50, shortPassing: 50 };
+    const sorted = Object.entries(attrs).sort((a, b) => (a[1] as number) - (b[1] as number));
+    const lowestAttr = sorted[0][0];
     const lowestVal = sorted[0][1];
 
     let positionKeys: string[] = [];
-    if (player.position === 'Forward') positionKeys = ['shooting', 'speed'];
-    else if (player.position === 'Midfielder') positionKeys = ['passing', 'dribbling'];
-    else if (player.position === 'Defender') positionKeys = ['defending', 'physicalness'];
-    else positionKeys = ['defending', 'physicalness']; // Goalkeeper fallback
+    if (player.position === 'Forward') positionKeys = ['pace', 'shortPassing'];
+    else if (player.position === 'Midfielder') positionKeys = ['shortPassing', 'stamina'];
+    else if (player.position === 'Defender') positionKeys = ['strength', 'pace'];
+    else positionKeys = ['agility', 'strength'];
 
     return {
       lowestAttr,
       lowestVal,
       positionKeys,
       isBeneficial: (drill: typeof CRITICAL_DRILLS[0]) => {
-        // Drills beneficial if they boost the weakest attribute or standard key positional attributes
         return drill.targetAttributes.includes(lowestAttr) || 
                drill.targetAttributes.some(attr => positionKeys.includes(attr));
       }
@@ -2144,7 +2143,7 @@ export default function TrainingView({ players, onUpdatePlayer, games, onUpdateG
                 <div className="grid grid-cols-2 gap-2">
                   <div className="bg-slate-950/70 border border-slate-800 rounded-xl p-3">
                     <span className="text-[9px] text-slate-500 uppercase font-bold">Overall rating</span>
-                    <strong className="block text-2xl font-display text-white mt-0.5">{calculateOVR(recommendedPlayer.attributes)}</strong>
+                    <strong className="block text-2xl font-display text-white mt-0.5">{calculateOVR(recommendedPlayer.baseAttributes, recommendedPlayer.positionAttributes)}</strong>
                   </div>
                   <div className="bg-rose-950/30 border border-rose-900/40 rounded-xl p-3">
                     <span className="text-[9px] text-rose-300 uppercase font-bold">Development gap</span>

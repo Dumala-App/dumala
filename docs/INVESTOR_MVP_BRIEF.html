@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Touchline - MVP Brief</title>
+  <style>
+    :root {
+      --bg-color: #f9fafb;
+      --surface-color: #ffffff;
+      --text-main: #111827;
+      --text-muted: #4b5563;
+      --accent: #059669;
+      --accent-dark: #047857;
+      --border: #e5e7eb;
+      --font-display: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      --font-body: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: var(--font-body);
+      background-color: var(--bg-color);
+      color: var(--text-main);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .document-container {
+      max-width: 900px;
+      margin: 0 auto;
+      background: var(--surface-color);
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    }
+
+    /* Print Styles */
+    @media print {
+      body {
+        background-color: white;
+      }
+      .document-container {
+        box-shadow: none;
+        max-width: 100%;
+        margin: 0;
+      }
+      .page-break {
+        page-break-before: always;
+      }
+      .no-break {
+        page-break-inside: avoid;
+      }
+      section {
+        page-break-inside: auto;
+      }
+    }
+
+    h1, h2, h3, h4 {
+      font-family: var(--font-display);
+      font-weight: 700;
+      letter-spacing: -0.025em;
+      color: var(--text-main);
+    }
+
+    h2 {
+      font-size: 1.875rem;
+      margin-bottom: 1rem;
+      padding-bottom: 0.5rem;
+      border-bottom: 2px solid var(--border);
+    }
+
+    h3 {
+      font-size: 1.25rem;
+      margin-top: 1.5rem;
+      margin-bottom: 0.75rem;
+      color: var(--accent-dark);
+    }
+
+    p {
+      margin-bottom: 1rem;
+      color: var(--text-muted);
+    }
+
+    ul {
+      margin-bottom: 1.5rem;
+      padding-left: 1.5rem;
+      color: var(--text-muted);
+    }
+
+    li {
+      margin-bottom: 0.5rem;
+    }
+
+    strong {
+      color: var(--text-main);
+    }
+
+    /* Cover Page */
+    .cover-page {
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: flex-start;
+      padding: 4rem;
+      background-color: var(--text-main);
+      color: white;
+      position: relative;
+    }
+
+    .cover-page h1 {
+      font-size: 4rem;
+      color: white;
+      margin-bottom: 1rem;
+      line-height: 1.1;
+    }
+
+    .cover-page .positioning {
+      font-size: 1.5rem;
+      color: #9ca3af;
+      max-width: 600px;
+      margin-bottom: 3rem;
+    }
+
+    .cover-page .meta {
+      margin-top: auto;
+      border-top: 1px solid #374151;
+      padding-top: 1rem;
+      width: 100%;
+      display: flex;
+      justify-content: space-between;
+      color: #9ca3af;
+      font-size: 0.875rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    /* Content Sections */
+    .content-section {
+      padding: 4rem;
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 2rem;
+      margin-bottom: 2rem;
+    }
+
+    .card {
+      background: var(--bg-color);
+      padding: 1.5rem;
+      border-radius: 0.5rem;
+      border: 1px solid var(--border);
+    }
+
+    .card h4 {
+      font-size: 1.125rem;
+      margin-bottom: 0.5rem;
+      color: var(--text-main);
+    }
+
+    .card p {
+      margin-bottom: 0;
+      font-size: 0.875rem;
+    }
+
+    /* Roadmap Timeline */
+    .timeline {
+      position: relative;
+      padding-left: 2rem;
+      margin-top: 2rem;
+    }
+
+    .timeline::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 2px;
+      background: var(--border);
+    }
+
+    .timeline-item {
+      position: relative;
+      margin-bottom: 2.5rem;
+    }
+
+    .timeline-item::before {
+      content: '';
+      position: absolute;
+      left: -2.35rem;
+      top: 0.25rem;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: var(--accent);
+      border: 2px solid white;
+    }
+
+    .timeline-item h4 {
+      color: var(--accent-dark);
+      margin-bottom: 0.25rem;
+    }
+
+    .timeline-item .phase-title {
+      font-size: 1.25rem;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+      color: var(--text-main);
+    }
+
+    /* Highlight Box */
+    .highlight-box {
+      background: #ecfdf5;
+      border-left: 4px solid var(--accent);
+      padding: 1.5rem;
+      margin: 2rem 0;
+    }
+    
+    .highlight-box p {
+      color: #065f46;
+      margin-bottom: 0;
+      font-weight: 500;
+    }
+
+  </style>
+</head>
+<body>
+
+  <div class="document-container">
+    
+    <!-- COVER PAGE -->
+    <section class="cover-page">
+      <h1>Touchline</h1>
+      <p class="positioning">The AI-assisted football team management system webapp for modern coaches and clubs.</p>
+      
+      <div class="meta">
+        <span>Investor + Internal MVP Brief</span>
+        <span>Version: MVP Brief v1</span>
+        <span>Date: 2026-06-14</span>
+      </div>
+    </section>
+
+    <!-- EXECUTIVE SUMMARY & PROBLEM -->
+    <section class="content-section page-break">
+      <h2>Executive Summary</h2>
+      <p>Football operations at the grassroots, academy, and amateur levels are highly fragmented. Coaches and club managers run their weekly cycles across spreadsheets, chat apps, notebooks, and isolated scheduling tools. <strong>Touchline OS solves this by providing a unified, local-first workspace for daily team operations.</strong></p>
+      <p>The current MVP proves this value by handling roster management, match scheduling, training planning, tactical notes, and discipline tracking in one seamless loop. This established operational habit creates the foundation for our next phase: an AI-assisted intelligence layer that evaluates player development and recommends tactical decisions.</p>
+
+      <div class="highlight-box no-break">
+        <p>"Today: A comprehensive football team management system webapp. Tomorrow: The intelligence layer for coaching and player development."</p>
+      </div>
+
+      <h2 style="margin-top: 3rem;">Problem & Opportunity</h2>
+      <p>Coaches spend too much time administrating and too little time analyzing.</p>
+      <ul>
+        <li><strong>Fragmented Tools:</strong> Important data like player availability, tactical notes, and match history are scattered.</li>
+        <li><strong>Disconnected Development:</strong> What happens in training is rarely mapped cleanly to matchday performance.</li>
+        <li><strong>Intelligence Gap:</strong> Professional clubs have dedicated analysts; smaller clubs and academies rely on memory and gut feeling.</li>
+      </ul>
+      <p>This gap represents a massive opportunity to build an indispensable daily workflow tool that naturally evolves into a high-value intelligence platform.</p>
+    </section>
+
+    <!-- CURRENT MVP -->
+    <section class="content-section page-break">
+      <h2>Current MVP Capabilities</h2>
+      <p>The MVP is live and functional today, operating as a fast, local-first web application. It consolidates fragmented workflows to capture daily coaching habits.</p>
+
+      <div class="grid-2">
+        <div class="card no-break">
+          <h4>Club Setup & Roster</h4>
+          <p>Instantly create a club identity, manage staff, and build a full roster with generated player attributes and editable profiles.</p>
+        </div>
+        <div class="card no-break">
+          <h4>Schedule & Results</h4>
+          <p>Create fixtures and training. Logging a match result automatically updates team standings and player statistics.</p>
+        </div>
+        <div class="card no-break">
+          <h4>Training Library</h4>
+          <p>Plan the week using a built-in 52-drill library featuring positional focuses, execution guides, and 9 preset schedules.</p>
+        </div>
+        <div class="card no-break">
+          <h4>Match Intelligence</h4>
+          <p>Track player availability, review opponent head-to-head records, and draft persistent tactical notes before the match.</p>
+        </div>
+        <div class="card no-break">
+          <h4>Discipline & Awards</h4>
+          <p>Log yellow/red card offenses and Man of the Match awards, complete with historical tracking.</p>
+        </div>
+        <div class="card no-break">
+          <h4>Data Portability</h4>
+          <p>Local-first architecture allows rapid use without backend friction, featuring built-in JSON backup and restore flows.</p>
+        </div>
+      </div>
+      
+      <h3 style="margin-top: 2rem;">Core Workflows</h3>
+      <ul>
+        <li><strong>Weekly Planning:</strong> Schedule the weekend match, check player availability, and drop tactical notes. Assign drills from the library to training days.</li>
+        <li><strong>Matchday:</strong> Review opponent intel. Post-match, record the score, attribute goals, log cards, and award the MVP.</li>
+        <li><strong>Season Tracking:</strong> The dashboard's Squad Summary instantly reflects the updated reality. Standings recalculate automatically.</li>
+      </ul>
+    </section>
+
+    <!-- ROADMAP -->
+    <section class="content-section page-break">
+      <h2>Strategic Roadmap</h2>
+      <p>We are expanding from a local-first operational dashboard to a cloud-backed intelligence platform.</p>
+
+      <div class="timeline">
+        
+        <div class="timeline-item no-break">
+          <h4>Phase A</h4>
+          <div class="phase-title">MVP Stabilization</div>
+          <p>Polish current local-first workflows, improve data validation, and ensure the result-cascade logic is flawless.</p>
+        </div>
+
+        <div class="timeline-item no-break">
+          <h4>Phase B</h4>
+          <div class="phase-title">Shared SaaS Foundation</div>
+          <p>Migrate from local-browser storage to cloud persistence. Introduce user authentication, team accounts, and role-based collaboration (Coach, Admin, Read-Only Player).</p>
+        </div>
+
+        <div class="timeline-item no-break">
+          <h4>Phase C</h4>
+          <div class="phase-title">Football Player Rating & Development System</div>
+          <ul>
+            <li><strong>Role-Specific Benchmarking:</strong> Establish rating models tailored for forwards, midfielders, defenders, and goalkeepers.</li>
+            <li><strong>Development Tracking:</strong> Monitor player progression and regression against team averages and individual targets.</li>
+            <li><strong>Holistic Evaluation:</strong> Combine coach input, match output, and drill execution into a unified development score.</li>
+          </ul>
+        </div>
+
+        <div class="timeline-item no-break">
+          <h4>Phase D</h4>
+          <div class="phase-title">AI Assistant for Coaches</div>
+          <ul>
+            <li><strong>Game & Training Analysis:</strong> AI evaluates recent match results and training loads to summarize team performance.</li>
+            <li><strong>Drill Recommendations:</strong> Automatically suggest specific drills from the library to address identified squad weaknesses.</li>
+            <li><strong>Pre-Match Briefings:</strong> Generate automated tactical focus points and opponent preparation checklists based on historical data.</li>
+          </ul>
+        </div>
+
+        <div class="timeline-item no-break">
+          <h4>Phase E</h4>
+          <div class="phase-title">Advanced Match Intelligence</div>
+          <p>Introduce event-linked analysis, tactical pattern recognition across multiple fixtures, and AI-generated development flags for individual players.</p>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- BUSINESS & CLOSING -->
+    <section class="content-section page-break">
+      <h2>Monetization & Constraints</h2>
+      
+      <h3>Monetization Direction</h3>
+      <p>Planned monetization structure relies on capturing value at the operational level:</p>
+      <ul>
+        <li><strong>Coach Plan:</strong> Core operations, basic analytics, and training tools for the solo manager.</li>
+        <li><strong>Club Plan:</strong> Multi-team management, shared tactical boards, and aggregated reporting.</li>
+        <li><strong>Academy Plan:</strong> Full access to the AI Assistant and the Player Rating System for structured talent tracking.</li>
+      </ul>
+
+      <h3>Risks and Constraints (Current MVP)</h3>
+      <p>The current MVP has intentional limitations designed for rapid testing:</p>
+      <ul>
+        <li><strong>Local-First Only:</strong> Data lives in the browser. No cloud sync or multi-device continuity yet.</li>
+        <li><strong>No Authentication:</strong> Single-user experience without login gates.</li>
+        <li><strong>Analytics are Inferred:</strong> Visual progression charts are currently derived from aggregate totals rather than a deep historical event engine.</li>
+      </ul>
+
+      <h2 style="margin-top: 3rem;">Closing Statement</h2>
+      <p>Touchline uses the immediate necessity of team administration as a wedge to capture daily coaching habits. The current MVP proves that a unified workspace can replace fragmented tools. As we transition from a local-first operational dashboard to a cloud-backed intelligence platform, Touchline will evolve into the definitive AI-assisted system for football development and match strategy.</p>
+    </section>
+
+  </div>
+
+</body>
+</html>

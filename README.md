@@ -62,6 +62,8 @@ A normal static web host also works. Run `npm run build`, then upload the **cont
 
 ## Documentation
 
+- [Investor MVP Brief (Markdown)](docs/INVESTOR_MVP_BRIEF.md)
+- [Investor MVP Brief (Printable HTML)](docs/INVESTOR_MVP_BRIEF.html)
 - [PRD](docs/PRD.md)
 - [MVP](docs/MVP.md)
 - [Architecture](docs/ARCHITECTURE.md)
