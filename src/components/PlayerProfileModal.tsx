@@ -1,0 +1,1203 @@
+import React, { useState, useMemo } from 'react';
+import { Player, SPECIALTY_TRAITS, SpecialtyTrait, isStaffPosition, STAFF_POSITIONS } from '../types';
+import { X, Award, Shield, User, Zap, CircleDot, Activity, Save, Edit2, Briefcase, Calendar, Mail, Phone, AlertTriangle, Clock, Star } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
+import {
+  ResponsiveContainer,
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend
+} from 'recharts';
+
+const CustomTooltip = ({ active, payload, label }: any) => {
+  if (active && payload && payload.length) {
+    const data = payload[0].payload;
+    return (
+      <div className="bg-slate-900 border border-slate-800/80 p-3 rounded-xl shadow-xl text-xs text-white">
+        <p className="font-bold text-amber-400 mb-1.5">{label} vs {data.opponent}</p>
+        <div className="space-y-1 text-slate-300">
+          <p className="flex justify-between gap-6">
+            <span>{data.dataLabel ?? 'Goals Scored'}:</span>
+            <span className="font-mono font-bold text-white">{data.points}</span>
+          </p>
+          <p className="flex justify-between gap-6 border-t border-slate-800 pt-1 mt-1">
+            <span>Season Progression:</span>
+            <span className="font-mono font-bold text-amber-300">{data.cumulative} G</span>
+          </p>
+        </div>
+      </div>
+    );
+  }
+  return null;
+};
+
+interface PlayerProfileModalProps {
+  player: Player;
+  onClose: () => void;
+  onUpdate: (updatedPlayer: Player) => void;
+}
+
+export default function PlayerProfileModal({ player, onClose, onUpdate }: PlayerProfileModalProps) {
+  const isStaff = isStaffPosition(player.position);
+  const [isEditing, setIsEditing] = useState(false);
+  const [name, setName] = useState(player.name);
+  const [number, setNumber] = useState(player.number);
+  const [position, setPosition] = useState(player.position);
+  const [bio, setBio] = useState(player.bio);
+  const [status, setStatus] = useState(player.registrationStatus);
+  const [gamesPlayed, setGamesPlayed] = useState(player.gamesPlayed);
+  const [points, setPoints] = useState(player.points); // Goals
+  const [assists, setAssists] = useState(player.assists);
+  const [cleanSheetsOrRebounds, setCleanSheetsOrRebounds] = useState(player.cleanSheetsOrRebounds);
+  const [minutesPlayed, setMinutesPlayed] = useState(player.minutesPlayed);
+  const [mvpAwards, setMvpAwards] = useState(player.mvpAwards);
+  const [yellowCards, setYellowCards] = useState(player.yellowCards);
+  const [redCards, setRedCards] = useState(player.redCards);
+  const [photoUrl, setPhotoUrl] = useState(player.photoUrl);
+  const [age, setAge] = useState(player.age ?? undefined);
+  const [height, setHeight] = useState(player.height ?? undefined);
+  const [weight, setWeight] = useState(player.weight ?? undefined);
+  const [specialtyTraits, setSpecialtyTraits] = useState<string[]>(player.specialtyTraits || []);
+  const [coachNotes, setCoachNotes] = useState(player.coachNotes || '');
+
+  // Staff-specific state
+  const [staffEmail, setStaffEmail] = useState(player.email || '');
+  const [staffPhone, setStaffPhone] = useState(player.phone || '');
+  const [staffSince, setStaffSince] = useState(player.since || '');
+  const [staffBio, setStaffBio] = useState(bio);
+
+  const [attributes, setAttributes] = useState(player.attributes);
+
+  const progressionData = useMemo(() => {
+    const isGoalkeeper = position === 'Goalkeeper';
+    const sourceValue = isGoalkeeper ? cleanSheetsOrRebounds : points;
+    const weights = [0.15, 0.25, 0.1, 0.3, 0.2];
+    let remaining = sourceValue;
+    const perGame = [0, 0, 0, 0, 0];
+
+    for (let i = 0; i < 4; i++) {
+      const target = Math.round(sourceValue * weights[i]);
+      const val = Math.min(remaining, target);
+      perGame[i] = val;
+      remaining -= val;
+    }
+    perGame[4] = Math.max(0, remaining);
+
+    const currentSum = perGame.reduce((a, b) => a + b, 0);
+    if (currentSum !== sourceValue) {
+      const diff = sourceValue - currentSum;
+      perGame[4] = Math.max(0, perGame[4] + diff);
+      const newSum = perGame.reduce((a, b) => a + b, 0);
+      if (newSum !== sourceValue) {
+        let fillAmt = sourceValue - newSum;
+        perGame[2] = Math.max(0, perGame[2] + fillAmt);
+      }
+    }
+
+    const opponents = [
+      "Glacier Rovers",
+      "Silverback Academy",
+      "Ironclad FC",
+      "Coastal Warriors",
+      "Phoenix Athletic"
+    ];
+
+    let cumulative = 0;
+    const dataLabel = isGoalkeeper ? 'Clean Sheets' : 'Goals Scored';
+    return perGame.map((val, idx) => {
+      cumulative += val;
+      return {
+        name: `Match ${idx + 1}`,
+        opponent: opponents[idx],
+        points: val,
+        cumulative: cumulative,
+        dataLabel
+      };
+    });
+  }, [player.id, points, cleanSheetsOrRebounds, position]);
+
+  const handleSave = () => {
+    if (isStaff) {
+      onUpdate({
+        ...player,
+        name,
+        position,
+        bio: staffBio,
+        photoUrl,
+        email: staffEmail || undefined,
+        phone: staffPhone || undefined,
+        since: staffSince || undefined,
+        registrationStatus: status
+      });
+    } else {
+      onUpdate({
+        ...player,
+        name,
+        number: Number(number),
+        position,
+        bio,
+        photoUrl,
+        age: age || undefined,
+        height: height || undefined,
+        weight: weight || undefined,
+        specialtyTraits: specialtyTraits.length > 0 ? specialtyTraits : undefined,
+        coachNotes: coachNotes || undefined,
+        registrationStatus: status,
+        gamesPlayed: Number(gamesPlayed),
+        points: Number(points),
+        assists: Number(assists),
+        cleanSheetsOrRebounds: Number(cleanSheetsOrRebounds),
+        minutesPlayed: Number(minutesPlayed),
+        mvpAwards: Number(mvpAwards),
+        yellowCards: Number(yellowCards),
+        redCards: Number(redCards),
+        attributes
+      });
+    }
+    setIsEditing(false);
+  };
+
+  const handleAttrChange = (key: keyof typeof player.attributes, val: number) => {
+    setAttributes(prev => ({
+      ...prev,
+      [key]: val
+    }));
+  };
+
+  const getAvailableTraits = (pos: string): SpecialtyTrait[] => SPECIALTY_TRAITS[pos] || [];
+
+  const handleToggleTrait = (traitLabel: string) => {
+    setSpecialtyTraits(prev => {
+      const isRemoving = prev.includes(traitLabel);
+      const next = isRemoving
+        ? prev.filter(t => t !== traitLabel) 
+        : prev.length < 4 ? [...prev, traitLabel] : prev;
+      
+      // Auto-populate coaching verdict templates when selecting traits
+      if (!isRemoving && next.length > prev.length) {
+        const template = TRAIT_VERDICT_TEMPLATES[traitLabel];
+        if (template) {
+          const currentNotes = coachNotes.trim();
+          if (!currentNotes || currentNotes === getDefaultVerdict()) {
+            // First trait or still showing default — replace entirely
+            setCoachNotes(template);
+          } else if (!currentNotes.includes(template)) {
+            // Append the new trait's template as a new paragraph
+            setCoachNotes(currentNotes + '\n\n' + template);
+          }
+        }
+      }
+      return next;
+    });
+  };
+
+  const getDefaultVerdict = () => {
+    if (position === 'Goalkeeper') 
+      return 'Strong last-line presence with commanding box control. Shot-stopping reflex work remains vital to clean sheet consistency across fixtures.';
+    if (position === 'Defender') 
+      return 'Solid defensive anchor with disciplined positional awareness. Key contributor to the backline structure and pressing coordination.';
+    if (position === 'Midfielder')
+      return 'Creative engine in the middle third. Dictates tempo, links phases of play, and provides consistent progressive distribution.';
+    return 'Clinical in the final third with intelligent movement off the ball. Reliable goal threat and key catalyst for attacking transition play.';
+  };
+
+  // Trait → Coaching Verdict templates
+  const TRAIT_VERDICT_TEMPLATES: Record<string, string> = {
+    'Speedster': 'Pure pace merchant who stretches defensive lines at will. Deploy in counter-attacking phases and use overlapping runs to exploit channels. Opposition fullbacks must stay compact when this player is on the pitch.',
+    'Clinical Finisher': 'Ice-cool in front of goal with elite composure under pressure. Trust in 1v1 situations and ensure service arrives in the box early. Converts half-chances into goals at an above-average rate.',
+    'Target Man': 'Physical focal point who holds up play and brings others into the attack. Feed to feet or chest, allow runners to break beyond. Dominant in aerial duels – target corners and crosses to the back post.',
+    'Dribbler': 'Close-control specialist who can unlock tight defensive blocks with individual flair. Give license to take on defenders in the final third. Isolate against slower fullbacks to create overloads.',
+    'Poacher': 'Instinctive goal-sniffer who thrives on loose balls, rebounds, and defensive mistakes inside the box. Position near the penalty spot and react before markers can adjust. Not heavily involved in build-up but decisive in the final action.',
+    'False 9': 'Intelligent withdrawn striker who drops into midfield to create numerical superiority and disrupt defensive shape. Encourages center-backs to step out, opening lanes for onrushing wingers and midfield runners.',
+    'Winger': 'Wide outlet who provides width and service from the flanks. Encourage early crosses and cutback deliveries. Defensively responsible to track the opposing fullback on transitions.',
+    'First Touch': 'Immaculate ball reception under pressure. Excellent at killing difficult passes and setting up the next move in one fluid motion. Ideal for high-tempo combination play in congested areas.',
+    'Aerial Threat': 'Dominant in the air at both ends of the pitch. A set-piece weapon in attack and a commanding clearing presence in defense. Target on attacking corners and stay goal-side on defensive set plays.',
+    'Counter Attack': 'Deadly in transition moments. Springs forward at the first sign of possession turnover. Needs early release passes into space to maximize acceleration against retreating defenses.',
+    'Link-Up Play': 'Intelligent connector who bridges defense, midfield, and attack through clever layoffs and one-touch combinations. Key to maintaining possession rhythm in the middle and final thirds.',
+    'Chip Shot': 'Creative finisher with flair. Capable of lifting the ball over advancing goalkeepers with precision. Encourage to attempt when the keeper is off their line or charging out.',
+    'Playmaker': 'Creative hub of the team. Dictates tempo, finds pockets of space, and supplies the forwards with progressive passes. Build possession through this player and give freedom to roam between the lines.',
+    'Box-to-Box': 'Relentless engine that covers every blade of grass. Contributes at both ends of the pitch with late runs into the box and recovery tackles. Essential for maintaining intensity across 90 minutes.',
+    'Deep Lying': `Quarterback from deep positions who controls the game's rhythm. Splits defensive lines with long diagonals and switches of play. Protects the backline while initiating attacking sequences.`,
+    'Engine': 'High-capacity runner who maintains work rate from the first whistle to the last. Covers teammates, fills gaps, and provides constant passing options. Undroppable in high-intensity systems.',
+    'Long Shot Taker': 'Threat from distance who keeps goalkeepers honest. Look for shooting opportunities from 20+ yards when defenses sit deep. Deflections and rebounds create secondary chances.',
+    'Set Piece Specialist': 'Dead-ball expert delivering consistent quality from corners, free kicks, and penalties. Assign as the primary taker for all set-piece situations. Curl, power, or placement — reads the moment.',
+    'Anchor': 'Shield in front of the defense who breaks up opposition play and distributes simply to more creative teammates. Stay positionally disciplined and avoid being drawn out of the defensive shape.',
+    'Tempo Setter': `Controls match rhythm with intelligent short passing and movement. Knows when to slow down to kill opposition momentum or speed up to exploit fatigue. The team's metronome.`,
+    'Through Ball': 'Specialist in unlocking defenses with perfectly weighted passes splitting lines. Look for runs from forwards and wingers cutting inside. Vision and execution separate this player from ordinary distributors.',
+    'Ball Winner': 'Aggressive presser who excels at regaining possession in midfield. Trigger the press when the opposition faces their own goal. Creates transition moments from turnovers high up the pitch.',
+    'Vision': 'Sees passes others cannot. Scanning constantly to identify runners and space. Excels at switching play and executing no-look passes that wrong-foot defensive shapes.',
+    'Wall': 'Immovable defensive rock who blocks shots, wins headers, and reads danger before it develops. Organize the backline around this player. Let them take the lead on defensive shape and engagement triggers.',
+    'Ball-Playing CB': 'Modern center-back who starts attacks from deep. Comfortable carrying the ball into midfield and breaking lines with passes. Build possession from the back through this defender.',
+    'Sweeper': 'Last line of defense who reads the game and cleans up danger behind the backline. Position to cover through balls and coordinate the offside trap. Must communicate constantly with the defensive line.',
+    'Wingback Overlap': 'Athletic wide defender who provides attacking width and crosses from advanced positions. Synchronize with the winger to create 2v1 overloads. Must have the stamina to recover defensively.',
+    'Man Marker': `Shadows the opposition's most dangerous attacker and neutralizes their influence. Stay touch-tight, anticipate runs, and deny space. Disrupt rhythm through physical presence and concentration.`,
+    'Aerial Dominant': 'Commands the air with authority. Wins headers in both boxes and clears danger on set pieces. A crucial asset on attacking corners as a primary target.',
+    'Tackling Machine': 'Combative defender who wins duels with precision timing and physical intensity. Clean slide tackles and well-judged interceptions define this player. Opposition dribblers think twice before engaging.',
+    'Last-Ditch Tackle': 'Desperation specialist who makes goal-saving challenges when all seems lost. Reads the moment perfectly to block, slide, or intercept at the last possible instant. Reliable cover for defensive gaps.',
+    'Offside Trap': `Master of the defensive line who coordinates the back four's step-up timing. Anticipates through balls and catches attackers in offside positions with disciplined positioning.`,
+    'Crossing Expert': 'Precision delivery from wide areas into dangerous zones. Can whip, float, or drive crosses depending on the situation. Look for target players making near-post and far-post runs.',
+    'Leadership': 'Vocal organizer who commands respect and sets standards throughout the squad. Leads by example with body language, work ethic, and communication. Natural choice for captaincy responsibilities.',
+    'Shot Stopper': 'Reflex-based goalkeeper who excels at reaction saves from close range. Spread big in 1v1 situations. Dominates the goal line with cat-like agility and fearless diving.',
+    'Sweeper Keeper': 'Modern goalkeeper who plays high off the line to sweep up through balls and act as an 11th outfield player in possession. Must have excellent judgment and footwork to avoid being caught out.',
+    'Penalty Specialist': `Elite penalty-saving record with psychological edge over takers. Research opponents' tendencies and use mind games to increase save probability. A weapon in knockout football.`,
+    'Commanding Presence': 'Dominates the penalty area with authority. Claims crosses confidently and organizes the defense with loud, clear communication. Players feel secure knowing this keeper owns the box.',
+    'Reflex King': 'Lightning-fast reactions from close range. Explosive diving and quick footwork make this keeper near-impossible to beat from inside the box. Trust instincts in chaotic goalmouth scrambles.',
+    'Distribution Expert': 'Exceptional ball-playing goalkeeper who launches attacks with accurate thrown or kicked distributions. Can bypass the press with long deliveries to wingers or start short passing sequences.',
+    'One-on-One': 'Excels when isolated against an attacker. Closes down angles aggressively and stays big to force the striker into mistakes. Rarely beaten when facing a single opponent bearing down on goal.',
+    'Cross Collector': 'Confidently claims crosses in crowded penalty areas. Strong hands and excellent timing allow commanding collection of high balls, relieving pressure on the defensive line.',
+    'Long Throw': 'Possesses an unusually long throw that functions like a set piece. Can launch the ball deep into the opposition half to start counter-attacks or create goal-scoring opportunities.',
+    'Footwork': `Technically proficient with the ball at feet. Comfortable receiving back-passes under pressure and contributing to the team's build-up play with accurate short and medium-range passing.`
+  };
+
+  return (
+    <div 
+      id="player-profile-overlay"
+      className="fixed inset-0 bg-slate-950/85 backdrop-blur-sm flex justify-center items-start py-6 px-4 z-50 overflow-y-auto"
+      onClick={onClose}
+    >
+      <motion.div 
+        id="player-profile-modal-card"
+        initial={{ opacity: 0, scale: 0.97, y: 10 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.97, y: 10 }}
+        className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden text-slate-800 border border-slate-100 my-auto"
+        onClick={e => e.stopPropagation()}
+      >
+        {/* Modal Header Compact Banner */}
+        <div className="p-5.5 bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white relative border-b border-indigo-900/50">
+          <button 
+            id="close-profile-btn"
+            onClick={onClose}
+            className="absolute top-4.5 right-4.5 bg-white/10 hover:bg-white/20 p-2 rounded-full transition-colors text-white/90 hover:text-white"
+          >
+            <X size={15} />
+          </button>
+          
+          <div className="flex flex-col sm:flex-row items-center gap-5 mt-2">
+            <div className="relative group shrink-0">
+              <img 
+                id="player-profile-img"
+                src={photoUrl} 
+                alt={player.name}
+                className="w-20 h-20 rounded-full object-cover border-3 border-indigo-400/40 shadow-inner"
+                referrerPolicy="no-referrer"
+              />
+              {isEditing && (
+                <>
+                  <input 
+                    id="profile-photo-upload-input"
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        const reader = new FileReader();
+                        reader.onloadend = () => {
+                          if (typeof reader.result === 'string') {
+                            setPhotoUrl(reader.result);
+                          }
+                        };
+                        reader.readAsDataURL(file);
+                      }
+                    }}
+                    className="hidden"
+                  />
+                  <button 
+                    type="button"
+                    onClick={() => document.getElementById('profile-photo-upload-input')?.click()}
+                    className="absolute inset-0 bg-slate-950/75 hover:bg-slate-950/85 rounded-full flex flex-col items-center justify-center text-white text-[9px] font-black uppercase tracking-wider transition-all border border-indigo-500/30 cursor-pointer"
+                  >
+                    <span>Upload</span>
+                    <span>Photo</span>
+                  </button>
+                </>
+              )}
+            </div>
+            
+            <div className="text-center sm:text-left flex-1 min-w-0 space-y-2">
+              <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
+                {!isStaff && (
+                  <span id="player-profile-jersey" className="bg-amber-400 text-slate-950 font-mono font-black px-2 py-0.5 rounded text-[11px] tracking-tight">
+                    #{number}
+                  </span>
+                )}
+                <span id="player-profile-pos" className={`font-bold px-2 py-0.5 rounded text-[11px] border uppercase tracking-wider ${
+                  isStaff ? 'bg-amber-400/20 border-amber-400/30 text-amber-300' : 'bg-white/10 text-slate-100 border-white/10'
+                }`}>
+                  {isStaff && '👔 '}{position}
+                </span>
+                {!isStaff && (
+                  <span id="player-profile-status" className={`text-[10px] uppercase font-black px-2.5 py-0.5 rounded-full ${
+                    status === 'Active' ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' :
+                    status === 'Pending' ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30' :
+                    'bg-rose-500/20 text-rose-300 border border-rose-500/30'
+                  }`}>
+                    ● {status}
+                  </span>
+                )}
+              </div>
+              
+              {isEditing ? (
+                <div className="mt-2.5 flex flex-col sm:flex-row gap-2">
+                  <input 
+                    id="edit-player-name"
+                    type="text" 
+                    value={name} 
+                    onChange={e => setName(e.target.value)}
+                    className="bg-white/15 border border-white/20 text-white px-3 py-1.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-400 font-display font-bold text-lg w-full max-w-[240px]"
+                    placeholder={isStaff ? "Staff Name" : "Player Name"}
+                  />
+                  {isStaff ? (
+                    <select
+                      id="edit-staff-role-select"
+                      value={position}
+                      onChange={e => setPosition(e.target.value)}
+                      className="bg-white px-2 py-1.5 rounded-lg text-xs font-bold"
+                    >
+                      {STAFF_POSITIONS.map((role) => (
+                        <option key={role} value={role}>{role}</option>
+                      ))}
+                    </select>
+                  ) : (
+                    <div className="flex gap-2 text-slate-900 shrink-0">
+                      <input 
+                        id="edit-player-number"
+                        type="number" 
+                        value={number} 
+                        placeholder="No."
+                        onChange={e => setNumber(Number(e.target.value))}
+                        className="bg-white px-2.5 py-1.5 rounded-lg w-16 text-xs font-mono font-bold"
+                      />
+                      <select
+                        id="edit-player-pos-select"
+                        value={position}
+                        onChange={e => setPosition(e.target.value)}
+                        className="bg-white px-2 py-1.5 rounded-lg text-xs font-bold"
+                      >
+                        <option value="Forward">Forward</option>
+                        <option value="Midfielder">Midfielder</option>
+                        <option value="Defender">Defender</option>
+                        <option value="Goalkeeper">Goalkeeper</option>
+                      </select>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <h2 id="player-profile-fullname" className="text-xl sm:text-2xl font-display font-black tracking-tight text-white">{name}</h2>
+              )}
+              
+              {/* Physical Profile Chips beside name - only for athletes */}
+              {!isStaff && (player.age || player.height || player.weight) && (
+                <div className="flex flex-wrap items-center gap-1.5 mt-1">
+                  {player.age && (
+                    <span className="text-[10px] bg-white/10 border border-white/15 text-white/80 px-2 py-0.5 rounded-md font-mono font-bold">
+                      {player.age} yrs
+                    </span>
+                  )}
+                  {player.height && (
+                    <span className="text-[10px] bg-white/10 border border-white/15 text-white/80 px-2 py-0.5 rounded-md font-mono font-bold">
+                      {player.height} cm
+                    </span>
+                  )}
+                  {player.weight && (
+                    <span className="text-[10px] bg-white/10 border border-white/15 text-white/80 px-2 py-0.5 rounded-md font-mono font-bold">
+                      {player.weight} kg
+                    </span>
+                  )}
+                </div>
+              )}
+              
+              {!isStaff && (
+                <p id="player-profile-bio-summary" className="text-slate-300 text-xs mt-1.5 leading-relaxed max-w-lg italic font-medium">
+                  {isEditing ? (
+                    <textarea 
+                      id="edit-player-bio"
+                      value={bio}
+                      onChange={e => setBio(e.target.value)}
+                      rows={2}
+                      className="w-full bg-white/10 border border-white/25 rounded-lg p-2 text-white text-xs focus:outline-none focus:ring-2 focus:ring-amber-400 not-italic leading-relaxed font-normal"
+                      placeholder="Enter athlete synopsis or personal bio..."
+                    />
+                  ) : (
+                    `"${bio || 'Highly motivated squad member.'}"`
+                  )}
+                </p>
+              )}
+            </div>
+
+            <div className="shrink-0 pt-2 sm:pt-0">
+              {isEditing ? (
+                <button 
+                  id="save-profile-btn"
+                  onClick={handleSave}
+                  className="bg-amber-400 hover:bg-amber-500 text-slate-950 font-black px-3.5 py-2 rounded-xl transition-all shadow-md flex items-center gap-1.5 text-xs uppercase tracking-wide"
+                >
+                  <Save size={13} /> Save Data
+                </button>
+              ) : (
+                <button 
+                  id="edit-profile-btn"
+                  onClick={() => setIsEditing(true)}
+                  className="bg-white/10 hover:bg-white/20 text-white font-black px-3.5 py-2 rounded-xl transition-all border border-white/15 flex items-center gap-1.5 text-xs uppercase tracking-wide"
+                >
+                  <Edit2 size={13} /> Modify Profile
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Modal Body Info Sections */}
+        {isStaff ? (
+          /* STAFF PROFILE LAYOUT */
+          <div className="p-5 bg-slate-50/50 space-y-4">
+            {/* Staff Bio Card */}
+            <div className="bg-white p-5 rounded-xl shadow-sm border border-slate-200/50">
+              <h3 className="text-[10px] font-mono font-black uppercase tracking-wider text-slate-400 mb-3 flex items-center gap-1.5">
+                <Briefcase size={13} className="text-amber-500" /> Staff Profile
+              </h3>
+              {isEditing ? (
+                <textarea
+                  id="edit-staff-bio"
+                  value={staffBio}
+                  onChange={e => setStaffBio(e.target.value)}
+                  rows={5}
+                  placeholder="Write a detailed staff bio covering their background, experience, philosophy, and key responsibilities within the club..."
+                  className="w-full border border-slate-200 rounded-xl p-3 text-xs focus:ring-2 focus:ring-indigo-500 focus:outline-none font-medium leading-relaxed text-slate-700"
+                />
+              ) : (
+                <p className="text-xs text-slate-600 leading-relaxed whitespace-pre-wrap">
+                  {staffBio || 'No biography has been added for this staff member yet.'}
+                </p>
+              )}
+            </div>
+
+            {/* Staff Info Card */}
+            <div className="bg-white p-5 rounded-xl shadow-sm border border-slate-200/50">
+              <h3 className="text-[10px] font-mono font-black uppercase tracking-wider text-slate-400 mb-3 flex items-center gap-1.5">
+                <User size={13} className="text-indigo-600" /> Contact & Details
+              </h3>
+              <div className="space-y-3">
+                <div className="flex items-center gap-3 text-xs">
+                  <Briefcase size={13} className="text-slate-400 shrink-0" />
+                  <span className="text-slate-500 w-20 shrink-0 font-bold uppercase tracking-wider text-[10px]">Role</span>
+                  <span className="text-slate-700 font-bold">{position}</span>
+                </div>
+                {isEditing ? (
+                  <>
+                    <div className="flex items-center gap-3 text-xs">
+                      <Mail size={13} className="text-slate-400 shrink-0" />
+                      <span className="text-slate-500 w-20 shrink-0 font-bold uppercase tracking-wider text-[10px]">Email</span>
+                      <input
+                        id="edit-staff-email"
+                        type="email"
+                        value={staffEmail}
+                        onChange={e => setStaffEmail(e.target.value)}
+                        placeholder="coach@club.com"
+                        className="flex-1 border border-slate-200 rounded-lg p-1.5 text-xs focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                      />
+                    </div>
+                    <div className="flex items-center gap-3 text-xs">
+                      <Phone size={13} className="text-slate-400 shrink-0" />
+                      <span className="text-slate-500 w-20 shrink-0 font-bold uppercase tracking-wider text-[10px]">Phone</span>
+                      <input
+                        id="edit-staff-phone"
+                        type="text"
+                        value={staffPhone}
+                        onChange={e => setStaffPhone(e.target.value)}
+                        placeholder="+1 234 567 890"
+                        className="flex-1 border border-slate-200 rounded-lg p-1.5 text-xs focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                      />
+                    </div>
+                    <div className="flex items-center gap-3 text-xs">
+                      <Calendar size={13} className="text-slate-400 shrink-0" />
+                      <span className="text-slate-500 w-20 shrink-0 font-bold uppercase tracking-wider text-[10px]">Since</span>
+                      <input
+                        id="edit-staff-since"
+                        type="text"
+                        value={staffSince}
+                        onChange={e => setStaffSince(e.target.value)}
+                        placeholder="e.g. Jan 2025"
+                        className="flex-1 border border-slate-200 rounded-lg p-1.5 text-xs focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                      />
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="flex items-center gap-3 text-xs">
+                      <Mail size={13} className="text-slate-400 shrink-0" />
+                      <span className="text-slate-500 w-20 shrink-0 font-bold uppercase tracking-wider text-[10px]">Email</span>
+                      <span className="text-slate-400 italic">{staffEmail || '—'}</span>
+                    </div>
+                    <div className="flex items-center gap-3 text-xs">
+                      <Phone size={13} className="text-slate-400 shrink-0" />
+                      <span className="text-slate-500 w-20 shrink-0 font-bold uppercase tracking-wider text-[10px]">Phone</span>
+                      <span className="text-slate-400 italic">{staffPhone || '—'}</span>
+                    </div>
+                    <div className="flex items-center gap-3 text-xs">
+                      <Calendar size={13} className="text-slate-400 shrink-0" />
+                      <span className="text-slate-500 w-20 shrink-0 font-bold uppercase tracking-wider text-[10px]">Since</span>
+                      <span className="text-slate-400 italic">{staffSince || '—'}</span>
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+
+            {/* Staff Coaching Verdict */}
+            {!isEditing && (
+              <div className="bg-slate-50 rounded-xl p-4 border border-slate-100">
+                <div className="text-[10px] text-slate-400 uppercase tracking-widest font-black mb-1.5 font-mono">Club Stature</div>
+                <p className="text-[11px] text-slate-600 leading-relaxed">
+                  {position.includes('Coach') 
+                    ? 'An integral part of the technical staff, shaping the tactical identity and player development standards of the club.'
+                    : position.includes('Manager')
+                    ? 'A key figure in the operational leadership of the club, ensuring smooth coordination across all departments.'
+                    : position.includes('President') || position.includes('Owner') || position.includes('Founder')
+                    ? 'Foundation-level leadership driving the long-term vision, culture, and strategic direction of the organization.'
+                    : position.includes('Director')
+                    ? 'Oversees a critical department with strategic influence over club operations and long-term planning.'
+                    : position.includes('Treasurer') || position.includes('Secretary')
+                    ? 'Essential administrative pillar ensuring the club runs efficiently behind the scenes.'
+                    : 'Valued member of the club staff contributing to the daily operations and team culture.'
+                  }
+                </p>
+              </div>
+            )}
+          </div>
+        ) : (
+          /* ATHLETE PROFILE LAYOUT */
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5 p-5 bg-slate-50/50">
+          
+          {/* Section A: Season Statistics (Compact layout) */}
+          <div className="bg-white p-4.5 rounded-xl shadow-sm border border-slate-200/50 flex flex-col justify-between">
+            <div className="space-y-3.5">
+              <h3 className="text-[10px] font-mono font-black uppercase tracking-wider text-slate-400 mb-2 flex items-center gap-1.5">
+                <Activity size={13} className="text-indigo-600" /> Season Stats Ledger
+              </h3>
+
+              {isEditing ? (
+                <div className="grid grid-cols-2 gap-2.5 text-xs text-slate-600">
+                  <div>
+                    <label className="block mb-1 font-bold text-slate-400 text-[9px] uppercase tracking-wider">Matches Played</label>
+                    <input 
+                      id="edit-games-played"
+                      type="number" 
+                      value={gamesPlayed} 
+                      onChange={e => setGamesPlayed(Number(e.target.value))}
+                      className="w-full border border-slate-200 rounded-lg p-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none font-mono text-xs font-bold"
+                    />
+                  </div>
+                  <div>
+                    <label className="block mb-1 font-bold text-slate-400 text-[9px] uppercase tracking-wider">Goals Scored</label>
+                    <input 
+                      id="edit-stat-goals"
+                      type="number" 
+                      value={points} 
+                      onChange={e => setPoints(Number(e.target.value))}
+                      className="w-full border border-slate-200 rounded-lg p-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none font-mono text-xs font-bold"
+                    />
+                  </div>
+                  <div>
+                    <label className="block mb-1 font-bold text-slate-400 text-[9px] uppercase tracking-wider">Assists</label>
+                    <input 
+                      id="edit-stat-assists"
+                      type="number" 
+                      value={assists} 
+                      onChange={e => setAssists(Number(e.target.value))}
+                      className="w-full border border-slate-200 rounded-lg p-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none font-mono text-xs font-bold"
+                    />
+                  </div>
+                  <div>
+                    <label className="block mb-1 font-bold text-slate-400 text-[9px] uppercase tracking-wider">
+                      {position === 'Goalkeeper' ? 'Clean Sheets' : position === 'Defender' ? 'Clean Sheets' : 'G+A Combined'}
+                    </label>
+                    <input 
+                      id="edit-stat-sheets"
+                      type="number" 
+                      value={cleanSheetsOrRebounds} 
+                      onChange={e => setCleanSheetsOrRebounds(Number(e.target.value))}
+                      className="w-full border border-slate-200 rounded-lg p-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none font-mono text-xs font-bold"
+                    />
+                  </div>
+                  <div>
+                    <label className="block mb-1 font-bold text-slate-400 text-[9px] uppercase tracking-wider">Mins Placed</label>
+                    <input 
+                      id="edit-stat-mins"
+                      type="number" 
+                      value={minutesPlayed} 
+                      onChange={e => setMinutesPlayed(Number(e.target.value))}
+                      className="w-full border border-slate-200 rounded-lg p-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none font-mono text-xs font-bold"
+                    />
+                  </div>
+                  <div>
+                    <label className="block mb-1 font-bold text-slate-400 text-[9px] uppercase tracking-wider">Total Minutes</label>
+                    <input 
+                      id="edit-stat-mins-total"
+                      type="number" 
+                      value={minutesPlayed} 
+                      onChange={e => setMinutesPlayed(Number(e.target.value))}
+                      className="w-full border border-slate-200 rounded-lg p-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none font-mono text-xs font-bold"
+                    />
+                  </div>
+                  <div>
+                    <label className="block mb-1 font-bold text-slate-400 text-[9px] uppercase tracking-wider">🟨 Yellow Cards</label>
+                    <input 
+                      id="edit-stat-yellows"
+                      type="number" 
+                      min="0"
+                      value={yellowCards} 
+                      onChange={e => setYellowCards(Number(e.target.value))}
+                      className="w-full border border-slate-200 rounded-lg p-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none font-mono text-xs font-bold"
+                    />
+                  </div>
+                  <div>
+                    <label className="block mb-1 font-bold text-slate-400 text-[9px] uppercase tracking-wider">🟥 Red Cards</label>
+                    <input 
+                      id="edit-stat-reds"
+                      type="number" 
+                      min="0"
+                      value={redCards} 
+                      onChange={e => setRedCards(Number(e.target.value))}
+                      className="w-full border border-slate-200 rounded-lg p-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none font-mono text-xs font-bold"
+                    />
+                  </div>
+                  <div>
+                    <label className="block mb-1 font-bold text-slate-400 text-[9px] uppercase tracking-wider">⭐ MVP Awards</label>
+                    <input 
+                      id="edit-stat-mvps"
+                      type="number" 
+                      min="0"
+                      value={mvpAwards} 
+                      onChange={e => setMvpAwards(Number(e.target.value))}
+                      className="w-full border border-slate-200 rounded-lg p-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none font-mono text-xs font-bold"
+                    />
+                  </div>
+                  <div className="col-span-2">
+                    <label className="block mb-1 font-bold text-slate-400 text-[9px] uppercase tracking-wider">Squad Status</label>
+                    <select
+                      id="edit-reg-status"
+                      value={status}
+                      onChange={e => setStatus(e.target.value as Player['registrationStatus'])}
+                      className="w-full border border-slate-200 rounded-lg p-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none bg-white font-bold"
+                    >
+                      <option value="Active">Active</option>
+                      <option value="Pending">Pending</option>
+                      <option value="Suspended">Suspended</option>
+                    </select>
+                  </div>
+                  <div className="col-span-2 grid grid-cols-3 gap-2">
+                    <div>
+                      <label className="block mb-1 font-bold text-slate-400 text-[9px] uppercase tracking-wider">Age</label>
+                      <input 
+                        id="edit-player-age"
+                        type="number" 
+                        min="16" max="45"
+                        value={age ?? ''} 
+                        onChange={e => setAge(e.target.value ? Number(e.target.value) : undefined)}
+                        className="w-full border border-slate-200 rounded-lg p-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none font-mono text-xs font-bold"
+                      />
+                    </div>
+                    <div>
+                      <label className="block mb-1 font-bold text-slate-400 text-[9px] uppercase tracking-wider">Height (cm)</label>
+                      <input 
+                        id="edit-player-height"
+                        type="number" 
+                        min="150" max="210"
+                        value={height ?? ''} 
+                        onChange={e => setHeight(e.target.value ? Number(e.target.value) : undefined)}
+                        className="w-full border border-slate-200 rounded-lg p-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none font-mono text-xs font-bold"
+                      />
+                    </div>
+                    <div>
+                      <label className="block mb-1 font-bold text-slate-400 text-[9px] uppercase tracking-wider">Weight (kg)</label>
+                      <input 
+                        id="edit-player-weight"
+                        type="number" 
+                        min="50" max="120"
+                        value={weight ?? ''} 
+                        onChange={e => setWeight(e.target.value ? Number(e.target.value) : undefined)}
+                        className="w-full border border-slate-200 rounded-lg p-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none font-mono text-xs font-bold"
+                      />
+                    </div>
+                  </div>
+                  <div className="col-span-2">
+                    <label className="block mb-1.5 font-bold text-slate-400 text-[9px] uppercase tracking-wider">
+                      Specialty Traits ({specialtyTraits.length}/4)
+                    </label>
+                    <div className="flex flex-wrap gap-1">
+                      {getAvailableTraits(position).map((trait) => {
+                        const isSelected = specialtyTraits.includes(trait.label);
+                        return (
+                          <button
+                            key={trait.label}
+                            type="button"
+                            onClick={() => handleToggleTrait(trait.label)}
+                            className={`text-[10px] font-bold px-2 py-1 rounded-md border transition-all flex items-center gap-1 ${
+                              isSelected
+                                ? 'bg-indigo-600 border-indigo-600 text-white'
+                                : 'bg-white border-slate-200 text-slate-500 hover:border-indigo-300 hover:text-indigo-600'
+                            }`}
+                          >
+                            <span className="text-xs">{trait.icon}</span>
+                            {trait.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-2 font-medium">
+                  <div id="stat-row-games" className="flex justify-between items-center py-2 border-b border-slate-100 text-xs">
+                    <span className="text-slate-500 flex items-center gap-1.5"><CircleDot size={13} className="text-slate-400" /> Games Played</span>
+                    <span className="font-mono font-bold text-slate-800 text-sm">{gamesPlayed}</span>
+                  </div>
+                  <div id="stat-row-goals" className="flex justify-between items-center py-2 border-b border-slate-100 text-xs">
+                    <span className="text-slate-500 flex items-center gap-1.5"><Zap size={13} className="text-amber-500 fill-amber-500/10" /> Goals Scored</span>
+                    <span className="font-mono font-extrabold text-indigo-600 text-sm">{points}</span>
+                  </div>
+                  <div id="stat-row-assists" className="flex justify-between items-center py-2 border-b border-slate-100 text-xs">
+                    <span className="text-slate-500 flex items-center gap-1.5"><Award size={13} className="text-blue-500" /> Assists Made</span>
+                    <span className="font-mono font-bold text-slate-800 text-sm">{assists}</span>
+                  </div>
+                  <div id="stat-row-sheets" className="flex justify-between items-center py-2 border-b border-slate-100 text-xs">
+                    <span className="text-slate-500 flex items-center gap-1.5">
+                      <Shield size={13} className="text-emerald-500" />
+                      {position === 'Goalkeeper' ? 'Clean Sheets' : position === 'Defender' ? 'Clean Sheets' : 'Goal Contributions'}
+                    </span>
+                    <span className="font-mono font-bold text-slate-800 text-sm">
+                      {position === 'Goalkeeper' || position === 'Defender' ? cleanSheetsOrRebounds : points + assists}
+                    </span>
+                  </div>
+                  <div id="stat-row-mvps" className="flex justify-between items-center py-2 border-b border-slate-100 text-xs">
+                    <span className="text-slate-500 flex items-center gap-1.5"><Clock size={13} className="text-slate-400" /> Total Minutes</span>
+                    <span className="font-mono font-bold text-slate-800 text-sm">{minutesPlayed}</span>
+                  </div>
+                  <div id="stat-row-motm" className="flex justify-between items-center py-2 border-b border-slate-100 text-xs">
+                    <span className="text-slate-500 flex items-center gap-1.5"><Star size={13} className="text-amber-500" /> Man of the Match</span>
+                    <span className="font-mono font-extrabold text-amber-600 text-sm">{mvpAwards > 0 ? `⭐ ${mvpAwards}` : '—'}</span>
+                  </div>
+                  <div id="stat-row-cards" className="flex justify-between items-center py-2 border-b border-slate-100 text-xs">
+                    <span className="text-slate-500 flex items-center gap-1.5"><AlertTriangle size={13} className="text-slate-400" /> Discipline</span>
+                    <span className="font-mono font-bold text-sm">
+                      {player.yellowCards > 0 && <span className="text-amber-600">{player.yellowCards} 🟨</span>}
+                      {player.yellowCards > 0 && player.redCards > 0 && <span className="text-slate-300 mx-1">·</span>}
+                      {player.redCards > 0 && <span className="text-red-600">{player.redCards} 🟥</span>}
+                      {player.yellowCards === 0 && player.redCards === 0 && <span className="text-slate-400">Clean</span>}
+                    </span>
+                  </div>
+                  <div id="stat-row-ratio" className="flex justify-between items-center py-2 text-xs">
+                    <span className="text-slate-500 flex items-center gap-1.5"><User size={13} className="text-slate-400" /> 
+                      {position === 'Goalkeeper' ? 'Saves per Match' : position === 'Defender' ? 'CS per Match' : 'Mins per Goal'}
+                    </span>
+                    <span className="font-mono font-bold text-slate-800 text-sm">
+                      {position === 'Goalkeeper' 
+                        ? (gamesPlayed > 0 ? (cleanSheetsOrRebounds / gamesPlayed).toFixed(1) : '0.0')
+                        : position === 'Defender'
+                        ? (gamesPlayed > 0 ? (cleanSheetsOrRebounds / gamesPlayed).toFixed(1) : '0.0')
+                        : points > 0 ? Math.round(minutesPlayed / points) : minutesPlayed
+                      }{position === 'Goalkeeper' || position === 'Defender' ? '' : 'm'}
+                    </span>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Specialty Traits display only */}
+            {!isEditing && player.specialtyTraits && player.specialtyTraits.length > 0 && (
+              <div className="mt-3 space-y-2.5">
+                <div className="flex items-start gap-3 text-[10px]">
+                  <span className="font-mono font-bold text-slate-400 uppercase tracking-widest shrink-0 mt-0.5">Traits</span>
+                  <div className="flex flex-wrap gap-1">
+                    {player.specialtyTraits.map((traitLabel) => {
+                      const traitDef = SPECIALTY_TRAITS[player.position]?.find(t => t.label === traitLabel);
+                      return (
+                        <span key={traitLabel} className="bg-indigo-50 text-indigo-700 border border-indigo-100 px-2 py-0.5 rounded-md font-bold text-[10px] flex items-center gap-1">
+                          {traitDef?.icon && <span className="text-xs">{traitDef.icon}</span>}
+                          {traitLabel}
+                        </span>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {!isEditing ? (
+              <div className="bg-slate-50 rounded-xl p-3 border border-slate-100 mt-4.5">
+                <div className="text-[10px] text-slate-400 uppercase tracking-widest font-black mb-1 font-mono">Coach's Notes</div>
+                <p className="text-[11px] text-slate-600 leading-relaxed whitespace-pre-wrap">
+                  {player.coachNotes || (
+                    position === 'Goalkeeper' 
+                      ? 'Strong last-line presence with commanding box control. Shot-stopping reflex work remains vital to clean sheet consistency across fixtures.'
+                      : position === 'Defender' 
+                      ? 'Solid defensive anchor with disciplined positional awareness. Key contributor to the backline structure and pressing coordination.'
+                      : position === 'Midfielder'
+                      ? 'Creative engine in the middle third. Dictates tempo, links phases of play, and provides consistent progressive distribution.'
+                      : 'Clinical in the final third with intelligent movement off the ball. Reliable goal threat and key catalyst for attacking transition play.'
+                  )}
+                </p>
+              </div>
+            ) : (
+              <div className="bg-slate-50 rounded-xl p-3 border border-slate-100 mt-4.5">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="text-[10px] text-slate-400 uppercase tracking-widest font-black font-mono">Coach's Notes</div>
+                  <span className="text-[8px] text-slate-400 font-mono">Editable — select traits to auto-populate</span>
+                </div>
+                <textarea
+                  id="edit-coach-notes"
+                  value={coachNotes}
+                  onChange={e => setCoachNotes(e.target.value)}
+                  rows={4}
+                  placeholder="Write your coaching assessment, tactical observations, and development notes for this athlete..."
+                  className="w-full border border-slate-200 rounded-xl p-2.5 text-xs focus:ring-2 focus:ring-indigo-500 focus:outline-none font-medium leading-relaxed text-slate-700 resize-none"
+                />
+                {specialtyTraits.length === 0 && !coachNotes && (
+                  <p className="text-[9px] text-indigo-500 mt-1.5 font-medium">
+                    Select traits to auto-populate the notes, or write your own.
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Section B: Fifa Skill Radar metrics */}
+          <div className="bg-white p-4.5 rounded-xl shadow-sm border border-slate-200/50 flex flex-col justify-between">
+            <div className="space-y-3.5">
+              <h3 className="text-[10px] font-mono font-black uppercase tracking-wider text-slate-400 mb-2 flex items-center gap-1.5">
+                <Shield size={13} className="text-indigo-600" /> Ability Attributes
+              </h3>
+
+              {/* Overall Rating - top of attributes */}
+              <div className="flex items-center justify-between bg-slate-50 rounded-xl p-3 border border-slate-100">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 bg-slate-900 rounded-full flex items-center justify-center border-2 border-amber-400 shadow-md shrink-0">
+                    <span id="overall-rating-score" className="text-base font-mono font-black text-amber-400">
+                      {Math.round(
+                        (attributes.speed + 
+                         attributes.shooting + 
+                         attributes.passing + 
+                         attributes.dribbling + 
+                         attributes.defending + 
+                         attributes.physicalness) / 6
+                      )}
+                    </span>
+                  </div>
+                  <div className="min-w-0">
+                    <span className="block text-[10px] text-slate-400 font-mono font-bold uppercase tracking-wider">Overall Rating</span>
+                    <span className="block text-[11px] text-slate-700 font-semibold leading-none">
+                      {Math.round((attributes.speed + attributes.shooting + attributes.passing + attributes.dribbling + attributes.defending + attributes.physicalness) / 6) >= 80 
+                        ? 'Elite Talent'
+                        : Math.round((attributes.speed + attributes.shooting + attributes.passing + attributes.dribbling + attributes.defending + attributes.physicalness) / 6) >= 70
+                        ? 'Reliable Starter'
+                        : 'Developing Asset'
+                      }
+                    </span>
+                  </div>
+                </div>
+                <span className="text-[9px] font-mono bg-white text-slate-500 px-2.5 py-1 rounded border border-slate-200 uppercase font-bold tracking-wider">Metric OVR</span>
+              </div>
+
+              {/* Separator */}
+              <div className="border-t border-slate-100" />
+
+              <div id="attributes-bars" className="space-y-2.5">
+                {/* Speed / Reflexes / Pace */}
+                <div className="space-y-1">
+                  <div className="flex justify-between text-[11px] font-bold">
+                    <span className="text-slate-500">
+                      {position === 'Goalkeeper' ? '🧤 Reflexes & Diving' : position === 'Defender' ? '⚡ Recovery Pace' : '⚡ Pace & Speed'}
+                    </span>
+                    <span className="text-indigo-650 font-mono">{attributes.speed}/99</span>
+                  </div>
+                  {isEditing ? (
+                    <input 
+                      id="edit-attr-speed"
+                      type="range" 
+                      min="10" 
+                      max="99" 
+                      value={attributes.speed} 
+                      onChange={e => handleAttrChange('speed', Number(e.target.value))}
+                      className="w-full accent-indigo-600 h-1.5"
+                    />
+                  ) : (
+                    <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
+                      <motion.div 
+                        initial={{ width: 0 }} 
+                        animate={{ width: `${attributes.speed}%` }} 
+                        transition={{ duration: 0.5 }}
+                        className={`h-full rounded-full ${position === 'Goalkeeper' ? 'bg-sky-500' : 'bg-indigo-500'}`} 
+                      />
+                    </div>
+                  )}
+                </div>
+
+                {/* Shooting / Kicking / Aerial */}
+                <div className="space-y-1">
+                  <div className="flex justify-between text-[11px] font-bold">
+                    <span className="text-slate-500">
+                      {position === 'Goalkeeper' ? '🥾 Kicking & Distribution' : position === 'Defender' ? '🎯 Aerial Ability' : '🎯 Shooting & Finish'}
+                    </span>
+                    <span className="text-indigo-650 font-mono">{attributes.shooting}/99</span>
+                  </div>
+                  {isEditing ? (
+                    <input 
+                      id="edit-attr-shooting"
+                      type="range" 
+                      min="10" 
+                      max="99" 
+                      value={attributes.shooting} 
+                      onChange={e => handleAttrChange('shooting', Number(e.target.value))}
+                      className="w-full accent-indigo-600 h-1.5"
+                    />
+                  ) : (
+                    <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
+                      <motion.div 
+                        initial={{ width: 0 }} 
+                        animate={{ width: `${attributes.shooting}%` }} 
+                        transition={{ duration: 0.5 }}
+                        className="h-full bg-rose-500 rounded-full" 
+                      />
+                    </div>
+                  )}
+                </div>
+
+                {/* Passing / Throwing / Vision */}
+                <div className="space-y-1">
+                  <div className="flex justify-between text-[11px] font-bold">
+                    <span className="text-slate-500">
+                      {position === 'Goalkeeper' ? '🤾 Throwing & Range' : '👟 Passing & Vision'}
+                    </span>
+                    <span className="text-indigo-650 font-mono">{attributes.passing}/99</span>
+                  </div>
+                  {isEditing ? (
+                    <input 
+                      id="edit-attr-passing"
+                      type="range" 
+                      min="10" 
+                      max="99" 
+                      value={attributes.passing} 
+                      onChange={e => handleAttrChange('passing', Number(e.target.value))}
+                      className="w-full accent-indigo-600 h-1.5"
+                    />
+                  ) : (
+                    <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
+                      <motion.div 
+                        initial={{ width: 0 }} 
+                        animate={{ width: `${attributes.passing}%` }} 
+                        transition={{ duration: 0.5 }}
+                        className="h-full bg-emerald-500 rounded-full" 
+                      />
+                    </div>
+                  )}
+                </div>
+
+                {/* Dribbling / Agility / Ball Control */}
+                <div className="space-y-1">
+                  <div className="flex justify-between text-[11px] font-bold">
+                    <span className="text-slate-500">
+                      {position === 'Goalkeeper' ? '🤸 Agility & Footwork' : position === 'Defender' ? '🕺 Ball Control' : '🕺 Dribble & Control'}
+                    </span>
+                    <span className="text-indigo-650 font-mono">{attributes.dribbling}/99</span>
+                  </div>
+                  {isEditing ? (
+                    <input 
+                      id="edit-attr-dribbling"
+                      type="range" 
+                      min="10" 
+                      max="99" 
+                      value={attributes.dribbling} 
+                      onChange={e => handleAttrChange('dribbling', Number(e.target.value))}
+                      className="w-full accent-indigo-600 h-1.5"
+                    />
+                  ) : (
+                    <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
+                      <motion.div 
+                        initial={{ width: 0 }} 
+                        animate={{ width: `${attributes.dribbling}%` }} 
+                        transition={{ duration: 0.5 }}
+                        className="h-full bg-amber-500 rounded-full" 
+                      />
+                    </div>
+                  )}
+                </div>
+
+                {/* Defending / Handling / Tackling */}
+                <div className="space-y-1">
+                  <div className="flex justify-between text-[11px] font-bold">
+                    <span className="text-slate-500">
+                      {position === 'Goalkeeper' ? '🧤 Shot Handling' : position === 'Defender' ? '🧱 Tackling & Marking' : '🧱 Defensive Guard'}
+                    </span>
+                    <span className="text-indigo-650 font-mono">{attributes.defending}/99</span>
+                  </div>
+                  {isEditing ? (
+                    <input 
+                      id="edit-attr-defending"
+                      type="range" 
+                      min="10" 
+                      max="99" 
+                      value={attributes.defending} 
+                      onChange={e => handleAttrChange('defending', Number(e.target.value))}
+                      className="w-full accent-indigo-600 h-1.5"
+                    />
+                  ) : (
+                    <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
+                      <motion.div 
+                        initial={{ width: 0 }} 
+                        animate={{ width: `${attributes.defending}%` }} 
+                        transition={{ duration: 0.5 }}
+                        className={`h-full rounded-full ${position === 'Goalkeeper' ? 'bg-yellow-500' : 'bg-sky-500'}`} 
+                      />
+                    </div>
+                  )}
+                </div>
+
+                {/* Physicalness / Command / Strength */}
+                <div className="space-y-1">
+                  <div className="flex justify-between text-[11px] font-bold">
+                    <span className="text-slate-500">
+                      {position === 'Goalkeeper' ? '📢 Command & Presence' : position === 'Defender' ? '💪 Strength & Aerial' : '💪 Physicality & Cardio'}
+                    </span>
+                    <span className="text-indigo-650 font-mono">{attributes.physicalness}/99</span>
+                  </div>
+                  {isEditing ? (
+                    <input 
+                      id="edit-attr-phys"
+                      type="range" 
+                      min="10" 
+                      max="99" 
+                      value={attributes.physicalness} 
+                      onChange={e => handleAttrChange('physicalness', Number(e.target.value))}
+                      className="w-full accent-indigo-600 h-1.5"
+                    />
+                  ) : (
+                    <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
+                      <motion.div 
+                        initial={{ width: 0 }} 
+                        animate={{ width: `${attributes.physicalness}%` }} 
+                        transition={{ duration: 0.5 }}
+                        className="h-full bg-purple-500 rounded-full" 
+                      />
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Performance Insights */}
+            <div className="pt-4 mt-4 border-t border-slate-100 space-y-2">
+              <span className="text-[9px] font-mono text-slate-400 uppercase tracking-wider font-black">Performance Insights</span>
+              <div className="grid grid-cols-2 gap-2 text-[10px]">
+                <div className="bg-slate-50 rounded-lg p-2 border border-slate-100">
+                  <div className="text-slate-400 font-bold mb-0.5">Goals / Game</div>
+                  <div className="font-mono font-black text-slate-700">
+                    {gamesPlayed > 0 ? (points / gamesPlayed).toFixed(1) : '0.0'}
+                  </div>
+                </div>
+                <div className="bg-slate-50 rounded-lg p-2 border border-slate-100">
+                  <div className="text-slate-400 font-bold mb-0.5">Key Strength</div>
+                  <div className="font-mono font-black text-slate-700 text-[9px] leading-tight">
+                    {(() => {
+                      const topAttr = Object.entries(attributes).reduce((a, b) => a[1] > b[1] ? a : b);
+                      const labels: Record<string, string> = {
+                        speed: position === 'Goalkeeper' ? 'Reflexes' : 'Pace',
+                        shooting: position === 'Goalkeeper' ? 'Kicking' : 'Shooting',
+                        passing: 'Passing',
+                        dribbling: 'Dribbling',
+                        defending: position === 'Goalkeeper' ? 'Handling' : 'Defending',
+                        physicalness: 'Physical'
+                      };
+                      return `${labels[topAttr[0]]} (${topAttr[1]})`;
+                    })()}
+                  </div>
+                </div>
+                <div className="bg-slate-50 rounded-lg p-2 border border-slate-100">
+                  <div className="text-slate-400 font-bold mb-0.5">Form</div>
+                  <div className="font-mono font-black text-slate-700 text-[9px] leading-tight">
+                    {gamesPlayed > 0 
+                      ? points >= gamesPlayed * 0.5 ? '🔥 In-form'
+                      : mvpAwards > 0 ? '⭐ Rising'
+                      : 'Active'
+                    : 'No games'}
+                  </div>
+                </div>
+                <div className="bg-slate-50 rounded-lg p-2 border border-slate-100">
+                  <div className="text-slate-400 font-bold mb-0.5">Avg Mins/Game</div>
+                  <div className="font-mono font-black text-slate-700">
+                    {gamesPlayed > 0 ? Math.round(minutesPlayed / gamesPlayed) : '—'}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Points Progression Chart - Fullwidth footer span */}
+          <div id="points-progression-chart-card" className="col-span-1 md:col-span-2 bg-white p-4.5 rounded-xl shadow-sm border border-slate-200/50">
+            <div className="flex justify-between items-center pb-2.5 border-b border-slate-100">
+              <div>
+                <h3 className="font-display font-black text-slate-700 text-xs flex items-center gap-1.5">
+                  <Activity className="text-indigo-600" size={13} /> {position === 'Goalkeeper' ? 'Five-Match Clean Sheets Trend' : 'Five-Match Goals Trend'}
+                </h3>
+              </div>
+              <span className="text-[9px] uppercase font-mono font-black px-2 py-0.5 rounded bg-indigo-50/50 text-indigo-700 border border-indigo-100/50">Season Live Track</span>
+            </div>
+            
+            <div id="recharts-wrapper-container" className="h-[180px] w-full mt-4">
+              <ResponsiveContainer width="100%" height="105%">
+                <LineChart data={progressionData} margin={{ top: 10, right: 10, left: -25, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
+                  <XAxis 
+                    dataKey="name" 
+                    tick={{ fill: '#64748b', fontSize: 10, fontWeight: 500 }} 
+                    axisLine={false} 
+                    tickLine={false}
+                  />
+                  <YAxis 
+                    tick={{ fill: '#64748b', fontSize: 10, fontWeight: 500 }} 
+                    axisLine={false} 
+                    tickLine={false}
+                    allowDecimals={false}
+                  />
+                  <Tooltip content={<CustomTooltip />} />
+                  <Legend 
+                    verticalAlign="top" 
+                    height={25} 
+                    iconType="circle"
+                    iconSize={6}
+                    wrapperStyle={{ fontSize: 9, fontWeight: 600, color: '#475569', paddingBottom: 5 }}
+                  />
+                  <Line 
+                    name={position === 'Goalkeeper' ? "Clean Sheets" : "Fixture Goals"} 
+                    type="monotone" 
+                    dataKey="points" 
+                    stroke="#4f46e5" 
+                    strokeWidth={2.5} 
+                    dot={{ r: 4, strokeWidth: 1.5, fill: '#ffffff', stroke: '#4f46e5' }} 
+                    activeDot={{ r: 5, strokeWidth: 0 }} 
+                  />
+                  <Line 
+                    name="Running Sum" 
+                    type="monotone" 
+                    dataKey="cumulative" 
+                    stroke="#f59e0b" 
+                    strokeWidth={2} 
+                    strokeDasharray="3 3"
+                    dot={{ r: 3, strokeWidth: 1, fill: '#ffffff', stroke: '#f59e0b' }} 
+                    activeDot={{ r: 4, strokeWidth: 0 }} 
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
+        </div>
+        )}
+      </motion.div>
+    </div>
+  );
+}
