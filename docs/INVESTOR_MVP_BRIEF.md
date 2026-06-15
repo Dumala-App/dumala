@@ -1,14 +1,16 @@
-# Touchline: Investor & Internal MVP Brief
+# Dumala: Investor & Internal MVP Brief
 
-**Positioning:** The AI-assisted football team management system webapp for modern coaches and clubs.  
-**Version:** MVP Brief v1  
-**Date:** 2026-06-14  
+**Positioning:** A data-driven football team management platform built for coaches — currently in beta with coach-driven player ratings, evolving toward objective FPRDS assessment and AI-assisted decision-making.
+
+**Version:** MVP Brief v1
+
+**Date:** 2026-06-14
 
 ---
 
 ## Executive Summary
 
-Football operations at the grassroots, academy, and amateur levels are highly fragmented. Coaches and club managers run their weekly cycles across spreadsheets, chat apps, notebooks, and isolated scheduling tools. Touchline OS solves this by providing a unified, local-first workspace for daily team operations. The current MVP proves this value by handling roster management, match scheduling, training planning, tactical notes, and discipline tracking in one seamless loop. This established operational habit creates the foundation for our next phase: an AI-assisted intelligence layer that evaluates player development and recommends tactical decisions.
+Football operations at the grassroots, academy, and amateur levels are highly fragmented. Coaches and club managers run their weekly cycles across spreadsheets, chat apps, notebooks, and isolated scheduling tools. Dumala solves this by providing a unified, local-first workspace for daily team operations. The current MVP proves this value by handling roster management, match scheduling, training planning, tactical notes, and discipline tracking in one seamless loop. This established operational habit creates the foundation for our next phase: an AI-assisted intelligence layer that evaluates player development and recommends tactical decisions.
 
 ## Problem and Market Opportunity
 
@@ -21,7 +23,7 @@ This gap represents a massive opportunity to build an indispensable daily workfl
 
 ## Solution Overview
 
-Touchline is not just admin software.
+Dumala is not just admin software.
 - **Today:** It is a comprehensive football team management system webapp. It speeds up the weekly cycle by connecting scheduling, training, tactics, and result logging in one place.
 - **Tomorrow:** It becomes the intelligence layer for coaching and player development. By capturing the daily operational data, it builds a dataset ready for AI-driven insights and structured player progression.
 
@@ -91,4 +93,4 @@ The current MVP has intentional limitations designed for rapid testing:
 
 ## Closing Statement
 
-Touchline uses the immediate necessity of team administration as a wedge to capture daily coaching habits. The current MVP proves that a unified workspace can replace fragmented tools. As we transition from a local-first operational dashboard to a cloud-backed intelligence platform, Touchline will evolve into the definitive AI-assisted system for football development and match strategy.
+Dumala uses the immediate necessity of team administration as a wedge to capture daily coaching habits. The current MVP proves that a unified workspace can replace fragmented tools. As we transition from a local-first operational dashboard to a cloud-backed intelligence platform, Dumala will evolve into the definitive AI-assisted system for football development and match strategy.
