@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Player, SPECIALTY_TRAITS, SpecialtyTrait, isStaffPosition, STAFF_POSITIONS } from '../types';
+import { AssessmentSession, Player, SPECIALTY_TRAITS, SpecialtyTrait, isStaffPosition, STAFF_POSITIONS } from '../types';
 import { X, Award, Shield, User, Zap, CircleDot, Activity, Save, Edit2, Briefcase, Calendar, Mail, Phone, AlertTriangle, Clock, Star, Trash2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import {
@@ -40,9 +40,11 @@ interface PlayerProfileModalProps {
   onClose: () => void;
   onUpdate: (updatedPlayer: Player) => void;
   onRemove: (playerId: string) => void;
+  assessments: AssessmentSession[];
+  onOpenAssessments: (playerId: string) => void;
 }
 
-export default function PlayerProfileModal({ player, onClose, onUpdate, onRemove }: PlayerProfileModalProps) {
+export default function PlayerProfileModal({ player, onClose, onUpdate, onRemove, assessments, onOpenAssessments }: PlayerProfileModalProps) {
   const isStaff = isStaffPosition(player.position);
   const [isEditing, setIsEditing] = useState(false);
   const [showRemoveConfirm, setShowRemoveConfirm] = useState(false);
@@ -74,6 +76,17 @@ export default function PlayerProfileModal({ player, onClose, onUpdate, onRemove
 
   const [baseAttributes, setBaseAttributes] = useState(player.baseAttributes || { pace: 50, stamina: 50, agility: 50, strength: 50, firstTouch: 50, shortPassing: 50 });
   const [positionAttributes, setPositionAttributes] = useState(player.positionAttributes || {});
+
+  const latestAssessment = useMemo(() => {
+    return [...assessments]
+      .filter(s => s.playerId === player.id)
+      .sort((a, b) => {
+        const ad = new Date(a.assessmentDate).getTime();
+        const bd = new Date(b.assessmentDate).getTime();
+        if (ad !== bd) return bd - ad;
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      })[0];
+  }, [assessments, player.id]);
 
   const progressionData = useMemo(() => {
     const isGoalkeeper = position === 'Goalkeeper';
@@ -932,6 +945,39 @@ export default function PlayerProfileModal({ player, onClose, onUpdate, onRemove
                 <h3 className="text-[10px] font-mono font-black uppercase tracking-wider text-slate-400 mb-2 flex items-center gap-1.5">
                   <Shield size={13} className="text-indigo-600" /> Base Attributes
                 </h3>
+
+                {latestAssessment && (
+                  <div className="bg-indigo-50 rounded-xl p-3 border border-indigo-200">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <div className="text-[10px] font-black text-indigo-700 uppercase tracking-widest">FPRDS OVR</div>
+                        <div className="text-xs font-semibold text-slate-700 mt-0.5">
+                          Latest: <span className="font-black text-slate-900">{latestAssessment.ovr}</span>{' '}
+                          <span className="text-slate-400">({latestAssessment.labels.ovrTierLabel})</span>
+                        </div>
+                        {typeof latestAssessment.deltas.ovrDelta === 'number' && (
+                          <div className="text-[11px] font-bold mt-1">
+                            <span className="text-slate-500">Delta:</span>{' '}
+                            <span className={latestAssessment.deltas.ovrDelta >= 0 ? 'text-emerald-600' : 'text-rose-600'}>
+                              {latestAssessment.deltas.ovrDelta >= 0 ? `+${latestAssessment.deltas.ovrDelta}` : `${latestAssessment.deltas.ovrDelta}`}
+                            </span>
+                          </div>
+                        )}
+                        <div className="text-[10px] text-slate-500 font-semibold mt-1">
+                          {latestAssessment.assessmentDate} • {latestAssessment.role} • {latestAssessment.assessmentType}
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => onOpenAssessments(player.id)}
+                        aria-label="Open assessment center"
+                        className="bg-indigo-600 hover:bg-indigo-700 text-white text-[10px] font-black px-3 py-2 rounded-lg transition-colors shrink-0"
+                      >
+                        Open
+                      </button>
+                    </div>
+                  </div>
+                )}
 
                 {/* Overall Rating - top of attributes */}
                 <div className="flex items-center justify-between bg-slate-50 rounded-xl p-3 border border-slate-100">

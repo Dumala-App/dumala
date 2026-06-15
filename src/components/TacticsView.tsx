@@ -50,11 +50,31 @@ const MATCH_FORMAT_CONFIG = {
       '4-3-1-2', '3-4-2-1', '4-4-1-1', '4-3-2-1'
     ]
   },
+  '9-a-side': {
+    size: 9,
+    formations: [
+      '3-3-2', '3-2-3', '2-3-3', '4-3-1', '3-4-1',
+      '2-4-2', '2-3-2-1'
+    ]
+  },
+  '8-a-side': {
+    size: 8,
+    formations: [
+      '2-3-2', '3-2-2', '2-2-2-1', '3-2-1-1',
+      '2-3-1-1', '1-3-2-1'
+    ]
+  },
   '7-a-side': {
     size: 7,
     formations: [
       '2-3-1', '3-2-1', '2-1-2-1', '1-3-2',
       '2-2-2', '3-1-2', '1-2-1-2', '1-4-1'
+    ]
+  },
+  '6-a-side': {
+    size: 6,
+    formations: [
+      '2-2-1', '2-1-2', '1-2-2', '1-3-1', '3-1-1'
     ]
   },
   '5-a-side': {
@@ -81,9 +101,6 @@ export default function TacticsView({ players, teamCoach, teamName, onUpdatePlay
   // Custom Strategy Mode States
   const [isCustomMode, setIsCustomMode] = useState<boolean>(() => {
     return localStorage.getItem('squad_is_custom_strategy') === 'true';
-  });
-  const [customFormationInput, setCustomFormationInput] = useState<string>(() => {
-    return localStorage.getItem('squad_custom_formation_val') || '4-2-3-1';
   });
   const [customPlaystyleInput, setCustomPlaystyleInput] = useState<string>(() => {
     return localStorage.getItem('squad_custom_playstyle_val') || 'Direct Attacking Tiki-Taka';
@@ -127,11 +144,8 @@ export default function TacticsView({ players, teamCoach, teamName, onUpdatePlay
 
   useEffect(() => {
     localStorage.setItem('squad_match_format', matchFormat);
-    if (!MATCH_FORMAT_CONFIG[matchFormat].formations.includes(formation) && !isCustomMode) {
+    if (!MATCH_FORMAT_CONFIG[matchFormat].formations.includes(formation)) {
       setFormation(MATCH_FORMAT_CONFIG[matchFormat].formations[0]);
-    }
-    if (isCustomMode && !MATCH_FORMAT_CONFIG[matchFormat].formations.includes(customFormationInput)) {
-      setCustomFormationInput(MATCH_FORMAT_CONFIG[matchFormat].formations[0]);
     }
   }, [matchFormat]);
 
@@ -156,10 +170,6 @@ export default function TacticsView({ players, teamCoach, teamName, onUpdatePlay
   }, [isCustomMode]);
 
   useEffect(() => {
-    localStorage.setItem('squad_custom_formation_val', customFormationInput);
-  }, [customFormationInput]);
-
-  useEffect(() => {
     localStorage.setItem('squad_custom_playstyle_val', customPlaystyleInput);
   }, [customPlaystyleInput]);
 
@@ -181,7 +191,7 @@ export default function TacticsView({ players, teamCoach, teamName, onUpdatePlay
   const [cornerTakerId, setCornerTakerId] = useState<string>(() => localStorage.getItem('squad_corner_taker_id') || '');
   const [defensiveStyle, setDefensiveStyle] = useState<string>(() => localStorage.getItem('squad_defensive_style') || 'High Press');
 
-  const activeFormation = isCustomMode ? customFormationInput : formation;
+  const activeFormation = formation;
   const activePlaystyle = isCustomMode ? customPlaystyleInput : playstyle;
   const activeDefensiveStyle = isCustomMode ? customDefensiveInput : defensiveStyle;
 
@@ -204,6 +214,11 @@ export default function TacticsView({ players, teamCoach, teamName, onUpdatePlay
   // Highlighting active card index selected (0 to 10 starting slot)
   const [selectedSlotIndex, setSelectedSlotIndex] = useState<number>(6); // Default: Roberto Carlos (LB - index 6 in default list)
   const [rightPanelTab, setRightPanelTab] = useState<'Basic' | 'Status'>('Basic');
+
+  useEffect(() => {
+    const size = MATCH_FORMAT_CONFIG[matchFormat].size;
+    setSelectedSlotIndex(prev => Math.max(0, Math.min(prev, size - 1)));
+  }, [matchFormat]);
 
   // Additional states to track status, yellow cards, red cards for each player id
   const [playerStatusExtras, setPlayerStatusExtras] = useState<{
@@ -555,14 +570,7 @@ export default function TacticsView({ players, teamCoach, teamName, onUpdatePlay
     const expectedOutfield = formatSize - 1;
 
     // Resolve which formation string to use
-    let resolvedFormation: string;
-    if (isCustomMode) {
-      resolvedFormation = customFormationInput;
-    } else if (matchFormat === '11-a-side') {
-      resolvedFormation = formation;
-    } else {
-      resolvedFormation = formation;
-    }
+    const resolvedFormation = formation;
 
     const parts = resolvedFormation.split('-').map(Number).filter(n => !isNaN(n) && n > 0);
     
@@ -575,7 +583,10 @@ export default function TacticsView({ players, teamCoach, teamName, onUpdatePlay
       if (effectiveParts.length === 0 || effectiveParts.reduce((a, b) => a + b, 0) !== expectedOutfield) {
         // Ultimate fallback per format
         if (matchFormat === '11-a-side') effectiveParts = [4, 3, 3];
+        else if (matchFormat === '9-a-side') effectiveParts = [3, 3, 2];
+        else if (matchFormat === '8-a-side') effectiveParts = [2, 3, 2];
         else if (matchFormat === '7-a-side') effectiveParts = [2, 3, 1];
+        else if (matchFormat === '6-a-side') effectiveParts = [2, 2, 1];
         else effectiveParts = [1, 2, 1];
       }
     }
@@ -638,7 +649,7 @@ export default function TacticsView({ players, teamCoach, teamName, onUpdatePlay
     }
     positions.push(defaultGK);
     return positions;
-  }, [isCustomMode, customFormationInput, formation, matchFormat]);
+  }, [formation, matchFormat]);
 
   // Sum total OVR points of starting lineup to count "Collective Strength"
   const collectiveStrength = useMemo(() => {
@@ -1810,9 +1821,12 @@ export default function TacticsView({ players, teamCoach, teamName, onUpdatePlay
                   onChange={(e) => setMatchFormat(e.target.value as MatchFormat)}
                   className="w-full sm:w-auto min-w-[200px] bg-slate-900 border border-slate-700 text-slate-100 font-bold px-3 py-2 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-amber-400 cursor-pointer shadow-inner"
                 >
-                  <option value="11-a-side">🏟️ 11-a-side (Full Squad)</option>
-                  <option value="7-a-side">⚡ 7-a-side (Half Pitch)</option>
-                  <option value="5-a-side">🔥 5-a-side (Futsal / Cage)</option>
+                  <option value="11-a-side">11-a-side (Full Squad)</option>
+                  <option value="9-a-side">9-a-side (Compact)</option>
+                  <option value="8-a-side">8-a-side (Flexible)</option>
+                  <option value="7-a-side">7-a-side (Half Pitch)</option>
+                  <option value="6-a-side">6-a-side (Small Sided)</option>
+                  <option value="5-a-side">5-a-side (Futsal / Cage)</option>
                 </select>
               </div>
             </div>
@@ -1848,6 +1862,28 @@ export default function TacticsView({ players, teamCoach, teamName, onUpdatePlay
               </div>
             </div>
 
+            {/* Team Formation (shared for both modes) */}
+            <div className="bg-slate-950/40 p-4 rounded-xl border border-slate-800/80 mb-5">
+              <label className="text-[10px] font-black tracking-widest text-slate-400 uppercase block mb-1.5">Team Formation</label>
+              <div className="grid grid-cols-3 gap-2 max-h-[160px] overflow-y-auto pr-1">
+                {MATCH_FORMAT_CONFIG[matchFormat].formations.map((fmt) => (
+                  <button
+                    id={`btn-formation-${fmt}`}
+                    key={fmt}
+                    onClick={() => setFormation(fmt)}
+                    className={`py-2 px-2 rounded-lg font-semibold border transition-all text-center text-[10px] ${
+                      formation === fmt
+                        ? 'bg-amber-400 border-amber-400 text-slate-950 font-black'
+                        : 'bg-slate-800/80 border-slate-700 text-slate-300 hover:bg-slate-800'
+                    }`}
+                  >
+                    {fmt}
+                  </button>
+                ))}
+              </div>
+              <p className="text-[11px] text-slate-500 mt-2">Adjusting the template shifts designated positions dynamically over the digital terrain.</p>
+            </div>
+
             {isCustomMode ? (
               <motion.div 
                 id="custom-strategy-blueprint-editor"
@@ -1855,32 +1891,8 @@ export default function TacticsView({ players, teamCoach, teamName, onUpdatePlay
                 animate={{ opacity: 1, y: 0 }}
                 className="grid grid-cols-1 lg:grid-cols-12 gap-5 bg-slate-950/40 p-4 rounded-xl border border-slate-800/80 mb-5"
               >
-                {/* Custom Formation Select */}
-                <div className="lg:col-span-4 space-y-2">
-                  <label className="text-[10px] font-black tracking-widest text-slate-300 uppercase block">
-                    Custom Team Formation
-                  </label>
-                  <select
-                    id="select-custom-formation"
-                    value={customFormationInput}
-                    onChange={(e) => setCustomFormationInput(e.target.value)}
-                    className="w-full bg-slate-900 border border-slate-850 text-amber-300 font-bold px-3 py-2 rounded-lg text-xs focus:ring-1 focus:ring-amber-400 focus:outline-none cursor-pointer"
-                  >
-                    {MATCH_FORMAT_CONFIG[matchFormat].formations.map((fmt) => (
-                      <option key={fmt} value={fmt} className="bg-[#0f172a] text-slate-100 font-bold">
-                        {fmt}
-                      </option>
-                    ))}
-                  </select>
-                  <p className="text-[10px] text-slate-500 leading-normal">
-                    {matchFormat === '11-a-side' ? 'Select from classic 11-a-side tactical formations.' :
-                     matchFormat === '7-a-side' ? 'Select from standard 7-a-side half-pitch formations.' :
-                     'Select from standard 5-a-side futsal / cage formations.'}
-                  </p>
-                </div>
-
                 {/* Custom Tactic Playstyle */}
-                <div className="lg:col-span-4 space-y-2">
+                <div className="lg:col-span-6 space-y-2">
                   <label className="text-[10px] font-black tracking-widest text-slate-300 uppercase block">
                     Custom Playstyle Directive
                   </label>
@@ -1898,7 +1910,7 @@ export default function TacticsView({ players, teamCoach, teamName, onUpdatePlay
                 </div>
 
                 {/* Custom Defensive Playstyle */}
-                <div className="lg:col-span-4 space-y-2">
+                <div className="lg:col-span-6 space-y-2">
                   <label className="text-[10px] font-black tracking-widest text-slate-300 uppercase block">
                     Custom Defensive Anchor
                   </label>
@@ -1961,27 +1973,6 @@ export default function TacticsView({ players, teamCoach, teamName, onUpdatePlay
               </motion.div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
-                <div>
-                  <label className="text-[10px] font-black tracking-widest text-slate-400 uppercase block mb-1.5">Change Team Formation</label>
-                  <div className="grid grid-cols-3 gap-2 max-h-[160px] overflow-y-auto pr-1">
-                    {MATCH_FORMAT_CONFIG[matchFormat].formations.map((fmt) => (
-                      <button
-                        id={`btn-formation-${fmt}`}
-                        key={fmt}
-                        onClick={() => setFormation(fmt)}
-                        className={`py-2 px-2 rounded-lg font-semibold border transition-all text-center text-[10px] ${
-                          formation === fmt 
-                            ? 'bg-amber-400 border-amber-400 text-slate-950 font-black' 
-                            : 'bg-slate-800/80 border-slate-700 text-slate-300 hover:bg-slate-800'
-                        }`}
-                      >
-                        {fmt}
-                      </button>
-                    ))}
-                  </div>
-                  <p className="text-[11px] text-slate-500 mt-2">Adjusting the template shifts designated positions dynamically over the digital terrain.</p>
-                </div>
-
                 <div>
                   <label className="text-[10px] font-black tracking-widest text-slate-400 uppercase block mb-1.5">Change Tactic Playstyle</label>
                   <div className="grid grid-cols-2 gap-2 max-h-[140px] overflow-y-auto pr-1">

@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
-import { Game, Player, Standing, Announcement, TeamInfo, isStaffPosition } from '../types';
+import React, { useMemo, useState } from 'react';
+import { AssessmentSession, Game, Player, Standing, Announcement, TeamInfo, isStaffPosition } from '../types';
 import {findUserStanding, sortStandings} from '../standings';
-import { Calendar, MapPin, Trophy, Shield, Megaphone, Star, Award, Zap, ArrowRight, CornerRightDown, TrendingUp, Edit, Upload, Link, Check, X, Image, Crown, Target, Flame, AlertCircle, Table, Users } from 'lucide-react';
+import { Calendar, MapPin, Trophy, Shield, Megaphone, Star, Award, Zap, ArrowRight, CornerRightDown, TrendingUp, Edit, Upload, Link, Check, X, Image, Crown, Target, Flame, AlertCircle, Table, Users, ClipboardList } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
 
@@ -44,7 +44,13 @@ interface DashboardViewProps {
   games: Game[];
   standings: Standing[];
   announcements: Announcement[];
-  setCurrentTab: (tab: 'dashboard' | 'roster' | 'schedule' | 'standings' | 'announcements' | 'tactics' | 'training') => void;
+  assessments: AssessmentSession[];
+  onNavigate: (target: {
+    primary: 'home' | 'squad' | 'tactics' | 'development' | 'league_updates';
+    homeTab?: 'overview' | 'game_week';
+    developmentTab?: 'assessments' | 'training';
+    leagueUpdatesTab?: 'league' | 'updates' | 'dev_notes';
+  }) => void;
   onSelectPlayer: (player: Player) => void;
   onUpdateTeamInfo: (updated: TeamInfo) => void;
 }
@@ -55,7 +61,8 @@ export default function DashboardView({
   games, 
   standings, 
   announcements, 
-  setCurrentTab, 
+  assessments,
+  onNavigate,
   onSelectPlayer,
   onUpdateTeamInfo
 }: DashboardViewProps) {
@@ -190,6 +197,50 @@ export default function DashboardView({
     .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
   
   const nextMatch = upcomingGames[0];
+
+  const latestAssessmentByPlayerId = useMemo(() => {
+    const sorted = [...assessments].sort((a, b) => {
+      const ad = new Date(a.assessmentDate).getTime();
+      const bd = new Date(b.assessmentDate).getTime();
+      if (ad !== bd) return bd - ad;
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    });
+
+    const map = new Map<string, AssessmentSession>();
+    for (const s of sorted) {
+      if (!map.has(s.playerId)) map.set(s.playerId, s);
+    }
+    return map;
+  }, [assessments]);
+
+  const topProspects = useMemo(() => {
+    return [...players]
+      .filter(p => !isStaffPosition(p.position))
+      .map(p => ({ player: p, session: latestAssessmentByPlayerId.get(p.id) }))
+      .filter((x): x is { player: Player; session: AssessmentSession } => !!x.session)
+      .sort((a, b) => b.session.ovr - a.session.ovr)
+      .slice(0, 5);
+  }, [latestAssessmentByPlayerId, players]);
+
+  const topImprovers = useMemo(() => {
+    return [...players]
+      .filter(p => !isStaffPosition(p.position))
+      .map(p => ({ player: p, session: latestAssessmentByPlayerId.get(p.id) }))
+      .filter((x): x is { player: Player; session: AssessmentSession } => !!x.session)
+      .sort((a, b) => (b.session.deltas.ovrDelta ?? 0) - (a.session.deltas.ovrDelta ?? 0))
+      .slice(0, 5);
+  }, [latestAssessmentByPlayerId, players]);
+
+  const recentAssessments = useMemo(() => {
+    return [...assessments]
+      .sort((a, b) => {
+        const ad = new Date(a.assessmentDate).getTime();
+        const bd = new Date(b.assessmentDate).getTime();
+        if (ad !== bd) return bd - ad;
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      })
+      .slice(0, 6);
+  }, [assessments]);
 
   // Use the same ordering rules as the League table.
   const rankedStandings = sortStandings(standings);
@@ -490,7 +541,7 @@ export default function DashboardView({
       {/* Interactive Tactics Board Highlight Promo Banner */}
       <div 
         id="dashboard-tactics-promo"
-        onClick={() => setCurrentTab('tactics')}
+        onClick={() => onNavigate({ primary: 'tactics' })}
         className="group relative overflow-hidden bg-slate-900 border border-slate-800 rounded-2xl p-5 md:p-6 shadow-lg shadow-indigo-950/20 flex flex-col md:flex-row items-center justify-between gap-5 cursor-pointer hover:border-amber-405 hover:shadow-xl transition-all duration-300"
       >
         <div className="absolute top-0 right-1/4 w-80 h-80 bg-indigo-600/10 rounded-full blur-3xl pointer-events-none group-hover:bg-indigo-650/15 transition-all" />
@@ -594,7 +645,7 @@ export default function DashboardView({
             ) : (
               <div className="py-12 text-center text-slate-400 text-xs text-medium flex flex-col items-center justify-center space-y-2">
                 <span>✨ No upcoming matches scheduled at this time.</span>
-                <span className="text-indigo-600 hover:underline cursor-pointer" onClick={() => setCurrentTab('schedule')}>
+                <span className="text-indigo-600 hover:underline cursor-pointer" onClick={() => onNavigate({ primary: 'home', homeTab: 'game_week' })}>
                   Add games inside the Schedule builder →
                 </span>
               </div>
@@ -605,7 +656,7 @@ export default function DashboardView({
             <span className="text-slate-400 font-medium">Coordinate calendars in real-time</span>
             <button 
               id="dash-go-schedule"
-              onClick={() => setCurrentTab('schedule')}
+              onClick={() => onNavigate({ primary: 'home', homeTab: 'game_week' })}
               className="text-indigo-600 font-bold hover:underline flex items-center gap-1"
             >
               Examine Complete Schedule <ArrowRight size={13} />
@@ -659,7 +710,7 @@ export default function DashboardView({
 
           <button 
             id="dash-go-ann"
-            onClick={() => setCurrentTab('announcements')}
+            onClick={() => onNavigate({ primary: 'league_updates', leagueUpdatesTab: 'updates' })}
             className="w-full text-center bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-600 font-bold text-xs py-2 rounded-xl transition-all mt-4 flex items-center justify-center gap-1"
           >
             Open All Club Bulletin Notices <ArrowRight size={12} />
@@ -805,6 +856,125 @@ export default function DashboardView({
             <span>Total MVP: <strong className="text-amber-600">⭐ {players.reduce((s, p) => s + (p.mvpAwards || 0), 0)}</strong></span>
           </div>
         )}
+      </div>
+
+      {/* FPRDS Snapshot */}
+      <div id="fprds-snapshot" className="bg-white rounded-2xl border border-slate-200/70 p-6 shadow-md shadow-slate-100/30">
+        <div className="pb-4 border-b border-slate-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+          <div>
+            <h3 className="font-display font-black text-slate-850 uppercase tracking-wide text-base flex items-center gap-2">
+              <ClipboardList className="text-indigo-600" size={18} /> FPRDS Snapshot
+            </h3>
+            <p className="text-slate-450 text-xs">Top prospects, recent improvements, and latest assessment sessions.</p>
+          </div>
+          <button
+            id="dash-open-assessments"
+            onClick={() => onNavigate({ primary: 'development', developmentTab: 'assessments' })}
+            className="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-black px-4 py-2 rounded-xl transition-colors flex items-center gap-2 shadow-md"
+          >
+            Open Assessments <ArrowRight size={14} />
+          </button>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
+          <div className="bg-slate-50/60 border border-slate-100/80 rounded-2xl p-4">
+            <h4 className="font-display font-bold text-xs uppercase text-slate-400 mb-3 flex items-center gap-1">
+              <Star size={14} className="text-amber-500" /> Top Prospects
+            </h4>
+            <div className="space-y-2.5">
+              {topProspects.map(({ player, session }, idx) => (
+                <button
+                  key={player.id}
+                  onClick={() => onSelectPlayer(player)}
+                  className="w-full text-left bg-white border border-slate-200/60 rounded-xl p-3 flex items-center justify-between hover:border-indigo-300 hover:bg-indigo-50/40 transition-colors"
+                >
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <span className="font-display font-black text-slate-300 text-xs w-4 shrink-0">#{idx + 1}</span>
+                    <img src={player.photoUrl} alt="" className="w-7 h-7 rounded-full object-cover border border-slate-200 shrink-0" referrerPolicy="no-referrer" />
+                    <div className="min-w-0">
+                      <p className="text-xs font-black text-slate-800 truncate">{player.name}</p>
+                      <p className="text-[10px] text-slate-500 font-semibold truncate">{player.position} • {session.role}</p>
+                    </div>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest">OVR</p>
+                    <p className="text-lg font-display font-black text-slate-900 leading-none">{session.ovr}</p>
+                  </div>
+                </button>
+              ))}
+              {topProspects.length === 0 && (
+                <div className="text-center text-slate-400 text-xs py-10">No assessments recorded yet.</div>
+              )}
+            </div>
+          </div>
+
+          <div className="bg-slate-50/60 border border-slate-100/80 rounded-2xl p-4">
+            <h4 className="font-display font-bold text-xs uppercase text-slate-400 mb-3 flex items-center gap-1">
+              <TrendingUp size={14} className="text-emerald-600" /> Top Improvers
+            </h4>
+            <div className="space-y-2.5">
+              {topImprovers.map(({ player, session }, idx) => (
+                <button
+                  key={player.id}
+                  onClick={() => onSelectPlayer(player)}
+                  className="w-full text-left bg-white border border-slate-200/60 rounded-xl p-3 flex items-center justify-between hover:border-emerald-300 hover:bg-emerald-50/40 transition-colors"
+                >
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <span className="font-display font-black text-slate-300 text-xs w-4 shrink-0">#{idx + 1}</span>
+                    <img src={player.photoUrl} alt="" className="w-7 h-7 rounded-full object-cover border border-slate-200 shrink-0" referrerPolicy="no-referrer" />
+                    <div className="min-w-0">
+                      <p className="text-xs font-black text-slate-800 truncate">{player.name}</p>
+                      <p className="text-[10px] text-slate-500 font-semibold truncate">{session.assessmentDate} • {session.assessmentType}</p>
+                    </div>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest">Δ OVR</p>
+                    <p className={`text-lg font-display font-black leading-none ${(session.deltas.ovrDelta ?? 0) >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+                      {(session.deltas.ovrDelta ?? 0) >= 0 ? `+${session.deltas.ovrDelta ?? 0}` : `${session.deltas.ovrDelta ?? 0}`}
+                    </p>
+                  </div>
+                </button>
+              ))}
+              {topImprovers.length === 0 && (
+                <div className="text-center text-slate-400 text-xs py-10">No improvement data yet.</div>
+              )}
+            </div>
+          </div>
+
+          <div className="bg-slate-50/60 border border-slate-100/80 rounded-2xl p-4">
+            <h4 className="font-display font-bold text-xs uppercase text-slate-400 mb-3 flex items-center gap-1">
+              <Calendar size={14} className="text-indigo-600" /> Recent Assessments
+            </h4>
+            <div className="space-y-2.5">
+              {recentAssessments.map((s) => {
+                const player = players.find(p => p.id === s.playerId);
+                if (!player) return null;
+                return (
+                  <button
+                    key={s.id}
+                    onClick={() => onSelectPlayer(player)}
+                    className="w-full text-left bg-white border border-slate-200/60 rounded-xl p-3 flex items-center justify-between hover:border-indigo-300 hover:bg-indigo-50/40 transition-colors"
+                  >
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <img src={player.photoUrl} alt="" className="w-7 h-7 rounded-full object-cover border border-slate-200 shrink-0" referrerPolicy="no-referrer" />
+                      <div className="min-w-0">
+                        <p className="text-xs font-black text-slate-800 truncate">{player.name}</p>
+                        <p className="text-[10px] text-slate-500 font-semibold truncate">{s.assessmentDate} • {s.role} • {s.assessmentType}</p>
+                      </div>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest">OVR</p>
+                      <p className="text-lg font-display font-black text-slate-900 leading-none">{s.ovr}</p>
+                    </div>
+                  </button>
+                );
+              })}
+              {recentAssessments.length === 0 && (
+                <div className="text-center text-slate-400 text-xs py-10">No recent sessions.</div>
+              )}
+            </div>
+          </div>
+        </div>
       </div>
       {/* Leaderboards Grid (Rich visual player statistics) */}
       <div id="stat-leaderboards-card" className="bg-white rounded-2xl border border-slate-200/70 p-6 shadow-md shadow-slate-100/30">

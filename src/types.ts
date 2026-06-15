@@ -15,6 +15,212 @@ export interface MvpAwardRecord {
   note?: string;
 }
 
+export type AgeGroup = 'U12' | 'U15' | 'U18' | 'Adult';
+
+export type FprdsRole = 'ST' | 'W' | 'CM' | 'CDM' | 'FB' | 'CB' | 'GK';
+
+export type FprdsAssessmentType = 'Full' | 'Quick';
+
+export type FprdsAttributeId =
+  // Base
+  | 'pace'
+  | 'stamina'
+  | 'agility'
+  | 'strength'
+  | 'firstTouch'
+  | 'shortPassing'
+  // ST / W
+  | 'finishingBox'
+  | 'shotPower'
+  | 'offensive1v1'
+  | 'attackingHeading'
+  // CM / CDM
+  | 'longPassing'
+  | 'visionPlaymaking'
+  | 'ballRetention'
+  | 'pressingInterceptions'
+  // FB / CB
+  | 'tackling'
+  | 'defensiveHeading'
+  | 'positioningClearances'
+  | 'crossing'
+  // GK
+  | 'reflexes'
+  | 'handling'
+  | 'divingReach'
+  | 'distribution';
+
+export interface RawResultsBase {
+  sprint10mSeconds: number;
+  sprint30mSeconds: number;
+  yoyoMeters: number;
+  illinoisSeconds: number;
+  broadJumpCm: number;
+  medicineBallThrowCm: number;
+  firstTouchSuccessesOutOf10: number;
+  shortPassingSuccessesOutOf10: number;
+  shortPassingGateWidthModifier?: 'standard' | 'u12_wide';
+}
+
+export interface RawResultsSTW {
+  finishingGoalsOutOf6: number;
+  finishingOnTargetOutOf6: number;
+  shotPowerMaxControlledDistanceMeters: number;
+  offensive1v1TakeonsOutOf10: number;
+  attackingHeadingOnTargetOutOf10: number;
+}
+
+export interface RawResultsCMCDM {
+  longPassing30mSuccessesOutOf5: number;
+  longPassing40mSuccessesOutOf5: number;
+  visionCoachScore1to10: number;
+  ballRetentionBestSeconds: number;
+  pressingWinsOutOf5: number;
+}
+
+export interface RawResultsFBCB {
+  tacklingWinsOutOf10: number;
+  defensiveHeadingClearancesOutOf10: number;
+  positioningCoachScore1to10: number;
+  positioningClearancesToSafeZoneOutOf10: number;
+  crossingSuccessesOutOf10: number;
+}
+
+export interface RawResultsGK {
+  gkReflexesSavesOutOf10: number;
+  gkHandlingCleanCatchesOutOf10: number;
+  gkDivingSavesOutOf10: number;
+  gkDistributionSuccessesOutOf10: number;
+}
+
+export type AssessmentRawResults =
+  // Striker / Winger
+  | {
+      role: 'ST';
+      assessmentType: 'Full';
+      base: RawResultsBase;
+      roleSpecific: RawResultsSTW;
+    }
+  | {
+      role: 'ST';
+      assessmentType: 'Quick';
+      base: RawResultsBase;
+      roleSpecific: Pick<RawResultsSTW, 'finishingGoalsOutOf6' | 'finishingOnTargetOutOf6' | 'shotPowerMaxControlledDistanceMeters'>;
+    }
+  | {
+      role: 'W';
+      assessmentType: 'Full';
+      base: RawResultsBase;
+      roleSpecific: RawResultsSTW;
+    }
+  | {
+      role: 'W';
+      assessmentType: 'Quick';
+      base: RawResultsBase;
+      roleSpecific: Pick<RawResultsSTW, 'finishingGoalsOutOf6' | 'finishingOnTargetOutOf6' | 'offensive1v1TakeonsOutOf10'>;
+    }
+  // Midfield
+  | {
+      role: 'CM';
+      assessmentType: 'Full';
+      base: RawResultsBase;
+      roleSpecific: RawResultsCMCDM;
+    }
+  | {
+      role: 'CM';
+      assessmentType: 'Quick';
+      base: RawResultsBase;
+      roleSpecific: Pick<RawResultsCMCDM, 'visionCoachScore1to10' | 'longPassing30mSuccessesOutOf5' | 'longPassing40mSuccessesOutOf5'>;
+    }
+  | {
+      role: 'CDM';
+      assessmentType: 'Full';
+      base: RawResultsBase;
+      roleSpecific: RawResultsCMCDM;
+    }
+  | {
+      role: 'CDM';
+      assessmentType: 'Quick';
+      base: RawResultsBase;
+      roleSpecific: Pick<RawResultsCMCDM, 'pressingWinsOutOf5' | 'longPassing30mSuccessesOutOf5' | 'longPassing40mSuccessesOutOf5'>;
+    }
+  // Defenders
+  | {
+      role: 'FB';
+      assessmentType: 'Full';
+      base: RawResultsBase;
+      roleSpecific: RawResultsFBCB;
+    }
+  | {
+      role: 'FB';
+      assessmentType: 'Quick';
+      base: RawResultsBase;
+      roleSpecific: Pick<RawResultsFBCB, 'tacklingWinsOutOf10' | 'crossingSuccessesOutOf10'>;
+    }
+  | {
+      role: 'CB';
+      assessmentType: 'Full';
+      base: RawResultsBase;
+      roleSpecific: RawResultsFBCB;
+    }
+  | {
+      role: 'CB';
+      assessmentType: 'Quick';
+      base: RawResultsBase;
+      roleSpecific: Pick<RawResultsFBCB, 'tacklingWinsOutOf10' | 'defensiveHeadingClearancesOutOf10'>;
+    }
+  // Goalkeeper
+  | {
+      role: 'GK';
+      assessmentType: 'Full';
+      base: RawResultsBase;
+      roleSpecific: RawResultsGK;
+    }
+  | {
+      role: 'GK';
+      assessmentType: 'Quick';
+      base: RawResultsBase;
+      roleSpecific: Pick<RawResultsGK, 'gkReflexesSavesOutOf10' | 'gkHandlingCleanCatchesOutOf10'>;
+    };
+
+export interface AssessmentDevelopmentPlanWeek {
+  weekNumber: 1 | 2 | 3 | 4;
+  focus: string;
+  drillIds: string[];
+  notes: string;
+}
+
+export interface AssessmentDevelopmentPlan {
+  focusAttributeId: FprdsAttributeId;
+  priorityScore: number;
+  weeks: AssessmentDevelopmentPlanWeek[];
+}
+
+export interface AssessmentDeltas {
+  previousSessionId?: string;
+  ovrDelta?: number;
+  attributeDeltas?: Partial<Record<FprdsAttributeId, number>>;
+}
+
+export interface AssessmentSession {
+  id: string;
+  playerId: string;
+  assessmentDate: string;
+  createdAt: string;
+  assessmentType: FprdsAssessmentType;
+  ageGroup: AgeGroup;
+  role: FprdsRole;
+  rawResults: AssessmentRawResults;
+  attributeScores: Record<FprdsAttributeId, number>;
+  ovr: number;
+  labels: {
+    weakestAttributeId: FprdsAttributeId;
+    ovrTierLabel: string;
+  };
+  deltas: AssessmentDeltas;
+  developmentPlan?: AssessmentDevelopmentPlan;
+}
+
 export interface Player {
   id: string;
   name: string;
@@ -30,6 +236,10 @@ export interface Player {
   email?: string;
   phone?: string;
   since?: string;
+  dateOfBirth?: string;
+  fprdsRole?: FprdsRole;
+  fprdsAgeGroupPreference?: AgeGroup;
+  fprdsLastAssessmentId?: string;
   gamesPlayed: number;
   points: number; // For soccer: goals; for basketball: points
   assists: number;
@@ -191,4 +401,3 @@ export const isStaffPosition = (pos: string): boolean => {
     'founder', 'manager', 'coach', 'vice president', 'president', 'owner', 'director', 'staff'
   ].some(keyword => pos.toLowerCase().includes(keyword));
 };
-

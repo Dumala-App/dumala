@@ -1,32 +1,27 @@
 import React, { useState, useEffect } from 'react';
-import { Player, Game, Standing, Announcement, TeamInfo } from './types';
+import { Player, Game, Standing, Announcement, TeamInfo, AssessmentSession } from './types';
 
-import DashboardView from './components/DashboardView';
 import RosterView from './components/RosterView';
-import ScheduleView from './components/ScheduleView';
-import StandingsView from './components/StandingsView';
-import AnnouncementsView from './components/AnnouncementsView';
 import PlayerProfileModal from './components/PlayerProfileModal';
 import TacticsView from './components/TacticsView';
-import TrainingView from './components/TrainingView';
 import OnboardingView from './components/OnboardingView';
-import UpdatesView from './components/UpdatesView';
 import FeedbackModal from './components/FeedbackModal';
+import HomeHubView from './components/HomeHubView';
+import DevelopmentHubView from './components/DevelopmentHubView';
+import LeagueUpdatesHubView from './components/LeagueUpdatesHubView';
+import { applyAssessmentSnapshotToPlayer } from './fprds/scoring';
 
 import { 
   Shield, 
   Users, 
-  Calendar, 
   Trophy, 
-  Megaphone, 
   Heart, 
   Menu,
   X,
   Sliders,
-  Dumbbell,
   RotateCcw,
   MessageSquare,
-  NotebookPen
+  ClipboardList
 } from 'lucide-react';
 import { AnimatePresence } from 'motion/react';
 
@@ -34,7 +29,15 @@ export default function App() {
   const [isOnboarded, setIsOnboarded] = useState<boolean>(() => {
     return localStorage.getItem('stack_team_onboarded') === 'true' || localStorage.getItem('stack_team_info') !== null;
   });
-  const [currentTab, setCurrentTab] = useState<'dashboard' | 'roster' | 'schedule' | 'standings' | 'announcements' | 'tactics' | 'training' | 'updates'>('dashboard');
+  type PrimaryTab = 'home' | 'squad' | 'tactics' | 'development' | 'league_updates';
+  type HomeTab = 'overview' | 'game_week';
+  type DevelopmentTab = 'assessments' | 'training';
+  type LeagueUpdatesTab = 'league' | 'updates' | 'dev_notes';
+
+  const [primaryTab, setPrimaryTab] = useState<PrimaryTab>('home');
+  const [homeTab, setHomeTab] = useState<HomeTab>('overview');
+  const [developmentTab, setDevelopmentTab] = useState<DevelopmentTab>('assessments');
+  const [leagueUpdatesTab, setLeagueUpdatesTab] = useState<LeagueUpdatesTab>('league');
   
   // Local Storage state hooks
   const [teamInfo, setTeamInfo] = useState<TeamInfo | null>(() => {
@@ -130,8 +133,20 @@ export default function App() {
     return saved ? JSON.parse(saved) : [];
   });
 
+  const [assessments, setAssessments] = useState<AssessmentSession[]>(() => {
+    const saved = localStorage.getItem('stack_team_assessments');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) return parsed as AssessmentSession[];
+      } catch {}
+    }
+    return [];
+  });
+
   const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [preselectedAssessmentsPlayerId, setPreselectedAssessmentsPlayerId] = useState<string | null>(null);
 
   // Sync state to LocalStorage
   useEffect(() => {
@@ -153,6 +168,10 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem('stack_team_announcements', JSON.stringify(announcements));
   }, [announcements]);
+
+  useEffect(() => {
+    localStorage.setItem('stack_team_assessments', JSON.stringify(assessments));
+  }, [assessments]);
 
   // Handle Recording Scoreboard Match Results & Cascade Side Effects
   const handleRecordResult = (
@@ -331,6 +350,41 @@ export default function App() {
     setAnnouncements(prev => prev.filter(a => a.id !== id));
   };
 
+  const handleAddAssessment = (session: AssessmentSession) => {
+    setAssessments(prev => [session, ...prev]);
+  };
+
+  const handleDeleteAssessment = (sessionId: string) => {
+    setAssessments(prev => {
+      const target = prev.find(s => s.id === sessionId);
+      const next = prev.filter(s => s.id !== sessionId);
+
+      if (target) {
+        setPlayers(playersPrev => {
+          const player = playersPrev.find(p => p.id === target.playerId);
+          if (!player) return playersPrev;
+
+          const latest = next
+            .filter(s => s.playerId === target.playerId)
+            .sort((a, b) => {
+              const ad = new Date(a.assessmentDate).getTime();
+              const bd = new Date(b.assessmentDate).getTime();
+              if (ad !== bd) return bd - ad;
+              return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+            })[0];
+
+          const updatedPlayer = latest
+            ? applyAssessmentSnapshotToPlayer(player, latest)
+            : { ...player, fprdsLastAssessmentId: undefined };
+
+          return playersPrev.map(p => (p.id === updatedPlayer.id ? updatedPlayer : p));
+        });
+      }
+
+      return next;
+    });
+  };
+
   const handleExportBackup = () => {
     try {
       const data = {
@@ -339,8 +393,9 @@ export default function App() {
         games,
         standings,
         announcements,
+        assessments,
         exportedAt: new Date().toISOString(),
-        backupVersion: "1.0.0"
+        backupVersion: "1.1.0"
       };
       
       const jsonString = JSON.stringify(data, null, 2);
@@ -375,15 +430,18 @@ export default function App() {
     const restoredGames = backup.games as Game[] | undefined;
     const restoredStandings = backup.standings as Standing[] | undefined;
     const restoredAnnouncements = backup.announcements as Announcement[] | undefined;
+    const restoredAssessments = backup.assessments as AssessmentSession[] | undefined;
+    const backupVersion = backup.backupVersion as string | undefined;
 
     if (
-      backup.backupVersion !== '1.0.0' ||
+      (backupVersion !== '1.0.0' && backupVersion !== '1.1.0') ||
       !restoredTeam ||
       typeof restoredTeam.name !== 'string' ||
       !Array.isArray(restoredPlayers) ||
       !Array.isArray(restoredGames) ||
       !Array.isArray(restoredStandings) ||
-      !Array.isArray(restoredAnnouncements)
+      !Array.isArray(restoredAnnouncements) ||
+      (backupVersion === '1.1.0' && restoredAssessments !== undefined && !Array.isArray(restoredAssessments))
     ) {
       throw new Error('This backup is missing required team data or uses an unsupported version.');
     }
@@ -393,8 +451,9 @@ export default function App() {
     setGames(restoredGames);
     setStandings(restoredStandings);
     setAnnouncements(restoredAnnouncements);
+    setAssessments(Array.isArray(restoredAssessments) ? restoredAssessments : []);
     setIsOnboarded(true);
-    setCurrentTab('roster');
+    setPrimaryTab('squad');
 
     localStorage.setItem('stack_team_onboarded', 'true');
     localStorage.setItem('stack_team_info', JSON.stringify(restoredTeam));
@@ -402,6 +461,7 @@ export default function App() {
     localStorage.setItem('stack_team_games', JSON.stringify(restoredGames));
     localStorage.setItem('stack_team_standings', JSON.stringify(restoredStandings));
     localStorage.setItem('stack_team_announcements', JSON.stringify(restoredAnnouncements));
+    localStorage.setItem('stack_team_assessments', JSON.stringify(Array.isArray(restoredAssessments) ? restoredAssessments : []));
   };
 
   const [showResetConfirm, setShowResetConfirm] = useState(false);
@@ -415,7 +475,39 @@ export default function App() {
     setGames([]);
     setStandings([]);
     setAnnouncements([]);
+    setAssessments([]);
+    setPreselectedAssessmentsPlayerId(null);
     setShowResetConfirm(false);
+  };
+
+  const handleNavigate = (target: {
+    primary: PrimaryTab;
+    homeTab?: HomeTab;
+    developmentTab?: DevelopmentTab;
+    leagueUpdatesTab?: LeagueUpdatesTab;
+  }) => {
+    setPrimaryTab(target.primary);
+
+    if (target.primary === 'home') {
+      setHomeTab(target.homeTab ?? 'overview');
+    }
+
+    if (target.primary === 'development') {
+      setDevelopmentTab(target.developmentTab ?? 'assessments');
+    }
+
+    if (target.primary === 'league_updates') {
+      setLeagueUpdatesTab(target.leagueUpdatesTab ?? 'league');
+    }
+
+    setMobileMenuOpen(false);
+  };
+
+  const handleSelectPrimaryTab = (tab: PrimaryTab) => {
+    if (tab === 'home') return handleNavigate({ primary: 'home', homeTab: 'overview' });
+    if (tab === 'development') return handleNavigate({ primary: 'development', developmentTab: 'training' });
+    if (tab === 'league_updates') return handleNavigate({ primary: 'league_updates', leagueUpdatesTab: 'league' });
+    return handleNavigate({ primary: tab });
   };
 
   if (!isOnboarded || !teamInfo) {
@@ -425,8 +517,11 @@ export default function App() {
           setTeamInfo(team);
           setPlayers([coachPlayer]);
           setStandings([]);
-          setCurrentTab('dashboard');
+          setAssessments([]);
+          setPrimaryTab('home');
+          setHomeTab('overview');
           localStorage.setItem('stack_team_standings', JSON.stringify([]));
+          localStorage.setItem('stack_team_assessments', JSON.stringify([]));
           setIsOnboarded(true);
           localStorage.setItem('stack_team_onboarded', 'true');
           localStorage.setItem('stack_team_info', JSON.stringify(team));
@@ -450,13 +545,13 @@ export default function App() {
                 id="brand-logo"
                 src="/Dumala_logo.png"
                 alt="Dumala"
-                onClick={() => setCurrentTab('dashboard')}
+                onClick={() => handleSelectPrimaryTab('home')}
                 className="w-14 h-14 rounded-xl object-contain cursor-pointer transition-all hover:-translate-y-0.5 active:translate-y-0"
               />
               <div>
                 <h1 
                   id="brand-title" 
-                  onClick={() => setCurrentTab('dashboard')}
+                  onClick={() => handleSelectPrimaryTab('home')}
                   className="font-display font-extrabold text-sm sm:text-base tracking-tight cursor-pointer text-white hover:text-blue-100 transition-colors truncate"
                 >
                   Dumala
@@ -470,22 +565,19 @@ export default function App() {
             {/* Desktop Navigation Link Tabs */}
             <nav id="desktop-nav" aria-label="Primary navigation" className="hidden lg:flex items-center gap-1 bg-white/[0.06] border border-white/[0.08] rounded-2xl p-1.5">
               {[
-                { id: 'dashboard', label: 'Overview', icon: Shield },
-                { id: 'roster', label: 'Roster', icon: Users },
+                { id: 'home', label: 'Home', icon: Shield },
+                { id: 'squad', label: 'Squad', icon: Users },
                 { id: 'tactics', label: 'Tactics', icon: Sliders },
-                { id: 'training', label: 'Training', icon: Dumbbell },
-                { id: 'schedule', label: 'Schedule', icon: Calendar },
-                { id: 'standings', label: 'League', icon: Trophy },
-                { id: 'announcements', label: 'Updates', icon: Megaphone },
-                { id: 'updates', label: 'Dev Notes', icon: NotebookPen }
+                { id: 'development', label: 'Development', icon: ClipboardList },
+                { id: 'league_updates', label: 'League & Updates', icon: Trophy }
               ].map((tab) => {
                 const TabIcon = tab.icon;
-                const isActive = currentTab === tab.id;
+                const isActive = primaryTab === tab.id;
                 return (
                   <button
                     id={`nav-tab-btn-${tab.id}`}
                     key={tab.id}
-                    onClick={() => setCurrentTab(tab.id as any)}
+                    onClick={() => handleSelectPrimaryTab(tab.id as any)}
                     aria-current={isActive ? 'page' : undefined}
                     className={`flex items-center gap-2 px-3 py-2 rounded-xl text-[11px] font-bold transition-all border ${
                       isActive 
@@ -520,24 +612,20 @@ export default function App() {
         {mobileMenuOpen && (
           <div id="mobile-nav-panel" className="lg:hidden bg-[#07111f] border-t border-white/10 p-3 grid grid-cols-2 gap-2">
             {[
-              { id: 'dashboard', label: 'Overview', icon: Shield },
-              { id: 'roster', label: 'Roster', icon: Users },
+              { id: 'home', label: 'Home', icon: Shield },
+              { id: 'squad', label: 'Squad', icon: Users },
               { id: 'tactics', label: 'Tactics', icon: Sliders },
-              { id: 'training', label: 'Training', icon: Dumbbell },
-              { id: 'schedule', label: 'Schedule', icon: Calendar },
-              { id: 'standings', label: 'League', icon: Trophy },
-              { id: 'announcements', label: 'Updates', icon: Megaphone },
-              { id: 'updates', label: 'Dev Notes', icon: NotebookPen }
+              { id: 'development', label: 'Development', icon: ClipboardList },
+              { id: 'league_updates', label: 'League & Updates', icon: Trophy }
             ].map((tab) => {
               const TabIcon = tab.icon;
-              const isActive = currentTab === tab.id;
+              const isActive = primaryTab === tab.id;
               return (
                 <button
                   id={`mobile-nav-btn-${tab.id}`}
                   key={tab.id}
                   onClick={() => {
-                    setCurrentTab(tab.id as any);
-                    setMobileMenuOpen(false);
+                    handleSelectPrimaryTab(tab.id as any);
                   }}
                   className={`flex items-center gap-3 w-full px-4 py-3 rounded-xl text-xs font-bold transition-all ${
                     isActive 
@@ -602,30 +690,28 @@ export default function App() {
 
         {/* Active Tab Frame Switcher */}
         <div id="tab-content-frame">
-          {currentTab === 'dashboard' && (
-            <DashboardView 
+          {primaryTab === 'home' && (
+            <HomeHubView
+              activeTab={homeTab}
+              onTabChange={setHomeTab}
+              onNavigate={handleNavigate}
               teamInfo={teamInfo}
               players={players}
               games={games}
               standings={standings}
               announcements={announcements}
-              setCurrentTab={setCurrentTab}
+              assessments={assessments}
               onSelectPlayer={setSelectedPlayer}
               onUpdateTeamInfo={handleUpdateTeamInfo}
+              onAddGame={handleAddGame}
+              onRecordResult={handleRecordResult}
+              onDeleteGame={handleDeleteGame}
+              teamName={teamInfo?.name || 'Apex Rangers'}
             />
           )}
 
-          {currentTab === 'tactics' && (
-            <TacticsView 
-              players={players}
-              teamCoach={teamInfo?.coach || ""}
-              teamName={teamInfo?.name || "Apex Rangers"}
-              onUpdatePlayer={handleUpdatePlayer}
-            />
-          )}
-
-          {currentTab === 'roster' && (
-            <RosterView 
+          {primaryTab === 'squad' && (
+            <RosterView
               players={players}
               onAddPlayer={handleAddPlayer}
               onSelectPlayer={setSelectedPlayer}
@@ -635,51 +721,43 @@ export default function App() {
             />
           )}
 
-          {currentTab === 'training' && (
-            <TrainingView 
+          {primaryTab === 'tactics' && (
+            <TacticsView players={players} teamCoach={teamInfo?.coach || ''} teamName={teamInfo?.name || 'Apex Rangers'} onUpdatePlayer={handleUpdatePlayer} />
+          )}
+
+          {primaryTab === 'development' && (
+            <DevelopmentHubView
+              activeTab={developmentTab}
+              onTabChange={setDevelopmentTab}
               players={players}
-              onUpdatePlayer={handleUpdatePlayer}
               games={games}
               onUpdateGames={setGames}
+              onUpdatePlayer={handleUpdatePlayer}
+              assessments={assessments}
+              preselectedAssessmentsPlayerId={preselectedAssessmentsPlayerId}
+              onClearPreselectedAssessmentsPlayerId={() => setPreselectedAssessmentsPlayerId(null)}
+              onAddAssessment={handleAddAssessment}
+              onDeleteAssessment={handleDeleteAssessment}
             />
           )}
 
-          {currentTab === 'schedule' && (
-            <ScheduleView 
-              games={games}
-              players={players}
-              standings={standings}
-              onAddGame={handleAddGame}
-              onRecordResult={handleRecordResult}
-              onDeleteGame={handleDeleteGame}
-              teamName={teamInfo?.name || "Apex Rangers"}
-            />
-          )}
-
-          {currentTab === 'standings' && (
-            <StandingsView 
+          {primaryTab === 'league_updates' && (
+            <LeagueUpdatesHubView
+              activeTab={leagueUpdatesTab}
+              onTabChange={setLeagueUpdatesTab}
               standings={standings}
               onUpdateStanding={handleUpdateStanding}
               onResetStandings={handleResetStandings}
-              teamName={teamInfo?.name || "Apex Rangers"}
-              teamInfo={teamInfo!}
+              teamName={teamInfo?.name || 'Apex Rangers'}
+              teamInfo={teamInfo}
               onUpdateTeamInfo={handleUpdateTeamInfo}
               onUpdateAllStandings={setStandings}
               players={players}
               onUpdatePlayer={handleUpdatePlayer}
-            />
-          )}
-
-          {currentTab === 'announcements' && (
-            <AnnouncementsView 
               announcements={announcements}
               onAddAnnouncement={handleAddAnnouncement}
               onDeleteAnnouncement={handleDeleteAnnouncement}
             />
-          )}
-
-          {currentTab === 'updates' && (
-            <UpdatesView />
           )}
         </div>
 
@@ -693,6 +771,13 @@ export default function App() {
             onClose={() => setSelectedPlayer(null)}
             onUpdate={handleUpdatePlayer}
             onRemove={handleRemovePlayer}
+            assessments={assessments}
+            onOpenAssessments={(playerId: string) => {
+              setPreselectedAssessmentsPlayerId(playerId);
+              setPrimaryTab('development');
+              setDevelopmentTab('assessments');
+              setSelectedPlayer(null);
+            }}
           />
         )}
       </AnimatePresence>
