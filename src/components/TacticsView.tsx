@@ -651,8 +651,15 @@ export default function TacticsView({ players, teamCoach, teamName, teamLogoUrl,
     if (preserveAssignments) {
       for (let index = 0; index < size; index++) {
         const assigned = currentLineup[index];
-        if (assigned && validIds.has(assigned.id)) {
-          nextLineup[index] = assigned;
+        const currentPlayer = assigned
+          ? allEligiblePool.find(player => player.id === assigned.id)
+          : undefined;
+
+        if (assigned && currentPlayer && validIds.has(assigned.id)) {
+          nextLineup[index] = {
+            ...currentPlayer,
+            position: fieldPositions[index]?.role || currentPlayer.position
+          };
         }
       }
     }
@@ -1340,8 +1347,11 @@ export default function TacticsView({ players, teamCoach, teamName, teamLogoUrl,
                 </button>
 
                 {/* Absolute naming label placed safely beneath card container */}
-                <span className="block text-[10px] font-bold text-white bg-slate-955/90 px-1.5 py-0.5 rounded-md mt-1 shadow border border-slate-800 text-center tracking-wide overflow-hidden max-w-20 truncate">
-                  {player.name.split(' ').slice(-1)[0]}
+                <span
+                  className="block min-w-14 max-w-24 whitespace-nowrap text-[10px] font-bold text-white bg-slate-950/95 px-1.5 py-0.5 rounded-md mt-1 shadow border border-slate-700 text-center tracking-wide overflow-hidden truncate"
+                  title={player.name?.trim() || 'Player'}
+                >
+                  {player.name?.trim().split(/\s+/).slice(-1)[0] || 'Player'}
                 </span>
 
               </motion.div>
