@@ -1,13 +1,14 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { Player, isStaffPosition } from '../types';
 import { STAFF_PLACEHOLDER } from '../playerPlaceholders';
-import { Shield, Zap, Search, RefreshCw, UserCheck, Play, Save, ChevronRight, HelpCircle, User, Info, BarChart2, Edit, Trash2, Plus, Check, Filter, Tag, BookOpen } from 'lucide-react';
+import { Shield, Crown, Star, Flame, Target, Trophy, Zap, Search, RefreshCw, UserCheck, Play, Save, ChevronRight, HelpCircle, User, Info, BarChart2, Edit, Trash2, Plus, Check, Filter, Tag, BookOpen } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
 interface TacticsViewProps {
   players: Player[];
   teamCoach: string;
   teamName?: string;
+  teamLogoUrl?: string;
   onUpdatePlayer?: (updated: Player) => void;
 }
 
@@ -90,7 +91,30 @@ type MatchFormat = keyof typeof MATCH_FORMAT_CONFIG;
 
 const PLAYSTYLE_OPTIONS = ['Quick Counter', 'Possession Game', 'Long Ball Counter', 'Out Wide'];
 
-export default function TacticsView({ players, teamCoach, teamName, onUpdatePlayer }: TacticsViewProps) {
+type PositionGroup = 'Goalkeeper' | 'Defender' | 'Midfielder' | 'Forward';
+
+const getSlotPositionGroup = (role: string): PositionGroup => {
+  if (role === 'GK') return 'Goalkeeper';
+  if (role.includes('B') || role === 'DEF') return 'Defender';
+  if (role.includes('MF') || role === 'MID') return 'Midfielder';
+  return 'Forward';
+};
+
+const getPlayerPositionGroup = (position: string): PositionGroup => {
+  if (position === 'GK' || position === 'Goalkeeper') return 'Goalkeeper';
+  if (['CB', 'LB', 'RB', 'LWB', 'RWB', 'DEF', 'Defender'].includes(position)) return 'Defender';
+  if (position.includes('MF') || position === 'MID' || position === 'Midfielder') return 'Midfielder';
+  return 'Forward';
+};
+
+const POSITION_FALLBACKS: Record<PositionGroup, PositionGroup[]> = {
+  Goalkeeper: ['Goalkeeper', 'Defender', 'Midfielder', 'Forward'],
+  Defender: ['Defender', 'Midfielder', 'Goalkeeper', 'Forward'],
+  Midfielder: ['Midfielder', 'Defender', 'Forward', 'Goalkeeper'],
+  Forward: ['Forward', 'Midfielder', 'Defender', 'Goalkeeper']
+};
+
+export default function TacticsView({ players, teamCoach, teamName, teamLogoUrl, onUpdatePlayer }: TacticsViewProps) {
   const [matchFormat, setMatchFormat] = useState<MatchFormat>(() => {
     return (localStorage.getItem('squad_match_format') as MatchFormat) || '11-a-side';
   });
@@ -128,6 +152,41 @@ export default function TacticsView({ players, teamCoach, teamName, onUpdatePlay
   const coachName = rosterCoach?.name || teamCoach || 'Team Manager';
   const coachPhoto = rosterCoach?.photoUrl || STAFF_PLACEHOLDER;
   const [coachLevel, setCoachLevel] = useState<string>(() => localStorage.getItem('squad_coach_level') || 'Expert ★★★★★');
+  const [isTeamLogoBroken, setIsTeamLogoBroken] = useState<boolean>(false);
+
+  useEffect(() => {
+    setIsTeamLogoBroken(false);
+  }, [teamLogoUrl]);
+
+  const renderTeamLogo = (logoSize: number, className = '') => {
+    if (!teamLogoUrl || isTeamLogoBroken) {
+      return <Shield size={logoSize} className={className} />;
+    }
+
+    if (teamLogoUrl.startsWith('preset:')) {
+      const key = teamLogoUrl.replace('preset:', '');
+      switch (key) {
+        case 'shield': return <Shield size={logoSize} className={className} />;
+        case 'crown': return <Crown size={logoSize} className={className} />;
+        case 'star': return <Star size={logoSize} className={className} />;
+        case 'flame': return <Flame size={logoSize} className={className} />;
+        case 'target': return <Target size={logoSize} className={className} />;
+        case 'trophy': return <Trophy size={logoSize} className={className} />;
+        default: return <Shield size={logoSize} className={className} />;
+      }
+    }
+
+    return (
+      <img
+        src={teamLogoUrl}
+        alt="Team logo"
+        className={`object-contain ${className}`}
+        style={{ width: logoSize, height: logoSize }}
+        onError={() => setIsTeamLogoBroken(true)}
+        referrerPolicy="no-referrer"
+      />
+    );
+  };
 
   const [playstyles, setPlaystyles] = useState<string[]>(() => {
     const saved = localStorage.getItem('squad_custom_playstyles');
@@ -455,78 +514,8 @@ export default function TacticsView({ players, teamCoach, teamName, onUpdatePlay
         // ignore
       }
     }
-    // Default lineup prefilled
-    const defaultLineup: { [key: number]: TacticsPlayer } = {};
-    allEligiblePool.slice(0, 11).forEach((p, idx) => {
-      defaultLineup[idx] = {
-        id: p.id,
-        name: p.name,
-        rating: p.rating,
-        position: p.position,
-        condition: 'B' as const,
-        photoUrl: p.photoUrl,
-        isLegend: false,
-        attributes: p.attributes,
-        number: p.number,
-        bio: p.bio,
-        gamesPlayed: p.gamesPlayed,
-        points: p.points,
-        assists: p.assists,
-        cleanSheetsOrRebounds: p.cleanSheetsOrRebounds,
-        minutesPlayed: p.minutesPlayed,
-        mvpAwards: p.mvpAwards,
-        registrationStatus: p.registrationStatus
-      };
-    });
-    return defaultLineup;
+    return {};
   });
-
-  // Auto-populate empty lineup slots when players are added to the roster
-  useEffect(() => {
-    const size = MATCH_FORMAT_CONFIG[matchFormat].size;
-
-    setLineup(prev => {
-      const validIds = new Set(allEligiblePool.map(p => p.id));
-      const cleaned: { [key: number]: TacticsPlayer } = {};
-      Object.keys(prev).forEach(k => {
-        if (prev[+k] && validIds.has(prev[+k].id)) {
-          cleaned[+k] = prev[+k];
-        }
-      });
-
-      const hasEmptySlot = Array.from({ length: size }, (_, i) => i).some(i => !cleaned[i]);
-      if (!hasEmptySlot) return cleaned;
-
-      const assignedIds = new Set(Object.values(cleaned).filter(Boolean).map(p => p.id));
-      const unassigned = allEligiblePool.filter(p => !assignedIds.has(p.id));
-      if (unassigned.length === 0) return cleaned;
-
-      for (let i = 0; i < size; i++) {
-        if (!cleaned[i] && unassigned.length > 0) {
-          const p = unassigned.shift()!;
-          cleaned[i] = {
-            id: p.id,
-            name: p.name,
-            rating: p.rating,
-            position: p.position,
-            condition: 'B' as const,
-            photoUrl: p.photoUrl,
-            isLegend: false,
-            number: p.number,
-            bio: p.bio,
-            gamesPlayed: p.gamesPlayed,
-            points: p.points,
-            assists: p.assists,
-            cleanSheetsOrRebounds: p.cleanSheetsOrRebounds,
-            minutesPlayed: p.minutesPlayed,
-            mvpAwards: p.mvpAwards,
-            registrationStatus: p.registrationStatus
-          };
-        }
-      }
-      return cleaned;
-    });
-  }, [allEligiblePool, matchFormat]);
 
   // Save lineup configuration changes
   useEffect(() => {
@@ -650,6 +639,70 @@ export default function TacticsView({ players, teamCoach, teamName, onUpdatePlay
     positions.push(defaultGK);
     return positions;
   }, [formation, matchFormat]);
+
+  const buildPositionAwareLineup = (
+    currentLineup: { [key: number]: TacticsPlayer },
+    preserveAssignments: boolean
+  ) => {
+    const size = MATCH_FORMAT_CONFIG[matchFormat].size;
+    const validIds = new Set(allEligiblePool.map(player => player.id));
+    const nextLineup: { [key: number]: TacticsPlayer } = {};
+
+    if (preserveAssignments) {
+      for (let index = 0; index < size; index++) {
+        const assigned = currentLineup[index];
+        if (assigned && validIds.has(assigned.id)) {
+          nextLineup[index] = assigned;
+        }
+      }
+    }
+
+    const assignedIds = new Set(Object.values(nextLineup).map(player => player.id));
+    const available = allEligiblePool
+      .filter(player => !assignedIds.has(player.id))
+      .sort((a, b) => b.rating - a.rating);
+    const groupPriority: Record<PositionGroup, number> = {
+      Goalkeeper: 0,
+      Defender: 1,
+      Midfielder: 2,
+      Forward: 3
+    };
+
+    const emptySlots = Array.from({ length: size }, (_, index) => index)
+      .filter(index => !nextLineup[index])
+      .sort((a, b) => (
+        groupPriority[getSlotPositionGroup(fieldPositions[a]?.role || 'MID')]
+        - groupPriority[getSlotPositionGroup(fieldPositions[b]?.role || 'MID')]
+      ));
+
+    emptySlots.forEach(index => {
+      const slotRole = fieldPositions[index]?.role || 'MID';
+      const slotGroup = getSlotPositionGroup(slotRole);
+      let selectedIndex = -1;
+
+      for (const group of POSITION_FALLBACKS[slotGroup]) {
+        selectedIndex = available.findIndex(player => getPlayerPositionGroup(player.position) === group);
+        if (selectedIndex !== -1) break;
+      }
+
+      if (selectedIndex === -1) return;
+      const selectedPlayer = available.splice(selectedIndex, 1)[0];
+      nextLineup[index] = { ...selectedPlayer, position: slotRole };
+    });
+
+    return nextLineup;
+  };
+
+  // Keep valid manual assignments, then fill open slots with the best position-matched players.
+  useEffect(() => {
+    setLineup(previous => buildPositionAwareLineup(previous, true));
+  }, [allEligiblePool, fieldPositions, matchFormat]);
+
+  const handleAutoFillBoard = () => {
+    setLineup(buildPositionAwareLineup({}, false));
+    setDraggedPositions({});
+    setSelectedSlotIndex(0);
+  };
 
   // Sum total OVR points of starting lineup to count "Collective Strength"
   const collectiveStrength = useMemo(() => {
@@ -939,13 +992,8 @@ export default function TacticsView({ players, teamCoach, teamName, onUpdatePlay
         {/* Flag Box / Team Brand Crest Widget */}
         <div className="bg-[#0f172a]/95 p-4.5 rounded-2xl border border-slate-800/80 shadow-md flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            {/* Styled Team Flag inspired by eFootball flag widget */}
-            <div className="shrink-0 w-16 h-10 rounded-sm border border-slate-600 overflow-hidden relative shadow shadow-indigo-900/30">
-              <div className="absolute inset-x-0 top-0 bottom-1/2 bg-blue-600" />
-              <div className="absolute inset-x-0 bottom-0 top-1/2 bg-red-600" />
-              <div className="absolute inset-y-0 left-0 w-7 bg-white flex items-center justify-center [clip-path:polygon(0%_0%,_100%_50%,_0%_100%)]">
-                <span className="text-[10px] text-amber-500 font-bold">★</span>
-              </div>
+            <div className="shrink-0 w-12 h-12 rounded-xl bg-slate-900/40 border border-slate-700/80 overflow-hidden shadow shadow-indigo-900/30 flex items-center justify-center">
+              {renderTeamLogo(40, 'text-slate-200')}
             </div>
             <div>
               <h4 className="font-display font-black text-sm tracking-wide text-white">{teamName || "Apex Rangers"}</h4>
@@ -1053,12 +1101,20 @@ export default function TacticsView({ players, teamCoach, teamName, onUpdatePlay
         
         <div className="flex justify-between items-center mb-4">
           <h3 className="font-display font-black text-white text-sm tracking-widest uppercase text-emerald-400">Match Layout</h3>
-          <button
-            onClick={handleClearBoard}
-            className="text-[7px] uppercase tracking-wider bg-rose-500/10 text-rose-400 border border-rose-500/30 px-2 py-1 rounded-lg font-normal hover:bg-rose-500 hover:text-white transition-all flex items-center gap-1"
-          >
-            Clear Board
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleAutoFillBoard}
+              className="text-[7px] uppercase tracking-wider bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 px-2 py-1 rounded-lg font-normal hover:bg-emerald-500 hover:text-slate-950 transition-all"
+            >
+              Auto Fill
+            </button>
+            <button
+              onClick={handleClearBoard}
+              className="text-[7px] uppercase tracking-wider bg-rose-500/10 text-rose-400 border border-rose-500/30 px-2 py-1 rounded-lg font-normal hover:bg-rose-500 hover:text-white transition-all flex items-center gap-1"
+            >
+              Clear Board
+            </button>
+          </div>
         </div>
 
         {/* Render interactive Tactical Pitch Board */}

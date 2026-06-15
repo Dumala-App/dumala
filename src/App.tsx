@@ -722,7 +722,7 @@ export default function App() {
           )}
 
           {primaryTab === 'tactics' && (
-            <TacticsView players={players} teamCoach={teamInfo?.coach || ''} teamName={teamInfo?.name || 'Apex Rangers'} onUpdatePlayer={handleUpdatePlayer} />
+            <TacticsView players={players} teamCoach={teamInfo?.coach || ''} teamName={teamInfo?.name || 'Apex Rangers'} teamLogoUrl={teamInfo?.logoUrl} onUpdatePlayer={handleUpdatePlayer} />
           )}
 
           {primaryTab === 'development' && (
