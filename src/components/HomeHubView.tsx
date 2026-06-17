@@ -10,7 +10,7 @@ export type HubNavigateTarget =
   | { primary: 'squad' }
   | { primary: 'tactics' }
   | { primary: 'development'; developmentTab: 'assessments' | 'training' }
-  | { primary: 'league_updates'; leagueUpdatesTab: 'league' | 'updates' | 'dev_notes' };
+  | { primary: 'league_updates'; leagueUpdatesTab: 'league' | 'updates' | 'bulletins' };
 
 interface HomeHubViewProps {
   activeTab: HomeTab;
@@ -94,4 +94,3 @@ export default function HomeHubView(props: HomeHubViewProps) {
     </div>
   );
 }
-

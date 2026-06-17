@@ -32,7 +32,7 @@ export default function App() {
   type PrimaryTab = 'home' | 'squad' | 'tactics' | 'development' | 'league_updates';
   type HomeTab = 'overview' | 'game_week';
   type DevelopmentTab = 'assessments' | 'training';
-  type LeagueUpdatesTab = 'league' | 'updates' | 'dev_notes';
+  type LeagueUpdatesTab = 'league' | 'updates' | 'bulletins';
 
   const [primaryTab, setPrimaryTab] = useState<PrimaryTab>('home');
   const [homeTab, setHomeTab] = useState<HomeTab>('overview');

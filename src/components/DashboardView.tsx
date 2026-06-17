@@ -49,7 +49,7 @@ interface DashboardViewProps {
     primary: 'home' | 'squad' | 'tactics' | 'development' | 'league_updates';
     homeTab?: 'overview' | 'game_week';
     developmentTab?: 'assessments' | 'training';
-    leagueUpdatesTab?: 'league' | 'updates' | 'dev_notes';
+    leagueUpdatesTab?: 'league' | 'updates' | 'bulletins';
   }) => void;
   onSelectPlayer: (player: Player) => void;
   onUpdateTeamInfo: (updated: TeamInfo) => void;

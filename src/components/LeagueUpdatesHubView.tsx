@@ -4,7 +4,7 @@ import AnnouncementsView from './AnnouncementsView';
 import StandingsView from './StandingsView';
 import UpdatesView from './UpdatesView';
 
-export type LeagueUpdatesTab = 'league' | 'updates' | 'dev_notes';
+export type LeagueUpdatesTab = 'league' | 'updates' | 'bulletins';
 
 interface LeagueUpdatesHubViewProps {
   activeTab: LeagueUpdatesTab;
@@ -50,8 +50,8 @@ export default function LeagueUpdatesHubView(props: LeagueUpdatesHubViewProps) {
       <div className="bg-white border border-slate-200/70 rounded-2xl p-2 shadow-sm">
         <div className="flex flex-wrap items-center gap-2">
           <TabPill label="League" isActive={props.activeTab === 'league'} onClick={() => props.onTabChange('league')} />
+          <TabPill label="Bulletins" isActive={props.activeTab === 'bulletins'} onClick={() => props.onTabChange('bulletins')} />
           <TabPill label="Updates" isActive={props.activeTab === 'updates'} onClick={() => props.onTabChange('updates')} />
-          <TabPill label="Dev Notes" isActive={props.activeTab === 'dev_notes'} onClick={() => props.onTabChange('dev_notes')} />
         </div>
       </div>
 
@@ -70,11 +70,12 @@ export default function LeagueUpdatesHubView(props: LeagueUpdatesHubViewProps) {
       )}
 
       {props.activeTab === 'updates' && (
-        <AnnouncementsView announcements={props.announcements} onAddAnnouncement={props.onAddAnnouncement} onDeleteAnnouncement={props.onDeleteAnnouncement} />
+        <UpdatesView />
       )}
 
-      {props.activeTab === 'dev_notes' && <UpdatesView />}
+      {props.activeTab === 'bulletins' && (
+        <AnnouncementsView announcements={props.announcements} onAddAnnouncement={props.onAddAnnouncement} onDeleteAnnouncement={props.onDeleteAnnouncement} />
+      )}
     </div>
   );
 }
-
