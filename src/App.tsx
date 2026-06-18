@@ -24,6 +24,7 @@ import {
   ClipboardList
 } from 'lucide-react';
 import { AnimatePresence } from 'motion/react';
+import { SpeedInsights } from '@vercel/speed-insights/react';
 
 export default function App() {
   const [isOnboarded, setIsOnboarded] = useState<boolean>(() => {
@@ -793,6 +794,9 @@ export default function App() {
           Your team data stays in this browser unless you export a backup.
         </p>
       </footer>
+
+      {/* Vercel Speed Insights */}
+      <SpeedInsights />
 
     </div>
   );
