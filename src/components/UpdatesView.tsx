@@ -300,7 +300,7 @@ export default function UpdatesView() {
       id: 'roadmap_snapshot',
       date: '2026-05-04',
       title: 'Roadmap Snapshot',
-      summary: 'A practical development sequence covering reliability, offline access, tablets, collaboration, public profiles, drafting, and objective player development.',
+      summary: 'A practical development sequence covering reliability, offline access, tablets, collaboration, public profiles, drafting, objective player development, and Philippine coach education.',
       accent: 'border-slate-200 bg-slate-50/70',
       renderContent: () => (
         <div className="space-y-5">
@@ -417,7 +417,26 @@ export default function UpdatesView() {
               badge: 'bg-fuchsia-200 text-fuchsia-900'
             },
             {
-              phase: 'Future Expansion',
+              phase: 'Future Expansion: Coaching',
+              status: 'Long Term',
+              objective: 'Philippine coach education and professional development',
+              deliverables: [
+                'Build a coach knowledge base covering session planning, tactics, player development, conditioning, leadership, safeguarding, first aid, and the Laws of the Game.',
+                'Explain the Philippine coaching qualification pathway using current guidance from the Philippine Football Federation and the Asian Football Confederation.',
+                'Provide official PFF, AFC, and FIFA resource links for recognized coaching courses, announcements, requirements, and registration information.',
+                'Add a coach education planner for prerequisites, learning goals, recommended next qualifications, workshops, seminars, and continuing development.',
+                'Track certificates with qualification name, issuing authority, licence number, issue date, expiry date, supporting document, and verification status.',
+                'Add renewal reminders, a private coaching journal, session reflections, development goals, and a downloadable coaching portfolio.',
+                'Expand staff profiles with coaching specialties, age groups coached, experience, achievements, course history, and approved public credentials.',
+                'Keep official qualifications separate from Dumala Development Progress, which may summarize completed learning activities but must never appear as a PFF or AFC rating.'
+              ],
+              benefit: 'Philippine coaches can understand recognized development pathways, organize their credentials, and build practical coaching knowledge without confusing app progress with an official licence.',
+              completion: 'Coaches can find official Philippine guidance, record qualifications and development activity, control what appears publicly, and clearly distinguish verified credentials from Dumala progress.',
+              color: 'border-sky-400 bg-sky-50',
+              badge: 'bg-sky-200 text-sky-900'
+            },
+            {
+              phase: 'Future Expansion: Clubs',
               status: 'Long Term',
               objective: 'Club operations expansion',
               deliverables: [
