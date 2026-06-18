@@ -1,11 +1,10 @@
 import React, { useState } from 'react';
-import { Megaphone, FlaskConical, Rocket, Brain, Target, TrendingUp, Hash, ChevronDown, ChevronRight } from 'lucide-react';
+import { Megaphone, FlaskConical, Calculator, Target, TrendingUp, Hash, ChevronDown, ChevronRight } from 'lucide-react';
 
 export default function UpdatesView() {
   const [openEntries, setOpenEntries] = useState<Record<string, boolean>>({
     assessment_center_implemented: true,
     fprds_vision_announced: false,
-    ai_assistant_future_direction: false,
     roadmap_snapshot: false
   });
 
@@ -238,7 +237,7 @@ export default function UpdatesView() {
 
             <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-4 space-y-3">
               <div className="flex items-center gap-2">
-                <Brain size={16} className="text-indigo-600" />
+                <Calculator size={16} className="text-indigo-600" />
                 <h5 className="font-black text-slate-800 text-xs uppercase tracking-wider">Worked Example — 30m Sprint (Time-Based)</h5>
               </div>
               <p className="text-xs text-slate-700">
@@ -298,53 +297,171 @@ export default function UpdatesView() {
       )
     },
     {
-      id: 'ai_assistant_future_direction',
-      date: '2026-05-18',
-      title: 'Future Direction: AI Assistant for Coaches',
-      summary: 'Long-term assistant layer for game analysis, drill recommendations, and coaching support.',
-      accent: 'border-purple-200 bg-purple-50/70',
-      renderContent: () => (
-        <div className="space-y-4">
-          <p className="text-sm text-slate-600 leading-relaxed">
-            Beyond objective ratings, a planned AI assistant layer will help coaches make faster, smarter decisions by analyzing the data already captured in the platform.
-          </p>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {[
-              { title: 'Game Analysis', desc: 'AI evaluates recent match results and training loads to summarize team performance trends.' },
-              { title: 'Drill Recommendations', desc: 'Automatically suggests specific drills from the 52-drill library to address identified squad weaknesses.' },
-              { title: 'Pre-Match Briefings', desc: 'Generates automated tactical focus points and opponent preparation checklists based on historical data.' },
-              { title: 'Development Flags', desc: 'AI-generated alerts when a player shows unusual progress, regression, or readiness for advancement.' }
-            ].map((item) => (
-              <div key={item.title} className="bg-white border border-purple-200 rounded-xl p-3">
-                <h5 className="text-[11px] font-black text-slate-800 mb-1">{item.title}</h5>
-                <p className="text-[11px] text-slate-500 leading-relaxed">{item.desc}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      )
-    },
-    {
       id: 'roadmap_snapshot',
       date: '2026-05-04',
       title: 'Roadmap Snapshot',
-      summary: 'High-level timeline from beta stabilization through FPRDS and AI phases.',
+      summary: 'A practical development sequence covering reliability, offline access, tablets, collaboration, public profiles, drafting, and objective player development.',
       accent: 'border-slate-200 bg-slate-50/70',
       renderContent: () => (
-        <div className="space-y-4">
+        <div className="space-y-5">
+          <div className="bg-white border border-slate-200 rounded-xl p-4">
+            <p className="text-xs text-slate-600 leading-relaxed">
+              This roadmap shows the intended order of development rather than fixed release dates. Priorities may change as beta testers identify more urgent coaching and club-management needs.
+            </p>
+          </div>
           {[
-            { phase: 'Now (Beta)', label: 'Current Phase', desc: 'Subjective coach-driven ratings. Local-first team management. Feedback-driven iteration.', color: 'border-amber-400 bg-amber-50' },
-            { phase: 'Phase 1', label: 'Stabilization', desc: 'Polish core workflows. Improve data integrity. Accessibility and mobile responsiveness.', color: 'border-blue-400 bg-blue-50' },
-            { phase: 'Phase 2', label: 'SaaS Foundation', desc: 'Cloud persistence. User authentication. Multi-user team accounts and role-based collaboration.', color: 'border-indigo-400 bg-indigo-50' },
-            { phase: 'Phase 3', label: 'FPRDS Launch', desc: 'Objective ratings via standardized drills. Benchmark tables. Linear interpolation scoring. FIFA-style player cards.', color: 'border-emerald-400 bg-emerald-50' },
-            { phase: 'Phase 4', label: 'AI Assistant', desc: 'Game analysis. Drill recommendations. Pre-match briefings. Development tracking and alerts.', color: 'border-purple-400 bg-purple-50' }
+            {
+              phase: 'Current Beta',
+              status: 'Current',
+              objective: 'Reliability and data confidence',
+              deliverables: [
+                'Fix workflow and display defects across the main coaching tools.',
+                'Validate standings calculations and the full match-result update flow.',
+                'Improve backup import validation, recovery guidance, and malformed-data handling.',
+                'Standardize roster, tactics, training, schedule, and assessment data behavior.'
+              ],
+              benefit: 'Coaches can trust the app during normal weekly use and recover their workspace when something goes wrong.',
+              completion: 'Core workflows pass desktop and mobile testing without unexpected data loss.',
+              color: 'border-amber-400 bg-amber-50',
+              badge: 'bg-amber-200 text-amber-900'
+            },
+            {
+              phase: 'FPRDS Beta',
+              status: 'Beta Testing',
+              objective: 'FPRDS development system',
+              deliverables: [
+                'Complete standardized assessments for every supported position and age group.',
+                'Finalize benchmark tables, scoring validation, and explainable rating calculations.',
+                'Add historical progress charts, comparison reports, and measurable development plans.',
+                'Produce downloadable player assessment and progress reports.'
+              ],
+              benefit: 'Coaches gain consistent evidence for player evaluation, training priorities, and development conversations.',
+              completion: 'Repeated assessments produce consistent, explainable, and comparable development records.',
+              color: 'border-emerald-400 bg-emerald-50',
+              badge: 'bg-emerald-200 text-emerald-900'
+            },
+            {
+              phase: 'Phase 1',
+              status: 'Next',
+              objective: 'Offline-ready web app',
+              deliverables: [
+                'Add installable Progressive Web App support.',
+                'Cache the application interface, fonts, icons, and required local assets.',
+                'Keep roster editing, tactics, assessments, scheduling, and notes available without internet.',
+                'Show clear offline, reconnecting, and update-available status.'
+              ],
+              benefit: 'Teams can continue working at pitches and venues with unreliable or unavailable internet access.',
+              completion: 'An installed device can reopen Dumala and use all local features while offline.',
+              color: 'border-blue-400 bg-blue-50',
+              badge: 'bg-blue-200 text-blue-900'
+            },
+            {
+              phase: 'Phase 2',
+              status: 'Planned',
+              objective: 'Mobile and tablet experience',
+              deliverables: [
+                'Create navigation and workspace layouts designed for tablets.',
+                'Improve touch controls, form sizing, tactical-board interaction, and responsive tables.',
+                'Test the complete coaching workflow on common Android tablet sizes.',
+                'Package the proven tablet PWA as an Android application for Google Play.'
+              ],
+              benefit: 'Coaches can comfortably manage the team from the sideline, training ground, or match venue.',
+              completion: 'Primary coaching workflows work comfortably on supported Android tablets.',
+              color: 'border-cyan-400 bg-cyan-50',
+              badge: 'bg-cyan-200 text-cyan-900'
+            },
+            {
+              phase: 'Phase 3',
+              status: 'Planned',
+              objective: 'Cloud accounts and synchronization',
+              deliverables: [
+                'Add secure user accounts, club workspaces, and durable cloud storage.',
+                'Provide a guided migration from existing browser data without deleting local records.',
+                'Synchronize approved changes across devices after connectivity returns.',
+                'Handle interrupted uploads, duplicate updates, and recovery from failed synchronization.'
+              ],
+              benefit: 'Users can move between devices without manually transferring backups or losing their club workspace.',
+              completion: 'A user can sign in on another device and safely access the same club data.',
+              color: 'border-indigo-400 bg-indigo-50',
+              badge: 'bg-indigo-200 text-indigo-900'
+            },
+            {
+              phase: 'Phase 4',
+              status: 'Planned',
+              objective: 'Team collaboration',
+              deliverables: [
+                'Add Owner, Admin, Coach, Staff, and Viewer permissions.',
+                'Support club invitations, controlled editing, shared bulletins, and an activity history.',
+                'Protect sensitive actions with role-based access rules.',
+                'Resolve simultaneous edits without silently overwriting another user\'s work.'
+              ],
+              benefit: 'Club staff can work from one shared source of truth while retaining clear responsibilities.',
+              completion: 'Authorized staff can safely manage one shared team according to their assigned role.',
+              color: 'border-violet-400 bg-violet-50',
+              badge: 'bg-violet-200 text-violet-900'
+            },
+            {
+              phase: 'Phase 5',
+              status: 'Long Term',
+              objective: 'Public profiles and player drafting',
+              deliverables: [
+                'Upgrade player profile cards with verified football information, position history, attributes, assessment results, achievements, media, and development highlights.',
+                'Create draft-ready player profiles that coaches can shortlist, compare, review, and organize for trials or squad selection.',
+                'Give eligible players a public profile with a memorable personalized link that can be shared with clubs, coaches, academies, and scouts.',
+                'Give each team a public club profile with its own personalized link, crest, staff, roster highlights, achievements, contact details, and selected updates.',
+                'Add privacy controls, publishing approval, profile visibility settings, link availability checks, and reporting tools for public information.'
+              ],
+              benefit: 'Players can present a credible football profile while teams can showcase their identity and evaluate prospective athletes through a structured drafting workflow.',
+              completion: 'Authorized users can publish controlled player and team profiles through unique links, and coaches can reliably shortlist and compare draft candidates.',
+              color: 'border-fuchsia-400 bg-fuchsia-50',
+              badge: 'bg-fuchsia-200 text-fuchsia-900'
+            },
+            {
+              phase: 'Future Expansion',
+              status: 'Long Term',
+              objective: 'Club operations expansion',
+              deliverables: [
+                'Add attendance, player availability history, season archives, and richer operational reports.',
+                'Support calendar export and scheduled team reminders.',
+                'Manage multiple squads or age groups inside one club workspace.',
+                'Provide season-to-season continuity for records, reports, and development history.'
+              ],
+              benefit: 'Growing clubs can manage more of their football operations without splitting data across separate tools.',
+              completion: 'A club can manage multiple squads and seasons from one organized workspace.',
+              color: 'border-rose-400 bg-rose-50',
+              badge: 'bg-rose-200 text-rose-900'
+            }
           ].map((item) => (
-            <div key={item.phase} className={`border-l-4 ${item.color} rounded-r-xl p-4`}>
-              <div className="flex items-center gap-2 mb-1">
-                <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">{item.phase}</span>
-                <span className="text-[9px] font-bold text-slate-400 uppercase">{item.label}</span>
+            <div key={item.phase} className={`border-l-4 ${item.color} rounded-r-xl p-4 md:p-5 space-y-4`}>
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">{item.phase}</span>
+                  <h5 className="text-sm font-black text-slate-900 mt-1">{item.objective}</h5>
+                </div>
+                <span className={`text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full ${item.badge}`}>
+                  {item.status}
+                </span>
               </div>
-              <p className="text-xs text-slate-600 leading-relaxed">{item.desc}</p>
+
+              <div>
+                <p className="text-[10px] font-black text-slate-500 uppercase tracking-wider mb-2">Planned deliverables</p>
+                <ul className="list-disc pl-5 text-xs text-slate-600 leading-relaxed space-y-1.5">
+                  {item.deliverables.map((deliverable) => (
+                    <li key={deliverable}>{deliverable}</li>
+                  ))}
+                </ul>
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+                <div className="bg-white/70 border border-slate-200/80 rounded-lg p-3">
+                  <p className="text-[9px] font-black text-slate-500 uppercase tracking-wider mb-1">User benefit</p>
+                  <p className="text-xs text-slate-600 leading-relaxed">{item.benefit}</p>
+                </div>
+                <div className="bg-white/70 border border-slate-200/80 rounded-lg p-3">
+                  <p className="text-[9px] font-black text-slate-500 uppercase tracking-wider mb-1">Completion criteria</p>
+                  <p className="text-xs text-slate-600 leading-relaxed">{item.completion}</p>
+                </div>
+              </div>
             </div>
           ))}
         </div>
@@ -393,7 +510,7 @@ export default function UpdatesView() {
           <li>Automate standings updates and player stat tracking from match results</li>
           <li>Plan training weeks with a 52-drill library and preset templates</li>
           <li>Track player availability, opponent intel, and tactical notes before fixtures</li>
-          <li>Build a foundation for AI-assisted coaching and data-driven player development</li>
+          <li>Build a foundation for objective, data-driven player assessment and development</li>
         </ul>
       </div>
 
