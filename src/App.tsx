@@ -25,6 +25,7 @@ import {
 } from 'lucide-react';
 import { AnimatePresence } from 'motion/react';
 import { SpeedInsights } from '@vercel/speed-insights/react';
+import { Analytics } from '@vercel/analytics/react';
 
 export default function App() {
   const [isOnboarded, setIsOnboarded] = useState<boolean>(() => {
@@ -797,6 +798,9 @@ export default function App() {
 
       {/* Vercel Speed Insights */}
       <SpeedInsights />
+
+      {/* Vercel Web Analytics */}
+      <Analytics />
 
     </div>
   );
