@@ -153,9 +153,11 @@ Dumala provides one structured workspace for weekly team administration and repe
 
 ### Backup and recovery
 
-- Backup version 1.1 must include team, players, games, standings, bulletins, and assessments.
-- Import must reject unsupported versions and missing required collections.
-- Restore must reopen the workspace without requiring onboarding.
+- Full Workspace V2 must include core team data plus tactics, training, availability, coach notes, and standings history.
+- Import must validate nested records and reject unsupported or incomplete backups before changing the workspace.
+- Legacy versions 1.0 and 1.1 must migrate into the V2 structure.
+- Restore must create a pre-restore backup and reopen the workspace without requiring onboarding.
+- Failed writes must roll back so the current workspace remains unchanged.
 - Reset Workspace must clear all locally stored Dumala data.
 
 ## 8. Non-functional requirements
@@ -180,7 +182,7 @@ Dumala provides one structured workspace for weekly team administration and repe
 ### Performance
 
 - Core local workflows must not require a network request.
-- The production build should be code-split before broad production launch; the current main bundle exceeds Vite's 500 kB advisory threshold.
+- Primary areas and nested views must remain code-split, with production chunks kept below Vite's 500 kB advisory threshold.
 
 ### Privacy
 

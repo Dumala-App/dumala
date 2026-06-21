@@ -1,5 +1,6 @@
-import {FormEvent, useState} from 'react';
+import {FormEvent, useRef, useState} from 'react';
 import {Bug, Lightbulb, MessageSquare, Send, X} from 'lucide-react';
+import {useDialogAccessibility} from '../hooks/useDialogAccessibility';
 
 interface FeedbackModalProps {
   teamName: string;
@@ -28,10 +29,12 @@ const INITIAL_FORM: FeedbackForm = {
 };
 
 export default function FeedbackModal({teamName, onClose}: FeedbackModalProps) {
+  const dialogRef = useRef<HTMLDivElement | null>(null);
   const [form, setForm] = useState(INITIAL_FORM);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [status, setStatus] = useState<'idle' | 'success' | 'error'>('idle');
   const [statusMessage, setStatusMessage] = useState('');
+  useDialogAccessibility(dialogRef, true, onClose);
 
   const updateField = (field: keyof FeedbackForm, value: string) => {
     setForm(current => ({...current, [field]: value}));
@@ -114,7 +117,7 @@ export default function FeedbackModal({teamName, onClose}: FeedbackModalProps) {
       aria-modal="true"
       aria-labelledby="feedback-dialog-title"
     >
-      <div className="max-h-[92vh] w-full max-w-2xl overflow-y-auto rounded-3xl border border-slate-200 bg-white shadow-2xl">
+      <div ref={dialogRef} tabIndex={-1} className="max-h-[92vh] w-full max-w-2xl overflow-y-auto rounded-3xl border border-slate-200 bg-white shadow-2xl">
         <div className="sticky top-0 z-10 flex items-start justify-between gap-4 border-b border-slate-100 bg-white/95 px-5 py-4 backdrop-blur sm:px-6">
           <div className="flex items-start gap-3">
             <div className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600">

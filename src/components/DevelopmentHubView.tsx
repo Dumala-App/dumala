@@ -1,7 +1,9 @@
-import React from 'react';
+import React, { lazy, Suspense } from 'react';
 import type { AssessmentSession, Game, Player } from '../types';
-import AssessmentsView from './AssessmentsView';
-import TrainingView from './TrainingView';
+import ViewLoadingFallback from './ViewLoadingFallback';
+
+const AssessmentsView = lazy(() => import('./AssessmentsView'));
+const TrainingView = lazy(() => import('./TrainingView'));
 
 export type DevelopmentTab = 'assessments' | 'training';
 
@@ -48,19 +50,21 @@ export default function DevelopmentHubView(props: DevelopmentHubViewProps) {
         </div>
       </div>
 
-      {props.activeTab === 'assessments' ? (
-        <AssessmentsView
-          players={props.players}
-          assessments={props.assessments}
-          preselectedPlayerId={props.preselectedAssessmentsPlayerId}
-          onClearPreselectedPlayer={props.onClearPreselectedAssessmentsPlayerId}
-          onAddAssessment={props.onAddAssessment}
-          onDeleteAssessment={props.onDeleteAssessment}
-          onUpdatePlayer={props.onUpdatePlayer}
-        />
-      ) : (
-        <TrainingView players={props.players} onUpdatePlayer={props.onUpdatePlayer} games={props.games} onUpdateGames={props.onUpdateGames} />
-      )}
+      <Suspense fallback={<ViewLoadingFallback label={props.activeTab} />}>
+        {props.activeTab === 'assessments' ? (
+          <AssessmentsView
+            players={props.players}
+            assessments={props.assessments}
+            preselectedPlayerId={props.preselectedAssessmentsPlayerId}
+            onClearPreselectedPlayer={props.onClearPreselectedAssessmentsPlayerId}
+            onAddAssessment={props.onAddAssessment}
+            onDeleteAssessment={props.onDeleteAssessment}
+            onUpdatePlayer={props.onUpdatePlayer}
+          />
+        ) : (
+          <TrainingView players={props.players} onUpdatePlayer={props.onUpdatePlayer} games={props.games} onUpdateGames={props.onUpdateGames} />
+        )}
+      </Suspense>
     </div>
   );
 }

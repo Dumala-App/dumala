@@ -1,7 +1,8 @@
-import React, { useState, useMemo } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import { AssessmentSession, Player, SPECIALTY_TRAITS, SpecialtyTrait, isStaffPosition, STAFF_POSITIONS } from '../types';
 import { X, Award, Shield, User, Zap, CircleDot, Activity, Save, Edit2, Briefcase, Calendar, Mail, Phone, AlertTriangle, Clock, Star, Trash2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { useDialogAccessibility } from '../hooks/useDialogAccessibility';
 import {
   ResponsiveContainer,
   LineChart,
@@ -45,6 +46,8 @@ interface PlayerProfileModalProps {
 }
 
 export default function PlayerProfileModal({ player, onClose, onUpdate, onRemove, assessments, onOpenAssessments }: PlayerProfileModalProps) {
+  const dialogRef = useRef<HTMLDivElement | null>(null);
+  useDialogAccessibility(dialogRef, true, onClose);
   const isStaff = isStaffPosition(player.position);
   const [isEditing, setIsEditing] = useState(false);
   const [showRemoveConfirm, setShowRemoveConfirm] = useState(false);
@@ -284,6 +287,11 @@ export default function PlayerProfileModal({ player, onClose, onUpdate, onRemove
       onClick={onClose}
     >
       <motion.div 
+        ref={dialogRef}
+        tabIndex={-1}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="player-profile-fullname"
         id="player-profile-modal-card"
         initial={{ opacity: 0, scale: 0.97, y: 10 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}

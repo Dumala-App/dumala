@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Player, Game } from '../types';
+import { weeklyScheduleSchema } from '../persistence/schemas';
+import { readJsonStorage, STORAGE_KEYS, writeJsonStorage } from '../persistence/storage';
 import { 
   Dumbbell, Sparkles, Activity, Zap, RotateCcw, Flame, TrendingUp, Search, Filter,
   User, CheckCircle, CalendarPlus, HeartPulse, ShieldCheck, Target, Footprints,
@@ -1081,26 +1083,16 @@ export default function TrainingView({ players, onUpdatePlayer, games, onUpdateG
   const [selectedDrillId, setSelectedDrillId] = useState<string>(CRITICAL_DRILLS[0].id);
   const [expandedDrills, setExpandedDrills] = useState<Set<string>>(new Set());
   const [weeklySchedule, setWeeklySchedule] = useState<Record<DayName, ScheduledDrill[]>>(() => {
-    const saved = localStorage.getItem('squad_weekly_schedule');
-    if (saved) {
-      try {
-        return JSON.parse(saved);
-      } catch (e) {
-        // fallback to default
-      }
-    }
-    return DEFAULT_SCHEDULE;
+    return readJsonStorage(STORAGE_KEYS.weeklySchedule, weeklyScheduleSchema, DEFAULT_SCHEDULE, 'Weekly training');
   });
 
   const weekDaysMap = getWeekDaysMap(new Date());
 
   useEffect(() => {
     // Archive current week as history before overwriting
-    const currentRaw = localStorage.getItem('squad_weekly_schedule');
-    if (currentRaw) {
-      localStorage.setItem('squad_weekly_schedule_history', currentRaw);
-    }
-    localStorage.setItem('squad_weekly_schedule', JSON.stringify(weeklySchedule));
+    const current = readJsonStorage(STORAGE_KEYS.weeklySchedule, weeklyScheduleSchema, weeklySchedule, 'Weekly training');
+    writeJsonStorage(STORAGE_KEYS.weeklyScheduleHistory, current);
+    writeJsonStorage(STORAGE_KEYS.weeklySchedule, weeklySchedule);
   }, [weeklySchedule]);
 
   // Synchronize Weekly Training to Calendar Games
@@ -1220,21 +1212,16 @@ export default function TrainingView({ players, onUpdatePlayer, games, onUpdateG
 
   const handleLoadTemplate = (mode: 'heavy' | 'taper' | 'tactical' | 'prematch' | 'recovery' | 'forward-focus' | 'midfield-focus' | 'defender-focus' | 'last-week') => {
     if (mode === 'last-week') {
-      const saved = localStorage.getItem('squad_weekly_schedule_history');
-      if (saved) {
-        try {
-          const prev = JSON.parse(saved) as Record<DayName, ScheduledDrill[]>;
-          // Merge with current to keep IDs unique but use previous structure
-          const restored: Record<DayName, ScheduledDrill[]> = { Monday:[], Tuesday:[], Wednesday:[], Thursday:[], Friday:[], Saturday:[], Sunday:[] };
-          DAYS_OF_WEEK.forEach(day => {
-            restored[day] = (prev[day] || []).map((d: any, i: number) => ({
-              ...d,
-              id: `lw-${day}-${Date.now()}-${i}`
-            }));
-          });
-          setWeeklySchedule(restored);
-        } catch {}
-      }
+      const prev = readJsonStorage(STORAGE_KEYS.weeklyScheduleHistory, weeklyScheduleSchema.nullable(), null, 'Training history');
+      if (!prev) return;
+      const restored: Record<DayName, ScheduledDrill[]> = { Monday:[], Tuesday:[], Wednesday:[], Thursday:[], Friday:[], Saturday:[], Sunday:[] };
+      DAYS_OF_WEEK.forEach(day => {
+        restored[day] = (prev[day] || []).map((drill, index) => ({
+          ...drill,
+          id: `lw-${day}-${Date.now()}-${index}`
+        }));
+      });
+      setWeeklySchedule(restored);
       return;
     }
 

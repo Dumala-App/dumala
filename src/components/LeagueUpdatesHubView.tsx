@@ -1,8 +1,10 @@
-import React from 'react';
+import React, { lazy, Suspense } from 'react';
 import type { Announcement, Player, Standing, TeamInfo } from '../types';
-import AnnouncementsView from './AnnouncementsView';
-import StandingsView from './StandingsView';
-import UpdatesView from './UpdatesView';
+import ViewLoadingFallback from './ViewLoadingFallback';
+
+const AnnouncementsView = lazy(() => import('./AnnouncementsView'));
+const StandingsView = lazy(() => import('./StandingsView'));
+const UpdatesView = lazy(() => import('./UpdatesView'));
 
 export type LeagueUpdatesTab = 'league' | 'updates' | 'bulletins';
 
@@ -55,27 +57,29 @@ export default function LeagueUpdatesHubView(props: LeagueUpdatesHubViewProps) {
         </div>
       </div>
 
-      {props.activeTab === 'league' && (
-        <StandingsView
-          standings={props.standings}
-          onUpdateStanding={props.onUpdateStanding}
-          onResetStandings={props.onResetStandings}
-          teamName={props.teamName}
-          teamInfo={props.teamInfo}
-          onUpdateTeamInfo={props.onUpdateTeamInfo}
-          onUpdateAllStandings={props.onUpdateAllStandings}
-          players={props.players}
-          onUpdatePlayer={props.onUpdatePlayer}
-        />
-      )}
+      <Suspense fallback={<ViewLoadingFallback label={props.activeTab} />}>
+        {props.activeTab === 'league' && (
+          <StandingsView
+            standings={props.standings}
+            onUpdateStanding={props.onUpdateStanding}
+            onResetStandings={props.onResetStandings}
+            teamName={props.teamName}
+            teamInfo={props.teamInfo}
+            onUpdateTeamInfo={props.onUpdateTeamInfo}
+            onUpdateAllStandings={props.onUpdateAllStandings}
+            players={props.players}
+            onUpdatePlayer={props.onUpdatePlayer}
+          />
+        )}
 
-      {props.activeTab === 'updates' && (
-        <UpdatesView />
-      )}
+        {props.activeTab === 'updates' && (
+          <UpdatesView />
+        )}
 
-      {props.activeTab === 'bulletins' && (
-        <AnnouncementsView announcements={props.announcements} onAddAnnouncement={props.onAddAnnouncement} onDeleteAnnouncement={props.onDeleteAnnouncement} />
-      )}
+        {props.activeTab === 'bulletins' && (
+          <AnnouncementsView announcements={props.announcements} onAddAnnouncement={props.onAddAnnouncement} onDeleteAnnouncement={props.onDeleteAnnouncement} />
+        )}
+      </Suspense>
     </div>
   );
 }

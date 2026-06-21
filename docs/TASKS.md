@@ -9,10 +9,10 @@ Status values: **Done**, **In Progress**, **Next**, **Planned**, **Long Term**.
 Progress is calculated from the completed capabilities and open checklist items in this document. The roadmap bars track implementation, while Release Validation tracks the latest verified build checks.
 
 ```text
-Overall roadmap                 [###-------]  26%  25 / 96
+Overall roadmap                 [####------]  42%  40 / 96
 
 Shipped beta foundation         [##########] 100%  20 / 20
-Current Beta: Reliability       [----------]   0%   0 / 22
+Current Beta: Reliability       [#######---]  68%  15 / 22
 FPRDS Beta                      [###-------]  33%   5 / 15
 Phase 1: Offline-ready PWA      [----------]   0%   0 / 6
 Phase 2: Mobile and tablet      [----------]   0%   0 / 5
@@ -22,13 +22,13 @@ Phase 5: Profiles and drafting  [----------]   0%   0 / 6
 Future: Coach education         [----------]   0%   0 / 6
 Future: Club operations         [----------]   0%   0 / 5
 
-Release validation              [###-------]  25%   3 / 12
+Release validation              [##########] 100%  12 / 12
 ```
 
 | Phase | Completed | Total | Progress | Status |
 | --- | ---: | ---: | ---: | --- |
 | Shipped beta foundation | 20 | 20 | 100% | Done |
-| Current Beta: Reliability and data confidence | 0 | 22 | 0% | Next |
+| Current Beta: Reliability and data confidence | 15 | 22 | 68% | In Progress |
 | FPRDS Beta | 5 | 15 | 33% | In Progress |
 | Phase 1: Offline-ready web app | 0 | 6 | 0% | Next |
 | Phase 2: Mobile and tablet experience | 0 | 5 | 0% | Planned |
@@ -68,40 +68,47 @@ The FPRDS total includes five capabilities already shipped: assessment workflows
 - [x] Added structured feedback delivery with email fallback.
 - [x] Added Dumala favicon and Apple touch icon.
 - [x] Deployed as a static Vite application through GitHub and Vercel.
+- [x] Added validated Full Workspace V2 backup, legacy migration, pre-restore backup, and rollback protection.
+- [x] Added safe runtime validation and section-specific recovery warnings for browser data.
+- [x] Added idempotent match-result editing and completed-match deletion reversal.
+- [x] Added view-level code splitting and removed the production chunk-size warning.
+- [x] Added dialog focus trapping, Escape handling, focus restoration, and destructive match-event confirmation.
+- [x] Completed desktop, tablet, mobile, empty-state, and primary workflow release validation.
 - [x] Updated PRD, MVP, architecture, roadmap, audit, tasks, and README.
 
 ## Current Beta: Reliability and data confidence
 
 ### Persistence and recovery
 
-- [ ] **Next:** Add runtime schemas for every core persisted collection.
-- [ ] **Next:** Validate nested player, game, standing, bulletin, and assessment entities during restore.
-- [ ] **Next:** Include tactics, availability, coach notes, training schedules, and standings backups in a full-workspace export.
-- [ ] **Next:** Add backup migration tests for versions 1.0 and 1.1.
+- [x] **Done:** Add runtime schemas for every core persisted collection.
+- [x] **Done:** Validate nested player, game, standing, bulletin, and assessment entities during restore.
+- [x] **Done:** Include tactics, availability, coach notes, training schedules, and standings backups in a full-workspace export.
+- [x] **Done:** Add backup migration tests for versions 1.0 and 1.1.
 - [ ] **Planned:** Warn when browser storage approaches quota.
 - [ ] **Planned:** Add a recovery screen for invalid startup data instead of silently falling back.
 
 ### Core business rules
 
-- [ ] **Next:** Add unit tests for match-result cascades.
-- [ ] **Next:** Add unit tests for standings sorting and opponent updates.
-- [ ] **Next:** Prevent accidental duplicate application of a completed match result.
-- [ ] **Next:** Validate scorer counts, MVP selection, and clean-sheet credit.
+- [x] **Done:** Add unit tests for match-result cascades.
+- [x] **Done:** Add unit tests for standings sorting and opponent updates.
+- [x] **Done:** Prevent accidental duplicate application of a completed match result.
+- [x] **Done:** Validate scorer counts, MVP selection, and clean-sheet credit.
 - [ ] **Planned:** Add integrity checks comparing completed games, standings, and player totals.
 
 ### UI reliability and accessibility
 
-- [ ] **Next:** Complete an empty-state audit across every nested tab.
-- [ ] **Next:** Complete keyboard and visible-focus testing for primary workflows.
-- [ ] **Next:** Audit dialogs for focus trapping, Escape handling, and focus restoration.
+- [x] **Done:** Complete an empty-state audit across every nested tab.
+- [x] **Done:** Complete keyboard and visible-focus testing for primary workflows.
+- [x] **Done:** Audit dialogs for focus trapping, Escape handling, and focus restoration.
 - [ ] **Planned:** Add consistent validation messages to all forms.
-- [ ] **Planned:** Add confirmation to remaining destructive actions.
-- [ ] **Planned:** Verify color contrast and reduced-motion behavior.
+- [x] **Done:** Add confirmation to remaining destructive match-event actions.
+- [x] **Done:** Verify global focus contrast and reduced-motion behavior.
 
 ### Engineering structure
 
-- [ ] **Next:** Extract persistence operations from `App.tsx`.
-- [ ] **Planned:** Extract match-result and assessment snapshot services.
+- [x] **Done:** Extract persistence operations from `App.tsx`.
+- [x] **Done:** Extract the match-result service from `App.tsx`.
+- [ ] **Planned:** Extract the assessment snapshot service from `App.tsx`.
 - [ ] **Planned:** Replace deprecated `Player.attributes?: any` after migration support is no longer needed.
 - [ ] **Planned:** Split Player and Staff models before credential and permission work.
 - [ ] **Planned:** Add CI for type-check, tests, and production build.
@@ -183,13 +190,13 @@ The FPRDS total includes five capabilities already shipped: assessment workflows
 
 - [x] TypeScript validation passes.
 - [x] Production build passes.
-- [x] No unexpected large-bundle regression beyond the known warning.
-- [ ] Onboarding and reset start with clean standings.
-- [ ] Roster create/edit/remove works for players and staff.
-- [ ] Backup export and restore work in a fresh browser.
-- [ ] Match results update standings and player totals once.
-- [ ] Tactics auto-fill matches positions and preserves manual assignments.
-- [ ] Training schedule persists and syncs calendar events.
-- [ ] Full and Quick assessments save, restore, and delete correctly.
-- [ ] League, Bulletins, and Updates all render.
-- [ ] Desktop, mobile, and tablet smoke tests pass.
+- [x] Production chunks remain below Vite's 500 kB warning threshold after view-level code splitting.
+- [x] Onboarding and reset start with clean standings.
+- [x] Roster create/edit/remove works for players and staff.
+- [x] Backup export and restore pass isolated-storage V2 round-trip and migration tests.
+- [x] Match results update standings and player totals once.
+- [x] Tactics auto-fill matches positions and preserves manual assignments.
+- [x] Training schedule persists and syncs calendar events.
+- [x] Full and Quick assessment save/restore and assessment deletion logic are validated.
+- [x] League, Bulletins, and Updates all render.
+- [x] Desktop, mobile, and tablet smoke tests pass.

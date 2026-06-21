@@ -1,7 +1,9 @@
-import React from 'react';
+import React, { lazy, Suspense } from 'react';
 import type { AssessmentSession, Announcement, Game, Player, Standing, TeamInfo } from '../types';
-import DashboardView from './DashboardView';
-import ScheduleView from './ScheduleView';
+import ViewLoadingFallback from './ViewLoadingFallback';
+
+const DashboardView = lazy(() => import('./DashboardView'));
+const ScheduleView = lazy(() => import('./ScheduleView'));
 
 export type HomeTab = 'overview' | 'game_week';
 
@@ -35,7 +37,7 @@ interface HomeHubViewProps {
     opponentScore: number,
     mvpId: string,
     notes: string,
-    scorersList: Array<{ playerName: string; count: number }>
+    scorersList: NonNullable<Game['scorers']>
   ) => void;
   onDeleteGame: (gameId: string) => void;
   teamName: string;
@@ -68,29 +70,31 @@ export default function HomeHubView(props: HomeHubViewProps) {
         </div>
       </div>
 
-      {props.activeTab === 'overview' ? (
-        <DashboardView
-          teamInfo={props.teamInfo}
-          players={props.players}
-          games={props.games}
-          standings={props.standings}
-          announcements={props.announcements}
-          assessments={props.assessments}
-          onNavigate={props.onNavigate}
-          onSelectPlayer={props.onSelectPlayer}
-          onUpdateTeamInfo={props.onUpdateTeamInfo}
-        />
-      ) : (
-        <ScheduleView
-          games={props.games}
-          players={props.players}
-          standings={props.standings}
-          onAddGame={props.onAddGame}
-          onRecordResult={props.onRecordResult}
-          onDeleteGame={props.onDeleteGame}
-          teamName={props.teamName}
-        />
-      )}
+      <Suspense fallback={<ViewLoadingFallback label={props.activeTab === 'overview' ? 'overview' : 'game week'} />}>
+        {props.activeTab === 'overview' ? (
+          <DashboardView
+            teamInfo={props.teamInfo}
+            players={props.players}
+            games={props.games}
+            standings={props.standings}
+            announcements={props.announcements}
+            assessments={props.assessments}
+            onNavigate={props.onNavigate}
+            onSelectPlayer={props.onSelectPlayer}
+            onUpdateTeamInfo={props.onUpdateTeamInfo}
+          />
+        ) : (
+          <ScheduleView
+            games={props.games}
+            players={props.players}
+            standings={props.standings}
+            onAddGame={props.onAddGame}
+            onRecordResult={props.onRecordResult}
+            onDeleteGame={props.onDeleteGame}
+            teamName={props.teamName}
+          />
+        )}
+      </Suspense>
     </div>
   );
 }

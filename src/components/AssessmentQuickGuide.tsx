@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { BookOpen, Search, Star, X } from 'lucide-react';
 import { DRILL_GUIDE_CATEGORIES, DRILL_GUIDE_ENTRIES, type DrillGuideCategory, type DrillGuideEntry } from '../fprds/drillGuide';
+import { useDialogAccessibility } from '../hooks/useDialogAccessibility';
 
 interface AssessmentQuickGuideProps {
   isOpen: boolean;
@@ -44,8 +45,9 @@ export default function AssessmentQuickGuide({
   const [selectedDrillId, setSelectedDrillId] = useState<string | null>(null);
   const [recommendedOnly, setRecommendedOnly] = useState(false);
 
-  const lastFocusedElRef = useRef<HTMLElement | null>(null);
+  const dialogRef = useRef<HTMLDivElement | null>(null);
   const searchInputRef = useRef<HTMLInputElement | null>(null);
+  useDialogAccessibility(dialogRef, isOpen, onClose, searchInputRef);
 
   const isRecommendedModeAvailable = Array.isArray(recommendedDrillIds) && recommendedDrillIds.length > 0;
 
@@ -78,17 +80,10 @@ export default function AssessmentQuickGuide({
     return DRILL_GUIDE_ENTRIES.find(e => e.id === selectedDrillId) ?? null;
   }, [selectedDrillId]);
 
-  const handleClose = () => {
-    onClose();
-    setTimeout(() => {
-      lastFocusedElRef.current?.focus?.();
-    }, 0);
-  };
+  const handleClose = () => onClose();
 
   useEffect(() => {
     if (!isOpen) return;
-    lastFocusedElRef.current = (document.activeElement as HTMLElement) ?? null;
-
     setActiveCategory(initialCategory ?? 'All');
     setSelectedDrillId(initialDrillId ?? null);
     setSearchQuery('');
@@ -106,18 +101,6 @@ export default function AssessmentQuickGuide({
     setSelectedDrillId(filteredEntries[0].id);
   }, [filteredEntries, isOpen, selectedDrillId]);
 
-  useEffect(() => {
-    if (!isOpen) return;
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        e.preventDefault();
-        handleClose();
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen]);
-
   if (!isOpen) return null;
 
   return (
@@ -130,12 +113,16 @@ export default function AssessmentQuickGuide({
       />
 
       <div
-        role="dialog"
-        aria-modal="true"
-        aria-label={title ?? 'Quick Guide'}
         className="absolute inset-0 flex items-center justify-center p-4"
       >
-        <div className="w-full max-w-3xl max-h-[85vh] rounded-2xl border border-slate-200 bg-white shadow-2xl shadow-slate-950/20 overflow-hidden flex flex-col">
+        <div
+          ref={dialogRef}
+          tabIndex={-1}
+          role="dialog"
+          aria-modal="true"
+          aria-label={title ?? 'Quick Guide'}
+          className="w-full max-w-3xl max-h-[85vh] rounded-2xl border border-slate-200 bg-white shadow-2xl shadow-slate-950/20 overflow-hidden flex flex-col"
+        >
         {/* Header */}
         <div className="p-5 border-b border-slate-200 bg-white sticky top-0 z-10">
           <div className="flex items-start justify-between gap-3">

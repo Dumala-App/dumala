@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Standing, TeamInfo, Player, PlayerOffense, MvpAwardRecord } from '../types';
 import {findUserStanding, sortStandings} from '../standings';
 import { 
@@ -6,6 +6,15 @@ import {
   Calendar, Edit3, Info, Archive, History, RotateCcw, AlertTriangle, ClipboardList, Award
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { standingsBackupsSchema } from '../persistence/schemas';
+import {
+  readBooleanStorage,
+  readJsonStorage,
+  STORAGE_KEYS,
+  writeBooleanStorage,
+  writeJsonStorage
+} from '../persistence/storage';
+import { useDialogAccessibility } from '../hooks/useDialogAccessibility';
 
 interface StandingsViewProps {
   standings: Standing[];
@@ -27,9 +36,6 @@ interface StandingsBackup {
   standings: Standing[];
 }
 
-const STANDINGS_BACKUPS_KEY = 'stack_team_standings_backups';
-const SUNDAY_BACKUP_ENABLED_KEY = 'stack_team_sunday_backup_enabled';
-
 export default function StandingsView({ 
   standings, 
   onUpdateStanding, 
@@ -41,6 +47,7 @@ export default function StandingsView({
   players,
   onUpdatePlayer
 }: StandingsViewProps) {
+  const resetDialogRef = useRef<HTMLDivElement | null>(null);
   // Editing individual team row state
   const [editingTeam, setEditingTeam] = useState<string | null>(null);
   const [editingTeamName, setEditingTeamName] = useState("");
@@ -58,16 +65,14 @@ export default function StandingsView({
   const [newClubName, setNewClubName] = useState("");
   const [showAddClubPanel, setShowAddClubPanel] = useState(false);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
+  const closeResetDialog = useCallback(() => setShowResetConfirm(false), []);
+  useDialogAccessibility(resetDialogRef, showResetConfirm, closeResetDialog);
   const [showBackupLog, setShowBackupLog] = useState(false);
   const [standingsBackups, setStandingsBackups] = useState<StandingsBackup[]>(() => {
-    try {
-      return JSON.parse(localStorage.getItem(STANDINGS_BACKUPS_KEY) || '[]');
-    } catch {
-      return [];
-    }
+    return readJsonStorage(STORAGE_KEYS.standingsBackups, standingsBackupsSchema, [], 'Standings history');
   });
   const [sundayBackupEnabled, setSundayBackupEnabled] = useState(() => {
-    return localStorage.getItem(SUNDAY_BACKUP_ENABLED_KEY) !== 'false';
+    return readBooleanStorage(STORAGE_KEYS.sundayBackupEnabled, true, 'Standings preferences');
   });
   const [backupNotice, setBackupNotice] = useState('');
 
@@ -82,7 +87,7 @@ export default function StandingsView({
   const saveBackups = (nextBackups: StandingsBackup[]) => {
     const limitedBackups = nextBackups.slice(0, 12);
     setStandingsBackups(limitedBackups);
-    localStorage.setItem(STANDINGS_BACKUPS_KEY, JSON.stringify(limitedBackups));
+    writeJsonStorage(STORAGE_KEYS.standingsBackups, limitedBackups);
   };
 
   const createStandingsBackup = (source: StandingsBackup['source'], customLabel?: string) => {
@@ -109,7 +114,7 @@ export default function StandingsView({
   };
 
   useEffect(() => {
-    localStorage.setItem(SUNDAY_BACKUP_ENABLED_KEY, String(sundayBackupEnabled));
+    writeBooleanStorage(STORAGE_KEYS.sundayBackupEnabled, sundayBackupEnabled);
   }, [sundayBackupEnabled]);
 
   useEffect(() => {
@@ -944,6 +949,11 @@ export default function StandingsView({
             className="fixed inset-0 z-[100] bg-slate-950/50 backdrop-blur-sm p-4 flex items-center justify-center"
           >
             <motion.div
+              ref={resetDialogRef}
+              tabIndex={-1}
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="clear-standings-title"
               initial={{ opacity: 0, scale: 0.96, y: 8 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.96 }}
@@ -952,7 +962,7 @@ export default function StandingsView({
               <div className="w-10 h-10 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center mb-4">
                 <RefreshCw size={18} />
               </div>
-              <h3 className="font-display font-black text-lg text-slate-900">Clear league table?</h3>
+              <h3 id="clear-standings-title" className="font-display font-black text-lg text-slate-900">Clear league table?</h3>
               <p className="text-sm text-slate-600 mt-2 leading-relaxed">
                 This clears every club from the table and resets recorded matches, announcements, and season player totals. Your backup logs will remain available.
               </p>

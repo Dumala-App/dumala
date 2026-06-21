@@ -1,15 +1,37 @@
-import React, { useState, useEffect } from 'react';
+import React, { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { Player, Game, Standing, Announcement, TeamInfo, AssessmentSession } from './types';
 
-import RosterView from './components/RosterView';
-import PlayerProfileModal from './components/PlayerProfileModal';
-import TacticsView from './components/TacticsView';
-import OnboardingView from './components/OnboardingView';
-import FeedbackModal from './components/FeedbackModal';
-import HomeHubView from './components/HomeHubView';
-import DevelopmentHubView from './components/DevelopmentHubView';
-import LeagueUpdatesHubView from './components/LeagueUpdatesHubView';
+import ViewLoadingFallback from './components/ViewLoadingFallback';
 import { applyAssessmentSnapshotToPlayer } from './fprds/scoring';
+import {
+  announcementsSchema,
+  assessmentsSchema,
+  gamesSchema,
+  playersSchema,
+  standingsSchema,
+  teamInfoSchema
+} from './persistence/schemas';
+import {
+  clearDumalaStorage,
+  drainRecoveryWarnings,
+  readBooleanStorage,
+  readJsonStorage,
+  removeStorage,
+  STORAGE_KEYS,
+  writeBooleanStorage,
+  writeJsonStorage
+} from './persistence/storage';
+import {
+  applyWorkspaceBackup,
+  collectFeatureState,
+  createWorkspaceBackup,
+  parseWorkspaceBackup,
+  summarizeBackup,
+  type BackupRestoreSummary,
+  type WorkspaceBackupV2
+} from './persistence/backup';
+import { deleteGameAndReconcile, recordMatchResult } from './matches/results';
+import { useDialogAccessibility } from './hooks/useDialogAccessibility';
 
 import { 
   Shield, 
@@ -26,10 +48,39 @@ import {
 import { AnimatePresence } from 'motion/react';
 import { SpeedInsights } from '@vercel/speed-insights/react';
 
+const RosterView = lazy(() => import('./components/RosterView'));
+const PlayerProfileModal = lazy(() => import('./components/PlayerProfileModal'));
+const TacticsView = lazy(() => import('./components/TacticsView'));
+const OnboardingView = lazy(() => import('./components/OnboardingView'));
+const FeedbackModal = lazy(() => import('./components/FeedbackModal'));
+const HomeHubView = lazy(() => import('./components/HomeHubView'));
+const DevelopmentHubView = lazy(() => import('./components/DevelopmentHubView'));
+const LeagueUpdatesHubView = lazy(() => import('./components/LeagueUpdatesHubView'));
+
 export default function App() {
-  const [isOnboarded, setIsOnboarded] = useState<boolean>(() => {
-    return localStorage.getItem('stack_team_onboarded') === 'true' || localStorage.getItem('stack_team_info') !== null;
+  const resetDialogRef = useRef<HTMLDivElement | null>(null);
+  const [initialWorkspace] = useState(() => {
+    const teamInfo = readJsonStorage(STORAGE_KEYS.teamInfo, teamInfoSchema.nullable(), null, 'Team information');
+    const players = readJsonStorage(STORAGE_KEYS.players, playersSchema, [], 'Roster');
+    const games = readJsonStorage(STORAGE_KEYS.games, gamesSchema, [], 'Schedule');
+    const standings = readJsonStorage(STORAGE_KEYS.standings, standingsSchema, [], 'League standings');
+    const announcements = readJsonStorage(STORAGE_KEYS.announcements, announcementsSchema, [], 'Bulletins');
+    const assessments = readJsonStorage(STORAGE_KEYS.assessments, assessmentsSchema, [], 'Assessments');
+    const onboarded = readBooleanStorage(STORAGE_KEYS.onboarded, false, 'Onboarding');
+
+    return {
+      teamInfo,
+      players,
+      games,
+      standings,
+      announcements,
+      assessments,
+      isOnboarded: onboarded || teamInfo !== null,
+      warnings: drainRecoveryWarnings()
+    };
   });
+
+  const [isOnboarded, setIsOnboarded] = useState(initialWorkspace.isOnboarded);
   type PrimaryTab = 'home' | 'squad' | 'tactics' | 'development' | 'league_updates';
   type HomeTab = 'overview' | 'game_week';
   type DevelopmentTab = 'assessments' | 'training';
@@ -40,237 +91,77 @@ export default function App() {
   const [developmentTab, setDevelopmentTab] = useState<DevelopmentTab>('assessments');
   const [leagueUpdatesTab, setLeagueUpdatesTab] = useState<LeagueUpdatesTab>('league');
   
-  // Local Storage state hooks
-  const [teamInfo, setTeamInfo] = useState<TeamInfo | null>(() => {
-    const saved = localStorage.getItem('stack_team_info');
-    // For existing users with INITIAL_TEAM_INFO set
-    return saved ? JSON.parse(saved) : null;
-  });
-
-  const [players, setPlayers] = useState<Player[]>(() => {
-    const saved = localStorage.getItem('stack_team_players');
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved) as Player[];
-        // Migrate: ensure all players have yellowCards/redCards fields and new attribute schema
-        return parsed.map(p => {
-          let baseAttributes = p.baseAttributes;
-          let positionAttributes = p.positionAttributes;
-          
-          // Migrate old attributes to new schema if baseAttributes doesn't exist
-          if (!baseAttributes && p.attributes) {
-            baseAttributes = {
-              pace: p.attributes.speed || 50,
-              stamina: p.attributes.physicalness || 50,
-              agility: p.attributes.dribbling || 50,
-              strength: p.attributes.physicalness || 50,
-              firstTouch: p.attributes.dribbling || 50,
-              shortPassing: p.attributes.passing || 50
-            };
-            
-            // Map old shooting/defending to position attributes based on role
-            positionAttributes = {};
-            const posAttrs = ['Finishing', 'Long Shots', 'Offensive 1v1', 'Attacking Heading', 
-                             'Long Passing', 'Vision', 'Ball Retention', 'Pressing',
-                             'Tackling', 'Defensive Heading', 'Positioning', 'Crossing',
-                             'Reflexes', 'Handling', 'Diving', 'Distribution'];
-                             
-            // Just populate standard defaults mapped loosely from old stats
-            const primaryOffense = p.attributes.shooting || 50;
-            const primaryDefense = p.attributes.defending || 50;
-            const primaryPass = p.attributes.passing || 50;
-            
-            if (p.position === 'Forward') {
-              positionAttributes = { 'Finishing': primaryOffense, 'Long Shots': primaryOffense, 'Offensive 1v1': p.attributes.dribbling || 50, 'Attacking Heading': primaryOffense };
-            } else if (p.position === 'Midfielder') {
-              positionAttributes = { 'Long Passing': primaryPass, 'Vision': primaryPass, 'Ball Retention': p.attributes.dribbling || 50, 'Pressing': primaryDefense };
-            } else if (p.position === 'Defender') {
-              positionAttributes = { 'Tackling': primaryDefense, 'Defensive Heading': primaryDefense, 'Positioning': primaryDefense, 'Crossing': primaryPass };
-            } else if (p.position === 'Goalkeeper') {
-              positionAttributes = { 'Reflexes': primaryDefense, 'Handling': primaryDefense, 'Diving': primaryDefense, 'Distribution': primaryPass };
-            }
-          }
-
-          // Fallback if completely missing
-          if (!baseAttributes) {
-            baseAttributes = { pace: 50, stamina: 50, agility: 50, strength: 50, firstTouch: 50, shortPassing: 50 };
-          }
-          if (!positionAttributes) {
-            positionAttributes = {};
-          }
-
-          return {
-            ...p,
-            yellowCards: typeof p.yellowCards === 'number' ? p.yellowCards : 0,
-            redCards: typeof p.redCards === 'number' ? p.redCards : 0,
-            offenses: Array.isArray(p.offenses) ? p.offenses : [],
-            baseAttributes,
-            positionAttributes
-          };
-        });
-      } catch {}
-    }
-    return [];
-  });
-
-  const [games, setGames] = useState<Game[]>(() => {
-    const saved = localStorage.getItem('stack_team_games');
-    return saved ? JSON.parse(saved) : [];
-  });
-
-  const [standings, setStandings] = useState<Standing[]>(() => {
-    const saved = localStorage.getItem('stack_team_standings');
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed)) return parsed;
-      } catch (e) {}
-    }
-    return [];
-  });
-
-  const [announcements, setAnnouncements] = useState<Announcement[]>(() => {
-    const saved = localStorage.getItem('stack_team_announcements');
-    return saved ? JSON.parse(saved) : [];
-  });
-
-  const [assessments, setAssessments] = useState<AssessmentSession[]>(() => {
-    const saved = localStorage.getItem('stack_team_assessments');
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed)) return parsed as AssessmentSession[];
-      } catch {}
-    }
-    return [];
-  });
+  const [teamInfo, setTeamInfo] = useState<TeamInfo | null>(initialWorkspace.teamInfo);
+  const [players, setPlayers] = useState<Player[]>(initialWorkspace.players);
+  const [games, setGames] = useState<Game[]>(initialWorkspace.games);
+  const [standings, setStandings] = useState<Standing[]>(initialWorkspace.standings);
+  const [announcements, setAnnouncements] = useState<Announcement[]>(initialWorkspace.announcements);
+  const [assessments, setAssessments] = useState<AssessmentSession[]>(initialWorkspace.assessments);
+  const [recoveryWarnings, setRecoveryWarnings] = useState(initialWorkspace.warnings);
 
   const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [preselectedAssessmentsPlayerId, setPreselectedAssessmentsPlayerId] = useState<string | null>(null);
 
+  useEffect(() => {
+    const handleRecovery = (event: Event) => {
+      const warning = (event as CustomEvent<(typeof recoveryWarnings)[number]>).detail;
+      setRecoveryWarnings(current => current.some(item => item.key === warning.key) ? current : [...current, warning]);
+    };
+    window.addEventListener('dumala:storage-recovery', handleRecovery);
+    return () => window.removeEventListener('dumala:storage-recovery', handleRecovery);
+  }, []);
+
   // Sync state to LocalStorage
   useEffect(() => {
-    localStorage.setItem('stack_team_info', JSON.stringify(teamInfo));
+    writeJsonStorage(STORAGE_KEYS.teamInfo, teamInfo);
   }, [teamInfo]);
 
   useEffect(() => {
-    localStorage.setItem('stack_team_players', JSON.stringify(players));
+    writeJsonStorage(STORAGE_KEYS.players, players);
   }, [players]);
 
   useEffect(() => {
-    localStorage.setItem('stack_team_games', JSON.stringify(games));
+    writeJsonStorage(STORAGE_KEYS.games, games);
   }, [games]);
 
   useEffect(() => {
-    localStorage.setItem('stack_team_standings', JSON.stringify(standings));
+    writeJsonStorage(STORAGE_KEYS.standings, standings);
   }, [standings]);
 
   useEffect(() => {
-    localStorage.setItem('stack_team_announcements', JSON.stringify(announcements));
+    writeJsonStorage(STORAGE_KEYS.announcements, announcements);
   }, [announcements]);
 
   useEffect(() => {
-    localStorage.setItem('stack_team_assessments', JSON.stringify(assessments));
+    writeJsonStorage(STORAGE_KEYS.assessments, assessments);
   }, [assessments]);
 
-  // Handle Recording Scoreboard Match Results & Cascade Side Effects
   const handleRecordResult = (
-    gameId: string, 
-    ourScore: number, 
-    opponentScore: number, 
-    mvpId: string, 
+    gameId: string,
+    ourScore: number,
+    opponentScore: number,
+    mvpId: string,
     notes: string,
-    scorersList: Array<{ playerName: string; count: number }>
+    scorersList: NonNullable<Game['scorers']>
   ) => {
-    // 1. Update Game object
-    const updatedGames = games.map(game => {
-      if (game.id === gameId) {
-        return {
-          ...game,
-          status: 'Completed' as const,
-          ourScore,
-          opponentScore,
-          mvpId,
-          notes,
-          scorers: scorersList
-        };
-      }
-      return game;
+    const next = recordMatchResult({
+      gameId,
+      teamName: teamInfo.name,
+      games,
+      players,
+      standings
+    }, {
+      ourScore,
+      opponentScore,
+      mvpId,
+      notes,
+      scorers: scorersList
     });
-    setGames(updatedGames);
 
-    // Get game detail
-    const originalGame = games.find(g => g.id === gameId);
-    if (!originalGame) return;
-
-    // 2. Cascade update player goals (points), assists, mvps, and clean sheet walls
-    const isCleanSheet = opponentScore === 0;
-    const updatedPlayers = players.map(p => {
-      let goalsToAdd = 0;
-      const scorerMatch = scorersList.find(sc => sc.playerName === p.name);
-      if (scorerMatch) {
-        goalsToAdd = scorerMatch.count;
-      }
-
-      let mvpToAdd = 0;
-      if (mvpId === p.id) {
-        mvpToAdd = 1;
-      }
-
-      // Defenders and Goalkeepers get clean sheet bonus
-      let csToAdd = 0;
-      if (isCleanSheet && (p.position === 'Defender' || p.position === 'Goalkeeper')) {
-        csToAdd = 1;
-      }
-
-      return {
-        ...p,
-        gamesPlayed: p.gamesPlayed + 1,
-        points: p.points + goalsToAdd,
-        mvpAwards: p.mvpAwards + mvpToAdd,
-        cleanSheetsOrRebounds: p.cleanSheetsOrRebounds + csToAdd
-      };
-    });
-    setPlayers(updatedPlayers);
-
-    // 3. Auto-update team and opponent standings points!
-    const opponentName = originalGame.opponent;
-    const isWin = ourScore > opponentScore;
-    const isDraw = ourScore === opponentScore;
-
-    const updatedStandings = standings.map(team => {
-      // Update our own stats
-      if (team.isUserTeam) {
-        return {
-          ...team,
-          played: team.played + 1,
-          won: team.won + (isWin ? 1 : 0),
-          drawn: team.drawn + (isDraw ? 1 : 0),
-          lost: team.lost + (!isWin && !isDraw ? 1 : 0),
-          goalsFor: team.goalsFor + ourScore,
-          goalsAgainst: team.goalsAgainst + opponentScore,
-          points: team.points + (isWin ? 3 : isDraw ? 1 : 0)
-        };
-      }
-      // Update opponent team stats
-      if (team.teamName.toLowerCase() === opponentName.toLowerCase()) {
-        const oppWin = opponentScore > ourScore;
-        const oppDraw = ourScore === opponentScore;
-        return {
-          ...team,
-          played: team.played + 1,
-          won: team.won + (oppWin ? 1 : 0),
-          drawn: team.drawn + (oppDraw ? 1 : 0),
-          lost: team.lost + (!oppWin && !oppDraw ? 1 : 0),
-          goalsFor: team.goalsFor + opponentScore,
-          goalsAgainst: team.goalsAgainst + ourScore,
-          points: team.points + (oppWin ? 3 : oppDraw ? 1 : 0)
-        };
-      }
-      return team;
-    });
-    setStandings(updatedStandings);
+    setGames(next.games);
+    setPlayers(next.players);
+    setStandings(next.standings);
   };
 
   // State modification callbacks
@@ -293,7 +184,16 @@ export default function App() {
   };
 
   const handleDeleteGame = (gameId: string) => {
-    setGames(prev => prev.filter(g => g.id !== gameId));
+    const next = deleteGameAndReconcile({
+      gameId,
+      teamName: teamInfo.name,
+      games,
+      players,
+      standings
+    });
+    setGames(next.games);
+    setPlayers(next.players);
+    setStandings(next.standings);
   };
 
   const handleUpdateStanding = (updatedStanding: Standing) => {
@@ -323,9 +223,9 @@ export default function App() {
       offenses: []
     })));
 
-    localStorage.setItem('stack_team_standings', JSON.stringify([]));
-    localStorage.removeItem('stack_team_games');
-    localStorage.removeItem('stack_team_announcements');
+    writeJsonStorage(STORAGE_KEYS.standings, []);
+    removeStorage(STORAGE_KEYS.games);
+    removeStorage(STORAGE_KEYS.announcements);
     
     // Update players in localStorage
     const resetPlayers = players.map(p => ({
@@ -340,7 +240,7 @@ export default function App() {
       redCards: 0,
       offenses: []
     }));
-    localStorage.setItem('stack_team_players', JSON.stringify(resetPlayers));
+    writeJsonStorage(STORAGE_KEYS.players, resetPlayers);
   };
 
   const handleAddAnnouncement = (newAnn: Announcement) => {
@@ -386,90 +286,73 @@ export default function App() {
     });
   };
 
+  const downloadBackup = (backup: WorkspaceBackupV2, fileName: string) => {
+    const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = fileName;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
+  const getCurrentBackup = () => {
+    if (!teamInfo) throw new Error('Create a team workspace before exporting a backup.');
+    return createWorkspaceBackup({
+      teamInfo,
+      players,
+      games,
+      standings,
+      announcements,
+      assessments
+    });
+  };
+
   const handleExportBackup = () => {
     try {
-      const data = {
-        teamInfo,
-        players,
-        games,
-        standings,
-        announcements,
-        assessments,
-        exportedAt: new Date().toISOString(),
-        backupVersion: "1.1.0"
-      };
-      
-      const jsonString = JSON.stringify(data, null, 2);
-      const blob = new Blob([jsonString], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      
-      const link = document.createElement('a');
-      link.href = url;
+      const backup = getCurrentBackup();
       const cleanTeamName = teamInfo.name.toLowerCase().replace(/[^a-z0-9]+/g, '_');
-      link.download = `${cleanTeamName}_team_backup_${new Date().toISOString().slice(0, 10)}.json`;
-      
-      document.body.appendChild(link);
-      link.click();
-      
-      // Cleanup
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
+      downloadBackup(backup, `${cleanTeamName}_full_workspace_${new Date().toISOString().slice(0, 10)}.json`);
     } catch (error) {
-      console.error('Error generating team data backup via Roster:', error);
+      console.error('Error generating full workspace backup:', error);
     }
   };
 
-  const handleImportBackup = async (file: File) => {
-    const parsed: unknown = JSON.parse(await file.text());
-    if (!parsed || typeof parsed !== 'object') {
+  const handleImportBackup = async (file: File): Promise<BackupRestoreSummary> => {
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(await file.text());
+    } catch {
       throw new Error('The selected file is not a valid Dumala backup.');
     }
 
-    const backup = parsed as Record<string, unknown>;
-    const restoredTeam = backup.teamInfo as TeamInfo | null;
-    const restoredPlayers = backup.players as Player[] | undefined;
-    const restoredGames = backup.games as Game[] | undefined;
-    const restoredStandings = backup.standings as Standing[] | undefined;
-    const restoredAnnouncements = backup.announcements as Announcement[] | undefined;
-    const restoredAssessments = backup.assessments as AssessmentSession[] | undefined;
-    const backupVersion = backup.backupVersion as string | undefined;
+    const { backup, sourceVersion } = parseWorkspaceBackup(parsed, collectFeatureState());
+    const preRestoreBackup = getCurrentBackup();
+    writeJsonStorage(STORAGE_KEYS.preRestoreBackup, preRestoreBackup);
+    const cleanTeamName = teamInfo.name.toLowerCase().replace(/[^a-z0-9]+/g, '_');
+    downloadBackup(preRestoreBackup, `${cleanTeamName}_pre_restore_${new Date().toISOString().slice(0, 10)}.json`);
 
-    if (
-      (backupVersion !== '1.0.0' && backupVersion !== '1.1.0') ||
-      !restoredTeam ||
-      typeof restoredTeam.name !== 'string' ||
-      !Array.isArray(restoredPlayers) ||
-      !Array.isArray(restoredGames) ||
-      !Array.isArray(restoredStandings) ||
-      !Array.isArray(restoredAnnouncements) ||
-      (backupVersion === '1.1.0' && restoredAssessments !== undefined && !Array.isArray(restoredAssessments))
-    ) {
-      throw new Error('This backup is missing required team data or uses an unsupported version.');
-    }
-
-    setTeamInfo(restoredTeam);
-    setPlayers(restoredPlayers);
-    setGames(restoredGames);
-    setStandings(restoredStandings);
-    setAnnouncements(restoredAnnouncements);
-    setAssessments(Array.isArray(restoredAssessments) ? restoredAssessments : []);
+    applyWorkspaceBackup(backup);
+    setTeamInfo(backup.core.teamInfo);
+    setPlayers(backup.core.players);
+    setGames(backup.core.games);
+    setStandings(backup.core.standings);
+    setAnnouncements(backup.core.announcements);
+    setAssessments(backup.core.assessments);
     setIsOnboarded(true);
     setPrimaryTab('squad');
-
-    localStorage.setItem('stack_team_onboarded', 'true');
-    localStorage.setItem('stack_team_info', JSON.stringify(restoredTeam));
-    localStorage.setItem('stack_team_players', JSON.stringify(restoredPlayers));
-    localStorage.setItem('stack_team_games', JSON.stringify(restoredGames));
-    localStorage.setItem('stack_team_standings', JSON.stringify(restoredStandings));
-    localStorage.setItem('stack_team_announcements', JSON.stringify(restoredAnnouncements));
-    localStorage.setItem('stack_team_assessments', JSON.stringify(Array.isArray(restoredAssessments) ? restoredAssessments : []));
+    return summarizeBackup(backup, sourceVersion);
   };
 
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [showFeedback, setShowFeedback] = useState(false);
+  const closeResetDialog = useCallback(() => setShowResetConfirm(false), []);
+  useDialogAccessibility(resetDialogRef, showResetConfirm, closeResetDialog);
 
   const confirmResetApp = () => {
-    localStorage.clear();
+    clearDumalaStorage();
     setIsOnboarded(false);
     setTeamInfo(null);
     setPlayers([]);
@@ -511,24 +394,49 @@ export default function App() {
     return handleNavigate({ primary: tab });
   };
 
+  const recoveryBanner = recoveryWarnings.length > 0 ? (
+    <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-amber-900" role="status">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-xs font-black uppercase tracking-wider">Local data recovery</p>
+          <p className="mt-1 text-xs leading-relaxed">
+            {recoveryWarnings.map(warning => warning.section).join(', ')} contained invalid saved data and was reset safely.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={() => setRecoveryWarnings([])}
+          className="text-xs font-black uppercase tracking-wider text-amber-800 hover:text-amber-950"
+        >
+          Dismiss
+        </button>
+      </div>
+    </div>
+  ) : null;
+
   if (!isOnboarded || !teamInfo) {
     return (
-      <OnboardingView 
-        onComplete={(team: TeamInfo, coachPlayer: Player) => {
-          setTeamInfo(team);
-          setPlayers([coachPlayer]);
-          setStandings([]);
-          setAssessments([]);
-          setPrimaryTab('home');
-          setHomeTab('overview');
-          localStorage.setItem('stack_team_standings', JSON.stringify([]));
-          localStorage.setItem('stack_team_assessments', JSON.stringify([]));
-          setIsOnboarded(true);
-          localStorage.setItem('stack_team_onboarded', 'true');
-          localStorage.setItem('stack_team_info', JSON.stringify(team));
-          localStorage.setItem('stack_team_players', JSON.stringify([coachPlayer]));
-        }}
-      />
+      <div className="min-h-screen bg-slate-50">
+        {recoveryBanner && <div className="mx-auto max-w-3xl px-4 pt-4">{recoveryBanner}</div>}
+        <Suspense fallback={<div className="mx-auto max-w-3xl p-4"><ViewLoadingFallback label="onboarding" /></div>}>
+          <OnboardingView
+            onComplete={(team: TeamInfo, coachPlayer: Player) => {
+              setTeamInfo(team);
+              setPlayers([coachPlayer]);
+              setStandings([]);
+              setAssessments([]);
+              setPrimaryTab('home');
+              setHomeTab('overview');
+              writeJsonStorage(STORAGE_KEYS.standings, []);
+              writeJsonStorage(STORAGE_KEYS.assessments, []);
+              setIsOnboarded(true);
+              writeBooleanStorage(STORAGE_KEYS.onboarded, true);
+              writeJsonStorage(STORAGE_KEYS.teamInfo, team);
+              writeJsonStorage(STORAGE_KEYS.players, [coachPlayer]);
+            }}
+          />
+        </Suspense>
+      </div>
     );
   }
 
@@ -670,16 +578,25 @@ export default function App() {
         </div>
 
         {showFeedback && (
-          <FeedbackModal
-            teamName={teamInfo.name}
-            onClose={() => setShowFeedback(false)}
-          />
+          <Suspense fallback={null}>
+            <FeedbackModal
+              teamName={teamInfo.name}
+              onClose={() => setShowFeedback(false)}
+            />
+          </Suspense>
         )}
 
         {showResetConfirm && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4">
-            <div className="bg-white border border-slate-200 p-6 rounded-2xl shadow-2xl max-w-sm w-full font-sans">
-              <h3 className="text-lg font-display font-extrabold text-slate-900 mb-2">Reset workspace?</h3>
+            <div
+              ref={resetDialogRef}
+              tabIndex={-1}
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="reset-workspace-title"
+              className="bg-white border border-slate-200 p-6 rounded-2xl shadow-2xl max-w-sm w-full font-sans"
+            >
+              <h3 id="reset-workspace-title" className="text-lg font-display font-extrabold text-slate-900 mb-2">Reset workspace?</h3>
               <p className="text-sm text-slate-600 mb-6 font-medium">This removes the team, roster, schedule, and statistics saved in this browser.</p>
               <div className="flex justify-end gap-3 font-semibold">
                 <button onClick={() => setShowResetConfirm(false)} className="px-4 py-2 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 transition-colors text-xs">Cancel</button>
@@ -689,77 +606,81 @@ export default function App() {
           </div>
         )}
 
+        {recoveryBanner}
+
         {/* Active Tab Frame Switcher */}
         <div id="tab-content-frame">
-          {primaryTab === 'home' && (
-            <HomeHubView
-              activeTab={homeTab}
-              onTabChange={setHomeTab}
-              onNavigate={handleNavigate}
-              teamInfo={teamInfo}
-              players={players}
-              games={games}
-              standings={standings}
-              announcements={announcements}
-              assessments={assessments}
-              onSelectPlayer={setSelectedPlayer}
-              onUpdateTeamInfo={handleUpdateTeamInfo}
-              onAddGame={handleAddGame}
-              onRecordResult={handleRecordResult}
-              onDeleteGame={handleDeleteGame}
-              teamName={teamInfo?.name || 'Apex Rangers'}
-            />
-          )}
+          <Suspense fallback={<ViewLoadingFallback label="workspace" />}>
+            {primaryTab === 'home' && (
+              <HomeHubView
+                activeTab={homeTab}
+                onTabChange={setHomeTab}
+                onNavigate={handleNavigate}
+                teamInfo={teamInfo}
+                players={players}
+                games={games}
+                standings={standings}
+                announcements={announcements}
+                assessments={assessments}
+                onSelectPlayer={setSelectedPlayer}
+                onUpdateTeamInfo={handleUpdateTeamInfo}
+                onAddGame={handleAddGame}
+                onRecordResult={handleRecordResult}
+                onDeleteGame={handleDeleteGame}
+                teamName={teamInfo?.name || 'Apex Rangers'}
+              />
+            )}
 
-          {primaryTab === 'squad' && (
-            <RosterView
-              players={players}
-              onAddPlayer={handleAddPlayer}
-              onSelectPlayer={setSelectedPlayer}
-              onExportBackup={handleExportBackup}
-              onImportBackup={handleImportBackup}
-              onUpdatePlayer={handleUpdatePlayer}
-            />
-          )}
+            {primaryTab === 'squad' && (
+              <RosterView
+                players={players}
+                onAddPlayer={handleAddPlayer}
+                onSelectPlayer={setSelectedPlayer}
+                onExportBackup={handleExportBackup}
+                onImportBackup={handleImportBackup}
+                onUpdatePlayer={handleUpdatePlayer}
+              />
+            )}
 
-          {primaryTab === 'tactics' && (
-            <TacticsView players={players} teamCoach={teamInfo?.coach || ''} teamName={teamInfo?.name || 'Apex Rangers'} teamLogoUrl={teamInfo?.logoUrl} onUpdatePlayer={handleUpdatePlayer} />
-          )}
+            {primaryTab === 'tactics' && (
+              <TacticsView players={players} teamCoach={teamInfo?.coach || ''} teamName={teamInfo?.name || 'Apex Rangers'} teamLogoUrl={teamInfo?.logoUrl} onUpdatePlayer={handleUpdatePlayer} />
+            )}
 
-          {primaryTab === 'development' && (
-            <DevelopmentHubView
-              activeTab={developmentTab}
-              onTabChange={setDevelopmentTab}
-              players={players}
-              games={games}
-              onUpdateGames={setGames}
-              onUpdatePlayer={handleUpdatePlayer}
-              assessments={assessments}
-              preselectedAssessmentsPlayerId={preselectedAssessmentsPlayerId}
-              onClearPreselectedAssessmentsPlayerId={() => setPreselectedAssessmentsPlayerId(null)}
-              onAddAssessment={handleAddAssessment}
-              onDeleteAssessment={handleDeleteAssessment}
-            />
-          )}
+            {primaryTab === 'development' && (
+              <DevelopmentHubView
+                activeTab={developmentTab}
+                onTabChange={setDevelopmentTab}
+                players={players}
+                games={games}
+                onUpdateGames={setGames}
+                onUpdatePlayer={handleUpdatePlayer}
+                assessments={assessments}
+                preselectedAssessmentsPlayerId={preselectedAssessmentsPlayerId}
+                onClearPreselectedAssessmentsPlayerId={() => setPreselectedAssessmentsPlayerId(null)}
+                onAddAssessment={handleAddAssessment}
+                onDeleteAssessment={handleDeleteAssessment}
+              />
+            )}
 
-          {primaryTab === 'league_updates' && (
-            <LeagueUpdatesHubView
-              activeTab={leagueUpdatesTab}
-              onTabChange={setLeagueUpdatesTab}
-              standings={standings}
-              onUpdateStanding={handleUpdateStanding}
-              onResetStandings={handleResetStandings}
-              teamName={teamInfo?.name || 'Apex Rangers'}
-              teamInfo={teamInfo}
-              onUpdateTeamInfo={handleUpdateTeamInfo}
-              onUpdateAllStandings={setStandings}
-              players={players}
-              onUpdatePlayer={handleUpdatePlayer}
-              announcements={announcements}
-              onAddAnnouncement={handleAddAnnouncement}
-              onDeleteAnnouncement={handleDeleteAnnouncement}
-            />
-          )}
+            {primaryTab === 'league_updates' && (
+              <LeagueUpdatesHubView
+                activeTab={leagueUpdatesTab}
+                onTabChange={setLeagueUpdatesTab}
+                standings={standings}
+                onUpdateStanding={handleUpdateStanding}
+                onResetStandings={handleResetStandings}
+                teamName={teamInfo?.name || 'Apex Rangers'}
+                teamInfo={teamInfo}
+                onUpdateTeamInfo={handleUpdateTeamInfo}
+                onUpdateAllStandings={setStandings}
+                players={players}
+                onUpdatePlayer={handleUpdatePlayer}
+                announcements={announcements}
+                onAddAnnouncement={handleAddAnnouncement}
+                onDeleteAnnouncement={handleDeleteAnnouncement}
+              />
+            )}
+          </Suspense>
         </div>
 
       </main>
@@ -767,19 +688,21 @@ export default function App() {
       {/* Dynamic Profile/Detailed Stats Modal */}
       <AnimatePresence>
         {selectedPlayer && (
-          <PlayerProfileModal 
-            player={selectedPlayer}
-            onClose={() => setSelectedPlayer(null)}
-            onUpdate={handleUpdatePlayer}
-            onRemove={handleRemovePlayer}
-            assessments={assessments}
-            onOpenAssessments={(playerId: string) => {
-              setPreselectedAssessmentsPlayerId(playerId);
-              setPrimaryTab('development');
-              setDevelopmentTab('assessments');
-              setSelectedPlayer(null);
-            }}
-          />
+          <Suspense fallback={null}>
+            <PlayerProfileModal
+              player={selectedPlayer}
+              onClose={() => setSelectedPlayer(null)}
+              onUpdate={handleUpdatePlayer}
+              onRemove={handleRemovePlayer}
+              assessments={assessments}
+              onOpenAssessments={(playerId: string) => {
+                setPreselectedAssessmentsPlayerId(playerId);
+                setPrimaryTab('development');
+                setDevelopmentTab('assessments');
+                setSelectedPlayer(null);
+              }}
+            />
+          </Suspense>
         )}
       </AnimatePresence>
 

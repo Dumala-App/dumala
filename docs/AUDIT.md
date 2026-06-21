@@ -6,7 +6,7 @@ Updated: 2026-06-21
 
 Dumala is a substantial local-first football operations application, not a thin prototype. It now includes a broad club-management workflow and a dedicated FPRDS assessment subsystem. The strongest product qualities are feature continuity across the coaching week, useful football-specific presentation, and the ability to operate without backend infrastructure.
 
-The main risks are architecture and reliability: state ownership is concentrated in `App.tsx`, persistence is spread across many `localStorage` keys, full backups omit some feature-local state, runtime validation is inconsistent, the bundle is large, and automated tests are absent.
+The main remaining risks are architecture and regression coverage: state ownership is concentrated in `App.tsx`, browser persistence still spans many keys, and automated coverage does not yet include several important domain and UI workflows.
 
 ## Current strengths
 
@@ -18,28 +18,30 @@ The main risks are architecture and reliability: state ownership is concentrated
 6. Tactics auto-fill matches players to broad position groups and preserves valid assignments.
 7. Training includes 52 drills, practical guides, filters, presets, and calendar synchronization.
 8. FPRDS stores raw measurements and derived outputs, enabling explainable assessment history.
-9. Backup version 1.1 includes assessment sessions.
-10. The project is a simple static Vite deployment with no environment variables.
-11. Product updates contain a detailed AI-free roadmap.
-12. Favicon, social metadata, feedback, and public beta messaging improve release polish.
+9. Full Workspace V2 validates and restores core and feature-local data, with legacy migration and rollback protection.
+10. Match-result reconciliation prevents duplicate saves and reverses edited or deleted match contributions.
+11. Release-critical dialogs trap focus, support Escape, and restore focus to their opener.
+12. The project is a simple static Vite deployment with no environment variables.
+13. Product updates contain a detailed AI-free roadmap.
+14. Favicon, social metadata, feedback, and public beta messaging improve release polish.
 
 ## Architecture findings
 
-### High: fragmented persistence
+### Medium: distributed browser persistence
 
-Core data is managed in `App.tsx`, while schedule, training, standings backups, and tactics manage their own keys. Reset clears everything, but export does not include every feature-local key.
+Core data is managed in `App.tsx`, while schedule, training, standings backups, and tactics own separate state. All keys now use one typed persistence service and Full Workspace V2 covers the supported feature state.
 
-Impact: a user can restore the main workspace while losing tactical layouts, availability, coach notes, and weekly training state.
+Impact: future schema changes still need coordinated migrations across multiple feature owners.
 
-### High: limited runtime validation
+### Resolved: unsafe persisted-data parsing
 
-Some collections use guarded JSON parsing, while others directly parse stored values. Backup validation checks collection presence and version but does not validate nested entity shapes.
+Zod schemas now validate core and feature-local records at startup and restore boundaries. Invalid stored sections fall back safely with a non-blocking warning, and invalid backups are rejected before writes.
 
-Impact: malformed or stale data can create inconsistent UI behavior or startup failures.
+Remaining risk: schemas and migrations must be maintained as domain models evolve.
 
-### High: no automated regression suite
+### High: limited automated regression suite
 
-The most important logic includes match cascades, standings, FPRDS interpolation, backup migration, and lineup assignment, but validation currently relies on TypeScript, builds, and manual browser checks.
+Vitest now covers persistence validation, legacy backup migration, full-workspace round trips, nested-record rejection, feature-state recovery, and failed-write rollback. Match cascades, standings, FPRDS interpolation, lineup assignment, and UI workflows still rely mainly on TypeScript, builds, and manual browser checks.
 
 Impact: changes to shared types or domain rules have a high regression cost.
 
@@ -55,11 +57,11 @@ Staff are represented as `Player` records and identified by position strings.
 
 Impact: future coach qualifications, permissions, public profiles, and staff-specific privacy will strain the model.
 
-### Medium: bundle size
+### Resolved: initial bundle size
 
-The production JavaScript bundle is approximately 1.28 MB before gzip and triggers Vite's chunk-size warning.
+Primary areas, hub subviews, onboarding, feedback, and player profiles now load through view-level dynamic imports. The initial production JavaScript chunk is approximately 334 KB before gzip and no longer triggers Vite's 500 KB warning.
 
-Impact: slower first load, especially on mobile connections.
+Remaining risk: chart-heavy views still load a shared deferred chart chunk when first opened, so chunk sizes should be monitored as those screens grow.
 
 ### Medium: unofficial coach-level field
 
@@ -86,20 +88,19 @@ Local data operations already work after the page loads, but the app has no serv
 - Removed obsolete Express architecture.
 - Removed obsolete AI roadmap direction.
 - Added the Assessment Center and navigation hubs.
-- Documented backup version 1.1 and its coverage gap.
+- Documented Full Workspace V2, legacy migration, validation, and rollback behavior.
 - Aligned roadmap phases with the in-app Roadmap Snapshot.
 - Updated tasks with recent roster, tactics, updates, deployment, and favicon work.
 
 ## Recommended priorities
 
-1. Runtime validation for persisted and imported data.
-2. Full-workspace backup coverage.
-3. Unit tests for standings, match cascades, FPRDS scoring, and migration.
-4. Persistence service extraction.
-5. PWA manifest, service worker, and update lifecycle.
-6. Responsive tablet interaction review.
-7. Route/view code splitting.
-8. Cloud identity design before shared or public functionality.
+1. Unit tests for standings, match cascades, and FPRDS scoring.
+2. Browser-level tests for startup recovery, export, and restore.
+3. Result-cascade and domain-service extraction from `App.tsx`.
+4. PWA manifest, service worker, and update lifecycle.
+5. Responsive tablet interaction review.
+6. Monitor deferred chunks and loading behavior during feature growth.
+7. Cloud identity design before shared or public functionality.
 
 ## Final assessment
 

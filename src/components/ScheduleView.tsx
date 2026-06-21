@@ -1,7 +1,10 @@
-import React, { useState, useMemo } from 'react';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
 import { Game, Player, Standing } from '../types';
 import { Calendar, MapPin, Award, Plus, Edit, RefreshCw, Trophy, Clock, Trash2, ChevronLeft, ChevronRight, CalendarDays, Users, Dumbbell, Sparkles, CheckCircle2, XCircle, HelpCircle, BarChart3, TrendingUp, AlertTriangle } from 'lucide-react';
 import { motion } from 'motion/react';
+import { availabilitySchema, coachNotesSchema } from '../persistence/schemas';
+import { readJsonStorage, STORAGE_KEYS, writeJsonStorage } from '../persistence/storage';
+import { useDialogAccessibility } from '../hooks/useDialogAccessibility';
 
 interface ScheduleViewProps {
   games: Game[];
@@ -14,13 +17,14 @@ interface ScheduleViewProps {
     opponentScore: number, 
     mvpId: string, 
     notes: string,
-    scorersList: Array<{ playerName: string; count: number }>
+    scorersList: NonNullable<Game['scorers']>
   ) => void;
   onDeleteGame: (gameId: string) => void;
   teamName?: string;
 }
 
 export default function ScheduleView({ games, players, standings, onAddGame, onRecordResult, onDeleteGame, teamName }: ScheduleViewProps) {
+  const resultDialogRef = useRef<HTMLDivElement | null>(null);
   const [filterTab, setFilterTab] = useState<'Upcoming' | 'Completed'>('Upcoming');
   
   // Calendar View & Filter State
@@ -46,13 +50,17 @@ export default function ScheduleView({ games, players, standings, onAddGame, onR
   
   // Goals record state for the completed game
   const [selectedScorer, setSelectedScorer] = useState("");
-  const [currentScorers, setCurrentScorers] = useState<Array<{ playerName: string; count: number }>>([]);
+  const [currentScorers, setCurrentScorers] = useState<NonNullable<Game['scorers']>>([]);
+  const [resultError, setResultError] = useState('');
+  const closeResultDialog = useCallback(() => {
+    setRecordingGameId(null);
+    setResultError('');
+  }, []);
+  useDialogAccessibility(resultDialogRef, recordingGameId !== null, closeResultDialog);
 
   // Match Availability Tracker state — per gameId, per playerId → yes/no/maybe
   const [availability, setAvailability] = useState<Record<string, Record<string, 'yes' | 'no' | 'maybe'>>>(() => {
-    const saved = localStorage.getItem('squad_availability');
-    if (saved) { try { return JSON.parse(saved); } catch {} }
-    return {};
+    return readJsonStorage(STORAGE_KEYS.availability, availabilitySchema, {}, 'Match availability');
   });
 
   const setPlayerAvail = (gameId: string, playerId: string, value: 'yes' | 'no' | 'maybe') => {
@@ -64,22 +72,20 @@ export default function ScheduleView({ games, players, standings, onAddGame, onR
         gameAvail[playerId] = value;
       }
       const next = { ...prev, [gameId]: gameAvail };
-      localStorage.setItem('squad_availability', JSON.stringify(next));
+      writeJsonStorage(STORAGE_KEYS.availability, next);
       return next;
     });
   };
 
   // Coach Notes per upcoming match
   const [coachNotes, setCoachNotes] = useState<Record<string, string>>(() => {
-    const saved = localStorage.getItem('squad_coach_notes');
-    if (saved) { try { return JSON.parse(saved); } catch {} }
-    return {};
+    return readJsonStorage(STORAGE_KEYS.coachNotes, coachNotesSchema, {}, 'Coach notes');
   });
 
   const setCoachNoteForGame = (gameId: string, note: string) => {
     setCoachNotes(prev => {
       const next = { ...prev, [gameId]: note };
-      localStorage.setItem('squad_coach_notes', JSON.stringify(next));
+      writeJsonStorage(STORAGE_KEYS.coachNotes, next);
       return next;
     });
   };
@@ -191,30 +197,58 @@ export default function ScheduleView({ games, players, standings, onAddGame, onR
 
   const handleScorerAdd = () => {
     if (!selectedScorer) return;
-    const existing = currentScorers.find(s => s.playerName === selectedScorer);
+    const player = players.find(candidate => candidate.id === selectedScorer);
+    if (!player) return;
+    const existing = currentScorers.find(s => s.playerId === player.id);
     if (existing) {
-      setCurrentScorers(currentScorers.map(s => s.playerName === selectedScorer ? { ...s, count: s.count + 1 } : s));
+      setCurrentScorers(currentScorers.map(s => s.playerId === player.id ? { ...s, count: s.count + 1 } : s));
     } else {
-      setCurrentScorers([...currentScorers, { playerName: selectedScorer, count: 1 }]);
+      setCurrentScorers([...currentScorers, { playerId: player.id, playerName: player.name, count: 1 }]);
     }
   };
 
-  const handleScorerRemove = (playerName: string) => {
-    setCurrentScorers(currentScorers.filter(s => s.playerName !== playerName));
+  const handleScorerRemove = (playerId: string | undefined, playerName: string) => {
+    setCurrentScorers(currentScorers.filter(s =>
+      playerId ? s.playerId !== playerId : s.playerName !== playerName
+    ));
+  };
+
+  const openResultEditor = (game: Game) => {
+    setRecordingGameId(game.id);
+    setOurScore(game.ourScore ?? 0);
+    setOpponentScore(game.opponentScore ?? 0);
+    setSelectedMvp(game.mvpId ?? '');
+    setGameNotes(game.notes ?? '');
+    setCurrentScorers((game.scorers ?? []).map(scorer => {
+      if (scorer.playerId) return scorer;
+      const matchingPlayers = players.filter(player =>
+        player.name.trim().toLowerCase() === scorer.playerName.trim().toLowerCase()
+      );
+      return matchingPlayers.length === 1
+        ? { ...scorer, playerId: matchingPlayers[0].id }
+        : scorer;
+    }));
+    setSelectedScorer('');
+    setResultError('');
   };
 
   const handleRecordSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!recordingGameId) return;
 
-    onRecordResult(
-      recordingGameId,
-      Number(ourScore),
-      Number(opponentScore),
-      selectedMvp,
-      gameNotes,
-      currentScorers
-    );
+    try {
+      onRecordResult(
+        recordingGameId,
+        Number(ourScore),
+        Number(opponentScore),
+        selectedMvp,
+        gameNotes,
+        currentScorers
+      );
+    } catch (error) {
+      setResultError(error instanceof Error ? error.message : 'The result could not be saved.');
+      return;
+    }
 
     // Reset recording fields
     setRecordingGameId(null);
@@ -223,6 +257,7 @@ export default function ScheduleView({ games, players, standings, onAddGame, onR
     setSelectedMvp("");
     setGameNotes("");
     setCurrentScorers([]);
+    setResultError('');
   };
 
   const filteredGames = games.filter(g => {
@@ -392,19 +427,27 @@ export default function ScheduleView({ games, players, standings, onAddGame, onR
       {/* Record Score Overlay Card Form */}
       {recordingGameId && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <motion.div 
+          <motion.div
+            ref={resultDialogRef}
+            tabIndex={-1}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="record-results-title"
             id="record-results-modal"
             initial={{ scale: 0.95, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             className="bg-white rounded-2xl shadow-xl w-full max-w-lg p-6 text-slate-800"
           >
             <div className="flex justify-between items-center pb-3 border-b border-slate-100">
-              <h3 className="font-display text-lg font-bold text-slate-900 flex items-center gap-2">
-                <Trophy size={20} className="text-amber-500" /> Record Match Scores
+              <h3 id="record-results-title" className="font-display text-lg font-bold text-slate-900 flex items-center gap-2">
+                <Trophy size={20} className="text-amber-500" />
+                {games.find(game => game.id === recordingGameId)?.status === 'Completed'
+                  ? 'Edit Match Result'
+                  : 'Record Match Scores'}
               </h3>
               <button 
                 id="close-record-modal"
-                onClick={() => setRecordingGameId(null)}
+                onClick={closeResultDialog}
                 className="text-slate-400 hover:text-slate-600 p-1"
               >
                 Cancel
@@ -453,8 +496,10 @@ export default function ScheduleView({ games, players, standings, onAddGame, onR
                       className="flex-1 border border-slate-200 rounded-lg p-1.5 text-xs bg-white"
                     >
                       <option value="">-- Choose Scorer --</option>
-                      {players.map(p => (
-                        <option key={p.id} value={p.name}>{p.name} (#{p.number})</option>
+                      {players
+                        .filter(p => ['Forward', 'Midfielder', 'Defender', 'Goalkeeper'].includes(p.position) && p.registrationStatus === 'Active')
+                        .map(p => (
+                        <option key={p.id} value={p.id}>{p.name} (#{p.number})</option>
                       ))}
                     </select>
                     <button
@@ -475,7 +520,7 @@ export default function ScheduleView({ games, players, standings, onAddGame, onR
                           <button 
                             id={`remove-scorer-${sc.playerName.replace(/\s+/g, '-')}`}
                             type="button" 
-                            onClick={() => handleScorerRemove(sc.playerName)} 
+                            onClick={() => handleScorerRemove(sc.playerId, sc.playerName)}
                             className="text-rose-500 hover:text-rose-700 ml-1 font-bold"
                           >
                             ×
@@ -497,11 +542,19 @@ export default function ScheduleView({ games, players, standings, onAddGame, onR
                   className="w-full border border-slate-200 rounded-xl p-2.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 >
                   <option value="">-- Select Most Valuable Player --</option>
-                  {players.map(p => (
+                  {players
+                    .filter(p => ['Forward', 'Midfielder', 'Defender', 'Goalkeeper'].includes(p.position) && p.registrationStatus === 'Active')
+                    .map(p => (
                     <option key={p.id} value={p.id}>{p.name} (#{p.number}) - {p.position}</option>
                   ))}
                 </select>
               </div>
+
+              {resultError && (
+                <div role="alert" className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-700">
+                  {resultError}
+                </div>
+              )}
 
               <div>
                 <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1 font-medium">Post-Match Coach Analysis</label>
@@ -519,7 +572,7 @@ export default function ScheduleView({ games, players, standings, onAddGame, onR
                 <button
                   id="cancel-record-modal-btn"
                   type="button"
-                  onClick={() => setRecordingGameId(null)}
+                  onClick={closeResultDialog}
                   className="px-4 py-2 border border-slate-200 hover:bg-slate-50 rounded-xl text-slate-600 text-sm font-medium"
                 >
                   Cancel
@@ -1030,15 +1083,24 @@ export default function ScheduleView({ games, players, standings, onAddGame, onR
                     <div className="flex items-center gap-4 text-right w-full md:w-auto self-stretch md:self-auto justify-between md:justify-end border-t border-slate-50 md:border-none pt-3 md:pt-0">
                       
                       {game.status === 'Completed' ? (
-                        <div className="flex flex-col items-end">
-                          <div id={`game-${game.id}-score`} className="font-display font-black text-xl text-slate-800 tracking-tight">
-                            {game.ourScore} - {game.opponentScore}
-                          </div>
-                          {mvpName && (
-                            <div id={`game-${game.id}-mvp`} className="flex items-center gap-1 text-[10px] text-amber-600 font-bold uppercase tracking-wider">
-                              <Award size={11} className="fill-amber-300 text-amber-500" /> {mvpName}
+                        <div className="flex items-center gap-2">
+                          <div className="flex flex-col items-end">
+                            <div id={`game-${game.id}-score`} className="font-display font-black text-xl text-slate-800 tracking-tight">
+                              {game.ourScore} - {game.opponentScore}
                             </div>
-                          )}
+                            {mvpName && (
+                              <div id={`game-${game.id}-mvp`} className="flex items-center gap-1 text-[10px] text-amber-600 font-bold uppercase tracking-wider">
+                                <Award size={11} className="fill-amber-300 text-amber-500" /> {mvpName}
+                              </div>
+                            )}
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => openResultEditor(game)}
+                            className="rounded-lg border border-slate-200 bg-slate-50 px-2 py-1 text-[10px] font-bold text-slate-600 hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700"
+                          >
+                            Edit Result
+                          </button>
                         </div>
                       ) : (
                         <div className="flex gap-2">
@@ -1047,7 +1109,7 @@ export default function ScheduleView({ games, players, standings, onAddGame, onR
                             <button
                               type="button"
                               id={`record-score-btn-${game.id}`}
-                              onClick={() => setRecordingGameId(game.id)}
+                              onClick={() => openResultEditor(game)}
                               className="bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-700 px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all flex items-center gap-1 shadow-sm cursor-pointer"
                             >
                               <Trophy size={11} />
@@ -1060,7 +1122,11 @@ export default function ScheduleView({ games, players, standings, onAddGame, onR
                       {/* Options: Delete Match Event */}
                       <button 
                         id={`delete-game-btn-${game.id}`}
-                        onClick={() => onDeleteGame(game.id)}
+                        onClick={() => {
+                          if (window.confirm(`Remove the ${game.opponent} event? Completed match statistics will be reversed.`)) {
+                            onDeleteGame(game.id);
+                          }
+                        }}
                         className="p-1.5 text-slate-300 hover:text-rose-500 rounded-lg hover:bg-rose-50 transition-colors cursor-pointer"
                         title="Remove Event"
                       >

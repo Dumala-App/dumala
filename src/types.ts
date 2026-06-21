@@ -342,7 +342,8 @@ export interface Game {
   type: 'League' | 'Cup' | 'Friendly' | 'Training' | 'Meeting';
   ourScore?: number;
   opponentScore?: number;
-  scorers?: Array<{ playerName: string; count: number }>;
+  scorers?: Array<{ playerId?: string; playerName: string; count: number }>;
+  creditedPlayerIds?: string[];
   mvpId?: string;
   notes?: string;
 }

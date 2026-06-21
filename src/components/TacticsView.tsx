@@ -3,6 +3,26 @@ import { Player, isStaffPosition } from '../types';
 import { STAFF_PLACEHOLDER } from '../playerPlaceholders';
 import { Shield, Crown, Star, Flame, Target, Trophy, Zap, Search, RefreshCw, UserCheck, Play, Save, ChevronRight, HelpCircle, User, Info, BarChart2, Edit, Trash2, Plus, Check, Filter, Tag, BookOpen } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import {
+  draggedPositionsSchema,
+  drawingPathsSchema,
+  matchFormatSchema,
+  playerExtrasSchema,
+  stringArraySchema,
+  stringSchema,
+  tacticsLineupSchema,
+  tacticsNotesSchema
+} from '../persistence/schemas';
+import {
+  readBooleanStorage,
+  readJsonStorage,
+  readStringStorage,
+  removeStorage,
+  STORAGE_KEYS,
+  writeBooleanStorage,
+  writeJsonStorage,
+  writeStringStorage
+} from '../persistence/storage';
 
 interface TacticsViewProps {
   players: Player[];
@@ -108,35 +128,35 @@ const getPlayerPositionGroup = (position: string): PositionGroup => {
 };
 
 const POSITION_FALLBACKS: Record<PositionGroup, PositionGroup[]> = {
-  Goalkeeper: ['Goalkeeper', 'Defender', 'Midfielder', 'Forward'],
-  Defender: ['Defender', 'Midfielder', 'Goalkeeper', 'Forward'],
-  Midfielder: ['Midfielder', 'Defender', 'Forward', 'Goalkeeper'],
-  Forward: ['Forward', 'Midfielder', 'Defender', 'Goalkeeper']
+  Goalkeeper: ['Goalkeeper'],
+  Defender: ['Defender'],
+  Midfielder: ['Midfielder'],
+  Forward: ['Forward']
 };
 
 export default function TacticsView({ players, teamCoach, teamName, teamLogoUrl, onUpdatePlayer }: TacticsViewProps) {
   const [matchFormat, setMatchFormat] = useState<MatchFormat>(() => {
-    return (localStorage.getItem('squad_match_format') as MatchFormat) || '11-a-side';
+    return readStringStorage(STORAGE_KEYS.matchFormat, matchFormatSchema, '11-a-side', 'Tactics match format');
   });
-  const [formation, setFormation] = useState<string>(() => localStorage.getItem('squad_formation') || '4-1-2-3');
-  const [playstyle, setPlaystyle] = useState<string>(() => localStorage.getItem('squad_playstyle') || 'Quick Counter');
+  const [formation, setFormation] = useState<string>(() => readStringStorage(STORAGE_KEYS.formation, stringSchema, '4-1-2-3', 'Tactics formation'));
+  const [playstyle, setPlaystyle] = useState<string>(() => readStringStorage(STORAGE_KEYS.playstyle, stringSchema, 'Quick Counter', 'Tactics playstyle'));
   const [activeTab, setActiveTab] = useState<'Tactics' | 'Team' | 'Substitutes' | 'Reserves'>('Tactics');
   
   // Custom Strategy Mode States
   const [isCustomMode, setIsCustomMode] = useState<boolean>(() => {
-    return localStorage.getItem('squad_is_custom_strategy') === 'true';
+    return readBooleanStorage(STORAGE_KEYS.isCustomStrategy, false, 'Tactics strategy');
   });
   const [customPlaystyleInput, setCustomPlaystyleInput] = useState<string>(() => {
-    return localStorage.getItem('squad_custom_playstyle_val') || 'Direct Attacking Tiki-Taka';
+    return readStringStorage(STORAGE_KEYS.customPlaystyle, stringSchema, 'Direct Attacking Tiki-Taka', 'Tactics strategy');
   });
   const [customDefensiveInput, setCustomDefensiveInput] = useState<string>(() => {
-    return localStorage.getItem('squad_custom_defensive_val') || 'Aggressive Wing Press';
+    return readStringStorage(STORAGE_KEYS.customDefensiveStyle, stringSchema, 'Aggressive Wing Press', 'Tactics strategy');
   });
   const [customMentality, setCustomMentality] = useState<string>(() => {
-    return localStorage.getItem('squad_custom_mentality_val') || 'Balanced';
+    return readStringStorage(STORAGE_KEYS.customMentality, stringSchema, 'Balanced', 'Tactics strategy');
   });
   const [customStrategyNotes, setCustomStrategyNotes] = useState<string>(() => {
-    return localStorage.getItem('squad_custom_strategy_notes') || 'Focus on rapid mid-block transitional overload. Fullbacks overlap actively while DMF covers the backline.';
+    return readStringStorage(STORAGE_KEYS.customStrategyNotes, stringSchema, 'Focus on rapid mid-block transitional overload. Fullbacks overlap actively while DMF covers the backline.', 'Tactics strategy');
   });
   
   const [isEditingCoach, setIsEditingCoach] = useState<boolean>(false);
@@ -151,7 +171,7 @@ export default function TacticsView({ players, teamCoach, teamName, teamLogoUrl,
   }, [players, teamCoach]);
   const coachName = rosterCoach?.name || teamCoach || 'Team Manager';
   const coachPhoto = rosterCoach?.photoUrl || STAFF_PLACEHOLDER;
-  const [coachLevel, setCoachLevel] = useState<string>(() => localStorage.getItem('squad_coach_level') || 'Expert ★★★★★');
+  const [coachLevel, setCoachLevel] = useState<string>(() => readStringStorage(STORAGE_KEYS.coachLevel, stringSchema, 'Expert ★★★★★', 'Tactics coach details'));
   const [isTeamLogoBroken, setIsTeamLogoBroken] = useState<boolean>(false);
 
   useEffect(() => {
@@ -189,85 +209,84 @@ export default function TacticsView({ players, teamCoach, teamName, teamLogoUrl,
   };
 
   const [playstyles, setPlaystyles] = useState<string[]>(() => {
-    const saved = localStorage.getItem('squad_custom_playstyles');
-    if (saved) {
-      try {
-        return JSON.parse(saved);
-      } catch (e) {}
-    }
-    return ['Quick Counter', 'Possession Game', 'Long Ball Counter', 'Out Wide'];
+    return readJsonStorage(
+      STORAGE_KEYS.customPlaystyles,
+      stringArraySchema,
+      ['Quick Counter', 'Possession Game', 'Long Ball Counter', 'Out Wide'],
+      'Tactics playstyles'
+    );
   });
 
   const [customStyleInput, setCustomStyleInput] = useState<string>('');
   const [showCustomStyleCreator, setShowCustomStyleCreator] = useState<boolean>(false);
 
   useEffect(() => {
-    localStorage.setItem('squad_match_format', matchFormat);
+    writeStringStorage(STORAGE_KEYS.matchFormat, matchFormat);
     if (!MATCH_FORMAT_CONFIG[matchFormat].formations.includes(formation)) {
       setFormation(MATCH_FORMAT_CONFIG[matchFormat].formations[0]);
     }
   }, [matchFormat]);
 
   useEffect(() => {
-    localStorage.setItem('squad_coach_level', coachLevel);
+    writeStringStorage(STORAGE_KEYS.coachLevel, coachLevel);
   }, [coachLevel]);
 
   useEffect(() => {
-    localStorage.setItem('squad_custom_playstyles', JSON.stringify(playstyles));
+    writeJsonStorage(STORAGE_KEYS.customPlaystyles, playstyles);
   }, [playstyles]);
 
   useEffect(() => {
-    localStorage.setItem('squad_formation', formation);
+    writeStringStorage(STORAGE_KEYS.formation, formation);
   }, [formation]);
 
   useEffect(() => {
-    localStorage.setItem('squad_playstyle', playstyle);
+    writeStringStorage(STORAGE_KEYS.playstyle, playstyle);
   }, [playstyle]);
 
   useEffect(() => {
-    localStorage.setItem('squad_is_custom_strategy', String(isCustomMode));
+    writeBooleanStorage(STORAGE_KEYS.isCustomStrategy, isCustomMode);
   }, [isCustomMode]);
 
   useEffect(() => {
-    localStorage.setItem('squad_custom_playstyle_val', customPlaystyleInput);
+    writeStringStorage(STORAGE_KEYS.customPlaystyle, customPlaystyleInput);
   }, [customPlaystyleInput]);
 
   useEffect(() => {
-    localStorage.setItem('squad_custom_defensive_val', customDefensiveInput);
+    writeStringStorage(STORAGE_KEYS.customDefensiveStyle, customDefensiveInput);
   }, [customDefensiveInput]);
 
   useEffect(() => {
-    localStorage.setItem('squad_custom_mentality_val', customMentality);
+    writeStringStorage(STORAGE_KEYS.customMentality, customMentality);
   }, [customMentality]);
 
   useEffect(() => {
-    localStorage.setItem('squad_custom_strategy_notes', customStrategyNotes);
+    writeStringStorage(STORAGE_KEYS.customStrategyNotes, customStrategyNotes);
   }, [customStrategyNotes]);
 
-  const [captainId, setCaptainId] = useState<string>(() => localStorage.getItem('squad_captain_id') || '');
-  const [penaltyTakerId, setPenaltyTakerId] = useState<string>(() => localStorage.getItem('squad_penalty_taker_id') || '');
-  const [freeKickTakerId, setFreeKickTakerId] = useState<string>(() => localStorage.getItem('squad_free_kick_taker_id') || '');
-  const [cornerTakerId, setCornerTakerId] = useState<string>(() => localStorage.getItem('squad_corner_taker_id') || '');
-  const [defensiveStyle, setDefensiveStyle] = useState<string>(() => localStorage.getItem('squad_defensive_style') || 'High Press');
+  const [captainId, setCaptainId] = useState<string>(() => readStringStorage(STORAGE_KEYS.captainId, stringSchema, '', 'Tactics roles'));
+  const [penaltyTakerId, setPenaltyTakerId] = useState<string>(() => readStringStorage(STORAGE_KEYS.penaltyTakerId, stringSchema, '', 'Tactics roles'));
+  const [freeKickTakerId, setFreeKickTakerId] = useState<string>(() => readStringStorage(STORAGE_KEYS.freeKickTakerId, stringSchema, '', 'Tactics roles'));
+  const [cornerTakerId, setCornerTakerId] = useState<string>(() => readStringStorage(STORAGE_KEYS.cornerTakerId, stringSchema, '', 'Tactics roles'));
+  const [defensiveStyle, setDefensiveStyle] = useState<string>(() => readStringStorage(STORAGE_KEYS.defensiveStyle, stringSchema, 'High Press', 'Tactics defense'));
 
   const activeFormation = formation;
   const activePlaystyle = isCustomMode ? customPlaystyleInput : playstyle;
   const activeDefensiveStyle = isCustomMode ? customDefensiveInput : defensiveStyle;
 
   useEffect(() => {
-    localStorage.setItem('squad_captain_id', captainId);
+    writeStringStorage(STORAGE_KEYS.captainId, captainId);
   }, [captainId]);
   useEffect(() => {
-    localStorage.setItem('squad_penalty_taker_id', penaltyTakerId);
+    writeStringStorage(STORAGE_KEYS.penaltyTakerId, penaltyTakerId);
   }, [penaltyTakerId]);
   useEffect(() => {
-    localStorage.setItem('squad_free_kick_taker_id', freeKickTakerId);
+    writeStringStorage(STORAGE_KEYS.freeKickTakerId, freeKickTakerId);
   }, [freeKickTakerId]);
   useEffect(() => {
-    localStorage.setItem('squad_corner_taker_id', cornerTakerId);
+    writeStringStorage(STORAGE_KEYS.cornerTakerId, cornerTakerId);
   }, [cornerTakerId]);
   useEffect(() => {
-    localStorage.setItem('squad_defensive_style', defensiveStyle);
+    writeStringStorage(STORAGE_KEYS.defensiveStyle, defensiveStyle);
   }, [defensiveStyle]);
 
   // Highlighting active card index selected (0 to 10 starting slot)
@@ -287,17 +306,11 @@ export default function TacticsView({ players, teamCoach, teamName, teamLogoUrl,
       redCards: number;
     }
   }>(() => {
-    const saved = localStorage.getItem('stack_squad_player_extras');
-    if (saved) {
-      try {
-        return JSON.parse(saved);
-      } catch (e) {}
-    }
-    return {};
+    return readJsonStorage(STORAGE_KEYS.playerExtras, playerExtrasSchema, {}, 'Tactics player status');
   });
 
   useEffect(() => {
-    localStorage.setItem('stack_squad_player_extras', JSON.stringify(playerStatusExtras));
+    writeJsonStorage(STORAGE_KEYS.playerExtras, playerStatusExtras);
   }, [playerStatusExtras]);
 
   // Sync actual player yellowCards/redCards from Player data into local extras
@@ -352,13 +365,7 @@ export default function TacticsView({ players, teamCoach, teamName, teamLogoUrl,
 
   // Quick Notes persistence state
   const [quickNotes, setQuickNotes] = useState<any[]>(() => {
-    const saved = localStorage.getItem('stack_tactics_quick_notes');
-    if (saved) {
-      try {
-        return JSON.parse(saved);
-      } catch (e) {}
-    }
-    return [
+    const defaultNotes = [
       {
         id: 'default-1',
         title: 'Counter-Attack Speed Trigger',
@@ -381,6 +388,7 @@ export default function TacticsView({ players, teamCoach, teamName, teamLogoUrl,
         createdAt: new Date().toISOString()
       }
     ];
+    return readJsonStorage(STORAGE_KEYS.tacticsNotes, tacticsNotesSchema, defaultNotes, 'Tactics notes');
   });
 
   const [noteTitle, setNoteTitle] = useState('');
@@ -395,7 +403,7 @@ export default function TacticsView({ players, teamCoach, teamName, teamLogoUrl,
   const [editingNoteCategory, setEditingNoteCategory] = useState<'Formation' | 'Set Pieces' | 'Strategy' | 'General'>('Strategy');
 
   useEffect(() => {
-    localStorage.setItem('stack_tactics_quick_notes', JSON.stringify(quickNotes));
+    writeJsonStorage(STORAGE_KEYS.tacticsNotes, quickNotes);
   }, [quickNotes]);
 
   const handleAddNote = (e: React.FormEvent) => {
@@ -506,30 +514,26 @@ export default function TacticsView({ players, teamCoach, teamName, teamLogoUrl,
   // Maintain actual assignments state for the 11 starting slots
   // Saved inside LocalStorage for persistence
   const [lineup, setLineup] = useState<{ [key: number]: TacticsPlayer }>(() => {
-    const saved = localStorage.getItem('stack_squad_lineup');
-    if (saved) {
-      try {
-        return JSON.parse(saved);
-      } catch (e) {
-        // ignore
-      }
-    }
-    return {};
+    return readJsonStorage(
+      STORAGE_KEYS.lineup,
+      tacticsLineupSchema,
+      {},
+      'Tactics lineup'
+    ) as unknown as { [key: number]: TacticsPlayer };
   });
 
   // Save lineup configuration changes
   useEffect(() => {
-    localStorage.setItem('stack_squad_lineup', JSON.stringify(lineup));
+    writeJsonStorage(STORAGE_KEYS.lineup, lineup);
   }, [lineup]);
 
   // Click-and-drag coordinates state for lineup cards
   const [draggedPositions, setDraggedPositions] = useState<Record<number, { left: number; top: number }>>(() => {
-    const saved = localStorage.getItem('stack_tactics_dragged_positions');
-    return saved ? JSON.parse(saved) : {};
+    return readJsonStorage(STORAGE_KEYS.draggedPositions, draggedPositionsSchema, {}, 'Tactics positions') as Record<number, { left: number; top: number }>;
   });
 
   useEffect(() => {
-    localStorage.setItem('stack_tactics_dragged_positions', JSON.stringify(draggedPositions));
+    writeJsonStorage(STORAGE_KEYS.draggedPositions, draggedPositions);
   }, [draggedPositions]);
 
   // Pointer Dragging trackers
@@ -541,8 +545,7 @@ export default function TacticsView({ players, teamCoach, teamName, teamLogoUrl,
   const [brushColor, setBrushColor] = useState<string>('#fbbf24'); // default Amber Yellow
   const [brushWidth, setBrushWidth] = useState<number>(3); // stroke thickness
   const [paths, setPaths] = useState<any[]>(() => {
-    const saved = localStorage.getItem('stack_tactics_draw_paths');
-    return saved ? JSON.parse(saved) : [];
+    return readJsonStorage(STORAGE_KEYS.drawingPaths, drawingPathsSchema, [], 'Tactics drawings');
   });
   const [currentPath, setCurrentPath] = useState<{ color: string; width: number; points: [number, number][] } | null>(null);
 
@@ -770,14 +773,14 @@ export default function TacticsView({ players, teamCoach, teamName, teamLogoUrl,
     setSelectedSlotIndex(0);
     setDraggedPositions({});
     setPaths([]);
-    localStorage.removeItem('stack_tactics_draw_paths');
+    removeStorage(STORAGE_KEYS.drawingPaths);
     setBallPos({ left: 50, top: 40 });
     setWallPos({ left: 50, top: 72 });
   };
 
   const handleClearDrawings = () => {
     setPaths([]);
-    localStorage.removeItem('stack_tactics_draw_paths');
+    removeStorage(STORAGE_KEYS.drawingPaths);
     setCurrentPath(null);
   };
 
@@ -791,7 +794,7 @@ export default function TacticsView({ players, teamCoach, teamName, teamLogoUrl,
     if (paths.length === 0) return;
     setPaths(prev => {
       const updated = prev.slice(0, -1);
-      localStorage.setItem('stack_tactics_draw_paths', JSON.stringify(updated));
+      writeJsonStorage(STORAGE_KEYS.drawingPaths, updated);
       return updated;
     });
   };
@@ -841,7 +844,7 @@ export default function TacticsView({ players, teamCoach, teamName, teamLogoUrl,
     if (currentPath) {
       setPaths(prev => {
         const updated = [...prev, currentPath];
-        localStorage.setItem('stack_tactics_draw_paths', JSON.stringify(updated));
+        writeJsonStorage(STORAGE_KEYS.drawingPaths, updated);
         return updated;
       });
       setCurrentPath(null);

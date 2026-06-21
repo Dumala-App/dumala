@@ -7,13 +7,14 @@ import {
 import { motion } from 'motion/react';
 import PlayerComparer from './PlayerComparer';
 import { getPlayerPlaceholder, STAFF_PLACEHOLDER } from '../playerPlaceholders';
+import type { BackupRestoreSummary } from '../persistence/backup';
 
 interface RosterViewProps {
   players: Player[];
   onAddPlayer: (newPlayer: Player) => void;
   onSelectPlayer: (player: Player) => void;
   onExportBackup: () => void;
-  onImportBackup: (file: File) => Promise<void>;
+  onImportBackup: (file: File) => Promise<BackupRestoreSummary>;
   onUpdatePlayer?: (player: Player) => void;
 }
 
@@ -31,8 +32,11 @@ export default function RosterView({ players, onAddPlayer, onSelectPlayer, onExp
   const handleImportFile = async (file?: File) => {
     if (!file) return;
     try {
-      await onImportBackup(file);
-      setBackupMessage('Backup restored successfully.');
+      const summary = await onImportBackup(file);
+      const sourceLabel = summary.sourceVersion === '2' ? 'V2 full workspace' : `legacy V${summary.sourceVersion}`;
+      setBackupMessage(
+        `${sourceLabel} restored: ${summary.players} players, ${summary.games} events, ${summary.standings} league rows, ${summary.announcements} bulletins, and ${summary.assessments} assessments.`
+      );
     } catch (error) {
       setBackupMessage(error instanceof Error ? error.message : 'The backup could not be restored.');
     } finally {
@@ -275,7 +279,7 @@ export default function RosterView({ players, onAddPlayer, onSelectPlayer, onExp
             </div>
             <h2 className="text-2xl font-display font-black tracking-tight">Team Roster & Player Directory</h2>
             <p className="text-slate-300 text-xs max-w-2xl leading-relaxed">
-              Synthesize your squad metrics. View profiles, register new athletes, or download full-scope backups below.
+              Synthesize your squad metrics, register athletes, and protect the complete browser workspace below.
             </p>
           </div>
         </div>
@@ -333,10 +337,10 @@ export default function RosterView({ players, onAddPlayer, onSelectPlayer, onExp
               id="btn-export-backup"
               onClick={onExportBackup}
               className="bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 text-[10px] font-black uppercase tracking-wider px-3.5 py-1.5 rounded-lg transition-all shadow-sm flex items-center gap-1.5 hover:scale-[1.02] active:scale-[0.98]"
-              title="Export team data to JSON backup file"
+              title="Export roster, assessments, tactics, training, notes, availability, and standings history"
             >
               <Download size={12} className="stroke-[2.5]" />
-              <span>Backup</span>
+              <span>Export Full Workspace</span>
             </button>
 
             <input
@@ -351,7 +355,7 @@ export default function RosterView({ players, onAddPlayer, onSelectPlayer, onExp
               id="btn-import-backup"
               onClick={() => importInputRef.current?.click()}
               className="bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 text-[10px] font-black uppercase tracking-wider px-3.5 py-1.5 rounded-lg transition-all shadow-sm flex items-center gap-1.5 hover:scale-[1.02] active:scale-[0.98]"
-              title="Restore team data from a JSON backup file"
+              title="Restore a Dumala full-workspace or legacy JSON backup"
             >
               <Upload size={12} className="stroke-[2.5]" />
               <span>Restore</span>
@@ -363,6 +367,9 @@ export default function RosterView({ players, onAddPlayer, onSelectPlayer, onExp
               {backupMessage}
             </p>
           )}
+          <p className="mt-2 text-[10px] leading-relaxed text-slate-500">
+            Full Workspace V2 includes roster, schedule, league, bulletins, assessments, tactics, training, availability, coach notes, and standings history.
+          </p>
         </div>
 
         {/* Section Layouts */}

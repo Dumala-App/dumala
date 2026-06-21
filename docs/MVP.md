@@ -27,7 +27,7 @@ The current MVP is a local-first football operations and player-development work
     - Four-week plans for Full assessments
 12. Team bulletins and product updates.
 13. Feedback delivery with email fallback.
-14. Backup version 1.1 export and restore, including assessments.
+14. Validated Full Workspace V2 export and restore, including feature-local state and legacy backup migration.
 
 ## Excluded
 

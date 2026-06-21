@@ -19,18 +19,21 @@ The browser owns application state, business interactions, and persistence. The 
 | Animation | Motion / Framer Motion |
 | Charts | Recharts |
 | Icons | Lucide React |
-| Persistence | Browser `localStorage` |
+| Runtime validation | Zod |
+| Persistence | Typed browser `localStorage` service |
+| Unit testing | Vitest |
 | Hosting | Static Vercel deployment or traditional static hosting |
 
 ## 3. Runtime flow
 
 1. `index.html` loads `src/main.tsx`.
 2. `src/main.tsx` mounts `App` in React Strict Mode.
-3. `App.tsx` restores core collections from `localStorage`.
+3. `App.tsx` restores core collections through validated persistence schemas.
 4. Onboarding renders when no valid team workspace exists.
 5. The app shell renders one of five primary areas and their nested tabs.
-6. React effects persist core collections after state changes.
-7. Feature modules persist additional local state under their own keys.
+6. React effects persist core collections through the typed storage service.
+7. Feature modules use the same service for their additional local state.
+8. Invalid stored data falls back safely and raises a non-blocking section-specific recovery warning.
 
 ## 4. Frontend composition
 
@@ -155,11 +158,14 @@ The shared Player/staff model is expedient but should be revisited before permis
 
 Recording a result:
 
-1. completes the game
-2. saves scores, scorers, MVP, and notes
-3. increments player games and relevant totals
-4. awards clean-sheet credit to defenders and goalkeepers
-5. updates the user and matching opponent standings rows
+1. validates whole-number scores, active athlete references, scorer totals, and MVP selection
+2. removes any contribution from the previously saved result
+3. saves the completed score, scorer IDs, MVP, and notes
+4. applies appearances, goals, MVP credit, and defender/goalkeeper clean sheets exactly once
+5. updates both League standings rows and re-sorts the table
+6. reverses the same contribution if a completed match is deleted
+
+Cup and Friendly results affect player match totals but do not alter League standings. Training sessions and meetings cannot receive match results. Manual assists, minutes, cards, and standalone MVP history are preserved.
 
 ### Assessment snapshot
 
@@ -181,21 +187,22 @@ Auto-fill keeps valid manual assignments, then fills empty formation slots by ma
 
 Weekly planned training creates or refreshes Training events in the shared games calendar.
 
+### Dialog accessibility
+
+Release-critical dialogs use a shared focus-management hook. Opening a dialog moves focus inside it, Tab and Shift+Tab remain contained, Escape closes it, and focus returns to the invoking control. Global `focus-visible` styling and reduced-motion CSS apply across the application.
+
 ## 9. Backup format
 
-Backup version `1.1.0` contains:
+Full Workspace V2 uses the `dumala-workspace` format and includes:
 
-- team information
-- players
-- games
-- standings
-- bulletins
-- assessments
-- export timestamp
+- team information, players, games, standings, bulletins, and assessments
+- availability and coach notes
+- weekly training schedules and history
+- standings snapshots and preferences
+- tactics formation, lineup, roles, notes, custom positions, drawings, and player extras
+- export timestamp and numeric format version
 
-Import also accepts version `1.0.0`, which may not contain assessments.
-
-Feature-local tactics, availability, coach notes, and training schedule keys are not currently included in the full backup. This is a known recovery gap.
+Import continues to accept legacy versions `1.0.0` and `1.1.0`. Legacy files are migrated into V2 before validation. Restore validates the complete nested workspace before writing, creates an automatic pre-restore backup, and rolls back all writes if storage fails.
 
 ## 10. Build and deployment
 
@@ -214,18 +221,16 @@ Feature-local tactics, availability, coach notes, and training schedule keys are
 ## 11. Technical risks
 
 1. `App.tsx` owns too many domain and integration responsibilities.
-2. Persistence is fragmented across many keys and components.
-3. Several core collections parse stored JSON without complete runtime schema validation.
-4. The current backup does not cover all feature-local data.
-5. The main production bundle exceeds Vite's 500 kB warning threshold.
-6. There is no automated test suite.
-7. Public profiles and collaboration require a new identity, privacy, and authorization architecture.
+2. Persistence still spans many browser keys even though key ownership, validation, and access are centralized.
+3. Deferred views create additional network requests when first opened, so loading fallbacks and cache behavior remain important.
+4. Persistence and backup tests exist, but match cascades, standings, FPRDS scoring, and UI workflows need broader coverage.
+5. Public profiles and collaboration require a new identity, privacy, and authorization architecture.
 
 ## 12. Recommended engineering sequence
 
-1. Add runtime validation and full backup coverage.
-2. Extract persistence and result-cascade services from `App.tsx`.
-3. Add unit tests for standings, results, scoring, and backup migration.
+1. Extract result-cascade services from `App.tsx`.
+2. Add unit tests for standings, results, and FPRDS scoring.
+3. Add browser-level recovery and restore workflow tests.
 4. Add PWA caching and update lifecycle.
-5. Optimize responsive tablet interactions and split large view bundles.
+5. Optimize responsive tablet interactions and monitor deferred-view chunk sizes as features grow.
 6. Design cloud identity and synchronization before implementing collaboration or public profiles.
