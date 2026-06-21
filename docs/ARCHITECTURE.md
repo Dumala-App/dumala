@@ -224,12 +224,15 @@ Import continues to accept legacy versions `1.0.0` and `1.1.0`. Legacy files are
 - precache for HTML, generated JavaScript and CSS, the manifest, icons, logos, and local placeholders
 - network-first navigation with a precached app-shell fallback
 - cache-first same-origin images with expiration limits
-- runtime caches for Google Fonts and a small number of Unsplash images
+- precached local DM Sans and Manrope variable fonts
+- a small runtime cache for Unsplash images
 - network-only handling for feedback, Vercel telemetry, and future `/api`, `/auth`, and `/oauth` routes
 
 Updates use a waiting-worker flow. A downloaded release does not interrupt the current session; the shared PWA lifecycle UI offers **Update now** or **Later**. Accepting the update activates the waiting worker and reloads once. Obsolete Workbox caches are removed after successful worker activation.
 
 The service-worker cache contains deployable application files only. Browser `localStorage`, exported backups, authentication tokens, uploaded workspace records, and future private API responses remain outside it.
+
+DM Sans and Manrope are stored as Latin variable WOFF2 files under `public/fonts/`, preloaded by `index.html`, and precached by Workbox. Their SIL Open Font License files are retained beside each font asset. After registration, the PWA lifecycle removes the two obsolete Google Fonts runtime caches created by earlier releases.
 
 ## 11. Technical risks
 
@@ -245,6 +248,5 @@ The service-worker cache contains deployable application files only. Browser `lo
 2. Add unit tests for standings, results, and FPRDS scoring.
 3. Add browser-level recovery and restore workflow tests.
 4. Complete production-device cold-launch, refresh, and controlled-update testing.
-5. Move Google Fonts into the repository for guaranteed offline typography.
-6. Optimize responsive tablet interactions and monitor deferred-view chunk sizes as features grow.
-7. Design cloud identity and synchronization before implementing collaboration or public profiles.
+5. Optimize responsive tablet interactions and monitor deferred-view chunk sizes as features grow.
+6. Design cloud identity and synchronization before implementing collaboration or public profiles.

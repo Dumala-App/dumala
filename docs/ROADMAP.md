@@ -45,7 +45,7 @@ Status: **Current**
 - Validate the installed Progressive Web App on production devices.
 - Verify cold launch and refresh across desktop, Android, iPhone, and iPad while offline.
 - Confirm roster, tactics, assessments, scheduling, training, and notes remain reliable without internet.
-- Complete controlled-update testing and move essential fonts into the repository.
+- Complete controlled-update and physical-device offline validation.
 
 ### Completion criteria
 

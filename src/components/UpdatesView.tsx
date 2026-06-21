@@ -391,7 +391,7 @@ export default function UpdatesView() {
                 'Validate the installed Progressive Web App on production devices.',
                 'Verify cold launch and refresh across desktop, Android, iPhone, and iPad while offline.',
                 'Confirm roster editing, tactics, assessments, scheduling, training, and notes remain reliable without internet.',
-                'Complete controlled-update testing and move essential fonts into the repository.'
+                'Complete controlled-update and physical-device offline validation.'
               ],
               benefit: 'Teams can continue working at pitches and venues with unreliable or unavailable internet access.',
               completion: 'An installed device can reopen Dumala and use all local features while offline.',

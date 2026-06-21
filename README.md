@@ -57,7 +57,8 @@ Dumala includes a web app manifest and install icons. Use **Install Dumala** in 
 Dumala now installs a production service worker that caches the application shell, generated chunks, icons, logos, and local placeholder artwork. Once the production app has loaded successfully, it can reopen and refresh without a connection.
 
 - Team records remain in browser `localStorage`; they are not copied into the service-worker cache.
-- Feedback delivery and external resources still require internet access.
+- DM Sans and Manrope are bundled locally, so Dumala keeps its intended typography offline.
+- Feedback delivery and external Unsplash resources still require internet access.
 - New releases download in the background and wait for the user to choose **Update now**.
 - Normal `npm run dev` sessions do not install a persistent service worker.
 

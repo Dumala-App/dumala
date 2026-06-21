@@ -22,6 +22,16 @@ export interface PwaLifecycle {
   dismissRegistrationError: () => void;
 }
 
+const LEGACY_FONT_CACHE_NAMES = [
+  'dumala-google-font-stylesheets',
+  'dumala-google-font-files',
+];
+
+const removeLegacyFontCaches = async () => {
+  if (!('caches' in window)) return;
+  await Promise.all(LEGACY_FONT_CACHE_NAMES.map(cacheName => window.caches.delete(cacheName)));
+};
+
 export function usePwaLifecycle(): PwaLifecycle {
   const supportsServiceWorker = typeof navigator !== 'undefined' && 'serviceWorker' in navigator;
   const [isOnline, setIsOnline] = useState(() => typeof navigator === 'undefined' || navigator.onLine);
@@ -42,6 +52,9 @@ export function usePwaLifecycle(): PwaLifecycle {
     immediate: true,
     onRegisteredSW: (_workerUrl, registration) => {
       setRegistrationStatus(registration ? 'registered' : 'error');
+      void removeLegacyFontCaches().catch(error => {
+        console.warn('Dumala could not remove legacy font caches.', error);
+      });
       if (!registration) {
         setRegistrationError('Offline support could not start in this browser.');
       }
