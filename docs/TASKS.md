@@ -9,12 +9,12 @@ Status values: **Done**, **In Progress**, **Next**, **Planned**, **Long Term**.
 Progress is calculated from the completed capabilities and open checklist items in this document. The roadmap bars track implementation, while Release Validation tracks the latest verified build checks.
 
 ```text
-Overall roadmap                 [####------]  42%  40 / 96
+Overall roadmap                 [#####-----]  46%  45 / 97
 
 Shipped beta foundation         [##########] 100%  20 / 20
 Current Beta: Reliability       [#######---]  68%  15 / 22
 FPRDS Beta                      [###-------]  33%   5 / 15
-Phase 1: Offline-ready PWA      [----------]   0%   0 / 6
+Phase 1: Offline-ready PWA      [#######---]  71%   5 / 7
 Phase 2: Mobile and tablet      [----------]   0%   0 / 5
 Phase 3: Cloud and sync         [----------]   0%   0 / 6
 Phase 4: Team collaboration     [----------]   0%   0 / 5
@@ -30,7 +30,7 @@ Release validation              [##########] 100%  12 / 12
 | Shipped beta foundation | 20 | 20 | 100% | Done |
 | Current Beta: Reliability and data confidence | 15 | 22 | 68% | In Progress |
 | FPRDS Beta | 5 | 15 | 33% | In Progress |
-| Phase 1: Offline-ready web app | 0 | 6 | 0% | Next |
+| Phase 1: Offline-ready web app | 5 | 7 | 71% | In Progress |
 | Phase 2: Mobile and tablet experience | 0 | 5 | 0% | Planned |
 | Phase 3: Cloud accounts and synchronization | 0 | 6 | 0% | Planned |
 | Phase 4: Team collaboration | 0 | 5 | 0% | Planned |
@@ -74,6 +74,9 @@ The FPRDS total includes five capabilities already shipped: assessment workflows
 - [x] Added view-level code splitting and removed the production chunk-size warning.
 - [x] Added dialog focus trapping, Escape handling, focus restoration, and destructive match-event confirmation.
 - [x] Completed desktop, tablet, mobile, empty-state, and primary workflow release validation.
+- [x] Added the production service worker, offline app shell, runtime cache policy, and controlled update prompt.
+- [x] Added offline, reconnect, offline-ready, update-available, and registration-warning status messages.
+- [x] Added repeatable generated-service-worker policy verification.
 - [x] Updated PRD, MVP, architecture, roadmap, audit, tasks, and README.
 
 ## Current Beta: Reliability and data confidence
@@ -128,12 +131,13 @@ The FPRDS total includes five capabilities already shipped: assessment workflows
 
 ## Phase 1: Offline-ready web app
 
-- [ ] **Next:** Add web-app manifest and install metadata.
-- [ ] **Next:** Add a service worker with an explicit caching strategy.
-- [ ] **Next:** Cache local fonts, icons, placeholders, and application assets.
-- [ ] **Next:** Add offline, reconnecting, and update-available indicators.
+- [x] **Done:** Add web-app manifest, install icons, metadata, and platform-specific installation support.
+- [x] **Done:** Add a production-only service worker with an explicit Workbox caching strategy.
+- [x] **Done:** Precache generated application assets, icons, logos, and local placeholder artwork; runtime-cache Google Fonts.
+- [x] **Done:** Add offline, reconnect, offline-ready, update-available, and registration-error indicators.
 - [ ] **Next:** Test cold launch and refresh while offline.
-- [ ] **Planned:** Define service-worker update and rollback behavior.
+- [x] **Done:** Define user-controlled service-worker update and Vercel rollback behavior.
+- [ ] **Planned:** Move Google Fonts into the repository for guaranteed offline typography.
 
 ## Phase 2: Mobile and tablet experience
 

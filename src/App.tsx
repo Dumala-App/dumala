@@ -2,6 +2,8 @@ import React, { lazy, Suspense, useCallback, useEffect, useRef, useState } from 
 import { Player, Game, Standing, Announcement, TeamInfo, AssessmentSession } from './types';
 
 import ViewLoadingFallback from './components/ViewLoadingFallback';
+import PwaInstallControl from './components/PwaInstallControl';
+import PwaStatusBanners from './components/PwaStatusBanners';
 import { applyAssessmentSnapshotToPlayer } from './fprds/scoring';
 import {
   announcementsSchema,
@@ -46,7 +48,6 @@ import {
   ClipboardList
 } from 'lucide-react';
 import { AnimatePresence } from 'motion/react';
-import { SpeedInsights } from '@vercel/speed-insights/react';
 
 const RosterView = lazy(() => import('./components/RosterView'));
 const PlayerProfileModal = lazy(() => import('./components/PlayerProfileModal'));
@@ -417,6 +418,10 @@ export default function App() {
   if (!isOnboarded || !teamInfo) {
     return (
       <div className="min-h-screen bg-slate-50">
+        <PwaStatusBanners />
+        <div className="fixed right-4 top-4 z-40">
+          <PwaInstallControl />
+        </div>
         {recoveryBanner && <div className="mx-auto max-w-3xl px-4 pt-4">{recoveryBanner}</div>}
         <Suspense fallback={<div className="mx-auto max-w-3xl p-4"><ViewLoadingFallback label="onboarding" /></div>}>
           <OnboardingView
@@ -442,6 +447,7 @@ export default function App() {
 
   return (
     <div id="stack-app-root" className="min-h-screen flex flex-col font-sans text-slate-900">
+      <PwaStatusBanners />
       
       {/* Dynamic Navigation Topbar */}
       <header id="app-topbar" className="bg-[#07111f]/95 backdrop-blur-xl text-white sticky top-0 z-40 border-b border-white/10 shadow-lg shadow-slate-950/10">
@@ -565,8 +571,9 @@ export default function App() {
               <strong className="text-slate-900 font-bold">Workspace ready.</strong> Results automatically update your league table and player statistics.
             </p>
           </div>
-          <div className="flex gap-2 shrink-0">
+          <div className="flex w-full flex-wrap gap-2 sm:w-auto sm:shrink-0 sm:justify-end">
             <span className="text-[10px] bg-emerald-50 text-emerald-700 font-bold px-2.5 py-1 rounded-lg border border-emerald-100">Saved locally</span>
+            <PwaInstallControl />
             <button
               onClick={() => setShowFeedback(true)}
               className="flex items-center gap-1 rounded-lg border border-indigo-100 bg-indigo-50 px-2.5 py-1 text-[10px] font-bold text-indigo-700 transition-colors hover:border-indigo-200 hover:bg-indigo-100"
@@ -717,9 +724,6 @@ export default function App() {
           Your team data stays in this browser unless you export a backup.
         </p>
       </footer>
-
-      {/* Vercel Speed Insights */}
-      <SpeedInsights />
 
     </div>
   );

@@ -64,9 +64,16 @@ export default function FeedbackModal({teamName, onClose}: FeedbackModalProps) {
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    setIsSubmitting(true);
     setStatus('idle');
     setStatusMessage('');
+
+    if (!navigator.onLine) {
+      setStatus('error');
+      setStatusMessage('Feedback needs an internet connection. Your form is still here, so reconnect and try again or open your email app.');
+      return;
+    }
+
+    setIsSubmitting(true);
 
     const payload = {
       _subject: `[Dumala ${form.category}] ${form.subject}`,

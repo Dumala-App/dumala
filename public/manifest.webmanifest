@@ -1,0 +1,29 @@
+{
+  "id": "/",
+  "name": "Dumala Football Team Manager",
+  "short_name": "Dumala",
+  "description": "A local-first football team management workspace for coaches and clubs.",
+  "lang": "en-PH",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone", "minimal-ui"],
+  "orientation": "any",
+  "background_color": "#07111f",
+  "theme_color": "#07111f",
+  "categories": ["sports", "productivity"],
+  "icons": [
+    {
+      "src": "/dumala-pwa-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/dumala-pwa-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}

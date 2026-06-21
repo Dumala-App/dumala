@@ -22,6 +22,7 @@ The browser owns application state, business interactions, and persistence. The 
 | Runtime validation | Zod |
 | Persistence | Typed browser `localStorage` service |
 | Unit testing | Vitest |
+| Installation | Standards-based web app manifest with platform install guidance |
 | Hosting | Static Vercel deployment or traditional static hosting |
 
 ## 3. Runtime flow
@@ -214,15 +215,27 @@ Import continues to accept legacy versions `1.0.0` and `1.1.0`. Legacy files are
 
 `npm run build` generates `dist/`. Vercel configuration is stored in `vercel.json`.
 
-### Metadata
+### Metadata and offline shell
 
-`index.html` includes Dumala description, Open Graph metadata, favicon, and Apple touch icon.
+`index.html` includes Dumala description, Open Graph metadata, favicon, Apple touch icon, mobile application metadata, and the web app manifest. Chromium browsers use the native install prompt when available. iPhone and iPad users receive Safari Add to Home Screen instructions.
+
+`vite-plugin-pwa` generates the production service worker and Workbox precache manifest. Registration is disabled during normal Vite development. Production builds use:
+
+- precache for HTML, generated JavaScript and CSS, the manifest, icons, logos, and local placeholders
+- network-first navigation with a precached app-shell fallback
+- cache-first same-origin images with expiration limits
+- runtime caches for Google Fonts and a small number of Unsplash images
+- network-only handling for feedback, Vercel telemetry, and future `/api`, `/auth`, and `/oauth` routes
+
+Updates use a waiting-worker flow. A downloaded release does not interrupt the current session; the shared PWA lifecycle UI offers **Update now** or **Later**. Accepting the update activates the waiting worker and reloads once. Obsolete Workbox caches are removed after successful worker activation.
+
+The service-worker cache contains deployable application files only. Browser `localStorage`, exported backups, authentication tokens, uploaded workspace records, and future private API responses remain outside it.
 
 ## 11. Technical risks
 
 1. `App.tsx` owns too many domain and integration responsibilities.
 2. Persistence still spans many browser keys even though key ownership, validation, and access are centralized.
-3. Deferred views create additional network requests when first opened, so loading fallbacks and cache behavior remain important.
+3. Deferred views are precached for offline use, but the roughly 4.2 MiB initial precache should be monitored as the product grows.
 4. Persistence and backup tests exist, but match cascades, standings, FPRDS scoring, and UI workflows need broader coverage.
 5. Public profiles and collaboration require a new identity, privacy, and authorization architecture.
 
@@ -231,6 +244,7 @@ Import continues to accept legacy versions `1.0.0` and `1.1.0`. Legacy files are
 1. Extract result-cascade services from `App.tsx`.
 2. Add unit tests for standings, results, and FPRDS scoring.
 3. Add browser-level recovery and restore workflow tests.
-4. Add PWA caching and update lifecycle.
-5. Optimize responsive tablet interactions and monitor deferred-view chunk sizes as features grow.
-6. Design cloud identity and synchronization before implementing collaboration or public profiles.
+4. Complete production-device cold-launch, refresh, and controlled-update testing.
+5. Move Google Fonts into the repository for guaranteed offline typography.
+6. Optimize responsive tablet interactions and monitor deferred-view chunk sizes as features grow.
+7. Design cloud identity and synchronization before implementing collaboration or public profiles.

@@ -47,13 +47,29 @@ npm install
 npm run dev
 ```
 
+## Install as an app
+
+Dumala includes a web app manifest and install icons. Use **Install Dumala** in the workspace:
+
+- Chrome or Edge uses the browser's native installation prompt when available.
+- On iPhone or iPad, open Dumala in Safari and use **Share → Add to Home Screen**.
+
+Dumala now installs a production service worker that caches the application shell, generated chunks, icons, logos, and local placeholder artwork. Once the production app has loaded successfully, it can reopen and refresh without a connection.
+
+- Team records remain in browser `localStorage`; they are not copied into the service-worker cache.
+- Feedback delivery and external resources still require internet access.
+- New releases download in the background and wait for the user to choose **Update now**.
+- Normal `npm run dev` sessions do not install a persistent service worker.
+
 Open [http://localhost:3000](http://localhost:3000).
 
 ## Validate and build
 
 ```bash
 npm run lint
+npm test
 npm run build
+npm run verify:pwa
 ```
 
 The production-ready static site is generated in `dist/`.
