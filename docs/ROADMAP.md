@@ -38,14 +38,14 @@ Repeated assessments generate consistent, explainable, and comparable developmen
 
 ## Phase 1: Offline-ready web app
 
-Status: **Next**
+Status: **Current**
 
 ### Planned deliverables
 
-- Add installable Progressive Web App support.
-- Cache the application shell, fonts, icons, and required local assets.
-- Keep roster, tactics, assessments, scheduling, and notes usable without internet.
-- Display offline, reconnecting, and update-available states.
+- Validate the installed Progressive Web App on production devices.
+- Verify cold launch and refresh across desktop, Android, iPhone, and iPad while offline.
+- Confirm roster, tactics, assessments, scheduling, training, and notes remain reliable without internet.
+- Complete controlled-update testing and move essential fonts into the repository.
 
 ### Completion criteria
 

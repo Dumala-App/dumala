@@ -3,6 +3,7 @@ import { Megaphone, FlaskConical, Calculator, Target, TrendingUp, Hash, ChevronD
 
 export default function UpdatesView() {
   const [openEntries, setOpenEntries] = useState<Record<string, boolean>>({
+    offline_app_shell_released: true,
     assessment_center_implemented: true,
     fprds_vision_announced: false,
     roadmap_snapshot: false
@@ -16,6 +17,48 @@ export default function UpdatesView() {
   };
 
   const changelogEntries = [
+    {
+      id: 'offline_app_shell_released',
+      date: '2026-06-21',
+      title: 'Installable Offline App Shell Released',
+      summary: 'Dumala can now install its application interface, reopen without internet, and apply new releases through a controlled update prompt.',
+      accent: 'border-blue-200 bg-blue-50/70',
+      renderContent: () => (
+        <div className="space-y-4">
+          <p className="text-sm text-slate-600 leading-relaxed">
+            Dumala now includes a production service worker that saves the application shell, generated interface files, logos, icons, and local player placeholder artwork on the device. After a successful online load, an installed copy can reopen and refresh even when the connection is unavailable.
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {[
+              {
+                title: 'Local work stays available',
+                desc: 'Roster editing, tactics, training, assessments, scheduling, notes, and other browser-stored workflows remain available when the app interface is offline.'
+              },
+              {
+                title: 'Controlled updates',
+                desc: 'New Dumala releases download in the background. Coaches can choose Update now for one controlled reload or Later to continue the current session.'
+              },
+              {
+                title: 'Clear connection status',
+                desc: 'The app now reports offline, reconnected, offline-ready, update-available, and service-worker registration states without blocking normal work.'
+              },
+              {
+                title: 'Private data boundary',
+                desc: 'Team records, uploaded workspace data, backup files, and future authentication tokens are never stored in the service-worker cache.'
+              }
+            ].map(item => (
+              <div key={item.title} className="bg-white border border-blue-200 rounded-xl p-4">
+                <h5 className="text-xs font-black text-slate-800 uppercase tracking-wider mb-1.5">{item.title}</h5>
+                <p className="text-xs text-slate-600 leading-relaxed">{item.desc}</p>
+              </div>
+            ))}
+          </div>
+          <p className="text-xs text-slate-500 leading-relaxed">
+            Feedback delivery and external resources still require internet. Physical-device cold-launch testing continues across supported desktop, Android, iPhone, and iPad browsers.
+          </p>
+        </div>
+      )
+    },
     {
       id: 'assessment_center_implemented',
       date: '2026-06-15',
@@ -342,13 +385,13 @@ export default function UpdatesView() {
             },
             {
               phase: 'Phase 1',
-              status: 'Next',
+              status: 'Current',
               objective: 'Offline-ready web app',
               deliverables: [
-                'Add installable Progressive Web App support.',
-                'Cache the application interface, fonts, icons, and required local assets.',
-                'Keep roster editing, tactics, assessments, scheduling, and notes available without internet.',
-                'Show clear offline, reconnecting, and update-available status.'
+                'Validate the installed Progressive Web App on production devices.',
+                'Verify cold launch and refresh across desktop, Android, iPhone, and iPad while offline.',
+                'Confirm roster editing, tactics, assessments, scheduling, training, and notes remain reliable without internet.',
+                'Complete controlled-update testing and move essential fonts into the repository.'
               ],
               benefit: 'Teams can continue working at pitches and venues with unreliable or unavailable internet access.',
               completion: 'An installed device can reopen Dumala and use all local features while offline.',
