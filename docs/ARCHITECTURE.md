@@ -1,230 +1,231 @@
 # Dumala Architecture
 
-Updated: 2026-06-14
+Updated: 2026-06-21
 
-## Overview
+## 1. System overview
 
-Dumala is a React single-page application served through a lightweight Express wrapper. The visible implementation is strongly client-side and local-first: most product behavior, state management, and persistence live in the browser rather than on the server.
+Dumala is a static React 19 single-page application built with Vite and TypeScript. There is no application server or business API in the current beta. Vercel or any static host serves the generated `dist/` files.
 
-The app is designed around one active team workspace in one browser context. That design choice simplifies setup but also defines the current scale limit of the product.
+The browser owns application state, business interactions, and persistence. The architecture supports fast MVP iteration but limits collaboration, cross-device access, and durable recovery.
 
-> **MVP testing architecture:** The current reliance on browser `localStorage` and the absence of an authentication layer are deliberate architectural choices for the MVP testing phase. These will be replaced with a proper backend database and authentication system in production. The architecture described below reflects the current testing state, not the final production design.
+## 2. Technology stack
 
-## Tech stack
+| Layer | Technology |
+| --- | --- |
+| UI runtime | React 19 |
+| Language | TypeScript 5.8 |
+| Build and development | Vite 6 |
+| Styling | Tailwind CSS 4 through `@tailwindcss/vite` |
+| Animation | Motion / Framer Motion |
+| Charts | Recharts |
+| Icons | Lucide React |
+| Persistence | Browser `localStorage` |
+| Hosting | Static Vercel deployment or traditional static hosting |
 
-| Layer | Technology | Notes |
-| --- | --- | --- |
-| Frontend runtime | React 19 | Main application framework |
-| Language | TypeScript | Used across app and server files |
-| Build tool | Vite | Dev server and frontend bundling |
-| Styling | Tailwind CSS v4 via Vite plugin | Utility-first styling approach |
-| Motion and transitions | `motion` / `framer-motion` | View and modal animations |
-| Charts | Recharts | Dashboard and comparison visualizations |
-| Icons | Lucide React | UI iconography (26+ icons used across drill cards and UI) |
-| Server wrapper | Express | Serves Vite middleware in dev and static assets in production |
-| Node runtime tooling | `tsx`, `esbuild` | Development and server bundling |
+## 3. Runtime flow
 
-## Runtime model
+1. `index.html` loads `src/main.tsx`.
+2. `src/main.tsx` mounts `App` in React Strict Mode.
+3. `App.tsx` restores core collections from `localStorage`.
+4. Onboarding renders when no valid team workspace exists.
+5. The app shell renders one of five primary areas and their nested tabs.
+6. React effects persist core collections after state changes.
+7. Feature modules persist additional local state under their own keys.
 
-### Frontend boot flow
+## 4. Frontend composition
 
-- `index.html` mounts the app on the `root` element.
-- `src/main.tsx` renders `App` inside `StrictMode`.
-- `src/App.tsx` owns the top-level application shell and most cross-feature state.
+### Application shell
 
-### Server boot flow
+`src/App.tsx` owns:
 
-- `server.ts` creates an Express app.
-- In development, it starts Vite in middleware mode and uses Vite to serve the SPA.
-- In production, it serves the built frontend from `dist/` and falls back to `dist/index.html` for all routes.
-
-This means the server is currently a delivery wrapper, not a business-logic backend for most product features.
-
-## Frontend structure
-
-### Main composition
-
-`src/App.tsx` coordinates:
-- onboarding status
-- current navigation tab
-- team info
-- players
+- onboarding state
+- primary and nested navigation
+- team information
+- players and staff
 - games
 - standings
-- announcements
-- selected player modal state
-- mobile menu state
+- bulletins
+- assessments
+- selected-player modal
+- match-result cascade
+- backup export/import
+- reset and feedback dialogs
 
-This file also handles:
-- local persistence synchronization
-- onboarding completion logic
-- match result cascade logic
-- app-wide reset behavior
-- backup export
+### Navigation hubs
 
-### Feature modules
+| Hub | Nested views |
+| --- | --- |
+| `HomeHubView` | Overview, Game Week |
+| `DevelopmentHubView` | Training, Assessments |
+| `LeagueUpdatesHubView` | League, Bulletins, Updates |
+
+Squad and Tactics render directly as primary views.
+
+### Major feature modules
+
+| Module | Responsibility |
+| --- | --- |
+| `DashboardView` | Club overview, rank, summaries, FPRDS snapshot, navigation shortcuts |
+| `ScheduleView` | Calendar, events, result logging, availability, opponent context, coach notes |
+| `RosterView` | Player/staff creation, cards, search, comparison, backup entry points |
+| `PlayerProfileModal` | Profile editing, traits, statistics, assessment summary, removal |
+| `TacticsView` | Formation, position-aware lineup, board interaction, roles, notes |
+| `TrainingView` | Drill library, guides, weekly planning, presets, calendar sync |
+| `AssessmentsView` | FPRDS workflow, scoring preview, history, guides, development plans |
+| `StandingsView` | League table, snapshots, discipline, MVP awards |
+| `AnnouncementsView` | Team bulletins |
+| `UpdatesView` | Product purpose, changelog, FPRDS explanation, roadmap |
+| `FeedbackModal` | Structured feedback submission and email fallback |
+
+## 5. FPRDS subsystem
+
+The FPRDS implementation is split by responsibility:
 
 | File | Responsibility |
 | --- | --- |
-| `src/components/OnboardingView.tsx` | Team and manager setup flow |
-| `src/components/DashboardView.tsx` | Summary dashboard, team identity, trends, quick actions, Squad Summary table |
-| `src/components/RosterView.tsx` | Roster and staff management, backup export, compare entry point |
-| `src/components/PlayerProfileModal.tsx` | Player detail editing and progression chart |
-| `src/components/PlayerComparer.tsx` | Side-by-side radar comparison and tactical summary |
-| `src/components/ScheduleView.tsx` | Event scheduling, calendar, result logging, Match Availability Tracker, Upcoming Opponent Intel, Coach's Notes |
-| `src/components/StandingsView.tsx` | League table, snapshots, manual updates, Discipline & Match Awards panels, MVP history |
-| `src/components/AnnouncementsView.tsx` | Club notice creation and deletion |
-| `src/components/TacticsView.tsx` | Tactical board, formation logic, lineup persistence |
-| `src/components/TrainingView.tsx` | 52-drill library with position-specific sets, How-To guides, weekly schedule with 9 presets, match badges, player development |
+| `fprds/benchmarks.ts` | Raw-result benchmark tables and score tiers |
+| `fprds/weights.ts` | Role-specific attribute weighting and labels |
+| `fprds/scoring.ts` | Validation, interpolation, attribute scores, OVR, deltas, player snapshots |
+| `fprds/development.ts` | Four-week plan generation from weighted weaknesses |
+| `fprds/drillGuide.ts` | Assessment drill instructions and safety guidance |
 
-## State management approach
+Assessment sessions retain raw results and derived scores so calculations remain inspectable.
 
-The app uses local React state rather than a dedicated state management library. The main data collections are held in `App.tsx`, while feature components own their own UI state and some feature-local persistent state.
+## 6. State and persistence
 
-### Characteristics of the current state model
+### Core keys
 
-1. Top-level domain state is centralized in `App.tsx`.
-2. State mutations are passed down as callback props.
-3. Feature components persist additional local concerns directly to `localStorage`.
-4. There is no global normalized store, query cache, reducer-based domain layer, or server-state layer.
-
-### Practical consequences
-
-Benefits:
-- Simple to understand for a small app.
-- Fast to bootstrap without backend dependencies.
-- Easy to keep major domain objects in one place.
-
-Costs:
-- `App.tsx` becomes a high-responsibility file.
-- Cross-feature rules are spread across components.
-- Data ownership boundaries are less explicit than they would be in a dedicated domain store.
-
-## Persistence model
-
-Browser `localStorage` is the main persistence layer for the MVP testing phase. A backend database with user authentication will replace this in production.
-
-### Core persisted objects
-
+- `stack_team_onboarded`
 - `stack_team_info`
 - `stack_team_players`
 - `stack_team_games`
 - `stack_team_standings`
 - `stack_team_announcements`
-- `stack_team_onboarded`
+- `stack_team_assessments`
 
-### Feature-local persisted objects
+### Standings keys
 
-- standings backups and Sunday backup preference
-- tactics lineup, notes, dragged positions, and draw paths
-- match format, formation, coach metadata, and set-piece roles
-- weekly training schedule (`squad_weekly_schedule`)
-- weekly training schedule history (`squad_weekly_schedule_history`)
-- match availability (`squad_availability`)
-- coach's notes (`squad_coach_notes`)
+- `stack_team_standings_backups`
+- `stack_team_sunday_backup_enabled`
 
-### Backup behavior
-- Full data export exists through the roster flow as a JSON file.
-- Standings snapshots exist separately inside the standings workflow.
-- Training schedule history enables Last Week restore via preset.
+### Schedule and training keys
 
-### Constraints
-1. Data is tied to one browser unless exported (accepted for MVP testing; backend storage planned for production).
-2. Storage size limits apply, especially when images and extended drill data are stored.
-3. Clearing browser storage can remove operational history.
+- `squad_availability`
+- `squad_coach_notes`
+- `squad_weekly_schedule`
+- `squad_weekly_schedule_history`
 
-## Domain model
+### Tactics keys
 
-The main domain types are defined in `src/types.ts`.
+- `squad_match_format`
+- `squad_formation`
+- `squad_playstyle`
+- `squad_is_custom_strategy`
+- `squad_custom_playstyle_val`
+- `squad_custom_defensive_val`
+- `squad_custom_mentality_val`
+- `squad_custom_strategy_notes`
+- `squad_coach_level`
+- `squad_custom_playstyles`
+- `squad_captain_id`
+- `squad_penalty_taker_id`
+- `squad_free_kick_taker_id`
+- `squad_corner_taker_id`
+- `squad_defensive_style`
+- `stack_squad_player_extras`
+- `stack_squad_lineup`
+- `stack_tactics_quick_notes`
+- `stack_tactics_dragged_positions`
+- `stack_tactics_draw_paths`
 
-| Type | Role in system |
-| --- | --- |
-| `TeamInfo` | Club identity metadata |
-| `Player` | Unified record for both players and staff. Includes `offenses?: PlayerOffense[]` and `mvpHistory?: MvpAwardRecord[]` |
-| `PlayerOffense` | Card/discipline record with date, cardType, reason, opponent, matchMinute |
-| `MvpAwardRecord` | Man of the Match award with date, opponent, note |
-| `Game` | Match or scheduled event record |
-| `Standing` | One row in the league table |
-| `Announcement` | Club notice content |
+## 7. Domain model
 
-### Modeling note
+`src/types.ts` contains the public frontend domain types.
 
-`Player` currently acts as both athlete and staff entity, with role differences inferred from `position` and `isStaffPosition()`. The recent addition of `PlayerOffense[]` and `MvpAwardRecord[]` extends the Player model with trackable event history for discipline and awards.
+- `Player` intentionally represents athletes and staff for the beta.
+- `AssessmentSession` stores assessment inputs, outputs, labels, deltas, and plans.
+- `PlayerOffense` and `MvpAwardRecord` are embedded histories on `Player`.
+- `Game` represents matches, training sessions, and meetings.
 
-## Important business logic
+The shared Player/staff model is expedient but should be revisited before permissions, public profiles, or coach credentials are implemented.
+
+## 8. Important business rules
 
 ### Match result cascade
 
-The most important domain rule currently lives in `App.tsx` through `handleRecordResult`.
+Recording a result:
 
-That flow:
-1. Marks a game as completed.
-2. Adds goals, MVPs, and clean-sheet related counts to players.
-3. Updates the user team standings row.
-4. Updates the opponent row if the opponent exists in the standings table.
+1. completes the game
+2. saves scores, scorers, MVP, and notes
+3. increments player games and relevant totals
+4. awards clean-sheet credit to defenders and goalkeepers
+5. updates the user and matching opponent standings rows
 
-### Training sync to schedule
+### Assessment snapshot
 
-`TrainingView.tsx` converts weekly scheduled drills into `Game` entries of type `Training`. That makes training a first-class calendar event without requiring a separate calendar subsystem.
+Saving an assessment:
 
-### Discipline and MVP workflows
+1. validates required raw data
+2. derives benchmark scores
+3. computes role-weighted OVR
+4. compares with the previous role assessment
+5. optionally creates a four-week plan
+6. persists the session
+7. applies the latest snapshot to the Player record
 
-In `StandingsView.tsx`:
-- `handleLogOffense` appends `PlayerOffense` records and increments card counts.
-- `handleAwardMVP` appends `MvpAwardRecord` entries and increments `mvpAwards`.
-- Both are reflected immediately in the Dashboard Squad Summary table.
+### Tactics auto-fill
 
-### Schedule intelligence
+Auto-fill keeps valid manual assignments, then fills empty formation slots by matching broad position groups before using remaining available players.
 
-In `ScheduleView.tsx`:
-- Match Availability Tracker reads/writes `squad_availability` per game + player.
-- Upcoming Opponent Intel cross-references `standings` and completed games for H2H.
-- Coach's Notes reads/writes `squad_coach_notes` per game ID.
+### Training synchronization
 
-### Training presets
+Weekly planned training creates or refreshes Training events in the shared games calendar.
 
-`TrainingView.tsx` `handleLoadTemplate` supports 9 modes. `Last Week` reads from `squad_weekly_schedule_history` to restore the previous schedule. History is archived on every schedule change.
+## 9. Backup format
 
-### Tactics board persistence
+Backup version `1.1.0` contains:
 
-`TacticsView.tsx` stores lineup assignments, field placements, notes, and draw paths locally. The feature behaves like a self-contained tactical workspace with its own persistent state.
+- team information
+- players
+- games
+- standings
+- bulletins
+- assessments
+- export timestamp
 
-## Build and delivery
+Import also accepts version `1.0.0`, which may not contain assessments.
+
+Feature-local tactics, availability, coach notes, and training schedule keys are not currently included in the full backup. This is a known recovery gap.
+
+## 10. Build and deployment
 
 ### Development
-- `npm run dev` starts Vite on port 3000
-- `runserver.bat` provides a double-clickable Windows launcher
+
+`npm run dev` starts Vite on port 3000. `runserver.bat` provides a Windows launcher.
 
 ### Production
-- `npm run build` writes static assets to `dist/`
-- Vercel serves `dist/` from its global static network
-- Traditional hosts can serve the contents of `dist/` without Node.js
 
-### Validation
-- `npm run lint` runs `tsc --noEmit`
-- This validation passes consistently, confirmed across all recent feature additions
+`npm run build` generates `dist/`. Vercel configuration is stored in `vercel.json`.
 
-## Repository structure
+### Metadata
 
-### Observed structure
-- Root application with active source files
-- Built output in `dist/`
-- No duplicate app copies (resolved)
+`index.html` includes Dumala description, Open Graph metadata, favicon, and Apple touch icon.
 
-## Scalability and maintainability concerns
+## 11. Technical risks
 
-1. `App.tsx` carries too much application responsibility.
-2. Feature persistence is spread across many components and `localStorage` keys (now 10+ keys).
-3. There is no server-backed source of truth for shared or durable operations.
-4. Domain events are implied by UI actions rather than captured explicitly in a durable event model.
-5. Some visual analytics are derived from current aggregates rather than historical logs.
-6. Remote image dependencies can fail independently of the local product state.
-7. `MvpAwardRecord` and `PlayerOffense` are embedded in the Player model rather than being independent event-sourced entities.
+1. `App.tsx` owns too many domain and integration responsibilities.
+2. Persistence is fragmented across many keys and components.
+3. Several core collections parse stored JSON without complete runtime schema validation.
+4. The current backup does not cover all feature-local data.
+5. The main production bundle exceeds Vite's 500 kB warning threshold.
+6. There is no automated test suite.
+7. Public profiles and collaboration require a new identity, privacy, and authorization architecture.
 
-## Recommended next technical steps
+## 12. Recommended engineering sequence
 
-1. (Done) Remove duplicate app copy.
-2. Extract core domain logic from `App.tsx` into a clearer state or service layer.
-3. Define a persistence strategy for eventual shared or durable data.
-4. Add stronger runtime validation around imported, restored, or persisted local data.
-5. Consider extracting event history (offences, MVP awards) into an independent event log or audit store.
+1. Add runtime validation and full backup coverage.
+2. Extract persistence and result-cascade services from `App.tsx`.
+3. Add unit tests for standings, results, scoring, and backup migration.
+4. Add PWA caching and update lifecycle.
+5. Optimize responsive tablet interactions and split large view bundles.
+6. Design cloud identity and synchronization before implementing collaboration or public profiles.

@@ -1,147 +1,106 @@
 # Dumala Codebase Audit
 
-Updated: 2026-06-14
+Updated: 2026-06-21
 
 ## Executive summary
 
-The repository contains a functional sports club management web app with a deep feature set for a single-team local workspace. The strongest parts of the product are the local-first club workflow, the broad operational coverage, the match-result cascade, the new match intelligence features (availability tracker, opponent intel, coach's notes), and the expanded 52-drill training library with How-To guides.
+Dumala is a substantial local-first football operations application, not a thin prototype. It now includes a broad club-management workflow and a dedicated FPRDS assessment subsystem. The strongest product qualities are feature continuity across the coaching week, useful football-specific presentation, and the ability to operate without backend infrastructure.
 
-The largest risks remain structural rather than visual: most persistence depends on `localStorage`, and the AI feature depends on an endpoint that is not clearly represented in the visible server code. The "Apex Rangers" hardcoding and mock date issues have been resolved; the products now use live data throughout.
+The main risks are architecture and reliability: state ownership is concentrated in `App.tsx`, persistence is spread across many `localStorage` keys, full backups omit some feature-local state, runtime validation is inconsistent, the bundle is large, and automated tests are absent.
 
-## What was reviewed
+## Current strengths
 
-The audit reviewed:
-1. Root application structure and build files.
-2. Main React entry and app shell.
-3. Core feature modules under `src/components/`.
-4. Type definitions and app-level state behavior.
-5. The visible server wrapper.
-6. Metadata and README files.
-7. Recent features added: Match Availability Tracker, Opponent Intel, Coach's Notes, Squad Summary, Discipline & MVP panels, expanded drill library, training presets.
+1. Five-area navigation organizes a large feature set more clearly.
+2. Onboarding starts with clean standings and opens Overview.
+3. Roster cards support position artwork, measurements, traits, profile editing, and removal.
+4. League rank is derived from actual sorted standings.
+5. Result logging connects schedule, player totals, and league state.
+6. Tactics auto-fill matches players to broad position groups and preserves valid assignments.
+7. Training includes 52 drills, practical guides, filters, presets, and calendar synchronization.
+8. FPRDS stores raw measurements and derived outputs, enabling explainable assessment history.
+9. Backup version 1.1 includes assessment sessions.
+10. The project is a simple static Vite deployment with no environment variables.
+11. Product updates contain a detailed AI-free roadmap.
+12. Favicon, social metadata, feedback, and public beta messaging improve release polish.
 
-## Repository overview
+## Architecture findings
 
-### Observed structure
-- Root application with active source files and build output.
-- No duplicate app copies (the `sports-team-manager/` copy was removed).
+### High: fragmented persistence
 
-### Immediate conclusion
-The root application is the active runnable target with a single source of truth.
+Core data is managed in `App.tsx`, while schedule, training, standings backups, and tactics manage their own keys. Reset clears everything, but export does not include every feature-local key.
 
-## What is implemented well
+Impact: a user can restore the main workspace while losing tactical layouts, availability, coach notes, and weekly training state.
 
-### Broad product coverage
-The app already supports:
-1. Onboarding and team identity.
-2. Roster and staff management.
-3. Player profile editing.
-4. Match and event scheduling.
-5. Match result recording.
-6. Automatic standings updates.
-7. **Squad Summary table** (9-column roster overview with aggregate footer).
-8. **Match Availability Tracker** (Yes/No/Maybe per player per fixture, persisted).
-9. **Upcoming Opponent Quick Intel** (standings position, H2H, match notes).
-10. **Coach's Notes** (tactical notes editor per upcoming match).
-11. **Discipline & Match Awards** (offence logging, MVP awards with history).
-12. Announcements.
-13. Tactics planning.
-14. **Training planning** — 52 drills with position-specific sets, Lucide icons, How-To guides, 9 presets including Last Week restore, match badges on planner.
-15. Backup-related flows.
+### High: limited runtime validation
 
-### Coherent main workflow
-The best implemented product loop is:
-1. Set up the team.
-2. Build the roster.
-3. Schedule fixtures.
-4. Check availability + review opponent intel + write coach's notes.
-5. Plan training with position-specific drills.
-6. Record results.
-7. Log discipline and award MVPs.
-8. Review standings, squad summary, and player outputs.
+Some collections use guarded JSON parsing, while others directly parse stored values. Backup validation checks collection presence and version but does not validate nested entity shapes.
 
-### TypeScript health
-The current root project passed `npm run lint`, which runs `tsc --noEmit`. Consistent clean builds confirmed across all recent feature additions.
+Impact: malformed or stale data can create inconsistent UI behavior or startup failures.
 
-### Cross-cutting polish
-- All hardcoded "Apex Rangers" references replaced with live `teamName` prop.
-- "Today" button and date logic use real system date throughout Schedule and Training pages.
-- All drill and UI emojis replaced with professional Lucide vector icons.
+### High: no automated regression suite
 
-## What is fragile or incomplete
+The most important logic includes match cascades, standings, FPRDS interpolation, backup migration, and lineup assignment, but validation currently relies on TypeScript, builds, and manual browser checks.
 
-### Documentation gap (improved)
-The root README and docs have been updated to reflect the real product. `PRD.md`, `MVP.md`, `TASKS.md`, `AUDIT.md`, `ARCHITECTURE.md`, and `ROADMAP.md` all document the current state.
+Impact: changes to shared types or domain rules have a high regression cost.
 
-### Persistence limits
-The app relies heavily on browser `localStorage`. That works for a local-first MVP prototype or solo testing tool, but it creates limits around:
-1. Storage size (now expanded with drill data, availability, coach notes, MVP history).
-2. Cross-device continuity.
-3. Recovery after browser reset.
-4. Data ownership and auditability.
+### Medium: `App.tsx` responsibility concentration
 
-> **Clarification:** These limits are intentionally accepted for the MVP testing phase. The production release will include a backend persistence layer and user authentication.
+The shell owns navigation, persistence, result processing, assessment updates, backups, reset, and modal orchestration.
 
-### Mixed domain modeling
-Players and staff share the same `Player` type, with role inference based on the `position` field. This is manageable now but could become awkward if the product grows into clearer admin, coaching, or player-facing workflows.
+Impact: unrelated changes can affect core flows and make tests harder to isolate.
 
-### Aggregate-driven analytics
-Some charts and progression views are based on current totals or generated breakdowns rather than durable event history.
+### Medium: shared Player/staff model
 
-## Technical risk list
+Staff are represented as `Player` records and identified by position strings.
 
-| Risk | Severity | Why it matters |
-| --- | --- | --- |
-| `App.tsx` concentration of responsibility | High | Increases change risk around core business logic |
-| Heavy `localStorage` reliance | High | Limits scale, recovery, and portability (accepted for MVP testing; backend planned for production) |
-| No authentication system | High | Limits multi-user access (accepted for MVP testing; auth planned for production) |
-| Shared player/staff model | Medium | May block cleaner future domain design |
-| External image URL dependence | Medium | Introduces runtime failures outside local control |
-| Partial accessibility coverage | Medium | Limits usability and quality bar |
+Impact: future coach qualifications, permissions, public profiles, and staff-specific privacy will strain the model.
 
-## Product risk list
+### Medium: bundle size
 
-| Risk | Severity | Why it matters |
-| --- | --- | --- |
-| Product identity is broader than the docs suggest | Medium → Lowered | Docs now reflect current scope accurately |
-| Local-only data model may not match future user expectations | High | Real clubs often expect shared access and persistence (accepted for MVP; addressed in production roadmap) |
-| Wide feature surface may hide weak core polish | Medium | Users notice trust and clarity more than breadth |
-| Feature data sprawl across localStorage keys | Low | Manageable for MVP but needs consolidation before production |
+The production JavaScript bundle is approximately 1.28 MB before gzip and triggers Vite's chunk-size warning.
 
-## Strengths worth protecting
+Impact: slower first load, especially on mobile connections.
 
-1. Fast startup with low setup cost.
-2. Clear single-team operational focus.
-3. Strong local workflow from scheduling to standings.
-4. Deep match intelligence features (availability, intel, notes).
-5. Comprehensive 52-drill training library with How-To guides.
-6. Full discipline and MVP award tracking with history.
-7. Flexible tactical and training experimentation.
-8. Lightweight backup options already exist.
+### Medium: unofficial coach-level field
 
-## Recommended decisions
+Tactics currently stores a free-form `squad_coach_level` presentation value.
 
-### Decision 1 (Resolved)
-Choose the canonical application root and remove or archive the duplicate variant. (The duplicate `sports-team-manager/` folder has been removed.)
+Impact: this must not be confused with future PFF/AFC qualifications. The roadmap correctly requires official credentials and Dumala progress to remain separate.
 
-### Decision 2 (Resolved)
-Decide whether the product is intentionally local-first for solo use, or only temporarily implemented that way. (Local-first is intentional for MVP testing; production will include backend persistence and authentication.)
+## Product findings
 
-### Decision 3
-Decide whether tactics and training are core differentiators or advanced extras around a roster-and-schedule core.
+### FPRDS is already beta functionality
 
-## Recommended fixes
+The Assessment Center supports role and age selection, Full/Quick assessments, benchmark conversion, OVR, history, deltas, guides, and development plans. Documentation must describe it as beta, not only future scope.
 
-### Immediate fixes
-1. Communicate clearly in-app that the current version is for MVP testing and data lives locally in the browser. (Still todo)
+### Public profiles require backend identity
 
-### Near-term fixes
-1. Reduce the amount of top-level logic living directly in `App.tsx`.
-2. Add tests around result logging, standings updates, and the new availability/MVP flows.
-3. Improve accessibility on interactive elements across major screens.
-4. Add data import validation and safer restore flows.
+Personalized player and club links cannot safely build on browser-only state. They require accounts, durable IDs, publishing consent, authorization, and moderation/reporting controls.
+
+### Offline mode is not complete
+
+Local data operations already work after the page loads, but the app has no service worker or installable manifest. A fresh launch without network is not guaranteed.
+
+## Documentation findings resolved by this update
+
+- Removed obsolete Express architecture.
+- Removed obsolete AI roadmap direction.
+- Added the Assessment Center and navigation hubs.
+- Documented backup version 1.1 and its coverage gap.
+- Aligned roadmap phases with the in-app Roadmap Snapshot.
+- Updated tasks with recent roster, tactics, updates, deployment, and favicon work.
+
+## Recommended priorities
+
+1. Runtime validation for persisted and imported data.
+2. Full-workspace backup coverage.
+3. Unit tests for standings, match cascades, FPRDS scoring, and migration.
+4. Persistence service extraction.
+5. PWA manifest, service worker, and update lifecycle.
+6. Responsive tablet interaction review.
+7. Route/view code splitting.
+8. Cloud identity design before shared or public functionality.
 
 ## Final assessment
 
-This codebase is not an empty prototype. It is a real local-first club management product with enough working behavior to justify formal product documentation and staged improvement planning. The 2026-06-14 update added significant depth across training, match intelligence, squad overview, and discipline/MVP tracking — moving the product from a wide-but-thin surface to a genuinely useful club operations tool.
-
-The biggest need now is not more breadth. It is cleanup, clarity, confidence in the existing foundation, and a plan for the backend transition.
+The beta has enough depth for structured field testing. New feature breadth should now be secondary to trust, assessment validation, recovery, automated tests, accessibility, and offline readiness.

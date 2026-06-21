@@ -1,302 +1,219 @@
-# Dumala PRD
+# Dumala Product Requirements Document
 
-Updated: 2026-06-14
+Updated: 2026-06-21
 
-## Product overview
+## 1. Product summary
 
-Dumala is a local-first web application for running a single sports club from one browser workspace. It combines team setup, roster management, match scheduling, standings tracking, training planning, tactics planning, announcements, disciplinary records, MVP awards, and lightweight backup flows in one interface.
+Dumala is a Philippines-first football team management platform for coaches, managers, academies, and grassroots clubs. The current beta is a local-first React application that lets one operator manage a single team from one browser workspace.
 
-The current product behaves more like an operations dashboard for a coach, manager, or club organizer than a multi-user SaaS platform. The root application in this repository is treated as the current source of truth for this document.
+The product combines club operations with player development:
 
-> **MVP testing note:** In its current form the application is built for MVP testing and internal validation. All data is stored in browser `localStorage` and there is no user authentication. This is an intentional tradeoff to allow rapid experimentation and feedback without backend infrastructure. Both a proper backend persistence layer and an authentication system are planned for the production release.
+- Operations: roster, schedule, results, standings, tactics, training, bulletins, discipline, and awards.
+- Development: structured FPRDS assessments, benchmark-based scoring, player cards, assessment history, and development plans.
 
-## Problem statement
+The current release is a public beta, not a shared multi-user service. The detailed future sequence is maintained in [ROADMAP.md](ROADMAP.md) and the in-app **Updates > Roadmap Snapshot**.
 
-Small clubs often manage players, staff, fixtures, tactical notes, announcements, and league progress across scattered spreadsheets, chat threads, notebooks, and memory. That makes it easy to lose updates, duplicate work, and miss important details such as training load, upcoming events, or standings changes after a result is recorded.
+## 2. Problem statement
 
-The current product aims to reduce that fragmentation by giving one person a single place to manage the day-to-day operating view of a club. The immediate value is speed, visibility, and local control, not shared collaboration.
+Grassroots football teams often keep information across spreadsheets, chat threads, notebooks, and individual devices. Coaches lose time reconciling rosters, schedules, player observations, match results, and training plans. Player evaluation is also frequently subjective and difficult to compare over time.
 
-## Target users
+Dumala provides one structured workspace for weekly team administration and repeatable player development records.
 
-| User type | Primary needs | Current fit |
+## 3. Target users
+
+| User | Current need | Current fit |
 | --- | --- | --- |
-| Club manager | Set up team identity, maintain players and staff, keep records organized | Strong |
-| Coach | Plan fixtures, log results, adjust lineups, track player attributes, manage discipline and MVP awards | Strong |
-| Team administrator | Post announcements, maintain basic league table data, export backups | Strong |
-| Players | Read-only self-service access, mobile-first usage, collaboration | Weak in current product |
-| Club ownership or league admins | Cross-team reporting, centralized governance, audit workflows | Weak in current product |
+| Head coach or manager | Operate one team and make weekly decisions | Strong |
+| Assistant coach | Review players, training, tactics, and match context | Moderate; collaboration is not yet available |
+| Team administrator | Maintain records, standings, bulletins, and backups | Strong |
+| Academy evaluator | Run standardized player assessments | Beta |
+| Player or parent | View a controlled player profile | Future |
+| Scout or recruiting coach | Compare draft candidates | Future |
+| Club leadership | Manage multiple squads and shared staff | Future |
 
-## Product goals
+## 4. Product goals
 
-1. Give one club operator a single workspace for the core weekly running of a team.
-2. Keep essential club data available in the browser without requiring a backend setup.
-3. Let match results update player and standings data with minimal manual effort.
-4. Make tactical and training planning part of the same workflow instead of separate tools.
-5. Provide lightweight backup and recovery options so local data is not fully trapped in browser storage.
+1. Reduce fragmented team administration.
+2. Make weekly coaching workflows fast and understandable.
+3. Keep the beta usable without accounts or backend setup.
+4. Update standings and player totals from match results.
+5. Make player assessment repeatable, explainable, and position-aware.
+6. Preserve data through validated export and restore.
+7. Build toward offline use, tablets, shared clubs, public profiles, and Philippine coach education.
 
-## Non-goals
+## 5. Current non-goals
 
-1. Multi-user collaboration with accounts, roles, and shared cloud storage.
-2. League-wide verified data feeds or official integrations.
-3. Financial operations, payments, registration compliance, or contracts.
-4. Full medical, scouting, recruiting, or academy workflows.
-5. Native mobile applications.
+1. Shared real-time collaboration.
+2. Authentication and cloud synchronization.
+3. Official league feeds or federation verification.
+4. Payments, contracts, registration compliance, or medical records.
+5. Public player and team profiles.
+6. An official PFF or AFC coach rating.
+7. Native Android implementation; the planned first app path is a tablet-focused PWA wrapper.
 
-## Current product capabilities
+## 6. Current information architecture
 
-### Onboarding and club identity
+### Home
 
-- Create a team profile with name, stadium, league, founded year, and manager profile.
-- Add the manager as the first roster member during onboarding.
-- Persist onboarding state locally so returning users reopen the same workspace.
+- **Overview**: club identity, league rank, next event, alerts, squad summary, FPRDS snapshot, leaderboards, and recent form.
+- **Game Week**: schedule, calendar, match creation, result logging, availability, opponent context, and coach notes.
 
-### Dashboard
+### Squad
 
-- Show a club summary with team identity, logo management, next event, latest announcements, recent form, standings progression, and player leaderboards.
-- Let users upload a logo as a local image, use a preset icon, or paste an external logo URL.
-- Surface quick navigation into schedule, tactics, and announcements workflows.
-- **Squad Summary table** — full roster at a glance: jersey number, photo, position, goals, assists, cards (yellow/red), games played, MVP awards, and registration status with aggregate footer totals.
+- Player and staff registration.
+- Position-specific placeholder artwork.
+- Player age, height, weight, traits, attributes, statistics, and status.
+- Player comparison.
+- Profile editing and removal.
+- Backup export and restore.
 
-### Roster and staff management
+### Tactics
 
-- Add players with name, number, position, photo, bio, and generated starting attributes.
-- Add staff members and management entries using the same underlying `Player` model.
-- Search and filter roster entries.
-- Compare two players side by side through a radar chart and attribute summary.
-- Export the current club data as a JSON backup file.
+- Match format and formation selection.
+- Position-aware lineup auto-fill.
+- Manual lineup assignment and board positioning.
+- Captain and set-piece roles.
+- Playstyle, defensive style, custom strategy, drawing paths, and quick notes.
+- Coach identity sourced from the roster when available.
 
-### Player profile management
+### Development
 
-- Open a player detail modal from roster and dashboard areas.
-- Edit player identity, photo, status, performance totals, and attribute values.
-- View a generated five-match progression visualization based on current totals.
+- **Training**: 52-drill library, filters, How-To guides, weekly planner, nine presets, match badges, and schedule synchronization.
+- **Assessments**: Full and Quick FPRDS assessments, seven role profiles, four age groups, benchmark scoring, OVR, deltas, history, drill guides, player-card preview, and four-week plans for Full assessments.
 
-### Schedule and result logging
+### League & Updates
 
-- Create upcoming matches and non-match events such as training sessions and meetings.
-- Manage a calendar-style monthly view and a list view of upcoming or completed events.
-- Record match results with scores, MVP, notes, and scorer attribution.
-- Delete events from the schedule.
-- Uses live team name (from onboarding) instead of hardcoded defaults.
-- "Today" and date logic use real system date.
+- **League**: standings, external result entry, snapshots, restore, discipline, and match awards.
+- **Bulletins**: team announcements.
+- **Updates**: product purpose, changelog, FPRDS explanation, and detailed roadmap.
 
-### Schedule page intelligence
+## 7. Functional requirements
 
-- **Match Availability Tracker** — confirm Yes/No/Maybe per player for the next 2 upcoming fixtures. Color-coded pill breakdown with counts, persisted to localStorage. Tap to toggle, right-click to mark unavailable.
-- **Upcoming Opponent Quick Intel** — shows opponent's standings position, points, W-D-L record, head-to-head history from completed games (W-D-L + GF/GA + Edge/Underdog/Even trend), and match notes.
-- **Coach's Notes** — free-text tactical notes editor for the next upcoming match. Expandable textarea with Save/Cancel/Clear, persisted to localStorage per match ID.
+### Onboarding
 
-### Standings management
+- A new workspace must collect club and manager information.
+- The manager must be stored as the first staff record.
+- Onboarding must start with an empty standings table.
+- Completion must open the Home Overview tab.
 
-- Maintain a league table for the user team and competitor clubs.
-- Update standings automatically when a result is recorded from the schedule flow.
-- Manually edit club rows or log external match results in the standings area.
-- Save manual standings snapshots and optional Sunday auto-snapshots.
-- Restore previous standings backups.
-- Clear the league table with a pre-clear backup flow.
+### Roster and profiles
 
-### Discipline & Match Awards
+- Users must be able to add, edit, inspect, compare, and remove players.
+- Player creation must support position, age, height, weight, traits, photo, and biography.
+- Staff creation must support role, contact details, start date, photo, and biography.
+- Missing photos must use the correct position or staff placeholder.
+- Player cards must remain visually uniform despite missing optional data.
 
-- **Disciplinary Records** — log player offences (Yellow, Second Yellow, Straight Red, Red) with date, opponent, match minute, and reason. Auto-updates player card counts.
-- **Player Card Tally** — visual grid of per-player yellow/red card counts.
-- **Offence History** — scrollable log table with delete capability.
-- **Man of the Match Recorder** — award MVP to a player with date, opponent, and note. Creates persistent `MvpAwardRecord` history per player, increments `mvpAwards`.
-- **MVP Leaderboard** — ranked top 8 players by MVP count.
-- **Award History** — scrollable log table of all MVP awards across the squad.
+### Scheduling and results
 
-### Announcements
+- Users must create matches, training sessions, and meetings.
+- Upcoming fixtures must support availability and private coach notes.
+- Result logging must update the game, relevant player totals, and standings.
+- League rank on the Overview must be derived from the sorted standings table.
 
-- Create, categorize, and delete club announcements.
-- Store announcement content locally and show recent items on the dashboard.
+### Tactics
 
-### Tactics planning
+- Auto-fill must preserve valid existing assignments.
+- Empty slots must prefer players matching the slot's position group.
+- Every assigned board card must display a readable player name.
+- Lineup and tactical settings must persist locally.
 
-- Build a tactical board with match format, formation, play style, assignments, and lineup management.
-- Persist lineup, captain and set-piece roles, coach information, tactical notes, dragged positions, and drawn paths locally.
-- Support custom formation logic and visual board manipulation.
+### Training
 
-### Training planning
+- Users must browse and filter the drill library.
+- Each drill must provide practical instructions.
+- Users must assign drills to a weekly schedule and load presets.
+- Training schedule changes must synchronize corresponding calendar events.
 
-- **52-drill library** across all skill areas and positions:
-  - Physical & Pace (Shuttle Run Sprints, Stamina Cardio, Acceleration, Plyometrics, Aerobic Base, Repeat Sprints, Mobility, Core Stability)
-  - Technical (Shooting, Passing, Dribbling, Defending, Heading, Goalkeeping, Playmaking, Pressing, Tactical Shadow, Gym)
-  - Position-specific: Forwards (8 drills), Midfielders (9 drills), Defenders (5 drills), Goalkeepers (5 drills)
-  - Passing Foundation (7 drills): Triangle, Wall Pass, Overlap, One-Touch Grid, Long Ball Switch, Aerial Control, Pressure Cage
-- **Professional Lucide vector icons** per drill with color-coded category badges (26 distinct colors).
-- **Collapsible How-To Guide** per drill card: Equipment, Setup, Execution, Sets/Reps.
-- **Focus Target filter pills**: All Skills, Forwards, Midfielders, Defenders, Goalkeepers, Speed, Shooting, Passing, Dribbling, Defending, Stamina/Physicality, Conditioning & Recovery.
-- Weekly training schedule with drag-and-drop drill assignment and live load indicators per day.
-- **9 preset training modes**: Heavy Fitness, Tactical Focus, Match Taper, Pre-Match Week, Recovery Week, Forward Focus, Midfield Focus, Defender Focus, Last Week.
-- **Last Week preset** restores previous week's schedule from `localStorage` history.
-- **Match badges** on weekly planner day cards showing League/Cup/Friendly fixtures with opponent name.
-- Sync scheduled training days into the shared calendar as training events.
-- Recommend development drills for a selected player based on weak attributes and position.
-- Complete a development session to update player attributes.
+### FPRDS assessments
 
-## Primary user journeys
+- Users must select a player, role, age group, date, and Full or Quick assessment.
+- Supported roles are ST, W, CM, CDM, FB, CB, and GK.
+- Supported age groups are U12, U15, U18, and Adult.
+- Raw drill results must be converted to attribute scores using benchmark tables.
+- OVR must use role-specific weights and remain explainable.
+- Saving an assessment must update the player's FPRDS snapshot.
+- Assessment history must show OVR, attributes, tier, and deltas.
+- Full assessments must generate a four-week development plan.
+- Deleting the latest assessment must restore the player's next-latest snapshot when available.
 
-### Journey 1: First-time club setup
+### League, discipline, and awards
 
-1. Open the app and enter onboarding.
-2. Create team identity details.
-3. Add the first manager or coach profile.
-4. Enter the main workspace with initial standings seeded for the user team.
+- Standings must support automatic and manual updates.
+- Users must save and restore standings snapshots.
+- Reset and onboarding must support a clean league table.
+- Discipline records must update yellow and red card totals.
+- MVP awards must maintain per-player history.
 
-### Journey 2: Build the roster
+### Bulletins and feedback
 
-1. Open the roster view.
-2. Add staff and players.
-3. Upload or select photos.
-4. Review cards and open player profiles for edits.
+- Users must create and remove team bulletins.
+- The feedback form must capture type, summary, details, expected outcome, optional contact email, page, browser, team, and submission time.
+- Automatic delivery must provide an email-app fallback.
 
-### Journey 3: Plan the week
+### Backup and recovery
 
-1. Open the schedule or training view.
-2. Create upcoming fixtures, meetings, or training sessions.
-3. Optionally assign drills to the weekly training schedule.
-4. Let training events appear in the shared calendar.
-5. Check match availability by tapping player Yes/No/Maybe status.
+- Backup version 1.1 must include team, players, games, standings, bulletins, and assessments.
+- Import must reject unsupported versions and missing required collections.
+- Restore must reopen the workspace without requiring onboarding.
+- Reset Workspace must clear all locally stored Dumala data.
 
-### Journey 4: Run matchday updates
-
-1. Open an upcoming match.
-2. Review opponent intel (standings position, H2H history) and coach's notes.
-3. Record final score, MVP, scorers, and notes.
-4. Update game status to completed.
-5. Let team standings and player totals update automatically.
-6. Log any disciplinary cards or award Man of the Match.
-
-### Journey 5: Track season state
-
-1. Review dashboard Squad Summary table for full roster stats.
-2. Review MVP leaderboard and disciplinary records.
-3. Edit standings if outside results need to be logged manually.
-4. Save standings snapshots when needed.
-5. Export a JSON backup for local safety.
-
-## Functional requirements
-
-### Core requirements
-
-| Area | Requirement |
-| --- | --- |
-| Team setup | The app must let a user create a club identity and first manager profile before entering the main workspace. |
-| Local persistence | The app must persist team, player, game, standings, tactics, training, schedule history, availability, coach notes, disciplinary, and MVP state in browser storage. |
-| Roster management | The app must let the user add, edit, browse, and compare players and staff. |
-| Scheduling | The app must let the user create and delete matches, training sessions, and meetings using live data. |
-| Result logging | The app must let the user record match scores and update related player and standings data. |
-| Standings | The app must support manual and automatic standings maintenance. |
-| Discipline & Awards | The app must let the user log card offences and award MVP with persistent history. |
-| Training | The app must support a 52-drill library with position-specific drills, How-To guides, 9 training presets, and match badges. |
-| Match intelligence | The app must show opponent intel, match availability tracking, and coach's notes for upcoming fixtures. |
-| Announcements | The app must let the user publish and remove club notices. |
-| Tactics | The app must support a visual tactical board with lineup persistence and tactical notes. |
-| Backup | The app must support JSON export and standings snapshot restore flows. |
-
-### Detailed behavior
-
-#### Team setup
-
-- Onboarding must block entry into the main app until team info exists.
-- The first manager profile must be added as a `Player` record so the roster is never empty after setup.
-- Initial standings must be generated using the new team name.
-
-#### Data persistence
-
-- Team info, players, games, standings, and announcements must be saved in `localStorage`.
-- Tactics state, training state, schedule history, match availability, and coach notes must also persist in `localStorage` using separate keys.
-- Exported backups must include the major domain objects and export metadata.
-
-#### Result cascade logic
-
-- Logging a completed match must update the match record itself.
-- Player season totals must update for goals, games played, MVP awards, and clean-sheet related counts where applicable.
-- The user team standings row must update based on the recorded result.
-- The opponent standings row must also update when a matching club exists in the table.
-
-#### Training schedule sync
-
-- Scheduled drills for a day must generate or refresh a training event in the shared games calendar for that date.
-- Removing or changing weekly drills must update the synced training events for the active week.
-- Weekly schedule history is archived to localStorage before each overwrite to enable Last Week restore.
-
-#### Discipline and MVP workflows
-
-- Logging an offence auto-increments the player's yellowCard or redCard count and appends a `PlayerOffense` record.
-- Deleting an offence decrements the corresponding card count.
-- Awarding MVP increments `mvpAwards` and appends an `MvpAwardRecord` (date, opponent, note) to the player's `mvpHistory`.
-
-## Non-functional requirements
-
-### Usability
-
-- The product should be usable without backend setup.
-- Main club tasks should be reachable from a tabbed top-level navigation.
-- The app should remain understandable for non-technical users such as coaches and club organizers.
-
-### Performance
-
-- Main screens should load from local state quickly after the first render.
-- Client interactions should not depend on a remote data API for the core local-first flows.
+## 8. Non-functional requirements
 
 ### Reliability
 
-- The app should survive browser refreshes through local persistence.
-- Destructive resets should ask for confirmation.
-- Backup flows should exist for at least key club data and standings states.
+- Core state must survive refresh and browser restart.
+- Destructive actions must require confirmation where data loss is material.
+- Imported and persisted data should fail safely when malformed.
 
 ### Accessibility
 
-- The interface includes some semantic controls and labels, but accessibility is not yet consistently enforced across all interactive elements.
-- Accessibility improvements are a requirement for future stabilization rather than a proven current strength.
+- Interactive controls must have accessible names.
+- Core workflows must support keyboard operation and visible focus.
+- Motion must respect reduced-motion preferences.
 
-### Security and privacy
+### Responsive behavior
 
-- The current model assumes local, single-browser use rather than shared or regulated environments.
-- Sensitive access control, authentication, and audit requirements are out of scope in the current implementation.
+- Core workflows must remain usable on desktop and mobile.
+- Tablet-specific optimization is planned in Roadmap Phase 2.
 
-## Data model summary
+### Performance
 
-| Entity | Purpose | Key fields |
-| --- | --- | --- |
-| `TeamInfo` | Club identity | `name`, `founded`, `stadium`, `coach`, `league`, `logoColor`, `logoUrl` |
-| `Player` | Player or staff record | `id`, `name`, `number`, `position`, `bio`, `photoUrl`, season totals (points, assists, gamesPlayed, mvpAwards, yellowCards, redCards), `attributes`, `registrationStatus`, `offenses`, `mvpHistory` |
-| `PlayerOffense` | Card/discipline record | `id`, `date`, `cardType`, `reason`, `gameOpponent`, `matchMinute` |
-| `MvpAwardRecord` | Man of the Match award | `id`, `date`, `opponent`, `note` |
-| `Game` | Match or scheduled event | `id`, `opponent`, `date`, `time`, `location`, `status`, `type`, optional scores, scorers, MVP, notes |
-| `Standing` | League table row | `rank`, `teamName`, `played`, `won`, `drawn`, `lost`, `goalsFor`, `goalsAgainst`, `points`, `isUserTeam` |
-| `Announcement` | Club notice | `id`, `title`, `content`, `date`, `category`, `author` |
+- Core local workflows must not require a network request.
+- The production build should be code-split before broad production launch; the current main bundle exceeds Vite's 500 kB advisory threshold.
 
-## Dependencies and assumptions
+### Privacy
 
-1. The root project is the active product source of truth.
-2. The app is intended for one club per browser workspace.
-3. Browser `localStorage` is the main persistence layer for the MVP testing phase. A proper backend persistence system with user authentication will replace this in production.
-4. External image URLs and user-uploaded base64 images are both accepted in the UI.
+- Uploaded photos and team records remain in the browser in the beta.
+- Future public profiles must require explicit publishing controls.
+- Dumala development progress must never be represented as an official PFF or AFC credential.
 
-## Risks and constraints
+## 9. Data model
 
-1. The repository previously contained a duplicate and divergent `sports-team-manager/` copy, which has been removed.
-2. Heavy use of `localStorage` creates practical storage limits and device-specific data isolation. This is accepted for MVP testing and will be addressed with backend storage in production.
-3. Clearing browser storage or switching browsers can remove operational history unless the user exported a backup.
-4. The current app has no authentication, multi-user model, or server-backed data ownership. This is by design for the MVP testing phase. Authentication and shared persistence will be implemented before production launch.
-5. Some player progression and analytics views are generated from current totals rather than true historical event logs.
+| Entity | Purpose |
+| --- | --- |
+| `TeamInfo` | Club identity and branding |
+| `Player` | Player or staff identity, football attributes, status, statistics, traits, and FPRDS snapshot |
+| `Game` | Match, training, or meeting event |
+| `Standing` | League-table row |
+| `Announcement` | Team bulletin |
+| `PlayerOffense` | Discipline event |
+| `MvpAwardRecord` | Match award history |
+| `AssessmentSession` | Raw FPRDS results, scores, labels, deltas, and optional development plan |
 
-## Success criteria
+## 10. Success criteria
 
-The current product should be considered successful for its present scope if a club operator can:
+The beta succeeds when a coach can:
 
-1. Set up a team and return to the same workspace later.
-2. Maintain a usable roster and staff directory.
-3. Plan fixtures and weekly training activity with position-specific drills and how-to guides.
-4. Record match results without manually recalculating standings.
-5. Track player discipline and award MVPs with full history.
-6. Review squad summary stats, opponent intel, and match availability before fixtures.
-7. Publish internal announcements.
-8. Export core data for backup.
+1. Create and reopen a team workspace.
+2. Maintain players and staff with useful profile data.
+3. Plan a match week and training schedule.
+4. Build a position-appropriate lineup.
+5. Record results and see correct standings and player totals.
+6. Run and review repeatable player assessments.
+7. Export and restore a complete backup.
+8. Use the product on desktop and mobile without blocking defects.
 
-## Open decisions
+## 11. Roadmap authority
 
-1. Should the product stay local-first, or move toward shared cloud data?
-2. Should staff and players continue sharing the same domain model, or split into separate models later?
-3. What level of mobile support is expected for real club use?
+The in-app **Updates > Roadmap Snapshot** is the product-facing roadmap. [ROADMAP.md](ROADMAP.md) mirrors it for engineering and planning. If older documents conflict with those sources, the Roadmap Snapshot and current code take precedence.

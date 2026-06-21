@@ -1,30 +1,44 @@
 # Dumala
 
-A local-first sports club management web application for running a single team from one browser workspace. Built with React 19, TypeScript, Tailwind CSS v4, and Lucide icons.
+Dumala is a local-first football team management web application for coaches, managers, and grassroots club operators. It combines weekly club operations with structured player assessment in one browser workspace.
 
-## What it does
+## Current capabilities
 
-- Set up a club, manager profile, and initial standings
-- Manage players and staff with photos, positions, attributes, and statistics
-- Track fixtures, training, meetings, availability, tactical notes, and results
-- Maintain league standings, discipline history, and match awards
-- Build weekly plans from a 52-drill training library
-- Create tactics, lineups, announcements, and JSON backups
-- Collect tester feedback from inside the workspace and deliver it by email
+- Team onboarding and club identity
+- Player and staff roster management
+- Position-specific player cards, traits, measurements, and placeholders
+- Match scheduling, availability, opponent context, notes, and result logging
+- Automatic standings and player-stat updates
+- Discipline records and Man of the Match history
+- Position-aware tactics board and lineup auto-fill
+- Weekly training planner with a 52-drill library and presets
+- FPRDS Assessment Center with Full and Quick assessments
+- Age-group and role-specific benchmarks, OVR scoring, history, and development plans
+- Bulletins, product updates, feedback submission, and JSON backup/restore
 
-## Data and testing limitations
+## Navigation
 
-This MVP has no accounts, database, or shared team workspace. All team information and uploaded photos are stored in the current browser's `localStorage`.
+The application is organized into five primary areas:
 
-- Each browser and device has its own independent team data.
-- Clearing browser storage removes the local workspace.
-- Preview and production URLs have separate browser storage.
-- Export a JSON backup before clearing data or changing browsers, then restore it from the Roster screen.
-- Anyone with the deployed URL can open the app, even when its source repository is private.
+1. **Home**: Overview and Game Week
+2. **Squad**: Roster and staff
+3. **Tactics**: Formation, lineup, roles, notes, and match board
+4. **Development**: Training and Assessments
+5. **League & Updates**: League, Bulletins, and Updates
+
+## Local-first limitations
+
+The beta stores team information and uploaded photos in browser `localStorage`.
+
+- Each browser and website origin has a separate workspace.
+- Clearing browser storage removes local data.
+- Preview and production URLs do not share data.
+- Testers cannot collaborate in the same workspace yet.
+- Export a backup before changing browsers or clearing data.
 
 ## Run locally
 
-**Prerequisite:** Node.js
+Prerequisite: Node.js.
 
 On Windows, double-click `runserver.bat`, or run:
 
@@ -35,38 +49,33 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000).
 
-## Build
+## Validate and build
 
 ```bash
 npm run lint
 npm run build
 ```
 
-The static production site is written to `dist/`.
+The production-ready static site is generated in `dist/`.
 
-## Deploy with Vercel
+## Deployment
 
-The recommended testing workflow is a private GitHub repository connected to Vercel:
+Dumala is a static Vite application. The recommended beta deployment uses a private GitHub repository connected to Vercel:
 
-1. Push the project to a private GitHub repository.
-2. Import that repository in Vercel.
-3. Select the Vite framework preset.
-4. Use `npm install`, `npm run build`, and output directory `dist`.
-5. Share only the stable production `vercel.app` URL with testers.
+- Framework: Vite
+- Install command: `npm install`
+- Build command: `npm run build`
+- Output directory: `dist`
+- Environment variables: none
 
-The included `vercel.json` records these build settings. No environment variables are required.
-
-## Traditional hosting
-
-A normal static web host also works. Run `npm run build`, then upload the **contents of `dist/`** to the host's public web directory. Do not upload the source folder, `src/`, or `node_modules/` as the website.
+A traditional static host can also serve the application. Upload only the contents of `dist/`, not the source repository.
 
 ## Documentation
 
-- [Investor MVP Brief (Markdown)](docs/INVESTOR_MVP_BRIEF.md)
-- [Investor MVP Brief (Printable HTML)](docs/INVESTOR_MVP_BRIEF.html)
-- [PRD](docs/PRD.md)
-- [MVP](docs/MVP.md)
+- [Product Requirements](docs/PRD.md)
+- [MVP Definition](docs/MVP.md)
 - [Architecture](docs/ARCHITECTURE.md)
-- [Roadmap](docs/ROADMAP.md)
-- [Audit](docs/AUDIT.md)
-- [Tasks](docs/TASKS.md)
+- [Product Roadmap](docs/ROADMAP.md)
+- [Codebase Audit](docs/AUDIT.md)
+- [Delivery Tasks](docs/TASKS.md)
+- [Assessment Drill Guide Prompts](docs/ASSESSMENT_DRILL_GUIDE_PROMPTS.md)

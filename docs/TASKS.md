@@ -1,232 +1,195 @@
-# Dumala -- Production Launch Tasks
+# Dumala Delivery Tasks
 
-Updated: 2026-06-14
+Updated: 2026-06-21
 
-## Recent Changes Applied (2026-06-14)
+Status values: **Done**, **In Progress**, **Next**, **Planned**, **Long Term**.
 
-The following feature work has been completed and is reflected in the task statuses below:
+## Progress dashboard
 
-- **TrainingView:** 52-drill library with position-specific drills (Forwards, Midfielders, Defenders, Goalkeepers, Passing), professional Lucide icons, collapsible How-To guides per drill, 9 training presets (Heavy Fitness, Tactical Focus, Match Taper, Pre-Match Week, Recovery Week, Forward Focus, Midfield Focus, Defender Focus, Last Week), match badges on weekly planner, position-based Focus Target filters, "Last Week" restore from history.
-- **ScheduleView:** Removed redundant DAILY SCHEDULE FOCUS panel; added Match Availability Tracker (Yes/No/Maybe per player), Upcoming Opponent Quick Intel (standings position, H2H), Coach's Notes; fixed hardcoded "Apex Rangers" to use live `teamName` prop; fixed "Today" and date logic to use real system date; added `standings` prop for opponent intel.
-- **DashboardView:** Added Squad Summary table (goals, assists, cards, games played, MVP, status with aggregate footer); swapped position so Squad Summary appears before Analytics Row.
-- **StandingsView:** Shrunk Log New Offence form ~35%; added Man of the Match MVP recorder with persistent `MvpAwardRecord` history; split into side-by-side Disciplinary Records and Man of the Match panels; added MVP Leaderboard and Award History log.
-- **Types:** Added `MvpAwardRecord` interface; added `mvpHistory` field to `Player`.
-- **Cross-cutting:** Replaced all emoji icons with Lucide vector icons; removed all hardcoded "Apex Rangers" references; schedule and training use live dates.
+Progress is calculated from the completed capabilities and open checklist items in this document. The roadmap bars track implementation, while Release Validation tracks the latest verified build checks.
 
-## Overall Progress
+```text
+Overall roadmap                 [###-------]  26%  25 / 96
 
+Shipped beta foundation         [##########] 100%  20 / 20
+Current Beta: Reliability       [----------]   0%   0 / 22
+FPRDS Beta                      [###-------]  33%   5 / 15
+Phase 1: Offline-ready PWA      [----------]   0%   0 / 6
+Phase 2: Mobile and tablet      [----------]   0%   0 / 5
+Phase 3: Cloud and sync         [----------]   0%   0 / 6
+Phase 4: Team collaboration     [----------]   0%   0 / 5
+Phase 5: Profiles and drafting  [----------]   0%   0 / 6
+Future: Coach education         [----------]   0%   0 / 6
+Future: Club operations         [----------]   0%   0 / 5
+
+Release validation              [###-------]  25%   3 / 12
 ```
-Phase 1: Repository & Docs     [██████████] 100%  Complete
-Phase 2: MVP Stabilization     [████████████░░░░░░]  71%  In Progress
-Phase 3: Backend & Auth        [░░░░░░░░░░]   0%  Not Started
-Phase 4: Production Readiness  [░░░░░░░░░░]   0%  Not Started
-Phase 5: Launch & Operations   [░░░░░░░░░░]   0%  Not Started
-```
 
-| Phase | Status | Progress |
-| --- | --- | --- |
-| Phase 1: Repository & Docs | Complete | 11 / 11 |
-| Phase 2: MVP Stabilization | In Progress | 17 / 24 |
-| Phase 3: Backend & Auth | Not Started | 0 / 19 |
-| Phase 4: Production Readiness | Not Started | 0 / 14 |
-| Phase 5: Launch & Operations | Not Started | 0 / 9 |
+| Phase | Completed | Total | Progress | Status |
+| --- | ---: | ---: | ---: | --- |
+| Shipped beta foundation | 20 | 20 | 100% | Done |
+| Current Beta: Reliability and data confidence | 0 | 22 | 0% | Next |
+| FPRDS Beta | 5 | 15 | 33% | In Progress |
+| Phase 1: Offline-ready web app | 0 | 6 | 0% | Next |
+| Phase 2: Mobile and tablet experience | 0 | 5 | 0% | Planned |
+| Phase 3: Cloud accounts and synchronization | 0 | 6 | 0% | Planned |
+| Phase 4: Team collaboration | 0 | 5 | 0% | Planned |
+| Phase 5: Public profiles and drafting | 0 | 6 | 0% | Long Term |
+| Future Expansion: Philippine coach education | 0 | 6 | 0% | Long Term |
+| Future Expansion: Club operations | 0 | 5 | 0% | Long Term |
 
----
+The FPRDS total includes five capabilities already shipped: assessment workflows, age groups, role scoring, OVR/history/development plans, and backup support. Its ten remaining validation and reporting tasks appear below.
 
-## Phase 1: Repository & Documentation Cleanup
+## Recent changes
 
-> **Goal:** One clean repository, one product name, clear documentation.
+### Completed: 2026-06-15 to 2026-06-21
 
-| # | Task | Priority | Status |
-| --- | --- | --- | --- |
-| 1.1 | Remove duplicate `sports-team-manager/` folder | High | Done |
-| 1.2 | Decide and finalize the canonical product name | High | Done |
-| 1.3 | Replace generic root README with a real project README | High | Done |
-| 1.4 | Create product documentation in `docs/` (PRD, MVP, ARCH, ROADMAP, AUDIT) | High | Done |
-| 1.5 | Create `docs/TASKS.md` with production launch checklist | High | Done |
-| 1.6 | Update `metadata.json` to reflect the real product name and description | Medium | To do |
-| 1.7 | Add a `.env.example` file documenting required environment variables | Medium | To do |
-| 1.8 | Add a `CONTRIBUTING.md` with development setup instructions | Medium | To do |
-| 1.9 | Verify `.gitignore` covers all generated and environment files | Medium | To do |
-| 1.10 | Align `package.json` name and metadata with the product | Low | To do |
-| 1.11 | Run `npm run lint` and confirm zero TypeScript errors | High | Done |
+- [x] Added the FPRDS Assessment Center with Full and Quick workflows.
+- [x] Added U12, U15, U18, and Adult benchmark groups.
+- [x] Added ST, W, CM, CDM, FB, CB, and GK role scoring.
+- [x] Added weighted OVR, assessment deltas, history, player-card preview, and four-week development plans.
+- [x] Included assessments in backup version 1.1.
+- [x] Reorganized navigation into Home, Squad, Tactics, Development, and League & Updates hubs.
+- [x] Added Overview/Game Week, Training/Assessments, and League/Bulletins/Updates sub-tabs.
+- [x] Fixed League rank to use the actual sorted standings.
+- [x] Reset standings and assessments during onboarding and workspace reset.
+- [x] Made onboarding land on Overview.
+- [x] Added position-specific player and staff placeholder artwork.
+- [x] Added player age, height, weight, and position-specific traits.
+- [x] Moved player removal into the selected profile and reduced action button sizes.
+- [x] Standardized roster card height and removed visible footer color gaps.
+- [x] Fixed the Tactics page loading issue.
+- [x] Sourced the Team Tactician photo and identity from roster staff.
+- [x] Made Tactics auto-fill position-aware and preserve valid assignments.
+- [x] Fixed missing player-name labels on the match board.
+- [x] Corrected League & Updates routing and renamed announcements to Bulletins.
+- [x] Expanded the Updates roadmap and removed AI direction from the public roadmap.
+- [x] Added public profile, drafting, Philippine coach education, and club expansion plans.
+- [x] Added structured feedback delivery with email fallback.
+- [x] Added Dumala favicon and Apple touch icon.
+- [x] Deployed as a static Vite application through GitHub and Vercel.
+- [x] Updated PRD, MVP, architecture, roadmap, audit, tasks, and README.
 
----
+## Current Beta: Reliability and data confidence
 
-## Phase 2: MVP Stabilization
+### Persistence and recovery
 
-> **Goal:** Make the current local-first app trustworthy and polished for testing.
+- [ ] **Next:** Add runtime schemas for every core persisted collection.
+- [ ] **Next:** Validate nested player, game, standing, bulletin, and assessment entities during restore.
+- [ ] **Next:** Include tactics, availability, coach notes, training schedules, and standings backups in a full-workspace export.
+- [ ] **Next:** Add backup migration tests for versions 1.0 and 1.1.
+- [ ] **Planned:** Warn when browser storage approaches quota.
+- [ ] **Planned:** Add a recovery screen for invalid startup data instead of silently falling back.
 
-### Core workflow hardening
+### Core business rules
 
-| # | Task | Priority | Status |
-| --- | --- | --- | --- |
-| 2.1 | Add in-app banner or indicator that this is an MVP/testing build with local storage | High | To do |
-| 2.2 | Validate malformed or corrupted `localStorage` data on app load with graceful fallback | High | To do |
-| 2.3 | Add input validation on all forms (player add, game create, result logging, announcements) | High | To do |
-| 2.4 | Add confirmation dialogs on destructive actions beyond the existing reset flow | Medium | To do |
-| 2.5 | Handle edge cases in result cascade logic (zero goals, own-team-vs-own-team, duplicate scorers) | High | To do |
-| 2.6 | Show meaningful empty states on all views when no data exists | Medium | In Progress |
-| 2.7 | Add a "first-run" guided tour or tooltip hints after onboarding completes | Low | To do |
+- [ ] **Next:** Add unit tests for match-result cascades.
+- [ ] **Next:** Add unit tests for standings sorting and opponent updates.
+- [ ] **Next:** Prevent accidental duplicate application of a completed match result.
+- [ ] **Next:** Validate scorer counts, MVP selection, and clean-sheet credit.
+- [ ] **Planned:** Add integrity checks comparing completed games, standings, and player totals.
 
-### UI and accessibility
+### UI reliability and accessibility
 
-| # | Task | Priority | Status |
-| --- | --- | --- | --- |
-| 2.8 | Add `aria-label` attributes to all interactive elements without text content | High | To do |
-| 2.9 | Ensure all interactive elements are keyboard-accessible (tab order, Enter/Space activation) | High | To do |
-| 2.10 | Test and fix responsive layout on tablet and smaller desktop viewports | Medium | To do |
-| 2.11 | Add focus-ring styles consistent with the existing design system | Medium | To do |
+- [ ] **Next:** Complete an empty-state audit across every nested tab.
+- [ ] **Next:** Complete keyboard and visible-focus testing for primary workflows.
+- [ ] **Next:** Audit dialogs for focus trapping, Escape handling, and focus restoration.
+- [ ] **Planned:** Add consistent validation messages to all forms.
+- [ ] **Planned:** Add confirmation to remaining destructive actions.
+- [ ] **Planned:** Verify color contrast and reduced-motion behavior.
 
-### Data integrity
+### Engineering structure
 
-| # | Task | Priority | Status |
-| --- | --- | --- | --- |
-| 2.12 | Validate JSON backup files on import before restoring data | High | To do |
-| 2.13 | Add a data integrity check after result logging to verify standings and player stats match | Medium | To do |
-| 2.14 | Surface `localStorage` quota warnings when storage is near browser limits | Medium | To do |
-| 2.15 | Ensure standings auto-sort logic applies consistently across manual edits and result cascades | High | Done |
+- [ ] **Next:** Extract persistence operations from `App.tsx`.
+- [ ] **Planned:** Extract match-result and assessment snapshot services.
+- [ ] **Planned:** Replace deprecated `Player.attributes?: any` after migration support is no longer needed.
+- [ ] **Planned:** Split Player and Staff models before credential and permission work.
+- [ ] **Planned:** Add CI for type-check, tests, and production build.
 
-### Feature depth and polish (NEW — completed 2026-06-14)
+## FPRDS Beta
 
-| # | Task | Priority | Status |
-| --- | --- | --- | --- |
-| 2.16 | Expand drill library with position-specific drills (Forwards, Midfielders, Defenders, Goalkeepers, Passing) — 52 total | High | Done |
-| 2.17 | Add professional Lucide vector icons to all drill cards with color-coded category badges | Medium | Done |
-| 2.18 | Add collapsible How-To Guide per drill (Equipment, Setup, Execution, Sets/Reps) | Medium | Done |
-| 2.19 | Add Match Availability Tracker to Schedule page (Yes/No/Maybe per player per fixture) | High | Done |
-| 2.20 | Add Upcoming Opponent Quick Intel (standings position, H2H, match notes) | High | Done |
-| 2.21 | Add Coach's Notes component on Schedule page for pre-match tactical notes | Medium | Done |
-| 2.22 | Add Squad Summary table to Dashboard (goals, assists, cards, GP, MVP, status) | High | Done |
-| 2.23 | Add Discipline & MVP side-by-side panels with MVP Award History log | High | Done |
-| 2.24 | Add 9 training presets including Last Week restore | Medium | Done |
+- [ ] **Next:** Review every benchmark table with qualified football practitioners.
+- [ ] **Next:** Add tests for lower-is-better and higher-is-better interpolation.
+- [ ] **Next:** Test OVR weighting for all seven roles.
+- [ ] **Next:** Validate age calculation and age-group transitions.
+- [ ] **Next:** Verify Quick and Full required-field behavior.
+- [ ] **Planned:** Add true historical progress charts.
+- [ ] **Planned:** Add player-to-player and session-to-session reports.
+- [ ] **Planned:** Add downloadable assessment and development reports.
+- [ ] **Planned:** Add assessment export suitable for coach review.
+- [ ] **Planned:** Define benchmark versioning so historical sessions remain reproducible.
 
-### Testing
+## Phase 1: Offline-ready web app
 
-| # | Task | Priority | Status |
-| --- | --- | --- | --- |
-| 2.25 | Write unit tests for the match result cascade logic in `App.tsx` | High | To do |
-| 2.26 | Write unit tests for the standings sorting and backup/restore flows | High | To do |
+- [ ] **Next:** Add web-app manifest and install metadata.
+- [ ] **Next:** Add a service worker with an explicit caching strategy.
+- [ ] **Next:** Cache local fonts, icons, placeholders, and application assets.
+- [ ] **Next:** Add offline, reconnecting, and update-available indicators.
+- [ ] **Next:** Test cold launch and refresh while offline.
+- [ ] **Planned:** Define service-worker update and rollback behavior.
 
----
+## Phase 2: Mobile and tablet experience
 
-## Phase 3: Backend & Authentication
+- [ ] **Planned:** Define supported tablet viewport and touch targets.
+- [ ] **Planned:** Redesign dense tables and forms for tablet use.
+- [ ] **Planned:** Improve touch dragging and drawing on the tactics board.
+- [ ] **Planned:** Test orientation changes and virtual keyboard behavior.
+- [ ] **Planned:** Package the validated PWA for Google Play.
 
-> **Goal:** Replace `localStorage` with a proper backend and add user authentication for production.
+## Phase 3: Cloud accounts and synchronization
 
-### Database and API design
+- [ ] **Planned:** Select backend, database, authentication, and hosting.
+- [ ] **Planned:** Design club, user, membership, and durable domain schemas.
+- [ ] **Planned:** Create local-to-cloud migration with non-destructive rollback.
+- [ ] **Planned:** Define offline mutation queue and conflict strategy.
+- [ ] **Planned:** Add account recovery, data export, and deletion.
+- [ ] **Planned:** Add monitoring, audit logging, and backups.
 
-| # | Task | Priority | Status |
-| --- | --- | --- | --- |
-| 3.1 | Choose and document the backend technology stack (runtime, framework, database) | High | To do |
-| 3.2 | Design the database schema for all domain entities (Team, Player, Game, Standing, Announcement, MvpAwardRecord, PlayerOffense) | High | To do |
-| 3.3 | Design a REST or GraphQL API contract for all CRUD operations | High | To do |
-| 3.4 | Define API versioning strategy and error response format | Medium | To do |
-| 3.5 | Create OpenAPI/Swagger documentation for the backend API | Medium | To do |
-| 3.6 | Set up database migrations framework | High | To do |
+## Phase 4: Team collaboration
 
-### Authentication system
+- [ ] **Planned:** Implement Owner, Admin, Coach, Staff, and Viewer roles.
+- [ ] **Planned:** Add invitations and membership management.
+- [ ] **Planned:** Add activity history and sensitive-action audit records.
+- [ ] **Planned:** Add shared bulletins and controlled editing.
+- [ ] **Planned:** Prevent silent overwrite during simultaneous edits.
 
-| # | Task | Priority | Status |
-| --- | --- | --- | --- |
-| 3.7 | Choose and document the authentication strategy (OAuth, magic link, email/password, SSO) | High | To do |
-| 3.8 | Implement user registration and login flows | High | To do |
-| 3.9 | Implement session management with secure token handling | High | To do |
-| 3.10 | Add password reset and email verification flows | High | To do |
-| 3.11 | Implement role-based access control (Admin, Coach, Player, Viewer) | High | To do |
-| 3.12 | Add team-scoped data isolation so users only see their own club data | High | To do |
+## Phase 5: Public profiles and drafting
 
-### Data migration
+- [ ] **Long Term:** Define public player, coach, and club profile schemas.
+- [ ] **Long Term:** Add personalized-link reservation and moderation.
+- [ ] **Long Term:** Add explicit publish/unpublish and field-level privacy controls.
+- [ ] **Long Term:** Add draft shortlists, comparisons, trial status, and notes.
+- [ ] **Long Term:** Add media, achievements, position history, and verified assessment highlights.
+- [ ] **Long Term:** Add abuse reporting and profile ownership recovery.
 
-| # | Task | Priority | Status |
-| --- | --- | --- | --- |
-| 3.13 | Build a `localStorage`-to-backend migration flow for existing MVP data | High | To do |
-| 3.14 | Add a data export endpoint for full club backup in production | Medium | To do |
-| 3.15 | Add a data import endpoint with validation for restoring backups | Medium | To do |
+## Future Expansion: Philippine coach education
 
-### Frontend integration
+- [ ] **Long Term:** Curate a coach knowledge base.
+- [ ] **Long Term:** Maintain official PFF, AFC, and FIFA resource links.
+- [ ] **Long Term:** Model qualifications, issuers, licence numbers, dates, documents, and verification state.
+- [ ] **Long Term:** Add learning plans, journals, reflections, goals, and renewal reminders.
+- [ ] **Long Term:** Keep Dumala Development Progress separate from official credentials.
+- [ ] **Long Term:** Add controlled public coach credentials and portfolios.
 
-| # | Task | Priority | Status |
-| --- | --- | --- | --- |
-| 3.16 | Abstract all `localStorage` reads/writes behind a persistence service layer | High | To do |
-| 3.17 | Add API client with request interceptors for auth tokens | High | To do |
-| 3.18 | Add loading, error, and retry states for all API-dependent views | High | To do |
-| 3.19 | Implement optimistic UI updates with rollback on API failure for key workflows | Medium | To do |
+## Future Expansion: Club operations
 
----
+- [ ] **Long Term:** Add attendance and availability history.
+- [ ] **Long Term:** Add season archives and richer reports.
+- [ ] **Long Term:** Add calendar export and scheduled reminders.
+- [ ] **Long Term:** Add multiple squads and age groups.
+- [ ] **Long Term:** Preserve records across seasons.
 
-## Phase 4: Production Readiness
+## Release validation checklist
 
-> **Goal:** Harden the application for a production environment.
-
-### Security
-
-| # | Task | Priority | Status |
-| --- | --- | --- | --- |
-| 4.1 | Add HTTPS enforcement and secure cookie configuration | High | To do |
-| 4.2 | Implement CSRF protection for all state-changing requests | High | To do |
-| 4.3 | Add rate limiting on authentication and API endpoints | High | To do |
-| 4.4 | Sanitize all user-generated content (announcements, player bios, notes) | High | To do |
-| 4.5 | Add Content Security Policy headers | Medium | To do |
-| 4.6 | Conduct a security review of image upload and URL handling | Medium | To do |
-
-### Performance
-
-| # | Task | Priority | Status |
-| --- | --- | --- | --- |
-| 4.7 | Add code splitting by route/view for faster initial load | High | To do |
-| 4.8 | Implement image optimization (resize on upload, lazy loading) | Medium | To do |
-| 4.9 | Add bundle analysis to CI and set size budgets | Medium | To do |
-| 4.10 | Implement API response caching where appropriate | Medium | To do |
-
-### Infrastructure
-
-| # | Task | Priority | Status |
-| --- | --- | --- | --- |
-| 4.11 | Set up a CI/CD pipeline for automated testing and deployment | High | To do |
-| 4.12 | Configure production environment variables and secrets management | High | To do |
-| 4.13 | Set up application monitoring and error tracking | High | To do |
-| 4.14 | Create a staging environment for pre-release validation | Medium | To do |
-
----
-
-## Phase 5: Launch & Operations
-
-> **Goal:** Go to production and support live users.
-
-### Pre-launch
-
-| # | Task | Priority | Status |
-| --- | --- | --- | --- |
-| 5.1 | Complete a full end-to-end QA pass of all user flows | High | To do |
-| 5.2 | Conduct load testing on the backend API | High | To do |
-| 5.3 | Write and test a production rollback plan | High | To do |
-| 5.4 | Prepare user-facing documentation and onboarding guides | Medium | To do |
-| 5.5 | Set up a customer support channel and issue-tracking workflow | Medium | To do |
-
-### Launch
-
-| # | Task | Priority | Status |
-| --- | --- | --- | --- |
-| 5.6 | Execute the production deployment | High | To do |
-| 5.7 | Monitor error rates, performance, and user feedback for the first 48 hours | High | To do |
-
-### Post-launch
-
-| # | Task | Priority | Status |
-| --- | --- | --- | --- |
-| 5.8 | Collect and triage initial user feedback | High | To do |
-| 5.9 | Plan the first post-launch iteration based on real usage data | Medium | To do |
-
----
-
-## Task Count Summary
-
-| Phase | Total | Done | Remaining |
-| --- | --- | --- | --- |
-| Phase 1: Repository & Docs | 11 | 11 | 0 |
-| Phase 2: MVP Stabilization | 24 | 17 | 7 |
-| Phase 3: Backend & Auth | 19 | 0 | 19 |
-| Phase 4: Production Readiness | 14 | 0 | 14 |
-| Phase 5: Launch & Operations | 9 | 0 | 9 |
-| **Total** | **77** | **28** | **49** |
+- [x] TypeScript validation passes.
+- [x] Production build passes.
+- [x] No unexpected large-bundle regression beyond the known warning.
+- [ ] Onboarding and reset start with clean standings.
+- [ ] Roster create/edit/remove works for players and staff.
+- [ ] Backup export and restore work in a fresh browser.
+- [ ] Match results update standings and player totals once.
+- [ ] Tactics auto-fill matches positions and preserves manual assignments.
+- [ ] Training schedule persists and syncs calendar events.
+- [ ] Full and Quick assessments save, restore, and delete correctly.
+- [ ] League, Bulletins, and Updates all render.
+- [ ] Desktop, mobile, and tablet smoke tests pass.
