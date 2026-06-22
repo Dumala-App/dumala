@@ -4,6 +4,7 @@ import { Player, Game, Standing, Announcement, TeamInfo, AssessmentSession } fro
 import ViewLoadingFallback from './components/ViewLoadingFallback';
 import PwaInstallControl from './components/PwaInstallControl';
 import PwaStatusBanners from './components/PwaStatusBanners';
+import { ViewErrorBoundary } from './components/ErrorBoundary';
 import { applyAssessmentSnapshotToPlayer } from './fprds/scoring';
 import {
   announcementsSchema,
@@ -66,7 +67,7 @@ export default function App() {
     const games = readJsonStorage(STORAGE_KEYS.games, gamesSchema, [], 'Schedule');
     const standings = readJsonStorage(STORAGE_KEYS.standings, standingsSchema, [], 'League standings');
     const announcements = readJsonStorage(STORAGE_KEYS.announcements, announcementsSchema, [], 'Bulletins');
-    const assessments = readJsonStorage(STORAGE_KEYS.assessments, assessmentsSchema, [], 'Assessments');
+    const assessments = readJsonStorage(STORAGE_KEYS.assessments, assessmentsSchema, [], 'Assessments') as AssessmentSession[];
     const onboarded = readBooleanStorage(STORAGE_KEYS.onboarded, false, 'Onboarding');
 
     return {
@@ -341,7 +342,7 @@ export default function App() {
     setGames(backup.core.games);
     setStandings(backup.core.standings);
     setAnnouncements(backup.core.announcements);
-    setAssessments(backup.core.assessments);
+    setAssessments(backup.core.assessments as AssessmentSession[]);
     setIsOnboarded(true);
     setPrimaryTab('squad');
     return summarizeBackup(backup, sourceVersion);
@@ -395,6 +396,10 @@ export default function App() {
     return handleNavigate({ primary: tab });
   };
 
+  const handleReturnHomeFromError = () => {
+    handleNavigate({ primary: 'home', homeTab: 'overview' });
+  };
+
   const recoveryBanner = recoveryWarnings.length > 0 ? (
     <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-amber-900" role="status">
       <div className="flex items-start justify-between gap-3">
@@ -424,22 +429,24 @@ export default function App() {
         </div>
         {recoveryBanner && <div className="mx-auto max-w-3xl px-4 pt-4">{recoveryBanner}</div>}
         <Suspense fallback={<div className="mx-auto max-w-3xl p-4"><ViewLoadingFallback label="onboarding" /></div>}>
-          <OnboardingView
-            onComplete={(team: TeamInfo, coachPlayer: Player) => {
-              setTeamInfo(team);
-              setPlayers([coachPlayer]);
-              setStandings([]);
-              setAssessments([]);
-              setPrimaryTab('home');
-              setHomeTab('overview');
-              writeJsonStorage(STORAGE_KEYS.standings, []);
-              writeJsonStorage(STORAGE_KEYS.assessments, []);
-              setIsOnboarded(true);
-              writeBooleanStorage(STORAGE_KEYS.onboarded, true);
-              writeJsonStorage(STORAGE_KEYS.teamInfo, team);
-              writeJsonStorage(STORAGE_KEYS.players, [coachPlayer]);
-            }}
-          />
+          <ViewErrorBoundary viewName="Onboarding" resetKeys={['onboarding']}>
+            <OnboardingView
+              onComplete={(team: TeamInfo, coachPlayer: Player) => {
+                setTeamInfo(team);
+                setPlayers([coachPlayer]);
+                setStandings([]);
+                setAssessments([]);
+                setPrimaryTab('home');
+                setHomeTab('overview');
+                writeJsonStorage(STORAGE_KEYS.standings, []);
+                writeJsonStorage(STORAGE_KEYS.assessments, []);
+                setIsOnboarded(true);
+                writeBooleanStorage(STORAGE_KEYS.onboarded, true);
+                writeJsonStorage(STORAGE_KEYS.teamInfo, team);
+                writeJsonStorage(STORAGE_KEYS.players, [coachPlayer]);
+              }}
+            />
+          </ViewErrorBoundary>
         </Suspense>
       </div>
     );
@@ -619,73 +626,83 @@ export default function App() {
         <div id="tab-content-frame">
           <Suspense fallback={<ViewLoadingFallback label="workspace" />}>
             {primaryTab === 'home' && (
-              <HomeHubView
-                activeTab={homeTab}
-                onTabChange={setHomeTab}
-                onNavigate={handleNavigate}
-                teamInfo={teamInfo}
-                players={players}
-                games={games}
-                standings={standings}
-                announcements={announcements}
-                assessments={assessments}
-                onSelectPlayer={setSelectedPlayer}
-                onUpdateTeamInfo={handleUpdateTeamInfo}
-                onAddGame={handleAddGame}
-                onRecordResult={handleRecordResult}
-                onDeleteGame={handleDeleteGame}
-                teamName={teamInfo?.name || 'Apex Rangers'}
-              />
+              <ViewErrorBoundary viewName={homeTab === 'overview' ? 'Overview' : 'Game Week'} onReturnHome={handleReturnHomeFromError} resetKeys={[primaryTab, homeTab]}>
+                <HomeHubView
+                  activeTab={homeTab}
+                  onTabChange={setHomeTab}
+                  onNavigate={handleNavigate}
+                  teamInfo={teamInfo}
+                  players={players}
+                  games={games}
+                  standings={standings}
+                  announcements={announcements}
+                  assessments={assessments}
+                  onSelectPlayer={setSelectedPlayer}
+                  onUpdateTeamInfo={handleUpdateTeamInfo}
+                  onAddGame={handleAddGame}
+                  onRecordResult={handleRecordResult}
+                  onDeleteGame={handleDeleteGame}
+                  teamName={teamInfo?.name || 'Apex Rangers'}
+                />
+              </ViewErrorBoundary>
             )}
 
             {primaryTab === 'squad' && (
-              <RosterView
-                players={players}
-                onAddPlayer={handleAddPlayer}
-                onSelectPlayer={setSelectedPlayer}
-                onExportBackup={handleExportBackup}
-                onImportBackup={handleImportBackup}
-                onUpdatePlayer={handleUpdatePlayer}
-              />
+              <ViewErrorBoundary viewName="Squad" onReturnHome={handleReturnHomeFromError} resetKeys={[primaryTab]}>
+                <RosterView
+                  players={players}
+                  onAddPlayer={handleAddPlayer}
+                  onSelectPlayer={setSelectedPlayer}
+                  onExportBackup={handleExportBackup}
+                  onImportBackup={handleImportBackup}
+                  onUpdatePlayer={handleUpdatePlayer}
+                />
+              </ViewErrorBoundary>
             )}
 
             {primaryTab === 'tactics' && (
-              <TacticsView players={players} teamCoach={teamInfo?.coach || ''} teamName={teamInfo?.name || 'Apex Rangers'} teamLogoUrl={teamInfo?.logoUrl} onUpdatePlayer={handleUpdatePlayer} />
+              <ViewErrorBoundary viewName="Tactics" onReturnHome={handleReturnHomeFromError} resetKeys={[primaryTab]}>
+                <TacticsView players={players} teamCoach={teamInfo?.coach || ''} teamName={teamInfo?.name || 'Apex Rangers'} teamLogoUrl={teamInfo?.logoUrl} onUpdatePlayer={handleUpdatePlayer} />
+              </ViewErrorBoundary>
             )}
 
             {primaryTab === 'development' && (
-              <DevelopmentHubView
-                activeTab={developmentTab}
-                onTabChange={setDevelopmentTab}
-                players={players}
-                games={games}
-                onUpdateGames={setGames}
-                onUpdatePlayer={handleUpdatePlayer}
-                assessments={assessments}
-                preselectedAssessmentsPlayerId={preselectedAssessmentsPlayerId}
-                onClearPreselectedAssessmentsPlayerId={() => setPreselectedAssessmentsPlayerId(null)}
-                onAddAssessment={handleAddAssessment}
-                onDeleteAssessment={handleDeleteAssessment}
-              />
+              <ViewErrorBoundary viewName={developmentTab === 'training' ? 'Training' : 'Assessments'} onReturnHome={handleReturnHomeFromError} resetKeys={[primaryTab, developmentTab]}>
+                <DevelopmentHubView
+                  activeTab={developmentTab}
+                  onTabChange={setDevelopmentTab}
+                  players={players}
+                  games={games}
+                  onUpdateGames={setGames}
+                  onUpdatePlayer={handleUpdatePlayer}
+                  assessments={assessments}
+                  preselectedAssessmentsPlayerId={preselectedAssessmentsPlayerId}
+                  onClearPreselectedAssessmentsPlayerId={() => setPreselectedAssessmentsPlayerId(null)}
+                  onAddAssessment={handleAddAssessment}
+                  onDeleteAssessment={handleDeleteAssessment}
+                />
+              </ViewErrorBoundary>
             )}
 
             {primaryTab === 'league_updates' && (
-              <LeagueUpdatesHubView
-                activeTab={leagueUpdatesTab}
-                onTabChange={setLeagueUpdatesTab}
-                standings={standings}
-                onUpdateStanding={handleUpdateStanding}
-                onResetStandings={handleResetStandings}
-                teamName={teamInfo?.name || 'Apex Rangers'}
-                teamInfo={teamInfo}
-                onUpdateTeamInfo={handleUpdateTeamInfo}
-                onUpdateAllStandings={setStandings}
-                players={players}
-                onUpdatePlayer={handleUpdatePlayer}
-                announcements={announcements}
-                onAddAnnouncement={handleAddAnnouncement}
-                onDeleteAnnouncement={handleDeleteAnnouncement}
-              />
+              <ViewErrorBoundary viewName={leagueUpdatesTab === 'league' ? 'League' : leagueUpdatesTab === 'bulletins' ? 'Bulletins' : 'Updates'} onReturnHome={handleReturnHomeFromError} resetKeys={[primaryTab, leagueUpdatesTab]}>
+                <LeagueUpdatesHubView
+                  activeTab={leagueUpdatesTab}
+                  onTabChange={setLeagueUpdatesTab}
+                  standings={standings}
+                  onUpdateStanding={handleUpdateStanding}
+                  onResetStandings={handleResetStandings}
+                  teamName={teamInfo?.name || 'Apex Rangers'}
+                  teamInfo={teamInfo}
+                  onUpdateTeamInfo={handleUpdateTeamInfo}
+                  onUpdateAllStandings={setStandings}
+                  players={players}
+                  onUpdatePlayer={handleUpdatePlayer}
+                  announcements={announcements}
+                  onAddAnnouncement={handleAddAnnouncement}
+                  onDeleteAnnouncement={handleDeleteAnnouncement}
+                />
+              </ViewErrorBoundary>
             )}
           </Suspense>
         </div>

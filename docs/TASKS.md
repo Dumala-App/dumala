@@ -9,10 +9,10 @@ Status values: **Done**, **In Progress**, **Next**, **Planned**, **Long Term**.
 Progress is calculated from the completed capabilities and open checklist items in this document. The roadmap bars track implementation, while Release Validation tracks the latest verified build checks.
 
 ```text
-Overall roadmap                 [#####-----]  48%  47 / 97
+Overall roadmap                 [#####-----]  49%  48 / 98
 
 Shipped beta foundation         [##########] 100%  20 / 20
-Current Beta: Reliability       [#######---]  73%  16 / 22
+Current Beta: Reliability       [#######---]  74%  17 / 23
 FPRDS Beta                      [###-------]  33%   5 / 15
 Phase 1: Offline-ready PWA      [#########-]  86%   6 / 7
 Phase 2: Mobile and tablet      [----------]   0%   0 / 5
@@ -28,7 +28,7 @@ Release validation              [##########] 100%  12 / 12
 | Phase | Completed | Total | Progress | Status |
 | --- | ---: | ---: | ---: | --- |
 | Shipped beta foundation | 20 | 20 | 100% | Done |
-| Current Beta: Reliability and data confidence | 16 | 22 | 73% | In Progress |
+| Current Beta: Reliability and data confidence | 17 | 23 | 74% | In Progress |
 | FPRDS Beta | 5 | 15 | 33% | In Progress |
 | Phase 1: Offline-ready web app | 6 | 7 | 86% | In Progress |
 | Phase 2: Mobile and tablet experience | 0 | 5 | 0% | Planned |
@@ -107,6 +107,7 @@ The FPRDS total includes five capabilities already shipped: assessment workflows
 - [x] **Done:** Complete an empty-state audit across every nested tab.
 - [x] **Done:** Complete keyboard and visible-focus testing for primary workflows.
 - [x] **Done:** Audit dialogs for focus trapping, Escape handling, and focus restoration.
+- [x] **Done:** Add application-level and view-level error boundaries with recoverable fallback screens.
 - [ ] **Planned:** Add consistent validation messages to all forms.
 - [x] **Done:** Add confirmation to remaining destructive match-event actions.
 - [x] **Done:** Verify global focus contrast and reduced-motion behavior.
