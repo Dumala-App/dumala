@@ -145,8 +145,8 @@ export default function AssessmentsView({
     if (!exists) return;
     setSelectedPlayerId(preselectedPlayerId);
     onClearPreselectedPlayer();
-    setStep(2);
-  }, [eligiblePlayers, onClearPreselectedPlayer, preselectedPlayerId]);
+    setStep(assessments.some((session) => session.playerId === preselectedPlayerId) ? 6 : 2);
+  }, [assessments, eligiblePlayers, onClearPreselectedPlayer, preselectedPlayerId]);
 
   useEffect(() => {
     if (!selectedPlayer) return;
@@ -1237,7 +1237,7 @@ export default function AssessmentsView({
                 role={role}
                 assessmentType={assessmentType}
                 ageGroupLabel={ageGroup || 'Select age group'}
-                scorePreview={scorePreview}
+                scorePreview={step === 5 ? scorePreview : null}
               />
             )}
           </div>

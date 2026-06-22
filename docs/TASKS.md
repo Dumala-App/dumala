@@ -9,10 +9,10 @@ Status values: **Done**, **In Progress**, **Next**, **Planned**, **Long Term**.
 Progress is calculated from the completed capabilities and open checklist items in this document. The roadmap bars track implementation, while Release Validation tracks the latest verified build checks.
 
 ```text
-Overall roadmap                 [#####-----]  49%  48 / 98
+Overall roadmap                 [#####-----]  50%  49 / 98
 
 Shipped beta foundation         [##########] 100%  20 / 20
-Current Beta: Reliability       [#######---]  74%  17 / 23
+Current Beta: Reliability       [########--]  78%  18 / 23
 FPRDS Beta                      [###-------]  33%   5 / 15
 Phase 1: Offline-ready PWA      [#########-]  86%   6 / 7
 Phase 2: Mobile and tablet      [----------]   0%   0 / 5
@@ -28,7 +28,7 @@ Release validation              [##########] 100%  12 / 12
 | Phase | Completed | Total | Progress | Status |
 | --- | ---: | ---: | ---: | --- |
 | Shipped beta foundation | 20 | 20 | 100% | Done |
-| Current Beta: Reliability and data confidence | 17 | 23 | 74% | In Progress |
+| Current Beta: Reliability and data confidence | 18 | 23 | 78% | In Progress |
 | FPRDS Beta | 5 | 15 | 33% | In Progress |
 | Phase 1: Offline-ready web app | 6 | 7 | 86% | In Progress |
 | Phase 2: Mobile and tablet experience | 0 | 5 | 0% | Planned |
@@ -41,6 +41,11 @@ Release validation              [##########] 100%  12 / 12
 The FPRDS total includes five capabilities already shipped: assessment workflows, age groups, role scoring, OVR/history/development plans, and backup support. Its ten remaining validation and reporting tasks appear below.
 
 ## Recent changes
+
+### Completed: 2026-06-22
+
+- [x] Extracted assessment snapshot transitions into a pure tested service.
+- [x] Made profile-to-assessment navigation open existing assessment history for the selected player.
 
 ### Completed: 2026-06-15 to 2026-06-21
 
@@ -116,7 +121,7 @@ The FPRDS total includes five capabilities already shipped: assessment workflows
 
 - [x] **Done:** Extract persistence operations from `App.tsx`.
 - [x] **Done:** Extract the match-result service from `App.tsx`.
-- [ ] **Planned:** Extract the assessment snapshot service from `App.tsx`.
+- [x] **Done:** Extract the assessment snapshot service from `App.tsx`.
 - [ ] **Planned:** Replace deprecated `Player.attributes?: any` after migration support is no longer needed.
 - [ ] **Planned:** Split Player and Staff models before credential and permission work.
 - [x] **Done:** Add CI for type-check, tests, production build, PWA verification, and build artifacts.
