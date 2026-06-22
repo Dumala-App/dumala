@@ -153,7 +153,7 @@ The FPRDS total includes nine completed capabilities: the five shipped assessmen
 - [x] **Done:** Add a production-only service worker with an explicit Workbox caching strategy.
 - [x] **Done:** Precache generated application assets, icons, logos, local placeholder artwork, DM Sans, and Manrope.
 - [x] **Done:** Add offline, reconnect, offline-ready, update-available, and registration-error indicators.
-- [ ] **Next:** Test cold launch and refresh while offline.
+- [x] **Done:** Automate production cold-launch and refresh verification while offline.
 - [x] **Done:** Define user-controlled service-worker update and Vercel rollback behavior.
 - [x] **Done:** Move DM Sans and Manrope into the repository for guaranteed offline typography.
 
