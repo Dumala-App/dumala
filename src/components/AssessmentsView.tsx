@@ -18,7 +18,6 @@ import {
 import AssessmentQuickGuide from './AssessmentQuickGuide';
 import { generateFourWeekPlan } from '../fprds/development';
 import {
-  applyAssessmentSnapshotToPlayer,
   computeAgeGroupFromDob,
   computeScoresForSession,
   getAttributeLabel
@@ -36,7 +35,6 @@ interface AssessmentsViewProps {
   onClearPreselectedPlayer: () => void;
   onAddAssessment: (session: AssessmentSession) => void;
   onDeleteAssessment: (sessionId: string) => void;
-  onUpdatePlayer: (player: Player) => void;
 }
 
 const getDefaultRoleForPlayer = (player: Player): FprdsRole => {
@@ -108,8 +106,7 @@ export default function AssessmentsView({
   preselectedPlayerId,
   onClearPreselectedPlayer,
   onAddAssessment,
-  onDeleteAssessment,
-  onUpdatePlayer
+  onDeleteAssessment
 }: AssessmentsViewProps) {
   const eligiblePlayers = useMemo(() => players.filter(p => !isStaffPosition(p.position)), [players]);
 
@@ -662,15 +659,6 @@ export default function AssessmentsView({
     };
 
     onAddAssessment(session);
-
-    const updatedPlayer = applyAssessmentSnapshotToPlayer(
-      {
-        ...selectedPlayer,
-        fprdsRole: role
-      },
-      session
-    );
-    onUpdatePlayer(updatedPlayer);
 
     setStep(6);
   };

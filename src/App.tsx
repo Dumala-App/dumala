@@ -5,7 +5,7 @@ import ViewLoadingFallback from './components/ViewLoadingFallback';
 import PwaInstallControl from './components/PwaInstallControl';
 import PwaStatusBanners from './components/PwaStatusBanners';
 import { ViewErrorBoundary } from './components/ErrorBoundary';
-import { applyAssessmentSnapshotToPlayer } from './fprds/scoring';
+import { addAssessmentToWorkspace, deleteAssessmentFromWorkspace } from './fprds/assessmentService';
 import {
   announcementsSchema,
   assessmentsSchema,
@@ -254,38 +254,19 @@ export default function App() {
   };
 
   const handleAddAssessment = (session: AssessmentSession) => {
-    setAssessments(prev => [session, ...prev]);
+    const transition = addAssessmentToWorkspace({ players, assessments }, session);
+    if (!transition) return;
+
+    setPlayers(transition.players);
+    setAssessments(transition.assessments);
   };
 
   const handleDeleteAssessment = (sessionId: string) => {
-    setAssessments(prev => {
-      const target = prev.find(s => s.id === sessionId);
-      const next = prev.filter(s => s.id !== sessionId);
+    const transition = deleteAssessmentFromWorkspace({ players, assessments }, sessionId);
+    if (!transition) return;
 
-      if (target) {
-        setPlayers(playersPrev => {
-          const player = playersPrev.find(p => p.id === target.playerId);
-          if (!player) return playersPrev;
-
-          const latest = next
-            .filter(s => s.playerId === target.playerId)
-            .sort((a, b) => {
-              const ad = new Date(a.assessmentDate).getTime();
-              const bd = new Date(b.assessmentDate).getTime();
-              if (ad !== bd) return bd - ad;
-              return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-            })[0];
-
-          const updatedPlayer = latest
-            ? applyAssessmentSnapshotToPlayer(player, latest)
-            : { ...player, fprdsLastAssessmentId: undefined };
-
-          return playersPrev.map(p => (p.id === updatedPlayer.id ? updatedPlayer : p));
-        });
-      }
-
-      return next;
-    });
+    setPlayers(transition.players);
+    setAssessments(transition.assessments);
   };
 
   const downloadBackup = (backup: WorkspaceBackupV2, fileName: string) => {
