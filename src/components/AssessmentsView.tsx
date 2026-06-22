@@ -18,7 +18,6 @@ import {
 import AssessmentQuickGuide from './AssessmentQuickGuide';
 import { generateFourWeekPlan } from '../fprds/development';
 import {
-  applyAssessmentSnapshotToPlayer,
   computeAgeGroupFromDob,
   computeScoresForSession,
   getAttributeLabel
@@ -36,7 +35,6 @@ interface AssessmentsViewProps {
   onClearPreselectedPlayer: () => void;
   onAddAssessment: (session: AssessmentSession) => void;
   onDeleteAssessment: (sessionId: string) => void;
-  onUpdatePlayer: (player: Player) => void;
 }
 
 const getDefaultRoleForPlayer = (player: Player): FprdsRole => {
@@ -108,8 +106,7 @@ export default function AssessmentsView({
   preselectedPlayerId,
   onClearPreselectedPlayer,
   onAddAssessment,
-  onDeleteAssessment,
-  onUpdatePlayer
+  onDeleteAssessment
 }: AssessmentsViewProps) {
   const eligiblePlayers = useMemo(() => players.filter(p => !isStaffPosition(p.position)), [players]);
 
@@ -148,8 +145,8 @@ export default function AssessmentsView({
     if (!exists) return;
     setSelectedPlayerId(preselectedPlayerId);
     onClearPreselectedPlayer();
-    setStep(2);
-  }, [eligiblePlayers, onClearPreselectedPlayer, preselectedPlayerId]);
+    setStep(assessments.some((session) => session.playerId === preselectedPlayerId) ? 6 : 2);
+  }, [assessments, eligiblePlayers, onClearPreselectedPlayer, preselectedPlayerId]);
 
   useEffect(() => {
     if (!selectedPlayer) return;
@@ -662,15 +659,6 @@ export default function AssessmentsView({
     };
 
     onAddAssessment(session);
-
-    const updatedPlayer = applyAssessmentSnapshotToPlayer(
-      {
-        ...selectedPlayer,
-        fprdsRole: role
-      },
-      session
-    );
-    onUpdatePlayer(updatedPlayer);
 
     setStep(6);
   };
@@ -1249,7 +1237,7 @@ export default function AssessmentsView({
                 role={role}
                 assessmentType={assessmentType}
                 ageGroupLabel={ageGroup || 'Select age group'}
-                scorePreview={scorePreview}
+                scorePreview={step === 5 ? scorePreview : null}
               />
             )}
           </div>

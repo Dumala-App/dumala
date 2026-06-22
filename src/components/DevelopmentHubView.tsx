@@ -59,7 +59,6 @@ export default function DevelopmentHubView(props: DevelopmentHubViewProps) {
             onClearPreselectedPlayer={props.onClearPreselectedAssessmentsPlayerId}
             onAddAssessment={props.onAddAssessment}
             onDeleteAssessment={props.onDeleteAssessment}
-            onUpdatePlayer={props.onUpdatePlayer}
           />
         ) : (
           <TrainingView players={props.players} onUpdatePlayer={props.onUpdatePlayer} games={props.games} onUpdateGames={props.onUpdateGames} />
