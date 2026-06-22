@@ -226,7 +226,9 @@ Import continues to accept legacy versions `1.0.0` and `1.1.0`. Legacy files are
 5. verifies generated service-worker and offline-cache policy
 6. retains the generated `dist/` artifact for seven days
 
-The workflow has read-only repository permissions, cancels superseded runs on the same branch, and applies a 15-minute timeout. Branch protection should require the **TypeScript, tests, build, and PWA** check before merging pull requests. Direct pushes to `main` should be avoided when that protection is enabled.
+The workflow has read-only repository permissions, cancels superseded runs on the same branch, and applies a 15-minute timeout.
+
+The `main` branch is protected in the private `Dumala-App/stack-team-manager` repository. All changes must arrive through a pull request, the **TypeScript, tests, build, and PWA** check must pass, and the pull-request branch must be current with `main`. Administrators cannot bypass these requirements. Force pushes and branch deletion are disabled. Vercel production therefore receives changes only after GitHub accepts a validated merge into `main`.
 
 ### Metadata and offline shell
 

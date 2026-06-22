@@ -79,6 +79,7 @@ The FPRDS total includes five capabilities already shipped: assessment workflows
 - [x] Added repeatable generated-service-worker policy verification.
 - [x] Self-hosted DM Sans and Manrope for reliable offline typography.
 - [x] Added GitHub Actions CI for TypeScript, tests, production build, and PWA verification.
+- [x] Protected `main` with pull requests, required current CI, no bypass, and no force-push or deletion access.
 - [x] Updated PRD, MVP, architecture, roadmap, audit, tasks, and README.
 
 ## Current Beta: Reliability and data confidence
