@@ -14,7 +14,20 @@ import {
   Legend
 } from 'recharts';
 
-const CustomTooltip = ({ active, payload, label }: any) => {
+type PlayerProgressPoint = {
+  name: string;
+  opponent: string;
+  points: number;
+  cumulative: number;
+  dataLabel: string;
+};
+type PlayerTooltipProps = {
+  active?: boolean;
+  label?: string;
+  payload?: Array<{ payload: PlayerProgressPoint }>;
+};
+
+const CustomTooltip = ({ active, payload, label }: PlayerTooltipProps) => {
   if (active && payload && payload.length) {
     const data = payload[0].payload;
     return (

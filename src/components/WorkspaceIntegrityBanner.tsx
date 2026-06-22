@@ -1,6 +1,7 @@
 import { AlertTriangle, ArrowRight, Download, RefreshCw, X } from 'lucide-react';
 import {
   getActionableIntegrityFindings,
+  type IntegrityFinding,
   type IntegritySection,
   type WorkspaceIntegrityReport
 } from '../integrity/workspaceIntegrity';
@@ -10,6 +11,7 @@ interface WorkspaceIntegrityBannerProps {
   onDismiss: () => void;
   onExportBackup: () => void;
   onOpenSection: (section: IntegritySection) => void;
+  onOpenFinding: (finding: IntegrityFinding) => void;
   onRerun: () => void;
 }
 
@@ -27,15 +29,21 @@ export default function WorkspaceIntegrityBanner({
   onDismiss,
   onExportBackup,
   onOpenSection,
+  onOpenFinding,
   onRerun
 }: WorkspaceIntegrityBannerProps) {
-  const findings = getActionableIntegrityFindings(report);
+  const findings = getActionableIntegrityFindings(report).sort((left, right) => {
+    const severityOrder = { error: 0, warning: 1, info: 2 };
+    return severityOrder[left.severity] - severityOrder[right.severity];
+  });
   if (findings.length === 0) return null;
 
   const sections = [...new Set(findings.map(item => item.section))];
   const targetSection = SECTION_PRIORITY.find(section => sections.includes(section)) ?? sections[0];
   const errorCount = findings.filter(item => item.severity === 'error').length;
   const warningCount = findings.length - errorCount;
+  const previewFindings = findings.slice(0, 4);
+  const hiddenCount = findings.length - previewFindings.length;
 
   return (
     <section
@@ -65,6 +73,45 @@ export default function WorkspaceIntegrityBanner({
             >
               <X size={15} />
             </button>
+          </div>
+
+          <div className="mt-3 space-y-2">
+            {previewFindings.map((finding) => (
+              <div
+                key={`${finding.code}:${finding.relatedIds.join(':')}`}
+                className="rounded-md border border-amber-200 bg-white/80 px-3 py-2"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className={`rounded-full px-2 py-0.5 text-[10px] font-black uppercase tracking-wider ${
+                        finding.severity === 'error'
+                          ? 'bg-rose-100 text-rose-700'
+                          : 'bg-amber-100 text-amber-800'
+                      }`}>
+                        {finding.severity}
+                      </span>
+                      <span className="text-[10px] font-black uppercase tracking-wider text-amber-900">
+                        {SECTION_LABELS[finding.section]}
+                      </span>
+                    </div>
+                    <p className="mt-1 text-xs leading-relaxed text-amber-950">{finding.message}</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => onOpenFinding(finding)}
+                    className="inline-flex shrink-0 items-center gap-1 rounded-md border border-amber-300 bg-amber-100 px-2 py-1 text-[11px] font-black text-amber-950 hover:bg-amber-200"
+                  >
+                    Review <ArrowRight size={12} />
+                  </button>
+                </div>
+              </div>
+            ))}
+            {hiddenCount > 0 && (
+              <p className="text-[11px] font-semibold text-amber-900">
+                {hiddenCount} more issue{hiddenCount === 1 ? '' : 's'} are hidden in this summary. Rerun the check after each fix to work through them.
+              </p>
+            )}
           </div>
 
           <div className="mt-3 flex flex-wrap gap-2">

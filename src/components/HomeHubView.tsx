@@ -41,6 +41,7 @@ interface HomeHubViewProps {
   ) => void;
   onDeleteGame: (gameId: string) => void;
   teamName: string;
+  highlightGameId?: string | null;
 }
 
 const TabPill = (props: { label: string; isActive: boolean; onClick: () => void }) => {
@@ -92,6 +93,7 @@ export default function HomeHubView(props: HomeHubViewProps) {
             onRecordResult={props.onRecordResult}
             onDeleteGame={props.onDeleteGame}
             teamName={props.teamName}
+            highlightGameId={props.highlightGameId}
           />
         )}
       </Suspense>

@@ -202,6 +202,16 @@ export interface AssessmentDeltas {
   attributeDeltas?: Partial<Record<FprdsAttributeId, number>>;
 }
 
+export interface LegacyPlayerAttributes {
+  speed?: number;
+  shooting?: number;
+  passing?: number;
+  dribbling?: number;
+  defending?: number;
+  physicalness?: number;
+  [key: string]: unknown;
+}
+
 export interface AssessmentSession {
   id: string;
   playerId: string;
@@ -259,7 +269,8 @@ export interface Player {
     shortPassing: number;
   };
   positionAttributes: Record<string, number>;
-  attributes?: any; // Deprecated, kept for migration type safety
+  // Deprecated legacy migration boundary. New player data uses baseAttributes and positionAttributes.
+  attributes?: LegacyPlayerAttributes;
   registrationStatus: 'Active' | 'Pending' | 'Suspended';
 }
 

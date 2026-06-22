@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Player, isStaffPosition, STAFF_POSITIONS, SPECIALTY_TRAITS, SpecialtyTrait, POSITION_ATTRIBUTES_MAP } from '../types';
 import { 
   UserPlus, Search, Shield, Plus, AlertCircle, Download, Upload,
@@ -16,9 +16,10 @@ interface RosterViewProps {
   onExportBackup: () => void;
   onImportBackup: (file: File) => Promise<BackupRestoreSummary>;
   onUpdatePlayer?: (player: Player) => void;
+  highlightPlayerId?: string | null;
 }
 
-export default function RosterView({ players, onAddPlayer, onSelectPlayer, onExportBackup, onImportBackup, onUpdatePlayer }: RosterViewProps) {
+export default function RosterView({ players, onAddPlayer, onSelectPlayer, onExportBackup, onImportBackup, onUpdatePlayer, highlightPlayerId }: RosterViewProps) {
   // Search & Basic Filter State
   const [searchTerm, setSearchTerm] = useState("");
   const [filterPos, setFilterPos] = useState("All");
@@ -28,6 +29,13 @@ export default function RosterView({ players, onAddPlayer, onSelectPlayer, onExp
   const [showCompareWidget, setShowCompareWidget] = useState(false);
   const [backupMessage, setBackupMessage] = useState('');
   const importInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (!highlightPlayerId) return;
+    const card = document.getElementById(`player-${highlightPlayerId}-card`);
+    if (!card) return;
+    card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }, [highlightPlayerId]);
 
   const handleImportFile = async (file?: File) => {
     if (!file) return;
@@ -889,6 +897,7 @@ export default function RosterView({ players, onAddPlayer, onSelectPlayer, onExp
           {activeRoster.length > 0 ? (
             <div id="roster-grid" className="grid grid-cols-1 items-stretch sm:grid-cols-2 lg:grid-cols-4 gap-4">
               {activeRoster.map((player) => {
+                const isIntegrityHighlighted = highlightPlayerId === player.id;
                 const ovr = calculateOVR(player.baseAttributes, player.positionAttributes);
                 const bAttr = player.baseAttributes || { pace: 50, stamina: 50, agility: 50, strength: 50, firstTouch: 50, shortPassing: 50 };
                 const pAttr = player.positionAttributes || {};
@@ -942,7 +951,9 @@ export default function RosterView({ players, onAddPlayer, onSelectPlayer, onExp
                     id={`player-${player.id}-card`}
                     key={player.id}
                     whileHover={{ y: -6, scale: 1.02 }}
-                    className="h-full rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition-all cursor-pointer group flex flex-col"
+                    className={`h-full rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition-all cursor-pointer group flex flex-col ${
+                      isIntegrityHighlighted ? 'ring-4 ring-amber-300 ring-offset-2 ring-offset-slate-50' : ''
+                    }`}
                     style={{
                       background: '#1a1a2e'
                     }}
@@ -967,6 +978,13 @@ export default function RosterView({ players, onAddPlayer, onSelectPlayer, onExp
                           {shortPos}
                         </span>
                       </div>
+                      {isIntegrityHighlighted && (
+                        <div className="absolute top-3 right-16">
+                          <span className="rounded-md border border-amber-200 bg-amber-100 px-2 py-1 text-[10px] font-black uppercase tracking-wider text-amber-900">
+                            Review
+                          </span>
+                        </div>
+                      )}
 
                       {/* Jersey number - top right */}
                       <div className="absolute top-3 right-3">

@@ -26,7 +26,20 @@ interface StandingsViewProps {
   onUpdateAllStandings: (updated: Standing[]) => void;
   players: Player[];
   onUpdatePlayer: (updated: Player) => void;
+  highlightStandingTeamName?: string | null;
 }
+
+type CardType = PlayerOffense['cardType'];
+
+const CARD_TYPES: readonly CardType[] = ['Yellow', 'Red', 'Second Yellow', 'Straight Red'];
+
+const parseCardType = (value: string): CardType => (
+  CARD_TYPES.includes(value as CardType) ? value as CardType : 'Yellow'
+);
+
+const toStandingAnchorId = (teamName: string): string => (
+  `standing-row-${teamName.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`
+);
 
 interface StandingsBackup {
   id: string;
@@ -45,7 +58,8 @@ export default function StandingsView({
   onUpdateTeamInfo,
   onUpdateAllStandings,
   players,
-  onUpdatePlayer
+  onUpdatePlayer,
+  highlightStandingTeamName
 }: StandingsViewProps) {
   const resetDialogRef = useRef<HTMLDivElement | null>(null);
   // Editing individual team row state
@@ -128,6 +142,13 @@ export default function StandingsView({
     );
     if (!alreadySaved) createStandingsBackup('sunday');
   }, [sundayBackupEnabled, standings.length]);
+
+  useEffect(() => {
+    if (!highlightStandingTeamName) return;
+    const row = document.getElementById(toStandingAnchorId(highlightStandingTeamName));
+    if (!row) return;
+    row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }, [highlightStandingTeamName, standings]);
 
   const startEdit = (team: Standing) => {
     setEditingTeam(team.teamName);
@@ -368,6 +389,15 @@ export default function StandingsView({
       </div>
 
       {/* Expandable Forms Panel */}
+      {highlightStandingTeamName && !standings.some(team => team.teamName.toLowerCase() === highlightStandingTeamName.toLowerCase()) && (
+        <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950">
+          <p className="font-black uppercase tracking-wider text-[11px]">Missing standings row</p>
+          <p className="mt-1 text-xs leading-relaxed">
+            Review "{highlightStandingTeamName}". The integrity check found match history that references this club, but there is no standings row to highlight yet.
+          </p>
+        </div>
+      )}
+
       <AnimatePresence mode="wait">
         {showAddClubPanel && (
           <motion.div 
@@ -615,12 +645,17 @@ export default function StandingsView({
                 sortedStandings.map((team, idx) => {
                   const gd = team.goalsFor - team.goalsAgainst;
                   const isUser = team.isUserTeam || team.teamName.toLowerCase() === teamName.toLowerCase();
+                  const isIntegrityHighlighted = highlightStandingTeamName === team.teamName;
 
                   return (
                     <tr 
-                      id={`standing-row-rank-${team.rank}`}
+                      id={toStandingAnchorId(team.teamName)}
                       key={team.teamName}
                       className={`transition-colors ${
+                        isIntegrityHighlighted
+                          ? 'bg-amber-50 ring-2 ring-inset ring-amber-200'
+                          : ''
+                      } ${
                         isUser 
                           ? 'bg-blue-50/50 font-semibold hover:bg-blue-50' 
                           : 'hover:bg-slate-50/50 text-slate-600'
@@ -651,6 +686,11 @@ export default function StandingsView({
                         ) : (
                           <div className="flex items-center gap-2">
                             <span className="truncate max-w-[170px]">{team.teamName}</span>
+                            {isIntegrityHighlighted && (
+                              <span className="bg-amber-100 text-amber-900 text-[9px] font-bold px-1.5 py-0.5 rounded uppercase shrink-0 border border-amber-200">
+                                Review
+                              </span>
+                            )}
                             {isUser && (
                               <span className="bg-indigo-600 text-white text-[9px] font-bold px-1.5 py-0.5 rounded uppercase shrink-0">
                                 My Team
@@ -1017,7 +1057,7 @@ function DisciplinaryRecords({
   
   const [selectedPlayerId, setSelectedPlayerId] = useState('');
   const [offenseDate, setOffenseDate] = useState(new Date().toISOString().split('T')[0]);
-  const [cardType, setCardType] = useState<'Yellow' | 'Red' | 'Second Yellow' | 'Straight Red'>('Yellow');
+  const [cardType, setCardType] = useState<CardType>('Yellow');
   const [reason, setReason] = useState('');
   const [offenseMinute, setOffenseMinute] = useState('');
   const [opponent, setOpponent] = useState('');
@@ -1188,7 +1228,7 @@ function DisciplinaryRecords({
               </div>
               <div>
                 <label className="block text-[8px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Card *</label>
-                <select value={cardType} onChange={e => setCardType(e.target.value as any)} className="w-full border border-slate-200 rounded-md p-1.5 text-[10px] focus:ring-2 focus:ring-indigo-500 focus:outline-none bg-white font-medium">
+                <select value={cardType} onChange={e => setCardType(parseCardType(e.target.value))} className="w-full border border-slate-200 rounded-md p-1.5 text-[10px] focus:ring-2 focus:ring-indigo-500 focus:outline-none bg-white font-medium">
                   <option value="Yellow">🟨 Yellow</option>
                   <option value="Second Yellow">🟨🟨 2nd Yellow</option>
                   <option value="Straight Red">🟥 Straight Red</option>

@@ -189,6 +189,14 @@ describe('workspace integrity checker', () => {
       'PLAYER_MVP_MISMATCH',
       'PLAYER_CLEAN_SHEETS_MISMATCH'
     ]));
+    expect(check({ players: brokenPlayers }).findings).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        code: 'PLAYER_GOALS_MISMATCH',
+        focusId: 'forward',
+        focusLabel: 'Forward One',
+        message: "Forward One has 1 saved goals, but recorded scorers total 2."
+      })
+    ]));
   });
 
   it('treats incomplete historical player credits as a warning instead of guessing', () => {
@@ -218,6 +226,18 @@ describe('workspace integrity checker', () => {
 
     expect(codes).toContain('STANDING_OPPONENT_MISSING');
     expect(codes).toContain('GAME_SCORER_NAME_AMBIGUOUS');
+    expect(report.findings).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        code: 'STANDING_OPPONENT_MISSING',
+        focusId: 'Missing Club',
+        focusLabel: 'Missing Club'
+      }),
+      expect.objectContaining({
+        code: 'GAME_SCORER_NAME_AMBIGUOUS',
+        focusId: historicalGame.id,
+        focusLabel: `${historicalGame.date} vs ${historicalGame.opponent}`
+      })
+    ]));
   });
 
   it('reports assist totals as informational when event data cannot verify them', () => {

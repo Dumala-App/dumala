@@ -9,10 +9,10 @@ Status values: **Done**, **In Progress**, **Next**, **Planned**, **Long Term**.
 Progress is calculated from the completed capabilities and open checklist items in this document. The roadmap bars track implementation, while Release Validation tracks the latest verified build checks.
 
 ```text
-Overall roadmap                 [######----]  55%  54 / 98
+Overall roadmap                 [######----]  56%  55 / 98
 
 Shipped beta foundation         [##########] 100%  20 / 20
-Current Beta: Reliability       [########--]  83%  19 / 23
+Current Beta: Reliability       [#########-]  87%  20 / 23
 FPRDS Beta                      [######----]  60%   9 / 15
 Phase 1: Offline-ready PWA      [#########-]  86%   6 / 7
 Phase 2: Mobile and tablet      [----------]   0%   0 / 5
@@ -28,7 +28,7 @@ Release validation              [##########] 100%  12 / 12
 | Phase | Completed | Total | Progress | Status |
 | --- | ---: | ---: | ---: | --- |
 | Shipped beta foundation | 20 | 20 | 100% | Done |
-| Current Beta: Reliability and data confidence | 19 | 23 | 83% | In Progress |
+| Current Beta: Reliability and data confidence | 20 | 23 | 87% | In Progress |
 | FPRDS Beta | 9 | 15 | 60% | In Progress |
 | Phase 1: Offline-ready web app | 6 | 7 | 86% | In Progress |
 | Phase 2: Mobile and tablet experience | 0 | 5 | 0% | Planned |
@@ -48,6 +48,7 @@ The FPRDS total includes nine completed capabilities: the five shipped assessmen
 - [x] Extracted and tested deterministic tactics auto-fill and training-calendar synchronization.
 - [x] Added a non-mutating workspace integrity checker for completed games, standings, and player totals.
 - [x] Added an actionable integrity warning with review, backup, rerun, and session-dismiss controls.
+- [x] Removed avoidable application-facing `any` usage from assessment, tactics, select, and chart typing boundaries.
 
 ### Completed: 2026-06-22
 
@@ -129,7 +130,7 @@ The FPRDS total includes nine completed capabilities: the five shipped assessmen
 - [x] **Done:** Extract persistence operations from `App.tsx`.
 - [x] **Done:** Extract the match-result service from `App.tsx`.
 - [x] **Done:** Extract the assessment snapshot service from `App.tsx`.
-- [ ] **Planned:** Replace deprecated `Player.attributes?: any` after migration support is no longer needed.
+- [x] **Done:** Replace avoidable application-facing `any` usage while keeping a typed legacy player-attributes boundary.
 - [ ] **Planned:** Split Player and Staff models before credential and permission work.
 - [x] **Done:** Add CI for type-check, tests, production build, PWA verification, and build artifacts.
 

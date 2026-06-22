@@ -20,6 +20,8 @@ export interface IntegrityFinding {
   section: IntegritySection;
   message: string;
   relatedIds: string[];
+  focusId?: string;
+  focusLabel?: string;
 }
 
 export interface WorkspaceIntegrityReport {
@@ -63,8 +65,9 @@ const finding = (
   severity: IntegritySeverity,
   section: IntegritySection,
   message: string,
-  relatedIds: string[]
-): IntegrityFinding => ({ code, severity, section, message, relatedIds });
+  relatedIds: string[],
+  focus?: Partial<Pick<IntegrityFinding, 'focusId' | 'focusLabel'>>
+): IntegrityFinding => ({ code, severity, section, message, relatedIds, ...focus });
 
 const projectStanding = (
   standing: Standing,
@@ -97,8 +100,12 @@ const checkStanding = (
         `STANDING_${field.toUpperCase()}_BELOW_MATCHES`,
         'error',
         'standings',
-        `${standing.teamName} has less ${field} than completed league matches require.`,
-        relatedIds
+        `${standing.teamName} has ${standing[field]} ${field}, but completed league matches require at least ${expected[field]}.`,
+        relatedIds,
+        {
+          focusId: standing.teamName,
+          focusLabel: standing.teamName
+        }
       ));
     }
   }
@@ -121,8 +128,12 @@ const checkStanding = (
       'STANDING_EXTERNAL_TOTALS_INCONSISTENT',
       'warning',
       'standings',
-      `${standing.teamName} has manual or external totals that do not reconcile with wins, draws, and losses.`,
-      relatedIds
+      `${standing.teamName} includes external totals that do not reconcile: played ${standing.played}, won ${standing.won}, drawn ${standing.drawn}, lost ${standing.lost}, points ${standing.points}.`,
+      relatedIds,
+      {
+        focusId: standing.teamName,
+        focusLabel: standing.teamName
+      }
     ));
   }
 
@@ -166,8 +177,12 @@ export const checkWorkspaceIntegrity = (
         'STANDING_OPPONENT_MISSING',
         'warning',
         'standings',
-        `${game.opponent} is missing from standings for a completed league match.`,
-        [game.id]
+        `${game.opponent} is missing from standings, but appears in completed league match ${game.date} vs ${input.teamName}.`,
+        [game.id, game.opponent],
+        {
+          focusId: game.opponent,
+          focusLabel: game.opponent
+        }
       ));
     }
   }
@@ -197,8 +212,13 @@ export const checkWorkspaceIntegrity = (
           'GAME_SCORER_PLAYER_MISSING',
           'warning',
           'games',
-          `A scorer recorded for ${game.opponent} no longer matches a roster player.`,
+          `Scorer data in ${game.date} vs ${game.opponent} points to a player who is no longer in the roster.`,
           [game.id, scorer.playerId]
+          ,
+          {
+            focusId: game.id,
+            focusLabel: `${game.date} vs ${game.opponent}`
+          }
         ));
       }
       if (!scorer.playerId) {
@@ -210,8 +230,12 @@ export const checkWorkspaceIntegrity = (
             'GAME_SCORER_NAME_AMBIGUOUS',
             'warning',
             'games',
-            `A scorer recorded for ${game.opponent} cannot be matched uniquely to the roster.`,
-            [game.id]
+            `Scorer "${scorer.playerName}" in ${game.date} vs ${game.opponent} cannot be matched uniquely to the roster.`,
+            [game.id],
+            {
+              focusId: game.id,
+              focusLabel: `${game.date} vs ${game.opponent}`
+            }
           ));
         }
       }
@@ -226,8 +250,12 @@ export const checkWorkspaceIntegrity = (
         'PLAYER_APPEARANCES_MISMATCH',
         'error',
         'players',
-        `${player.name}'s appearances do not match completed match credits.`,
-        [player.id]
+        `${player.name} has ${player.gamesPlayed} appearances, but completed match credits total ${expected.appearances}.`,
+        [player.id],
+        {
+          focusId: player.id,
+          focusLabel: player.name
+        }
       ));
     }
     if (player.points !== expected.goals) {
@@ -235,8 +263,12 @@ export const checkWorkspaceIntegrity = (
         'PLAYER_GOALS_MISMATCH',
         'error',
         'players',
-        `${player.name}'s goals do not match recorded scorers.`,
-        [player.id]
+        `${player.name} has ${player.points} saved goals, but recorded scorers total ${expected.goals}.`,
+        [player.id],
+        {
+          focusId: player.id,
+          focusLabel: player.name
+        }
       ));
     }
     if (!hasLegacyCredits && player.cleanSheetsOrRebounds !== expected.cleanSheets) {
@@ -244,8 +276,12 @@ export const checkWorkspaceIntegrity = (
         'PLAYER_CLEAN_SHEETS_MISMATCH',
         'warning',
         'players',
-        `${player.name}'s clean sheets do not match completed match credits.`,
-        [player.id]
+        `${player.name} has ${player.cleanSheetsOrRebounds} clean sheets, but completed match credits total ${expected.cleanSheets}.`,
+        [player.id],
+        {
+          focusId: player.id,
+          focusLabel: player.name
+        }
       ));
     }
     if (!hasLegacyCredits && player.mvpAwards !== expected.mvpAwards) {
@@ -253,8 +289,12 @@ export const checkWorkspaceIntegrity = (
         'PLAYER_MVP_MISMATCH',
         'warning',
         'players',
-        `${player.name}'s MVP total does not match completed matches.`,
-        [player.id]
+        `${player.name} has ${player.mvpAwards} MVP awards, but completed matches credit ${expected.mvpAwards}.`,
+        [player.id],
+        {
+          focusId: player.id,
+          focusLabel: player.name
+        }
       ));
     }
     if (player.assists > 0) {

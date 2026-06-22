@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Game, Player, Standing } from '../types';
 import { Calendar, MapPin, Award, Plus, Edit, RefreshCw, Trophy, Clock, Trash2, ChevronLeft, ChevronRight, CalendarDays, Users, Dumbbell, Sparkles, CheckCircle2, XCircle, HelpCircle, BarChart3, TrendingUp, AlertTriangle } from 'lucide-react';
 import { motion } from 'motion/react';
@@ -21,9 +21,18 @@ interface ScheduleViewProps {
   ) => void;
   onDeleteGame: (gameId: string) => void;
   teamName?: string;
+  highlightGameId?: string | null;
 }
 
-export default function ScheduleView({ games, players, standings, onAddGame, onRecordResult, onDeleteGame, teamName }: ScheduleViewProps) {
+type GameType = Game['type'];
+
+const GAME_TYPES: readonly GameType[] = ['League', 'Cup', 'Friendly', 'Training', 'Meeting'];
+
+const parseGameType = (value: string): GameType => (
+  GAME_TYPES.includes(value as GameType) ? value as GameType : 'League'
+);
+
+export default function ScheduleView({ games, players, standings, onAddGame, onRecordResult, onDeleteGame, teamName, highlightGameId }: ScheduleViewProps) {
   const resultDialogRef = useRef<HTMLDivElement | null>(null);
   const [filterTab, setFilterTab] = useState<'Upcoming' | 'Completed'>('Upcoming');
   
@@ -93,6 +102,21 @@ export default function ScheduleView({ games, players, standings, onAddGame, onR
   // Coach note editor state
   const [coachEditGameId, setCoachEditGameId] = useState<string | null>(null);
   const [coachDraft, setCoachDraft] = useState('');
+
+  useEffect(() => {
+    if (!highlightGameId) return;
+    const highlightedGame = games.find(game => game.id === highlightGameId);
+    if (!highlightedGame) return;
+    setFilterTab(highlightedGame.status === 'Completed' ? 'Completed' : 'Upcoming');
+    setSelectedDateStr(null);
+  }, [games, highlightGameId]);
+
+  useEffect(() => {
+    if (!highlightGameId) return;
+    const card = document.getElementById(`game-item-${highlightGameId}`);
+    if (!card) return;
+    card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }, [games, filterTab, highlightGameId, selectedDateStr]);
 
   // Date helper functions
   const formatDateString = (d: Date) => {
@@ -380,7 +404,7 @@ export default function ScheduleView({ games, players, standings, onAddGame, onR
               <select
                 id="new-game-type"
                 value={type}
-                onChange={e => setType(e.target.value as any)}
+                onChange={e => setType(parseGameType(e.target.value))}
                 className="w-full border border-slate-200 rounded-xl p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
               >
                 <option value="League">🏆 League Match</option>
@@ -1009,6 +1033,7 @@ export default function ScheduleView({ games, players, standings, onAddGame, onR
               </div>
             ) : (
               filteredGames.map((game) => {
+                const isIntegrityHighlighted = highlightGameId === game.id;
                 const daysLeft = Math.ceil((new Date(game.date).getTime() - Date.now()) / (1000 * 3600 * 24));
                 const mvpName = players.find(p => p.id === game.mvpId)?.name;
 
@@ -1027,7 +1052,9 @@ export default function ScheduleView({ games, players, standings, onAddGame, onR
                     key={game.id}
                     initial={{ opacity: 0, y: 5 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="bg-white rounded-2xl border border-slate-200/60 p-5 shadow-sm shadow-slate-100/35 hover:border-indigo-200 hover:shadow-lg transition-all duration-300 flex flex-col md:flex-row items-start md:items-center justify-between gap-4"
+                    className={`bg-white rounded-2xl border p-5 shadow-sm shadow-slate-100/35 hover:border-indigo-200 hover:shadow-lg transition-all duration-300 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 ${
+                      isIntegrityHighlighted ? 'border-amber-300 ring-4 ring-amber-200' : 'border-slate-200/60'
+                    }`}
                   >
                     
                     {/* Left side details */}
@@ -1051,6 +1078,11 @@ export default function ScheduleView({ games, players, standings, onAddGame, onR
                           }`}>
                             {game.type}
                           </span>
+                          {isIntegrityHighlighted && (
+                            <span className="text-[9px] bg-amber-100 border border-amber-200 text-amber-900 font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">
+                              Review
+                            </span>
+                          )}
                           {game.status === 'Upcoming' && daysLeft > 0 && (
                             <span id={`game-${game.id}-countdown-badge`} className="text-[9px] bg-rose-50 border border-rose-100 text-rose-700 font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">
                               In {daysLeft} Days
