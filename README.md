@@ -75,17 +75,22 @@ npm run verify:pwa
 
 The production-ready static site is generated in `dist/`.
 
-GitHub Actions runs the same quality gate on every pull request and every push to `main`. A successful run also retains the generated `dist/` artifact for seven days.
+GitHub Actions runs the same quality gate on every pull request and every push to `main`. A successful run also retains the generated `dist/` artifact for seven days. After a validated push to `main`, a separate production job deploys the exact merged revision to Vercel.
 
 ## Deployment
 
-Dumala is a static Vite application. The recommended beta deployment uses a private GitHub repository connected to Vercel:
+Dumala is a static Vite application. The private GitHub organization repository deploys to Vercel through GitHub Actions, so Vercel does not require direct access to the source repository:
 
 - Framework: Vite
 - Install command: `npm install`
 - Build command: `npm run build`
 - Output directory: `dist`
 - Environment variables: none
+- Production branch: protected `main`
+- GitHub environment: `Production`
+- Required environment secrets: `VERCEL_TOKEN`, `VERCEL_ORG_ID`, and `VERCEL_PROJECT_ID`
+
+Pull requests run validation without deployment credentials. Production deployment begins only after the required Quality Gate passes and the pull request is merged into `main`.
 
 A traditional static host can also serve the application. Upload only the contents of `dist/`, not the source repository.
 
