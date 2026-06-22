@@ -9,10 +9,10 @@ Status values: **Done**, **In Progress**, **Next**, **Planned**, **Long Term**.
 Progress is calculated from the completed capabilities and open checklist items in this document. The roadmap bars track implementation, while Release Validation tracks the latest verified build checks.
 
 ```text
-Overall roadmap                 [#####-----]  54%  53 / 98
+Overall roadmap                 [######----]  55%  54 / 98
 
 Shipped beta foundation         [##########] 100%  20 / 20
-Current Beta: Reliability       [########--]  78%  18 / 23
+Current Beta: Reliability       [########--]  83%  19 / 23
 FPRDS Beta                      [######----]  60%   9 / 15
 Phase 1: Offline-ready PWA      [#########-]  86%   6 / 7
 Phase 2: Mobile and tablet      [----------]   0%   0 / 5
@@ -28,7 +28,7 @@ Release validation              [##########] 100%  12 / 12
 | Phase | Completed | Total | Progress | Status |
 | --- | ---: | ---: | ---: | --- |
 | Shipped beta foundation | 20 | 20 | 100% | Done |
-| Current Beta: Reliability and data confidence | 18 | 23 | 78% | In Progress |
+| Current Beta: Reliability and data confidence | 19 | 23 | 83% | In Progress |
 | FPRDS Beta | 9 | 15 | 60% | In Progress |
 | Phase 1: Offline-ready web app | 6 | 7 | 86% | In Progress |
 | Phase 2: Mobile and tablet experience | 0 | 5 | 0% | Planned |
@@ -46,6 +46,8 @@ The FPRDS total includes nine completed capabilities: the five shipped assessmen
 
 - [x] Added FPRDS interpolation, seven-role OVR weighting, age-transition, and Quick/Full requirement tests.
 - [x] Extracted and tested deterministic tactics auto-fill and training-calendar synchronization.
+- [x] Added a non-mutating workspace integrity checker for completed games, standings, and player totals.
+- [x] Added an actionable integrity warning with review, backup, rerun, and session-dismiss controls.
 
 ### Completed: 2026-06-22
 
@@ -110,7 +112,7 @@ The FPRDS total includes nine completed capabilities: the five shipped assessmen
 - [x] **Done:** Add unit tests for standings sorting and opponent updates.
 - [x] **Done:** Prevent accidental duplicate application of a completed match result.
 - [x] **Done:** Validate scorer counts, MVP selection, and clean-sheet credit.
-- [ ] **Planned:** Add integrity checks comparing completed games, standings, and player totals.
+- [x] **Done:** Add integrity checks comparing completed games, standings, and player totals.
 
 ### UI reliability and accessibility
 

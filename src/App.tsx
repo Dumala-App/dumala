@@ -4,6 +4,7 @@ import { Player, Game, Standing, Announcement, TeamInfo, AssessmentSession } fro
 import ViewLoadingFallback from './components/ViewLoadingFallback';
 import PwaInstallControl from './components/PwaInstallControl';
 import PwaStatusBanners from './components/PwaStatusBanners';
+import WorkspaceIntegrityBanner from './components/WorkspaceIntegrityBanner';
 import { ViewErrorBoundary } from './components/ErrorBoundary';
 import { addAssessmentToWorkspace, deleteAssessmentFromWorkspace } from './fprds/assessmentService';
 import {
@@ -35,6 +36,13 @@ import {
 } from './persistence/backup';
 import { deleteGameAndReconcile, recordMatchResult } from './matches/results';
 import { useDialogAccessibility } from './hooks/useDialogAccessibility';
+import {
+  checkWorkspaceIntegrity,
+  getActionableIntegrityFindings,
+  getIntegritySignature,
+  type IntegritySection,
+  type WorkspaceIntegrityReport
+} from './integrity/workspaceIntegrity';
 
 import { 
   Shield, 
@@ -100,6 +108,9 @@ export default function App() {
   const [announcements, setAnnouncements] = useState<Announcement[]>(initialWorkspace.announcements);
   const [assessments, setAssessments] = useState<AssessmentSession[]>(initialWorkspace.assessments);
   const [recoveryWarnings, setRecoveryWarnings] = useState(initialWorkspace.warnings);
+  const [integrityReport, setIntegrityReport] = useState<WorkspaceIntegrityReport | null>(null);
+  const [integrityDismissed, setIntegrityDismissed] = useState(false);
+  const integritySignatureRef = useRef('');
 
   const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -138,6 +149,42 @@ export default function App() {
   useEffect(() => {
     writeJsonStorage(STORAGE_KEYS.assessments, assessments);
   }, [assessments]);
+
+  const runIntegrityCheck = useCallback(() => {
+    if (!teamInfo) {
+      setIntegrityReport(null);
+      return;
+    }
+
+    const report = checkWorkspaceIntegrity({
+      teamName: teamInfo.name,
+      games,
+      players,
+      standings
+    });
+    const signature = getIntegritySignature(report);
+    if (signature !== integritySignatureRef.current) {
+      integritySignatureRef.current = signature;
+      setIntegrityDismissed(false);
+    }
+
+    const actionable = getActionableIntegrityFindings(report);
+    if (actionable.length > 0) {
+      const counts = actionable.reduce<Record<string, number>>((summary, item) => {
+        summary[item.code] = (summary[item.code] ?? 0) + 1;
+        return summary;
+      }, {});
+      console.warn('Workspace integrity findings', {
+        codes: Object.keys(counts),
+        counts
+      });
+    }
+    setIntegrityReport(report);
+  }, [games, players, standings, teamInfo]);
+
+  useEffect(() => {
+    runIntegrityCheck();
+  }, [runIntegrityCheck]);
 
   const handleRecordResult = (
     gameId: string,
@@ -368,6 +415,22 @@ export default function App() {
     }
 
     setMobileMenuOpen(false);
+  };
+
+  const handleOpenIntegritySection = (section: IntegritySection) => {
+    if (section === 'games') {
+      handleNavigate({ primary: 'home', homeTab: 'game_week' });
+      return;
+    }
+    if (section === 'standings') {
+      handleNavigate({ primary: 'league_updates', leagueUpdatesTab: 'league' });
+      return;
+    }
+    if (section === 'players') {
+      handleNavigate({ primary: 'squad' });
+      return;
+    }
+    handleNavigate({ primary: 'development', developmentTab: 'assessments' });
   };
 
   const handleSelectPrimaryTab = (tab: PrimaryTab) => {
@@ -602,6 +665,15 @@ export default function App() {
         )}
 
         {recoveryBanner}
+        {integrityReport && !integrityDismissed && (
+          <WorkspaceIntegrityBanner
+            report={integrityReport}
+            onDismiss={() => setIntegrityDismissed(true)}
+            onExportBackup={handleExportBackup}
+            onOpenSection={handleOpenIntegritySection}
+            onRerun={runIntegrityCheck}
+          />
+        )}
 
         {/* Active Tab Frame Switcher */}
         <div id="tab-content-frame">
