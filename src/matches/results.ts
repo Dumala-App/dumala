@@ -1,5 +1,10 @@
 import { sortStandings } from '../standings';
 import type { Game, Player, Standing } from '../types';
+import {
+  ATHLETE_POSITIONS,
+  playerContribution,
+  standingContribution
+} from './projections';
 
 export interface MatchResultInput {
   ourScore: number;
@@ -20,51 +25,6 @@ interface MatchStateInput extends MatchState {
   teamName: string;
 }
 
-const ATHLETE_POSITIONS = new Set(['Forward', 'Midfielder', 'Defender', 'Goalkeeper']);
-
-const isCompetitiveGame = (game: Game | undefined): game is Game =>
-  Boolean(
-    game
-    && game.status === 'Completed'
-    && game.type !== 'Training'
-    && game.type !== 'Meeting'
-    && Number.isFinite(game.ourScore)
-    && Number.isFinite(game.opponentScore)
-  );
-
-const isLeagueGame = (game: Game | undefined): game is Game =>
-  isCompetitiveGame(game) && game.type === 'League';
-
-const normalized = (value: string) => value.trim().toLocaleLowerCase();
-
-const scorerGoalsForPlayer = (game: Game | undefined, player: Player, players: Player[]) => {
-  if (!isCompetitiveGame(game)) return 0;
-
-  return (game.scorers ?? []).reduce((total, scorer) => {
-    if (scorer.playerId) return total + (scorer.playerId === player.id ? scorer.count : 0);
-
-    const matchingPlayers = players.filter(candidate => normalized(candidate.name) === normalized(scorer.playerName));
-    return total + (matchingPlayers.length === 1 && matchingPlayers[0].id === player.id ? scorer.count : 0);
-  }, 0);
-};
-
-const playerContribution = (game: Game | undefined, player: Player, players: Player[]) => {
-  if (!isCompetitiveGame(game) || !ATHLETE_POSITIONS.has(player.position)) {
-    return { appearances: 0, goals: 0, cleanSheets: 0, mvpAwards: 0 };
-  }
-  const creditedPlayerIds = game.creditedPlayerIds;
-  if (creditedPlayerIds && !creditedPlayerIds.includes(player.id)) {
-    return { appearances: 0, goals: 0, cleanSheets: 0, mvpAwards: 0 };
-  }
-
-  return {
-    appearances: 1,
-    goals: scorerGoalsForPlayer(game, player, players),
-    cleanSheets: game.opponentScore === 0 && (player.position === 'Defender' || player.position === 'Goalkeeper') ? 1 : 0,
-    mvpAwards: game.mvpId === player.id ? 1 : 0
-  };
-};
-
 const reconcilePlayers = (players: Player[], previousGame?: Game, nextGame?: Game) =>
   players.map(player => {
     const previous = playerContribution(previousGame, player, players);
@@ -81,34 +41,6 @@ const reconcilePlayers = (players: Player[], previousGame?: Game, nextGame?: Gam
       mvpAwards: Math.max(0, player.mvpAwards - previous.mvpAwards + next.mvpAwards)
     };
   });
-
-const standingContribution = (
-  game: Game | undefined,
-  standing: Standing,
-  teamName: string
-) => {
-  const empty = { played: 0, won: 0, drawn: 0, lost: 0, goalsFor: 0, goalsAgainst: 0, points: 0 };
-  if (!isLeagueGame(game)) return empty;
-
-  const isUserTeam = standing.isUserTeam || normalized(standing.teamName) === normalized(teamName);
-  const isOpponent = normalized(standing.teamName) === normalized(game.opponent);
-  if (!isUserTeam && !isOpponent) return empty;
-
-  const goalsFor = isUserTeam ? game.ourScore! : game.opponentScore!;
-  const goalsAgainst = isUserTeam ? game.opponentScore! : game.ourScore!;
-  const won = goalsFor > goalsAgainst ? 1 : 0;
-  const drawn = goalsFor === goalsAgainst ? 1 : 0;
-
-  return {
-    played: 1,
-    won,
-    drawn,
-    lost: won || drawn ? 0 : 1,
-    goalsFor,
-    goalsAgainst,
-    points: won ? 3 : drawn ? 1 : 0
-  };
-};
 
 const reconcileStandings = (
   standings: Standing[],
