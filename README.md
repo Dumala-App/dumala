@@ -87,7 +87,7 @@ Dumala is a static Vite application. The private GitHub organization repository 
 - Output directory: `dist`
 - Environment variables: none
 - Production branch: protected `main`
-- GitHub environment: `production`
+- GitHub environment: `Production`
 - Required environment secrets: `VERCEL_TOKEN`, `VERCEL_ORG_ID`, and `VERCEL_PROJECT_ID`
 
 Pull requests run validation without deployment credentials. Production deployment begins only after the required Quality Gate passes and the pull request is merged into `main`.

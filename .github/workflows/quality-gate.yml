@@ -62,7 +62,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     environment:
-      name: production
+      name: Production
       url: https://dumala.asia
     concurrency:
       group: vercel-production
