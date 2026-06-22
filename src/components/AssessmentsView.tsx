@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import type { AgeGroup, AssessmentRawResults, AssessmentSession, FprdsRole, Player } from '../types';
+import type { AgeGroup, AssessmentRawResults, AssessmentSession, FprdsAttributeId, FprdsRole, Player } from '../types';
 import { isStaffPosition } from '../types';
 import {
   AlertCircle,
@@ -27,6 +27,13 @@ import type { DrillGuideCategory } from '../fprds/drillGuide';
 import AssessmentPlayerCardPreview from './AssessmentPlayerCardPreview';
 
 type AssessmentType = 'Full' | 'Quick';
+type AssessmentStep = 1 | 2 | 3 | 4 | 5 | 6;
+
+const nextAssessmentStep = (step: AssessmentStep): AssessmentStep => (step < 6 ? ((step + 1) as AssessmentStep) : step);
+const previousAssessmentStep = (step: AssessmentStep): AssessmentStep => (step > 1 ? ((step - 1) as AssessmentStep) : step);
+const weightedAttributeIdsForRole = (role: FprdsRole): FprdsAttributeId[] => (
+  (Object.keys(ROLE_WEIGHTS[role]) as FprdsAttributeId[]).filter(attrId => ROLE_WEIGHTS[role][attrId] > 0)
+);
 
 interface AssessmentsViewProps {
   players: Player[];
@@ -110,7 +117,7 @@ export default function AssessmentsView({
 }: AssessmentsViewProps) {
   const eligiblePlayers = useMemo(() => players.filter(p => !isStaffPosition(p.position)), [players]);
 
-  const [step, setStep] = useState<1 | 2 | 3 | 4 | 5 | 6>(1);
+  const [step, setStep] = useState<AssessmentStep>(1);
   const [playerSearch, setPlayerSearch] = useState('');
   const [selectedPlayerId, setSelectedPlayerId] = useState<string>('');
   const [role, setRole] = useState<FprdsRole>('CM');
@@ -373,9 +380,7 @@ export default function AssessmentsView({
 
     if (res.ok === false) return { ok: false as const, errors: res.errors };
 
-    const weights = ROLE_WEIGHTS[role];
-    const weightedKeys = (Object.keys(weights) as Array<keyof typeof weights>).filter(k => weights[k] > 0);
-    const scoredWeightedKeys = weightedKeys.filter(k => typeof res.result.attributeScores[k as any] === 'number');
+    const scoredWeightedKeys = weightedAttributeIdsForRole(role).filter(k => typeof res.result.attributeScores[k] === 'number');
     if (scoredWeightedKeys.length === 0) return null;
 
     return { ok: true as const, ...res.result };
@@ -398,12 +403,12 @@ export default function AssessmentsView({
 
   const handleNextStep = () => {
     setSaveError(null);
-    setStep(prev => (prev < 6 ? ((prev + 1) as any) : prev));
+    setStep(nextAssessmentStep);
   };
 
   const handlePrevStep = () => {
     setSaveError(null);
-    setStep(prev => (prev > 1 ? ((prev - 1) as any) : prev));
+    setStep(previousAssessmentStep);
   };
 
   const handleSaveAssessment = () => {
@@ -425,13 +430,13 @@ export default function AssessmentsView({
     const id = `assess_${Date.now()}`;
     const previous = playerAssessments.find(s => s.role === role) ?? null;
 
-    const attributeDeltas: Record<string, number> = {};
+    const attributeDeltas: Partial<Record<FprdsAttributeId, number>> = {};
     if (previous) {
-      (Object.keys(scorePreview.attributeScores) as Array<keyof typeof scorePreview.attributeScores>).forEach((k) => {
-        const prevVal = previous.attributeScores[k as any];
-        const nowVal = scorePreview.attributeScores[k as any];
+      (Object.keys(scorePreview.attributeScores) as FprdsAttributeId[]).forEach((k) => {
+        const prevVal = previous.attributeScores[k];
+        const nowVal = scorePreview.attributeScores[k];
         if (typeof prevVal !== 'number' || typeof nowVal !== 'number') return;
-        attributeDeltas[k as string] = Math.round(nowVal - prevVal);
+        attributeDeltas[k] = Math.round(nowVal - prevVal);
       });
     }
 
@@ -653,7 +658,7 @@ export default function AssessmentsView({
       deltas: {
         previousSessionId: previous?.id,
         ovrDelta: previous ? Math.round(scorePreview.ovr - previous.ovr) : undefined,
-        attributeDeltas: previous ? (attributeDeltas as any) : undefined
+        attributeDeltas: previous ? attributeDeltas : undefined
       },
       developmentPlan: assessmentType === 'Full' ? generateFourWeekPlan(role, scorePreview.attributeScores) : undefined
     };
@@ -1158,7 +1163,7 @@ export default function AssessmentsView({
                       </div>
 
                       <div className="mt-3 grid grid-cols-2 sm:grid-cols-3 gap-2">
-                        {(Object.keys(ROLE_WEIGHTS[s.role]) as any[]).filter(k => ROLE_WEIGHTS[s.role][k] > 0).map((attrId) => {
+                        {weightedAttributeIdsForRole(s.role).map((attrId) => {
                           const val = s.attributeScores[attrId];
                           const meta = getAttributeLabel(val);
                           const isWeakest = attrId === s.labels.weakestAttributeId;

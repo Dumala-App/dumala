@@ -5,7 +5,26 @@ import { Calendar, MapPin, Trophy, Shield, Megaphone, Star, Award, Zap, ArrowRig
 import { motion, AnimatePresence } from 'motion/react';
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
 
-const CustomTooltip = ({ active, payload }: any) => {
+type MatchOutcome = 'W' | 'D' | 'L';
+type DashboardChartPoint = {
+  name: string;
+  points: number;
+  outcome: MatchOutcome;
+  opponent: string;
+  matchPoints: number;
+};
+type DashboardTooltipProps = {
+  active?: boolean;
+  payload?: Array<{ payload: DashboardChartPoint }>;
+};
+type DashboardDotProps = {
+  cx?: number;
+  cy?: number;
+  index?: number;
+  payload?: DashboardChartPoint;
+};
+
+const CustomTooltip = ({ active, payload }: DashboardTooltipProps) => {
   if (active && payload && payload.length) {
     const data = payload[0].payload;
     return (
@@ -36,6 +55,14 @@ const CustomTooltip = ({ active, payload }: any) => {
     );
   }
   return null;
+};
+
+const renderOutcomeDot = ({ cx, cy, payload, index }: DashboardDotProps) => {
+  if (cx === undefined || cy === undefined || !payload) return null;
+  const color = payload.outcome === 'W' ? '#10b981' : payload.outcome === 'D' ? '#fbbf24' : '#ef4444';
+  return (
+    <circle key={`dot-${index ?? 0}`} cx={cx} cy={cy} r={5} fill={color} stroke="#ffffff" strokeWidth={1.5} />
+  );
 };
 
 interface DashboardViewProps {
@@ -1161,15 +1188,7 @@ export default function DashboardView({
                     stroke="#4f46e5" 
                     strokeWidth={3.5} 
                     activeDot={{ r: 7, stroke: '#ffffff', strokeWidth: 2, fill: '#4f46e5' }} 
-                    dot={(props: any) => {
-                      const { cx, cy, payload, index } = props;
-                      if (cx === undefined || cy === undefined) return null;
-                      const outcome = payload.outcome;
-                      const color = outcome === 'W' ? '#10b981' : outcome === 'D' ? '#fbbf24' : '#ef4444';
-                      return (
-                        <circle key={`dot-${index}`} cx={cx} cy={cy} r={5} fill={color} stroke="#ffffff" strokeWidth={1.5} />
-                      );
-                    }}
+                    dot={renderOutcomeDot}
                   />
                 </LineChart>
               </ResponsiveContainer>

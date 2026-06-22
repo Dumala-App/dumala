@@ -29,6 +29,34 @@ import {
   type TacticsPlayer
 } from '../tactics/lineup';
 
+type PlayerStatus = 'starting' | 'substitute' | 'injured';
+type PlayerStatusExtras = Record<string, {
+  status: PlayerStatus;
+  yellowCards: number;
+  redCards: number;
+}>;
+type TacticsNoteCategory = 'Formation' | 'Set Pieces' | 'Strategy' | 'General';
+type TacticsNote = {
+  id: string;
+  title: string;
+  content: string;
+  category: TacticsNoteCategory;
+  createdAt: string;
+};
+type DraggedPositions = Record<number, { left: number; top: number }>;
+type DrawingPoint = [number, number];
+type DrawingPath = {
+  color: string;
+  width: number;
+  points: DrawingPoint[];
+};
+
+const TACTICS_NOTE_CATEGORIES: readonly TacticsNoteCategory[] = ['Formation', 'Set Pieces', 'Strategy', 'General'];
+
+const parseTacticsNoteCategory = (value: string): TacticsNoteCategory => (
+  TACTICS_NOTE_CATEGORIES.includes(value as TacticsNoteCategory) ? value as TacticsNoteCategory : 'General'
+);
+
 interface TacticsViewProps {
   players: Player[];
   teamCoach: string;
@@ -251,13 +279,7 @@ export default function TacticsView({ players, teamCoach, teamName, teamLogoUrl,
   }, [matchFormat]);
 
   // Additional states to track status, yellow cards, red cards for each player id
-  const [playerStatusExtras, setPlayerStatusExtras] = useState<{
-    [playerId: string]: {
-      status: 'starting' | 'substitute' | 'injured';
-      yellowCards: number;
-      redCards: number;
-    }
-  }>(() => {
+  const [playerStatusExtras, setPlayerStatusExtras] = useState<PlayerStatusExtras>(() => {
     return readJsonStorage(STORAGE_KEYS.playerExtras, playerExtrasSchema, {}, 'Tactics player status');
   });
 
@@ -290,7 +312,7 @@ export default function TacticsView({ players, teamCoach, teamName, teamLogoUrl,
     return playerStatusExtras[playerId] || { status: 'starting', yellowCards: 0, redCards: 0 };
   };
 
-  const updatePlayerExtras = (playerId: string, updates: Partial<{ status: 'starting' | 'substitute' | 'injured'; yellowCards: number; redCards: number }> | null) => {
+  const updatePlayerExtras = (playerId: string, updates: Partial<PlayerStatusExtras[string]> | null) => {
     setPlayerStatusExtras(prev => {
       const current = prev[playerId] || { status: 'starting', yellowCards: 0, redCards: 0 };
       return {
@@ -316,8 +338,8 @@ export default function TacticsView({ players, teamCoach, teamName, teamLogoUrl,
   };
 
   // Quick Notes persistence state
-  const [quickNotes, setQuickNotes] = useState<any[]>(() => {
-    const defaultNotes = [
+  const [quickNotes, setQuickNotes] = useState<TacticsNote[]>(() => {
+    const defaultNotes: TacticsNote[] = [
       {
         id: 'default-1',
         title: 'Counter-Attack Speed Trigger',
@@ -345,14 +367,14 @@ export default function TacticsView({ players, teamCoach, teamName, teamLogoUrl,
 
   const [noteTitle, setNoteTitle] = useState('');
   const [noteContent, setNoteContent] = useState('');
-  const [noteCategory, setNoteCategory] = useState<'Formation' | 'Set Pieces' | 'Strategy' | 'General'>('Strategy');
+  const [noteCategory, setNoteCategory] = useState<TacticsNoteCategory>('Strategy');
   const [notesFilter, setNotesFilter] = useState<string>('All');
 
   // Inline editing state for individual note
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
   const [editingNoteTitle, setEditingNoteTitle] = useState('');
   const [editingNoteContent, setEditingNoteContent] = useState('');
-  const [editingNoteCategory, setEditingNoteCategory] = useState<'Formation' | 'Set Pieces' | 'Strategy' | 'General'>('Strategy');
+  const [editingNoteCategory, setEditingNoteCategory] = useState<TacticsNoteCategory>('Strategy');
 
   useEffect(() => {
     writeJsonStorage(STORAGE_KEYS.tacticsNotes, quickNotes);
@@ -375,11 +397,11 @@ export default function TacticsView({ players, teamCoach, teamName, teamLogoUrl,
     setNoteContent('');
   };
 
-  const handleStartEditNote = (note: any) => {
+  const handleStartEditNote = (note: TacticsNote) => {
     setEditingNoteId(note.id);
     setEditingNoteTitle(note.title);
     setEditingNoteContent(note.content);
-    setEditingNoteCategory(note.category || 'General');
+    setEditingNoteCategory(parseTacticsNoteCategory(note.category));
   };
 
   const handleSaveEditNote = (id: string) => {
@@ -480,8 +502,8 @@ export default function TacticsView({ players, teamCoach, teamName, teamLogoUrl,
   }, [lineup]);
 
   // Click-and-drag coordinates state for lineup cards
-  const [draggedPositions, setDraggedPositions] = useState<Record<number, { left: number; top: number }>>(() => {
-    return readJsonStorage(STORAGE_KEYS.draggedPositions, draggedPositionsSchema, {}, 'Tactics positions') as Record<number, { left: number; top: number }>;
+  const [draggedPositions, setDraggedPositions] = useState<DraggedPositions>(() => {
+    return readJsonStorage(STORAGE_KEYS.draggedPositions, draggedPositionsSchema, {}, 'Tactics positions');
   });
 
   useEffect(() => {
@@ -496,10 +518,10 @@ export default function TacticsView({ players, teamCoach, teamName, teamLogoUrl,
   const [isDrawingMode, setIsDrawingMode] = useState<boolean>(false);
   const [brushColor, setBrushColor] = useState<string>('#fbbf24'); // default Amber Yellow
   const [brushWidth, setBrushWidth] = useState<number>(3); // stroke thickness
-  const [paths, setPaths] = useState<any[]>(() => {
-    return readJsonStorage(STORAGE_KEYS.drawingPaths, drawingPathsSchema, [], 'Tactics drawings');
+  const [paths, setPaths] = useState<DrawingPath[]>(() => {
+    return readJsonStorage(STORAGE_KEYS.drawingPaths, drawingPathsSchema, [], 'Tactics drawings') as DrawingPath[];
   });
-  const [currentPath, setCurrentPath] = useState<{ color: string; width: number; points: [number, number][] } | null>(null);
+  const [currentPath, setCurrentPath] = useState<DrawingPath | null>(null);
 
   // Tactical Aux elements states
   const [showBall, setShowBall] = useState<boolean>(true);
@@ -1071,7 +1093,7 @@ export default function TacticsView({ players, teamCoach, teamName, teamLogoUrl,
             {paths.map((p, idx) => (
               <path
                 key={idx}
-                d={p.points.map((pt: any, i: number) => `${i === 0 ? 'M' : 'L'} ${pt[0]} ${pt[1]}`).join(' ')}
+                d={p.points.map((pt, i) => `${i === 0 ? 'M' : 'L'} ${pt[0]} ${pt[1]}`).join(' ')}
                 stroke={p.color}
                 strokeWidth={p.width}
                 fill="none"
@@ -2241,7 +2263,7 @@ export default function TacticsView({ players, teamCoach, teamName, teamLogoUrl,
                 </label>
                 <select
                   value={noteCategory}
-                  onChange={e => setNoteCategory(e.target.value as any)}
+                  onChange={e => setNoteCategory(parseTacticsNoteCategory(e.target.value))}
                   className="w-full bg-slate-950 border border-slate-800 text-slate-300 rounded-lg px-2.5 py-2 text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-amber-500 cursor-pointer"
                 >
                   <option value="Strategy">🧠 Strategy</option>
@@ -2303,7 +2325,7 @@ export default function TacticsView({ players, teamCoach, teamName, teamLogoUrl,
                             <span className="text-[10px] text-slate-400 font-mono font-bold tracking-tight">Edit Mode</span>
                             <select
                               value={editingNoteCategory}
-                              onChange={e => setEditingNoteCategory(e.target.value as any)}
+                              onChange={e => setEditingNoteCategory(parseTacticsNoteCategory(e.target.value))}
                               className="bg-slate-950 text-[10px] text-slate-300 border border-slate-800 rounded px-1.5 py-0.5"
                             >
                               <option value="Strategy">Strategy</option>

@@ -40,6 +40,7 @@ import {
   checkWorkspaceIntegrity,
   getActionableIntegrityFindings,
   getIntegritySignature,
+  type IntegrityFinding,
   type IntegritySection,
   type WorkspaceIntegrityReport
 } from './integrity/workspaceIntegrity';
@@ -54,7 +55,8 @@ import {
   Sliders,
   RotateCcw,
   MessageSquare,
-  ClipboardList
+  ClipboardList,
+  type LucideIcon
 } from 'lucide-react';
 import { AnimatePresence } from 'motion/react';
 
@@ -68,6 +70,11 @@ const DevelopmentHubView = lazy(() => import('./components/DevelopmentHubView'))
 const LeagueUpdatesHubView = lazy(() => import('./components/LeagueUpdatesHubView'));
 
 export default function App() {
+  type IntegrityFocus = {
+    playerId?: string | null;
+    gameId?: string | null;
+    standingTeamName?: string | null;
+  };
   const resetDialogRef = useRef<HTMLDivElement | null>(null);
   const [initialWorkspace] = useState(() => {
     const teamInfo = readJsonStorage(STORAGE_KEYS.teamInfo, teamInfoSchema.nullable(), null, 'Team information');
@@ -95,6 +102,13 @@ export default function App() {
   type HomeTab = 'overview' | 'game_week';
   type DevelopmentTab = 'assessments' | 'training';
   type LeagueUpdatesTab = 'league' | 'updates' | 'bulletins';
+  const primaryTabs: Array<{ id: PrimaryTab; label: string; icon: LucideIcon }> = [
+    { id: 'home', label: 'Home', icon: Shield },
+    { id: 'squad', label: 'Squad', icon: Users },
+    { id: 'tactics', label: 'Tactics', icon: Sliders },
+    { id: 'development', label: 'Development', icon: ClipboardList },
+    { id: 'league_updates', label: 'League & Updates', icon: Trophy }
+  ];
 
   const [primaryTab, setPrimaryTab] = useState<PrimaryTab>('home');
   const [homeTab, setHomeTab] = useState<HomeTab>('overview');
@@ -110,6 +124,7 @@ export default function App() {
   const [recoveryWarnings, setRecoveryWarnings] = useState(initialWorkspace.warnings);
   const [integrityReport, setIntegrityReport] = useState<WorkspaceIntegrityReport | null>(null);
   const [integrityDismissed, setIntegrityDismissed] = useState(false);
+  const [integrityFocus, setIntegrityFocus] = useState<IntegrityFocus | null>(null);
   const integritySignatureRef = useRef('');
 
   const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
@@ -418,18 +433,69 @@ export default function App() {
   };
 
   const handleOpenIntegritySection = (section: IntegritySection) => {
+    setSelectedPlayer(null);
     if (section === 'games') {
+      setIntegrityFocus({ playerId: null, gameId: null, standingTeamName: null });
       handleNavigate({ primary: 'home', homeTab: 'game_week' });
       return;
     }
     if (section === 'standings') {
+      setIntegrityFocus({ playerId: null, gameId: null, standingTeamName: null });
       handleNavigate({ primary: 'league_updates', leagueUpdatesTab: 'league' });
       return;
     }
     if (section === 'players') {
+      setIntegrityFocus({ playerId: null, gameId: null, standingTeamName: null });
       handleNavigate({ primary: 'squad' });
       return;
     }
+    setIntegrityFocus({ playerId: null, gameId: null, standingTeamName: null });
+    handleNavigate({ primary: 'development', developmentTab: 'assessments' });
+  };
+
+  const handleOpenIntegrityFinding = (finding: IntegrityFinding) => {
+    if (finding.section === 'players') {
+      const player = finding.focusId ? players.find(item => item.id === finding.focusId) ?? null : null;
+      setIntegrityFocus({
+        playerId: player?.id ?? null,
+        gameId: null,
+        standingTeamName: null
+      });
+      handleNavigate({ primary: 'squad' });
+      if (player) setSelectedPlayer(player);
+      return;
+    }
+
+    if (finding.section === 'games') {
+      setSelectedPlayer(null);
+      setIntegrityFocus({
+        playerId: null,
+        gameId: finding.focusId ?? finding.relatedIds[0] ?? null,
+        standingTeamName: null
+      });
+      handleNavigate({ primary: 'home', homeTab: 'game_week' });
+      return;
+    }
+
+    if (finding.section === 'standings') {
+      setSelectedPlayer(null);
+      setIntegrityFocus({
+        playerId: null,
+        gameId: null,
+        standingTeamName: finding.focusId ?? null
+      });
+      handleNavigate({ primary: 'league_updates', leagueUpdatesTab: 'league' });
+      return;
+    }
+
+    const player = finding.focusId ? players.find(item => item.id === finding.focusId) ?? null : null;
+    setSelectedPlayer(null);
+    setIntegrityFocus({
+      playerId: player?.id ?? null,
+      gameId: null,
+      standingTeamName: null
+    });
+    if (player) setPreselectedAssessmentsPlayerId(player.id);
     handleNavigate({ primary: 'development', developmentTab: 'assessments' });
   };
 
@@ -530,20 +596,14 @@ export default function App() {
 
             {/* Desktop Navigation Link Tabs */}
             <nav id="desktop-nav" aria-label="Primary navigation" className="hidden lg:flex items-center gap-1 bg-white/[0.06] border border-white/[0.08] rounded-2xl p-1.5">
-              {[
-                { id: 'home', label: 'Home', icon: Shield },
-                { id: 'squad', label: 'Squad', icon: Users },
-                { id: 'tactics', label: 'Tactics', icon: Sliders },
-                { id: 'development', label: 'Development', icon: ClipboardList },
-                { id: 'league_updates', label: 'League & Updates', icon: Trophy }
-              ].map((tab) => {
+              {primaryTabs.map((tab) => {
                 const TabIcon = tab.icon;
                 const isActive = primaryTab === tab.id;
                 return (
                   <button
                     id={`nav-tab-btn-${tab.id}`}
                     key={tab.id}
-                    onClick={() => handleSelectPrimaryTab(tab.id as any)}
+                    onClick={() => handleSelectPrimaryTab(tab.id)}
                     aria-current={isActive ? 'page' : undefined}
                     className={`flex items-center gap-2 px-3 py-2 rounded-xl text-[11px] font-bold transition-all border ${
                       isActive 
@@ -577,13 +637,7 @@ export default function App() {
         {/* Expandable Mobile Dropdown Menu */}
         {mobileMenuOpen && (
           <div id="mobile-nav-panel" className="lg:hidden bg-[#07111f] border-t border-white/10 p-3 grid grid-cols-2 gap-2">
-            {[
-              { id: 'home', label: 'Home', icon: Shield },
-              { id: 'squad', label: 'Squad', icon: Users },
-              { id: 'tactics', label: 'Tactics', icon: Sliders },
-              { id: 'development', label: 'Development', icon: ClipboardList },
-              { id: 'league_updates', label: 'League & Updates', icon: Trophy }
-            ].map((tab) => {
+            {primaryTabs.map((tab) => {
               const TabIcon = tab.icon;
               const isActive = primaryTab === tab.id;
               return (
@@ -591,7 +645,7 @@ export default function App() {
                   id={`mobile-nav-btn-${tab.id}`}
                   key={tab.id}
                   onClick={() => {
-                    handleSelectPrimaryTab(tab.id as any);
+                    handleSelectPrimaryTab(tab.id);
                   }}
                   className={`flex items-center gap-3 w-full px-4 py-3 rounded-xl text-xs font-bold transition-all ${
                     isActive 
@@ -671,6 +725,7 @@ export default function App() {
             onDismiss={() => setIntegrityDismissed(true)}
             onExportBackup={handleExportBackup}
             onOpenSection={handleOpenIntegritySection}
+            onOpenFinding={handleOpenIntegrityFinding}
             onRerun={runIntegrityCheck}
           />
         )}
@@ -696,6 +751,7 @@ export default function App() {
                   onRecordResult={handleRecordResult}
                   onDeleteGame={handleDeleteGame}
                   teamName={teamInfo?.name || 'Apex Rangers'}
+                  highlightGameId={integrityFocus?.gameId ?? null}
                 />
               </ViewErrorBoundary>
             )}
@@ -709,6 +765,7 @@ export default function App() {
                   onExportBackup={handleExportBackup}
                   onImportBackup={handleImportBackup}
                   onUpdatePlayer={handleUpdatePlayer}
+                  highlightPlayerId={integrityFocus?.playerId ?? null}
                 />
               </ViewErrorBoundary>
             )}
@@ -754,6 +811,7 @@ export default function App() {
                   announcements={announcements}
                   onAddAnnouncement={handleAddAnnouncement}
                   onDeleteAnnouncement={handleDeleteAnnouncement}
+                  highlightStandingTeamName={integrityFocus?.standingTeamName ?? null}
                 />
               </ViewErrorBoundary>
             )}

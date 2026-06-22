@@ -9,11 +9,19 @@ interface AnnouncementsViewProps {
   onDeleteAnnouncement: (id: string) => void;
 }
 
+type AnnouncementCategory = Announcement['category'];
+
+const ANNOUNCEMENT_CATEGORIES: readonly AnnouncementCategory[] = ['Urgent', 'Matchday', 'Training', 'Social'];
+
+const parseAnnouncementCategory = (value: string): AnnouncementCategory => (
+  ANNOUNCEMENT_CATEGORIES.includes(value as AnnouncementCategory) ? value as AnnouncementCategory : 'Urgent'
+);
+
 export default function AnnouncementsView({ announcements, onAddAnnouncement, onDeleteAnnouncement }: AnnouncementsViewProps) {
   const [isAdding, setIsAdding] = useState(false);
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
-  const [realCategory, setRealCategory] = useState<'Urgent' | 'Matchday' | 'Training' | 'Social'>("Urgent");
+  const [realCategory, setRealCategory] = useState<AnnouncementCategory>("Urgent");
   const [author, setAuthor] = useState("Marcus Sterling (Coach)");
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -95,7 +103,7 @@ export default function AnnouncementsView({ announcements, onAddAnnouncement, on
                 <select
                   id="ann-category-select"
                   value={realCategory}
-                  onChange={e => setRealCategory(e.target.value as any)}
+                  onChange={e => setRealCategory(parseAnnouncementCategory(e.target.value))}
                   className="w-full border border-slate-200 rounded-xl p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
                 >
                   <option value="Urgent">⚠️ Urgent Action Required</option>

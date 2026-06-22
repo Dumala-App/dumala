@@ -22,6 +22,7 @@ interface LeagueUpdatesHubViewProps {
   onUpdateAllStandings: (standings: Standing[]) => void;
   players: Player[];
   onUpdatePlayer: (player: Player) => void;
+  highlightStandingTeamName?: string | null;
 
   // Updates
   announcements: Announcement[];
@@ -69,6 +70,7 @@ export default function LeagueUpdatesHubView(props: LeagueUpdatesHubViewProps) {
             onUpdateAllStandings={props.onUpdateAllStandings}
             players={props.players}
             onUpdatePlayer={props.onUpdatePlayer}
+            highlightStandingTeamName={props.highlightStandingTeamName}
           />
         )}
 

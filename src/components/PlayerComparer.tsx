@@ -13,6 +13,13 @@ interface PlayerComparerProps {
   onClearCompare: () => void;
 }
 
+type LegacyAttributeKey = keyof NonNullable<Player['attributes']>;
+
+const getLegacyAttributeValue = (player: Player, key: LegacyAttributeKey): number => {
+  const value = player.attributes?.[key];
+  return typeof value === 'number' && Number.isFinite(value) ? value : 50;
+};
+
 export default function PlayerComparer({ 
   players, 
   selectedCompareIds, 
@@ -366,8 +373,9 @@ export default function PlayerComparer({
                   { label: "Defending / Guard", key: 'defending', icon: "🧱" },
                   { label: "Physical / Stamina", key: 'physicalness', icon: "💪" },
                 ].map((item) => {
-                  const val1 = player1.attributes[item.key as keyof Player['attributes']];
-                  const val2 = player2.attributes[item.key as keyof Player['attributes']];
+                  const attributeKey = item.key as LegacyAttributeKey;
+                  const val1 = getLegacyAttributeValue(player1, attributeKey);
+                  const val2 = getLegacyAttributeValue(player2, attributeKey);
                   const p1Higher = val1 > val2;
                   const p2Higher = val2 > val1;
 
