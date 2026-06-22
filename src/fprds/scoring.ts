@@ -34,16 +34,39 @@ export const toNumberOrNull = (val: string): number | null => {
   return n;
 };
 
-export const computeAgeGroupFromDob = (dateOfBirthIso: string, assessmentDateIso: string): AgeGroup | null => {
-  const dob = new Date(dateOfBirthIso);
-  const at = new Date(assessmentDateIso);
-  if (Number.isNaN(dob.getTime()) || Number.isNaN(at.getTime())) return null;
+const parseIsoDateParts = (value: string): { year: number; month: number; day: number } | null => {
+  const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(value);
+  if (!match) return null;
 
-  let age = at.getFullYear() - dob.getFullYear();
-  const m = at.getMonth() - dob.getMonth();
-  if (m < 0 || (m === 0 && at.getDate() < dob.getDate())) {
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  const date = new Date(Date.UTC(year, month - 1, day));
+
+  if (
+    date.getUTCFullYear() !== year
+    || date.getUTCMonth() !== month - 1
+    || date.getUTCDate() !== day
+  ) {
+    return null;
+  }
+
+  return { year, month, day };
+};
+
+export const computeAgeGroupFromDob = (dateOfBirthIso: string, assessmentDateIso: string): AgeGroup | null => {
+  const dob = parseIsoDateParts(dateOfBirthIso);
+  const at = parseIsoDateParts(assessmentDateIso);
+  if (!dob || !at) return null;
+
+  let age = at.year - dob.year;
+  const assessmentBeforeBirthday =
+    at.month < dob.month
+    || (at.month === dob.month && at.day < dob.day);
+  if (assessmentBeforeBirthday) {
     age -= 1;
   }
+  if (age < 0) return null;
 
   if (age <= 12) return 'U12';
   if (age <= 15) return 'U15';
@@ -100,9 +123,29 @@ const scoreWithinTier = (raw: number, best: number | null, worst: number | null,
 };
 
 export const scoreFromBenchmarkTable = (raw: number, table: { direction: BenchmarkDirection; tiers: Array<{ rawBest: number | null; rawWorst: number | null; scoreMin: number; scoreMax: number }> }): number => {
+  if (!Number.isFinite(raw)) return 10;
+
   const tier = table.tiers.find(t => isInTier(raw, t.rawBest, t.rawWorst, table.direction));
-  if (!tier) return 10;
-  return scoreWithinTier(raw, tier.rawBest, tier.rawWorst, tier.scoreMin, tier.scoreMax, table.direction);
+  if (tier) {
+    return scoreWithinTier(raw, tier.rawBest, tier.rawWorst, tier.scoreMin, tier.scoreMax, table.direction);
+  }
+
+  // Some published tables use adjacent rounded boundaries (for example 4.89 and
+  // 4.90). Interpolate across that tiny gap instead of treating a valid result
+  // as an invalid minimum score.
+  const boundaryPoints = table.tiers
+    .flatMap((item) => [
+      item.rawBest === null ? null : { raw: item.rawBest, score: item.scoreMax },
+      item.rawWorst === null ? null : { raw: item.rawWorst, score: item.scoreMin }
+    ])
+    .filter((point): point is { raw: number; score: number } => point !== null)
+    .sort((a, b) => a.raw - b.raw);
+  const lower = [...boundaryPoints].reverse().find(point => point.raw < raw);
+  const upper = boundaryPoints.find(point => point.raw > raw);
+
+  if (!lower || !upper || lower.raw === upper.raw) return 10;
+  const ratio = (raw - lower.raw) / (upper.raw - lower.raw);
+  return lower.score + ratio * (upper.score - lower.score);
 };
 
 export const scoreFromOutOf10Direct = (successes: number): number => {
@@ -299,7 +342,12 @@ export const computeScoresForSession = (params: {
     if (Number.isFinite(goals) && Number.isFinite(onTarget)) {
       attributeScores.finishingBox = computeFinishingBoxScore(goals, onTarget);
     } else if (params.assessmentType === 'Full' || params.role === 'ST' || params.role === 'W') {
-      errors.push({ field: 'finishing', message: 'Finishing drill results are required.' });
+      if (!Number.isFinite(goals)) {
+        errors.push({ field: 'finishingGoalsOutOf6', message: 'Finishing goals are required.' });
+      }
+      if (!Number.isFinite(onTarget)) {
+        errors.push({ field: 'finishingOnTargetOutOf6', message: 'Finishing shots on target are required.' });
+      }
     }
 
     if (params.role === 'ST' || params.role === 'W') {
@@ -308,7 +356,7 @@ export const computeScoresForSession = (params: {
       } else if (params.assessmentType === 'Full' || params.role === 'W') {
         // W Quick requires 1v1, ST Full requires it.
         if (params.role === 'W' || params.assessmentType === 'Full') {
-          errors.push({ field: 'offensive1v1', message: 'Offensive 1v1 result is required.' });
+          errors.push({ field: 'offensive1v1TakeonsOutOf10', message: 'Offensive 1v1 result is required.' });
         }
       }
     }
@@ -316,13 +364,13 @@ export const computeScoresForSession = (params: {
     if (Number.isFinite(r.shotPowerMaxControlledDistanceMeters)) {
       attributeScores.shotPower = clampScore(scoreFromBenchmarkTable(r.shotPowerMaxControlledDistanceMeters, SHOT_POWER_DISTANCE_M[params.ageGroup]));
     } else if (params.assessmentType === 'Full' || params.role === 'ST') {
-      if (params.role === 'ST') errors.push({ field: 'shotPower', message: 'Shot power result is required.' });
+      errors.push({ field: 'shotPowerMaxControlledDistanceMeters', message: 'Shot power result is required.' });
     }
 
     if (Number.isFinite(r.attackingHeadingOnTargetOutOf10)) {
       attributeScores.attackingHeading = clampScore(scoreFromOutOf10Direct(r.attackingHeadingOnTargetOutOf10));
     } else if (params.assessmentType === 'Full') {
-      errors.push({ field: 'attackingHeading', message: 'Attacking heading result is required.' });
+      errors.push({ field: 'attackingHeadingOnTargetOutOf10', message: 'Attacking heading result is required.' });
     }
   }
 
@@ -334,25 +382,30 @@ export const computeScoresForSession = (params: {
       const effectiveOutOf10 = (weighted / 12.5) * 10;
       attributeScores.longPassing = clampScore(scoreFromBands(effectiveOutOf10, OUT_OF_10_BANDS));
     } else {
-      errors.push({ field: 'longPassing', message: 'Long passing results are required.' });
+      if (!Number.isFinite(lp30)) {
+        errors.push({ field: 'longPassing30mSuccessesOutOf5', message: '30m long passing result is required.' });
+      }
+      if (!Number.isFinite(lp40)) {
+        errors.push({ field: 'longPassing40mSuccessesOutOf5', message: '40m long passing result is required.' });
+      }
     }
 
     if (Number.isFinite(r.visionCoachScore1to10)) {
       attributeScores.visionPlaymaking = clampScore(scoreFromCoach1to10(r.visionCoachScore1to10));
     } else if (params.assessmentType === 'Full' || params.role === 'CM') {
-      if (params.role === 'CM') errors.push({ field: 'vision', message: 'Vision / playmaking score is required.' });
+      errors.push({ field: 'visionCoachScore1to10', message: 'Vision / playmaking score is required.' });
     }
 
     if (Number.isFinite(r.ballRetentionBestSeconds)) {
       attributeScores.ballRetention = clampScore(scoreFromBenchmarkTable(r.ballRetentionBestSeconds, BALL_RETENTION_SECONDS));
     } else if (params.assessmentType === 'Full') {
-      errors.push({ field: 'ballRetention', message: 'Ball retention time is required.' });
+      errors.push({ field: 'ballRetentionBestSeconds', message: 'Ball retention time is required.' });
     }
 
     if (Number.isFinite(r.pressingWinsOutOf5)) {
       attributeScores.pressingInterceptions = clampScore(scoreFromBands(r.pressingWinsOutOf5, OUT_OF_5_BANDS));
     } else if (params.assessmentType === 'Full' || params.role === 'CDM') {
-      if (params.role === 'CDM') errors.push({ field: 'pressing', message: 'Pressing / interceptions wins are required.' });
+      errors.push({ field: 'pressingWinsOutOf5', message: 'Pressing / interceptions wins are required.' });
     }
   }
 
@@ -360,13 +413,13 @@ export const computeScoresForSession = (params: {
     if (Number.isFinite(r.tacklingWinsOutOf10)) {
       attributeScores.tackling = clampScore(scoreFromBands(r.tacklingWinsOutOf10, OUT_OF_10_BANDS));
     } else {
-      errors.push({ field: 'tackling', message: 'Tackling wins are required.' });
+      errors.push({ field: 'tacklingWinsOutOf10', message: 'Tackling wins are required.' });
     }
 
     if (Number.isFinite(r.defensiveHeadingClearancesOutOf10)) {
       attributeScores.defensiveHeading = clampScore(scoreFromOutOf10Direct(r.defensiveHeadingClearancesOutOf10));
     } else if (params.assessmentType === 'Full' || params.role === 'CB') {
-      if (params.role === 'CB') errors.push({ field: 'defensiveHeading', message: 'Defensive heading clearances are required.' });
+      errors.push({ field: 'defensiveHeadingClearancesOutOf10', message: 'Defensive heading clearances are required.' });
     }
 
     const coachScore = r.positioningCoachScore1to10;
@@ -376,13 +429,18 @@ export const computeScoresForSession = (params: {
       const clearPart = (clampInt(clearances, 0, 10) / 10) * 100 * 0.4;
       attributeScores.positioningClearances = clampScore(coachPart + clearPart);
     } else if (params.assessmentType === 'Full') {
-      errors.push({ field: 'positioning', message: 'Positioning coach score and clearance count are required.' });
+      if (!Number.isFinite(coachScore)) {
+        errors.push({ field: 'positioningCoachScore1to10', message: 'Positioning coach score is required.' });
+      }
+      if (!Number.isFinite(clearances)) {
+        errors.push({ field: 'positioningClearancesToSafeZoneOutOf10', message: 'Positioning clearance count is required.' });
+      }
     }
 
     if (Number.isFinite(r.crossingSuccessesOutOf10)) {
       attributeScores.crossing = clampScore(scoreFromOutOf10Direct(r.crossingSuccessesOutOf10));
     } else if (params.assessmentType === 'Full' || params.role === 'FB') {
-      if (params.role === 'FB') errors.push({ field: 'crossing', message: 'Crossing successes are required.' });
+      errors.push({ field: 'crossingSuccessesOutOf10', message: 'Crossing successes are required.' });
     }
   }
 
@@ -390,25 +448,25 @@ export const computeScoresForSession = (params: {
     if (Number.isFinite(r.gkReflexesSavesOutOf10)) {
       attributeScores.reflexes = clampScore(scoreFromOutOf10Direct(r.gkReflexesSavesOutOf10));
     } else {
-      errors.push({ field: 'reflexes', message: 'Reflexes saves are required.' });
+      errors.push({ field: 'gkReflexesSavesOutOf10', message: 'Reflexes saves are required.' });
     }
 
     if (Number.isFinite(r.gkHandlingCleanCatchesOutOf10)) {
       attributeScores.handling = clampScore(scoreFromOutOf10Direct(r.gkHandlingCleanCatchesOutOf10));
     } else {
-      errors.push({ field: 'handling', message: 'Handling clean catches are required.' });
+      errors.push({ field: 'gkHandlingCleanCatchesOutOf10', message: 'Handling clean catches are required.' });
     }
 
     if (Number.isFinite(r.gkDivingSavesOutOf10)) {
       attributeScores.divingReach = clampScore(scoreFromOutOf10Direct(r.gkDivingSavesOutOf10));
     } else if (params.assessmentType === 'Full') {
-      errors.push({ field: 'diving', message: 'Diving / reach saves are required.' });
+      errors.push({ field: 'gkDivingSavesOutOf10', message: 'Diving / reach saves are required.' });
     }
 
     if (Number.isFinite(r.gkDistributionSuccessesOutOf10)) {
       attributeScores.distribution = clampScore(scoreFromOutOf10Direct(r.gkDistributionSuccessesOutOf10));
     } else if (params.assessmentType === 'Full') {
-      errors.push({ field: 'distribution', message: 'Distribution successes are required.' });
+      errors.push({ field: 'gkDistributionSuccessesOutOf10', message: 'Distribution successes are required.' });
     }
   }
 
