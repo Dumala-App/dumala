@@ -1,6 +1,6 @@
 # Dumala Delivery Tasks
 
-Updated: 2026-06-22
+Updated: 2026-06-23
 
 Status values: **Done**, **In Progress**, **Next**, **Planned**, **Long Term**.
 
@@ -9,11 +9,11 @@ Status values: **Done**, **In Progress**, **Next**, **Planned**, **Long Term**.
 Progress is calculated from the completed capabilities and open checklist items in this document. The roadmap bars track implementation, while Release Validation tracks the latest verified build checks.
 
 ```text
-Overall roadmap                 [#####-----]  50%  49 / 98
+Overall roadmap                 [#####-----]  54%  53 / 98
 
 Shipped beta foundation         [##########] 100%  20 / 20
 Current Beta: Reliability       [########--]  78%  18 / 23
-FPRDS Beta                      [###-------]  33%   5 / 15
+FPRDS Beta                      [######----]  60%   9 / 15
 Phase 1: Offline-ready PWA      [#########-]  86%   6 / 7
 Phase 2: Mobile and tablet      [----------]   0%   0 / 5
 Phase 3: Cloud and sync         [----------]   0%   0 / 6
@@ -29,7 +29,7 @@ Release validation              [##########] 100%  12 / 12
 | --- | ---: | ---: | ---: | --- |
 | Shipped beta foundation | 20 | 20 | 100% | Done |
 | Current Beta: Reliability and data confidence | 18 | 23 | 78% | In Progress |
-| FPRDS Beta | 5 | 15 | 33% | In Progress |
+| FPRDS Beta | 9 | 15 | 60% | In Progress |
 | Phase 1: Offline-ready web app | 6 | 7 | 86% | In Progress |
 | Phase 2: Mobile and tablet experience | 0 | 5 | 0% | Planned |
 | Phase 3: Cloud accounts and synchronization | 0 | 6 | 0% | Planned |
@@ -38,9 +38,14 @@ Release validation              [##########] 100%  12 / 12
 | Future Expansion: Philippine coach education | 0 | 6 | 0% | Long Term |
 | Future Expansion: Club operations | 0 | 5 | 0% | Long Term |
 
-The FPRDS total includes five capabilities already shipped: assessment workflows, age groups, role scoring, OVR/history/development plans, and backup support. Its ten remaining validation and reporting tasks appear below.
+The FPRDS total includes nine completed capabilities: the five shipped assessment features plus interpolation, role-weighting, age-transition, and required-field validation coverage. Its six remaining review and reporting tasks appear below.
 
 ## Recent changes
+
+### Completed: 2026-06-23
+
+- [x] Added FPRDS interpolation, seven-role OVR weighting, age-transition, and Quick/Full requirement tests.
+- [x] Extracted and tested deterministic tactics auto-fill and training-calendar synchronization.
 
 ### Completed: 2026-06-22
 
@@ -129,10 +134,10 @@ The FPRDS total includes five capabilities already shipped: assessment workflows
 ## FPRDS Beta
 
 - [ ] **Next:** Review every benchmark table with qualified football practitioners.
-- [ ] **Next:** Add tests for lower-is-better and higher-is-better interpolation.
-- [ ] **Next:** Test OVR weighting for all seven roles.
-- [ ] **Next:** Validate age calculation and age-group transitions.
-- [ ] **Next:** Verify Quick and Full required-field behavior.
+- [x] **Done:** Add tests for lower-is-better and higher-is-better interpolation.
+- [x] **Done:** Test OVR weighting for all seven roles.
+- [x] **Done:** Validate age calculation and age-group transitions.
+- [x] **Done:** Verify Quick and Full required-field behavior.
 - [ ] **Planned:** Add true historical progress charts.
 - [ ] **Planned:** Add player-to-player and session-to-session reports.
 - [ ] **Planned:** Add downloadable assessment and development reports.

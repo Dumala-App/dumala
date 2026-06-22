@@ -1,7 +1,15 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Player, Game } from '../types';
 import { weeklyScheduleSchema } from '../persistence/schemas';
 import { readJsonStorage, STORAGE_KEYS, writeJsonStorage } from '../persistence/storage';
+import {
+  DAYS_OF_WEEK,
+  getWeekDaysMap,
+  synchronizeTrainingCalendar,
+  type DayName,
+  type ScheduledDrill,
+  type WeeklySchedule
+} from '../training/synchronization';
 import { 
   Dumbbell, Sparkles, Activity, Zap, RotateCcw, Flame, TrendingUp, Search, Filter,
   User, CheckCircle, CalendarPlus, HeartPulse, ShieldCheck, Target, Footprints,
@@ -1020,47 +1028,7 @@ const DRILL_INSTRUCTIONS: Record<string, { equipment: string; setup: string; exe
   },
 };
 
-interface ScheduledDrill {
-  id: string;
-  drillId: string;
-  name: string;
-  icon?: string;
-  fatigueIncrease: number;
-  playerName?: string;
-}
-
-const DAYS_OF_WEEK = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'] as const;
-type DayName = typeof DAYS_OF_WEEK[number];
-
-const getWeekDaysMap = (refDate: Date = new Date("2026-06-13")) => {
-  const day = refDate.getDay(); // 0 is Sunday, 1-6 is Mon-Sat
-  const diff = day === 0 ? -6 : 1 - day;
-  const monday = new Date(refDate);
-  monday.setDate(refDate.getDate() + diff);
-  
-  const map: Record<DayName, { dateStr: string; monthDate: string; displayStrOrMonthDate: string }> = {} as any;
-  DAYS_OF_WEEK.forEach((dayName, idx) => {
-    const d = new Date(monday);
-    d.setDate(monday.getDate() + idx);
-    
-    const yr = d.getFullYear();
-    const mo = String(d.getMonth() + 1).padStart(2, '0');
-    const dy = String(d.getDate()).padStart(2, '0');
-    const dateStr = `${yr}-${mo}-${dy}`;
-    
-    const shortMonthDate = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-    const displayStrOrMonthDate = `${dayName} (${shortMonthDate})`;
-    
-    map[dayName] = {
-      dateStr,
-      monthDate: shortMonthDate,
-      displayStrOrMonthDate
-    };
-  });
-  return map;
-};
-
-const DEFAULT_SCHEDULE: Record<DayName, ScheduledDrill[]> = {
+const DEFAULT_SCHEDULE: WeeklySchedule = {
   Monday: [
     { id: 'init-1', drillId: 'drill-gym', name: 'Iron Core Power Workout', fatigueIncrease: 7 },
     { id: 'init-2', drillId: 'drill-agility', name: 'Shuttle Run Sprints', fatigueIncrease: 6 }
@@ -1082,11 +1050,11 @@ const DEFAULT_SCHEDULE: Record<DayName, ScheduledDrill[]> = {
 export default function TrainingView({ players, onUpdatePlayer, games, onUpdateGames }: TrainingViewProps) {
   const [selectedDrillId, setSelectedDrillId] = useState<string>(CRITICAL_DRILLS[0].id);
   const [expandedDrills, setExpandedDrills] = useState<Set<string>>(new Set());
-  const [weeklySchedule, setWeeklySchedule] = useState<Record<DayName, ScheduledDrill[]>>(() => {
+  const [weeklySchedule, setWeeklySchedule] = useState<WeeklySchedule>(() => {
     return readJsonStorage(STORAGE_KEYS.weeklySchedule, weeklyScheduleSchema, DEFAULT_SCHEDULE, 'Weekly training');
   });
 
-  const weekDaysMap = getWeekDaysMap(new Date());
+  const weekDaysMap = useMemo(() => getWeekDaysMap(new Date()), []);
 
   useEffect(() => {
     // Archive current week as history before overwriting
@@ -1097,68 +1065,15 @@ export default function TrainingView({ players, onUpdatePlayer, games, onUpdateG
 
   // Synchronize Weekly Training to Calendar Games
   useEffect(() => {
-    const activeWeekDates = Object.values(weekDaysMap).map(w => w.dateStr);
-
-    // 1. Filter out existing training games in this week from the main games list
-    const otherGames = games.filter(g => {
-      const isTrainingInWeek = g.type === 'Training' && activeWeekDates.includes(g.date);
-      return !isTrainingInWeek;
+    const result = synchronizeTrainingCalendar({
+      games,
+      weeklySchedule,
+      weekDaysMap
     });
-
-    // 2. Generate games for active days
-    const nextTrainingGames: Game[] = [];
-    DAYS_OF_WEEK.forEach((dayName) => {
-      const drills = weeklySchedule[dayName];
-      if (drills && drills.length > 0) {
-        const dateInfo = weekDaysMap[dayName];
-        
-        const drillText = drills.map(d => `${d.icon} ${d.name}`).join(' & ');
-        const workLoad = drills.reduce((sum, item) => sum + item.fatigueIncrease, 0);
-        const devPlayerNames = [...new Set(drills.filter(d => d.playerName).map(d => d.playerName))];
-        const playerLabel = devPlayerNames.length > 0 ? ` | Dev: ${devPlayerNames.join(', ')}` : '';
-
-        const trainingGame: Game = {
-          id: `training_sync_${dateInfo.dateStr}`,
-          opponent: `Training: ${drills.map(d => d.name).join(' + ')}${playerLabel}`,
-          date: dateInfo.dateStr,
-          time: "10:00 AM",
-          location: "Training Ground A",
-          status: "Upcoming",
-          type: "Training",
-          notes: `Squad Workload Target: +${workLoad}% intensity. Drills: ${drillText}.${devPlayerNames.length > 0 ? ` Individual development for: ${devPlayerNames.join(', ')}.` : ''} Prepare lightweight kits.`
-        };
-        nextTrainingGames.push(trainingGame);
-      }
-    });
-
-    const finalGames = [...otherGames, ...nextTrainingGames];
-
-    // Helper to check deep equality of relevant parts to prevent infinite loops
-    const hasChanges = () => {
-      const currentInWeek = games.filter(g => g.type === 'Training' && activeWeekDates.includes(g.date));
-      if (currentInWeek.length !== nextTrainingGames.length) return true;
-
-      const sortedCurrent = [...currentInWeek].sort((a,b) => a.date.localeCompare(b.date));
-      const sortedNext = [...nextTrainingGames].sort((a,b) => a.date.localeCompare(b.date));
-
-      for (let i = 0; i < sortedCurrent.length; i++) {
-        const c = sortedCurrent[i];
-        const n = sortedNext[i];
-        if (
-          c.date !== n.date ||
-          c.opponent !== n.opponent ||
-          c.notes !== n.notes
-        ) {
-          return true;
-        }
-      }
-      return false;
-    };
-
-    if (hasChanges()) {
-      onUpdateGames(finalGames);
+    if (result.changed) {
+      onUpdateGames(result.games);
     }
-  }, [weeklySchedule, games, onUpdateGames]);
+  }, [weeklySchedule, games, onUpdateGames, weekDaysMap]);
 
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedAttributeFilter, setSelectedAttributeFilter] = useState('all');
@@ -1214,7 +1129,7 @@ export default function TrainingView({ players, onUpdatePlayer, games, onUpdateG
     if (mode === 'last-week') {
       const prev = readJsonStorage(STORAGE_KEYS.weeklyScheduleHistory, weeklyScheduleSchema.nullable(), null, 'Training history');
       if (!prev) return;
-      const restored: Record<DayName, ScheduledDrill[]> = { Monday:[], Tuesday:[], Wednesday:[], Thursday:[], Friday:[], Saturday:[], Sunday:[] };
+      const restored: WeeklySchedule = { Monday:[], Tuesday:[], Wednesday:[], Thursday:[], Friday:[], Saturday:[], Sunday:[] };
       DAYS_OF_WEEK.forEach(day => {
         restored[day] = (prev[day] || []).map((drill, index) => ({
           ...drill,
@@ -1226,7 +1141,7 @@ export default function TrainingView({ players, onUpdatePlayer, games, onUpdateG
     }
 
     const fillDays = (template: Partial<Record<DayName, Array<{ id: string; drillId: string; name: string; fatigueIncrease: number }>>>) => {
-      const base: Record<DayName, ScheduledDrill[]> = { Monday:[], Tuesday:[], Wednesday:[], Thursday:[], Friday:[], Saturday:[], Sunday:[] };
+      const base: WeeklySchedule = { Monday:[], Tuesday:[], Wednesday:[], Thursday:[], Friday:[], Saturday:[], Sunday:[] };
       DAYS_OF_WEEK.forEach(day => { if (template[day]) base[day] = template[day]; });
       return base;
     };

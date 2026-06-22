@@ -23,6 +23,11 @@ import {
   writeJsonStorage,
   writeStringStorage
 } from '../persistence/storage';
+import {
+  buildPositionAwareLineup,
+  type TacticsLineup,
+  type TacticsPlayer
+} from '../tactics/lineup';
 
 interface TacticsViewProps {
   players: Player[];
@@ -30,36 +35,6 @@ interface TacticsViewProps {
   teamName?: string;
   teamLogoUrl?: string;
   onUpdatePlayer?: (updated: Player) => void;
-}
-
-// Definition of default legend guest players to backfill if we need them, or to enjoy eFootball style card look!
-interface TacticsPlayer {
-  id: string;
-  name: string;
-  rating: number;
-  position: string;
-  condition: 'A' | 'B' | 'C' | 'D';
-  photoUrl: string;
-  isLegend?: boolean;
-  attributes?: {
-    speed: number;
-    shooting: number;
-    passing: number;
-    dribbling: number;
-    defending: number;
-    physicalness: number;
-  };
-  number?: number;
-  bio?: string;
-  gamesPlayed?: number;
-  points?: number;
-  assists?: number;
-  cleanSheetsOrRebounds?: number;
-  minutesPlayed?: number;
-  mvpAwards?: number;
-  yellowCards?: number;
-  redCards?: number;
-  registrationStatus?: 'Active' | 'Pending' | 'Suspended';
 }
 
 const MATCH_FORMAT_CONFIG = {
@@ -110,29 +85,6 @@ const MATCH_FORMAT_CONFIG = {
 type MatchFormat = keyof typeof MATCH_FORMAT_CONFIG;
 
 const PLAYSTYLE_OPTIONS = ['Quick Counter', 'Possession Game', 'Long Ball Counter', 'Out Wide'];
-
-type PositionGroup = 'Goalkeeper' | 'Defender' | 'Midfielder' | 'Forward';
-
-const getSlotPositionGroup = (role: string): PositionGroup => {
-  if (role === 'GK') return 'Goalkeeper';
-  if (role.includes('B') || role === 'DEF') return 'Defender';
-  if (role.includes('MF') || role === 'MID') return 'Midfielder';
-  return 'Forward';
-};
-
-const getPlayerPositionGroup = (position: string): PositionGroup => {
-  if (position === 'GK' || position === 'Goalkeeper') return 'Goalkeeper';
-  if (['CB', 'LB', 'RB', 'LWB', 'RWB', 'DEF', 'Defender'].includes(position)) return 'Defender';
-  if (position.includes('MF') || position === 'MID' || position === 'Midfielder') return 'Midfielder';
-  return 'Forward';
-};
-
-const POSITION_FALLBACKS: Record<PositionGroup, PositionGroup[]> = {
-  Goalkeeper: ['Goalkeeper'],
-  Defender: ['Defender'],
-  Midfielder: ['Midfielder'],
-  Forward: ['Forward']
-};
 
 export default function TacticsView({ players, teamCoach, teamName, teamLogoUrl, onUpdatePlayer }: TacticsViewProps) {
   const [matchFormat, setMatchFormat] = useState<MatchFormat>(() => {
@@ -513,13 +465,13 @@ export default function TacticsView({ players, teamCoach, teamName, teamLogoUrl,
 
   // Maintain actual assignments state for the 11 starting slots
   // Saved inside LocalStorage for persistence
-  const [lineup, setLineup] = useState<{ [key: number]: TacticsPlayer }>(() => {
+  const [lineup, setLineup] = useState<TacticsLineup>(() => {
     return readJsonStorage(
       STORAGE_KEYS.lineup,
       tacticsLineupSchema,
       {},
       'Tactics lineup'
-    ) as unknown as { [key: number]: TacticsPlayer };
+    ) as unknown as TacticsLineup;
   });
 
   // Save lineup configuration changes
@@ -643,73 +595,24 @@ export default function TacticsView({ players, teamCoach, teamName, teamLogoUrl,
     return positions;
   }, [formation, matchFormat]);
 
-  const buildPositionAwareLineup = (
-    currentLineup: { [key: number]: TacticsPlayer },
-    preserveAssignments: boolean
-  ) => {
-    const size = MATCH_FORMAT_CONFIG[matchFormat].size;
-    const validIds = new Set(allEligiblePool.map(player => player.id));
-    const nextLineup: { [key: number]: TacticsPlayer } = {};
-
-    if (preserveAssignments) {
-      for (let index = 0; index < size; index++) {
-        const assigned = currentLineup[index];
-        const currentPlayer = assigned
-          ? allEligiblePool.find(player => player.id === assigned.id)
-          : undefined;
-
-        if (assigned && currentPlayer && validIds.has(assigned.id)) {
-          nextLineup[index] = {
-            ...currentPlayer,
-            position: fieldPositions[index]?.role || currentPlayer.position
-          };
-        }
-      }
-    }
-
-    const assignedIds = new Set(Object.values(nextLineup).map(player => player.id));
-    const available = allEligiblePool
-      .filter(player => !assignedIds.has(player.id))
-      .sort((a, b) => b.rating - a.rating);
-    const groupPriority: Record<PositionGroup, number> = {
-      Goalkeeper: 0,
-      Defender: 1,
-      Midfielder: 2,
-      Forward: 3
-    };
-
-    const emptySlots = Array.from({ length: size }, (_, index) => index)
-      .filter(index => !nextLineup[index])
-      .sort((a, b) => (
-        groupPriority[getSlotPositionGroup(fieldPositions[a]?.role || 'MID')]
-        - groupPriority[getSlotPositionGroup(fieldPositions[b]?.role || 'MID')]
-      ));
-
-    emptySlots.forEach(index => {
-      const slotRole = fieldPositions[index]?.role || 'MID';
-      const slotGroup = getSlotPositionGroup(slotRole);
-      let selectedIndex = -1;
-
-      for (const group of POSITION_FALLBACKS[slotGroup]) {
-        selectedIndex = available.findIndex(player => getPlayerPositionGroup(player.position) === group);
-        if (selectedIndex !== -1) break;
-      }
-
-      if (selectedIndex === -1) return;
-      const selectedPlayer = available.splice(selectedIndex, 1)[0];
-      nextLineup[index] = { ...selectedPlayer, position: slotRole };
-    });
-
-    return nextLineup;
-  };
-
   // Keep valid manual assignments, then fill open slots with the best position-matched players.
   useEffect(() => {
-    setLineup(previous => buildPositionAwareLineup(previous, true));
+    setLineup(previous => buildPositionAwareLineup({
+      players: allEligiblePool,
+      slots: fieldPositions,
+      size: MATCH_FORMAT_CONFIG[matchFormat].size,
+      currentLineup: previous,
+      preserveAssignments: true
+    }));
   }, [allEligiblePool, fieldPositions, matchFormat]);
 
   const handleAutoFillBoard = () => {
-    setLineup(buildPositionAwareLineup({}, false));
+    setLineup(buildPositionAwareLineup({
+      players: allEligiblePool,
+      slots: fieldPositions,
+      size: MATCH_FORMAT_CONFIG[matchFormat].size,
+      preserveAssignments: false
+    }));
     setDraggedPositions({});
     setSelectedSlotIndex(0);
   };
