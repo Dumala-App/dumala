@@ -3,6 +3,7 @@ import { Megaphone, FlaskConical, Calculator, Target, TrendingUp, Hash, ChevronD
 
 export default function UpdatesView() {
   const [openEntries, setOpenEntries] = useState<Record<string, boolean>>({
+    reliability_foundation_upgraded: true,
     offline_app_shell_released: true,
     assessment_center_implemented: true,
     fprds_vision_announced: false,
@@ -17,6 +18,48 @@ export default function UpdatesView() {
   };
 
   const changelogEntries = [
+    {
+      id: 'reliability_foundation_upgraded',
+      date: '2026-06-23',
+      title: 'Reliability and Recovery Foundation Upgraded',
+      summary: 'Dumala now catches workspace inconsistencies more clearly, guides coaches to affected records, hardens assessment workflows, and automatically verifies offline production behavior.',
+      accent: 'border-amber-200 bg-amber-50/70',
+      renderContent: () => (
+        <div className="space-y-4">
+          <p className="text-sm text-slate-600 leading-relaxed">
+            This update focused on trust. Across the recent reliability tranches, Dumala strengthened how assessment data is handled, how broken or mismatched workspace records are detected, and how coaches are guided back to the exact players, matches, or standings entries that need review.
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {[
+              {
+                title: 'Assessment data is more dependable',
+                desc: 'Assessment snapshot handling was separated into a dedicated service boundary so evaluation workflows are easier to maintain and less likely to regress as the product grows.'
+              },
+              {
+                title: 'Workspace issues are easier to fix',
+                desc: 'The workspace integrity checker now reports specific data mismatches and highlights the affected players, fixtures, or league rows so coaches can review the right record immediately.'
+              },
+              {
+                title: 'Core coaching tools are safer',
+                desc: 'Type-safety cleanup reduced weak data boundaries across assessments, tactics, schedule, standings, dashboard, announcements, and player workflows.'
+              },
+              {
+                title: 'Offline readiness is now verified automatically',
+                desc: 'Production builds now run an automated cold-launch and refresh check while offline, and GitHub Actions installs Chromium so the same verification happens in CI.'
+              }
+            ].map(item => (
+              <div key={item.title} className="bg-white border border-amber-200 rounded-xl p-4">
+                <h5 className="text-xs font-black text-slate-800 uppercase tracking-wider mb-1.5">{item.title}</h5>
+                <p className="text-xs text-slate-600 leading-relaxed">{item.desc}</p>
+              </div>
+            ))}
+          </div>
+          <p className="text-xs text-slate-500 leading-relaxed">
+            The result is a steadier beta: coaches get clearer feedback when something is inconsistent, faster paths to fix it, and stronger confidence that key workflows and offline access will hold up in real weekly use.
+          </p>
+        </div>
+      )
+    },
     {
       id: 'offline_app_shell_released',
       date: '2026-06-21',
