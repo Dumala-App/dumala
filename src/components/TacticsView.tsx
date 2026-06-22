@@ -222,7 +222,7 @@ export default function TacticsView({ players, teamCoach, teamName, teamLogoUrl,
 
   useEffect(() => {
     writeStringStorage(STORAGE_KEYS.matchFormat, matchFormat);
-    if (!MATCH_FORMAT_CONFIG[matchFormat].formations.includes(formation)) {
+    if (!(MATCH_FORMAT_CONFIG[matchFormat].formations as readonly string[]).includes(formation)) {
       setFormation(MATCH_FORMAT_CONFIG[matchFormat].formations[0]);
     }
   }, [matchFormat]);
