@@ -215,6 +215,19 @@ Import continues to accept legacy versions `1.0.0` and `1.1.0`. Legacy files are
 
 `npm run build` generates `dist/`. Vercel configuration is stored in `vercel.json`.
 
+### Continuous integration
+
+`.github/workflows/quality-gate.yml` runs on pull requests, pushes to `main`, and manual dispatches. The Ubuntu and Node.js 22 job:
+
+1. installs the locked dependency graph with `npm ci`
+2. validates TypeScript
+3. runs the Vitest suite
+4. performs a clean production build
+5. verifies generated service-worker and offline-cache policy
+6. retains the generated `dist/` artifact for seven days
+
+The workflow has read-only repository permissions, cancels superseded runs on the same branch, and applies a 15-minute timeout. Branch protection should require the **TypeScript, tests, build, and PWA** check before merging pull requests. Direct pushes to `main` should be avoided when that protection is enabled.
+
 ### Metadata and offline shell
 
 `index.html` includes Dumala description, Open Graph metadata, favicon, Apple touch icon, mobile application metadata, and the web app manifest. Chromium browsers use the native install prompt when available. iPhone and iPad users receive Safari Add to Home Screen instructions.
@@ -248,5 +261,6 @@ DM Sans and Manrope are stored as Latin variable WOFF2 files under `public/fonts
 2. Add unit tests for standings, results, and FPRDS scoring.
 3. Add browser-level recovery and restore workflow tests.
 4. Complete production-device cold-launch, refresh, and controlled-update testing.
-5. Optimize responsive tablet interactions and monitor deferred-view chunk sizes as features grow.
-6. Design cloud identity and synchronization before implementing collaboration or public profiles.
+5. Require the GitHub Actions quality check through branch protection.
+6. Optimize responsive tablet interactions and monitor deferred-view chunk sizes as features grow.
+7. Design cloud identity and synchronization before implementing collaboration or public profiles.

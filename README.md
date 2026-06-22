@@ -75,6 +75,8 @@ npm run verify:pwa
 
 The production-ready static site is generated in `dist/`.
 
+GitHub Actions runs the same quality gate on every pull request and every push to `main`. A successful run also retains the generated `dist/` artifact for seven days.
+
 ## Deployment
 
 Dumala is a static Vite application. The recommended beta deployment uses a private GitHub repository connected to Vercel:

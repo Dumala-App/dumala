@@ -1,6 +1,6 @@
 # Dumala Delivery Tasks
 
-Updated: 2026-06-21
+Updated: 2026-06-22
 
 Status values: **Done**, **In Progress**, **Next**, **Planned**, **Long Term**.
 
@@ -9,10 +9,10 @@ Status values: **Done**, **In Progress**, **Next**, **Planned**, **Long Term**.
 Progress is calculated from the completed capabilities and open checklist items in this document. The roadmap bars track implementation, while Release Validation tracks the latest verified build checks.
 
 ```text
-Overall roadmap                 [#####-----]  47%  46 / 97
+Overall roadmap                 [#####-----]  48%  47 / 97
 
 Shipped beta foundation         [##########] 100%  20 / 20
-Current Beta: Reliability       [#######---]  68%  15 / 22
+Current Beta: Reliability       [#######---]  73%  16 / 22
 FPRDS Beta                      [###-------]  33%   5 / 15
 Phase 1: Offline-ready PWA      [#########-]  86%   6 / 7
 Phase 2: Mobile and tablet      [----------]   0%   0 / 5
@@ -28,7 +28,7 @@ Release validation              [##########] 100%  12 / 12
 | Phase | Completed | Total | Progress | Status |
 | --- | ---: | ---: | ---: | --- |
 | Shipped beta foundation | 20 | 20 | 100% | Done |
-| Current Beta: Reliability and data confidence | 15 | 22 | 68% | In Progress |
+| Current Beta: Reliability and data confidence | 16 | 22 | 73% | In Progress |
 | FPRDS Beta | 5 | 15 | 33% | In Progress |
 | Phase 1: Offline-ready web app | 6 | 7 | 86% | In Progress |
 | Phase 2: Mobile and tablet experience | 0 | 5 | 0% | Planned |
@@ -78,6 +78,7 @@ The FPRDS total includes five capabilities already shipped: assessment workflows
 - [x] Added offline, reconnect, offline-ready, update-available, and registration-warning status messages.
 - [x] Added repeatable generated-service-worker policy verification.
 - [x] Self-hosted DM Sans and Manrope for reliable offline typography.
+- [x] Added GitHub Actions CI for TypeScript, tests, production build, and PWA verification.
 - [x] Updated PRD, MVP, architecture, roadmap, audit, tasks, and README.
 
 ## Current Beta: Reliability and data confidence
@@ -115,7 +116,7 @@ The FPRDS total includes five capabilities already shipped: assessment workflows
 - [ ] **Planned:** Extract the assessment snapshot service from `App.tsx`.
 - [ ] **Planned:** Replace deprecated `Player.attributes?: any` after migration support is no longer needed.
 - [ ] **Planned:** Split Player and Staff models before credential and permission work.
-- [ ] **Planned:** Add CI for type-check, tests, and production build.
+- [x] **Done:** Add CI for type-check, tests, production build, PWA verification, and build artifacts.
 
 ## FPRDS Beta
 
