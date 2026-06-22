@@ -217,7 +217,7 @@ Import continues to accept legacy versions `1.0.0` and `1.1.0`. Legacy files are
 
 ### Continuous integration
 
-`.github/workflows/quality-gate.yml` runs on pull requests, pushes to `main`, and manual dispatches. The Ubuntu and Node.js 22 job:
+`.github/workflows/quality-gate.yml` runs on pull requests, pushes to `main`, and manual dispatches. The Ubuntu and Node.js 22 validation job:
 
 1. installs the locked dependency graph with `npm ci`
 2. validates TypeScript
@@ -228,7 +228,11 @@ Import continues to accept legacy versions `1.0.0` and `1.1.0`. Legacy files are
 
 The workflow has read-only repository permissions, cancels superseded runs on the same branch, and applies a 15-minute timeout.
 
-The `main` branch is protected in the private `Dumala-App/dumala` repository. All changes must arrive through a pull request, the **TypeScript, tests, build, and PWA** check must pass, and the pull-request branch must be current with `main`. Administrators cannot bypass these requirements. Force pushes and branch deletion are disabled. Vercel production therefore receives changes only after GitHub accepts a validated merge into `main`.
+The `main` branch is protected in the private `Dumala-App/dumala` repository. All changes must arrive through a pull request, the **TypeScript, tests, build, and PWA** check must pass, and the pull-request branch must be current with `main`. Administrators cannot bypass these requirements. Force pushes and branch deletion are disabled.
+
+After validation succeeds on a push to `main`, the dependent **Deploy validated main to Vercel** job rebuilds the same merged revision with the pinned Vercel CLI and deploys its prebuilt output to production. The job uses the GitHub `production` environment and its encrypted `VERCEL_TOKEN`, `VERCEL_ORG_ID`, and `VERCEL_PROJECT_ID` secrets. Pull-request jobs cannot access those credentials and never deploy production. The direct Vercel Git connection remains disabled because the private repository belongs to a GitHub organization on the Vercel Hobby plan.
+
+The Vercel token is a dedicated deployment credential and must be rotated before expiration or immediately after suspected exposure. Rotation requires replacing only the `VERCEL_TOKEN` environment secret; IDs and application code do not change.
 
 ### Metadata and offline shell
 

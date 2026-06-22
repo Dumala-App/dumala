@@ -80,6 +80,7 @@ The FPRDS total includes five capabilities already shipped: assessment workflows
 - [x] Self-hosted DM Sans and Manrope for reliable offline typography.
 - [x] Added GitHub Actions CI for TypeScript, tests, production build, and PWA verification.
 - [x] Protected `main` with pull requests, required current CI, no bypass, and no force-push or deletion access.
+- [x] Added validated private-repository production deployment from GitHub Actions to Vercel.
 - [x] Updated PRD, MVP, architecture, roadmap, audit, tasks, and README.
 
 ## Current Beta: Reliability and data confidence
