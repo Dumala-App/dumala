@@ -33,6 +33,7 @@
 
 html {
   scroll-behavior: smooth;
+  scroll-padding-top: 6rem;
 }
 
 body {
@@ -78,6 +79,10 @@ a:focus-visible {
     #f6f8fc;
 }
 
+#app-main-content {
+  padding-bottom: max(1rem, env(keyboard-inset-height, 0px));
+}
+
 #tab-content-frame {
   animation: view-enter 240ms ease-out;
 }
@@ -95,5 +100,76 @@ a:focus-visible {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+  }
+}
+
+@media (min-width: 768px) and (max-width: 1366px) {
+  #assessments-view-container input,
+  #assessments-view-container select,
+  #assessments-view-container textarea,
+  #roster-view-container input,
+  #roster-view-container select,
+  #roster-view-container textarea,
+  #schedule-view-container input,
+  #schedule-view-container select,
+  #schedule-view-container textarea,
+  #standings-view-container input,
+  #standings-view-container select,
+  #standings-view-container textarea,
+  #tactics-view-container input,
+  #tactics-view-container select,
+  #tactics-view-container textarea {
+    min-height: 44px;
+    font-size: 0.875rem;
+    scroll-margin-top: 7rem;
+    scroll-margin-bottom: 38vh;
+  }
+
+  #assessments-view-container button,
+  #roster-view-container button,
+  #schedule-view-container button,
+  #standings-view-container button,
+  #tactics-view-container button {
+    min-height: 44px;
+  }
+
+  #tactics-view-container #tactical-field-card {
+    max-height: calc(100vh - 8rem);
+    touch-action: none;
+  }
+
+  #standings-view-container table {
+    min-width: 960px;
+  }
+
+  #standings-view-container th:first-child,
+  #standings-view-container td:first-child {
+    position: sticky;
+    left: 0;
+    z-index: 1;
+    background: inherit;
+  }
+
+  #standings-view-container th:nth-child(2),
+  #standings-view-container td:nth-child(2) {
+    position: sticky;
+    left: 4.75rem;
+    z-index: 1;
+    background: inherit;
+    box-shadow: 12px 0 14px -14px rgba(15, 23, 42, 0.35);
+  }
+
+  #standings-view-container th:last-child,
+  #standings-view-container td:last-child {
+    position: sticky;
+    right: 0;
+    z-index: 1;
+    background: inherit;
+    box-shadow: -12px 0 14px -14px rgba(15, 23, 42, 0.35);
+  }
+
+  #standings-view-container thead th {
+    z-index: 2;
+    background: #f8fafc;
   }
 }

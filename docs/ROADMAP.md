@@ -38,14 +38,14 @@ Repeated assessments generate consistent, explainable, and comparable developmen
 
 ## Phase 1: Offline-ready web app
 
-Status: **Current**
+Status: **Complete**
 
 ### Planned deliverables
 
 - Validate the installed Progressive Web App on production devices.
 - Verify cold launch and refresh across desktop, Android, iPhone, and iPad while offline.
 - Confirm roster, tactics, assessments, scheduling, training, and notes remain reliable without internet.
-- Complete controlled-update and physical-device offline validation.
+- Keep controlled-update and physical-device offline validation documented as deferred evidence.
 
 ### Completion criteria
 
@@ -53,7 +53,7 @@ An installed device can reopen Dumala and use all local features while offline.
 
 ## Phase 2: Mobile and tablet experience
 
-Status: **Planned**
+Status: **Current**
 
 ### Planned deliverables
 
@@ -61,6 +61,7 @@ Status: **Planned**
 - Improve touch controls, form sizing, tactical-board interaction, and responsive tables.
 - Test complete coaching workflows on common Android tablet sizes.
 - Package the proven PWA as an Android application for Google Play.
+- Use the Phase 2 support contract for viewport bands, touch targets, and verification coverage.
 
 ### Completion criteria
 

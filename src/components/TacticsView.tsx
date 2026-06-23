@@ -507,7 +507,9 @@ export default function TacticsView({ players, staff, teamCoach, teamName, teamL
   }, [draggedPositions]);
 
   // Pointer Dragging trackers
-  const [activeDragItem, setActiveDragItem] = useState<{ type: 'player' | 'ball' | 'wall'; index?: number } | null>(null);
+  const activeDragItemRef = useRef<{ type: 'player' | 'ball' | 'wall'; index?: number } | null>(null);
+  const activeDragPointerIdRef = useRef<number | null>(null);
+  const dragStartPointRef = useRef<{ x: number; y: number } | null>(null);
   const isDragMovingRef = useRef(false);
 
   // Drawing tools state
@@ -518,6 +520,9 @@ export default function TacticsView({ players, staff, teamCoach, teamName, teamL
     return readJsonStorage(STORAGE_KEYS.drawingPaths, drawingPathsSchema, [], 'Tactics drawings') as DrawingPath[];
   });
   const [currentPath, setCurrentPath] = useState<DrawingPath | null>(null);
+  const currentPathRef = useRef<DrawingPath | null>(null);
+  const activeDrawingPointerIdRef = useRef<number | null>(null);
+  const lastDrawingPointRef = useRef<DrawingPoint | null>(null);
 
   // Tactical Aux elements states
   const [showBall, setShowBall] = useState<boolean>(true);
@@ -722,67 +727,123 @@ export default function TacticsView({ players, staff, teamCoach, teamName, teamL
 
   const fieldRef = useRef<HTMLDivElement>(null);
 
+  const getFieldPoint = (clientX: number, clientY: number): DrawingPoint | null => {
+    if (!fieldRef.current) return null;
+    const rect = fieldRef.current.getBoundingClientRect();
+    const x = ((clientX - rect.left) / rect.width) * 100;
+    const y = ((clientY - rect.top) / rect.height) * 100;
+    return [
+      Math.max(0, Math.min(100, x)),
+      Math.max(0, Math.min(100, y))
+    ];
+  };
+
+  const finishDragInteraction = (e?: React.PointerEvent) => {
+    activeDragItemRef.current = null;
+    activeDragPointerIdRef.current = null;
+    dragStartPointRef.current = null;
+
+    if (e?.currentTarget.hasPointerCapture?.(e.pointerId)) {
+      e.currentTarget.releasePointerCapture(e.pointerId);
+    }
+  };
+
+  const finishDrawingInteraction = (e?: React.PointerEvent<Element>) => {
+    activeDrawingPointerIdRef.current = null;
+    lastDrawingPointRef.current = null;
+
+    if (e?.currentTarget.hasPointerCapture?.(e.pointerId)) {
+      e.currentTarget.releasePointerCapture(e.pointerId);
+    }
+  };
+
   // Field Pointer events for drawing on pitch in Drawing Mode
-  const handleFieldPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+  const handleFieldPointerDown = (e: React.PointerEvent<Element>) => {
     if (!isDrawingMode || !fieldRef.current) return;
     
     // Check if dragging an element first
-    if (activeDragItem) return;
-    
-    const rect = fieldRef.current.getBoundingClientRect();
-    const x = ((e.clientX - rect.left) / rect.width) * 100;
-    const y = ((e.clientY - rect.top) / rect.height) * 100;
-    
-    setCurrentPath({
+    if (activeDragItemRef.current) return;
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
+
+    const point = getFieldPoint(e.clientX, e.clientY);
+    if (!point) return;
+
+    e.preventDefault();
+    activeDrawingPointerIdRef.current = e.pointerId;
+    lastDrawingPointRef.current = point;
+    const nextPath = {
       color: brushColor,
       width: brushWidth,
-      points: [[x, y]]
-    });
-    
+      points: [point]
+    };
+
+    currentPathRef.current = nextPath;
+    setCurrentPath(nextPath);
+
     e.currentTarget.setPointerCapture(e.pointerId);
   };
 
-  const handleFieldPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (!isDrawingMode || !currentPath || !fieldRef.current) return;
-    
-    const rect = fieldRef.current.getBoundingClientRect();
-    const x = ((e.clientX - rect.left) / rect.width) * 100;
-    const y = ((e.clientY - rect.top) / rect.height) * 100;
-    
-    const clampedX = Math.max(0, Math.min(100, x));
-    const clampedY = Math.max(0, Math.min(100, y));
+  const handleFieldPointerMove = (e: React.PointerEvent<Element>) => {
+    if (!isDrawingMode || !currentPathRef.current || !fieldRef.current) return;
+    if (activeDrawingPointerIdRef.current !== e.pointerId) return;
+
+    const point = getFieldPoint(e.clientX, e.clientY);
+    if (!point) return;
+
+    e.preventDefault();
+    const lastPoint = lastDrawingPointRef.current;
+    if (lastPoint) {
+      const movedDistance = Math.hypot(point[0] - lastPoint[0], point[1] - lastPoint[1]);
+      if (movedDistance < 0.35) return;
+    }
+    lastDrawingPointRef.current = point;
     
     setCurrentPath(prev => {
-      if (!prev) return null;
-      return {
-        ...prev,
-        points: [...prev.points, [clampedX, clampedY]]
+      const activePath = prev ?? currentPathRef.current;
+      if (!activePath) return null;
+      const nextPath = {
+        ...activePath,
+        points: [...activePath.points, point]
       };
+      currentPathRef.current = nextPath;
+      return nextPath;
     });
   };
 
-  const handleFieldPointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (currentPath) {
+  const handleFieldPointerUp = (e: React.PointerEvent<Element>) => {
+    if (activeDrawingPointerIdRef.current !== null && activeDrawingPointerIdRef.current !== e.pointerId) return;
+    const finishedPath = currentPathRef.current;
+    if (finishedPath) {
       setPaths(prev => {
-        const updated = [...prev, currentPath];
+        const updated = [...prev, finishedPath];
         writeJsonStorage(STORAGE_KEYS.drawingPaths, updated);
         return updated;
       });
       setCurrentPath(null);
+      currentPathRef.current = null;
     }
+    finishDrawingInteraction(e);
   };
 
   // Element Specific Dragging handlers (incorporating pointer-capture)
   const handleElementPointerDown = (e: React.PointerEvent, type: 'player' | 'ball' | 'wall', index?: number) => {
     if (isDrawingMode) return;
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
+    e.preventDefault();
     e.stopPropagation();
-    setActiveDragItem({ type, index });
+    const nextDragItem = { type, index };
+    activeDragItemRef.current = nextDragItem;
+    activeDragPointerIdRef.current = e.pointerId;
+    dragStartPointRef.current = { x: e.clientX, y: e.clientY };
     isDragMovingRef.current = false;
     e.currentTarget.setPointerCapture(e.pointerId);
   };
 
   const handleElementPointerMove = (e: React.PointerEvent) => {
-    if (!activeDragItem || !fieldRef.current) return;
+    const dragItem = activeDragItemRef.current;
+    if (!dragItem || !fieldRef.current) return;
+    if (activeDragPointerIdRef.current !== e.pointerId) return;
+    e.preventDefault();
     e.stopPropagation();
     
     const rect = fieldRef.current.getBoundingClientRect();
@@ -793,29 +854,30 @@ export default function TacticsView({ players, staff, teamCoach, teamName, teamL
     const leftPercent = Math.max(0, Math.min(100, Math.round((x / rect.width) * 100)));
     const topPercent = Math.max(0, Math.min(100, Math.round((y / rect.height) * 100)));
     
-    isDragMovingRef.current = true;
+    const startPoint = dragStartPointRef.current;
+    if (startPoint && Math.hypot(e.clientX - startPoint.x, e.clientY - startPoint.y) > 4) {
+      isDragMovingRef.current = true;
+    }
     
-    if (activeDragItem.type === 'player' && activeDragItem.index !== undefined) {
-      const idx = activeDragItem.index;
+    if (dragItem.type === 'player' && dragItem.index !== undefined) {
+      const idx = dragItem.index;
       setDraggedPositions(prev => ({
         ...prev,
         [idx]: { left: leftPercent, top: topPercent }
       }));
-    } else if (activeDragItem.type === 'ball') {
+    } else if (dragItem.type === 'ball') {
       setBallPos({ left: leftPercent, top: topPercent });
-    } else if (activeDragItem.type === 'wall') {
+    } else if (dragItem.type === 'wall') {
       setWallPos({ left: leftPercent, top: topPercent });
     }
   };
 
   const handleElementPointerUp = (e: React.PointerEvent) => {
-    if (activeDragItem) {
-      setActiveDragItem(null);
-      e.currentTarget.releasePointerCapture(e.pointerId);
-    }
+    if (activeDragPointerIdRef.current !== null && activeDragPointerIdRef.current !== e.pointerId) return;
+    finishDragInteraction(e);
   };
 
-  const handleRemovePlayer = (e: React.MouseEvent, index: number) => {
+  const handleRemovePlayer = (e: React.MouseEvent | React.PointerEvent, index: number) => {
     e.stopPropagation();
     setLineup(prev => {
       const newLineup = { ...prev };
@@ -1055,7 +1117,9 @@ export default function TacticsView({ players, staff, teamCoach, teamName, teamL
           onPointerDown={handleFieldPointerDown}
           onPointerMove={handleFieldPointerMove}
           onPointerUp={handleFieldPointerUp}
-          className="relative w-full max-w-[576px] aspect-[7/10] mx-auto bg-[#132c1b] rounded-2xl overflow-hidden border border-emerald-900/60 shadow-lg select-none"
+          onPointerCancel={handleFieldPointerUp}
+          onLostPointerCapture={finishDrawingInteraction}
+          className="relative w-full max-w-[576px] aspect-[7/10] mx-auto bg-[#132c1b] rounded-2xl overflow-hidden border border-emerald-900/60 shadow-lg select-none touch-none"
         >
           
           {/* Soccer pitch physical markings overlay */}
@@ -1084,7 +1148,12 @@ export default function TacticsView({ players, staff, teamCoach, teamName, teamL
           <svg 
             viewBox="0 0 100 100" 
             className="absolute inset-0 w-full h-full select-none"
-            style={{ zIndex: isDrawingMode ? 30 : 10, pointerEvents: isDrawingMode ? 'auto' : 'none' }}
+            onPointerDown={handleFieldPointerDown}
+            onPointerMove={handleFieldPointerMove}
+            onPointerUp={handleFieldPointerUp}
+            onPointerCancel={handleFieldPointerUp}
+            onLostPointerCapture={finishDrawingInteraction}
+            style={{ zIndex: isDrawingMode ? 30 : 10, pointerEvents: isDrawingMode ? 'auto' : 'none', touchAction: 'none' }}
           >
             {paths.map((p, idx) => (
               <path
@@ -1132,7 +1201,9 @@ export default function TacticsView({ players, staff, teamCoach, teamName, teamL
                   onPointerDown={(e) => handleElementPointerDown(e, 'player', idx)}
                   onPointerUp={handleElementPointerUp}
                   onPointerMove={handleElementPointerMove}
-                  className="absolute -translate-x-1/2 -translate-y-1/2 focus:outline-none z-20 group cursor-grab active:cursor-grabbing"
+                  onPointerCancel={handleElementPointerUp}
+                  onLostPointerCapture={finishDragInteraction}
+                  className="absolute -translate-x-1/2 -translate-y-1/2 focus:outline-none z-20 group cursor-grab active:cursor-grabbing touch-none"
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                 >
@@ -1168,7 +1239,9 @@ export default function TacticsView({ players, staff, teamCoach, teamName, teamL
                 onPointerDown={(e) => handleElementPointerDown(e, 'player', idx)}
                 onPointerUp={handleElementPointerUp}
                 onPointerMove={handleElementPointerMove}
-                className="absolute -translate-x-1/2 -translate-y-1/2 focus:outline-none z-20 group cursor-grab active:cursor-grabbing"
+                onPointerCancel={handleElementPointerUp}
+                onLostPointerCapture={finishDragInteraction}
+                className="absolute -translate-x-1/2 -translate-y-1/2 focus:outline-none z-20 group cursor-grab active:cursor-grabbing touch-none"
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 initial={{ opacity: 0, scale: 0.8 }}
@@ -1264,8 +1337,9 @@ export default function TacticsView({ players, staff, teamCoach, teamName, teamL
                     e.preventDefault();
                     handleRemovePlayer(e, idx);
                   }} 
-                  className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-rose-500 border border-red-600 rounded-full flex items-center justify-center text-white shadow-xl opacity-0 group-hover:opacity-100 hover:bg-rose-600 transition-all z-40 cursor-pointer pointer-events-auto hover:scale-110 active:scale-95"
+                  className="absolute -top-3 -right-3 w-9 h-9 bg-rose-500 border border-red-600 rounded-full flex items-center justify-center text-white shadow-xl opacity-100 sm:opacity-0 sm:group-hover:opacity-100 sm:focus-visible:opacity-100 hover:bg-rose-600 transition-all z-40 cursor-pointer pointer-events-auto hover:scale-110 active:scale-95 touch-manipulation"
                   title="Remove Squad Player from Position"
+                  aria-label={`Remove ${player.name || 'player'} from ${pos.role}`}
                 >
                   <span className="text-[12px] font-black leading-none mb-0.5 pointer-events-none">×</span>
                 </button>
@@ -1290,8 +1364,12 @@ export default function TacticsView({ players, staff, teamCoach, teamName, teamL
               onPointerDown={(e) => handleElementPointerDown(e, 'ball')}
               onPointerUp={handleElementPointerUp}
               onPointerMove={handleElementPointerMove}
-              className="absolute -translate-x-1/2 -translate-y-1/2 w-8 h-8 bg-white border-2 border-slate-900 rounded-full flex items-center justify-center shadow-xl cursor-grab active:cursor-grabbing z-30 transition-shadow hover:scale-110 select-none animate-bounce-short"
+              onPointerCancel={handleElementPointerUp}
+              onLostPointerCapture={finishDragInteraction}
+              className="absolute -translate-x-1/2 -translate-y-1/2 w-11 h-11 bg-white border-2 border-slate-900 rounded-full flex items-center justify-center shadow-xl cursor-grab active:cursor-grabbing z-30 transition-shadow hover:scale-110 select-none animate-bounce-short touch-none"
               title="Tactical Match Ball (Drag to plot plays or attacking runs!)"
+              role="button"
+              aria-label="Drag tactical match ball"
             >
               <div className="relative w-full h-full rounded-full overflow-hidden bg-slate-100 flex items-center justify-center">
                 <div className="absolute inset-0 grid grid-cols-2 grid-rows-2 opacity-15">
@@ -1313,8 +1391,12 @@ export default function TacticsView({ players, staff, teamCoach, teamName, teamL
               onPointerDown={(e) => handleElementPointerDown(e, 'wall')}
               onPointerUp={handleElementPointerUp}
               onPointerMove={handleElementPointerMove}
-              className="absolute -translate-x-1/2 -translate-y-1/2 px-3 py-1.5 bg-red-650/95 border border-red-400 text-white rounded-lg flex items-center justify-center gap-1 shadow-2xl cursor-grab active:cursor-grabbing z-30 select-none hover:scale-105"
+              onPointerCancel={handleElementPointerUp}
+              onLostPointerCapture={finishDragInteraction}
+              className="absolute -translate-x-1/2 -translate-y-1/2 min-h-11 px-4 py-2 bg-red-650/95 border border-red-400 text-white rounded-lg flex items-center justify-center gap-1 shadow-2xl cursor-grab active:cursor-grabbing z-30 select-none hover:scale-105 touch-none"
               title="Defensive Wall (Drag/place on pitch!)"
+              role="button"
+              aria-label="Drag defensive wall"
             >
               <div className="flex items-center gap-1 text-[9.5px] font-black tracking-widest font-mono text-white">
                 <span>🛡️</span>

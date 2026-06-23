@@ -258,6 +258,10 @@ The service-worker cache contains deployable application files only. Browser `lo
 
 DM Sans and Manrope are stored as Latin variable WOFF2 files under `public/fonts/`, preloaded by `index.html`, and precached by Workbox. Their SIL Open Font License files are retained beside each font asset. After registration, the PWA lifecycle removes the two obsolete Google Fonts runtime caches created by earlier releases.
 
+### Mobile and tablet support
+
+Phase 2 responsive work follows `docs/PHASE_2_MOBILE_TABLET_SUPPORT.md`. The minimum supported compact width is 360 CSS pixels. Tablet portrait spans 768-1023 CSS pixels, tablet landscape spans 1024-1366 CSS pixels, and desktop layouts above that range must not regress while tablet changes land. Interactive controls should expose at least 44 by 44 CSS pixels of touch area, with 48 by 48 CSS pixels preferred for destructive or high-risk actions.
+
 ## 11. Technical risks
 
 1. `App.tsx` owns too many domain and integration responsibilities.
@@ -271,7 +275,7 @@ DM Sans and Manrope are stored as Latin variable WOFF2 files under `public/fonts
 1. Extract result-cascade services from `App.tsx`.
 2. Add unit tests for standings, results, and FPRDS scoring.
 3. Add browser-level recovery and restore workflow tests.
-4. Complete production-device cold-launch, refresh, and controlled-update testing.
+4. Redesign dense forms and tables against the Phase 2 mobile/tablet support contract.
 5. Require the GitHub Actions quality check through branch protection.
 6. Optimize responsive tablet interactions and monitor deferred-view chunk sizes as features grow.
 7. Design cloud identity and synchronization before implementing collaboration or public profiles.

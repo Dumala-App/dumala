@@ -544,10 +544,10 @@ export default function StandingsView({
             
             <form ref={scoreboardFormRef} onSubmit={handleApplyMatchResults} className="space-y-4" noValidate>
               <FormErrorSummary id="scoreboard-error-summary" errors={scoreboardErrors} />
-              <div className="grid grid-cols-1 md:grid-cols-5 gap-3 items-center">
+              <div className="grid grid-cols-1 lg:grid-cols-5 gap-3 items-center">
                 
                 {/* Home Team select */}
-                <div className="md:col-span-2">
+                <div className="lg:col-span-2">
                   <label className="text-[10px] uppercase font-bold text-slate-400 mb-1 block">Home Team</label>
                   <select
                     data-validation-field="homeTeam"
@@ -620,7 +620,7 @@ export default function StandingsView({
                 </div>
 
                 {/* Away Team select */}
-                <div className="md:col-span-2">
+                <div className="lg:col-span-2">
                   <label className="text-[10px] uppercase font-bold text-slate-400 mb-1 block">Away Team</label>
                   <select
                     data-validation-field="awayTeam"
@@ -746,7 +746,7 @@ export default function StandingsView({
           </span>
         </div>
 
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto overscroll-x-contain">
           <table className="w-full text-left text-xs border-collapse">
             <thead>
               <tr className="bg-slate-50 text-slate-400 font-bold uppercase border-b border-slate-100">

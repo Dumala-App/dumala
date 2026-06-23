@@ -445,7 +445,7 @@ export default function ScheduleView({ games, players, standings, onAddGame, onR
             <h3 className="font-display font-semibold text-slate-800">Add Next Game / Event</h3>
           </div>
 
-          <form onSubmit={handleAddGameSubmit} className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <form onSubmit={handleAddGameSubmit} className="grid grid-cols-1 lg:grid-cols-3 gap-4">
             <div>
               <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">
                 {type === 'Training' ? 'Session Title' : type === 'Meeting' ? 'Meeting Subject' : 'Opposing Club Name'} *
@@ -484,7 +484,7 @@ export default function ScheduleView({ games, players, standings, onAddGame, onR
               />
             </div>
 
-            <div className="md:col-span-2">
+            <div className="lg:col-span-2">
               <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Venu / Field Location *</label>
               <input 
                 id="new-game-location"
@@ -513,7 +513,7 @@ export default function ScheduleView({ games, players, standings, onAddGame, onR
               </select>
             </div>
 
-            <div className="md:col-span-3">
+            <div className="lg:col-span-3">
               <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Squad Tactical Instructions / Notes</label>
               <textarea 
                 id="new-game-notes"
@@ -525,7 +525,7 @@ export default function ScheduleView({ games, players, standings, onAddGame, onR
               />
             </div>
 
-            <div className="md:col-span-3 flex justify-end gap-2 p-1">
+            <div className="lg:col-span-3 flex flex-col sm:flex-row justify-end gap-2 p-1">
               <button 
                 id="cancel-add-game-btn"
                 type="button" 
@@ -643,7 +643,7 @@ export default function ScheduleView({ games, players, standings, onAddGame, onR
                   }`}
                 >
                   <span className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Track Team Scorers</span>
-                  <div className="flex gap-2">
+                  <div className="flex flex-col sm:flex-row gap-2">
                     <select
                       id="scorer-player-select"
                       value={selectedScorer}

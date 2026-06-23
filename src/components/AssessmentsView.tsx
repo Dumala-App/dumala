@@ -708,7 +708,7 @@ export default function AssessmentsView({
   }, [ageGroup, assessmentDate, assessmentType, role, scorePreview, selectedPlayerId, step]);
 
   return (
-    <div ref={assessmentContainerRef} className="space-y-6">
+    <div id="assessments-view-container" ref={assessmentContainerRef} className="space-y-6">
       <div className="bg-white border border-slate-200/70 rounded-2xl shadow-md shadow-slate-100/30 p-5 sm:p-6">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
           <div className="flex items-start gap-3">
@@ -1008,7 +1008,7 @@ export default function AssessmentsView({
                     Guide for these drills
                   </button>
                 </div>
-                <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="mt-3 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
                   <NumberInput
                     id="base-sprint10"
                     fieldName="sprint10mSeconds"
@@ -1132,7 +1132,7 @@ export default function AssessmentsView({
                     Guide for these drills
                   </button>
                 </div>
-                <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="mt-3 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
                   {requiredRoleFields.map(f => (
                     <NumberInput
                       key={f.key}
