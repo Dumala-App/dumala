@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import { playersSchema } from './schemas';
-import { drainRecoveryWarnings, readJsonStorage, type StorageLike } from './storage';
+import {
+  createStorageRecoverySnapshot,
+  drainRecoveryWarnings,
+  inspectDumalaStorage,
+  readJsonStorage,
+  STORAGE_KEYS,
+  type StorageLike
+} from './storage';
 
 class MemoryStorage implements StorageLike {
   protected values = new Map<string, string>();
@@ -83,6 +90,58 @@ describe('validated storage reads', () => {
     storage.setItem('players', JSON.stringify([{ id: 'missing-fields' }]));
     expect(readJsonStorage('players', playersSchema, [], 'Roster', storage)).toEqual([]);
     expect(drainRecoveryWarnings()).toHaveLength(1);
+  });
+});
+
+describe('startup storage inspection', () => {
+  it('reports malformed and structurally invalid saved sections without changing them', () => {
+    const storage = new MemoryStorage();
+    storage.setItem(STORAGE_KEYS.players, '{bad-json');
+    storage.setItem(STORAGE_KEYS.games, JSON.stringify([{ id: 'missing-fields' }]));
+    const playersBefore = storage.getItem(STORAGE_KEYS.players);
+    const gamesBefore = storage.getItem(STORAGE_KEYS.games);
+
+    expect(inspectDumalaStorage(storage)).toEqual([
+      {
+        key: STORAGE_KEYS.players,
+        section: 'Roster',
+        reason: 'malformed-json'
+      },
+      {
+        key: STORAGE_KEYS.games,
+        section: 'Schedule',
+        reason: 'invalid-data'
+      }
+    ]);
+    expect(storage.getItem(STORAGE_KEYS.players)).toBe(playersBefore);
+    expect(storage.getItem(STORAGE_KEYS.games)).toBe(gamesBefore);
+  });
+
+  it('accepts valid JSON, string, and boolean storage encodings', () => {
+    const storage = new MemoryStorage();
+    storage.setItem(STORAGE_KEYS.players, JSON.stringify([legacyPlayer]));
+    storage.setItem(STORAGE_KEYS.onboarded, 'true');
+    storage.setItem(STORAGE_KEYS.formation, '4-3-3');
+    storage.setItem(STORAGE_KEYS.isCustomStrategy, 'false');
+
+    expect(inspectDumalaStorage(storage)).toEqual([]);
+  });
+
+  it('creates a recovery snapshot with untouched known records and issue metadata', () => {
+    const storage = new MemoryStorage();
+    storage.setItem(STORAGE_KEYS.players, '{bad-json');
+    storage.setItem('unrelated-key', 'do-not-export');
+    const issues = inspectDumalaStorage(storage);
+
+    expect(createStorageRecoverySnapshot(issues, storage, '2026-06-23T00:00:00.000Z')).toEqual({
+      format: 'dumala-storage-recovery',
+      version: 1,
+      exportedAt: '2026-06-23T00:00:00.000Z',
+      issues,
+      entries: {
+        [STORAGE_KEYS.players]: '{bad-json'
+      }
+    });
   });
 });
 
