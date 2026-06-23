@@ -9,18 +9,19 @@ Status values: **Done**, **In Progress**, **Next**, **Planned**, **Long Term**.
 Progress is calculated from the completed capabilities and open checklist items in this document. The roadmap bars track implementation, while Release Validation tracks the latest verified build checks.
 
 ```text
-Overall roadmap                 [######----]  64%  63 / 99
+Overall roadmap                 [######----]  65%  63 / 98
 
 Shipped beta foundation         [##########] 100%  20 / 20
 Current Beta: Reliability       [##########] 100%  24 / 24
 FPRDS Beta                      [######----]  60%   9 / 15
 Phase 1: Offline-ready PWA      [##########] 100%   7 / 7
-Phase 2: Mobile and tablet      [########--]  80%   4 / 5
+Phase 2: Mobile and tablet      [##########] 100%   4 / 4
 Phase 3: Cloud and sync         [----------]   0%   0 / 6
 Phase 4: Team collaboration     [----------]   0%   0 / 5
 Phase 5: Profiles and drafting  [----------]   0%   0 / 6
 Future: Coach education         [----------]   0%   0 / 6
 Future: Club operations         [----------]   0%   0 / 5
+Release: App stores             [----------]   0%   0 / 1
 
 Release validation              [##########] 100%  12 / 12
 ```
@@ -31,12 +32,13 @@ Release validation              [##########] 100%  12 / 12
 | Current Beta: Reliability and data confidence | 24 | 24 | 100% | Done |
 | FPRDS Beta | 9 | 15 | 60% | In Progress |
 | Phase 1: Offline-ready web app | 7 | 7 | 100% | Done |
-| Phase 2: Mobile and tablet experience | 4 | 5 | 80% | In Progress |
+| Phase 2: Mobile and tablet experience | 4 | 4 | 100% | Done |
 | Phase 3: Cloud accounts and synchronization | 0 | 6 | 0% | Planned |
 | Phase 4: Team collaboration | 0 | 5 | 0% | Planned |
 | Phase 5: Public profiles and drafting | 0 | 6 | 0% | Long Term |
 | Future Expansion: Philippine coach education | 0 | 6 | 0% | Long Term |
 | Future Expansion: Club operations | 0 | 5 | 0% | Long Term |
+| Future Release: App store distribution | 0 | 1 | 0% | Deferred |
 
 The FPRDS total includes nine completed capabilities: the five shipped assessment features plus interpolation, role-weighting, age-transition, and required-field validation coverage. Its six remaining review and reporting tasks appear below.
 
@@ -174,11 +176,12 @@ Deferred by product decision: production physical-device and controlled-update v
 - [x] **Done:** Redesign dense tables and forms for tablet use.
 - [x] **Done:** Improve touch dragging and drawing on the tactics board.
 - [x] **Done:** Test orientation changes and virtual keyboard behavior.
-- [ ] **Next:** Package the validated PWA for Google Play.
+
+Deferred by product decision: Google Play packaging is a future release task, not a core-feature blocker. Revisit after the next major product capabilities stabilize so packaging, store listing assets, Android validation, and versioning do not need to be repeated for every feature iteration.
 
 ## Phase 3: Cloud accounts and synchronization
 
-- [ ] **Planned:** Select backend, database, authentication, and hosting.
+- [ ] **Next:** Select backend, database, authentication, and hosting.
 - [ ] **Planned:** Design club, user, membership, and durable domain schemas.
 - [ ] **Planned:** Create local-to-cloud migration with non-destructive rollback.
 - [ ] **Planned:** Define offline mutation queue and conflict strategy.
@@ -218,6 +221,10 @@ Deferred by product decision: production physical-device and controlled-update v
 - [ ] **Long Term:** Add calendar export and scheduled reminders.
 - [ ] **Long Term:** Add multiple squads and age groups.
 - [ ] **Long Term:** Preserve records across seasons.
+
+## Future Release: App store distribution
+
+- [ ] **Deferred:** Package the validated PWA for Google Play after core cloud, collaboration, and public-release capabilities stabilize.
 
 ## Release validation checklist
 
