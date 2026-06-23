@@ -9,10 +9,10 @@ Status values: **Done**, **In Progress**, **Next**, **Planned**, **Long Term**.
 Progress is calculated from the completed capabilities and open checklist items in this document. The roadmap bars track implementation, while Release Validation tracks the latest verified build checks.
 
 ```text
-Overall roadmap                 [######----]  57%  56 / 98
+Overall roadmap                 [######----]  59%  58 / 98
 
 Shipped beta foundation         [##########] 100%  20 / 20
-Current Beta: Reliability       [#########-]  91%  21 / 23
+Current Beta: Reliability       [##########] 100%  23 / 23
 FPRDS Beta                      [######----]  60%   9 / 15
 Phase 1: Offline-ready PWA      [#########-]  86%   6 / 7
 Phase 2: Mobile and tablet      [----------]   0%   0 / 5
@@ -28,7 +28,7 @@ Release validation              [##########] 100%  12 / 12
 | Phase | Completed | Total | Progress | Status |
 | --- | ---: | ---: | ---: | --- |
 | Shipped beta foundation | 20 | 20 | 100% | Done |
-| Current Beta: Reliability and data confidence | 21 | 23 | 91% | In Progress |
+| Current Beta: Reliability and data confidence | 23 | 23 | 100% | Done |
 | FPRDS Beta | 9 | 15 | 60% | In Progress |
 | Phase 1: Offline-ready web app | 6 | 7 | 86% | In Progress |
 | Phase 2: Mobile and tablet experience | 0 | 5 | 0% | Planned |
@@ -50,6 +50,8 @@ The FPRDS total includes nine completed capabilities: the five shipped assessmen
 - [x] Added an actionable integrity warning with review, backup, rerun, and session-dismiss controls.
 - [x] Removed avoidable application-facing `any` usage from assessment, tactics, select, and chart typing boundaries.
 - [x] Added shared accessible validation for match results, assessments, roster/profile editing, backup import, and manual standings.
+- [x] Added browser quota monitoring with actionable full-workspace backup guidance.
+- [x] Added blocking startup recovery for malformed saved data with raw recovery export, retry, diagnostics, and confirmed reset.
 
 ### Completed: 2026-06-22
 
@@ -105,8 +107,8 @@ The FPRDS total includes nine completed capabilities: the five shipped assessmen
 - [x] **Done:** Validate nested player, game, standing, bulletin, and assessment entities during restore.
 - [x] **Done:** Include tactics, availability, coach notes, training schedules, and standings backups in a full-workspace export.
 - [x] **Done:** Add backup migration tests for versions 1.0 and 1.1.
-- [ ] **Planned:** Warn when browser storage approaches quota.
-- [ ] **Planned:** Add a recovery screen for invalid startup data instead of silently falling back.
+- [x] **Done:** Warn when browser storage approaches quota.
+- [x] **Done:** Add a recovery screen for invalid startup data instead of silently falling back.
 
 ### Core business rules
 

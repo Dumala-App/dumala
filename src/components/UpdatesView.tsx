@@ -22,7 +22,7 @@ export default function UpdatesView() {
       id: 'reliability_foundation_upgraded',
       date: '2026-06-23',
       title: 'Reliability and Recovery Foundation Upgraded',
-      summary: 'Dumala now catches workspace inconsistencies more clearly, guides coaches to affected records, hardens assessment workflows, and automatically verifies offline production behavior.',
+      summary: 'Dumala now protects unreadable saved data, warns before browser storage fills, guides coaches to affected records, and automatically verifies offline production behavior.',
       accent: 'border-amber-200 bg-amber-50/70',
       renderContent: () => (
         <div className="space-y-4">
@@ -40,8 +40,16 @@ export default function UpdatesView() {
                 desc: 'The workspace integrity checker now reports specific data mismatches and highlights the affected players, fixtures, or league rows so coaches can review the right record immediately.'
               },
               {
+                title: 'Unreadable browser data stays protected',
+                desc: 'Startup validation now pauses before writing defaults over malformed records, with recovery export, retry, diagnostics, and confirmed reset actions.'
+              },
+              {
                 title: 'Core coaching tools are safer',
                 desc: 'Type-safety cleanup reduced weak data boundaries across assessments, tactics, schedule, standings, dashboard, announcements, and player workflows.'
+              },
+              {
+                title: 'Storage pressure is visible early',
+                desc: 'Dumala now warns when the browser reports that site storage is approaching its quota and offers an immediate full-workspace backup.'
               },
               {
                 title: 'Offline readiness is now verified automatically',

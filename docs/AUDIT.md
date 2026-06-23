@@ -1,6 +1,6 @@
 # Dumala Codebase Audit
 
-Updated: 2026-06-21
+Updated: 2026-06-23
 
 ## Executive summary
 
@@ -33,9 +33,9 @@ Core data is managed in `App.tsx`, while schedule, training, standings backups, 
 
 Impact: future schema changes still need coordinated migrations across multiple feature owners.
 
-### Resolved: unsafe persisted-data parsing
+### Resolved: unsafe persisted-data parsing and startup fallback
 
-Zod schemas now validate core and feature-local records at startup and restore boundaries. Invalid stored sections fall back safely with a non-blocking warning, and invalid backups are rejected before writes.
+Zod schemas validate core and feature-local records at startup and restore boundaries. Invalid startup records now pause the workspace before any fallback state can be persisted. Users can export untouched recovery data, retry validation, review diagnostics, or confirm a reset. Invalid backups are rejected before writes.
 
 Remaining risk: schemas and migrations must be maintained as domain models evolve.
 
@@ -79,9 +79,9 @@ The Assessment Center supports role and age selection, Full/Quick assessments, b
 
 Personalized player and club links cannot safely build on browser-only state. They require accounts, durable IDs, publishing consent, authorization, and moderation/reporting controls.
 
-### Offline mode is not complete
+### Offline mode requires physical-device validation
 
-Local data operations already work after the page loads, but the app has no service worker or installable manifest. A fresh launch without network is not guaranteed.
+The installable production PWA and automated cold-launch checks are complete. Remaining validation is physical-device coverage across supported desktop, Android, iPhone, and iPad browsers.
 
 ## Documentation findings resolved by this update
 

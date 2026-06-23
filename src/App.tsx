@@ -5,6 +5,7 @@ import ViewLoadingFallback from './components/ViewLoadingFallback';
 import PwaInstallControl from './components/PwaInstallControl';
 import PwaStatusBanners from './components/PwaStatusBanners';
 import WorkspaceIntegrityBanner from './components/WorkspaceIntegrityBanner';
+import StartupRecoveryScreen from './components/StartupRecoveryScreen';
 import { ViewErrorBoundary } from './components/ErrorBoundary';
 import { addAssessmentToWorkspace, deleteAssessmentFromWorkspace } from './fprds/assessmentService';
 import {
@@ -17,7 +18,9 @@ import {
 } from './persistence/schemas';
 import {
   clearDumalaStorage,
+  createStorageRecoverySnapshot,
   drainRecoveryWarnings,
+  inspectDumalaStorage,
   readBooleanStorage,
   readJsonStorage,
   removeStorage,
@@ -25,6 +28,11 @@ import {
   writeBooleanStorage,
   writeJsonStorage
 } from './persistence/storage';
+import {
+  estimateStorageHealth,
+  formatStorageSize,
+  type StorageHealth
+} from './persistence/storageHealth';
 import {
   applyWorkspaceBackup,
   collectFeatureState,
@@ -56,6 +64,8 @@ import {
   RotateCcw,
   MessageSquare,
   ClipboardList,
+  AlertTriangle,
+  Download,
   type LucideIcon
 } from 'lucide-react';
 import { AnimatePresence } from 'motion/react';
@@ -77,6 +87,21 @@ export default function App() {
   };
   const resetDialogRef = useRef<HTMLDivElement | null>(null);
   const [initialWorkspace] = useState(() => {
+    const startupIssues = inspectDumalaStorage();
+    if (startupIssues.length > 0) {
+      return {
+        teamInfo: null,
+        players: [],
+        games: [],
+        standings: [],
+        announcements: [],
+        assessments: [] as AssessmentSession[],
+        isOnboarded: false,
+        warnings: [],
+        startupIssues
+      };
+    }
+
     const teamInfo = readJsonStorage(STORAGE_KEYS.teamInfo, teamInfoSchema.nullable(), null, 'Team information');
     const players = readJsonStorage(STORAGE_KEYS.players, playersSchema, [], 'Roster');
     const games = readJsonStorage(STORAGE_KEYS.games, gamesSchema, [], 'Schedule');
@@ -93,7 +118,8 @@ export default function App() {
       announcements,
       assessments,
       isOnboarded: onboarded || teamInfo !== null,
-      warnings: drainRecoveryWarnings()
+      warnings: drainRecoveryWarnings(),
+      startupIssues
     };
   });
 
@@ -122,6 +148,8 @@ export default function App() {
   const [announcements, setAnnouncements] = useState<Announcement[]>(initialWorkspace.announcements);
   const [assessments, setAssessments] = useState<AssessmentSession[]>(initialWorkspace.assessments);
   const [recoveryWarnings, setRecoveryWarnings] = useState(initialWorkspace.warnings);
+  const [startupRecoveryIssues, setStartupRecoveryIssues] = useState(initialWorkspace.startupIssues);
+  const [storageHealth, setStorageHealth] = useState<StorageHealth | null>(null);
   const [integrityReport, setIntegrityReport] = useState<WorkspaceIntegrityReport | null>(null);
   const [integrityDismissed, setIntegrityDismissed] = useState(false);
   const [integrityFocus, setIntegrityFocus] = useState<IntegrityFocus | null>(null);
@@ -142,28 +170,55 @@ export default function App() {
 
   // Sync state to LocalStorage
   useEffect(() => {
+    if (startupRecoveryIssues.length > 0) return;
     writeJsonStorage(STORAGE_KEYS.teamInfo, teamInfo);
-  }, [teamInfo]);
+  }, [startupRecoveryIssues.length, teamInfo]);
 
   useEffect(() => {
+    if (startupRecoveryIssues.length > 0) return;
     writeJsonStorage(STORAGE_KEYS.players, players);
-  }, [players]);
+  }, [players, startupRecoveryIssues.length]);
 
   useEffect(() => {
+    if (startupRecoveryIssues.length > 0) return;
     writeJsonStorage(STORAGE_KEYS.games, games);
-  }, [games]);
+  }, [games, startupRecoveryIssues.length]);
 
   useEffect(() => {
+    if (startupRecoveryIssues.length > 0) return;
     writeJsonStorage(STORAGE_KEYS.standings, standings);
-  }, [standings]);
+  }, [standings, startupRecoveryIssues.length]);
 
   useEffect(() => {
+    if (startupRecoveryIssues.length > 0) return;
     writeJsonStorage(STORAGE_KEYS.announcements, announcements);
-  }, [announcements]);
+  }, [announcements, startupRecoveryIssues.length]);
 
   useEffect(() => {
+    if (startupRecoveryIssues.length > 0) return;
     writeJsonStorage(STORAGE_KEYS.assessments, assessments);
-  }, [assessments]);
+  }, [assessments, startupRecoveryIssues.length]);
+
+  useEffect(() => {
+    if (startupRecoveryIssues.length > 0) return;
+    let active = true;
+
+    void estimateStorageHealth().then(health => {
+      if (active) setStorageHealth(health);
+    });
+
+    return () => {
+      active = false;
+    };
+  }, [
+    announcements,
+    assessments,
+    games,
+    players,
+    standings,
+    startupRecoveryIssues.length,
+    teamInfo
+  ]);
 
   const runIntegrityCheck = useCallback(() => {
     if (!teamInfo) {
@@ -331,8 +386,8 @@ export default function App() {
     setAssessments(transition.assessments);
   };
 
-  const downloadBackup = (backup: WorkspaceBackupV2, fileName: string) => {
-    const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
+  const downloadJson = (value: unknown, fileName: string) => {
+    const blob = new Blob([JSON.stringify(value, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
@@ -341,6 +396,10 @@ export default function App() {
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
+  };
+
+  const downloadBackup = (backup: WorkspaceBackupV2, fileName: string) => {
+    downloadJson(backup, fileName);
   };
 
   const getCurrentBackup = () => {
@@ -510,6 +569,69 @@ export default function App() {
     handleNavigate({ primary: 'home', homeTab: 'overview' });
   };
 
+  const handleExportRecoveryCopy = () => {
+    const snapshot = createStorageRecoverySnapshot(startupRecoveryIssues);
+    downloadJson(snapshot, `dumala_storage_recovery_${new Date().toISOString().slice(0, 10)}.json`);
+  };
+
+  const handleRetryStartupValidation = () => {
+    const issues = inspectDumalaStorage();
+    if (issues.length === 0) {
+      window.location.reload();
+      return;
+    }
+    setStartupRecoveryIssues(issues);
+  };
+
+  const handleResetFromRecovery = () => {
+    clearDumalaStorage();
+    window.location.reload();
+  };
+
+  if (startupRecoveryIssues.length > 0) {
+    return (
+      <StartupRecoveryScreen
+        issues={startupRecoveryIssues}
+        onExport={handleExportRecoveryCopy}
+        onRetry={handleRetryStartupValidation}
+        onReset={handleResetFromRecovery}
+      />
+    );
+  }
+
+  const storageWarningBanner = storageHealth && storageHealth.level !== 'healthy' ? (
+    <div
+      className={`rounded-lg border px-4 py-3 ${
+        storageHealth.level === 'critical'
+          ? 'border-rose-200 bg-rose-50 text-rose-950'
+          : 'border-amber-200 bg-amber-50 text-amber-950'
+      }`}
+      role="status"
+    >
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-start gap-3">
+          <AlertTriangle size={18} className="mt-0.5 shrink-0" aria-hidden="true" />
+          <div>
+            <p className="text-xs font-black uppercase">Browser storage is nearly full</p>
+            <p className="mt-1 text-xs font-medium leading-relaxed">
+              Dumala is using about {Math.round(storageHealth.usageRatio * 100)}% of the storage available to this site
+              ({formatStorageSize(storageHealth.usage)} of {formatStorageSize(storageHealth.quota)}). Export a backup before adding more records.
+            </p>
+          </div>
+        </div>
+        {teamInfo && (
+          <button
+            type="button"
+            onClick={handleExportBackup}
+            className="inline-flex min-h-10 shrink-0 items-center justify-center gap-2 rounded-md bg-slate-950 px-3 py-2 text-xs font-bold text-white hover:bg-slate-800"
+          >
+            <Download size={15} aria-hidden="true" /> Export backup
+          </button>
+        )}
+      </div>
+    </div>
+  ) : null;
+
   const recoveryBanner = recoveryWarnings.length > 0 ? (
     <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-amber-900" role="status">
       <div className="flex items-start justify-between gap-3">
@@ -537,6 +659,7 @@ export default function App() {
         <div className="fixed right-4 top-4 z-40">
           <PwaInstallControl />
         </div>
+        {storageWarningBanner && <div className="mx-auto max-w-3xl px-4 pt-4">{storageWarningBanner}</div>}
         {recoveryBanner && <div className="mx-auto max-w-3xl px-4 pt-4">{recoveryBanner}</div>}
         <Suspense fallback={<div className="mx-auto max-w-3xl p-4"><ViewLoadingFallback label="onboarding" /></div>}>
           <ViewErrorBoundary viewName="Onboarding" resetKeys={['onboarding']}>
@@ -719,6 +842,7 @@ export default function App() {
         )}
 
         {recoveryBanner}
+        {storageWarningBanner}
         {integrityReport && !integrityDismissed && (
           <WorkspaceIntegrityBanner
             report={integrityReport}

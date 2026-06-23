@@ -99,6 +99,77 @@ export type RecoveryWarning = {
   message: string;
 };
 
+export type StorageRecoveryIssue = {
+  key: string;
+  section: string;
+  reason: 'malformed-json' | 'invalid-data';
+};
+
+export type StorageRecoverySnapshot = {
+  format: 'dumala-storage-recovery';
+  version: 1;
+  exportedAt: string;
+  issues: StorageRecoveryIssue[];
+  entries: Record<string, string>;
+};
+
+const STORAGE_SECTIONS: Record<string, string> = {
+  [STORAGE_KEYS.onboarded]: 'Onboarding',
+  [STORAGE_KEYS.teamInfo]: 'Team information',
+  [STORAGE_KEYS.players]: 'Roster',
+  [STORAGE_KEYS.games]: 'Schedule',
+  [STORAGE_KEYS.standings]: 'League standings',
+  [STORAGE_KEYS.announcements]: 'Bulletins',
+  [STORAGE_KEYS.assessments]: 'Assessments',
+  [STORAGE_KEYS.standingsBackups]: 'Standings history',
+  [STORAGE_KEYS.sundayBackupEnabled]: 'Standings preferences',
+  [STORAGE_KEYS.availability]: 'Match availability',
+  [STORAGE_KEYS.coachNotes]: 'Coach notes',
+  [STORAGE_KEYS.weeklySchedule]: 'Weekly training',
+  [STORAGE_KEYS.weeklyScheduleHistory]: 'Training history',
+  [STORAGE_KEYS.matchFormat]: 'Tactics match format',
+  [STORAGE_KEYS.formation]: 'Tactics formation',
+  [STORAGE_KEYS.playstyle]: 'Tactics playstyle',
+  [STORAGE_KEYS.isCustomStrategy]: 'Tactics strategy',
+  [STORAGE_KEYS.customPlaystyle]: 'Tactics strategy',
+  [STORAGE_KEYS.customDefensiveStyle]: 'Tactics strategy',
+  [STORAGE_KEYS.customMentality]: 'Tactics strategy',
+  [STORAGE_KEYS.customStrategyNotes]: 'Tactics strategy',
+  [STORAGE_KEYS.coachLevel]: 'Tactics coach details',
+  [STORAGE_KEYS.customPlaystyles]: 'Tactics playstyles',
+  [STORAGE_KEYS.captainId]: 'Tactics roles',
+  [STORAGE_KEYS.penaltyTakerId]: 'Tactics roles',
+  [STORAGE_KEYS.freeKickTakerId]: 'Tactics roles',
+  [STORAGE_KEYS.cornerTakerId]: 'Tactics roles',
+  [STORAGE_KEYS.defensiveStyle]: 'Tactics defense',
+  [STORAGE_KEYS.playerExtras]: 'Tactics player status',
+  [STORAGE_KEYS.lineup]: 'Tactics lineup',
+  [STORAGE_KEYS.tacticsNotes]: 'Tactics notes',
+  [STORAGE_KEYS.draggedPositions]: 'Tactics positions',
+  [STORAGE_KEYS.drawingPaths]: 'Tactics drawings'
+};
+
+const BOOLEAN_STORAGE_KEYS = new Set<string>([
+  STORAGE_KEYS.sundayBackupEnabled,
+  STORAGE_KEYS.isCustomStrategy
+]);
+
+const STRING_STORAGE_KEYS = new Set<string>([
+  STORAGE_KEYS.matchFormat,
+  STORAGE_KEYS.formation,
+  STORAGE_KEYS.playstyle,
+  STORAGE_KEYS.customPlaystyle,
+  STORAGE_KEYS.customDefensiveStyle,
+  STORAGE_KEYS.customMentality,
+  STORAGE_KEYS.customStrategyNotes,
+  STORAGE_KEYS.coachLevel,
+  STORAGE_KEYS.captainId,
+  STORAGE_KEYS.penaltyTakerId,
+  STORAGE_KEYS.freeKickTakerId,
+  STORAGE_KEYS.cornerTakerId,
+  STORAGE_KEYS.defensiveStyle
+]);
+
 const recoveryWarnings: RecoveryWarning[] = [];
 
 const reportRecovery = (key: string, section: string) => {
@@ -125,6 +196,71 @@ export interface StorageLike {
 }
 
 const browserStorage = (): StorageLike => window.localStorage;
+
+export const inspectDumalaStorage = (storage: StorageLike = browserStorage()): StorageRecoveryIssue[] => {
+  const issues: StorageRecoveryIssue[] = [];
+  const onboarded = storage.getItem(STORAGE_KEYS.onboarded);
+
+  if (onboarded !== null && onboarded !== 'true' && onboarded !== 'false') {
+    issues.push({
+      key: STORAGE_KEYS.onboarded,
+      section: STORAGE_SECTIONS[STORAGE_KEYS.onboarded],
+      reason: 'invalid-data'
+    });
+  }
+
+  for (const [key, schema] of Object.entries(storageSchemas)) {
+    const raw = storage.getItem(key);
+    if (raw === null) continue;
+
+    let value: unknown = raw;
+    if (!BOOLEAN_STORAGE_KEYS.has(key) && !STRING_STORAGE_KEYS.has(key)) {
+      try {
+        value = JSON.parse(raw);
+      } catch {
+        issues.push({
+          key,
+          section: STORAGE_SECTIONS[key] ?? 'Workspace data',
+          reason: 'malformed-json'
+        });
+        continue;
+      }
+    } else if (BOOLEAN_STORAGE_KEYS.has(key)) {
+      if (raw === 'true') value = true;
+      else if (raw === 'false') value = false;
+    }
+
+    if (!schema.safeParse(value).success) {
+      issues.push({
+        key,
+        section: STORAGE_SECTIONS[key] ?? 'Workspace data',
+        reason: 'invalid-data'
+      });
+    }
+  }
+
+  return issues;
+};
+
+export const createStorageRecoverySnapshot = (
+  issues: StorageRecoveryIssue[],
+  storage: StorageLike = browserStorage(),
+  exportedAt = new Date().toISOString()
+): StorageRecoverySnapshot => {
+  const entries: Record<string, string> = {};
+  for (const key of CORE_DUMALA_KEYS) {
+    const raw = storage.getItem(key);
+    if (raw !== null) entries[key] = raw;
+  }
+
+  return {
+    format: 'dumala-storage-recovery',
+    version: 1,
+    exportedAt,
+    issues,
+    entries
+  };
+};
 
 export const readJsonStorage = <T>(
   key: string,

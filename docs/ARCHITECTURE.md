@@ -1,6 +1,6 @@
 # Dumala Architecture
 
-Updated: 2026-06-21
+Updated: 2026-06-23
 
 ## 1. System overview
 
@@ -29,12 +29,13 @@ The browser owns application state, business interactions, and persistence. The 
 
 1. `index.html` loads `src/main.tsx`.
 2. `src/main.tsx` mounts `App` in React Strict Mode.
-3. `App.tsx` restores core collections through validated persistence schemas.
-4. Onboarding renders when no valid team workspace exists.
-5. The app shell renders one of five primary areas and their nested tabs.
-6. React effects persist core collections through the typed storage service.
-7. Feature modules use the same service for their additional local state.
-8. Invalid stored data falls back safely and raises a non-blocking section-specific recovery warning.
+3. `App.tsx` validates every supported workspace key before restoring any collection.
+4. Invalid startup data blocks workspace rendering and persistence writes until the user exports a recovery copy, retries, or confirms a reset.
+5. Onboarding renders when no team workspace exists.
+6. The app shell renders one of five primary areas and their nested tabs.
+7. React effects persist core collections through the typed storage service.
+8. Feature modules use the same service for their additional local state.
+9. The Storage API estimate raises an actionable warning when site usage reaches 80% of the reported quota.
 
 ## 4. Frontend composition
 
@@ -204,6 +205,8 @@ Full Workspace V2 uses the `dumala-workspace` format and includes:
 - export timestamp and numeric format version
 
 Import continues to accept legacy versions `1.0.0` and `1.1.0`. Legacy files are migrated into V2 before validation. Restore validates the complete nested workspace before writing, creates an automatic pre-restore backup, and rolls back all writes if storage fails.
+
+When startup validation fails, Dumala does not create a normal workspace backup because the stored records are not trusted as a complete workspace. The recovery screen instead exports an untouched `dumala-storage-recovery` diagnostic snapshot containing only known Dumala keys and issue metadata. This file is private recovery material and is not accepted by the normal restore workflow.
 
 ## 10. Build and deployment
 
