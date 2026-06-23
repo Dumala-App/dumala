@@ -1,5 +1,5 @@
 import React, { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react';
-import { Player, Game, Standing, Announcement, TeamInfo, AssessmentSession } from './types';
+import { Player, Game, Standing, Announcement, TeamInfo, AssessmentSession, StaffMember } from './types';
 
 import ViewLoadingFallback from './components/ViewLoadingFallback';
 import PwaInstallControl from './components/PwaInstallControl';
@@ -12,7 +12,9 @@ import {
   announcementsSchema,
   assessmentsSchema,
   gamesSchema,
+  migrateLegacyRoster,
   playersSchema,
+  staffMembersSchema,
   standingsSchema,
   teamInfoSchema
 } from './persistence/schemas';
@@ -40,7 +42,7 @@ import {
   parseWorkspaceBackup,
   summarizeBackup,
   type BackupRestoreSummary,
-  type WorkspaceBackupV2
+  type WorkspaceBackupV3
 } from './persistence/backup';
 import { deleteGameAndReconcile, recordMatchResult } from './matches/results';
 import { useDialogAccessibility } from './hooks/useDialogAccessibility';
@@ -72,6 +74,7 @@ import { AnimatePresence } from 'motion/react';
 
 const RosterView = lazy(() => import('./components/RosterView'));
 const PlayerProfileModal = lazy(() => import('./components/PlayerProfileModal'));
+const StaffProfileModal = lazy(() => import('./components/StaffProfileModal'));
 const TacticsView = lazy(() => import('./components/TacticsView'));
 const OnboardingView = lazy(() => import('./components/OnboardingView'));
 const FeedbackModal = lazy(() => import('./components/FeedbackModal'));
@@ -92,6 +95,7 @@ export default function App() {
       return {
         teamInfo: null,
         players: [],
+        staff: [],
         games: [],
         standings: [],
         announcements: [],
@@ -103,7 +107,13 @@ export default function App() {
     }
 
     const teamInfo = readJsonStorage(STORAGE_KEYS.teamInfo, teamInfoSchema.nullable(), null, 'Team information');
-    const players = readJsonStorage(STORAGE_KEYS.players, playersSchema, [], 'Roster');
+    const storedRoster = readJsonStorage(STORAGE_KEYS.players, playersSchema, [], 'Roster');
+    const migratedRoster = migrateLegacyRoster(storedRoster);
+    const storedStaff = readJsonStorage(STORAGE_KEYS.staff, staffMembersSchema, [], 'Staff directory');
+    const players = migratedRoster.players;
+    const staff = [...storedStaff, ...migratedRoster.staff.filter(
+      legacyStaff => !storedStaff.some(member => member.id === legacyStaff.id)
+    )];
     const games = readJsonStorage(STORAGE_KEYS.games, gamesSchema, [], 'Schedule');
     const standings = readJsonStorage(STORAGE_KEYS.standings, standingsSchema, [], 'League standings');
     const announcements = readJsonStorage(STORAGE_KEYS.announcements, announcementsSchema, [], 'Bulletins');
@@ -113,6 +123,7 @@ export default function App() {
     return {
       teamInfo,
       players,
+      staff,
       games,
       standings,
       announcements,
@@ -143,6 +154,7 @@ export default function App() {
   
   const [teamInfo, setTeamInfo] = useState<TeamInfo | null>(initialWorkspace.teamInfo);
   const [players, setPlayers] = useState<Player[]>(initialWorkspace.players);
+  const [staff, setStaff] = useState<StaffMember[]>(initialWorkspace.staff);
   const [games, setGames] = useState<Game[]>(initialWorkspace.games);
   const [standings, setStandings] = useState<Standing[]>(initialWorkspace.standings);
   const [announcements, setAnnouncements] = useState<Announcement[]>(initialWorkspace.announcements);
@@ -156,6 +168,7 @@ export default function App() {
   const integritySignatureRef = useRef('');
 
   const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
+  const [selectedStaff, setSelectedStaff] = useState<StaffMember | null>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [preselectedAssessmentsPlayerId, setPreselectedAssessmentsPlayerId] = useState<string | null>(null);
 
@@ -178,6 +191,11 @@ export default function App() {
     if (startupRecoveryIssues.length > 0) return;
     writeJsonStorage(STORAGE_KEYS.players, players);
   }, [players, startupRecoveryIssues.length]);
+
+  useEffect(() => {
+    if (startupRecoveryIssues.length > 0) return;
+    writeJsonStorage(STORAGE_KEYS.staff, staff);
+  }, [staff, startupRecoveryIssues.length]);
 
   useEffect(() => {
     if (startupRecoveryIssues.length > 0) return;
@@ -298,6 +316,20 @@ export default function App() {
     setSelectedPlayer(prev => prev?.id === playerId ? null : prev);
   };
 
+  const handleAddStaff = (newStaff: StaffMember) => {
+    setStaff(current => [newStaff, ...current]);
+  };
+
+  const handleUpdateStaff = (updatedStaff: StaffMember) => {
+    setStaff(current => current.map(item => item.id === updatedStaff.id ? updatedStaff : item));
+    setSelectedStaff(updatedStaff);
+  };
+
+  const handleRemoveStaff = (staffId: string) => {
+    setStaff(current => current.filter(item => item.id !== staffId));
+    setSelectedStaff(current => current?.id === staffId ? null : current);
+  };
+
   const handleAddGame = (newGame: Game) => {
     setGames(prev => [newGame, ...prev]);
   };
@@ -398,7 +430,7 @@ export default function App() {
     URL.revokeObjectURL(url);
   };
 
-  const downloadBackup = (backup: WorkspaceBackupV2, fileName: string) => {
+  const downloadBackup = (backup: WorkspaceBackupV3, fileName: string) => {
     downloadJson(backup, fileName);
   };
 
@@ -407,6 +439,7 @@ export default function App() {
     return createWorkspaceBackup({
       teamInfo,
       players,
+      staff,
       games,
       standings,
       announcements,
@@ -441,6 +474,7 @@ export default function App() {
     applyWorkspaceBackup(backup);
     setTeamInfo(backup.core.teamInfo);
     setPlayers(backup.core.players);
+    setStaff(backup.core.staff);
     setGames(backup.core.games);
     setStandings(backup.core.standings);
     setAnnouncements(backup.core.announcements);
@@ -460,6 +494,7 @@ export default function App() {
     setIsOnboarded(false);
     setTeamInfo(null);
     setPlayers([]);
+    setStaff([]);
     setGames([]);
     setStandings([]);
     setAnnouncements([]);
@@ -664,9 +699,10 @@ export default function App() {
         <Suspense fallback={<div className="mx-auto max-w-3xl p-4"><ViewLoadingFallback label="onboarding" /></div>}>
           <ViewErrorBoundary viewName="Onboarding" resetKeys={['onboarding']}>
             <OnboardingView
-              onComplete={(team: TeamInfo, coachPlayer: Player) => {
+              onComplete={(team: TeamInfo, headCoach: StaffMember) => {
                 setTeamInfo(team);
-                setPlayers([coachPlayer]);
+                setPlayers([]);
+                setStaff([headCoach]);
                 setStandings([]);
                 setAssessments([]);
                 setPrimaryTab('home');
@@ -676,7 +712,8 @@ export default function App() {
                 setIsOnboarded(true);
                 writeBooleanStorage(STORAGE_KEYS.onboarded, true);
                 writeJsonStorage(STORAGE_KEYS.teamInfo, team);
-                writeJsonStorage(STORAGE_KEYS.players, [coachPlayer]);
+                writeJsonStorage(STORAGE_KEYS.players, []);
+                writeJsonStorage(STORAGE_KEYS.staff, [headCoach]);
               }}
             />
           </ViewErrorBoundary>
@@ -884,8 +921,11 @@ export default function App() {
               <ViewErrorBoundary viewName="Squad" onReturnHome={handleReturnHomeFromError} resetKeys={[primaryTab]}>
                 <RosterView
                   players={players}
+                  staff={staff}
                   onAddPlayer={handleAddPlayer}
+                  onAddStaff={handleAddStaff}
                   onSelectPlayer={setSelectedPlayer}
+                  onSelectStaff={setSelectedStaff}
                   onExportBackup={handleExportBackup}
                   onImportBackup={handleImportBackup}
                   onUpdatePlayer={handleUpdatePlayer}
@@ -896,7 +936,7 @@ export default function App() {
 
             {primaryTab === 'tactics' && (
               <ViewErrorBoundary viewName="Tactics" onReturnHome={handleReturnHomeFromError} resetKeys={[primaryTab]}>
-                <TacticsView players={players} teamCoach={teamInfo?.coach || ''} teamName={teamInfo?.name || 'Apex Rangers'} teamLogoUrl={teamInfo?.logoUrl} onUpdatePlayer={handleUpdatePlayer} />
+                <TacticsView players={players} staff={staff} teamCoach={teamInfo?.coach || ''} teamName={teamInfo?.name || 'Apex Rangers'} teamLogoUrl={teamInfo?.logoUrl} onUpdatePlayer={handleUpdatePlayer} />
               </ViewErrorBoundary>
             )}
 
@@ -960,6 +1000,18 @@ export default function App() {
                 setDevelopmentTab('assessments');
                 setSelectedPlayer(null);
               }}
+            />
+          </Suspense>
+        )}
+      </AnimatePresence>
+      <AnimatePresence>
+        {selectedStaff && (
+          <Suspense fallback={null}>
+            <StaffProfileModal
+              staff={selectedStaff}
+              onClose={() => setSelectedStaff(null)}
+              onUpdate={handleUpdateStaff}
+              onRemove={handleRemoveStaff}
             />
           </Suspense>
         )}

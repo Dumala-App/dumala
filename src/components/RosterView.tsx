@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Player, isStaffPosition, STAFF_POSITIONS, SPECIALTY_TRAITS, SpecialtyTrait, POSITION_ATTRIBUTES_MAP } from '../types';
+import { Player, StaffMember, SPECIALTY_TRAITS, SpecialtyTrait, POSITION_ATTRIBUTES_MAP } from '../types';
 import { 
   UserPlus, Search, Shield, Plus, AlertCircle, Download, Upload,
   Award, ArrowLeftRight, Mail, Phone, Calendar
@@ -19,8 +19,11 @@ import {
 
 interface RosterViewProps {
   players: Player[];
+  staff: StaffMember[];
   onAddPlayer: (newPlayer: Player) => void;
+  onAddStaff: (newStaff: StaffMember) => void;
   onSelectPlayer: (player: Player) => void;
+  onSelectStaff: (staff: StaffMember) => void;
   onExportBackup: () => void;
   onImportBackup: (file: File) => Promise<BackupRestoreSummary>;
   onUpdatePlayer?: (player: Player) => void;
@@ -35,7 +38,7 @@ const integerError = (result: ReturnType<typeof parseIntegerInput>): string | un
   'errors' in result ? result.errors.value : undefined
 );
 
-export default function RosterView({ players, onAddPlayer, onSelectPlayer, onExportBackup, onImportBackup, onUpdatePlayer, highlightPlayerId }: RosterViewProps) {
+export default function RosterView({ players, staff, onAddPlayer, onAddStaff, onSelectPlayer, onSelectStaff, onExportBackup, onImportBackup, onUpdatePlayer, highlightPlayerId }: RosterViewProps) {
   // Search & Basic Filter State
   const [searchTerm, setSearchTerm] = useState("");
   const [filterPos, setFilterPos] = useState("All");
@@ -72,10 +75,12 @@ export default function RosterView({ players, onAddPlayer, onSelectPlayer, onExp
     }
     try {
       const summary = await onImportBackup(file);
-      const sourceLabel = summary.sourceVersion === '2' ? 'V2 full workspace' : `legacy V${summary.sourceVersion}`;
+      const sourceLabel = ['2', '3'].includes(summary.sourceVersion)
+        ? `V${summary.sourceVersion} full workspace`
+        : `legacy V${summary.sourceVersion}`;
       setBackupMessageType('success');
       setBackupMessage(
-        `${sourceLabel} restored: ${summary.players} players, ${summary.games} events, ${summary.standings} league rows, ${summary.announcements} bulletins, and ${summary.assessments} assessments.`
+        `${sourceLabel} restored: ${summary.players} players, ${summary.staff} staff, ${summary.games} events, ${summary.standings} league rows, ${summary.announcements} bulletins, and ${summary.assessments} assessments.`
       );
     } catch (error) {
       setBackupMessageType('error');
@@ -240,37 +245,19 @@ export default function RosterView({ players, onAddPlayer, onSelectPlayer, onExp
 
     const roleToSave = newStaffRole === "Other" && customStaffRole.trim() ? customStaffRole.trim() : newStaffRole;
 
-    const newStaff: Player = {
+    const newStaff: StaffMember = {
       id: "staff_" + Date.now(),
-      name: newStaffName,
-      number: 0,
-      position: roleToSave,
+      name: newStaffName.trim(),
+      role: roleToSave,
       bio: newStaffBio || `${newStaffName} has joined the management and staff team as ${roleToSave}.`,
       photoUrl: newStaffPhoto || STAFF_PLACEHOLDER,
       email: newStaffEmail || undefined,
       phone: newStaffPhone || undefined,
       since: newStaffSince || undefined,
-      gamesPlayed: 0,
-      points: 0,
-      assists: 0,
-      cleanSheetsOrRebounds: 0,
-      minutesPlayed: 0,
-      mvpAwards: 0,
-      yellowCards: 0,
-      redCards: 0,
-      baseAttributes: {
-        pace: 50,
-        stamina: 50,
-        agility: 50,
-        strength: 50,
-        firstTouch: 50,
-        shortPassing: 50
-      },
-      positionAttributes: {},
-      registrationStatus: 'Active'
+      status: 'Active'
     };
 
-    onAddPlayer(newStaff);
+    onAddStaff(newStaff);
 
     // Reset Form
     setNewStaffName("");
@@ -326,20 +313,21 @@ export default function RosterView({ players, onAddPlayer, onSelectPlayer, onExp
   };
 
   // Filter roster
-  const filteredPlayers = players.filter(player => {
+  const activeRoster = players.filter(player => {
     const matchesSearch = player.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
                           player.number.toString().includes(searchTerm);
     const matchesPosition = filterPos === "All" || player.position === filterPos;
     return matchesSearch && matchesPosition;
   });
 
-  const staffMembers = filteredPlayers.filter(p => isStaffPosition(p.position));
-  const activeRoster = filteredPlayers.filter(p => !isStaffPosition(p.position));
-  const duplicateJerseyPlayer = newPlayerNumber.trim()
-    ? players.find(player =>
-        !isStaffPosition(player.position)
-        && player.number === Number(newPlayerNumber)
+  const staffMembers = filterPos === 'All'
+    ? staff.filter(member =>
+        member.name.toLowerCase().includes(searchTerm.toLowerCase())
+        || member.role.toLowerCase().includes(searchTerm.toLowerCase())
       )
+    : [];
+  const duplicateJerseyPlayer = newPlayerNumber.trim()
+      ? players.find(player => player.number === Number(newPlayerNumber))
     : undefined;
 
   return (
@@ -373,7 +361,7 @@ export default function RosterView({ players, onAddPlayer, onSelectPlayer, onExp
             <input 
               id="search-roster-input"
               type="text" 
-              placeholder="Search athletic name or jersey code..." 
+              placeholder="Search players or staff..."
               value={searchTerm}
               onChange={e => setSearchTerm(e.target.value)}
               className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 pl-11 pr-4 text-xs focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 focus:bg-white focus:outline-none transition-all placeholder:text-slate-400 text-slate-800 font-medium"
@@ -457,7 +445,7 @@ export default function RosterView({ players, onAddPlayer, onSelectPlayer, onExp
             </p>
           )}
           <p className="mt-2 text-[10px] leading-relaxed text-slate-500">
-            Full Workspace V2 includes roster, schedule, league, bulletins, assessments, tactics, training, availability, coach notes, and standings history.
+            Full Workspace V3 includes players, staff, schedule, league, bulletins, assessments, tactics, training, availability, coach notes, and standings history.
           </p>
         </div>
 
@@ -673,7 +661,7 @@ export default function RosterView({ players, onAddPlayer, onSelectPlayer, onExp
                       <img 
                         src={staff.photoUrl} 
                         alt={staff.name}
-                        onClick={() => onSelectPlayer(staff)}
+                        onClick={() => onSelectStaff(staff)}
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 cursor-pointer opacity-80"
                         referrerPolicy="no-referrer"
                       />
@@ -681,13 +669,13 @@ export default function RosterView({ players, onAddPlayer, onSelectPlayer, onExp
                       
                       <div className="absolute top-2.5 left-2.5">
                         <span className="bg-amber-500/90 backdrop-blur-md text-slate-950 border border-amber-400 text-[10px] uppercase font-black px-2 py-1 rounded-md tracking-wider">
-                          {staff.position}
+                          {staff.role}
                         </span>
                       </div>
 
                       <div className="absolute bottom-3 left-3 text-white">
                         <h4 
-                          onClick={() => onSelectPlayer(staff)}
+                          onClick={() => onSelectStaff(staff)}
                           className="font-display font-bold text-lg leading-tight truncate w-40 cursor-pointer hover:text-amber-400 transition-colors"
                         >
                           {staff.name}
@@ -698,7 +686,7 @@ export default function RosterView({ players, onAddPlayer, onSelectPlayer, onExp
                       <div className="flex items-center justify-between">
                         <span className="text-[10px] uppercase tracking-widest text-slate-400 font-bold">Staff Directory</span>
                         <button 
-                          onClick={() => onSelectPlayer(staff)}
+                          onClick={() => onSelectStaff(staff)}
                           className="text-amber-400 font-bold hover:underline flex items-center gap-0.5 text-xs"
                         >
                           Profile &rarr;

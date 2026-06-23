@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import type { Announcement, AssessmentSession, Game, Player, Standing, TeamInfo } from '../types';
+import type { Announcement, AssessmentSession, Game, Player, StaffMember, Standing, TeamInfo } from '../types';
 import {
   announcementsSchema,
   assessmentsSchema,
@@ -10,8 +10,10 @@ import {
   drawingPathsSchema,
   gamesSchema,
   matchFormatSchema,
+  migrateLegacyRoster,
   playerExtrasSchema,
   playersSchema,
+  staffMembersSchema,
   standingsBackupsSchema,
   standingsSchema,
   stringArraySchema,
@@ -65,26 +67,39 @@ const featureStateSchema = z.object({
   tactics: tacticsSchema
 });
 
+const coreWorkspaceV2Schema = z.object({
+  teamInfo: teamInfoSchema,
+  players: playersSchema,
+  games: gamesSchema,
+  standings: standingsSchema,
+  announcements: announcementsSchema,
+  assessments: assessmentsSchema
+});
+
 export const workspaceBackupV2Schema = z.object({
   format: z.literal('dumala-workspace'),
   version: z.literal(2),
   exportedAt: z.string(),
-  core: z.object({
-    teamInfo: teamInfoSchema,
-    players: playersSchema,
-    games: gamesSchema,
-    standings: standingsSchema,
-    announcements: announcementsSchema,
-    assessments: assessmentsSchema
+  core: coreWorkspaceV2Schema,
+  featureState: featureStateSchema
+});
+
+export const workspaceBackupV3Schema = z.object({
+  format: z.literal('dumala-workspace'),
+  version: z.literal(3),
+  exportedAt: z.string(),
+  core: coreWorkspaceV2Schema.extend({
+    staff: staffMembersSchema
   }),
   featureState: featureStateSchema
 });
 
-export type WorkspaceBackupV2 = z.infer<typeof workspaceBackupV2Schema>;
+export type WorkspaceBackupV3 = z.infer<typeof workspaceBackupV3Schema>;
 
 export type CoreWorkspace = {
   teamInfo: TeamInfo;
   players: Player[];
+  staff: StaffMember[];
   games: Game[];
   standings: Standing[];
   announcements: Announcement[];
@@ -94,6 +109,7 @@ export type CoreWorkspace = {
 export type BackupRestoreSummary = {
   sourceVersion: string;
   players: number;
+  staff: number;
   games: number;
   standings: number;
   announcements: number;
@@ -134,7 +150,7 @@ const defaultTactics = {
   drawings: []
 };
 
-export const collectFeatureState = (storage: StorageLike = window.localStorage): WorkspaceBackupV2['featureState'] => ({
+export const collectFeatureState = (storage: StorageLike = window.localStorage): WorkspaceBackupV3['featureState'] => ({
   availability: readJsonStorage(STORAGE_KEYS.availability, availabilitySchema, {}, 'Match availability', storage),
   coachNotes: readJsonStorage(STORAGE_KEYS.coachNotes, coachNotesSchema, {}, 'Coach notes', storage),
   weeklyTraining: readJsonStorage(STORAGE_KEYS.weeklySchedule, weeklyScheduleSchema, emptyWeeklySchedule, 'Weekly training', storage),
@@ -173,9 +189,9 @@ export const createWorkspaceBackup = (
   core: CoreWorkspace,
   storage: StorageLike = window.localStorage,
   exportedAt = new Date().toISOString()
-): WorkspaceBackupV2 => workspaceBackupV2Schema.parse({
+): WorkspaceBackupV3 => workspaceBackupV3Schema.parse({
   format: 'dumala-workspace',
-  version: 2,
+  version: 3,
   exportedAt,
   core,
   featureState: collectFeatureState(storage)
@@ -194,10 +210,27 @@ const legacyBackupSchema = z.object({
 
 export const parseWorkspaceBackup = (
   input: unknown,
-  currentFeatureState: WorkspaceBackupV2['featureState']
-): { backup: WorkspaceBackupV2; sourceVersion: string } => {
+  currentFeatureState: WorkspaceBackupV3['featureState']
+): { backup: WorkspaceBackupV3; sourceVersion: string } => {
+  const v3 = workspaceBackupV3Schema.safeParse(input);
+  if (v3.success) return { backup: v3.data, sourceVersion: '3' };
+
   const v2 = workspaceBackupV2Schema.safeParse(input);
-  if (v2.success) return { backup: v2.data, sourceVersion: '2' };
+  if (v2.success) {
+    const roster = migrateLegacyRoster(v2.data.core.players);
+    return {
+      sourceVersion: '2',
+      backup: workspaceBackupV3Schema.parse({
+        ...v2.data,
+        version: 3,
+        core: {
+          ...v2.data.core,
+          players: roster.players,
+          staff: roster.staff
+        }
+      })
+    };
+  }
 
   const legacy = legacyBackupSchema.safeParse(input);
   if (!legacy.success) {
@@ -206,13 +239,13 @@ export const parseWorkspaceBackup = (
 
   return {
     sourceVersion: legacy.data.backupVersion,
-    backup: workspaceBackupV2Schema.parse({
+    backup: workspaceBackupV3Schema.parse({
       format: 'dumala-workspace',
-      version: 2,
+      version: 3,
       exportedAt: legacy.data.exportedAt ?? new Date().toISOString(),
       core: {
         teamInfo: legacy.data.teamInfo,
-        players: legacy.data.players,
+        ...migrateLegacyRoster(legacy.data.players),
         games: legacy.data.games,
         standings: legacy.data.standings,
         announcements: legacy.data.announcements,
@@ -223,10 +256,11 @@ export const parseWorkspaceBackup = (
   };
 };
 
-const writesForBackup = (backup: WorkspaceBackupV2): Array<[string, unknown, 'json' | 'string' | 'boolean']> => [
+const writesForBackup = (backup: WorkspaceBackupV3): Array<[string, unknown, 'json' | 'string' | 'boolean']> => [
   [STORAGE_KEYS.onboarded, true, 'boolean'],
   [STORAGE_KEYS.teamInfo, backup.core.teamInfo, 'json'],
   [STORAGE_KEYS.players, backup.core.players, 'json'],
+  [STORAGE_KEYS.staff, backup.core.staff, 'json'],
   [STORAGE_KEYS.games, backup.core.games, 'json'],
   [STORAGE_KEYS.standings, backup.core.standings, 'json'],
   [STORAGE_KEYS.announcements, backup.core.announcements, 'json'],
@@ -258,8 +292,8 @@ const writesForBackup = (backup: WorkspaceBackupV2): Array<[string, unknown, 'js
   [STORAGE_KEYS.drawingPaths, backup.featureState.tactics.drawings, 'json']
 ];
 
-export const applyWorkspaceBackup = (backup: WorkspaceBackupV2, storage: StorageLike = window.localStorage) => {
-  const validated = workspaceBackupV2Schema.parse(backup);
+export const applyWorkspaceBackup = (backup: WorkspaceBackupV3, storage: StorageLike = window.localStorage) => {
+  const validated = workspaceBackupV3Schema.parse(backup);
   const writes = writesForBackup(validated);
   const before = new Map<string, string | null>(writes.map(([key]) => [key, storage.getItem(key)]));
   before.set(STORAGE_KEYS.weeklyScheduleHistory, storage.getItem(STORAGE_KEYS.weeklyScheduleHistory));
@@ -285,12 +319,13 @@ export const applyWorkspaceBackup = (backup: WorkspaceBackupV2, storage: Storage
   }
 };
 
-export const summarizeBackup = (backup: WorkspaceBackupV2, sourceVersion = '2'): BackupRestoreSummary => ({
+export const summarizeBackup = (backup: WorkspaceBackupV3, sourceVersion = '3'): BackupRestoreSummary => ({
   sourceVersion,
   players: backup.core.players.length,
+  staff: backup.core.staff.length,
   games: backup.core.games.length,
   standings: backup.core.standings.length,
   announcements: backup.core.announcements.length,
   assessments: backup.core.assessments.length,
-  includedFeatureState: sourceVersion === '2'
+  includedFeatureState: ['2', '3'].includes(sourceVersion)
 });

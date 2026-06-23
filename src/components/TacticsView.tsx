@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { Player, isStaffPosition } from '../types';
+import { Player, StaffMember } from '../types';
 import { STAFF_PLACEHOLDER } from '../playerPlaceholders';
 import { Shield, Crown, Star, Flame, Target, Trophy, Zap, Search, RefreshCw, UserCheck, Play, Save, ChevronRight, HelpCircle, User, Info, BarChart2, Edit, Trash2, Plus, Check, Filter, Tag, BookOpen } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
@@ -59,6 +59,7 @@ const parseTacticsNoteCategory = (value: string): TacticsNoteCategory => (
 
 interface TacticsViewProps {
   players: Player[];
+  staff: StaffMember[];
   teamCoach: string;
   teamName?: string;
   teamLogoUrl?: string;
@@ -114,7 +115,7 @@ type MatchFormat = keyof typeof MATCH_FORMAT_CONFIG;
 
 const PLAYSTYLE_OPTIONS = ['Quick Counter', 'Possession Game', 'Long Ball Counter', 'Out Wide'];
 
-export default function TacticsView({ players, teamCoach, teamName, teamLogoUrl, onUpdatePlayer }: TacticsViewProps) {
+export default function TacticsView({ players, staff, teamCoach, teamName, teamLogoUrl, onUpdatePlayer }: TacticsViewProps) {
   const [matchFormat, setMatchFormat] = useState<MatchFormat>(() => {
     return readStringStorage(STORAGE_KEYS.matchFormat, matchFormatSchema, '11-a-side', 'Tactics match format');
   });
@@ -142,13 +143,11 @@ export default function TacticsView({ players, teamCoach, teamName, teamLogoUrl,
   const [isEditingCoach, setIsEditingCoach] = useState<boolean>(false);
   const rosterCoach = useMemo(() => {
     const normalizedTeamCoach = teamCoach.trim().toLowerCase();
-    const staff = players.filter(player => isStaffPosition(player.position));
-
-    return staff.find(player => player.name.trim().toLowerCase() === normalizedTeamCoach)
-      || staff.find(player => player.position === 'Manager / Coach')
-      || staff.find(player => player.position.toLowerCase().includes('manager'))
-      || staff.find(player => player.position.toLowerCase().includes('coach'));
-  }, [players, teamCoach]);
+    return staff.find(member => member.name.trim().toLowerCase() === normalizedTeamCoach)
+      || staff.find(member => member.role === 'Manager / Coach')
+      || staff.find(member => member.role.toLowerCase().includes('manager'))
+      || staff.find(member => member.role.toLowerCase().includes('coach'));
+  }, [staff, teamCoach]);
   const coachName = rosterCoach?.name || teamCoach || 'Team Manager';
   const coachPhoto = rosterCoach?.photoUrl || STAFF_PLACEHOLDER;
   const [coachLevel, setCoachLevel] = useState<string>(() => readStringStorage(STORAGE_KEYS.coachLevel, stringSchema, 'Expert ★★★★★', 'Tactics coach details'));
@@ -289,11 +288,10 @@ export default function TacticsView({ players, teamCoach, teamName, teamLogoUrl,
 
   // Sync actual player yellowCards/redCards from Player data into local extras
   useEffect(() => {
-    const activePlayers = players.filter(p => !isStaffPosition(p.position));
     setPlayerStatusExtras(prev => {
       let changed = false;
       const next = { ...prev };
-      activePlayers.forEach(p => {
+      players.forEach(p => {
         const current = next[p.id] || { status: 'starting', yellowCards: 0, redCards: 0 };
         if (current.yellowCards !== (p.yellowCards ?? 0) || current.redCards !== (p.redCards ?? 0)) {
           next[p.id] = {
@@ -455,9 +453,7 @@ export default function TacticsView({ players, teamCoach, teamName, teamLogoUrl,
 
   // Convert active registered club players into state format
   const allEligiblePool: TacticsPlayer[] = useMemo(() => {
-    return players
-      .filter(p => !isStaffPosition(p.position))
-      .map(p => {
+    return players.map(p => {
         const tacticsAttributes = getTacticsAttributes(p);
         const attributesSum = Object.values(tacticsAttributes).reduce((sum, value) => sum + value, 0);
         const avg = Math.round(attributesSum / 6);
