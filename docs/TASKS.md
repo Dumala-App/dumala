@@ -9,13 +9,13 @@ Status values: **Done**, **In Progress**, **Next**, **Planned**, **Long Term**.
 Progress is calculated from the completed capabilities and open checklist items in this document. The roadmap bars track implementation, while Release Validation tracks the latest verified build checks.
 
 ```text
-Overall roadmap                 [######----]  60%  59 / 99
+Overall roadmap                 [######----]  64%  63 / 99
 
 Shipped beta foundation         [##########] 100%  20 / 20
 Current Beta: Reliability       [##########] 100%  24 / 24
 FPRDS Beta                      [######----]  60%   9 / 15
-Phase 1: Offline-ready PWA      [#########-]  86%   6 / 7
-Phase 2: Mobile and tablet      [----------]   0%   0 / 5
+Phase 1: Offline-ready PWA      [##########] 100%   7 / 7
+Phase 2: Mobile and tablet      [########--]  80%   4 / 5
 Phase 3: Cloud and sync         [----------]   0%   0 / 6
 Phase 4: Team collaboration     [----------]   0%   0 / 5
 Phase 5: Profiles and drafting  [----------]   0%   0 / 6
@@ -30,8 +30,8 @@ Release validation              [##########] 100%  12 / 12
 | Shipped beta foundation | 20 | 20 | 100% | Done |
 | Current Beta: Reliability and data confidence | 24 | 24 | 100% | Done |
 | FPRDS Beta | 9 | 15 | 60% | In Progress |
-| Phase 1: Offline-ready web app | 6 | 7 | 86% | In Progress |
-| Phase 2: Mobile and tablet experience | 0 | 5 | 0% | Planned |
+| Phase 1: Offline-ready web app | 7 | 7 | 100% | Done |
+| Phase 2: Mobile and tablet experience | 4 | 5 | 80% | In Progress |
 | Phase 3: Cloud accounts and synchronization | 0 | 6 | 0% | Planned |
 | Phase 4: Team collaboration | 0 | 5 | 0% | Planned |
 | Phase 5: Public profiles and drafting | 0 | 6 | 0% | Long Term |
@@ -53,6 +53,10 @@ The FPRDS total includes nine completed capabilities: the five shipped assessmen
 - [x] Added browser quota monitoring with actionable full-workspace backup guidance.
 - [x] Added blocking startup recovery for malformed saved data with raw recovery export, retry, diagnostics, and confirmed reset.
 - [x] Split player and staff domain models, storage, profiles, and Full Workspace V3 backup records with legacy migration.
+- [x] Defined supported mobile/tablet viewport bands, touch targets, and Phase 2 verification requirements.
+- [x] Improved tablet layouts for dense roster, schedule, assessment, and standings forms and tables.
+- [x] Improved tactics-board touch dragging, drawing, and tablet hit targets.
+- [x] Added mobile/tablet orientation and reduced-keyboard-viewport verification.
 
 ### Completed: 2026-06-22
 
@@ -158,16 +162,19 @@ The FPRDS total includes nine completed capabilities: the five shipped assessmen
 - [x] **Done:** Precache generated application assets, icons, logos, local placeholder artwork, DM Sans, and Manrope.
 - [x] **Done:** Add offline, reconnect, offline-ready, update-available, and registration-error indicators.
 - [x] **Done:** Automate production cold-launch and refresh verification while offline.
+- [x] **Done:** Verify seeded core coaching workflows and V3 player/staff persistence offline in CI.
 - [x] **Done:** Define user-controlled service-worker update and Vercel rollback behavior.
 - [x] **Done:** Move DM Sans and Manrope into the repository for guaranteed offline typography.
 
+Deferred by product decision: production physical-device and controlled-update validation across desktop, Android, iPhone, and iPad remains documented in `docs/PHASE_1_OFFLINE_DEVICE_VALIDATION.md`, but is no longer blocking Phase 2.
+
 ## Phase 2: Mobile and tablet experience
 
-- [ ] **Planned:** Define supported tablet viewport and touch targets.
-- [ ] **Planned:** Redesign dense tables and forms for tablet use.
-- [ ] **Planned:** Improve touch dragging and drawing on the tactics board.
-- [ ] **Planned:** Test orientation changes and virtual keyboard behavior.
-- [ ] **Planned:** Package the validated PWA for Google Play.
+- [x] **Done:** Define supported tablet viewport and touch targets.
+- [x] **Done:** Redesign dense tables and forms for tablet use.
+- [x] **Done:** Improve touch dragging and drawing on the tactics board.
+- [x] **Done:** Test orientation changes and virtual keyboard behavior.
+- [ ] **Next:** Package the validated PWA for Google Play.
 
 ## Phase 3: Cloud accounts and synchronization
 

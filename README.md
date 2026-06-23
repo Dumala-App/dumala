@@ -73,7 +73,11 @@ npm run build
 npm run verify:pwa
 ```
 
-The production-ready static site is generated in `dist/`. The PWA verifier inspects the generated service worker, starts a Vite production preview, and uses Playwright Chromium to confirm Dumala can reopen and refresh offline after an initial online load.
+The production-ready static site is generated in `dist/`. The PWA verifier inspects the generated service worker, starts a Vite production preview, and uses Playwright Chromium to confirm Dumala can reopen, traverse every core coaching area, preserve a seeded V3 workspace, and refresh offline after an initial online load.
+
+Physical-device completion is tracked in [Phase 1 Offline Device Validation](docs/PHASE_1_OFFLINE_DEVICE_VALIDATION.md).
+
+Phase 2 mobile and tablet work follows the [Mobile and Tablet Support Contract](docs/PHASE_2_MOBILE_TABLET_SUPPORT.md).
 
 GitHub Actions runs the same quality gate on every pull request and every push to `main`. A successful run also retains the generated `dist/` artifact for seven days. After a validated push to `main`, a separate production job deploys the exact merged revision to Vercel.
 

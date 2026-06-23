@@ -482,8 +482,8 @@ export default function RosterView({ players, staff, onAddPlayer, onAddStaff, on
                 <h3 className="font-display font-black text-slate-800 text-sm uppercase tracking-wider">Add Management or Staff Member</h3>
               </div>
 
-              <form onSubmit={handleAddStaffSubmit} className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <div className="md:col-span-4 flex items-center gap-4 bg-slate-50 p-4 rounded-xl border border-slate-100">
+              <form onSubmit={handleAddStaffSubmit} className="grid grid-cols-1 lg:grid-cols-4 gap-4">
+                <div className="lg:col-span-4 flex items-center gap-4 bg-slate-50 p-4 rounded-xl border border-slate-100">
                   <div className="relative shrink-0">
                     <img 
                       src={newStaffPhoto || STAFF_PLACEHOLDER}
@@ -530,7 +530,7 @@ export default function RosterView({ players, staff, onAddPlayer, onAddStaff, on
                   </div>
                 </div>
 
-                <div className="md:col-span-2">
+                <div className="lg:col-span-2">
                   <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Full Name *</label>
                   <input 
                     id="new-staff-name-input"
@@ -579,7 +579,7 @@ export default function RosterView({ players, staff, onAddPlayer, onAddStaff, on
                   </div>
                 )}
 
-                <div className="md:col-span-4 grid grid-cols-3 gap-3">
+                <div className="lg:col-span-4 grid grid-cols-1 md:grid-cols-3 gap-3">
                   <div>
                     <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Email</label>
                     <input 
@@ -615,7 +615,7 @@ export default function RosterView({ players, staff, onAddPlayer, onAddStaff, on
                   </div>
                 </div>
 
-                <div className="md:col-span-4">
+                <div className="lg:col-span-4">
                   <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Short Bio Statement (Optional)</label>
                   <textarea 
                     id="new-staff-bio-input"
@@ -627,7 +627,7 @@ export default function RosterView({ players, staff, onAddPlayer, onAddStaff, on
                   />
                 </div>
 
-                <div className="md:col-span-4 flex justify-end gap-2 p-1">
+                <div className="lg:col-span-4 flex flex-col sm:flex-row justify-end gap-2 p-1">
                   <button 
                     id="cancel-add-staff-btn"
                     type="button" 
@@ -759,11 +759,11 @@ export default function RosterView({ players, staff, onAddPlayer, onAddStaff, on
                 <h3 className="font-display font-black text-slate-800 text-sm uppercase tracking-wider">Register New athlete</h3>
               </div>
 
-              <form ref={addPlayerFormRef} onSubmit={handleAddSubmit} className="grid grid-cols-1 md:grid-cols-4 gap-4" noValidate>
-                <div className="md:col-span-4">
+              <form ref={addPlayerFormRef} onSubmit={handleAddSubmit} className="grid grid-cols-1 lg:grid-cols-4 gap-4" noValidate>
+                <div className="lg:col-span-4">
                   <FormErrorSummary id="add-player-error-summary" errors={playerFormErrors} />
                 </div>
-                <div className="md:col-span-4 flex items-center gap-4 bg-slate-50 p-4 rounded-xl border border-slate-100">
+                <div className="lg:col-span-4 flex items-center gap-4 bg-slate-50 p-4 rounded-xl border border-slate-100">
                   <div className="relative shrink-0">
                     <img 
                       src={newPlayerPhoto || getPlayerPlaceholder(newPlayerPos)}
@@ -810,7 +810,7 @@ export default function RosterView({ players, staff, onAddPlayer, onAddStaff, on
                   </div>
                 </div>
 
-                <div className="md:col-span-2">
+                <div className="lg:col-span-2">
                   <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Full Athlete Name *</label>
                   <input 
                     id="new-player-name-input"
@@ -972,7 +972,7 @@ export default function RosterView({ players, staff, onAddPlayer, onAddStaff, on
                   <FieldError id="new-player-weight-error" message={playerFormErrors.weight} />
                 </div>
 
-                <div className="md:col-span-4 rounded-xl border border-slate-200 bg-slate-50 p-4">
+                <div className="lg:col-span-4 rounded-xl border border-slate-200 bg-slate-50 p-4">
                   <div className="mb-3 flex items-center justify-between gap-3">
                     <div>
                       <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest">
@@ -1010,7 +1010,7 @@ export default function RosterView({ players, staff, onAddPlayer, onAddStaff, on
                   </div>
                 </div>
 
-                <div className="md:col-span-4">
+                <div className="lg:col-span-4">
                   <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Short Bio Statement (Optional)</label>
                   <textarea 
                     id="new-player-bio-input"
@@ -1022,7 +1022,7 @@ export default function RosterView({ players, staff, onAddPlayer, onAddStaff, on
                   />
                 </div>
 
-                <div className="md:col-span-4 flex justify-end gap-2 p-1">
+                <div className="lg:col-span-4 flex flex-col sm:flex-row justify-end gap-2 p-1">
                   <button 
                     id="cancel-add-player-btn"
                     type="button" 

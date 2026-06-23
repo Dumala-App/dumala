@@ -67,6 +67,115 @@ const expectAppShell = async (page, label) => {
   }
 };
 
+const workspaceEntries = {
+  stack_team_onboarded: 'true',
+  stack_team_info: JSON.stringify({
+    name: 'Offline Validation FC',
+    founded: '2026',
+    stadium: 'Validation Ground',
+    coach: 'Coach Offline',
+    league: 'Offline League',
+    logoColor: '#123456',
+  }),
+  stack_team_players: JSON.stringify([{
+    id: 'offline-player',
+    name: 'Offline Player',
+    number: 9,
+    position: 'Forward',
+    bio: 'Seeded for offline validation.',
+    photoUrl: '/placeholders/forward-placeholder.png',
+    gamesPlayed: 0,
+    points: 0,
+    assists: 0,
+    cleanSheetsOrRebounds: 0,
+    minutesPlayed: 0,
+    mvpAwards: 0,
+    yellowCards: 0,
+    redCards: 0,
+    offenses: [],
+    baseAttributes: {
+      pace: 70,
+      stamina: 70,
+      agility: 70,
+      strength: 70,
+      firstTouch: 70,
+      shortPassing: 70,
+    },
+    positionAttributes: {Finishing: 70},
+    registrationStatus: 'Active',
+  }]),
+  stack_team_staff: JSON.stringify([{
+    id: 'offline-staff',
+    name: 'Coach Offline',
+    role: 'Head Coach',
+    bio: 'Seeded for offline validation.',
+    photoUrl: '/placeholders/staff-placeholder.png',
+    status: 'Active',
+  }]),
+  stack_team_games: '[]',
+  stack_team_standings: '[]',
+  stack_team_announcements: '[]',
+  stack_team_assessments: '[]',
+};
+
+const expectVisibleText = async (page, text, label) => {
+  const expected = text.toLowerCase().replace(/\s+/g, ' ');
+  const startedAt = Date.now();
+  let renderedText = '';
+
+  while (Date.now() - startedAt < 10000) {
+    renderedText = await page.locator('body').innerText();
+    if (renderedText.toLowerCase().replace(/\s+/g, ' ').includes(expected)) return;
+    await page.waitForTimeout(100);
+  }
+
+  throw new Error(
+    `${label} did not render expected text: ${text}. Rendered page: ${renderedText.replace(/\s+/g, ' ').slice(0, 2000)}`,
+  );
+};
+
+const openPrimaryArea = async (page, name) => {
+  await page.getByRole('button', {name, exact: true}).click();
+};
+
+const openNestedArea = async (page, name) => {
+  await page.getByRole('button', {name: `Open ${name}`, exact: true}).click();
+};
+
+const verifyOfflineWorkflows = async page => {
+  await expectVisibleText(page, 'Offline Validation FC', 'Overview');
+
+  await openNestedArea(page, 'Game Week');
+  await expectVisibleText(page, 'Upcoming Matches', 'Game Week');
+
+  await openPrimaryArea(page, 'Squad');
+  await expectVisibleText(page, 'Team Roster & Player Directory', 'Squad');
+  await expectVisibleText(page, 'Offline Player', 'Squad player');
+  await expectVisibleText(page, 'Coach Offline', 'Staff directory');
+
+  await openPrimaryArea(page, 'Tactics');
+  await expectVisibleText(page, 'Match Layout', 'Tactics');
+
+  await openPrimaryArea(page, 'Development');
+  await expectVisibleText(page, 'Interactive Training Grounds', 'Training');
+  await openNestedArea(page, 'Assessments');
+  await expectVisibleText(page, 'Assessment Center', 'Assessments');
+
+  await openPrimaryArea(page, 'League & Updates');
+  await expectVisibleText(page, 'Manual Tools', 'League');
+  await openNestedArea(page, 'Bulletins');
+  await expectVisibleText(page, 'Team Bulletin Board', 'Bulletins');
+  await page.getByRole('button', {name: 'Post Announcement', exact: true}).click();
+  await page.locator('#ann-title-input').fill('Offline persistence check');
+  await page.locator('#ann-content-input').fill('Created while the validation browser was offline.');
+  await page.getByRole('button', {name: 'Publish Notice', exact: true}).click();
+  await expectVisibleText(page, 'Offline persistence check', 'Offline bulletin edit');
+  await openNestedArea(page, 'Updates');
+  await expectVisibleText(page, 'Developer Updates & Product Roadmap', 'Updates');
+
+  await expectVisibleText(page, 'You are offline', 'Offline status');
+};
+
 const port = await getAvailablePort();
 const baseUrl = `http://127.0.0.1:${port}/`;
 const preview = spawn(
@@ -97,6 +206,13 @@ try {
     context = await browser.newContext({
       serviceWorkers: 'allow',
     });
+    await context.addInitScript(entries => {
+      for (const [key, value] of Object.entries(entries)) {
+        if (localStorage.getItem(key) === null) {
+          localStorage.setItem(key, value);
+        }
+      }
+    }, workspaceEntries);
 
     const onlinePage = await context.newPage();
     await onlinePage.goto(baseUrl, {waitUntil: 'domcontentloaded'});
@@ -109,9 +225,14 @@ try {
     const coldLaunchPage = await context.newPage();
     await coldLaunchPage.goto(baseUrl, {waitUntil: 'domcontentloaded'});
     await expectAppShell(coldLaunchPage, 'offline cold launch');
+    await verifyOfflineWorkflows(coldLaunchPage);
 
     await coldLaunchPage.reload({waitUntil: 'domcontentloaded'});
     await expectAppShell(coldLaunchPage, 'offline refresh');
+    await expectVisibleText(coldLaunchPage, 'Offline Validation FC', 'offline refresh persistence');
+    await openPrimaryArea(coldLaunchPage, 'League & Updates');
+    await openNestedArea(coldLaunchPage, 'Bulletins');
+    await expectVisibleText(coldLaunchPage, 'Offline persistence check', 'offline edit persistence');
     await coldLaunchPage.close();
   } finally {
     await context?.close();
@@ -126,4 +247,4 @@ try {
   preview.kill();
 }
 
-console.log('Offline PWA verification passed: Dumala reopened and refreshed from the production cache.');
+console.log('Offline PWA verification passed: Dumala reopened, traversed core workflows, and refreshed from the production cache.');
