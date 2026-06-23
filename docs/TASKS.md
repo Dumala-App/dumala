@@ -9,10 +9,10 @@ Status values: **Done**, **In Progress**, **Next**, **Planned**, **Long Term**.
 Progress is calculated from the completed capabilities and open checklist items in this document. The roadmap bars track implementation, while Release Validation tracks the latest verified build checks.
 
 ```text
-Overall roadmap                 [######----]  59%  58 / 98
+Overall roadmap                 [######----]  60%  59 / 99
 
 Shipped beta foundation         [##########] 100%  20 / 20
-Current Beta: Reliability       [##########] 100%  23 / 23
+Current Beta: Reliability       [##########] 100%  24 / 24
 FPRDS Beta                      [######----]  60%   9 / 15
 Phase 1: Offline-ready PWA      [#########-]  86%   6 / 7
 Phase 2: Mobile and tablet      [----------]   0%   0 / 5
@@ -28,7 +28,7 @@ Release validation              [##########] 100%  12 / 12
 | Phase | Completed | Total | Progress | Status |
 | --- | ---: | ---: | ---: | --- |
 | Shipped beta foundation | 20 | 20 | 100% | Done |
-| Current Beta: Reliability and data confidence | 23 | 23 | 100% | Done |
+| Current Beta: Reliability and data confidence | 24 | 24 | 100% | Done |
 | FPRDS Beta | 9 | 15 | 60% | In Progress |
 | Phase 1: Offline-ready web app | 6 | 7 | 86% | In Progress |
 | Phase 2: Mobile and tablet experience | 0 | 5 | 0% | Planned |
@@ -52,6 +52,7 @@ The FPRDS total includes nine completed capabilities: the five shipped assessmen
 - [x] Added shared accessible validation for match results, assessments, roster/profile editing, backup import, and manual standings.
 - [x] Added browser quota monitoring with actionable full-workspace backup guidance.
 - [x] Added blocking startup recovery for malformed saved data with raw recovery export, retry, diagnostics, and confirmed reset.
+- [x] Split player and staff domain models, storage, profiles, and Full Workspace V3 backup records with legacy migration.
 
 ### Completed: 2026-06-22
 
@@ -134,7 +135,7 @@ The FPRDS total includes nine completed capabilities: the five shipped assessmen
 - [x] **Done:** Extract the match-result service from `App.tsx`.
 - [x] **Done:** Extract the assessment snapshot service from `App.tsx`.
 - [x] **Done:** Replace avoidable application-facing `any` usage while keeping a typed legacy player-attributes boundary.
-- [ ] **Planned:** Split Player and Staff models before credential and permission work.
+- [x] **Done:** Split Player and Staff models before credential and permission work.
 - [x] **Done:** Add CI for type-check, tests, production build, PWA verification, and build artifacts.
 
 ## FPRDS Beta
@@ -218,7 +219,7 @@ The FPRDS total includes nine completed capabilities: the five shipped assessmen
 - [x] Production chunks remain below Vite's 500 kB warning threshold after view-level code splitting.
 - [x] Onboarding and reset start with clean standings.
 - [x] Roster create/edit/remove works for players and staff.
-- [x] Backup export and restore pass isolated-storage V2 round-trip and migration tests.
+- [x] Backup export and restore pass isolated-storage V3 round-trip and V1/V2 migration tests.
 - [x] Match results update standings and player totals once.
 - [x] Tactics auto-fill matches positions and preserves manual assignments.
 - [x] Training schedule persists and syncs calendar events.

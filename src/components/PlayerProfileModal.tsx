@@ -1,5 +1,5 @@
 import React, { useMemo, useRef, useState } from 'react';
-import { AssessmentSession, Player, SPECIALTY_TRAITS, SpecialtyTrait, isStaffPosition, STAFF_POSITIONS } from '../types';
+import { AssessmentSession, Player, SPECIALTY_TRAITS, SpecialtyTrait, STAFF_POSITIONS } from '../types';
 import { X, Award, Shield, User, Zap, CircleDot, Activity, Save, Edit2, Briefcase, Calendar, Mail, Phone, AlertTriangle, Clock, Star, Trash2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useDialogAccessibility } from '../hooks/useDialogAccessibility';
@@ -102,7 +102,7 @@ interface PlayerProfileModalProps {
 export default function PlayerProfileModal({ player, onClose, onUpdate, onRemove, assessments, onOpenAssessments }: PlayerProfileModalProps) {
   const dialogRef = useRef<HTMLDivElement | null>(null);
   useDialogAccessibility(dialogRef, true, onClose);
-  const isStaff = isStaffPosition(player.position);
+  const isStaff = false;
   const [isEditing, setIsEditing] = useState(false);
   const [showRemoveConfirm, setShowRemoveConfirm] = useState(false);
   const [name, setName] = useState(player.name);
@@ -127,9 +127,10 @@ export default function PlayerProfileModal({ player, onClose, onUpdate, onRemove
   const [profileErrors, setProfileErrors] = useState<FieldErrors<ProfileField>>({});
 
   // Staff-specific state
-  const [staffEmail, setStaffEmail] = useState(player.email || '');
-  const [staffPhone, setStaffPhone] = useState(player.phone || '');
-  const [staffSince, setStaffSince] = useState(player.since || '');
+  const legacyStaffFields = player as Player & { email?: string; phone?: string; since?: string };
+  const [staffEmail, setStaffEmail] = useState(legacyStaffFields.email || '');
+  const [staffPhone, setStaffPhone] = useState(legacyStaffFields.phone || '');
+  const [staffSince, setStaffSince] = useState(legacyStaffFields.since || '');
   const [staffBio, setStaffBio] = useState(bio);
 
   const [baseAttributes, setBaseAttributes] = useState(player.baseAttributes || { pace: 50, stamina: 50, agility: 50, strength: 50, firstTouch: 50, shortPassing: 50 });
@@ -267,44 +268,30 @@ export default function PlayerProfileModal({ player, onClose, onUpdate, onRemove
       return;
     }
 
-    if (isStaff) {
-      onUpdate({
-        ...player,
-        name: trimmedName,
-        position,
-        bio: staffBio,
-        photoUrl,
-        email: staffEmail || undefined,
-        phone: staffPhone || undefined,
-        since: staffSince || undefined,
-        registrationStatus: status
-      });
-    } else {
-      onUpdate({
-        ...player,
-        name: trimmedName,
-        number: integerValue(parsedNumber, player.number),
-        position,
-        bio,
-        photoUrl,
-        age: optionalIntegerValue(parsedAge, player.age),
-        height: optionalIntegerValue(parsedHeight, player.height),
-        weight: optionalIntegerValue(parsedWeight, player.weight),
-        specialtyTraits: specialtyTraits.length > 0 ? specialtyTraits : undefined,
-        coachNotes: coachNotes || undefined,
-        registrationStatus: status,
-        gamesPlayed: integerValue(parsedGamesPlayed, player.gamesPlayed),
-        points: integerValue(parsedGoals, player.points),
-        assists: integerValue(parsedAssists, player.assists),
-        cleanSheetsOrRebounds: integerValue(parsedSheets, player.cleanSheetsOrRebounds),
-        minutesPlayed: integerValue(parsedMinutes, player.minutesPlayed),
-        mvpAwards: integerValue(parsedMvp, player.mvpAwards),
-        yellowCards: integerValue(parsedYellows, player.yellowCards),
-        redCards: integerValue(parsedReds, player.redCards),
-        baseAttributes,
-        positionAttributes
-      });
-    }
+    onUpdate({
+      ...player,
+      name: trimmedName,
+      number: integerValue(parsedNumber, player.number),
+      position,
+      bio,
+      photoUrl,
+      age: optionalIntegerValue(parsedAge, player.age),
+      height: optionalIntegerValue(parsedHeight, player.height),
+      weight: optionalIntegerValue(parsedWeight, player.weight),
+      specialtyTraits: specialtyTraits.length > 0 ? specialtyTraits : undefined,
+      coachNotes: coachNotes || undefined,
+      registrationStatus: status,
+      gamesPlayed: integerValue(parsedGamesPlayed, player.gamesPlayed),
+      points: integerValue(parsedGoals, player.points),
+      assists: integerValue(parsedAssists, player.assists),
+      cleanSheetsOrRebounds: integerValue(parsedSheets, player.cleanSheetsOrRebounds),
+      minutesPlayed: integerValue(parsedMinutes, player.minutesPlayed),
+      mvpAwards: integerValue(parsedMvp, player.mvpAwards),
+      yellowCards: integerValue(parsedYellows, player.yellowCards),
+      redCards: integerValue(parsedReds, player.redCards),
+      baseAttributes,
+      positionAttributes
+    });
     setProfileErrors({});
     setIsEditing(false);
   };

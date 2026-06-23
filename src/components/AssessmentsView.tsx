@@ -1,6 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import type { AgeGroup, AssessmentRawResults, AssessmentSession, FprdsAttributeId, FprdsRole, Player } from '../types';
-import { isStaffPosition } from '../types';
 import {
   AlertCircle,
   BookOpen,
@@ -118,7 +117,7 @@ export default function AssessmentsView({
   onDeleteAssessment
 }: AssessmentsViewProps) {
   const assessmentContainerRef = useRef<HTMLDivElement | null>(null);
-  const eligiblePlayers = useMemo(() => players.filter(p => !isStaffPosition(p.position)), [players]);
+  const eligiblePlayers = useMemo(() => players, [players]);
 
   const [step, setStep] = useState<AssessmentStep>(1);
   const [playerSearch, setPlayerSearch] = useState('');

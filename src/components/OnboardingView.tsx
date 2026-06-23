@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { Shield, User, ArrowRight, CheckCircle, Flag, Trophy, MapPin } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { TeamInfo, Player } from '../types';
+import { TeamInfo, StaffMember } from '../types';
 
 interface OnboardingViewProps {
-  onComplete: (team: TeamInfo, headCoach: Player) => void;
+  onComplete: (team: TeamInfo, headCoach: StaffMember) => void;
 }
 
 export default function OnboardingView({ onComplete }: OnboardingViewProps) {
@@ -19,7 +19,6 @@ export default function OnboardingView({ onComplete }: OnboardingViewProps) {
   // Form State - Manager / Coach
   const [mgrName, setMgrName] = useState('');
   const [mgrPosition, setMgrPosition] = useState('Manager / Coach');
-  const [mgrNumber, setMgrNumber] = useState('');
   const [mgrBio, setMgrBio] = useState('');
   const [mgrPhoto, setMgrPhoto] = useState('');
 
@@ -37,34 +36,16 @@ export default function OnboardingView({ onComplete }: OnboardingViewProps) {
       logoColor: 'from-blue-600 to-indigo-800'
     };
 
-    const cPlayer: Player = {
+    const headCoach: StaffMember = {
       id: crypto.randomUUID(),
       name: mgrName,
-      number: mgrNumber ? parseInt(mgrNumber) : 99,
-      position: mgrPosition,
+      role: mgrPosition,
       photoUrl: mgrPhoto || "https://images.unsplash.com/photo-1544717297-ea0e52a269c7?w=150&auto=format&fit=crop&q=80",
       bio: mgrBio || 'Team Manager & Core Organizer.',
-      gamesPlayed: 0,
-      points: 0,
-      assists: 0,
-      cleanSheetsOrRebounds: 0,
-      minutesPlayed: 0,
-      mvpAwards: 0,
-      yellowCards: 0,
-      redCards: 0,
-      baseAttributes: {
-        pace: 60,
-        stamina: 60,
-        agility: 65,
-        strength: 60,
-        firstTouch: 65,
-        shortPassing: 75
-      },
-      positionAttributes: {},
-      registrationStatus: 'Active'
+      status: 'Active'
     };
 
-    onComplete(tInf, cPlayer);
+    onComplete(tInf, headCoach);
   };
 
   return (
@@ -122,7 +103,7 @@ export default function OnboardingView({ onComplete }: OnboardingViewProps) {
                     />
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
                     <div>
                       <label className="text-[10px] font-black tracking-widest text-slate-400 uppercase block mb-1.5 flex items-center gap-1.5"><MapPin size={12}/> Home Ground</label>
                       <input 
@@ -182,7 +163,7 @@ export default function OnboardingView({ onComplete }: OnboardingViewProps) {
                   <User size={22} className="text-amber-400" />
                   <div>
                     <h2 className="text-xl font-display font-bold text-white uppercase tracking-wider">Manager Profile</h2>
-                    <p className="text-[11px] text-slate-400 mt-1">You will be added to the roster as the first member.</p>
+                    <p className="text-[11px] text-slate-400 mt-1">You will be added to the staff directory as the first club member.</p>
                   </div>
                 </div>
 
@@ -247,22 +228,10 @@ export default function OnboardingView({ onComplete }: OnboardingViewProps) {
                         className="w-full bg-[#060b13] border border-slate-800 text-slate-100 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 transition-all cursor-pointer"
                       >
                         <option value="Manager / Coach">Manager / Coach</option>
-                        <option value="Player-Manager">Player-Manager</option>
-                        <option value="Midfielder">Midfielder</option>
-                        <option value="Forward">Forward</option>
-                        <option value="Defender">Defender</option>
-                        <option value="Goalkeeper">Goalkeeper</option>
+                        <option value="Head Coach">Head Coach</option>
+                        <option value="Assistant Coach">Assistant Coach</option>
+                        <option value="Manager">Manager</option>
                       </select>
-                    </div>
-                    <div>
-                      <label className="text-[10px] font-black tracking-widest text-slate-400 uppercase block mb-1.5">Kit Number (Optional)</label>
-                      <input 
-                        type="number" 
-                        value={mgrNumber}
-                        onChange={(e) => setMgrNumber(e.target.value)}
-                        placeholder="--"
-                        className="w-full bg-[#060b13] border border-slate-800 text-slate-100 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 transition-all font-mono placeholder-slate-600"
-                      />
                     </div>
                   </div>
                   

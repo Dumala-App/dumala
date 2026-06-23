@@ -103,6 +103,7 @@ Assessment sessions retain raw results and derived scores so calculations remain
 - `stack_team_onboarded`
 - `stack_team_info`
 - `stack_team_players`
+- `stack_team_staff`
 - `stack_team_games`
 - `stack_team_standings`
 - `stack_team_announcements`
@@ -147,12 +148,13 @@ Assessment sessions retain raw results and derived scores so calculations remain
 
 `src/types.ts` contains the public frontend domain types.
 
-- `Player` intentionally represents athletes and staff for the beta.
+- `Player` represents athletes and owns football attributes, statistics, discipline, traits, and FPRDS snapshot references.
+- `StaffMember` represents management and technical staff with role, contact, biography, tenure, and active status.
 - `AssessmentSession` stores assessment inputs, outputs, labels, deltas, and plans.
 - `PlayerOffense` and `MvpAwardRecord` are embedded histories on `Player`.
 - `Game` represents matches, training sessions, and meetings.
 
-The shared Player/staff model is expedient but should be revisited before permissions, public profiles, or coach credentials are implemented.
+Legacy mixed rosters are classified during startup and backup migration. Known staff roles move into `stack_team_staff`; ambiguous roles remain players so migration cannot silently detach football records.
 
 ## 8. Important business rules
 
@@ -195,16 +197,16 @@ Release-critical dialogs use a shared focus-management hook. Opening a dialog mo
 
 ## 9. Backup format
 
-Full Workspace V2 uses the `dumala-workspace` format and includes:
+Full Workspace V3 uses the `dumala-workspace` format and includes:
 
-- team information, players, games, standings, bulletins, and assessments
+- team information, separate players and staff, games, standings, bulletins, and assessments
 - availability and coach notes
 - weekly training schedules and history
 - standings snapshots and preferences
 - tactics formation, lineup, roles, notes, custom positions, drawings, and player extras
 - export timestamp and numeric format version
 
-Import continues to accept legacy versions `1.0.0` and `1.1.0`. Legacy files are migrated into V2 before validation. Restore validates the complete nested workspace before writing, creates an automatic pre-restore backup, and rolls back all writes if storage fails.
+Import continues to accept legacy versions `1.0.0`, `1.1.0`, and Full Workspace V2. Mixed legacy rosters are separated into V3 players and staff before validation. Restore validates the complete nested workspace before writing, creates an automatic pre-restore backup, and rolls back all writes if storage fails.
 
 When startup validation fails, Dumala does not create a normal workspace backup because the stored records are not trusted as a complete workspace. The recovery screen instead exports an untouched `dumala-storage-recovery` diagnostic snapshot containing only known Dumala keys and issue metadata. This file is private recovery material and is not accepted by the normal restore workflow.
 

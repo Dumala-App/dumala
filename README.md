@@ -14,7 +14,7 @@ Dumala is a local-first football team management web application for coaches, ma
 - Weekly training planner with a 52-drill library and presets
 - FPRDS Assessment Center with Full and Quick assessments
 - Age-group and role-specific benchmarks, OVR scoring, history, and development plans
-- Bulletins, product updates, feedback submission, and validated Full Workspace V2 backup/restore
+- Bulletins, product updates, feedback submission, and validated Full Workspace V3 backup/restore
 
 ## Navigation
 
@@ -34,7 +34,7 @@ The beta stores team information and uploaded photos in browser `localStorage`.
 - Clearing browser storage removes local data.
 - Preview and production URLs do not share data.
 - Testers cannot collaborate in the same workspace yet.
-- Export a Full Workspace V2 backup before changing browsers or clearing data.
+- Export a Full Workspace V3 backup before changing browsers or clearing data.
 
 ## Run locally
 

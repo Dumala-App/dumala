@@ -243,9 +243,6 @@ export interface Player {
   weight?: number;
   specialtyTraits?: string[];
   coachNotes?: string;
-  email?: string;
-  phone?: string;
-  since?: string;
   dateOfBirth?: string;
   fprdsRole?: FprdsRole;
   fprdsAgeGroupPreference?: AgeGroup;
@@ -272,6 +269,18 @@ export interface Player {
   // Deprecated legacy migration boundary. New player data uses baseAttributes and positionAttributes.
   attributes?: LegacyPlayerAttributes;
   registrationStatus: 'Active' | 'Pending' | 'Suspended';
+}
+
+export interface StaffMember {
+  id: string;
+  name: string;
+  role: string;
+  bio: string;
+  photoUrl: string;
+  email?: string;
+  phone?: string;
+  since?: string;
+  status: 'Active' | 'Inactive';
 }
 
 export const POSITION_ATTRIBUTES_MAP: Record<string, string[]> = {

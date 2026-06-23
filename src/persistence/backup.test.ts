@@ -4,7 +4,7 @@ import {
   collectFeatureState,
   createWorkspaceBackup,
   parseWorkspaceBackup,
-  workspaceBackupV2Schema
+  workspaceBackupV3Schema
 } from './backup';
 import { STORAGE_KEYS, type StorageLike } from './storage';
 
@@ -70,6 +70,25 @@ const player = {
   },
   positionAttributes: { Finishing: 70 },
   registrationStatus: 'Active' as const
+};
+
+const legacyStaffPlayer = {
+  ...player,
+  id: 'staff-1',
+  name: 'Coach Test',
+  number: 0,
+  position: 'Head Coach',
+  email: 'coach@example.com'
+};
+
+const staff = {
+  id: 'staff-1',
+  name: 'Coach Test',
+  role: 'Head Coach',
+  bio: '',
+  photoUrl: '/player.png',
+  email: 'coach@example.com',
+  status: 'Active' as const
 };
 
 const game = {
@@ -163,6 +182,7 @@ const assessment = {
 const core = {
   teamInfo,
   players: [player],
+  staff: [staff],
   games: [game],
   standings: [standing],
   announcements: [announcement],
@@ -207,11 +227,12 @@ describe('workspace backup V2', () => {
       createdAt: '2026-06-21T00:00:00.000Z'
     }]));
     const backup = createWorkspaceBackup(core, storage, '2026-06-21T00:00:00.000Z');
-    expect(workspaceBackupV2Schema.parse(backup)).toEqual(backup);
+    expect(workspaceBackupV3Schema.parse(backup)).toEqual(backup);
 
     const restored = new MemoryStorage();
     applyWorkspaceBackup(backup, restored);
     expect(JSON.parse(restored.getItem(STORAGE_KEYS.players)!)).toHaveLength(1);
+    expect(JSON.parse(restored.getItem(STORAGE_KEYS.staff)!)).toEqual([staff]);
     expect(JSON.parse(restored.getItem(STORAGE_KEYS.availability)!)).toEqual({ g1: { p1: 'yes' } });
     expect(JSON.parse(restored.getItem(STORAGE_KEYS.coachNotes)!)).toEqual({ g1: 'Press early' });
     expect(JSON.parse(restored.getItem(STORAGE_KEYS.weeklySchedule)!).Monday).toHaveLength(1);
@@ -233,8 +254,26 @@ describe('workspace backup V2', () => {
     const currentFeatureState = collectFeatureState(new MemoryStorage());
     const result = parseWorkspaceBackup(legacy, currentFeatureState);
     expect(result.sourceVersion).toBe(version);
-    expect(result.backup.version).toBe(2);
+    expect(result.backup.version).toBe(3);
     expect(result.backup.core.assessments).toHaveLength(version === '1.1.0' ? 1 : 0);
+  });
+
+  it('migrates a V2 mixed roster into separate player and staff collections', () => {
+    const current = createWorkspaceBackup(core, new MemoryStorage(), '2026-06-21T00:00:00.000Z');
+    const v2 = {
+      ...current,
+      version: 2,
+      core: {
+        ...current.core,
+        players: [player, legacyStaffPlayer],
+        staff: undefined
+      }
+    };
+
+    const result = parseWorkspaceBackup(v2, current.featureState);
+    expect(result.sourceVersion).toBe('2');
+    expect(result.backup.core.players.map(item => item.id)).toEqual(['p1']);
+    expect(result.backup.core.staff).toEqual([staff]);
   });
 
   it('rejects unsupported and invalid nested data', () => {

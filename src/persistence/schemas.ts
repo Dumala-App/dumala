@@ -1,5 +1,6 @@
 import { z } from 'zod';
-import type { Player } from '../types';
+import type { Player, StaffMember } from '../types';
+import { isStaffPosition } from '../types';
 
 const finiteNumber = z.number().finite();
 const nonNegativeNumber = finiteNumber.min(0);
@@ -123,6 +124,44 @@ export const migratePlayer = (input: z.input<typeof playerInputSchema>): Player 
 
 export const playerSchema = playerInputSchema.transform(migratePlayer);
 export const playersSchema = z.array(playerSchema);
+
+export const staffMemberSchema = z.object({
+  id: z.string().min(1),
+  name: z.string().min(1),
+  role: z.string().min(1),
+  bio: z.string(),
+  photoUrl: z.string(),
+  email: z.string().optional(),
+  phone: z.string().optional(),
+  since: z.string().optional(),
+  status: z.enum(['Active', 'Inactive']).default('Active')
+});
+export const staffMembersSchema = z.array(staffMemberSchema);
+
+export const migrateLegacyRoster = (
+  records: Player[]
+): { players: Player[]; staff: StaffMember[] } => records.reduce<{ players: Player[]; staff: StaffMember[] }>(
+  (result, record) => {
+    if (isStaffPosition(record.position)) {
+      const legacyContact = record as Player & { email?: string; phone?: string; since?: string };
+      result.staff.push({
+        id: record.id,
+        name: record.name,
+        role: record.position,
+        bio: record.bio,
+        photoUrl: record.photoUrl,
+        email: legacyContact.email,
+        phone: legacyContact.phone,
+        since: legacyContact.since,
+        status: record.registrationStatus === 'Suspended' ? 'Inactive' : 'Active'
+      });
+    } else {
+      result.players.push(record);
+    }
+    return result;
+  },
+  { players: [], staff: [] }
+);
 
 export const teamInfoSchema = z.object({
   name: z.string().min(1),

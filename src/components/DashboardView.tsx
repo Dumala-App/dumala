@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { AssessmentSession, Game, Player, Standing, Announcement, TeamInfo, isStaffPosition } from '../types';
+import { AssessmentSession, Game, Player, Standing, Announcement, TeamInfo } from '../types';
 import {findUserStanding, sortStandings} from '../standings';
 import { Calendar, MapPin, Trophy, Shield, Megaphone, Star, Award, Zap, ArrowRight, CornerRightDown, TrendingUp, Edit, Upload, Link, Check, X, Image, Crown, Target, Flame, AlertCircle, Table, Users, ClipboardList } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
@@ -242,7 +242,6 @@ export default function DashboardView({
 
   const topProspects = useMemo(() => {
     return [...players]
-      .filter(p => !isStaffPosition(p.position))
       .map(p => ({ player: p, session: latestAssessmentByPlayerId.get(p.id) }))
       .filter((x): x is { player: Player; session: AssessmentSession } => !!x.session)
       .sort((a, b) => b.session.ovr - a.session.ovr)
@@ -251,7 +250,6 @@ export default function DashboardView({
 
   const topImprovers = useMemo(() => {
     return [...players]
-      .filter(p => !isStaffPosition(p.position))
       .map(p => ({ player: p, session: latestAssessmentByPlayerId.get(p.id) }))
       .filter((x): x is { player: Player; session: AssessmentSession } => !!x.session)
       .sort((a, b) => (b.session.deltas.ovrDelta ?? 0) - (a.session.deltas.ovrDelta ?? 0))
@@ -779,7 +777,6 @@ export default function DashboardView({
             </thead>
             <tbody className="divide-y divide-slate-50">
               {[...players]
-                .filter(p => !isStaffPosition(p.position))
                 .sort((a, b) => {
                   const order = ['Forward', 'Midfielder', 'Defender', 'Goalkeeper'];
                   const aIdx = order.indexOf(a.position);

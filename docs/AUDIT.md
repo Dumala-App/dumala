@@ -18,7 +18,7 @@ The main remaining risks are architecture and regression coverage: state ownersh
 6. Tactics auto-fill matches players to broad position groups and preserves valid assignments.
 7. Training includes 52 drills, practical guides, filters, presets, and calendar synchronization.
 8. FPRDS stores raw measurements and derived outputs, enabling explainable assessment history.
-9. Full Workspace V2 validates and restores core and feature-local data, with legacy migration and rollback protection.
+9. Full Workspace V3 validates and restores separate player/staff collections plus feature-local data, with V1/V2 migration and rollback protection.
 10. Match-result reconciliation prevents duplicate saves and reverses edited or deleted match contributions.
 11. Release-critical dialogs trap focus, support Escape, and restore focus to their opener.
 12. The project is a simple static Vite deployment with no environment variables.
@@ -29,7 +29,7 @@ The main remaining risks are architecture and regression coverage: state ownersh
 
 ### Medium: distributed browser persistence
 
-Core data is managed in `App.tsx`, while schedule, training, standings backups, and tactics own separate state. All keys now use one typed persistence service and Full Workspace V2 covers the supported feature state.
+Core data is managed in `App.tsx`, while schedule, training, standings backups, and tactics own separate state. All keys now use one typed persistence service and Full Workspace V3 covers the supported feature state.
 
 Impact: future schema changes still need coordinated migrations across multiple feature owners.
 
@@ -51,11 +51,9 @@ The shell owns navigation, persistence, result processing, assessment updates, b
 
 Impact: unrelated changes can affect core flows and make tests harder to isolate.
 
-### Medium: shared Player/staff model
+### Resolved: shared Player/staff model
 
-Staff are represented as `Player` records and identified by position strings.
-
-Impact: future coach qualifications, permissions, public profiles, and staff-specific privacy will strain the model.
+Players and staff now use separate domain types, state collections, storage keys, profile workflows, and V3 backup records. Legacy mixed rosters migrate through known staff roles while ambiguous football roles remain athletes.
 
 ### Resolved: initial bundle size
 

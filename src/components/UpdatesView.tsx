@@ -48,6 +48,10 @@ export default function UpdatesView() {
                 desc: 'Type-safety cleanup reduced weak data boundaries across assessments, tactics, schedule, standings, dashboard, announcements, and player workflows.'
               },
               {
+                title: 'Players and staff are modeled separately',
+                desc: 'Athletes now keep football statistics and assessments in a dedicated player model, while management and coaches use staff-specific profiles, storage, and backup records.'
+              },
+              {
                 title: 'Storage pressure is visible early',
                 desc: 'Dumala now warns when the browser reports that site storage is approaching its quota and offers an immediate full-workspace backup.'
               },
