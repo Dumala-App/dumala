@@ -15,6 +15,14 @@ import {
   writeJsonStorage
 } from '../persistence/storage';
 import { useDialogAccessibility } from '../hooks/useDialogAccessibility';
+import { FieldError, FormErrorSummary } from './FormValidation';
+import {
+  FieldErrors,
+  focusFirstInvalidField,
+  hasFieldErrors,
+  mergeFieldErrors,
+  parseIntegerInput
+} from '../forms/validation';
 
 interface StandingsViewProps {
   standings: Standing[];
@@ -30,11 +38,18 @@ interface StandingsViewProps {
 }
 
 type CardType = PlayerOffense['cardType'];
+type ScoreboardField = 'homeTeam' | 'awayTeam' | 'homeScore' | 'awayScore';
+type StandingEditField = 'teamName' | 'won' | 'drawn' | 'lost' | 'goalsFor' | 'goalsAgainst';
+type AddClubField = 'clubName';
 
 const CARD_TYPES: readonly CardType[] = ['Yellow', 'Red', 'Second Yellow', 'Straight Red'];
 
 const parseCardType = (value: string): CardType => (
   CARD_TYPES.includes(value as CardType) ? value as CardType : 'Yellow'
+);
+
+const integerError = (result: ReturnType<typeof parseIntegerInput>): string | undefined => (
+  'errors' in result ? result.errors.value : undefined
 );
 
 const toStandingAnchorId = (teamName: string): string => (
@@ -62,14 +77,17 @@ export default function StandingsView({
   highlightStandingTeamName
 }: StandingsViewProps) {
   const resetDialogRef = useRef<HTMLDivElement | null>(null);
+  const scoreboardFormRef = useRef<HTMLFormElement | null>(null);
+  const addClubFormRef = useRef<HTMLFormElement | null>(null);
   // Editing individual team row state
   const [editingTeam, setEditingTeam] = useState<string | null>(null);
   const [editingTeamName, setEditingTeamName] = useState("");
-  const [won, setWon] = useState(0);
-  const [drawn, setDrawn] = useState(0);
-  const [lost, setLost] = useState(0);
-  const [gf, setGf] = useState(0);
-  const [ga, setGa] = useState(0);
+  const [won, setWon] = useState('0');
+  const [drawn, setDrawn] = useState('0');
+  const [lost, setLost] = useState('0');
+  const [gf, setGf] = useState('0');
+  const [ga, setGa] = useState('0');
+  const [standingEditErrors, setStandingEditErrors] = useState<FieldErrors<StandingEditField>>({});
 
   // League Name Edit state
   const [isEditingLeagueName, setIsEditingLeagueName] = useState(false);
@@ -77,6 +95,7 @@ export default function StandingsView({
 
   // Add new club team state
   const [newClubName, setNewClubName] = useState("");
+  const [addClubErrors, setAddClubErrors] = useState<FieldErrors<AddClubField>>({});
   const [showAddClubPanel, setShowAddClubPanel] = useState(false);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const closeResetDialog = useCallback(() => setShowResetConfirm(false), []);
@@ -94,8 +113,9 @@ export default function StandingsView({
   const [showLogger, setShowLogger] = useState(false);
   const [logHomeTeam, setLogHomeTeam] = useState("");
   const [logAwayTeam, setLogAwayTeam] = useState("");
-  const [logHomeScore, setLogHomeScore] = useState<number | "">(0);
-  const [logAwayScore, setLogAwayScore] = useState<number | "">(0);
+  const [logHomeScore, setLogHomeScore] = useState('0');
+  const [logAwayScore, setLogAwayScore] = useState('0');
+  const [scoreboardErrors, setScoreboardErrors] = useState<FieldErrors<ScoreboardField>>({});
   const [logSuccessMessage, setLogSuccessMessage] = useState("");
 
   const saveBackups = (nextBackups: StandingsBackup[]) => {
@@ -153,29 +173,63 @@ export default function StandingsView({
   const startEdit = (team: Standing) => {
     setEditingTeam(team.teamName);
     setEditingTeamName(team.teamName);
-    setWon(team.won);
-    setDrawn(team.drawn);
-    setLost(team.lost);
-    setGf(team.goalsFor);
-    setGa(team.goalsAgainst);
+    setWon(String(team.won));
+    setDrawn(String(team.drawn));
+    setLost(String(team.lost));
+    setGf(String(team.goalsFor));
+    setGa(String(team.goalsAgainst));
+    setStandingEditErrors({});
   };
 
   const handleSave = (team: Standing) => {
-    const updatedPlayed = won + drawn + lost;
-    const updatedPoints = (won * 3) + drawn;
+    const parsedWon = parseIntegerInput(won, { label: 'Wins', min: 0 });
+    const parsedDrawn = parseIntegerInput(drawn, { label: 'Draws', min: 0 });
+    const parsedLost = parseIntegerInput(lost, { label: 'Losses', min: 0 });
+    const parsedGf = parseIntegerInput(gf, { label: 'Goals for', min: 0 });
+    const parsedGa = parseIntegerInput(ga, { label: 'Goals against', min: 0 });
+    const trimmedName = editingTeamName.trim();
+
+    const nameTaken = standings.some(candidate =>
+      candidate.teamName !== team.teamName
+      && candidate.teamName.toLowerCase() === trimmedName.toLowerCase()
+    );
+    const nextErrors = mergeFieldErrors<StandingEditField>(
+      trimmedName ? {} : { teamName: 'Club name is required.' },
+      nameTaken ? { teamName: 'A club with this name already exists.' } : {},
+      integerError(parsedWon) ? { won: integerError(parsedWon) } : {},
+      integerError(parsedDrawn) ? { drawn: integerError(parsedDrawn) } : {},
+      integerError(parsedLost) ? { lost: integerError(parsedLost) } : {},
+      integerError(parsedGf) ? { goalsFor: integerError(parsedGf) } : {},
+      integerError(parsedGa) ? { goalsAgainst: integerError(parsedGa) } : {}
+    );
+
+    if (
+      hasFieldErrors(nextErrors)
+      || !parsedWon.ok
+      || !parsedDrawn.ok
+      || !parsedLost.ok
+      || !parsedGf.ok
+      || !parsedGa.ok
+    ) {
+      setStandingEditErrors(nextErrors);
+      return;
+    }
+
+    const updatedPlayed = parsedWon.value + parsedDrawn.value + parsedLost.value;
+    const updatedPoints = (parsedWon.value * 3) + parsedDrawn.value;
     
     const updatedList = standings.map(t => {
       // Find the old team by its original name
       if (t.teamName === team.teamName) {
         return {
           ...t,
-          teamName: editingTeamName.trim() || t.teamName,
+          teamName: trimmedName,
           played: updatedPlayed,
-          won,
-          drawn,
-          lost,
-          goalsFor: gf,
-          goalsAgainst: ga,
+          won: parsedWon.value,
+          drawn: parsedDrawn.value,
+          lost: parsedLost.value,
+          goalsFor: parsedGf.value,
+          goalsAgainst: parsedGa.value,
           points: updatedPoints
         };
       }
@@ -184,6 +238,7 @@ export default function StandingsView({
 
     onUpdateAllStandings(updatedList);
     setEditingTeam(null);
+    setStandingEditErrors({});
   };
 
   const handleDeleteTeam = (teamNameToDelete: string) => {
@@ -195,17 +250,25 @@ export default function StandingsView({
 
   const handleAddClub = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newClubName.trim()) return;
+    const trimmedClubName = newClubName.trim();
 
     // Check if team already exists
-    if (standings.some(t => t.teamName.toLowerCase() === newClubName.trim().toLowerCase())) {
-      alert("A team with this name already exists in the league division!");
+    const nextErrors: FieldErrors<AddClubField> = {
+      clubName: !trimmedClubName
+        ? 'Club name is required.'
+        : standings.some(t => t.teamName.toLowerCase() === trimmedClubName.toLowerCase())
+          ? 'A team with this name already exists in the league division.'
+          : undefined
+    };
+    if (hasFieldErrors(nextErrors)) {
+      setAddClubErrors(nextErrors);
+      focusFirstInvalidField(addClubFormRef.current, nextErrors);
       return;
     }
 
     const newClub: Standing = {
       rank: standings.length + 1,
-      teamName: newClubName.trim(),
+      teamName: trimmedClubName,
       played: 0,
       won: 0,
       drawn: 0,
@@ -213,25 +276,39 @@ export default function StandingsView({
       goalsFor: 0,
       goalsAgainst: 0,
       points: 0,
-      isUserTeam: newClubName.trim().toLowerCase() === teamName.toLowerCase()
+      isUserTeam: trimmedClubName.toLowerCase() === teamName.toLowerCase()
     };
 
     onUpdateAllStandings([...standings, newClub]);
     setNewClubName("");
+    setAddClubErrors({});
     setShowAddClubPanel(false);
   };
 
   // Scoreboard logger submit
   const handleApplyMatchResults = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!logHomeTeam || !logAwayTeam) return;
-    if (logHomeTeam === logAwayTeam) {
-      alert("Home team and Away team must be different!");
+    const parsedHomeScore = parseIntegerInput(logHomeScore, { label: 'Home score', min: 0 });
+    const parsedAwayScore = parseIntegerInput(logAwayScore, { label: 'Away score', min: 0 });
+    const teamNames = new Set(standings.map(team => team.teamName));
+    const nextErrors = mergeFieldErrors<ScoreboardField>(
+      teamNames.has(logHomeTeam) ? {} : { homeTeam: 'Choose a home club from the standings.' },
+      teamNames.has(logAwayTeam) ? {} : { awayTeam: 'Choose an away club from the standings.' },
+      logHomeTeam && logAwayTeam && logHomeTeam === logAwayTeam
+        ? { awayTeam: 'Home and away clubs must be different.' }
+        : {},
+      integerError(parsedHomeScore) ? { homeScore: integerError(parsedHomeScore) } : {},
+      integerError(parsedAwayScore) ? { awayScore: integerError(parsedAwayScore) } : {}
+    );
+
+    if (hasFieldErrors(nextErrors) || !parsedHomeScore.ok || !parsedAwayScore.ok) {
+      setScoreboardErrors(nextErrors);
+      focusFirstInvalidField(scoreboardFormRef.current, nextErrors);
       return;
     }
 
-    const homeGoals = logHomeScore === "" ? 0 : Number(logHomeScore);
-    const awayGoals = logAwayScore === "" ? 0 : Number(logAwayScore);
+    const homeGoals = parsedHomeScore.value;
+    const awayGoals = parsedAwayScore.value;
 
     const updatedList = standings.map(t => {
       // Home Team update
@@ -271,8 +348,9 @@ export default function StandingsView({
 
     onUpdateAllStandings(updatedList);
     setLogSuccessMessage(`Result logged: ${logHomeTeam} ${homeGoals} - ${awayGoals} ${logAwayTeam}`);
-    setLogHomeScore(0);
-    setLogAwayScore(0);
+    setLogHomeScore('0');
+    setLogAwayScore('0');
+    setScoreboardErrors({});
     setTimeout(() => setLogSuccessMessage(""), 4000);
   };
 
@@ -415,16 +493,26 @@ export default function StandingsView({
                 <X size={16} />
               </button>
             </div>
-            <form onSubmit={handleAddClub} className="flex flex-col sm:flex-row gap-3">
+            <form ref={addClubFormRef} onSubmit={handleAddClub} className="flex flex-col sm:flex-row gap-3" noValidate>
               <div className="flex-1">
                 <input 
+                  data-validation-field="clubName"
                   type="text"
-                  required
                   value={newClubName}
-                  onChange={e => setNewClubName(e.target.value)}
+                  onChange={e => {
+                    setNewClubName(e.target.value);
+                    setAddClubErrors({});
+                  }}
                   placeholder="e.g. Metro Knights, City Falcons, Vale United..."
-                  className="w-full bg-white border border-slate-250 rounded-xl px-4 py-2.5 text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500"
+                  aria-invalid={Boolean(addClubErrors.clubName)}
+                  aria-describedby={addClubErrors.clubName ? 'add-club-name-error' : undefined}
+                  className={`w-full bg-white border rounded-xl px-4 py-2.5 text-xs font-semibold focus:outline-none focus:ring-1 ${
+                    addClubErrors.clubName
+                      ? 'border-rose-300 focus:ring-rose-500 focus:border-rose-500'
+                      : 'border-slate-250 focus:ring-indigo-500 focus:border-indigo-500'
+                  }`}
                 />
+                <FieldError id="add-club-name-error" message={addClubErrors.clubName} />
               </div>
               <button 
                 type="submit"
@@ -454,23 +542,34 @@ export default function StandingsView({
               </button>
             </div>
             
-            <form onSubmit={handleApplyMatchResults} className="space-y-4">
+            <form ref={scoreboardFormRef} onSubmit={handleApplyMatchResults} className="space-y-4" noValidate>
+              <FormErrorSummary id="scoreboard-error-summary" errors={scoreboardErrors} />
               <div className="grid grid-cols-1 md:grid-cols-5 gap-3 items-center">
                 
                 {/* Home Team select */}
                 <div className="md:col-span-2">
                   <label className="text-[10px] uppercase font-bold text-slate-400 mb-1 block">Home Team</label>
                   <select
-                    required
+                    data-validation-field="homeTeam"
                     value={logHomeTeam}
-                    onChange={e => setLogHomeTeam(e.target.value)}
-                    className="w-full bg-white border border-slate-255 rounded-xl px-3 py-2 text-xs font-semibold focus:ring-1 focus:ring-emerald-505 focus:outline-none text-slate-800"
+                    onChange={e => {
+                      setLogHomeTeam(e.target.value);
+                      setScoreboardErrors(previous => ({ ...previous, homeTeam: undefined, awayTeam: undefined }));
+                    }}
+                    aria-invalid={Boolean(scoreboardErrors.homeTeam)}
+                    aria-describedby={scoreboardErrors.homeTeam ? 'scoreboard-home-team-error' : undefined}
+                    className={`w-full bg-white border rounded-xl px-3 py-2 text-xs font-semibold focus:ring-1 focus:outline-none text-slate-800 ${
+                      scoreboardErrors.homeTeam
+                        ? 'border-rose-300 focus:ring-rose-500'
+                        : 'border-slate-255 focus:ring-emerald-505'
+                    }`}
                   >
                     <option value="">-- Choose Home Club --</option>
                     {standings.map(t => (
                       <option key={t.teamName} value={t.teamName}>{t.teamName}</option>
                     ))}
                   </select>
+                  <FieldError id="scoreboard-home-team-error" message={scoreboardErrors.homeTeam} />
                 </div>
 
                 {/* Score section */}
@@ -478,25 +577,45 @@ export default function StandingsView({
                   <div className="text-center">
                     <label className="text-[9px] uppercase font-bold text-slate-400 mb-1 block">Score</label>
                     <input 
+                      data-validation-field="homeScore"
                       type="number"
                       min="0"
-                      required
+                      step="1"
+                      inputMode="numeric"
                       value={logHomeScore}
-                      onChange={e => setLogHomeScore(e.target.value === "" ? "" : Number(e.target.value))}
-                      className="w-12 text-center p-2 border border-slate-300 rounded-lg text-xs font-black text-slate-800"
+                      onChange={e => {
+                        setLogHomeScore(e.target.value);
+                        setScoreboardErrors(previous => ({ ...previous, homeScore: undefined }));
+                      }}
+                      aria-invalid={Boolean(scoreboardErrors.homeScore)}
+                      aria-describedby={scoreboardErrors.homeScore ? 'scoreboard-home-score-error' : undefined}
+                      className={`w-12 text-center p-2 border rounded-lg text-xs font-black text-slate-800 ${
+                        scoreboardErrors.homeScore ? 'border-rose-300' : 'border-slate-300'
+                      }`}
                     />
+                    <FieldError id="scoreboard-home-score-error" message={scoreboardErrors.homeScore} />
                   </div>
                   <span className="text-[10px] font-bold text-slate-400 mt-4">VS</span>
                   <div className="text-center">
                     <label className="text-[9px] uppercase font-bold text-slate-400 mb-1 block">Score</label>
                     <input 
+                      data-validation-field="awayScore"
                       type="number"
                       min="0"
-                      required
+                      step="1"
+                      inputMode="numeric"
                       value={logAwayScore}
-                      onChange={e => setLogAwayScore(e.target.value === "" ? "" : Number(e.target.value))}
-                      className="w-12 text-center p-2 border border-slate-300 rounded-lg text-xs font-black text-slate-800"
+                      onChange={e => {
+                        setLogAwayScore(e.target.value);
+                        setScoreboardErrors(previous => ({ ...previous, awayScore: undefined }));
+                      }}
+                      aria-invalid={Boolean(scoreboardErrors.awayScore)}
+                      aria-describedby={scoreboardErrors.awayScore ? 'scoreboard-away-score-error' : undefined}
+                      className={`w-12 text-center p-2 border rounded-lg text-xs font-black text-slate-800 ${
+                        scoreboardErrors.awayScore ? 'border-rose-300' : 'border-slate-300'
+                      }`}
                     />
+                    <FieldError id="scoreboard-away-score-error" message={scoreboardErrors.awayScore} />
                   </div>
                 </div>
 
@@ -504,16 +623,26 @@ export default function StandingsView({
                 <div className="md:col-span-2">
                   <label className="text-[10px] uppercase font-bold text-slate-400 mb-1 block">Away Team</label>
                   <select
-                    required
+                    data-validation-field="awayTeam"
                     value={logAwayTeam}
-                    onChange={e => setLogAwayTeam(e.target.value)}
-                    className="w-full bg-white border border-slate-255 rounded-xl px-3 py-2 text-xs font-semibold focus:ring-1 focus:ring-emerald-505 focus:outline-none text-slate-800"
+                    onChange={e => {
+                      setLogAwayTeam(e.target.value);
+                      setScoreboardErrors(previous => ({ ...previous, homeTeam: undefined, awayTeam: undefined }));
+                    }}
+                    aria-invalid={Boolean(scoreboardErrors.awayTeam)}
+                    aria-describedby={scoreboardErrors.awayTeam ? 'scoreboard-away-team-error' : undefined}
+                    className={`w-full bg-white border rounded-xl px-3 py-2 text-xs font-semibold focus:ring-1 focus:outline-none text-slate-800 ${
+                      scoreboardErrors.awayTeam
+                        ? 'border-rose-300 focus:ring-rose-500'
+                        : 'border-slate-255 focus:ring-emerald-505'
+                    }`}
                   >
                     <option value="">-- Choose Away Club --</option>
                     {standings.map(t => (
                       <option key={t.teamName} value={t.teamName}>{t.teamName}</option>
                     ))}
                   </select>
+                  <FieldError id="scoreboard-away-team-error" message={scoreboardErrors.awayTeam} />
                 </div>
 
               </div>
@@ -646,6 +775,16 @@ export default function StandingsView({
                   const gd = team.goalsFor - team.goalsAgainst;
                   const isUser = team.isUserTeam || team.teamName.toLowerCase() === teamName.toLowerCase();
                   const isIntegrityHighlighted = highlightStandingTeamName === team.teamName;
+                  const editWon = Number.parseInt(won, 10);
+                  const editDrawn = Number.parseInt(drawn, 10);
+                  const editLost = Number.parseInt(lost, 10);
+                  const editGf = Number.parseInt(gf, 10);
+                  const editGa = Number.parseInt(ga, 10);
+                  const previewWon = Number.isFinite(editWon) ? editWon : 0;
+                  const previewDrawn = Number.isFinite(editDrawn) ? editDrawn : 0;
+                  const previewLost = Number.isFinite(editLost) ? editLost : 0;
+                  const previewGf = Number.isFinite(editGf) ? editGf : 0;
+                  const previewGa = Number.isFinite(editGa) ? editGa : 0;
 
                   return (
                     <tr 
@@ -675,14 +814,27 @@ export default function StandingsView({
                       {/* Team Name Cell */}
                       <td id={`standing-team-${team.rank}-name`} className="py-3.5 px-4 font-medium text-slate-800 text-sm">
                         {editingTeam === team.teamName ? (
-                          <input 
-                            id="edit-standing-team-name-input"
-                            type="text"
-                            value={editingTeamName}
-                            onChange={e => setEditingTeamName(e.target.value)}
-                            className="bg-white border border-slate-300 rounded px-2 py-1 text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-indigo-500 text-slate-800"
-                            placeholder="Club Name"
-                          />
+                          <div>
+                            <input 
+                              id="edit-standing-team-name-input"
+                              data-validation-field="teamName"
+                              type="text"
+                              value={editingTeamName}
+                              onChange={e => {
+                                setEditingTeamName(e.target.value);
+                                setStandingEditErrors(previous => ({ ...previous, teamName: undefined }));
+                              }}
+                              aria-invalid={Boolean(standingEditErrors.teamName)}
+                              aria-describedby={standingEditErrors.teamName ? 'edit-standing-team-name-error' : undefined}
+                              className={`bg-white border rounded px-2 py-1 text-xs font-semibold focus:outline-none focus:ring-1 text-slate-800 ${
+                                standingEditErrors.teamName
+                                  ? 'border-rose-300 focus:ring-rose-500'
+                                  : 'border-slate-300 focus:ring-indigo-500'
+                              }`}
+                              placeholder="Club Name"
+                            />
+                            <FieldError id="edit-standing-team-name-error" message={standingEditErrors.teamName} />
+                          </div>
                         ) : (
                           <div className="flex items-center gap-2">
                             <span className="truncate max-w-[170px]">{team.teamName}</span>
@@ -705,60 +857,115 @@ export default function StandingsView({
                         /* Editing fields row WITH dynamic calculations */
                         <>
                           <td className="py-3.5 px-3 text-center font-bold text-slate-800">
-                            {won + drawn + lost}
+                            {previewWon + previewDrawn + previewLost}
                           </td>
                           <td className="py-3.5 px-3">
                             <input 
                               id="edit-standing-won"
+                              data-validation-field="won"
                               type="number" 
                               min="0" 
+                              step="1"
+                              inputMode="numeric"
                               value={won} 
-                              onChange={e => setWon(Number(e.target.value))}
-                              className="w-11 text-center border border-slate-300 rounded p-1 bg-white font-bold text-slate-800"
+                              onChange={e => {
+                                setWon(e.target.value);
+                                setStandingEditErrors(previous => ({ ...previous, won: undefined }));
+                              }}
+                              aria-invalid={Boolean(standingEditErrors.won)}
+                              aria-describedby={standingEditErrors.won ? 'edit-standing-won-error' : undefined}
+                              className={`w-11 text-center border rounded p-1 bg-white font-bold text-slate-800 ${
+                                standingEditErrors.won ? 'border-rose-300' : 'border-slate-300'
+                              }`}
                             />
+                            <FieldError id="edit-standing-won-error" message={standingEditErrors.won} />
                           </td>
                           <td className="py-3.5 px-3">
                             <input 
                               id="edit-standing-drawn"
+                              data-validation-field="drawn"
                               type="number" 
                               min="0" 
+                              step="1"
+                              inputMode="numeric"
                               value={drawn} 
-                              onChange={e => setDrawn(Number(e.target.value))}
-                              className="w-11 text-center border border-slate-300 rounded p-1 bg-white font-bold text-slate-800"
+                              onChange={e => {
+                                setDrawn(e.target.value);
+                                setStandingEditErrors(previous => ({ ...previous, drawn: undefined }));
+                              }}
+                              aria-invalid={Boolean(standingEditErrors.drawn)}
+                              aria-describedby={standingEditErrors.drawn ? 'edit-standing-drawn-error' : undefined}
+                              className={`w-11 text-center border rounded p-1 bg-white font-bold text-slate-800 ${
+                                standingEditErrors.drawn ? 'border-rose-300' : 'border-slate-300'
+                              }`}
                             />
+                            <FieldError id="edit-standing-drawn-error" message={standingEditErrors.drawn} />
                           </td>
                           <td className="py-3.5 px-3">
                             <input 
                               id="edit-standing-lost"
+                              data-validation-field="lost"
                               type="number" 
                               min="0" 
+                              step="1"
+                              inputMode="numeric"
                               value={lost} 
-                              onChange={e => setLost(Number(e.target.value))}
-                              className="w-11 text-center border border-slate-300 rounded p-1 bg-white font-bold text-slate-800"
+                              onChange={e => {
+                                setLost(e.target.value);
+                                setStandingEditErrors(previous => ({ ...previous, lost: undefined }));
+                              }}
+                              aria-invalid={Boolean(standingEditErrors.lost)}
+                              aria-describedby={standingEditErrors.lost ? 'edit-standing-lost-error' : undefined}
+                              className={`w-11 text-center border rounded p-1 bg-white font-bold text-slate-800 ${
+                                standingEditErrors.lost ? 'border-rose-300' : 'border-slate-300'
+                              }`}
                             />
+                            <FieldError id="edit-standing-lost-error" message={standingEditErrors.lost} />
                           </td>
                           <td className="py-3.5 px-3">
                             <input 
                               id="edit-standing-gf"
+                              data-validation-field="goalsFor"
                               type="number" 
                               min="0" 
+                              step="1"
+                              inputMode="numeric"
                               value={gf} 
-                              onChange={e => setGf(Number(e.target.value))}
-                              className="w-11 text-center border border-slate-300 rounded p-1 bg-white font-bold text-slate-800"
+                              onChange={e => {
+                                setGf(e.target.value);
+                                setStandingEditErrors(previous => ({ ...previous, goalsFor: undefined }));
+                              }}
+                              aria-invalid={Boolean(standingEditErrors.goalsFor)}
+                              aria-describedby={standingEditErrors.goalsFor ? 'edit-standing-gf-error' : undefined}
+                              className={`w-11 text-center border rounded p-1 bg-white font-bold text-slate-800 ${
+                                standingEditErrors.goalsFor ? 'border-rose-300' : 'border-slate-300'
+                              }`}
                             />
+                            <FieldError id="edit-standing-gf-error" message={standingEditErrors.goalsFor} />
                           </td>
                           <td className="py-3.5 px-3">
                             <input 
                               id="edit-standing-ga"
+                              data-validation-field="goalsAgainst"
                               type="number" 
                               min="0" 
+                              step="1"
+                              inputMode="numeric"
                               value={ga} 
-                              onChange={e => setGa(Number(e.target.value))}
-                              className="w-11 text-center border border-slate-300 rounded p-1 bg-white font-bold text-slate-800"
+                              onChange={e => {
+                                setGa(e.target.value);
+                                setStandingEditErrors(previous => ({ ...previous, goalsAgainst: undefined }));
+                              }}
+                              aria-invalid={Boolean(standingEditErrors.goalsAgainst)}
+                              aria-describedby={standingEditErrors.goalsAgainst ? 'edit-standing-ga-error' : undefined}
+                              className={`w-11 text-center border rounded p-1 bg-white font-bold text-slate-800 ${
+                                standingEditErrors.goalsAgainst ? 'border-rose-300' : 'border-slate-300'
+                              }`}
                             />
+                            <FieldError id="edit-standing-ga-error" message={standingEditErrors.goalsAgainst} />
                           </td>
-                          <td className="py-3.5 px-3 text-center font-bold font-mono">{gf - ga}</td>
-                          <td className="py-3.5 px-4 text-center font-display font-black text-sm text-indigo-750">{(won * 3) + drawn}</td>
+                          <td className="py-3.5 px-3 text-center font-bold font-mono">{previewGf - previewGa}</td>
+                          <td className="py-3.5 px-4 text-center font-display font-black text-sm text-indigo-750">{(previewWon * 3) + previewDrawn}</td>
                         </>
                       ) : (
                         /* Display fields row */

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import type { AgeGroup, AssessmentRawResults, AssessmentSession, FprdsAttributeId, FprdsRole, Player } from '../types';
 import { isStaffPosition } from '../types';
 import {
@@ -16,6 +16,8 @@ import {
   User
 } from 'lucide-react';
 import AssessmentQuickGuide from './AssessmentQuickGuide';
+import { FieldError, FormErrorSummary } from './FormValidation';
+import { FieldErrors, focusFirstInvalidField } from '../forms/validation';
 import { generateFourWeekPlan } from '../fprds/development';
 import {
   computeAgeGroupFromDob,
@@ -63,6 +65,7 @@ const todayIsoDate = (): string => {
 
 type NumberInputProps = {
   id: string;
+  fieldName: string;
   label: string;
   value: string;
   placeholder?: string;
@@ -82,6 +85,7 @@ const NumberInput: React.FC<NumberInputProps> = (props) => {
       </label>
       <input
         id={props.id}
+        data-validation-field={props.fieldName}
         type="number"
         inputMode="decimal"
         min={props.min}
@@ -91,6 +95,8 @@ const NumberInput: React.FC<NumberInputProps> = (props) => {
         placeholder={props.placeholder}
         onChange={(e) => props.onChange(e.target.value)}
         aria-label={props.label}
+        aria-invalid={Boolean(props.error)}
+        aria-describedby={props.error ? `${props.id}-error` : undefined}
         className={`w-full rounded-xl border bg-white px-3 py-2 text-sm font-semibold text-slate-800 shadow-sm outline-none transition-colors ${
           props.error
             ? 'border-rose-300 focus:border-rose-400 focus:ring-2 focus:ring-rose-200'
@@ -98,11 +104,7 @@ const NumberInput: React.FC<NumberInputProps> = (props) => {
         }`}
       />
       {props.hint && !props.error && <p className="text-[11px] text-slate-400 font-medium">{props.hint}</p>}
-      {props.error && (
-        <p className="text-[11px] text-rose-600 font-semibold flex items-center gap-1">
-          <AlertCircle size={12} /> {props.error}
-        </p>
-      )}
+      <FieldError id={`${props.id}-error`} message={props.error} />
     </div>
   );
 };
@@ -115,6 +117,7 @@ export default function AssessmentsView({
   onAddAssessment,
   onDeleteAssessment
 }: AssessmentsViewProps) {
+  const assessmentContainerRef = useRef<HTMLDivElement | null>(null);
   const eligiblePlayers = useMemo(() => players.filter(p => !isStaffPosition(p.position)), [players]);
 
   const [step, setStep] = useState<AssessmentStep>(1);
@@ -138,6 +141,7 @@ export default function AssessmentsView({
 
   const [roleSpecific, setRoleSpecific] = useState<Record<string, string>>({});
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [assessmentSubmitErrors, setAssessmentSubmitErrors] = useState<FieldErrors<string>>({});
   const [isQuickGuideOpen, setIsQuickGuideOpen] = useState(false);
   const [quickGuideLaunchContext, setQuickGuideLaunchContext] = useState<{ initialCategory?: DrillGuideCategory; initialDrillId?: string } | null>(null);
 
@@ -398,31 +402,43 @@ export default function AssessmentsView({
   const handleSelectPlayer = (playerId: string) => {
     setSelectedPlayerId(playerId);
     setSaveError(null);
+    setAssessmentSubmitErrors({});
     setStep(2);
   };
 
   const handleNextStep = () => {
     setSaveError(null);
+    setAssessmentSubmitErrors({});
     setStep(nextAssessmentStep);
   };
 
   const handlePrevStep = () => {
     setSaveError(null);
+    setAssessmentSubmitErrors({});
     setStep(previousAssessmentStep);
   };
 
   const handleSaveAssessment = () => {
     setSaveError(null);
+    setAssessmentSubmitErrors({});
     if (!selectedPlayer) {
-      setSaveError('Select a player to continue.');
+      const errors = { playerId: 'Select a player to continue.' };
+      setAssessmentSubmitErrors(errors);
+      setSaveError(errors.playerId);
+      focusFirstInvalidField(assessmentContainerRef.current, errors);
       return;
     }
     if (!ageGroup) {
-      setSaveError('Select an age group to continue.');
+      const errors = { ageGroup: 'Select an age group to continue.' };
+      setAssessmentSubmitErrors(errors);
+      setSaveError(errors.ageGroup);
+      focusFirstInvalidField(assessmentContainerRef.current, errors);
       return;
     }
     if (!scorePreview || !scorePreview.ok) {
+      setAssessmentSubmitErrors(fieldErrors);
       setSaveError('Fix validation errors before saving.');
+      focusFirstInvalidField(assessmentContainerRef.current, fieldErrors);
       return;
     }
 
@@ -693,7 +709,7 @@ export default function AssessmentsView({
   }, [ageGroup, assessmentDate, assessmentType, role, scorePreview, selectedPlayerId, step]);
 
   return (
-    <div className="space-y-6">
+    <div ref={assessmentContainerRef} className="space-y-6">
       <div className="bg-white border border-slate-200/70 rounded-2xl shadow-md shadow-slate-100/30 p-5 sm:p-6">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
           <div className="flex items-start gap-3">
@@ -810,6 +826,7 @@ export default function AssessmentsView({
                     <button
                       key={p.id}
                       type="button"
+                      data-validation-field={isActive ? 'playerId' : undefined}
                       onClick={() => handleSelectPlayer(p.id)}
                       aria-label={`Select ${p.name}`}
                       className={`text-left rounded-2xl border p-4 transition-all ${
@@ -948,6 +965,7 @@ export default function AssessmentsView({
                     <button
                       key={g}
                       type="button"
+                      data-validation-field={active ? 'ageGroup' : undefined}
                       onClick={() => setAgeGroup(g)}
                       aria-label={`Select age group ${g}`}
                       className={`rounded-xl border px-4 py-2 text-xs font-black transition-colors ${
@@ -967,6 +985,10 @@ export default function AssessmentsView({
               <h3 className="font-display font-black text-slate-900 text-sm uppercase tracking-wide flex items-center gap-2">
                 <Sparkles size={16} className="text-indigo-600" /> Enter Results
               </h3>
+              <FormErrorSummary
+                id="assessment-error-summary"
+                errors={Object.keys(assessmentSubmitErrors).length > 0 ? assessmentSubmitErrors : fieldErrors}
+              />
 
               <div className="rounded-2xl border border-slate-200 bg-slate-50/50 p-4">
                 <div className="flex items-center justify-between gap-3">
@@ -990,71 +1012,103 @@ export default function AssessmentsView({
                 <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <NumberInput
                     id="base-sprint10"
+                    fieldName="sprint10mSeconds"
                     label="10m split (seconds)"
                     value={base.sprint10mSeconds}
                     step={0.01}
                     error={fieldErrors.sprint10mSeconds}
-                    onChange={(v) => setBase(prev => ({ ...prev, sprint10mSeconds: v }))}
+                    onChange={(v) => {
+                      setAssessmentSubmitErrors(previous => ({ ...previous, sprint10mSeconds: undefined }));
+                      setBase(prev => ({ ...prev, sprint10mSeconds: v }));
+                    }}
                   />
                   <NumberInput
                     id="base-sprint30"
+                    fieldName="sprint30mSeconds"
                     label="30m sprint (seconds)"
                     value={base.sprint30mSeconds}
                     step={0.01}
                     error={fieldErrors.sprint30mSeconds}
-                    onChange={(v) => setBase(prev => ({ ...prev, sprint30mSeconds: v }))}
+                    onChange={(v) => {
+                      setAssessmentSubmitErrors(previous => ({ ...previous, sprint30mSeconds: undefined }));
+                      setBase(prev => ({ ...prev, sprint30mSeconds: v }));
+                    }}
                   />
                   <NumberInput
                     id="base-yoyo"
+                    fieldName="yoyoMeters"
                     label="Yo-Yo distance (meters)"
                     value={base.yoyoMeters}
                     step={1}
                     error={fieldErrors.yoyoMeters}
-                    onChange={(v) => setBase(prev => ({ ...prev, yoyoMeters: v }))}
+                    onChange={(v) => {
+                      setAssessmentSubmitErrors(previous => ({ ...previous, yoyoMeters: undefined }));
+                      setBase(prev => ({ ...prev, yoyoMeters: v }));
+                    }}
                   />
                   <NumberInput
                     id="base-illinois"
+                    fieldName="illinoisSeconds"
                     label="Illinois agility (seconds)"
                     value={base.illinoisSeconds}
                     step={0.01}
                     error={fieldErrors.illinoisSeconds}
-                    onChange={(v) => setBase(prev => ({ ...prev, illinoisSeconds: v }))}
+                    onChange={(v) => {
+                      setAssessmentSubmitErrors(previous => ({ ...previous, illinoisSeconds: undefined }));
+                      setBase(prev => ({ ...prev, illinoisSeconds: v }));
+                    }}
                   />
                   <NumberInput
                     id="base-broad"
+                    fieldName="broadJumpCm"
                     label="Standing broad jump (cm)"
                     value={base.broadJumpCm}
                     step={1}
                     error={fieldErrors.broadJumpCm}
-                    onChange={(v) => setBase(prev => ({ ...prev, broadJumpCm: v }))}
+                    onChange={(v) => {
+                      setAssessmentSubmitErrors(previous => ({ ...previous, broadJumpCm: undefined }));
+                      setBase(prev => ({ ...prev, broadJumpCm: v }));
+                    }}
                   />
                   <NumberInput
                     id="base-medball"
+                    fieldName="medicineBallThrowCm"
                     label="Medicine ball throw (cm)"
                     value={base.medicineBallThrowCm}
                     step={1}
                     error={fieldErrors.medicineBallThrowCm}
-                    onChange={(v) => setBase(prev => ({ ...prev, medicineBallThrowCm: v }))}
+                    onChange={(v) => {
+                      setAssessmentSubmitErrors(previous => ({ ...previous, medicineBallThrowCm: undefined }));
+                      setBase(prev => ({ ...prev, medicineBallThrowCm: v }));
+                    }}
                   />
                   <NumberInput
                     id="base-fth"
+                    fieldName="firstTouchSuccessesOutOf10"
                     label="First touch: successes (out of 10)"
                     value={base.firstTouchSuccessesOutOf10}
                     step={1}
                     min={0}
                     max={10}
                     error={fieldErrors.firstTouchSuccessesOutOf10}
-                    onChange={(v) => setBase(prev => ({ ...prev, firstTouchSuccessesOutOf10: v }))}
+                    onChange={(v) => {
+                      setAssessmentSubmitErrors(previous => ({ ...previous, firstTouchSuccessesOutOf10: undefined }));
+                      setBase(prev => ({ ...prev, firstTouchSuccessesOutOf10: v }));
+                    }}
                   />
                   <NumberInput
                     id="base-spa"
+                    fieldName="shortPassingSuccessesOutOf10"
                     label="Short passing: successes (out of 10)"
                     value={base.shortPassingSuccessesOutOf10}
                     step={1}
                     min={0}
                     max={10}
                     error={fieldErrors.shortPassingSuccessesOutOf10}
-                    onChange={(v) => setBase(prev => ({ ...prev, shortPassingSuccessesOutOf10: v }))}
+                    onChange={(v) => {
+                      setAssessmentSubmitErrors(previous => ({ ...previous, shortPassingSuccessesOutOf10: undefined }));
+                      setBase(prev => ({ ...prev, shortPassingSuccessesOutOf10: v }));
+                    }}
                   />
                 </div>
               </div>
@@ -1084,6 +1138,7 @@ export default function AssessmentsView({
                     <NumberInput
                       key={f.key}
                       id={`role-${f.key}`}
+                      fieldName={f.key}
                       label={f.label}
                       value={roleSpecific[f.key] ?? ''}
                       hint={f.hint}
@@ -1091,7 +1146,10 @@ export default function AssessmentsView({
                       max={f.max}
                       step={f.step}
                       error={fieldErrors[f.key]}
-                      onChange={(v) => setRoleSpecific(prev => ({ ...prev, [f.key]: v }))}
+                      onChange={(v) => {
+                        setAssessmentSubmitErrors(previous => ({ ...previous, [f.key]: undefined }));
+                        setRoleSpecific(prev => ({ ...prev, [f.key]: v }));
+                      }}
                     />
                   ))}
                 </div>
@@ -1105,9 +1163,8 @@ export default function AssessmentsView({
                   className={`inline-flex items-center gap-2 rounded-xl border px-4 py-2 text-xs font-black transition-colors ${
                     scorePreview && scorePreview.ok
                       ? 'border-emerald-200 bg-emerald-600 text-white hover:bg-emerald-700'
-                      : 'border-slate-200 bg-slate-50 text-slate-300 cursor-not-allowed'
+                      : 'border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100'
                   }`}
-                  disabled={!scorePreview || !scorePreview.ok}
                 >
                   <Save size={14} /> Save assessment
                 </button>

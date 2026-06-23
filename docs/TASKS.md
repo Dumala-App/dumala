@@ -9,10 +9,10 @@ Status values: **Done**, **In Progress**, **Next**, **Planned**, **Long Term**.
 Progress is calculated from the completed capabilities and open checklist items in this document. The roadmap bars track implementation, while Release Validation tracks the latest verified build checks.
 
 ```text
-Overall roadmap                 [######----]  56%  55 / 98
+Overall roadmap                 [######----]  57%  56 / 98
 
 Shipped beta foundation         [##########] 100%  20 / 20
-Current Beta: Reliability       [#########-]  87%  20 / 23
+Current Beta: Reliability       [#########-]  91%  21 / 23
 FPRDS Beta                      [######----]  60%   9 / 15
 Phase 1: Offline-ready PWA      [#########-]  86%   6 / 7
 Phase 2: Mobile and tablet      [----------]   0%   0 / 5
@@ -28,7 +28,7 @@ Release validation              [##########] 100%  12 / 12
 | Phase | Completed | Total | Progress | Status |
 | --- | ---: | ---: | ---: | --- |
 | Shipped beta foundation | 20 | 20 | 100% | Done |
-| Current Beta: Reliability and data confidence | 20 | 23 | 87% | In Progress |
+| Current Beta: Reliability and data confidence | 21 | 23 | 91% | In Progress |
 | FPRDS Beta | 9 | 15 | 60% | In Progress |
 | Phase 1: Offline-ready web app | 6 | 7 | 86% | In Progress |
 | Phase 2: Mobile and tablet experience | 0 | 5 | 0% | Planned |
@@ -49,6 +49,7 @@ The FPRDS total includes nine completed capabilities: the five shipped assessmen
 - [x] Added a non-mutating workspace integrity checker for completed games, standings, and player totals.
 - [x] Added an actionable integrity warning with review, backup, rerun, and session-dismiss controls.
 - [x] Removed avoidable application-facing `any` usage from assessment, tactics, select, and chart typing boundaries.
+- [x] Added shared accessible validation for match results, assessments, roster/profile editing, backup import, and manual standings.
 
 ### Completed: 2026-06-22
 
@@ -121,7 +122,7 @@ The FPRDS total includes nine completed capabilities: the five shipped assessmen
 - [x] **Done:** Complete keyboard and visible-focus testing for primary workflows.
 - [x] **Done:** Audit dialogs for focus trapping, Escape handling, and focus restoration.
 - [x] **Done:** Add application-level and view-level error boundaries with recoverable fallback screens.
-- [ ] **Planned:** Add consistent validation messages to all forms.
+- [x] **Done:** Add consistent validation messages to high-risk forms.
 - [x] **Done:** Add confirmation to remaining destructive match-event actions.
 - [x] **Done:** Verify global focus contrast and reduced-motion behavior.
 
