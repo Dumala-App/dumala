@@ -8,6 +8,14 @@ import { motion } from 'motion/react';
 import PlayerComparer from './PlayerComparer';
 import { getPlayerPlaceholder, STAFF_PLACEHOLDER } from '../playerPlaceholders';
 import type { BackupRestoreSummary } from '../persistence/backup';
+import { FieldError, FormErrorSummary } from './FormValidation';
+import {
+  FieldErrors,
+  focusFirstInvalidField,
+  hasFieldErrors,
+  mergeFieldErrors,
+  parseIntegerInput
+} from '../forms/validation';
 
 interface RosterViewProps {
   players: Player[];
@@ -19,6 +27,14 @@ interface RosterViewProps {
   highlightPlayerId?: string | null;
 }
 
+type PlayerFormField = 'name' | 'number' | 'position' | 'age' | 'height' | 'weight';
+
+const PLAYER_POSITIONS = ['Forward', 'Midfielder', 'Defender', 'Goalkeeper'] as const;
+
+const integerError = (result: ReturnType<typeof parseIntegerInput>): string | undefined => (
+  'errors' in result ? result.errors.value : undefined
+);
+
 export default function RosterView({ players, onAddPlayer, onSelectPlayer, onExportBackup, onImportBackup, onUpdatePlayer, highlightPlayerId }: RosterViewProps) {
   // Search & Basic Filter State
   const [searchTerm, setSearchTerm] = useState("");
@@ -28,7 +44,9 @@ export default function RosterView({ players, onAddPlayer, onSelectPlayer, onExp
   const [selectedCompareIds, setSelectedCompareIds] = useState<string[]>([]);
   const [showCompareWidget, setShowCompareWidget] = useState(false);
   const [backupMessage, setBackupMessage] = useState('');
+  const [backupMessageType, setBackupMessageType] = useState<'success' | 'error' | 'info'>('info');
   const importInputRef = useRef<HTMLInputElement>(null);
+  const addPlayerFormRef = useRef<HTMLFormElement | null>(null);
 
   useEffect(() => {
     if (!highlightPlayerId) return;
@@ -39,14 +57,29 @@ export default function RosterView({ players, onAddPlayer, onSelectPlayer, onExp
 
   const handleImportFile = async (file?: File) => {
     if (!file) return;
+    const isJsonFile = file.type === 'application/json' || file.name.toLowerCase().endsWith('.json');
+    if (!isJsonFile) {
+      setBackupMessageType('error');
+      setBackupMessage('Choose a Dumala JSON backup file. Other file types are not imported.');
+      if (importInputRef.current) importInputRef.current.value = '';
+      return;
+    }
+    if (file.size > 15 * 1024 * 1024) {
+      setBackupMessageType('error');
+      setBackupMessage('This backup file is larger than 15 MB. Export a fresh Full Workspace backup and try again.');
+      if (importInputRef.current) importInputRef.current.value = '';
+      return;
+    }
     try {
       const summary = await onImportBackup(file);
       const sourceLabel = summary.sourceVersion === '2' ? 'V2 full workspace' : `legacy V${summary.sourceVersion}`;
+      setBackupMessageType('success');
       setBackupMessage(
         `${sourceLabel} restored: ${summary.players} players, ${summary.games} events, ${summary.standings} league rows, ${summary.announcements} bulletins, and ${summary.assessments} assessments.`
       );
     } catch (error) {
-      setBackupMessage(error instanceof Error ? error.message : 'The backup could not be restored.');
+      setBackupMessageType('error');
+      setBackupMessage(error instanceof Error ? error.message : 'The backup could not be restored. Your existing workspace was left unchanged.');
     } finally {
       if (importInputRef.current) importInputRef.current.value = '';
     }
@@ -79,6 +112,7 @@ export default function RosterView({ players, onAddPlayer, onSelectPlayer, onExp
   const [newPlayerHeight, setNewPlayerHeight] = useState("");
   const [newPlayerWeight, setNewPlayerWeight] = useState("");
   const [newPlayerTraits, setNewPlayerTraits] = useState<string[]>([]);
+  const [playerFormErrors, setPlayerFormErrors] = useState<FieldErrors<PlayerFormField>>({});
 
   const handleToggleTrait = (traitLabel: string) => {
     setNewPlayerTraits(prev =>
@@ -99,7 +133,38 @@ export default function RosterView({ players, onAddPlayer, onSelectPlayer, onExp
   // Submit Handler for New Player
   const handleAddSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newPlayerName.trim() || !newPlayerNumber) return;
+    const parsedNumber = parseIntegerInput(newPlayerNumber, { label: 'Squad number', min: 1, max: 99 });
+    const parsedAge = newPlayerAge.trim()
+      ? parseIntegerInput(newPlayerAge, { label: 'Age', min: 10, max: 80 })
+      : { ok: true as const, value: undefined };
+    const parsedHeight = newPlayerHeight.trim()
+      ? parseIntegerInput(newPlayerHeight, { label: 'Height', min: 100, max: 250 })
+      : { ok: true as const, value: undefined };
+    const parsedWeight = newPlayerWeight.trim()
+      ? parseIntegerInput(newPlayerWeight, { label: 'Weight', min: 30, max: 250 })
+      : { ok: true as const, value: undefined };
+
+    const nextErrors = mergeFieldErrors<PlayerFormField>(
+      newPlayerName.trim() ? {} : { name: 'Player name is required.' },
+      parsedNumber.ok ? {} : { number: integerError(parsedNumber) },
+      PLAYER_POSITIONS.includes(newPlayerPos as typeof PLAYER_POSITIONS[number])
+        ? {}
+        : { position: 'Choose a supported player position.' },
+      parsedAge.ok ? {} : { age: integerError(parsedAge) },
+      parsedHeight.ok ? {} : { height: integerError(parsedHeight) },
+      parsedWeight.ok ? {} : { weight: integerError(parsedWeight) }
+    );
+    if (
+      hasFieldErrors(nextErrors)
+      || !parsedNumber.ok
+      || !parsedAge.ok
+      || !parsedHeight.ok
+      || !parsedWeight.ok
+    ) {
+      setPlayerFormErrors(nextErrors);
+      focusFirstInvalidField(addPlayerFormRef.current, nextErrors);
+      return;
+    }
 
     const playerPhoto = newPlayerPhoto || getPlayerPlaceholder(newPlayerPos);
 
@@ -120,14 +185,14 @@ export default function RosterView({ players, onAddPlayer, onSelectPlayer, onExp
 
     const newPlayer: Player = {
       id: "p_" + Date.now(),
-      name: newPlayerName,
-      number: Number(newPlayerNumber),
+      name: newPlayerName.trim(),
+      number: parsedNumber.value,
       position: newPlayerPos,
-      bio: newPlayerBio || `${newPlayerName} joined the roster. Highly motivated athlete.`,
+      bio: newPlayerBio || `${newPlayerName.trim()} joined the roster. Highly motivated athlete.`,
       photoUrl: playerPhoto,
-      age: newPlayerAge ? Number(newPlayerAge) : undefined,
-      height: newPlayerHeight ? Number(newPlayerHeight) : undefined,
-      weight: newPlayerWeight ? Number(newPlayerWeight) : undefined,
+      age: parsedAge.value,
+      height: parsedHeight.value,
+      weight: parsedWeight.value,
       specialtyTraits: newPlayerTraits.length > 0 ? newPlayerTraits : undefined,
       gamesPlayed: 0,
       points: 0,
@@ -154,6 +219,7 @@ export default function RosterView({ players, onAddPlayer, onSelectPlayer, onExp
     setNewPlayerHeight("");
     setNewPlayerWeight("");
     setNewPlayerTraits([]);
+    setPlayerFormErrors({});
     setIsAdding(false);
   };
 
@@ -269,6 +335,12 @@ export default function RosterView({ players, onAddPlayer, onSelectPlayer, onExp
 
   const staffMembers = filteredPlayers.filter(p => isStaffPosition(p.position));
   const activeRoster = filteredPlayers.filter(p => !isStaffPosition(p.position));
+  const duplicateJerseyPlayer = newPlayerNumber.trim()
+    ? players.find(player =>
+        !isStaffPosition(player.position)
+        && player.number === Number(newPlayerNumber)
+      )
+    : undefined;
 
   return (
     <div id="roster-view-container" className="space-y-6">
@@ -371,7 +443,16 @@ export default function RosterView({ players, onAddPlayer, onSelectPlayer, onExp
 
           </div>
           {backupMessage && (
-            <p className="mt-2 text-[10px] font-bold text-slate-600" role="status">
+            <p
+              className={`mt-2 rounded-lg border px-3 py-2 text-[10px] font-bold ${
+                backupMessageType === 'error'
+                  ? 'border-rose-200 bg-rose-50 text-rose-700'
+                  : backupMessageType === 'success'
+                    ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+                    : 'border-slate-200 bg-slate-50 text-slate-600'
+              }`}
+              role={backupMessageType === 'error' ? 'alert' : 'status'}
+            >
               {backupMessage}
             </p>
           )}
@@ -690,7 +771,10 @@ export default function RosterView({ players, onAddPlayer, onSelectPlayer, onExp
                 <h3 className="font-display font-black text-slate-800 text-sm uppercase tracking-wider">Register New athlete</h3>
               </div>
 
-              <form onSubmit={handleAddSubmit} className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <form ref={addPlayerFormRef} onSubmit={handleAddSubmit} className="grid grid-cols-1 md:grid-cols-4 gap-4" noValidate>
+                <div className="md:col-span-4">
+                  <FormErrorSummary id="add-player-error-summary" errors={playerFormErrors} />
+                </div>
                 <div className="md:col-span-4 flex items-center gap-4 bg-slate-50 p-4 rounded-xl border border-slate-100">
                   <div className="relative shrink-0">
                     <img 
@@ -742,85 +826,162 @@ export default function RosterView({ players, onAddPlayer, onSelectPlayer, onExp
                   <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Full Athlete Name *</label>
                   <input 
                     id="new-player-name-input"
+                    data-validation-field="name"
                     type="text" 
-                    required 
                     placeholder="e.g. Liam Fitzpatrick"
                     value={newPlayerName}
-                    onChange={e => setNewPlayerName(e.target.value)}
-                    className="w-full border border-slate-200 rounded-xl p-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    onChange={e => {
+                      setNewPlayerName(e.target.value);
+                      setPlayerFormErrors(previous => ({ ...previous, name: undefined }));
+                    }}
+                    aria-invalid={Boolean(playerFormErrors.name)}
+                    aria-describedby={playerFormErrors.name ? 'new-player-name-error' : undefined}
+                    className={`w-full border rounded-xl p-2.5 text-xs focus:outline-none focus:ring-2 ${
+                      playerFormErrors.name
+                        ? 'border-rose-300 focus:ring-rose-500'
+                        : 'border-slate-200 focus:ring-indigo-500'
+                    }`}
                   />
+                  <FieldError id="new-player-name-error" message={playerFormErrors.name} />
                 </div>
 
                 <div>
                   <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Squad Number *</label>
                   <input 
                     id="new-player-jersey-input"
+                    data-validation-field="number"
                     type="number" 
-                    required 
                     min="1" 
                     max="99" 
+                    step="1"
+                    inputMode="numeric"
                     placeholder="e.g. 19"
                     value={newPlayerNumber}
-                    onChange={e => setNewPlayerNumber(e.target.value)}
-                    className="w-full border border-slate-200 rounded-xl p-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    onChange={e => {
+                      setNewPlayerNumber(e.target.value);
+                      setPlayerFormErrors(previous => ({ ...previous, number: undefined }));
+                    }}
+                    aria-invalid={Boolean(playerFormErrors.number)}
+                    aria-describedby={playerFormErrors.number ? 'new-player-jersey-error' : duplicateJerseyPlayer ? 'new-player-jersey-warning' : undefined}
+                    className={`w-full border rounded-xl p-2.5 text-xs focus:outline-none focus:ring-2 ${
+                      playerFormErrors.number
+                        ? 'border-rose-300 focus:ring-rose-500'
+                        : 'border-slate-200 focus:ring-indigo-500'
+                    }`}
                   />
+                  <FieldError id="new-player-jersey-error" message={playerFormErrors.number} />
+                  {duplicateJerseyPlayer && !playerFormErrors.number && (
+                    <p id="new-player-jersey-warning" className="mt-1 text-[11px] font-semibold text-amber-700">
+                      Jersey #{newPlayerNumber} is already used by {duplicateJerseyPlayer.name}. You can still register this player.
+                    </p>
+                  )}
                 </div>
 
                 <div>
                   <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Position *</label>
                   <select
                     id="new-player-position-select"
+                    data-validation-field="position"
                     value={newPlayerPos}
-                    onChange={e => handlePositionChange(e.target.value)}
-                    className="w-full border border-slate-200 rounded-xl p-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
+                    onChange={e => {
+                      handlePositionChange(e.target.value);
+                      setPlayerFormErrors(previous => ({ ...previous, position: undefined }));
+                    }}
+                    aria-invalid={Boolean(playerFormErrors.position)}
+                    aria-describedby={playerFormErrors.position ? 'new-player-position-error' : undefined}
+                    className={`w-full border rounded-xl p-2.5 text-xs focus:outline-none focus:ring-2 bg-white ${
+                      playerFormErrors.position
+                        ? 'border-rose-300 focus:ring-rose-500'
+                        : 'border-slate-200 focus:ring-indigo-500'
+                    }`}
                   >
                     <option value="Forward">Forward</option>
                     <option value="Midfielder">Midfielder</option>
                     <option value="Defender">Defender</option>
                     <option value="Goalkeeper">Goalkeeper</option>
                   </select>
+                  <FieldError id="new-player-position-error" message={playerFormErrors.position} />
                 </div>
 
                 <div>
                   <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Age</label>
                   <input
                     id="new-player-age-input"
+                    data-validation-field="age"
                     type="number"
                     min="10"
                     max="80"
+                    step="1"
+                    inputMode="numeric"
                     placeholder="e.g. 24"
                     value={newPlayerAge}
-                    onChange={e => setNewPlayerAge(e.target.value)}
-                    className="w-full border border-slate-200 rounded-xl p-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    onChange={e => {
+                      setNewPlayerAge(e.target.value);
+                      setPlayerFormErrors(previous => ({ ...previous, age: undefined }));
+                    }}
+                    aria-invalid={Boolean(playerFormErrors.age)}
+                    aria-describedby={playerFormErrors.age ? 'new-player-age-error' : undefined}
+                    className={`w-full border rounded-xl p-2.5 text-xs focus:outline-none focus:ring-2 ${
+                      playerFormErrors.age
+                        ? 'border-rose-300 focus:ring-rose-500'
+                        : 'border-slate-200 focus:ring-indigo-500'
+                    }`}
                   />
+                  <FieldError id="new-player-age-error" message={playerFormErrors.age} />
                 </div>
 
                 <div>
                   <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Height (cm)</label>
                   <input
                     id="new-player-height-input"
+                    data-validation-field="height"
                     type="number"
                     min="100"
                     max="250"
+                    step="1"
+                    inputMode="numeric"
                     placeholder="e.g. 180"
                     value={newPlayerHeight}
-                    onChange={e => setNewPlayerHeight(e.target.value)}
-                    className="w-full border border-slate-200 rounded-xl p-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    onChange={e => {
+                      setNewPlayerHeight(e.target.value);
+                      setPlayerFormErrors(previous => ({ ...previous, height: undefined }));
+                    }}
+                    aria-invalid={Boolean(playerFormErrors.height)}
+                    aria-describedby={playerFormErrors.height ? 'new-player-height-error' : undefined}
+                    className={`w-full border rounded-xl p-2.5 text-xs focus:outline-none focus:ring-2 ${
+                      playerFormErrors.height
+                        ? 'border-rose-300 focus:ring-rose-500'
+                        : 'border-slate-200 focus:ring-indigo-500'
+                    }`}
                   />
+                  <FieldError id="new-player-height-error" message={playerFormErrors.height} />
                 </div>
 
                 <div>
                   <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Weight (kg)</label>
                   <input
                     id="new-player-weight-input"
+                    data-validation-field="weight"
                     type="number"
                     min="30"
                     max="250"
+                    step="1"
+                    inputMode="numeric"
                     placeholder="e.g. 75"
                     value={newPlayerWeight}
-                    onChange={e => setNewPlayerWeight(e.target.value)}
-                    className="w-full border border-slate-200 rounded-xl p-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    onChange={e => {
+                      setNewPlayerWeight(e.target.value);
+                      setPlayerFormErrors(previous => ({ ...previous, weight: undefined }));
+                    }}
+                    aria-invalid={Boolean(playerFormErrors.weight)}
+                    aria-describedby={playerFormErrors.weight ? 'new-player-weight-error' : undefined}
+                    className={`w-full border rounded-xl p-2.5 text-xs focus:outline-none focus:ring-2 ${
+                      playerFormErrors.weight
+                        ? 'border-rose-300 focus:ring-rose-500'
+                        : 'border-slate-200 focus:ring-indigo-500'
+                    }`}
                   />
+                  <FieldError id="new-player-weight-error" message={playerFormErrors.weight} />
                 </div>
 
                 <div className="md:col-span-4 rounded-xl border border-slate-200 bg-slate-50 p-4">

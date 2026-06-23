@@ -5,6 +5,14 @@ import { motion } from 'motion/react';
 import { availabilitySchema, coachNotesSchema } from '../persistence/schemas';
 import { readJsonStorage, STORAGE_KEYS, writeJsonStorage } from '../persistence/storage';
 import { useDialogAccessibility } from '../hooks/useDialogAccessibility';
+import { FieldError, FormErrorSummary } from './FormValidation';
+import {
+  FieldErrors,
+  focusFirstInvalidField,
+  hasFieldErrors,
+  mergeFieldErrors,
+  parseIntegerInput
+} from '../forms/validation';
 
 interface ScheduleViewProps {
   games: Game[];
@@ -25,6 +33,15 @@ interface ScheduleViewProps {
 }
 
 type GameType = Game['type'];
+type MatchResultField = 'ourScore' | 'opponentScore' | 'mvpId' | 'scorers';
+
+interface ValidMatchResultForm {
+  ourScore: number;
+  opponentScore: number;
+  mvpId: string;
+  notes: string;
+  scorers: NonNullable<Game['scorers']>;
+}
 
 const GAME_TYPES: readonly GameType[] = ['League', 'Cup', 'Friendly', 'Training', 'Meeting'];
 
@@ -34,6 +51,7 @@ const parseGameType = (value: string): GameType => (
 
 export default function ScheduleView({ games, players, standings, onAddGame, onRecordResult, onDeleteGame, teamName, highlightGameId }: ScheduleViewProps) {
   const resultDialogRef = useRef<HTMLDivElement | null>(null);
+  const resultFormRef = useRef<HTMLFormElement | null>(null);
   const [filterTab, setFilterTab] = useState<'Upcoming' | 'Completed'>('Upcoming');
   
   // Calendar View & Filter State
@@ -52,8 +70,8 @@ export default function ScheduleView({ games, players, standings, onAddGame, onR
 
   // Record Score state
   const [recordingGameId, setRecordingGameId] = useState<string | null>(null);
-  const [ourScore, setOurScore] = useState(0);
-  const [opponentScore, setOpponentScore] = useState(0);
+  const [ourScore, setOurScore] = useState('0');
+  const [opponentScore, setOpponentScore] = useState('0');
   const [selectedMvp, setSelectedMvp] = useState("");
   const [gameNotes, setGameNotes] = useState("");
   
@@ -61,11 +79,25 @@ export default function ScheduleView({ games, players, standings, onAddGame, onR
   const [selectedScorer, setSelectedScorer] = useState("");
   const [currentScorers, setCurrentScorers] = useState<NonNullable<Game['scorers']>>([]);
   const [resultError, setResultError] = useState('');
+  const [resultErrors, setResultErrors] = useState<FieldErrors<MatchResultField>>({});
+  const [isRecordingResult, setIsRecordingResult] = useState(false);
   const closeResultDialog = useCallback(() => {
     setRecordingGameId(null);
     setResultError('');
+    setResultErrors({});
+    setIsRecordingResult(false);
   }, []);
   useDialogAccessibility(resultDialogRef, recordingGameId !== null, closeResultDialog);
+
+  const activeAthletes = useMemo(() => players.filter(p =>
+    ['Forward', 'Midfielder', 'Defender', 'Goalkeeper'].includes(p.position)
+    && p.registrationStatus === 'Active'
+  ), [players]);
+
+  const clearResultFieldError = (field: MatchResultField) => {
+    setResultErrors(previous => previous[field] ? { ...previous, [field]: undefined } : previous);
+    setResultError('');
+  };
 
   // Match Availability Tracker state — per gameId, per playerId → yes/no/maybe
   const [availability, setAvailability] = useState<Record<string, Record<string, 'yes' | 'no' | 'maybe'>>>(() => {
@@ -221,8 +253,9 @@ export default function ScheduleView({ games, players, standings, onAddGame, onR
 
   const handleScorerAdd = () => {
     if (!selectedScorer) return;
-    const player = players.find(candidate => candidate.id === selectedScorer);
+    const player = activeAthletes.find(candidate => candidate.id === selectedScorer);
     if (!player) return;
+    clearResultFieldError('scorers');
     const existing = currentScorers.find(s => s.playerId === player.id);
     if (existing) {
       setCurrentScorers(currentScorers.map(s => s.playerId === player.id ? { ...s, count: s.count + 1 } : s));
@@ -232,6 +265,7 @@ export default function ScheduleView({ games, players, standings, onAddGame, onR
   };
 
   const handleScorerRemove = (playerId: string | undefined, playerName: string) => {
+    clearResultFieldError('scorers');
     setCurrentScorers(currentScorers.filter(s =>
       playerId ? s.playerId !== playerId : s.playerName !== playerName
     ));
@@ -239,8 +273,8 @@ export default function ScheduleView({ games, players, standings, onAddGame, onR
 
   const openResultEditor = (game: Game) => {
     setRecordingGameId(game.id);
-    setOurScore(game.ourScore ?? 0);
-    setOpponentScore(game.opponentScore ?? 0);
+    setOurScore(String(game.ourScore ?? 0));
+    setOpponentScore(String(game.opponentScore ?? 0));
     setSelectedMvp(game.mvpId ?? '');
     setGameNotes(game.notes ?? '');
     setCurrentScorers((game.scorers ?? []).map(scorer => {
@@ -254,34 +288,98 @@ export default function ScheduleView({ games, players, standings, onAddGame, onR
     }));
     setSelectedScorer('');
     setResultError('');
+    setResultErrors({});
+  };
+
+  const validateMatchResultForm = (): ValidMatchResultForm | null => {
+    const parsedOurScore = parseIntegerInput(ourScore, { label: `${teamName || 'Our team'} score`, min: 0 });
+    const parsedOpponentScore = parseIntegerInput(opponentScore, { label: 'Opponent score', min: 0 });
+    const ourScoreError = 'errors' in parsedOurScore ? parsedOurScore.errors.value : undefined;
+    const opponentScoreError = 'errors' in parsedOpponentScore ? parsedOpponentScore.errors.value : undefined;
+    const scoreErrors = mergeFieldErrors<MatchResultField>(
+      ourScoreError ? { ourScore: ourScoreError } : {},
+      opponentScoreError ? { opponentScore: opponentScoreError } : {}
+    );
+
+    const eligibleIds = new Set(activeAthletes.map(player => player.id));
+    const scorerIds = new Set<string>();
+    let recordedGoals = 0;
+    let scorerError = '';
+    for (const scorer of currentScorers) {
+      if (!Number.isInteger(scorer.count) || scorer.count <= 0) {
+        scorerError = 'Scorer goal counts must be positive whole numbers.';
+        break;
+      }
+      if (!scorer.playerId || !eligibleIds.has(scorer.playerId)) {
+        scorerError = 'Every scorer must reference an active athlete.';
+        break;
+      }
+      if (scorerIds.has(scorer.playerId)) {
+        scorerError = 'Each scorer can only appear once in the scorecard.';
+        break;
+      }
+      scorerIds.add(scorer.playerId);
+      recordedGoals += scorer.count;
+    }
+
+    if (!scorerError && parsedOurScore.ok && recordedGoals > parsedOurScore.value) {
+      scorerError = 'Recorded scorer goals cannot exceed the team score.';
+    }
+
+    const nextErrors: FieldErrors<MatchResultField> = {
+      ...scoreErrors,
+      mvpId: eligibleIds.has(selectedMvp) ? undefined : 'Select an active athlete as the match MVP.',
+      scorers: scorerError || undefined
+    };
+
+    if (hasFieldErrors(nextErrors) || !parsedOurScore.ok || !parsedOpponentScore.ok) {
+      setResultErrors(nextErrors);
+      focusFirstInvalidField(resultFormRef.current, nextErrors);
+      return null;
+    }
+
+    return {
+      ourScore: parsedOurScore.value,
+      opponentScore: parsedOpponentScore.value,
+      mvpId: selectedMvp,
+      notes: gameNotes,
+      scorers: currentScorers
+    };
   };
 
   const handleRecordSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!recordingGameId) return;
+    if (!recordingGameId || isRecordingResult) return;
+
+    const validResult = validateMatchResultForm();
+    if (!validResult) return;
 
     try {
+      setIsRecordingResult(true);
       onRecordResult(
         recordingGameId,
-        Number(ourScore),
-        Number(opponentScore),
-        selectedMvp,
-        gameNotes,
-        currentScorers
+        validResult.ourScore,
+        validResult.opponentScore,
+        validResult.mvpId,
+        validResult.notes,
+        validResult.scorers
       );
     } catch (error) {
       setResultError(error instanceof Error ? error.message : 'The result could not be saved.');
+      setIsRecordingResult(false);
       return;
     }
 
     // Reset recording fields
     setRecordingGameId(null);
-    setOurScore(0);
-    setOpponentScore(0);
+    setOurScore('0');
+    setOpponentScore('0');
     setSelectedMvp("");
     setGameNotes("");
     setCurrentScorers([]);
     setResultError('');
+    setResultErrors({});
+    setIsRecordingResult(false);
   };
 
   const filteredGames = games.filter(g => {
@@ -478,7 +576,8 @@ export default function ScheduleView({ games, players, standings, onAddGame, onR
               </button>
             </div>
 
-            <form onSubmit={handleRecordSubmit} className="mt-4 space-y-4">
+            <form ref={resultFormRef} onSubmit={handleRecordSubmit} className="mt-4 space-y-4" noValidate>
+              <FormErrorSummary id="match-result-error-summary" errors={resultErrors} />
               <div>
                 <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1.5">Record Final Score</label>
                 <div className="grid grid-cols-5 gap-2 items-center text-center">
@@ -486,31 +585,63 @@ export default function ScheduleView({ games, players, standings, onAddGame, onR
                     <span className="text-[11px] font-bold text-slate-400 uppercase">{teamName ? teamName.substring(0, 10) : 'Us'}</span>
                     <input 
                       id="record-score-rangers"
+                      data-validation-field="ourScore"
                       type="number" 
                       min="0" 
+                      step="1"
+                      inputMode="numeric"
                       value={ourScore}
-                      onChange={e => setOurScore(Number(e.target.value))}
-                      className="w-full text-center font-display font-black text-2xl border border-slate-200 rounded-xl p-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      onChange={e => {
+                        setOurScore(e.target.value);
+                        clearResultFieldError('ourScore');
+                      }}
+                      aria-invalid={Boolean(resultErrors.ourScore)}
+                      aria-describedby={resultErrors.ourScore ? 'record-score-rangers-error' : undefined}
+                      className={`w-full text-center font-display font-black text-2xl border rounded-xl p-2 focus:outline-none focus:ring-2 ${
+                        resultErrors.ourScore
+                          ? 'border-rose-300 focus:ring-rose-500'
+                          : 'border-slate-200 focus:ring-indigo-500'
+                      }`}
                     />
+                    <FieldError id="record-score-rangers-error" message={resultErrors.ourScore} />
                   </div>
                   <div className="text-xl font-bold text-slate-400">:</div>
                   <div className="col-span-2">
                     <span className="text-[11px] font-bold text-slate-400 uppercase">Opponent</span>
                     <input 
                       id="record-score-opponent"
+                      data-validation-field="opponentScore"
                       type="number" 
                       min="0" 
+                      step="1"
+                      inputMode="numeric"
                       value={opponentScore}
-                      onChange={e => setOpponentScore(Number(e.target.value))}
-                      className="w-full text-center font-display font-black text-2xl border border-slate-200 rounded-xl p-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      onChange={e => {
+                        setOpponentScore(e.target.value);
+                        clearResultFieldError('opponentScore');
+                      }}
+                      aria-invalid={Boolean(resultErrors.opponentScore)}
+                      aria-describedby={resultErrors.opponentScore ? 'record-score-opponent-error' : undefined}
+                      className={`w-full text-center font-display font-black text-2xl border rounded-xl p-2 focus:outline-none focus:ring-2 ${
+                        resultErrors.opponentScore
+                          ? 'border-rose-300 focus:ring-rose-500'
+                          : 'border-slate-200 focus:ring-indigo-500'
+                      }`}
                     />
+                    <FieldError id="record-score-opponent-error" message={resultErrors.opponentScore} />
                   </div>
                 </div>
               </div>
 
               {/* Goal scorers picker */}
-              {ourScore > 0 && (
-                <div className="bg-slate-50 p-3 rounded-xl border border-slate-100">
+              {Number(ourScore) > 0 && (
+                <div
+                  data-validation-field="scorers"
+                  tabIndex={resultErrors.scorers ? -1 : undefined}
+                  className={`bg-slate-50 p-3 rounded-xl border ${
+                    resultErrors.scorers ? 'border-rose-200' : 'border-slate-100'
+                  }`}
+                >
                   <span className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Track Team Scorers</span>
                   <div className="flex gap-2">
                     <select
@@ -520,9 +651,7 @@ export default function ScheduleView({ games, players, standings, onAddGame, onR
                       className="flex-1 border border-slate-200 rounded-lg p-1.5 text-xs bg-white"
                     >
                       <option value="">-- Choose Scorer --</option>
-                      {players
-                        .filter(p => ['Forward', 'Midfielder', 'Defender', 'Goalkeeper'].includes(p.position) && p.registrationStatus === 'Active')
-                        .map(p => (
+                      {activeAthletes.map(p => (
                         <option key={p.id} value={p.id}>{p.name} (#{p.number})</option>
                       ))}
                     </select>
@@ -553,6 +682,7 @@ export default function ScheduleView({ games, players, standings, onAddGame, onR
                       ))}
                     </div>
                   )}
+                  <FieldError id="match-scorers-error" message={resultErrors.scorers} />
                 </div>
               )}
 
@@ -560,18 +690,26 @@ export default function ScheduleView({ games, players, standings, onAddGame, onR
                 <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Match MVP Award *</label>
                 <select
                   id="mvp-player-select"
-                  required
+                  data-validation-field="mvpId"
                   value={selectedMvp}
-                  onChange={e => setSelectedMvp(e.target.value)}
-                  className="w-full border border-slate-200 rounded-xl p-2.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  onChange={e => {
+                    setSelectedMvp(e.target.value);
+                    clearResultFieldError('mvpId');
+                  }}
+                  aria-invalid={Boolean(resultErrors.mvpId)}
+                  aria-describedby={resultErrors.mvpId ? 'mvp-player-select-error' : undefined}
+                  className={`w-full border rounded-xl p-2.5 text-sm bg-white focus:outline-none focus:ring-2 ${
+                    resultErrors.mvpId
+                      ? 'border-rose-300 focus:ring-rose-500'
+                      : 'border-slate-200 focus:ring-indigo-500'
+                  }`}
                 >
                   <option value="">-- Select Most Valuable Player --</option>
-                  {players
-                    .filter(p => ['Forward', 'Midfielder', 'Defender', 'Goalkeeper'].includes(p.position) && p.registrationStatus === 'Active')
-                    .map(p => (
+                  {activeAthletes.map(p => (
                     <option key={p.id} value={p.id}>{p.name} (#{p.number}) - {p.position}</option>
                   ))}
                 </select>
+                <FieldError id="mvp-player-select-error" message={resultErrors.mvpId} />
               </div>
 
               {resultError && (
@@ -604,9 +742,10 @@ export default function ScheduleView({ games, players, standings, onAddGame, onR
                 <button
                   id="submit-record-result-btn"
                   type="submit"
-                  className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-xl text-sm shadow-md"
+                  disabled={isRecordingResult}
+                  className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-300 disabled:text-slate-500 text-white font-semibold rounded-xl text-sm shadow-md"
                 >
-                  Publish Scorecard
+                  {isRecordingResult ? 'Publishing...' : 'Publish Scorecard'}
                 </button>
               </div>
             </form>

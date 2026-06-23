@@ -3,6 +3,14 @@ import { AssessmentSession, Player, SPECIALTY_TRAITS, SpecialtyTrait, isStaffPos
 import { X, Award, Shield, User, Zap, CircleDot, Activity, Save, Edit2, Briefcase, Calendar, Mail, Phone, AlertTriangle, Clock, Star, Trash2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useDialogAccessibility } from '../hooks/useDialogAccessibility';
+import { FieldError, FormErrorSummary } from './FormValidation';
+import {
+  FieldErrors,
+  focusFirstInvalidField,
+  hasFieldErrors,
+  mergeFieldErrors,
+  parseIntegerInput
+} from '../forms/validation';
 import {
   ResponsiveContainer,
   LineChart,
@@ -26,6 +34,39 @@ type PlayerTooltipProps = {
   label?: string;
   payload?: Array<{ payload: PlayerProgressPoint }>;
 };
+
+type ProfileField =
+  | 'name'
+  | 'number'
+  | 'position'
+  | 'gamesPlayed'
+  | 'points'
+  | 'assists'
+  | 'cleanSheetsOrRebounds'
+  | 'minutesPlayed'
+  | 'mvpAwards'
+  | 'yellowCards'
+  | 'redCards'
+  | 'age'
+  | 'height'
+  | 'weight';
+
+const PLAYER_POSITIONS = ['Forward', 'Midfielder', 'Defender', 'Goalkeeper'] as const;
+
+const integerError = (result: ReturnType<typeof parseIntegerInput>): string | undefined => (
+  'errors' in result ? result.errors.value : undefined
+);
+
+const integerValue = (result: ReturnType<typeof parseIntegerInput>, fallback = 0): number => (
+  'value' in result ? result.value : fallback
+);
+
+const optionalIntegerValue = (
+  result: ReturnType<typeof parseIntegerInput> | { ok: true; value: undefined },
+  fallback?: number
+): number | undefined => (
+  'value' in result ? result.value : fallback
+);
 
 const CustomTooltip = ({ active, payload, label }: PlayerTooltipProps) => {
   if (active && payload && payload.length) {
@@ -65,24 +106,25 @@ export default function PlayerProfileModal({ player, onClose, onUpdate, onRemove
   const [isEditing, setIsEditing] = useState(false);
   const [showRemoveConfirm, setShowRemoveConfirm] = useState(false);
   const [name, setName] = useState(player.name);
-  const [number, setNumber] = useState(player.number);
+  const [number, setNumber] = useState(String(player.number));
   const [position, setPosition] = useState(player.position);
   const [bio, setBio] = useState(player.bio);
   const [status, setStatus] = useState(player.registrationStatus);
-  const [gamesPlayed, setGamesPlayed] = useState(player.gamesPlayed);
-  const [points, setPoints] = useState(player.points); // Goals
-  const [assists, setAssists] = useState(player.assists);
-  const [cleanSheetsOrRebounds, setCleanSheetsOrRebounds] = useState(player.cleanSheetsOrRebounds);
-  const [minutesPlayed, setMinutesPlayed] = useState(player.minutesPlayed);
-  const [mvpAwards, setMvpAwards] = useState(player.mvpAwards);
-  const [yellowCards, setYellowCards] = useState(player.yellowCards);
-  const [redCards, setRedCards] = useState(player.redCards);
+  const [gamesPlayed, setGamesPlayed] = useState(String(player.gamesPlayed));
+  const [points, setPoints] = useState(String(player.points)); // Goals
+  const [assists, setAssists] = useState(String(player.assists));
+  const [cleanSheetsOrRebounds, setCleanSheetsOrRebounds] = useState(String(player.cleanSheetsOrRebounds));
+  const [minutesPlayed, setMinutesPlayed] = useState(String(player.minutesPlayed));
+  const [mvpAwards, setMvpAwards] = useState(String(player.mvpAwards));
+  const [yellowCards, setYellowCards] = useState(String(player.yellowCards));
+  const [redCards, setRedCards] = useState(String(player.redCards));
   const [photoUrl, setPhotoUrl] = useState(player.photoUrl);
-  const [age, setAge] = useState(player.age ?? undefined);
-  const [height, setHeight] = useState(player.height ?? undefined);
-  const [weight, setWeight] = useState(player.weight ?? undefined);
+  const [age, setAge] = useState(player.age === undefined ? '' : String(player.age));
+  const [height, setHeight] = useState(player.height === undefined ? '' : String(player.height));
+  const [weight, setWeight] = useState(player.weight === undefined ? '' : String(player.weight));
   const [specialtyTraits, setSpecialtyTraits] = useState<string[]>(player.specialtyTraits || []);
   const [coachNotes, setCoachNotes] = useState(player.coachNotes || '');
+  const [profileErrors, setProfileErrors] = useState<FieldErrors<ProfileField>>({});
 
   // Staff-specific state
   const [staffEmail, setStaffEmail] = useState(player.email || '');
@@ -104,9 +146,26 @@ export default function PlayerProfileModal({ player, onClose, onUpdate, onRemove
       })[0];
   }, [assessments, player.id]);
 
+  const parsedPoints = Number.parseInt(points, 10);
+  const parsedCleanSheets = Number.parseInt(cleanSheetsOrRebounds, 10);
+  const parsedAssists = Number.parseInt(assists, 10);
+  const parsedMvpAwards = Number.parseInt(mvpAwards, 10);
+  const parsedGamesPlayed = Number.parseInt(gamesPlayed, 10);
+  const parsedMinutesPlayed = Number.parseInt(minutesPlayed, 10);
+  const parsedYellowCards = Number.parseInt(yellowCards, 10);
+  const parsedRedCards = Number.parseInt(redCards, 10);
+  const displayPoints = Number.isFinite(parsedPoints) ? parsedPoints : 0;
+  const displayCleanSheets = Number.isFinite(parsedCleanSheets) ? parsedCleanSheets : 0;
+  const displayAssists = Number.isFinite(parsedAssists) ? parsedAssists : 0;
+  const displayMvpAwards = Number.isFinite(parsedMvpAwards) ? parsedMvpAwards : 0;
+  const displayGamesPlayed = Number.isFinite(parsedGamesPlayed) ? parsedGamesPlayed : 0;
+  const displayMinutesPlayed = Number.isFinite(parsedMinutesPlayed) ? parsedMinutesPlayed : 0;
+  const displayYellowCards = Number.isFinite(parsedYellowCards) ? parsedYellowCards : 0;
+  const displayRedCards = Number.isFinite(parsedRedCards) ? parsedRedCards : 0;
+
   const progressionData = useMemo(() => {
     const isGoalkeeper = position === 'Goalkeeper';
-    const sourceValue = isGoalkeeper ? cleanSheetsOrRebounds : points;
+    const sourceValue = isGoalkeeper ? displayCleanSheets : displayPoints;
     const weights = [0.15, 0.25, 0.1, 0.3, 0.2];
     let remaining = sourceValue;
     const perGame = [0, 0, 0, 0, 0];
@@ -150,13 +209,68 @@ export default function PlayerProfileModal({ player, onClose, onUpdate, onRemove
         dataLabel
       };
     });
-  }, [player.id, points, cleanSheetsOrRebounds, position]);
+  }, [player.id, displayPoints, displayCleanSheets, position]);
 
   const handleSave = () => {
+    const trimmedName = name.trim();
+    const parsedNumber = parseIntegerInput(number, { label: 'Squad number', min: 1, max: 99 });
+    const parsedGamesPlayed = parseIntegerInput(gamesPlayed, { label: 'Games played', min: 0 });
+    const parsedGoals = parseIntegerInput(points, { label: 'Goals scored', min: 0 });
+    const parsedAssists = parseIntegerInput(assists, { label: 'Assists', min: 0 });
+    const parsedSheets = parseIntegerInput(cleanSheetsOrRebounds, { label: 'Clean sheets or goal contributions', min: 0 });
+    const parsedMinutes = parseIntegerInput(minutesPlayed, { label: 'Minutes played', min: 0 });
+    const parsedMvp = parseIntegerInput(mvpAwards, { label: 'MVP awards', min: 0 });
+    const parsedYellows = parseIntegerInput(yellowCards, { label: 'Yellow cards', min: 0 });
+    const parsedReds = parseIntegerInput(redCards, { label: 'Red cards', min: 0 });
+    const parsedAge = age.trim() ? parseIntegerInput(age, { label: 'Age', min: 10, max: 80 }) : { ok: true as const, value: undefined };
+    const parsedHeight = height.trim() ? parseIntegerInput(height, { label: 'Height', min: 100, max: 250 }) : { ok: true as const, value: undefined };
+    const parsedWeight = weight.trim() ? parseIntegerInput(weight, { label: 'Weight', min: 30, max: 250 }) : { ok: true as const, value: undefined };
+
+    const nextErrors = mergeFieldErrors<ProfileField>(
+      trimmedName ? {} : { name: isStaff ? 'Staff name is required.' : 'Player name is required.' },
+      isStaff || parsedNumber.ok ? {} : { number: integerError(parsedNumber) },
+      isStaff || PLAYER_POSITIONS.includes(position as typeof PLAYER_POSITIONS[number])
+        ? {}
+        : { position: 'Choose a supported player position.' },
+      isStaff || parsedGamesPlayed.ok ? {} : { gamesPlayed: integerError(parsedGamesPlayed) },
+      isStaff || parsedGoals.ok ? {} : { points: integerError(parsedGoals) },
+      isStaff || parsedAssists.ok ? {} : { assists: integerError(parsedAssists) },
+      isStaff || parsedSheets.ok ? {} : { cleanSheetsOrRebounds: integerError(parsedSheets) },
+      isStaff || parsedMinutes.ok ? {} : { minutesPlayed: integerError(parsedMinutes) },
+      isStaff || parsedMvp.ok ? {} : { mvpAwards: integerError(parsedMvp) },
+      isStaff || parsedYellows.ok ? {} : { yellowCards: integerError(parsedYellows) },
+      isStaff || parsedReds.ok ? {} : { redCards: integerError(parsedReds) },
+      isStaff || parsedAge.ok ? {} : { age: integerError(parsedAge) },
+      isStaff || parsedHeight.ok ? {} : { height: integerError(parsedHeight) },
+      isStaff || parsedWeight.ok ? {} : { weight: integerError(parsedWeight) }
+    );
+
+    if (
+      hasFieldErrors(nextErrors)
+      || (!isStaff && (
+        !parsedNumber.ok
+        || !parsedGamesPlayed.ok
+        || !parsedGoals.ok
+        || !parsedAssists.ok
+        || !parsedSheets.ok
+        || !parsedMinutes.ok
+        || !parsedMvp.ok
+        || !parsedYellows.ok
+        || !parsedReds.ok
+        || !parsedAge.ok
+        || !parsedHeight.ok
+        || !parsedWeight.ok
+      ))
+    ) {
+      setProfileErrors(nextErrors);
+      focusFirstInvalidField(dialogRef.current, nextErrors);
+      return;
+    }
+
     if (isStaff) {
       onUpdate({
         ...player,
-        name,
+        name: trimmedName,
         position,
         bio: staffBio,
         photoUrl,
@@ -168,29 +282,30 @@ export default function PlayerProfileModal({ player, onClose, onUpdate, onRemove
     } else {
       onUpdate({
         ...player,
-        name,
-        number: Number(number),
+        name: trimmedName,
+        number: integerValue(parsedNumber, player.number),
         position,
         bio,
         photoUrl,
-        age: age || undefined,
-        height: height || undefined,
-        weight: weight || undefined,
+        age: optionalIntegerValue(parsedAge, player.age),
+        height: optionalIntegerValue(parsedHeight, player.height),
+        weight: optionalIntegerValue(parsedWeight, player.weight),
         specialtyTraits: specialtyTraits.length > 0 ? specialtyTraits : undefined,
         coachNotes: coachNotes || undefined,
         registrationStatus: status,
-        gamesPlayed: Number(gamesPlayed),
-        points: Number(points),
-        assists: Number(assists),
-        cleanSheetsOrRebounds: Number(cleanSheetsOrRebounds),
-        minutesPlayed: Number(minutesPlayed),
-        mvpAwards: Number(mvpAwards),
-        yellowCards: Number(yellowCards),
-        redCards: Number(redCards),
+        gamesPlayed: integerValue(parsedGamesPlayed, player.gamesPlayed),
+        points: integerValue(parsedGoals, player.points),
+        assists: integerValue(parsedAssists, player.assists),
+        cleanSheetsOrRebounds: integerValue(parsedSheets, player.cleanSheetsOrRebounds),
+        minutesPlayed: integerValue(parsedMinutes, player.minutesPlayed),
+        mvpAwards: integerValue(parsedMvp, player.mvpAwards),
+        yellowCards: integerValue(parsedYellows, player.yellowCards),
+        redCards: integerValue(parsedReds, player.redCards),
         baseAttributes,
         positionAttributes
       });
     }
+    setProfileErrors({});
     setIsEditing(false);
   };
 
@@ -387,49 +502,91 @@ export default function PlayerProfileModal({ player, onClose, onUpdate, onRemove
               </div>
               
               {isEditing ? (
-                <div className="mt-2.5 flex flex-col sm:flex-row gap-2">
-                  <input 
-                    id="edit-player-name"
-                    type="text" 
-                    value={name} 
-                    onChange={e => setName(e.target.value)}
-                    className="bg-white/15 border border-white/20 text-white px-3 py-1.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-400 font-display font-bold text-lg w-full max-w-[240px]"
-                    placeholder={isStaff ? "Staff Name" : "Player Name"}
-                  />
-                  {isStaff ? (
-                    <select
-                      id="edit-staff-role-select"
-                      value={position}
-                      onChange={e => setPosition(e.target.value)}
-                      className="bg-white px-2 py-1.5 rounded-lg text-xs font-bold"
-                    >
-                      {STAFF_POSITIONS.map((role) => (
-                        <option key={role} value={role}>{role}</option>
-                      ))}
-                    </select>
-                  ) : (
-                    <div className="flex gap-2 text-slate-900 shrink-0">
+                <div className="mt-2.5 space-y-2">
+                  <FormErrorSummary id="profile-error-summary" errors={profileErrors} />
+                  <div className="flex flex-col sm:flex-row gap-2">
+                    <div>
                       <input 
-                        id="edit-player-number"
-                        type="number" 
-                        value={number} 
-                        placeholder="No."
-                        onChange={e => setNumber(Number(e.target.value))}
-                        className="bg-white px-2.5 py-1.5 rounded-lg w-16 text-xs font-mono font-bold"
+                        id="edit-player-name"
+                        data-validation-field="name"
+                        type="text" 
+                        value={name} 
+                        onChange={e => {
+                          setName(e.target.value);
+                          setProfileErrors(previous => ({ ...previous, name: undefined }));
+                        }}
+                        aria-invalid={Boolean(profileErrors.name)}
+                        aria-describedby={profileErrors.name ? 'edit-player-name-error' : undefined}
+                        className={`bg-white/15 border text-white px-3 py-1.5 rounded-lg focus:outline-none focus:ring-2 font-display font-bold text-lg w-full max-w-[240px] ${
+                          profileErrors.name
+                            ? 'border-rose-300 focus:ring-rose-300'
+                            : 'border-white/20 focus:ring-amber-400'
+                        }`}
+                        placeholder={isStaff ? "Staff Name" : "Player Name"}
                       />
+                      <FieldError id="edit-player-name-error" message={profileErrors.name} />
+                    </div>
+                    {isStaff ? (
                       <select
-                        id="edit-player-pos-select"
+                        id="edit-staff-role-select"
                         value={position}
                         onChange={e => setPosition(e.target.value)}
                         className="bg-white px-2 py-1.5 rounded-lg text-xs font-bold"
                       >
-                        <option value="Forward">Forward</option>
-                        <option value="Midfielder">Midfielder</option>
-                        <option value="Defender">Defender</option>
-                        <option value="Goalkeeper">Goalkeeper</option>
+                        {STAFF_POSITIONS.map((role) => (
+                          <option key={role} value={role}>{role}</option>
+                        ))}
                       </select>
-                    </div>
-                  )}
+                    ) : (
+                      <div className="flex gap-2 text-slate-900 shrink-0">
+                        <div>
+                          <input 
+                            id="edit-player-number"
+                            data-validation-field="number"
+                            type="number" 
+                            min="1"
+                            max="99"
+                            step="1"
+                            inputMode="numeric"
+                            value={number} 
+                            placeholder="No."
+                            onChange={e => {
+                              setNumber(e.target.value);
+                              setProfileErrors(previous => ({ ...previous, number: undefined }));
+                            }}
+                            aria-invalid={Boolean(profileErrors.number)}
+                            aria-describedby={profileErrors.number ? 'edit-player-number-error' : undefined}
+                            className={`bg-white px-2.5 py-1.5 rounded-lg w-16 text-xs font-mono font-bold border ${
+                              profileErrors.number ? 'border-rose-400' : 'border-transparent'
+                            }`}
+                          />
+                          <FieldError id="edit-player-number-error" message={profileErrors.number} />
+                        </div>
+                        <div>
+                          <select
+                            id="edit-player-pos-select"
+                            data-validation-field="position"
+                            value={position}
+                            onChange={e => {
+                              setPosition(e.target.value);
+                              setProfileErrors(previous => ({ ...previous, position: undefined }));
+                            }}
+                            aria-invalid={Boolean(profileErrors.position)}
+                            aria-describedby={profileErrors.position ? 'edit-player-position-error' : undefined}
+                            className={`bg-white px-2 py-1.5 rounded-lg text-xs font-bold border ${
+                              profileErrors.position ? 'border-rose-400' : 'border-transparent'
+                            }`}
+                          >
+                            <option value="Forward">Forward</option>
+                            <option value="Midfielder">Midfielder</option>
+                            <option value="Defender">Defender</option>
+                            <option value="Goalkeeper">Goalkeeper</option>
+                          </select>
+                          <FieldError id="edit-player-position-error" message={profileErrors.position} />
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
               ) : (
                 <h2 id="player-profile-fullname" className="text-xl sm:text-2xl font-display font-black tracking-tight text-white">{name}</h2>
@@ -680,31 +837,67 @@ export default function PlayerProfileModal({ player, onClose, onUpdate, onRemove
                     <label className="block mb-1 font-bold text-slate-400 text-[9px] uppercase tracking-wider">Matches Played</label>
                     <input 
                       id="edit-games-played"
+                      data-validation-field="gamesPlayed"
                       type="number" 
+                      min="0"
+                      step="1"
+                      inputMode="numeric"
                       value={gamesPlayed} 
-                      onChange={e => setGamesPlayed(Number(e.target.value))}
-                      className="w-full border border-slate-200 rounded-lg p-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none font-mono text-xs font-bold"
+                      onChange={e => {
+                        setGamesPlayed(e.target.value);
+                        setProfileErrors(previous => ({ ...previous, gamesPlayed: undefined }));
+                      }}
+                      aria-invalid={Boolean(profileErrors.gamesPlayed)}
+                      aria-describedby={profileErrors.gamesPlayed ? 'edit-games-played-error' : undefined}
+                      className={`w-full border rounded-lg p-2 focus:ring-2 focus:outline-none font-mono text-xs font-bold ${
+                        profileErrors.gamesPlayed ? 'border-rose-300 focus:ring-rose-500' : 'border-slate-200 focus:ring-indigo-500'
+                      }`}
                     />
+                    <FieldError id="edit-games-played-error" message={profileErrors.gamesPlayed} />
                   </div>
                   <div>
                     <label className="block mb-1 font-bold text-slate-400 text-[9px] uppercase tracking-wider">Goals Scored</label>
                     <input 
                       id="edit-stat-goals"
+                      data-validation-field="points"
                       type="number" 
+                      min="0"
+                      step="1"
+                      inputMode="numeric"
                       value={points} 
-                      onChange={e => setPoints(Number(e.target.value))}
-                      className="w-full border border-slate-200 rounded-lg p-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none font-mono text-xs font-bold"
+                      onChange={e => {
+                        setPoints(e.target.value);
+                        setProfileErrors(previous => ({ ...previous, points: undefined }));
+                      }}
+                      aria-invalid={Boolean(profileErrors.points)}
+                      aria-describedby={profileErrors.points ? 'edit-stat-goals-error' : undefined}
+                      className={`w-full border rounded-lg p-2 focus:ring-2 focus:outline-none font-mono text-xs font-bold ${
+                        profileErrors.points ? 'border-rose-300 focus:ring-rose-500' : 'border-slate-200 focus:ring-indigo-500'
+                      }`}
                     />
+                    <FieldError id="edit-stat-goals-error" message={profileErrors.points} />
                   </div>
                   <div>
                     <label className="block mb-1 font-bold text-slate-400 text-[9px] uppercase tracking-wider">Assists</label>
                     <input 
                       id="edit-stat-assists"
+                      data-validation-field="assists"
                       type="number" 
+                      min="0"
+                      step="1"
+                      inputMode="numeric"
                       value={assists} 
-                      onChange={e => setAssists(Number(e.target.value))}
-                      className="w-full border border-slate-200 rounded-lg p-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none font-mono text-xs font-bold"
+                      onChange={e => {
+                        setAssists(e.target.value);
+                        setProfileErrors(previous => ({ ...previous, assists: undefined }));
+                      }}
+                      aria-invalid={Boolean(profileErrors.assists)}
+                      aria-describedby={profileErrors.assists ? 'edit-stat-assists-error' : undefined}
+                      className={`w-full border rounded-lg p-2 focus:ring-2 focus:outline-none font-mono text-xs font-bold ${
+                        profileErrors.assists ? 'border-rose-300 focus:ring-rose-500' : 'border-slate-200 focus:ring-indigo-500'
+                      }`}
                     />
+                    <FieldError id="edit-stat-assists-error" message={profileErrors.assists} />
                   </div>
                   <div>
                     <label className="block mb-1 font-bold text-slate-400 text-[9px] uppercase tracking-wider">
@@ -712,64 +905,133 @@ export default function PlayerProfileModal({ player, onClose, onUpdate, onRemove
                     </label>
                     <input 
                       id="edit-stat-sheets"
+                      data-validation-field="cleanSheetsOrRebounds"
                       type="number" 
+                      min="0"
+                      step="1"
+                      inputMode="numeric"
                       value={cleanSheetsOrRebounds} 
-                      onChange={e => setCleanSheetsOrRebounds(Number(e.target.value))}
-                      className="w-full border border-slate-200 rounded-lg p-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none font-mono text-xs font-bold"
+                      onChange={e => {
+                        setCleanSheetsOrRebounds(e.target.value);
+                        setProfileErrors(previous => ({ ...previous, cleanSheetsOrRebounds: undefined }));
+                      }}
+                      aria-invalid={Boolean(profileErrors.cleanSheetsOrRebounds)}
+                      aria-describedby={profileErrors.cleanSheetsOrRebounds ? 'edit-stat-sheets-error' : undefined}
+                      className={`w-full border rounded-lg p-2 focus:ring-2 focus:outline-none font-mono text-xs font-bold ${
+                        profileErrors.cleanSheetsOrRebounds ? 'border-rose-300 focus:ring-rose-500' : 'border-slate-200 focus:ring-indigo-500'
+                      }`}
                     />
+                    <FieldError id="edit-stat-sheets-error" message={profileErrors.cleanSheetsOrRebounds} />
                   </div>
                   <div>
                     <label className="block mb-1 font-bold text-slate-400 text-[9px] uppercase tracking-wider">Mins Placed</label>
                     <input 
                       id="edit-stat-mins"
+                      data-validation-field="minutesPlayed"
                       type="number" 
+                      min="0"
+                      step="1"
+                      inputMode="numeric"
                       value={minutesPlayed} 
-                      onChange={e => setMinutesPlayed(Number(e.target.value))}
-                      className="w-full border border-slate-200 rounded-lg p-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none font-mono text-xs font-bold"
+                      onChange={e => {
+                        setMinutesPlayed(e.target.value);
+                        setProfileErrors(previous => ({ ...previous, minutesPlayed: undefined }));
+                      }}
+                      aria-invalid={Boolean(profileErrors.minutesPlayed)}
+                      aria-describedby={profileErrors.minutesPlayed ? 'edit-stat-mins-error' : undefined}
+                      className={`w-full border rounded-lg p-2 focus:ring-2 focus:outline-none font-mono text-xs font-bold ${
+                        profileErrors.minutesPlayed ? 'border-rose-300 focus:ring-rose-500' : 'border-slate-200 focus:ring-indigo-500'
+                      }`}
                     />
+                    <FieldError id="edit-stat-mins-error" message={profileErrors.minutesPlayed} />
                   </div>
                   <div>
                     <label className="block mb-1 font-bold text-slate-400 text-[9px] uppercase tracking-wider">Total Minutes</label>
                     <input 
                       id="edit-stat-mins-total"
+                      data-validation-field="minutesPlayed"
                       type="number" 
+                      min="0"
+                      step="1"
+                      inputMode="numeric"
                       value={minutesPlayed} 
-                      onChange={e => setMinutesPlayed(Number(e.target.value))}
-                      className="w-full border border-slate-200 rounded-lg p-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none font-mono text-xs font-bold"
+                      onChange={e => {
+                        setMinutesPlayed(e.target.value);
+                        setProfileErrors(previous => ({ ...previous, minutesPlayed: undefined }));
+                      }}
+                      aria-invalid={Boolean(profileErrors.minutesPlayed)}
+                      aria-describedby={profileErrors.minutesPlayed ? 'edit-stat-mins-total-error' : undefined}
+                      className={`w-full border rounded-lg p-2 focus:ring-2 focus:outline-none font-mono text-xs font-bold ${
+                        profileErrors.minutesPlayed ? 'border-rose-300 focus:ring-rose-500' : 'border-slate-200 focus:ring-indigo-500'
+                      }`}
                     />
+                    <FieldError id="edit-stat-mins-total-error" message={profileErrors.minutesPlayed} />
                   </div>
                   <div>
                     <label className="block mb-1 font-bold text-slate-400 text-[9px] uppercase tracking-wider">🟨 Yellow Cards</label>
                     <input 
                       id="edit-stat-yellows"
+                      data-validation-field="yellowCards"
                       type="number" 
                       min="0"
+                      step="1"
+                      inputMode="numeric"
                       value={yellowCards} 
-                      onChange={e => setYellowCards(Number(e.target.value))}
-                      className="w-full border border-slate-200 rounded-lg p-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none font-mono text-xs font-bold"
+                      onChange={e => {
+                        setYellowCards(e.target.value);
+                        setProfileErrors(previous => ({ ...previous, yellowCards: undefined }));
+                      }}
+                      aria-invalid={Boolean(profileErrors.yellowCards)}
+                      aria-describedby={profileErrors.yellowCards ? 'edit-stat-yellows-error' : undefined}
+                      className={`w-full border rounded-lg p-2 focus:ring-2 focus:outline-none font-mono text-xs font-bold ${
+                        profileErrors.yellowCards ? 'border-rose-300 focus:ring-rose-500' : 'border-slate-200 focus:ring-indigo-500'
+                      }`}
                     />
+                    <FieldError id="edit-stat-yellows-error" message={profileErrors.yellowCards} />
                   </div>
                   <div>
                     <label className="block mb-1 font-bold text-slate-400 text-[9px] uppercase tracking-wider">🟥 Red Cards</label>
                     <input 
                       id="edit-stat-reds"
+                      data-validation-field="redCards"
                       type="number" 
                       min="0"
+                      step="1"
+                      inputMode="numeric"
                       value={redCards} 
-                      onChange={e => setRedCards(Number(e.target.value))}
-                      className="w-full border border-slate-200 rounded-lg p-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none font-mono text-xs font-bold"
+                      onChange={e => {
+                        setRedCards(e.target.value);
+                        setProfileErrors(previous => ({ ...previous, redCards: undefined }));
+                      }}
+                      aria-invalid={Boolean(profileErrors.redCards)}
+                      aria-describedby={profileErrors.redCards ? 'edit-stat-reds-error' : undefined}
+                      className={`w-full border rounded-lg p-2 focus:ring-2 focus:outline-none font-mono text-xs font-bold ${
+                        profileErrors.redCards ? 'border-rose-300 focus:ring-rose-500' : 'border-slate-200 focus:ring-indigo-500'
+                      }`}
                     />
+                    <FieldError id="edit-stat-reds-error" message={profileErrors.redCards} />
                   </div>
                   <div>
                     <label className="block mb-1 font-bold text-slate-400 text-[9px] uppercase tracking-wider">⭐ MVP Awards</label>
                     <input 
                       id="edit-stat-mvps"
+                      data-validation-field="mvpAwards"
                       type="number" 
                       min="0"
+                      step="1"
+                      inputMode="numeric"
                       value={mvpAwards} 
-                      onChange={e => setMvpAwards(Number(e.target.value))}
-                      className="w-full border border-slate-200 rounded-lg p-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none font-mono text-xs font-bold"
+                      onChange={e => {
+                        setMvpAwards(e.target.value);
+                        setProfileErrors(previous => ({ ...previous, mvpAwards: undefined }));
+                      }}
+                      aria-invalid={Boolean(profileErrors.mvpAwards)}
+                      aria-describedby={profileErrors.mvpAwards ? 'edit-stat-mvps-error' : undefined}
+                      className={`w-full border rounded-lg p-2 focus:ring-2 focus:outline-none font-mono text-xs font-bold ${
+                        profileErrors.mvpAwards ? 'border-rose-300 focus:ring-rose-500' : 'border-slate-200 focus:ring-indigo-500'
+                      }`}
                     />
+                    <FieldError id="edit-stat-mvps-error" message={profileErrors.mvpAwards} />
                   </div>
                   <div className="col-span-2">
                     <label className="block mb-1 font-bold text-slate-400 text-[9px] uppercase tracking-wider">Squad Status</label>
@@ -789,34 +1051,67 @@ export default function PlayerProfileModal({ player, onClose, onUpdate, onRemove
                       <label className="block mb-1 font-bold text-slate-400 text-[9px] uppercase tracking-wider">Age</label>
                       <input 
                         id="edit-player-age"
+                        data-validation-field="age"
                         type="number" 
-                        min="16" max="45"
-                        value={age ?? ''} 
-                        onChange={e => setAge(e.target.value ? Number(e.target.value) : undefined)}
-                        className="w-full border border-slate-200 rounded-lg p-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none font-mono text-xs font-bold"
+                        min="10" max="80"
+                        step="1"
+                        inputMode="numeric"
+                        value={age} 
+                        onChange={e => {
+                          setAge(e.target.value);
+                          setProfileErrors(previous => ({ ...previous, age: undefined }));
+                        }}
+                        aria-invalid={Boolean(profileErrors.age)}
+                        aria-describedby={profileErrors.age ? 'edit-player-age-error' : undefined}
+                        className={`w-full border rounded-lg p-2 focus:ring-2 focus:outline-none font-mono text-xs font-bold ${
+                          profileErrors.age ? 'border-rose-300 focus:ring-rose-500' : 'border-slate-200 focus:ring-indigo-500'
+                        }`}
                       />
+                      <FieldError id="edit-player-age-error" message={profileErrors.age} />
                     </div>
                     <div>
                       <label className="block mb-1 font-bold text-slate-400 text-[9px] uppercase tracking-wider">Height (cm)</label>
                       <input 
                         id="edit-player-height"
+                        data-validation-field="height"
                         type="number" 
-                        min="150" max="210"
-                        value={height ?? ''} 
-                        onChange={e => setHeight(e.target.value ? Number(e.target.value) : undefined)}
-                        className="w-full border border-slate-200 rounded-lg p-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none font-mono text-xs font-bold"
+                        min="100" max="250"
+                        step="1"
+                        inputMode="numeric"
+                        value={height} 
+                        onChange={e => {
+                          setHeight(e.target.value);
+                          setProfileErrors(previous => ({ ...previous, height: undefined }));
+                        }}
+                        aria-invalid={Boolean(profileErrors.height)}
+                        aria-describedby={profileErrors.height ? 'edit-player-height-error' : undefined}
+                        className={`w-full border rounded-lg p-2 focus:ring-2 focus:outline-none font-mono text-xs font-bold ${
+                          profileErrors.height ? 'border-rose-300 focus:ring-rose-500' : 'border-slate-200 focus:ring-indigo-500'
+                        }`}
                       />
+                      <FieldError id="edit-player-height-error" message={profileErrors.height} />
                     </div>
                     <div>
                       <label className="block mb-1 font-bold text-slate-400 text-[9px] uppercase tracking-wider">Weight (kg)</label>
                       <input 
                         id="edit-player-weight"
+                        data-validation-field="weight"
                         type="number" 
-                        min="50" max="120"
-                        value={weight ?? ''} 
-                        onChange={e => setWeight(e.target.value ? Number(e.target.value) : undefined)}
-                        className="w-full border border-slate-200 rounded-lg p-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none font-mono text-xs font-bold"
+                        min="30" max="250"
+                        step="1"
+                        inputMode="numeric"
+                        value={weight} 
+                        onChange={e => {
+                          setWeight(e.target.value);
+                          setProfileErrors(previous => ({ ...previous, weight: undefined }));
+                        }}
+                        aria-invalid={Boolean(profileErrors.weight)}
+                        aria-describedby={profileErrors.weight ? 'edit-player-weight-error' : undefined}
+                        className={`w-full border rounded-lg p-2 focus:ring-2 focus:outline-none font-mono text-xs font-bold ${
+                          profileErrors.weight ? 'border-rose-300 focus:ring-rose-500' : 'border-slate-200 focus:ring-indigo-500'
+                        }`}
                       />
+                      <FieldError id="edit-player-weight-error" message={profileErrors.weight} />
                     </div>
                   </div>
                   <div className="col-span-2">
@@ -865,7 +1160,7 @@ export default function PlayerProfileModal({ player, onClose, onUpdate, onRemove
                       {position === 'Goalkeeper' ? 'Clean Sheets' : position === 'Defender' ? 'Clean Sheets' : 'Goal Contributions'}
                     </span>
                     <span className="font-mono font-bold text-slate-800 text-sm">
-                      {position === 'Goalkeeper' || position === 'Defender' ? cleanSheetsOrRebounds : points + assists}
+                      {position === 'Goalkeeper' || position === 'Defender' ? displayCleanSheets : displayPoints + displayAssists}
                     </span>
                   </div>
                   <div id="stat-row-mvps" className="flex justify-between items-center py-2 border-b border-slate-100 text-xs">
@@ -874,15 +1169,15 @@ export default function PlayerProfileModal({ player, onClose, onUpdate, onRemove
                   </div>
                   <div id="stat-row-motm" className="flex justify-between items-center py-2 border-b border-slate-100 text-xs">
                     <span className="text-slate-500 flex items-center gap-1.5"><Star size={13} className="text-amber-500" /> Man of the Match</span>
-                    <span className="font-mono font-extrabold text-amber-600 text-sm">{mvpAwards > 0 ? `⭐ ${mvpAwards}` : '—'}</span>
+                    <span className="font-mono font-extrabold text-amber-600 text-sm">{displayMvpAwards > 0 ? `⭐ ${displayMvpAwards}` : '—'}</span>
                   </div>
                   <div id="stat-row-cards" className="flex justify-between items-center py-2 border-b border-slate-100 text-xs">
                     <span className="text-slate-500 flex items-center gap-1.5"><AlertTriangle size={13} className="text-slate-400" /> Discipline</span>
                     <span className="font-mono font-bold text-sm">
-                      {player.yellowCards > 0 && <span className="text-amber-600">{player.yellowCards} 🟨</span>}
-                      {player.yellowCards > 0 && player.redCards > 0 && <span className="text-slate-300 mx-1">·</span>}
-                      {player.redCards > 0 && <span className="text-red-600">{player.redCards} 🟥</span>}
-                      {player.yellowCards === 0 && player.redCards === 0 && <span className="text-slate-400">Clean</span>}
+                      {displayYellowCards > 0 && <span className="text-amber-600">{displayYellowCards} 🟨</span>}
+                      {displayYellowCards > 0 && displayRedCards > 0 && <span className="text-slate-300 mx-1">·</span>}
+                      {displayRedCards > 0 && <span className="text-red-600">{displayRedCards} 🟥</span>}
+                      {displayYellowCards === 0 && displayRedCards === 0 && <span className="text-slate-400">Clean</span>}
                     </span>
                   </div>
                   <div id="stat-row-ratio" className="flex justify-between items-center py-2 text-xs">
@@ -891,10 +1186,10 @@ export default function PlayerProfileModal({ player, onClose, onUpdate, onRemove
                     </span>
                     <span className="font-mono font-bold text-slate-800 text-sm">
                       {position === 'Goalkeeper' 
-                        ? (gamesPlayed > 0 ? (cleanSheetsOrRebounds / gamesPlayed).toFixed(1) : '0.0')
+                        ? (displayGamesPlayed > 0 ? (displayCleanSheets / displayGamesPlayed).toFixed(1) : '0.0')
                         : position === 'Defender'
-                        ? (gamesPlayed > 0 ? (cleanSheetsOrRebounds / gamesPlayed).toFixed(1) : '0.0')
-                        : points > 0 ? Math.round(minutesPlayed / points) : minutesPlayed
+                        ? (displayGamesPlayed > 0 ? (displayCleanSheets / displayGamesPlayed).toFixed(1) : '0.0')
+                        : displayPoints > 0 ? Math.round(displayMinutesPlayed / displayPoints) : displayMinutesPlayed
                       }{position === 'Goalkeeper' || position === 'Defender' ? '' : 'm'}
                     </span>
                   </div>
@@ -1105,7 +1400,7 @@ export default function PlayerProfileModal({ player, onClose, onUpdate, onRemove
                 <div className="bg-slate-50 rounded-lg p-2 border border-slate-100">
                   <div className="text-slate-400 font-bold mb-0.5">Goals / Game</div>
                   <div className="font-mono font-black text-slate-700">
-                    {gamesPlayed > 0 ? (points / gamesPlayed).toFixed(1) : '0.0'}
+                    {displayGamesPlayed > 0 ? (displayPoints / displayGamesPlayed).toFixed(1) : '0.0'}
                   </div>
                 </div>
                 <div className="bg-slate-50 rounded-lg p-2 border border-slate-100">
@@ -1128,9 +1423,9 @@ export default function PlayerProfileModal({ player, onClose, onUpdate, onRemove
                 <div className="bg-slate-50 rounded-lg p-2 border border-slate-100">
                   <div className="text-slate-400 font-bold mb-0.5">Form</div>
                   <div className="font-mono font-black text-slate-700 text-[9px] leading-tight">
-                    {gamesPlayed > 0 
-                      ? points >= gamesPlayed * 0.5 ? '🔥 In-form'
-                      : mvpAwards > 0 ? '⭐ Rising'
+                    {displayGamesPlayed > 0 
+                      ? displayPoints >= displayGamesPlayed * 0.5 ? '🔥 In-form'
+                      : displayMvpAwards > 0 ? '⭐ Rising'
                       : 'Active'
                     : 'No games'}
                   </div>
@@ -1138,7 +1433,7 @@ export default function PlayerProfileModal({ player, onClose, onUpdate, onRemove
                 <div className="bg-slate-50 rounded-lg p-2 border border-slate-100">
                   <div className="text-slate-400 font-bold mb-0.5">Avg Mins/Game</div>
                   <div className="font-mono font-black text-slate-700">
-                    {gamesPlayed > 0 ? Math.round(minutesPlayed / gamesPlayed) : '—'}
+                    {displayGamesPlayed > 0 ? Math.round(displayMinutesPlayed / displayGamesPlayed) : '—'}
                   </div>
                 </div>
               </div>
