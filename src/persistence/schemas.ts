@@ -138,6 +138,25 @@ export const staffMemberSchema = z.object({
 });
 export const staffMembersSchema = z.array(staffMemberSchema);
 
+export const paymentLedgerEntrySchema = z.object({
+  id: z.string().min(1),
+  playerId: z.string().min(1),
+  playerNameSnapshot: z.string().min(1),
+  type: z.enum(['charge', 'payment', 'waiver', 'refund', 'adjustment']),
+  category: z.enum(['registration', 'monthly_fee', 'coach_fee', 'kit', 'tournament', 'training', 'other']),
+  amount: finiteNumber.gt(0),
+  date: z.string().min(1),
+  dueDate: z.string().optional(),
+  method: z.enum(['cash', 'gcash', 'bank_transfer', 'card', 'other']).optional(),
+  reference: z.string().optional(),
+  note: z.string().optional(),
+  createdAt: z.string().min(1),
+  updatedAt: z.string().optional(),
+  voidedAt: z.string().optional(),
+  voidReason: z.string().optional()
+}).strict();
+export const paymentLedgerSchema = z.array(paymentLedgerEntrySchema);
+
 export const migrateLegacyRoster = (
   records: Player[]
 ): { players: Player[]; staff: StaffMember[] } => records.reduce<{ players: Player[]; staff: StaffMember[] }>(

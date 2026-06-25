@@ -283,6 +283,37 @@ export interface StaffMember {
   status: 'Active' | 'Inactive';
 }
 
+export type PaymentLedgerEntryType = 'charge' | 'payment' | 'waiver' | 'refund' | 'adjustment';
+
+export type PaymentLedgerCategory =
+  | 'registration'
+  | 'monthly_fee'
+  | 'coach_fee'
+  | 'kit'
+  | 'tournament'
+  | 'training'
+  | 'other';
+
+export type PaymentMethod = 'cash' | 'gcash' | 'bank_transfer' | 'card' | 'other';
+
+export interface PaymentLedgerEntry {
+  id: string;
+  playerId: string;
+  playerNameSnapshot: string;
+  type: PaymentLedgerEntryType;
+  category: PaymentLedgerCategory;
+  amount: number;
+  date: string;
+  dueDate?: string;
+  method?: PaymentMethod;
+  reference?: string;
+  note?: string;
+  createdAt: string;
+  updatedAt?: string;
+  voidedAt?: string;
+  voidReason?: string;
+}
+
 export const POSITION_ATTRIBUTES_MAP: Record<string, string[]> = {
   Forward: ['Finishing', 'Long Shots', 'Offensive 1v1', 'Attacking Heading'],
   Midfielder: ['Long Passing', 'Vision', 'Ball Retention', 'Pressing'],

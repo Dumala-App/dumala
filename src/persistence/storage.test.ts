@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { playersSchema } from './schemas';
+import { paymentLedgerSchema, playersSchema } from './schemas';
 import {
   createStorageRecoverySnapshot,
   drainRecoveryWarnings,
@@ -90,6 +90,31 @@ describe('validated storage reads', () => {
     storage.setItem('players', JSON.stringify([{ id: 'missing-fields' }]));
     expect(readJsonStorage('players', playersSchema, [], 'Roster', storage)).toEqual([]);
     expect(drainRecoveryWarnings()).toHaveLength(1);
+  });
+
+  it('validates payment ledger records', () => {
+    expect(paymentLedgerSchema.parse([{
+      id: 'pay-1',
+      playerId: 'p1',
+      playerNameSnapshot: 'Legacy Player',
+      type: 'payment',
+      category: 'monthly_fee',
+      amount: 250,
+      date: '2026-06-25',
+      method: 'cash',
+      createdAt: '2026-06-25T00:00:00.000Z'
+    }])).toHaveLength(1);
+
+    expect(() => paymentLedgerSchema.parse([{
+      id: 'pay-1',
+      playerId: 'p1',
+      playerNameSnapshot: 'Legacy Player',
+      type: 'payment',
+      category: 'monthly_fee',
+      amount: 0,
+      date: '2026-06-25',
+      createdAt: '2026-06-25T00:00:00.000Z'
+    }])).toThrow();
   });
 });
 
