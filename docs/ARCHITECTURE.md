@@ -119,6 +119,7 @@ Assessment sessions retain raw results and derived scores so calculations remain
 - `squad_availability`
 - `squad_coach_notes`
 - `squad_weekly_schedule`
+- `squad_weekly_schedule_weeks`
 - `squad_weekly_schedule_history`
 
 ### Tactics keys
@@ -189,7 +190,7 @@ Auto-fill keeps valid manual assignments, then fills empty formation slots by ma
 
 ### Training synchronization
 
-Weekly planned training creates or refreshes Training events in the shared games calendar.
+Weekly planned training creates or refreshes Training events in the shared games calendar for the currently selected planner week. `squad_weekly_schedule` remains the compatibility/current-view schedule, while `squad_weekly_schedule_weeks` stores per-week Monday-Sunday plans keyed by week start date.
 
 ### Dialog accessibility
 
@@ -197,16 +198,18 @@ Release-critical dialogs use a shared focus-management hook. Opening a dialog mo
 
 ## 9. Backup format
 
-Full Workspace V3 uses the `dumala-workspace` format and includes:
+Full Workspace V4 uses the `dumala-workspace` format and includes:
 
-- team information, separate players and staff, games, standings, bulletins, and assessments
+- team information, separate players and staff, games, standings, bulletins, assessments, and payment ledger entries
 - availability and coach notes
 - weekly training schedules and history
 - standings snapshots and preferences
 - tactics formation, lineup, roles, notes, custom positions, drawings, and player extras
 - export timestamp and numeric format version
 
-Import continues to accept legacy versions `1.0.0`, `1.1.0`, and Full Workspace V2. Mixed legacy rosters are separated into V3 players and staff before validation. Restore validates the complete nested workspace before writing, creates an automatic pre-restore backup, and rolls back all writes if storage fails.
+Import continues to accept legacy versions `1.0.0`, `1.1.0`, Full Workspace V2, and Full Workspace V3. Mixed legacy rosters are separated into V4 players and staff before validation. Restore validates the complete nested workspace before writing, creates an automatic pre-restore backup, and rolls back all writes if storage fails.
+
+The multi-week training planner stores week-indexed schedules in `squad_weekly_schedule_weeks`. The current Full Workspace backup path still exports the selected/compatibility weekly schedule plus weekly history; extending the backup payload to include the full week index is a follow-up data-portability task.
 
 When startup validation fails, Dumala does not create a normal workspace backup because the stored records are not trusted as a complete workspace. The recovery screen instead exports an untouched `dumala-storage-recovery` diagnostic snapshot containing only known Dumala keys and issue metadata. This file is private recovery material and is not accepted by the normal restore workflow.
 

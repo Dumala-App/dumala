@@ -1,6 +1,6 @@
 # Dumala Beta MVP
 
-Updated: 2026-06-21
+Updated: 2026-06-26
 
 ## Objective
 
@@ -9,7 +9,7 @@ The current MVP is a local-first football operations and player-development work
 ## Included
 
 1. Team and manager onboarding.
-2. Home Overview and Game Week schedule.
+2. Home Overview with a polished club dashboard hero and Game Week schedule.
 3. Player and staff roster management.
 4. Position-specific cards, placeholders, traits, and measurements.
 5. Player comparison, editing, assessment entry, and removal.
@@ -17,7 +17,7 @@ The current MVP is a local-first football operations and player-development work
 7. Automatic league standings and player-stat updates.
 8. Discipline records, MVP awards, and histories.
 9. Position-aware tactics auto-fill and persistent tactical planning.
-10. Weekly training planner with 52 drills, guides, filters, and nine presets.
+10. Weekly training planner with 52 drills, guides, filters, nine presets, and week-by-week schedule navigation.
 11. FPRDS Assessment Center in beta:
     - Full and Quick assessments
     - U12, U15, U18, and Adult groups
@@ -27,7 +27,7 @@ The current MVP is a local-first football operations and player-development work
     - Four-week plans for Full assessments
 12. Team bulletins and product updates.
 13. Feedback delivery with email fallback.
-14. Validated Full Workspace V3 export and restore, including separate player/staff records, feature-local state, and legacy backup migration.
+14. Validated Full Workspace V4 export and restore, including separate player/staff records, payment ledger records, feature-local state, and legacy backup migration.
 
 ## Excluded
 
@@ -52,7 +52,7 @@ Add players and staff, select traits and measurements, use position placeholders
 
 ### Plan the week
 
-Create events, check availability, review opponent information, write coach notes, and schedule training.
+Create events, check availability, review opponent information, write coach notes, and schedule training across current and future weeks.
 
 ### Prepare tactics
 

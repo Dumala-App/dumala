@@ -78,7 +78,7 @@ Dumala provides one structured workspace for weekly team administration and repe
 
 ### Development
 
-- **Training**: 52-drill library, filters, How-To guides, weekly planner, nine presets, match badges, and schedule synchronization.
+- **Training**: 52-drill library, filters, How-To guides, week-by-week planner, nine presets, match badges, and schedule synchronization.
 - **Assessments**: Full and Quick FPRDS assessments, seven role profiles, four age groups, benchmark scoring, OVR, deltas, history, drill guides, player-card preview, and four-week plans for Full assessments.
 
 ### League & Updates
@@ -122,8 +122,8 @@ Dumala provides one structured workspace for weekly team administration and repe
 
 - Users must browse and filter the drill library.
 - Each drill must provide practical instructions.
-- Users must assign drills to a weekly schedule and load presets.
-- Training schedule changes must synchronize corresponding calendar events.
+- Users must assign drills to a weekly schedule, navigate to previous or future weeks, and load presets.
+- Training schedule changes must synchronize corresponding calendar events for the selected week.
 
 ### FPRDS assessments
 
@@ -153,9 +153,9 @@ Dumala provides one structured workspace for weekly team administration and repe
 
 ### Backup and recovery
 
-- Full Workspace V3 must include separate player and staff records plus tactics, training, availability, coach notes, and standings history.
+- Full Workspace V4 must include separate player and staff records, payment ledger records, tactics, training, availability, coach notes, and standings history.
 - Import must validate nested records and reject unsupported or incomplete backups before changing the workspace.
-- Legacy versions 1.0, 1.1, and Full Workspace V2 must migrate into the V3 structure.
+- Legacy versions 1.0, 1.1, Full Workspace V2, and Full Workspace V3 must migrate into the V4 structure.
 - Restore must create a pre-restore backup and reopen the workspace without requiring onboarding.
 - Failed writes must roll back so the current workspace remains unchanged.
 - Reset Workspace must clear all locally stored Dumala data.

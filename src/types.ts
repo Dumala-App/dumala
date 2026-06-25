@@ -228,6 +228,7 @@ export interface AssessmentSession {
     ovrTierLabel: string;
   };
   deltas: AssessmentDeltas;
+  coachNotes?: string;
   developmentPlan?: AssessmentDevelopmentPlan;
 }
 

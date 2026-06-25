@@ -38,6 +38,7 @@ export const STORAGE_KEYS = {
   availability: 'squad_availability',
   coachNotes: 'squad_coach_notes',
   weeklySchedule: 'squad_weekly_schedule',
+  weeklyScheduleWeeks: 'squad_weekly_schedule_weeks',
   weeklyScheduleHistory: 'squad_weekly_schedule_history',
   matchFormat: 'squad_match_format',
   formation: 'squad_formation',

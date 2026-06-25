@@ -3,6 +3,10 @@ import { Megaphone, FlaskConical, Calculator, Target, TrendingUp, Hash, ChevronD
 
 export default function UpdatesView() {
   const [openEntries, setOpenEntries] = useState<Record<string, boolean>>({
+    assessment_team_history_notes: true,
+    fprds_comparison_reports: true,
+    fprds_historical_progress_charts: true,
+    fprds_benchmark_review_package: true,
     cloud_collaboration_foundation_completed: true,
     squad_payments_ledger_added: true,
     reliability_foundation_upgraded: true,
@@ -20,6 +24,165 @@ export default function UpdatesView() {
   };
 
   const changelogEntries = [
+    {
+      id: 'assessment_team_history_notes',
+      date: '2026-06-26',
+      title: 'Assessment Team History and Notes Added',
+      summary: 'Assessment Center now has direct team history access and coach notes on saved assessment sessions.',
+      accent: 'border-sky-200 bg-sky-50/70',
+      renderContent: () => (
+        <div className="space-y-4">
+          <p className="text-sm text-slate-600 leading-relaxed">
+            Coaches can open the full team Assessment History from the Assessment Center and add session-specific notes for context, follow-up, and player feedback.
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {[
+              {
+                title: 'Team history button',
+                desc: 'A new Assessment Center action opens every saved FPRDS assessment across the squad.'
+              },
+              {
+                title: 'Player drill-down',
+                desc: 'From team history, coaches can jump into one player\'s individual assessment history.'
+              },
+              {
+                title: 'Coach notes',
+                desc: 'Each saved session now supports editable notes for observations, reminders, and review context.'
+              },
+              {
+                title: 'Backup support',
+                desc: 'Notes are stored on assessment records, so they travel with the existing workspace backup flow.'
+              }
+            ].map(item => (
+              <div key={item.title} className="bg-white border border-sky-200 rounded-xl p-4">
+                <h5 className="text-xs font-black text-slate-800 uppercase tracking-wider mb-1.5">{item.title}</h5>
+                <p className="text-xs text-slate-600 leading-relaxed">{item.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )
+    },
+    {
+      id: 'fprds_comparison_reports',
+      date: '2026-06-26',
+      title: 'FPRDS Player and Session Reports Added',
+      summary: 'Assessment History now includes player-to-player and session-to-session reports for comparing OVR and weighted attribute gaps.',
+      accent: 'border-indigo-200 bg-indigo-50/70',
+      renderContent: () => (
+        <div className="space-y-4">
+          <p className="text-sm text-slate-600 leading-relaxed">
+            Coaches can now compare FPRDS assessment records directly inside the Assessment History view, without manually reading every session card.
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {[
+              {
+                title: 'Player-to-player reports',
+                desc: 'Compare the selected player\'s latest FPRDS assessment against another assessed player and review OVR gap plus weighted attribute differences.'
+              },
+              {
+                title: 'Session-to-session reports',
+                desc: 'Select any two saved sessions for the player to see baseline, target, total OVR change, and attribute-by-attribute movement.'
+              },
+              {
+                title: 'Role-aware comparisons',
+                desc: 'Reports focus on the weighted attributes for the relevant FPRDS role, keeping comparison output tied to football context.'
+              },
+              {
+                title: 'Next reporting step',
+                desc: 'The next FPRDS beta task is downloadable assessment and development reports.'
+              }
+            ].map(item => (
+              <div key={item.title} className="bg-white border border-indigo-200 rounded-xl p-4">
+                <h5 className="text-xs font-black text-slate-800 uppercase tracking-wider mb-1.5">{item.title}</h5>
+                <p className="text-xs text-slate-600 leading-relaxed">{item.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )
+    },
+    {
+      id: 'fprds_historical_progress_charts',
+      date: '2026-06-26',
+      title: 'FPRDS Historical Progress Charts Added',
+      summary: 'Assessment History now charts real saved FPRDS sessions so coaches can see OVR movement and same-role attribute trends over time.',
+      accent: 'border-emerald-200 bg-emerald-50/70',
+      renderContent: () => (
+        <div className="space-y-4">
+          <p className="text-sm text-slate-600 leading-relaxed">
+            Dumala now turns saved assessment history into actual progress charts instead of leaving coaches to compare session cards manually.
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {[
+              {
+                title: 'Real OVR timeline',
+                desc: 'The chart is built from saved FPRDS assessment sessions and shows the player\'s OVR movement across assessment dates.'
+              },
+              {
+                title: 'Same-role attribute trend',
+                desc: 'For the latest role, Dumala charts the most important weighted attributes across matching role assessments.'
+              },
+              {
+                title: 'Progress summary',
+                desc: 'Assessment History now shows session count, latest OVR, and change from first to latest saved session.'
+              },
+              {
+                title: 'Practitioner review deferred',
+                desc: 'External benchmark signoff remains planned, but implementation moved ahead to the next FPRDS beta reporting task.'
+              }
+            ].map(item => (
+              <div key={item.title} className="bg-white border border-emerald-200 rounded-xl p-4">
+                <h5 className="text-xs font-black text-slate-800 uppercase tracking-wider mb-1.5">{item.title}</h5>
+                <p className="text-xs text-slate-600 leading-relaxed">{item.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )
+    },
+    {
+      id: 'fprds_benchmark_review_package',
+      date: '2026-06-26',
+      title: 'FPRDS Benchmark Review Package Prepared',
+      summary: 'The next FPRDS beta gate is now organized around a practitioner review packet for benchmark tables, assumptions, role weights, signoff, and corrections.',
+      accent: 'border-sky-200 bg-sky-50/70',
+      renderContent: () => (
+        <div className="space-y-4">
+          <p className="text-sm text-slate-600 leading-relaxed">
+            Dumala now has a structured review package for qualified football practitioners to assess the current FPRDS benchmark tables before the ratings are treated as approved beyond beta use.
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {[
+              {
+                title: 'Benchmark tables gathered',
+                desc: 'Sprint, agility, endurance, jump, medicine-ball, shot-power, ball-retention, count, and coach-score tables are documented in one review packet.'
+              },
+              {
+                title: 'Assumptions are explicit',
+                desc: 'The package records age-group boundaries, scoring ranges, interpolation behavior, open-ended tiers, and beta-use limits.'
+              },
+              {
+                title: 'Role weights are reviewable',
+                desc: 'ST, W, CM, CDM, FB, CB, and GK weights are laid out so practitioners can challenge the football profile behind each OVR.'
+              },
+              {
+                title: 'Signoff path is ready',
+                desc: 'Reviewer fields, checklist decisions, correction logging, and approval gates are defined before benchmark changes are made.'
+              }
+            ].map(item => (
+              <div key={item.title} className="bg-white border border-sky-200 rounded-xl p-4">
+                <h5 className="text-xs font-black text-slate-800 uppercase tracking-wider mb-1.5">{item.title}</h5>
+                <p className="text-xs text-slate-600 leading-relaxed">{item.desc}</p>
+              </div>
+            ))}
+          </div>
+          <p className="text-xs text-slate-500 leading-relaxed">
+            The benchmark review itself is still open. The next step is to collect qualified practitioner decisions, apply any required corrections, and only then mark benchmark review complete.
+          </p>
+        </div>
+      )
+    },
     {
       id: 'cloud_collaboration_foundation_completed',
       date: '2026-06-25',
@@ -520,7 +683,7 @@ export default function UpdatesView() {
           {[
             {
               phase: 'Current Beta',
-              status: 'Current',
+              status: 'Complete',
               objective: 'Reliability and data confidence',
               deliverables: [
                 'Fix workflow and display defects across the main coaching tools.',
@@ -535,11 +698,11 @@ export default function UpdatesView() {
             },
             {
               phase: 'FPRDS Beta',
-              status: 'Beta Testing',
+              status: 'Current',
               objective: 'FPRDS development system',
               deliverables: [
                 'Complete standardized assessments for every supported position and age group.',
-                'Finalize benchmark tables, scoring validation, and explainable rating calculations.',
+                'Finalize benchmark tables through qualified practitioner review, scoring validation, and explainable rating calculations.',
                 'Add historical progress charts, comparison reports, and measurable development plans.',
                 'Produce downloadable player assessment and progress reports.'
               ],
@@ -550,7 +713,7 @@ export default function UpdatesView() {
             },
             {
               phase: 'Phase 1',
-              status: 'Current',
+              status: 'Complete',
               objective: 'Offline-ready web app',
               deliverables: [
                 'Validate the installed Progressive Web App on production devices.',
@@ -565,22 +728,22 @@ export default function UpdatesView() {
             },
             {
               phase: 'Phase 2',
-              status: 'Planned',
+              status: 'Complete',
               objective: 'Mobile and tablet experience',
               deliverables: [
                 'Create navigation and workspace layouts designed for tablets.',
                 'Improve touch controls, form sizing, tactical-board interaction, and responsive tables.',
                 'Test the complete coaching workflow on common Android tablet sizes.',
-                'Package the proven tablet PWA as an Android application for Google Play.'
+                'Use the Phase 2 support contract for viewport bands, touch targets, and verification coverage.'
               ],
               benefit: 'Coaches can comfortably manage the team from the sideline, training ground, or match venue.',
-              completion: 'Primary coaching workflows work comfortably on supported Android tablets.',
+              completion: 'Primary coaching workflows work comfortably on supported mobile and tablet viewports. Google Play packaging is deferred until core cloud, collaboration, and public-release capabilities stabilize.',
               color: 'border-cyan-400 bg-cyan-50',
               badge: 'bg-cyan-200 text-cyan-900'
             },
             {
               phase: 'Phase 3',
-              status: 'Planned',
+              status: 'Complete',
               objective: 'Cloud accounts and synchronization',
               deliverables: [
                 'Add secure user accounts, club workspaces, and durable cloud storage.',
@@ -595,7 +758,7 @@ export default function UpdatesView() {
             },
             {
               phase: 'Phase 4',
-              status: 'Planned',
+              status: 'Complete',
               objective: 'Team collaboration',
               deliverables: [
                 'Add Owner, Admin, Coach, Staff, and Viewer permissions.',

@@ -1,6 +1,6 @@
 # Dumala Product Roadmap
 
-Updated: 2026-06-21
+Updated: 2026-06-26
 
 ## Source of truth
 
@@ -8,7 +8,7 @@ This document mirrors the in-app **League & Updates > Updates > Roadmap Snapshot
 
 ## Current Beta: Reliability and data confidence
 
-Status: **Current**
+Status: **Complete**
 
 ### Planned deliverables
 
@@ -16,6 +16,8 @@ Status: **Current**
 - Validate standings calculations and the full match-result update flow.
 - Improve backup import validation, recovery guidance, and malformed-data handling.
 - Standardize roster, tactics, training, schedule, and assessment data behavior.
+- Polish the Home dashboard hero and remove outdated promotional surfaces from the operational overview.
+- Support week-by-week training planning from the Development planner.
 
 ### Completion criteria
 
@@ -23,12 +25,12 @@ Core workflows pass desktop and mobile testing without unexpected data loss.
 
 ## FPRDS Beta: Development system
 
-Status: **Beta Testing**
+Status: **Current**
 
 ### Planned deliverables
 
 - Complete standardized assessments for every supported position and age group.
-- Finalize benchmark tables, scoring validation, and explainable rating calculations.
+- Finalize benchmark tables through qualified practitioner review, scoring validation, and explainable rating calculations.
 - Add historical progress charts, comparison reports, and measurable development plans.
 - Produce downloadable player assessment and progress reports.
 
@@ -53,23 +55,22 @@ An installed device can reopen Dumala and use all local features while offline.
 
 ## Phase 2: Mobile and tablet experience
 
-Status: **Current**
+Status: **Complete**
 
 ### Planned deliverables
 
 - Create tablet-focused navigation and workspace layouts.
 - Improve touch controls, form sizing, tactical-board interaction, and responsive tables.
 - Test complete coaching workflows on common Android tablet sizes.
-- Package the proven PWA as an Android application for Google Play.
 - Use the Phase 2 support contract for viewport bands, touch targets, and verification coverage.
 
 ### Completion criteria
 
-Primary coaching workflows work comfortably on supported Android tablets.
+Primary coaching workflows work comfortably on supported mobile and tablet viewports. Google Play packaging is deferred until core cloud, collaboration, and public-release capabilities stabilize.
 
 ## Phase 3: Cloud accounts and synchronization
 
-Status: **Planned**
+Status: **Complete**
 
 ### Planned deliverables
 
@@ -84,7 +85,7 @@ A user can sign in on another device and safely access the same club data.
 
 ## Phase 4: Team collaboration
 
-Status: **Planned**
+Status: **Complete**
 
 ### Planned deliverables
 

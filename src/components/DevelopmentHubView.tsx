@@ -21,6 +21,7 @@ interface DevelopmentHubViewProps {
   onClearPreselectedAssessmentsPlayerId: () => void;
   onAddAssessment: (session: AssessmentSession) => void;
   onDeleteAssessment: (sessionId: string) => void;
+  onUpdateAssessmentNotes: (sessionId: string, coachNotes: string) => void;
 }
 
 const TabPill = (props: { label: string; isActive: boolean; onClick: () => void }) => {
@@ -59,6 +60,7 @@ export default function DevelopmentHubView(props: DevelopmentHubViewProps) {
             onClearPreselectedPlayer={props.onClearPreselectedAssessmentsPlayerId}
             onAddAssessment={props.onAddAssessment}
             onDeleteAssessment={props.onDeleteAssessment}
+            onUpdateAssessmentNotes={props.onUpdateAssessmentNotes}
           />
         ) : (
           <TrainingView players={props.players} onUpdatePlayer={props.onUpdatePlayer} games={props.games} onUpdateGames={props.onUpdateGames} />
