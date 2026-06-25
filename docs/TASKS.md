@@ -1,6 +1,6 @@
 # Dumala Delivery Tasks
 
-Updated: 2026-06-23
+Updated: 2026-06-25
 
 Status values: **Done**, **In Progress**, **Next**, **Planned**, **Long Term**.
 
@@ -9,15 +9,15 @@ Status values: **Done**, **In Progress**, **Next**, **Planned**, **Long Term**.
 Progress is calculated from the completed capabilities and open checklist items in this document. The roadmap bars track implementation, while Release Validation tracks the latest verified build checks.
 
 ```text
-Overall roadmap                 [######----]  65%  63 / 98
+Overall roadmap                 [########--]  76%  74 / 98
 
 Shipped beta foundation         [##########] 100%  20 / 20
 Current Beta: Reliability       [##########] 100%  24 / 24
 FPRDS Beta                      [######----]  60%   9 / 15
 Phase 1: Offline-ready PWA      [##########] 100%   7 / 7
 Phase 2: Mobile and tablet      [##########] 100%   4 / 4
-Phase 3: Cloud and sync         [----------]   0%   0 / 6
-Phase 4: Team collaboration     [----------]   0%   0 / 5
+Phase 3: Cloud and sync         [##########] 100%   6 / 6
+Phase 4: Team collaboration     [##########] 100%   5 / 5
 Phase 5: Profiles and drafting  [----------]   0%   0 / 6
 Future: Coach education         [----------]   0%   0 / 6
 Future: Club operations         [----------]   0%   0 / 5
@@ -33,8 +33,8 @@ Release validation              [##########] 100%  12 / 12
 | FPRDS Beta | 9 | 15 | 60% | In Progress |
 | Phase 1: Offline-ready web app | 7 | 7 | 100% | Done |
 | Phase 2: Mobile and tablet experience | 4 | 4 | 100% | Done |
-| Phase 3: Cloud accounts and synchronization | 0 | 6 | 0% | Planned |
-| Phase 4: Team collaboration | 0 | 5 | 0% | Planned |
+| Phase 3: Cloud accounts and synchronization | 6 | 6 | 100% | Done |
+| Phase 4: Team collaboration | 5 | 5 | 100% | Done |
 | Phase 5: Public profiles and drafting | 0 | 6 | 0% | Long Term |
 | Future Expansion: Philippine coach education | 0 | 6 | 0% | Long Term |
 | Future Expansion: Club operations | 0 | 5 | 0% | Long Term |
@@ -43,6 +43,31 @@ Release validation              [##########] 100%  12 / 12
 The FPRDS total includes nine completed capabilities: the five shipped assessment features plus interpolation, role-weighting, age-transition, and required-field validation coverage. Its six remaining review and reporting tasks appear below.
 
 ## Recent changes
+
+### Completed: 2026-06-25
+
+- [x] Accepted the Phase 3 cloud platform ADR selecting Supabase, PostgreSQL, Supabase Auth, Vercel hosting, IndexedDB replica/outbox, and optimistic sync conflict controls.
+- [x] Designed the Phase 3 durable schema baseline for user profiles, clubs, memberships, devices, sync metadata, domain records, assessments, tactics, payments, and audit events.
+- [x] Documented the non-destructive local-to-cloud migration and rollback workflow with V4 backups, import manifests, idempotency, verification, failure recovery, and beta rollback.
+- [x] Defined the offline mutation queue, IndexedDB replica stores, mutation envelope, retry/backoff behavior, conflict records, entity-specific conflict policies, and sync status states.
+- [x] Documented Phase 3 account recovery, session and device management, data export, club deletion, account deletion, re-authentication gates, pending-sync handling, and lifecycle audit events.
+- [x] Documented Phase 3 operations, monitoring, redacted diagnostics, audit logging, layered backups, restore drills, security operations, production launch gates, and private beta operating rhythm.
+- [x] Added the first local-to-cloud migration implementation slice for V4 pre-migration backups, deterministic manifests, record counts, content fingerprints, and rollback snapshots.
+- [x] Added the local-to-cloud import payload transform with deterministic source idempotency keys for club, roster, schedule, result, standings, bulletin, assessment, payment, availability, training, and tactics records.
+- [x] Added local migration package verification that blocks cloud activation when manifest hashes, counts, source IDs, payload table counts, or idempotency keys do not match.
+- [x] Added migration activation and rollback helpers so cloud-backed mode requires a passed verification report and beta rollback restores the pre-migration V4 backup.
+- [x] Initialized the Supabase local project scaffold, installed Supabase client and CLI dependencies, added disabled-by-default cloud configuration, and created the first RLS-protected cloud foundation migration.
+- [x] Added deterministic cloud UUID mapping for legacy local IDs and created the Supabase domain-table migration for roster, schedule, results, standings, bulletins, assessments, payments, training, and tactics records.
+- [x] Started the local Supabase stack with Docker, verified migrations with `supabase db reset`, and added an authenticated cloud import executor that creates owner membership, registers the device, upserts domain records in dependency order, and marks workspace imports completed or failed.
+- [x] Added account lifecycle implementation for passwordless recovery links, recent-auth gates, device revocation, portable account archive export, club deletion/cancellation, account deletion requests, and redacted lifecycle audit event inserts.
+- [x] Added Phase 3 operations guardrails for privacy-minimized metric definitions, redacted diagnostics, audit metadata redaction, restore drill evidence checks, and production launch gate evaluation.
+- [x] Added the Phase 3 launch approval runbook, local cloud-launch verifier, and pgTAP RLS isolation tests covering cross-user profile, club, domain-write, and audit-event boundaries.
+- [x] Added a machine-readable production approval record and failing production-approval verifier so real cloud launch remains blocked until project refs, access owners, backup settings, restore evidence, privacy approvals, diagnostic approvals, incident owners, and final signoff are filled in.
+- [x] Added Phase 4 role behavior for Owner, Admin, Coach, Staff, and Viewer with a shared permission matrix, database helper functions, role-scoped RLS policies, and pgTAP coverage for membership, domain-write, payment, bulletin, and viewer read-only boundaries.
+- [x] Added Phase 4 invitations and membership management with pending invitation records, owner/admin invitation controls, email-matched invitation visibility, atomic invitation acceptance, membership management helpers, and pgTAP coverage for invite isolation.
+- [x] Added Phase 4 activity history and sensitive-action audit records with collaboration audit event types, atomic invite-accept activity logging, redacted team activity helpers, owner/admin audit-history access, and pgTAP coverage for activity visibility boundaries.
+- [x] Added Phase 4 shared bulletins and controlled editing with active-only shared bulletin reads, audited bulletin creation, version-checked update/remove RPCs, blocked direct bulletin updates, and pgTAP coverage for stale-edit conflicts and viewer denial.
+- [x] Completed Phase 4 simultaneous-edit protection with database triggers that block blind direct updates, a generic version-checked controlled-update RPC for versioned domain records, conflict error mapping, protected-field patch validation, and pgTAP coverage for stale overwrite prevention.
 
 ### Completed: 2026-06-23
 
@@ -181,20 +206,22 @@ Deferred by product decision: Google Play packaging is a future release task, no
 
 ## Phase 3: Cloud accounts and synchronization
 
-- [ ] **Next:** Select backend, database, authentication, and hosting.
-- [ ] **Planned:** Design club, user, membership, and durable domain schemas.
-- [ ] **Planned:** Create local-to-cloud migration with non-destructive rollback.
-- [ ] **Planned:** Define offline mutation queue and conflict strategy.
-- [ ] **Planned:** Add account recovery, data export, and deletion.
-- [ ] **Planned:** Add monitoring, audit logging, and backups.
+- [x] **Done:** Select backend, database, authentication, and hosting.
+- [x] **Done:** Design club, user, membership, and durable domain schemas.
+- [x] **Done:** Create local-to-cloud migration with non-destructive rollback.
+- [x] **Done:** Define offline mutation queue and conflict strategy.
+- [x] **Done:** Add account recovery, data export, and deletion.
+- [x] **Done:** Add monitoring, audit logging, and backups.
+
+Phase 3 implementation baseline is complete. Local launch-readiness checks now include `npm run supabase:test` and `npm run verify:cloud-launch`. Private-beta production approval has been recorded for the current no-staging Supabase Free-plan posture; the shared setup password has been rotated, and independent backup storage should still be upgraded before inviting external beta users.
 
 ## Phase 4: Team collaboration
 
-- [ ] **Planned:** Implement Owner, Admin, Coach, Staff, and Viewer roles.
-- [ ] **Planned:** Add invitations and membership management.
-- [ ] **Planned:** Add activity history and sensitive-action audit records.
-- [ ] **Planned:** Add shared bulletins and controlled editing.
-- [ ] **Planned:** Prevent silent overwrite during simultaneous edits.
+- [x] **Done:** Implement Owner, Admin, Coach, Staff, and Viewer roles.
+- [x] **Done:** Add invitations and membership management.
+- [x] **Done:** Add activity history and sensitive-action audit records.
+- [x] **Done:** Add shared bulletins and controlled editing.
+- [x] **Done:** Prevent silent overwrite during simultaneous edits.
 
 ## Phase 5: Public profiles and drafting
 

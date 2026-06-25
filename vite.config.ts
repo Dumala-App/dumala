@@ -5,6 +5,7 @@ import {defineConfig} from 'vite';
 import {VitePWA} from 'vite-plugin-pwa';
 
 export default defineConfig({
+  cacheDir: 'node_modules/.vite-app',
   plugins: [
     react(),
     tailwindcss(),

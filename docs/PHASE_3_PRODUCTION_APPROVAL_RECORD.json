@@ -1,0 +1,175 @@
+{
+  "format": "dumala-phase-3-production-approval",
+  "version": 1,
+  "updatedAt": "2026-06-25",
+  "status": "approved",
+  "localEvidence": {
+    "supabaseResetPassed": true,
+    "supabaseRlsTestsPassed": true,
+    "cloudLaunchVerifierPassed": true,
+    "unitSuitePassed": true,
+    "buildPassed": true,
+    "pwaVerificationPassed": true
+  },
+  "environments": {
+    "local": {
+      "supabaseProjectRef": "dumala",
+      "region": "developer-machine",
+      "apiUrl": "http://127.0.0.1:54321",
+      "studioUrl": "http://127.0.0.1:54323",
+      "vercelEnvironment": "local",
+      "allowedRedirectUrls": [
+        "http://localhost:3000",
+        "http://127.0.0.1:3000"
+      ],
+      "dataPolicy": "Synthetic or developer-local data only"
+    },
+    "staging": {
+      "supabaseProjectRef": null,
+      "region": null,
+      "apiUrl": null,
+      "vercelEnvironment": "staging",
+      "allowedRedirectUrls": [],
+      "dataPolicy": "Synthetic or explicitly approved test data only",
+      "waived": true,
+      "waiverReason": "No separate staging Supabase project for the initial private beta. Production cloud data remains blocked by the remaining approval gates until final signoff.",
+      "approved": true,
+      "approvedBy": "Klein",
+      "approvedAt": "2026-06-25"
+    },
+    "production": {
+      "supabaseProjectRef": "radvesnnkqyqzhakfokd",
+      "region": "ap-southeast-1",
+      "apiUrl": "https://radvesnnkqyqzhakfokd.supabase.co",
+      "vercelEnvironment": "production",
+      "allowedRedirectUrls": [
+        "https://dumala.asia/",
+        "https://dumala.vercel.app/"
+      ],
+      "dataPolicy": "Real user data only after every approval gate passes",
+      "approved": true,
+      "approvedBy": "Klein",
+      "approvedAt": "2026-06-25"
+    }
+  },
+  "accessControls": {
+    "supabaseOrganizationOwner": {
+      "peopleOrTeams": [
+        "Klein"
+      ],
+      "approved": true,
+      "approvedBy": "Klein",
+      "approvedAt": "2026-06-25"
+    },
+    "supabaseProductionProject": {
+      "peopleOrTeams": [
+        "Klein"
+      ],
+      "approved": true,
+      "approvedBy": "Klein",
+      "approvedAt": "2026-06-25"
+    },
+    "vercelProductionProject": {
+      "peopleOrTeams": [
+        "Klein"
+      ],
+      "approved": true,
+      "approvedBy": "Klein",
+      "approvedAt": "2026-06-25"
+    },
+    "githubRepositorySecrets": {
+      "peopleOrTeams": [
+        "Klein"
+      ],
+      "approved": true,
+      "approvedBy": "Klein",
+      "approvedAt": "2026-06-25"
+    }
+  },
+  "providerBackups": {
+    "supabasePlan": "Free",
+    "dailyBackupRetentionDays": 0,
+    "pitrEnabled": false,
+    "pitrRetentionDays": null,
+    "logicalExportCadence": "daily before any private-beta data entry or release change while on Supabase Free plan",
+    "logicalExportStorageLocation": "encrypted local archive controlled by Klein; move to independent encrypted cloud storage before adding external beta users",
+    "objectStorageBackupNeeded": false,
+    "rpo": "24 hours or better for early beta",
+    "rto": "one business day or better for early beta",
+    "approved": true,
+    "approvedBy": "Klein",
+    "approvedAt": "2026-06-25"
+  },
+  "restoreDrill": {
+    "sourceBackupTimestamp": "2026-06-25T22:36:38+08:00",
+    "restoreEnvironment": "local Supabase Docker stack",
+    "operator": "Klein",
+    "startedAt": "2026-06-25T22:36:38+08:00",
+    "completedAt": "2026-06-25T22:37:33+08:00",
+    "schemaMigrationValidationPassed": true,
+    "rlsIsolationTestsPassed": true,
+    "sampleClubCountsPassed": true,
+    "domainIntegrityPassed": true,
+    "syncCursorIntegrityPassed": true,
+    "exportGenerationPassed": true,
+    "issues": [],
+    "followUpActions": [
+      "Run the same drill against a separate staging or restored production clone before inviting external beta users."
+    ],
+    "approved": true,
+    "approvedBy": "Klein",
+    "approvedAt": "2026-06-25"
+  },
+  "privacyReview": {
+    "minorPlayerDataApproved": true,
+    "staffContactFieldsApproved": true,
+    "paymentLedgerExportWordingApproved": true,
+    "assessmentExportWordingApproved": true,
+    "supportAccessBoundariesApproved": true,
+    "accountDeletionCopyApproved": true,
+    "clubDeletionRecoveryWindowDays": 14,
+    "accountDeletionRecoveryWindowDays": 14,
+    "auditRetentionDays": 365,
+    "approved": true,
+    "approvedBy": "Klein",
+    "approvedAt": "2026-06-25"
+  },
+  "diagnosticBoundary": {
+    "approvedFields": [
+      "appVersion",
+      "browserFamily",
+      "platformClass",
+      "cloudFeatureFlagState",
+      "syncState",
+      "pendingMutationCountsByEntityType",
+      "conflictCountsByType",
+      "stableErrorCodes",
+      "storageQuotaEstimate",
+      "migrationState",
+      "migrationFailureCode"
+    ],
+    "forbiddenFieldsReviewed": true,
+    "approved": true,
+    "approvedBy": "Klein",
+    "approvedAt": "2026-06-25"
+  },
+  "incidentAndKeyRotation": {
+    "incidentOwner": "Klein",
+    "backupOwner": "Klein",
+    "privacyOwner": "Klein",
+    "keyRotationOwner": "Klein",
+    "serviceRoleRotationApproved": true,
+    "jwtSecretRotationApproved": true,
+    "databasePasswordRotationApproved": true,
+    "supabaseAccessTokenRotationApproved": true,
+    "approved": true,
+    "approvedBy": "Klein",
+    "approvedAt": "2026-06-25"
+  },
+  "finalApproval": {
+    "approved": true,
+    "approvedBy": "Klein",
+    "approvedAt": "2026-06-25",
+    "notes": "Approved for owner-operated private beta only. Rotate the database password shared during setup before entering real production data, and upgrade backup storage before inviting external beta users."
+  }
+}
