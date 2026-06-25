@@ -151,6 +151,7 @@ const verifyOfflineWorkflows = async page => {
   await openPrimaryArea(page, 'Squad');
   await expectVisibleText(page, 'Team Roster & Player Directory', 'Squad');
   await expectVisibleText(page, 'Offline Player', 'Squad player');
+  await page.getByRole('button', {name: 'Staff', exact: true}).click();
   await expectVisibleText(page, 'Coach Offline', 'Staff directory');
 
   await openPrimaryArea(page, 'Tactics');
