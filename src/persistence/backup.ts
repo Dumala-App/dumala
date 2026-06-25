@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import type { Announcement, AssessmentSession, Game, Player, StaffMember, Standing, TeamInfo } from '../types';
+import type { Announcement, AssessmentSession, Game, PaymentLedgerEntry, Player, StaffMember, Standing, TeamInfo } from '../types';
 import {
   announcementsSchema,
   assessmentsSchema,
@@ -12,6 +12,7 @@ import {
   matchFormatSchema,
   migrateLegacyRoster,
   playerExtrasSchema,
+  paymentLedgerSchema,
   playersSchema,
   staffMembersSchema,
   standingsBackupsSchema,
@@ -94,7 +95,19 @@ export const workspaceBackupV3Schema = z.object({
   featureState: featureStateSchema
 });
 
+export const workspaceBackupV4Schema = z.object({
+  format: z.literal('dumala-workspace'),
+  version: z.literal(4),
+  exportedAt: z.string(),
+  core: coreWorkspaceV2Schema.extend({
+    staff: staffMembersSchema,
+    paymentLedger: paymentLedgerSchema
+  }),
+  featureState: featureStateSchema
+});
+
 export type WorkspaceBackupV3 = z.infer<typeof workspaceBackupV3Schema>;
+export type WorkspaceBackupV4 = z.infer<typeof workspaceBackupV4Schema>;
 
 export type CoreWorkspace = {
   teamInfo: TeamInfo;
@@ -104,6 +117,7 @@ export type CoreWorkspace = {
   standings: Standing[];
   announcements: Announcement[];
   assessments: AssessmentSession[];
+  paymentLedger: PaymentLedgerEntry[];
 };
 
 export type BackupRestoreSummary = {
@@ -114,6 +128,7 @@ export type BackupRestoreSummary = {
   standings: number;
   announcements: number;
   assessments: number;
+  paymentEntries: number;
   includedFeatureState: boolean;
 };
 
@@ -189,9 +204,9 @@ export const createWorkspaceBackup = (
   core: CoreWorkspace,
   storage: StorageLike = window.localStorage,
   exportedAt = new Date().toISOString()
-): WorkspaceBackupV3 => workspaceBackupV3Schema.parse({
+): WorkspaceBackupV4 => workspaceBackupV4Schema.parse({
   format: 'dumala-workspace',
-  version: 3,
+  version: 4,
   exportedAt,
   core,
   featureState: collectFeatureState(storage)
@@ -210,23 +225,39 @@ const legacyBackupSchema = z.object({
 
 export const parseWorkspaceBackup = (
   input: unknown,
-  currentFeatureState: WorkspaceBackupV3['featureState']
-): { backup: WorkspaceBackupV3; sourceVersion: string } => {
+  currentFeatureState: WorkspaceBackupV4['featureState']
+): { backup: WorkspaceBackupV4; sourceVersion: string } => {
+  const v4 = workspaceBackupV4Schema.safeParse(input);
+  if (v4.success) return { backup: v4.data, sourceVersion: '4' };
+
   const v3 = workspaceBackupV3Schema.safeParse(input);
-  if (v3.success) return { backup: v3.data, sourceVersion: '3' };
+  if (v3.success) {
+    return {
+      sourceVersion: '3',
+      backup: workspaceBackupV4Schema.parse({
+        ...v3.data,
+        version: 4,
+        core: {
+          ...v3.data.core,
+          paymentLedger: []
+        }
+      })
+    };
+  }
 
   const v2 = workspaceBackupV2Schema.safeParse(input);
   if (v2.success) {
     const roster = migrateLegacyRoster(v2.data.core.players);
     return {
       sourceVersion: '2',
-      backup: workspaceBackupV3Schema.parse({
+      backup: workspaceBackupV4Schema.parse({
         ...v2.data,
-        version: 3,
+        version: 4,
         core: {
           ...v2.data.core,
           players: roster.players,
-          staff: roster.staff
+          staff: roster.staff,
+          paymentLedger: []
         }
       })
     };
@@ -239,9 +270,9 @@ export const parseWorkspaceBackup = (
 
   return {
     sourceVersion: legacy.data.backupVersion,
-    backup: workspaceBackupV3Schema.parse({
+    backup: workspaceBackupV4Schema.parse({
       format: 'dumala-workspace',
-      version: 3,
+      version: 4,
       exportedAt: legacy.data.exportedAt ?? new Date().toISOString(),
       core: {
         teamInfo: legacy.data.teamInfo,
@@ -249,14 +280,15 @@ export const parseWorkspaceBackup = (
         games: legacy.data.games,
         standings: legacy.data.standings,
         announcements: legacy.data.announcements,
-        assessments: legacy.data.assessments ?? []
+        assessments: legacy.data.assessments ?? [],
+        paymentLedger: []
       },
       featureState: currentFeatureState
     })
   };
 };
 
-const writesForBackup = (backup: WorkspaceBackupV3): Array<[string, unknown, 'json' | 'string' | 'boolean']> => [
+const writesForBackup = (backup: WorkspaceBackupV4): Array<[string, unknown, 'json' | 'string' | 'boolean']> => [
   [STORAGE_KEYS.onboarded, true, 'boolean'],
   [STORAGE_KEYS.teamInfo, backup.core.teamInfo, 'json'],
   [STORAGE_KEYS.players, backup.core.players, 'json'],
@@ -265,6 +297,7 @@ const writesForBackup = (backup: WorkspaceBackupV3): Array<[string, unknown, 'js
   [STORAGE_KEYS.standings, backup.core.standings, 'json'],
   [STORAGE_KEYS.announcements, backup.core.announcements, 'json'],
   [STORAGE_KEYS.assessments, backup.core.assessments, 'json'],
+  [STORAGE_KEYS.paymentLedger, backup.core.paymentLedger, 'json'],
   [STORAGE_KEYS.availability, backup.featureState.availability, 'json'],
   [STORAGE_KEYS.coachNotes, backup.featureState.coachNotes, 'json'],
   [STORAGE_KEYS.weeklySchedule, backup.featureState.weeklyTraining, 'json'],
@@ -292,8 +325,8 @@ const writesForBackup = (backup: WorkspaceBackupV3): Array<[string, unknown, 'js
   [STORAGE_KEYS.drawingPaths, backup.featureState.tactics.drawings, 'json']
 ];
 
-export const applyWorkspaceBackup = (backup: WorkspaceBackupV3, storage: StorageLike = window.localStorage) => {
-  const validated = workspaceBackupV3Schema.parse(backup);
+export const applyWorkspaceBackup = (backup: WorkspaceBackupV4, storage: StorageLike = window.localStorage) => {
+  const validated = workspaceBackupV4Schema.parse(backup);
   const writes = writesForBackup(validated);
   const before = new Map<string, string | null>(writes.map(([key]) => [key, storage.getItem(key)]));
   before.set(STORAGE_KEYS.weeklyScheduleHistory, storage.getItem(STORAGE_KEYS.weeklyScheduleHistory));
@@ -319,7 +352,7 @@ export const applyWorkspaceBackup = (backup: WorkspaceBackupV3, storage: Storage
   }
 };
 
-export const summarizeBackup = (backup: WorkspaceBackupV3, sourceVersion = '3'): BackupRestoreSummary => ({
+export const summarizeBackup = (backup: WorkspaceBackupV4, sourceVersion = '4'): BackupRestoreSummary => ({
   sourceVersion,
   players: backup.core.players.length,
   staff: backup.core.staff.length,
@@ -327,5 +360,6 @@ export const summarizeBackup = (backup: WorkspaceBackupV3, sourceVersion = '3'):
   standings: backup.core.standings.length,
   announcements: backup.core.announcements.length,
   assessments: backup.core.assessments.length,
-  includedFeatureState: ['2', '3'].includes(sourceVersion)
+  paymentEntries: 'paymentLedger' in backup.core ? backup.core.paymentLedger.length : 0,
+  includedFeatureState: ['2', '3', '4'].includes(sourceVersion)
 });

@@ -1,8 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Player, StaffMember, SPECIALTY_TRAITS, SpecialtyTrait, POSITION_ATTRIBUTES_MAP } from '../types';
+import { PaymentLedgerEntry, Player, StaffMember, SPECIALTY_TRAITS, SpecialtyTrait, POSITION_ATTRIBUTES_MAP } from '../types';
 import { 
   UserPlus, Search, Shield, Plus, AlertCircle, Download, Upload,
-  Award, ArrowLeftRight, Mail, Phone, Calendar
+  Award, ArrowLeftRight, Mail, Phone, Calendar, ReceiptText
 } from 'lucide-react';
 import { motion } from 'motion/react';
 import PlayerComparer from './PlayerComparer';
@@ -16,6 +16,7 @@ import {
   mergeFieldErrors,
   parseIntegerInput
 } from '../forms/validation';
+import SquadPaymentsPanel from './SquadPaymentsPanel';
 
 interface RosterViewProps {
   players: Player[];
@@ -28,9 +29,15 @@ interface RosterViewProps {
   onImportBackup: (file: File) => Promise<BackupRestoreSummary>;
   onUpdatePlayer?: (player: Player) => void;
   highlightPlayerId?: string | null;
+  paymentLedger: PaymentLedgerEntry[];
+  onAddPaymentLedgerEntry: (entry: PaymentLedgerEntry) => void;
+  onAddBulkPaymentLedgerEntries: (entries: PaymentLedgerEntry[]) => void;
+  onUpdatePaymentLedgerEntry: (entry: PaymentLedgerEntry) => void;
+  onVoidPaymentLedgerEntry: (entryId: string, reason: string) => void;
 }
 
 type PlayerFormField = 'name' | 'number' | 'position' | 'age' | 'height' | 'weight';
+type SquadSection = 'players' | 'staff' | 'payments';
 
 const PLAYER_POSITIONS = ['Forward', 'Midfielder', 'Defender', 'Goalkeeper'] as const;
 
@@ -38,7 +45,23 @@ const integerError = (result: ReturnType<typeof parseIntegerInput>): string | un
   'errors' in result ? result.errors.value : undefined
 );
 
-export default function RosterView({ players, staff, onAddPlayer, onAddStaff, onSelectPlayer, onSelectStaff, onExportBackup, onImportBackup, onUpdatePlayer, highlightPlayerId }: RosterViewProps) {
+export default function RosterView({
+  players,
+  staff,
+  onAddPlayer,
+  onAddStaff,
+  onSelectPlayer,
+  onSelectStaff,
+  onExportBackup,
+  onImportBackup,
+  onUpdatePlayer,
+  highlightPlayerId,
+  paymentLedger,
+  onAddPaymentLedgerEntry,
+  onAddBulkPaymentLedgerEntries,
+  onVoidPaymentLedgerEntry
+}: RosterViewProps) {
+  const [activeSection, setActiveSection] = useState<SquadSection>('players');
   // Search & Basic Filter State
   const [searchTerm, setSearchTerm] = useState("");
   const [filterPos, setFilterPos] = useState("All");
@@ -80,7 +103,7 @@ export default function RosterView({ players, staff, onAddPlayer, onAddStaff, on
         : `legacy V${summary.sourceVersion}`;
       setBackupMessageType('success');
       setBackupMessage(
-        `${sourceLabel} restored: ${summary.players} players, ${summary.staff} staff, ${summary.games} events, ${summary.standings} league rows, ${summary.announcements} bulletins, and ${summary.assessments} assessments.`
+        `${sourceLabel} restored: ${summary.players} players, ${summary.staff} staff, ${summary.paymentEntries} payment records, ${summary.games} events, ${summary.standings} league rows, ${summary.announcements} bulletins, and ${summary.assessments} assessments.`
       );
     } catch (error) {
       setBackupMessageType('error');
@@ -355,79 +378,117 @@ export default function RosterView({ players, staff, onAddPlayer, onAddStaff, on
 
       <div className="space-y-6">
         {/* Top Controls: Search and Filters */}
-        <div className="flex flex-col md:flex-row gap-4 items-center justify-between bg-white p-4.5 rounded-2xl shadow-md shadow-slate-100/30 border border-slate-200/60 font-medium">
-          <div className="relative w-full md:w-96">
-            <Search className="absolute left-3.5 top-3.5 text-slate-400" size={16} />
-            <input 
-              id="search-roster-input"
-              type="text" 
-              placeholder="Search players or staff..."
-              value={searchTerm}
-              onChange={e => setSearchTerm(e.target.value)}
-              className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 pl-11 pr-4 text-xs focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 focus:bg-white focus:outline-none transition-all placeholder:text-slate-400 text-slate-800 font-medium"
-            />
-          </div>
-
-          <div className="flex flex-wrap gap-2 w-full md:w-auto items-center">
-            <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 mr-2 hidden lg:inline">Filters:</span>
-            {["All", "Forward", "Midfielder", "Defender", "Goalkeeper"].map((pos) => (
+        <div className="flex flex-wrap gap-2 rounded-2xl border border-slate-200 bg-white p-2 shadow-sm">
+          {[
+            { id: 'players' as const, label: 'Players', icon: UserPlus },
+            { id: 'staff' as const, label: 'Staff', icon: Shield },
+            { id: 'payments' as const, label: 'Payments', icon: ReceiptText }
+          ].map(item => {
+            const Icon = item.icon;
+            const isActive = activeSection === item.id;
+            return (
               <button
-                id={`filter-pos-${pos.toLowerCase()}`}
-                key={pos}
-                onClick={() => setFilterPos(pos)}
-                className={`px-3 py-1.5 rounded-lg text-[10px] font-extrabold uppercase tracking-widest transition-all border ${
-                  filterPos === pos 
-                    ? 'bg-slate-900 border-slate-900 text-white shadow-sm' 
-                    : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-800'
+                key={item.id}
+                type="button"
+                onClick={() => {
+                  setActiveSection(item.id);
+                  setIsAdding(false);
+                  setIsAddingStaff(false);
+                }}
+                className={`inline-flex items-center gap-2 rounded-xl border px-4 py-2 text-[11px] font-black uppercase tracking-wider transition ${
+                  isActive
+                    ? 'border-slate-900 bg-slate-900 text-white shadow-sm'
+                    : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
                 }`}
               >
-                {pos}s
+                <Icon size={14} aria-hidden="true" />
+                {item.label}
               </button>
-            ))}
+            );
+          })}
+        </div>
 
-            <div className="h-4 border-l border-slate-200 mx-1 hidden md:block"></div>
+        <div className="rounded-xl border border-slate-200/70 bg-white px-3 py-3 shadow-sm font-medium">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+            <div className="relative w-full lg:max-w-sm">
+              <Search className="absolute left-3 top-2.5 text-slate-400" size={14} />
+              <input
+                id="search-roster-input"
+                type="text"
+                placeholder="Search squad..."
+                value={searchTerm}
+                onChange={e => setSearchTerm(e.target.value)}
+                className="h-9 w-full rounded-lg border border-slate-200 bg-slate-50 pl-9 pr-3 text-xs font-medium text-slate-800 transition-all placeholder:text-slate-400 focus:border-indigo-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/10"
+              />
+            </div>
 
-            <button
-              id="toggle-compare-widget-btn"
-              onClick={() => setShowCompareWidget(!showCompareWidget)}
-              className={`text-[10px] font-black uppercase tracking-wider px-3.5 py-1.5 rounded-lg transition-all shadow-sm flex items-center gap-1.5 border ${
-                showCompareWidget
-                  ? 'bg-indigo-50 hover:bg-indigo-100/80 text-indigo-750 border-indigo-200 font-extrabold'
-                  : 'bg-white hover:bg-slate-50 text-slate-600 border-slate-200'
-              }`}
-              title="Toggle Athlete Comparison Matchup Board"
-            >
-              <ArrowLeftRight size={12} className="stroke-[2.5]" />
-              <span>{showCompareWidget ? 'Hide Compare' : 'Compare Tool'}</span>
-            </button>
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between lg:justify-end">
+              <div className="flex max-w-full overflow-x-auto rounded-lg border border-slate-200 bg-slate-50 p-0.5" aria-label="Filter roster by position">
+                {["All", "Forward", "Midfielder", "Defender", "Goalkeeper"].map((pos) => (
+                  <button
+                    id={`filter-pos-${pos.toLowerCase()}`}
+                    key={pos}
+                    type="button"
+                    onClick={() => setFilterPos(pos)}
+                    aria-pressed={filterPos === pos}
+                    className={`min-h-8 whitespace-nowrap rounded-md px-2.5 text-[10px] font-bold transition-colors ${
+                      filterPos === pos
+                        ? 'bg-white text-slate-900 shadow-sm ring-1 ring-slate-200'
+                        : 'text-slate-500 hover:bg-white/70 hover:text-slate-800'
+                    }`}
+                  >
+                    {pos === 'All' ? 'All' : pos}
+                  </button>
+                ))}
+              </div>
 
-            <button
-              id="btn-export-backup"
-              onClick={onExportBackup}
-              className="bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 text-[10px] font-black uppercase tracking-wider px-3.5 py-1.5 rounded-lg transition-all shadow-sm flex items-center gap-1.5 hover:scale-[1.02] active:scale-[0.98]"
-              title="Export roster, assessments, tactics, training, notes, availability, and standings history"
-            >
-              <Download size={12} className="stroke-[2.5]" />
-              <span>Export Full Workspace</span>
-            </button>
+              <div className="flex items-center gap-1.5">
+                <button
+                  id="toggle-compare-widget-btn"
+                  type="button"
+                  onClick={() => setShowCompareWidget(!showCompareWidget)}
+                  className={`inline-flex min-h-8 items-center gap-1.5 rounded-lg border px-2.5 text-[10px] font-bold transition-colors ${
+                    showCompareWidget
+                      ? 'border-indigo-200 bg-indigo-50 text-indigo-700'
+                      : 'border-slate-200 bg-white text-slate-500 hover:bg-slate-50 hover:text-slate-800'
+                  }`}
+                  title="Toggle Athlete Comparison Matchup Board"
+                >
+                  <ArrowLeftRight size={12} className="stroke-[2.5]" />
+                  <span>{showCompareWidget ? 'Comparing' : 'Compare'}</span>
+                </button>
 
-            <input
-              ref={importInputRef}
-              type="file"
-              accept="application/json,.json"
-              className="hidden"
-              onChange={(event) => void handleImportFile(event.target.files?.[0])}
-              aria-label="Restore team backup file"
-            />
-            <button
-              id="btn-import-backup"
-              onClick={() => importInputRef.current?.click()}
-              className="bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 text-[10px] font-black uppercase tracking-wider px-3.5 py-1.5 rounded-lg transition-all shadow-sm flex items-center gap-1.5 hover:scale-[1.02] active:scale-[0.98]"
-              title="Restore a Dumala full-workspace or legacy JSON backup"
-            >
-              <Upload size={12} className="stroke-[2.5]" />
-              <span>Restore</span>
-            </button>
+                <button
+                  id="btn-export-backup"
+                  type="button"
+                  onClick={onExportBackup}
+                  className="inline-flex min-h-8 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 text-[10px] font-bold text-slate-500 transition-colors hover:bg-slate-50 hover:text-slate-800"
+                  title="Export roster, assessments, tactics, training, notes, availability, payments, and standings history"
+                >
+                  <Download size={12} className="stroke-[2.5]" />
+                  <span>Export</span>
+                </button>
+
+                <input
+                  ref={importInputRef}
+                  type="file"
+                  accept="application/json,.json"
+                  className="hidden"
+                  onChange={(event) => void handleImportFile(event.target.files?.[0])}
+                  aria-label="Restore team backup file"
+                />
+                <button
+                  id="btn-import-backup"
+                  type="button"
+                  onClick={() => importInputRef.current?.click()}
+                  className="inline-flex min-h-8 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 text-[10px] font-bold text-slate-500 transition-colors hover:bg-slate-50 hover:text-slate-800"
+                  title="Restore a Dumala full-workspace or legacy JSON backup"
+                >
+                  <Upload size={12} className="stroke-[2.5]" />
+                  <span>Restore</span>
+                </button>
+              </div>
+            </div>
 
           </div>
           {backupMessage && (
@@ -444,13 +505,13 @@ export default function RosterView({ players, staff, onAddPlayer, onAddStaff, on
               {backupMessage}
             </p>
           )}
-          <p className="mt-2 text-[10px] leading-relaxed text-slate-500">
-            Full Workspace V3 includes players, staff, schedule, league, bulletins, assessments, tactics, training, availability, coach notes, and standings history.
+          <p className="mt-2 text-[10px] leading-relaxed text-slate-400">
+            Full Workspace V4 includes players, staff, payments, schedule, league, bulletins, assessments, tactics, training, availability, coach notes, and standings history.
           </p>
         </div>
 
         {/* Section Layouts */}
-        <div id="management-staff-section" className="space-y-4">
+        {activeSection === 'staff' && <div id="management-staff-section" className="space-y-4">
           <div className="flex items-center justify-between">
             <h3 className="font-display font-black text-slate-800 text-lg uppercase tracking-wider flex items-center gap-2">
               <Shield className="text-amber-500" size={20} />
@@ -724,10 +785,10 @@ export default function RosterView({ players, staff, onAddPlayer, onAddStaff, on
               <p className="text-slate-400 text-[11px]">Click "Add Staff" above to register founders, directors, coaches, and more!</p>
             </div>
           )}
-        </div>
+        </div>}
 
         {/* Grid Layout of Upgraded Cards */}
-        <div className="space-y-4">
+        {activeSection === 'players' && <div className="space-y-4">
           <div className="flex items-center justify-between">
             <h3 className="font-display font-black text-slate-800 text-lg uppercase tracking-wider flex items-center gap-2">
               <UserPlus className="text-indigo-500" size={20} />
@@ -1235,10 +1296,20 @@ export default function RosterView({ players, staff, onAddPlayer, onAddStaff, on
               <p className="text-slate-400 text-xs">Try clearing search filters or add a new athlete register!</p>
             </div>
           )}
-        </div>
+        </div>}
+
+        {activeSection === 'payments' && (
+          <SquadPaymentsPanel
+            players={players}
+            entries={paymentLedger}
+            onAddEntry={onAddPaymentLedgerEntry}
+            onAddBulkEntries={onAddBulkPaymentLedgerEntries}
+            onVoidEntry={onVoidPaymentLedgerEntry}
+          />
+        )}
       </div>
 
-      {showCompareWidget && (
+      {activeSection === 'players' && showCompareWidget && (
         <PlayerComparer 
           players={players}
           selectedCompareIds={selectedCompareIds}

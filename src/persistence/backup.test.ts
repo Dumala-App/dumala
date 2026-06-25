@@ -4,7 +4,8 @@ import {
   collectFeatureState,
   createWorkspaceBackup,
   parseWorkspaceBackup,
-  workspaceBackupV3Schema
+  workspaceBackupV3Schema,
+  workspaceBackupV4Schema
 } from './backup';
 import { STORAGE_KEYS, type StorageLike } from './storage';
 
@@ -179,6 +180,18 @@ const assessment = {
   deltas: {}
 };
 
+const paymentEntry = {
+  id: 'pay-1',
+  playerId: 'p1',
+  playerNameSnapshot: 'Test Player',
+  type: 'charge' as const,
+  category: 'registration' as const,
+  amount: 500,
+  date: '2026-06-21',
+  dueDate: '2026-06-30',
+  createdAt: '2026-06-21T00:00:00.000Z'
+};
+
 const core = {
   teamInfo,
   players: [player],
@@ -186,7 +199,8 @@ const core = {
   games: [game],
   standings: [standing],
   announcements: [announcement],
-  assessments: [assessment]
+  assessments: [assessment],
+  paymentLedger: [paymentEntry]
 };
 
 describe('workspace backup V2', () => {
@@ -225,14 +239,15 @@ describe('workspace backup V2', () => {
       content: 'Press after losing possession',
       category: 'Strategy',
       createdAt: '2026-06-21T00:00:00.000Z'
-    }]));
+    }])); 
     const backup = createWorkspaceBackup(core, storage, '2026-06-21T00:00:00.000Z');
-    expect(workspaceBackupV3Schema.parse(backup)).toEqual(backup);
+    expect(workspaceBackupV4Schema.parse(backup)).toEqual(backup);
 
     const restored = new MemoryStorage();
     applyWorkspaceBackup(backup, restored);
     expect(JSON.parse(restored.getItem(STORAGE_KEYS.players)!)).toHaveLength(1);
     expect(JSON.parse(restored.getItem(STORAGE_KEYS.staff)!)).toEqual([staff]);
+    expect(JSON.parse(restored.getItem(STORAGE_KEYS.paymentLedger)!)).toEqual([paymentEntry]);
     expect(JSON.parse(restored.getItem(STORAGE_KEYS.availability)!)).toEqual({ g1: { p1: 'yes' } });
     expect(JSON.parse(restored.getItem(STORAGE_KEYS.coachNotes)!)).toEqual({ g1: 'Press early' });
     expect(JSON.parse(restored.getItem(STORAGE_KEYS.weeklySchedule)!).Monday).toHaveLength(1);
@@ -254,8 +269,9 @@ describe('workspace backup V2', () => {
     const currentFeatureState = collectFeatureState(new MemoryStorage());
     const result = parseWorkspaceBackup(legacy, currentFeatureState);
     expect(result.sourceVersion).toBe(version);
-    expect(result.backup.version).toBe(3);
+    expect(result.backup.version).toBe(4);
     expect(result.backup.core.assessments).toHaveLength(version === '1.1.0' ? 1 : 0);
+    expect(result.backup.core.paymentLedger).toEqual([]);
   });
 
   it('migrates a V2 mixed roster into separate player and staff collections', () => {
@@ -274,6 +290,29 @@ describe('workspace backup V2', () => {
     expect(result.sourceVersion).toBe('2');
     expect(result.backup.core.players.map(item => item.id)).toEqual(['p1']);
     expect(result.backup.core.staff).toEqual([staff]);
+    expect(result.backup.core.paymentLedger).toEqual([]);
+  });
+
+  it('migrates V3 backups with an empty payment ledger', () => {
+    const current = createWorkspaceBackup(core, new MemoryStorage(), '2026-06-21T00:00:00.000Z');
+    const v3 = workspaceBackupV3Schema.parse({
+      ...current,
+      version: 3,
+      core: {
+        teamInfo: current.core.teamInfo,
+        players: current.core.players,
+        staff: current.core.staff,
+        games: current.core.games,
+        standings: current.core.standings,
+        announcements: current.core.announcements,
+        assessments: current.core.assessments
+      }
+    });
+
+    const result = parseWorkspaceBackup(v3, current.featureState);
+    expect(result.sourceVersion).toBe('3');
+    expect(result.backup.version).toBe(4);
+    expect(result.backup.core.paymentLedger).toEqual([]);
   });
 
   it('rejects unsupported and invalid nested data', () => {
@@ -315,9 +354,12 @@ describe('workspace backup V2', () => {
     const backup = createWorkspaceBackup(core, source);
     const target = new FailingStorage(STORAGE_KEYS.standings);
     target.setItem(STORAGE_KEYS.players, JSON.stringify([{ existing: true }]));
+    target.setItem(STORAGE_KEYS.paymentLedger, JSON.stringify([{ existing: 'payment' }]));
     const before = target.getItem(STORAGE_KEYS.players);
+    const paymentBefore = target.getItem(STORAGE_KEYS.paymentLedger);
     expect(() => applyWorkspaceBackup(backup, target)).toThrow('simulated write failure');
     expect(target.getItem(STORAGE_KEYS.players)).toBe(before);
+    expect(target.getItem(STORAGE_KEYS.paymentLedger)).toBe(paymentBefore);
     expect(target.getItem(STORAGE_KEYS.teamInfo)).toBeNull();
   });
 });

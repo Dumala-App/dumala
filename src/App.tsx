@@ -1,5 +1,5 @@
 import React, { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react';
-import { Player, Game, Standing, Announcement, TeamInfo, AssessmentSession, StaffMember } from './types';
+import { Player, Game, Standing, Announcement, TeamInfo, AssessmentSession, StaffMember, PaymentLedgerEntry } from './types';
 
 import ViewLoadingFallback from './components/ViewLoadingFallback';
 import PwaInstallControl from './components/PwaInstallControl';
@@ -13,6 +13,7 @@ import {
   assessmentsSchema,
   gamesSchema,
   migrateLegacyRoster,
+  paymentLedgerSchema,
   playersSchema,
   staffMembersSchema,
   standingsSchema,
@@ -42,7 +43,7 @@ import {
   parseWorkspaceBackup,
   summarizeBackup,
   type BackupRestoreSummary,
-  type WorkspaceBackupV3
+  type WorkspaceBackupV4
 } from './persistence/backup';
 import { deleteGameAndReconcile, recordMatchResult } from './matches/results';
 import { useDialogAccessibility } from './hooks/useDialogAccessibility';
@@ -100,6 +101,7 @@ export default function App() {
         standings: [],
         announcements: [],
         assessments: [] as AssessmentSession[],
+        paymentLedger: [] as PaymentLedgerEntry[],
         isOnboarded: false,
         warnings: [],
         startupIssues
@@ -118,6 +120,7 @@ export default function App() {
     const standings = readJsonStorage(STORAGE_KEYS.standings, standingsSchema, [], 'League standings');
     const announcements = readJsonStorage(STORAGE_KEYS.announcements, announcementsSchema, [], 'Bulletins');
     const assessments = readJsonStorage(STORAGE_KEYS.assessments, assessmentsSchema, [], 'Assessments') as AssessmentSession[];
+    const paymentLedger = readJsonStorage(STORAGE_KEYS.paymentLedger, paymentLedgerSchema, [], 'Payment ledger') as PaymentLedgerEntry[];
     const onboarded = readBooleanStorage(STORAGE_KEYS.onboarded, false, 'Onboarding');
 
     return {
@@ -128,6 +131,7 @@ export default function App() {
       standings,
       announcements,
       assessments,
+      paymentLedger,
       isOnboarded: onboarded || teamInfo !== null,
       warnings: drainRecoveryWarnings(),
       startupIssues
@@ -159,6 +163,7 @@ export default function App() {
   const [standings, setStandings] = useState<Standing[]>(initialWorkspace.standings);
   const [announcements, setAnnouncements] = useState<Announcement[]>(initialWorkspace.announcements);
   const [assessments, setAssessments] = useState<AssessmentSession[]>(initialWorkspace.assessments);
+  const [paymentLedger, setPaymentLedger] = useState<PaymentLedgerEntry[]>(initialWorkspace.paymentLedger);
   const [recoveryWarnings, setRecoveryWarnings] = useState(initialWorkspace.warnings);
   const [startupRecoveryIssues, setStartupRecoveryIssues] = useState(initialWorkspace.startupIssues);
   const [storageHealth, setStorageHealth] = useState<StorageHealth | null>(null);
@@ -219,6 +224,11 @@ export default function App() {
 
   useEffect(() => {
     if (startupRecoveryIssues.length > 0) return;
+    writeJsonStorage(STORAGE_KEYS.paymentLedger, paymentLedger);
+  }, [paymentLedger, startupRecoveryIssues.length]);
+
+  useEffect(() => {
+    if (startupRecoveryIssues.length > 0) return;
     let active = true;
 
     void estimateStorageHealth().then(health => {
@@ -232,6 +242,7 @@ export default function App() {
     announcements,
     assessments,
     games,
+    paymentLedger,
     players,
     standings,
     startupRecoveryIssues.length,
@@ -314,6 +325,32 @@ export default function App() {
   const handleRemovePlayer = (playerId: string) => {
     setPlayers(prev => prev.filter(player => player.id !== playerId));
     setSelectedPlayer(prev => prev?.id === playerId ? null : prev);
+  };
+
+  const handleAddPaymentLedgerEntry = (entry: PaymentLedgerEntry) => {
+    setPaymentLedger(current => [entry, ...current]);
+  };
+
+  const handleAddBulkPaymentLedgerEntries = (entries: PaymentLedgerEntry[]) => {
+    if (entries.length === 0) return;
+    setPaymentLedger(current => [...entries, ...current]);
+  };
+
+  const handleUpdatePaymentLedgerEntry = (entry: PaymentLedgerEntry) => {
+    setPaymentLedger(current => current.map(item => item.id === entry.id ? entry : item));
+  };
+
+  const handleVoidPaymentLedgerEntry = (entryId: string, reason: string) => {
+    const now = new Date().toISOString();
+    setPaymentLedger(current => current.map(item => item.id === entryId
+      ? {
+          ...item,
+          voidedAt: now,
+          voidReason: reason,
+          updatedAt: now
+        }
+      : item
+    ));
   };
 
   const handleAddStaff = (newStaff: StaffMember) => {
@@ -430,7 +467,7 @@ export default function App() {
     URL.revokeObjectURL(url);
   };
 
-  const downloadBackup = (backup: WorkspaceBackupV3, fileName: string) => {
+  const downloadBackup = (backup: WorkspaceBackupV4, fileName: string) => {
     downloadJson(backup, fileName);
   };
 
@@ -443,7 +480,8 @@ export default function App() {
       games,
       standings,
       announcements,
-      assessments
+      assessments,
+      paymentLedger
     });
   };
 
@@ -479,6 +517,7 @@ export default function App() {
     setStandings(backup.core.standings);
     setAnnouncements(backup.core.announcements);
     setAssessments(backup.core.assessments as AssessmentSession[]);
+    setPaymentLedger(backup.core.paymentLedger);
     setIsOnboarded(true);
     setPrimaryTab('squad');
     return summarizeBackup(backup, sourceVersion);
@@ -499,6 +538,7 @@ export default function App() {
     setStandings([]);
     setAnnouncements([]);
     setAssessments([]);
+    setPaymentLedger([]);
     setPreselectedAssessmentsPlayerId(null);
     setShowResetConfirm(false);
   };
@@ -705,10 +745,12 @@ export default function App() {
                 setStaff([headCoach]);
                 setStandings([]);
                 setAssessments([]);
+                setPaymentLedger([]);
                 setPrimaryTab('home');
                 setHomeTab('overview');
                 writeJsonStorage(STORAGE_KEYS.standings, []);
                 writeJsonStorage(STORAGE_KEYS.assessments, []);
+                writeJsonStorage(STORAGE_KEYS.paymentLedger, []);
                 setIsOnboarded(true);
                 writeBooleanStorage(STORAGE_KEYS.onboarded, true);
                 writeJsonStorage(STORAGE_KEYS.teamInfo, team);
@@ -869,7 +911,7 @@ export default function App() {
               className="bg-white border border-slate-200 p-6 rounded-2xl shadow-2xl max-w-sm w-full font-sans"
             >
               <h3 id="reset-workspace-title" className="text-lg font-display font-extrabold text-slate-900 mb-2">Reset workspace?</h3>
-              <p className="text-sm text-slate-600 mb-6 font-medium">This removes the team, roster, schedule, and statistics saved in this browser.</p>
+              <p className="text-sm text-slate-600 mb-6 font-medium">This removes the team, roster, payments, schedule, and statistics saved in this browser.</p>
               <div className="flex justify-end gap-3 font-semibold">
                 <button onClick={() => setShowResetConfirm(false)} className="px-4 py-2 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 transition-colors text-xs">Cancel</button>
                 <button onClick={confirmResetApp} className="px-4 py-2 bg-rose-600 text-white rounded-lg hover:bg-rose-700 shadow-md transition-colors text-xs font-bold">Reset everything</button>
@@ -930,6 +972,11 @@ export default function App() {
                   onImportBackup={handleImportBackup}
                   onUpdatePlayer={handleUpdatePlayer}
                   highlightPlayerId={integrityFocus?.playerId ?? null}
+                  paymentLedger={paymentLedger}
+                  onAddPaymentLedgerEntry={handleAddPaymentLedgerEntry}
+                  onAddBulkPaymentLedgerEntries={handleAddBulkPaymentLedgerEntries}
+                  onUpdatePaymentLedgerEntry={handleUpdatePaymentLedgerEntry}
+                  onVoidPaymentLedgerEntry={handleVoidPaymentLedgerEntry}
                 />
               </ViewErrorBoundary>
             )}
