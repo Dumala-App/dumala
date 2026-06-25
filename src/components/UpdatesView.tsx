@@ -3,6 +3,8 @@ import { Megaphone, FlaskConical, Calculator, Target, TrendingUp, Hash, ChevronD
 
 export default function UpdatesView() {
   const [openEntries, setOpenEntries] = useState<Record<string, boolean>>({
+    cloud_collaboration_foundation_completed: true,
+    squad_payments_ledger_added: true,
     reliability_foundation_upgraded: true,
     offline_app_shell_released: true,
     assessment_center_implemented: true,
@@ -18,6 +20,114 @@ export default function UpdatesView() {
   };
 
   const changelogEntries = [
+    {
+      id: 'cloud_collaboration_foundation_completed',
+      date: '2026-06-25',
+      title: 'Cloud and Team Collaboration Foundation Completed',
+      summary: 'Dumala now has the cloud platform foundation, production approval controls, club roles, invitations, activity history, shared bulletins, and overwrite-safe editing needed for a private beta collaboration workflow.',
+      accent: 'border-indigo-200 bg-indigo-50/70',
+      renderContent: () => (
+        <div className="space-y-4">
+          <p className="text-sm text-slate-600 leading-relaxed">
+            This update completes the backend foundation for Dumala's next stage: secure cloud-backed club workspaces and controlled team collaboration. The work focused on making shared data durable, role-aware, auditable, and protected from accidental overwrites before expanding the visible collaboration UI.
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {[
+              {
+                title: 'Supabase cloud platform selected and approved',
+                desc: 'Dumala now has an architecture decision record confirming Supabase, PostgreSQL, Supabase Auth, Vercel hosting, IndexedDB replica storage, and optimistic sync controls as the cloud direction.'
+              },
+              {
+                title: 'Production launch gates are documented',
+                desc: 'Production approval records, cloud readiness checks, access-control ownership, privacy review, diagnostic boundaries, incident runbooks, restore evidence, and approval verification are now tracked.'
+              },
+              {
+                title: 'Durable club workspace schema is in place',
+                desc: 'The Supabase schema now covers user profiles, clubs, memberships, devices, imports, sync metadata, audit events, and core football domain records with tenant-scoped row-level security.'
+              },
+              {
+                title: 'Roles and invitations are ready',
+                desc: 'Owner, Admin, Coach, Staff, and Viewer permissions are modeled, tested, and backed by database policies. Club invitations can be created, revoked, accepted, and converted into memberships safely.'
+              },
+              {
+                title: 'Activity history is auditable',
+                desc: 'Sensitive collaboration actions now write redacted activity records, with owner/admin access to club history and tighter boundaries for ordinary members.'
+              },
+              {
+                title: 'Shared bulletins use controlled editing',
+                desc: 'Cloud bulletins can be listed, created, updated, and removed through permission-aware helpers and version-checked database functions instead of blind updates.'
+              },
+              {
+                title: 'Simultaneous edits are protected',
+                desc: 'Versioned cloud records now reject stale updates so one user cannot silently overwrite another user\'s newer work. Conflicts are surfaced as explicit version errors.'
+              },
+              {
+                title: 'Build verification is more stable',
+                desc: 'The Vite cache path was isolated to prevent a Windows parallel-build cache collision that could surface during simultaneous build and test verification.'
+              }
+            ].map(item => (
+              <div key={item.title} className="bg-white border border-indigo-200 rounded-xl p-4">
+                <h5 className="text-xs font-black text-slate-800 uppercase tracking-wider mb-1.5">{item.title}</h5>
+                <p className="text-xs text-slate-600 leading-relaxed">{item.desc}</p>
+              </div>
+            ))}
+          </div>
+          <p className="text-xs text-slate-500 leading-relaxed">
+            Phase 3 cloud accounts and synchronization and Phase 4 team collaboration are now marked complete in the delivery tracker. Independent backup storage remains the main operational upgrade to complete before inviting external beta users beyond the current private-beta posture.
+          </p>
+        </div>
+      )
+    },
+    {
+      id: 'squad_payments_ledger_added',
+      date: '2026-06-24',
+      title: 'Squad Payments / Ledger Tab Added',
+      summary: 'Squad now includes a Payments tab for tracking player fees, payments, balances, overdue amounts, and payment history inside the team workspace.',
+      accent: 'border-emerald-200 bg-emerald-50/70',
+      renderContent: () => (
+        <div className="space-y-4">
+          <p className="text-sm text-slate-600 leading-relaxed">
+            This update adds a practical cash-ledger workflow inside Squad. Coaches and team administrators can now keep fee records close to the player roster without turning Dumala into a full accounting or online payment-processing system.
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {[
+              {
+                title: 'Payments tab under Squad',
+                desc: 'The Squad workspace now has Players, Staff, and Payments sections, keeping payment tracking near the roster records it belongs to.'
+              },
+              {
+                title: 'Ledger-based records',
+                desc: 'Fees, payments, waivers, refunds, and adjustments are stored as separate ledger entries instead of manually editing player balances.'
+              },
+              {
+                title: 'Player payment summaries',
+                desc: 'The Payments view calculates each player\'s charged total, paid total, balance, overdue status, and last payment date from the ledger.'
+              },
+              {
+                title: 'Single-player and bulk charges',
+                desc: 'Teams can record an individual fee or payment, or create the same charge for multiple active players in one workflow.'
+              },
+              {
+                title: 'Void instead of delete',
+                desc: 'Ledger entries can be voided with a reason, preserving a clearer payment history instead of silently removing financial records.'
+              },
+              {
+                title: 'Backup and restore support',
+                desc: 'Full Workspace V4 backups now include payment ledger records, and restore validation keeps payment data protected with the rest of the workspace.'
+              }
+            ].map(item => (
+              <div key={item.title} className="bg-white border border-emerald-200 rounded-xl p-4">
+                <h5 className="text-xs font-black text-slate-800 uppercase tracking-wider mb-1.5">{item.title}</h5>
+                <p className="text-xs text-slate-600 leading-relaxed">{item.desc}</p>
+              </div>
+            ))}
+          </div>
+          <p className="text-xs text-slate-500 leading-relaxed">
+            The first version is intentionally local-first and workspace-only. It helps teams track cash, GCash, bank transfer, card, and other manual payment records without implying online checkout, invoices, or accounting-grade reporting.
+          </p>
+        </div>
+      )
+    },
     {
       id: 'reliability_foundation_upgraded',
       date: '2026-06-23',

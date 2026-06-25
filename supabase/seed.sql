@@ -1,0 +1,2 @@
+-- Local development seed file.
+-- Dumala does not seed production-like club data by default.
