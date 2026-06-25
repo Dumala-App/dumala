@@ -11,10 +11,10 @@ Dumala is a local-first football team management web application for coaches, ma
 - Automatic standings and player-stat updates
 - Discipline records and Man of the Match history
 - Position-aware tactics board and lineup auto-fill
-- Weekly training planner with a 52-drill library and presets
+- Weekly training planner with a 52-drill library, presets, and week-by-week scheduling
 - FPRDS Assessment Center with Full and Quick assessments
 - Age-group and role-specific benchmarks, OVR scoring, history, and development plans
-- Bulletins, product updates, feedback submission, and validated Full Workspace V3 backup/restore
+- Bulletins, product updates, feedback submission, and validated Full Workspace V4 backup/restore
 
 ## Navigation
 
@@ -34,7 +34,7 @@ The beta stores team information and uploaded photos in browser `localStorage`.
 - Clearing browser storage removes local data.
 - Preview and production URLs do not share data.
 - Testers cannot collaborate in the same workspace yet.
-- Export a Full Workspace V3 backup before changing browsers or clearing data.
+- Export a Full Workspace V4 backup before changing browsers or clearing data.
 
 ## Run locally
 
@@ -73,7 +73,7 @@ npm run build
 npm run verify:pwa
 ```
 
-The production-ready static site is generated in `dist/`. The PWA verifier inspects the generated service worker, starts a Vite production preview, and uses Playwright Chromium to confirm Dumala can reopen, traverse every core coaching area, preserve a seeded V3 workspace, and refresh offline after an initial online load.
+The production-ready static site is generated in `dist/`. The PWA verifier inspects the generated service worker, starts a Vite production preview, and uses Playwright Chromium to confirm Dumala can reopen, traverse every core coaching area, preserve a seeded workspace, and refresh offline after an initial online load.
 
 Physical-device completion is tracked in [Phase 1 Offline Device Validation](docs/PHASE_1_OFFLINE_DEVICE_VALIDATION.md).
 

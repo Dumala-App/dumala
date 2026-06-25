@@ -1,0 +1,3127 @@
+{
+  "format": "dumala-workspace",
+  "version": 4,
+  "exportedAt": "2026-06-26T00:00:00.000Z",
+  "core": {
+    "teamInfo": {
+      "name": "Argentina Mockup Squad",
+      "founded": "1893",
+      "stadium": "Estadio Monumental",
+      "coach": "Klein",
+      "league": "Copa America Mock League",
+      "logoColor": "#75AADB",
+      "logoUrl": ""
+    },
+    "players": [
+      {
+        "id": "arg-emi-martinez",
+        "name": "Emiliano Martinez",
+        "number": 23,
+        "position": "Goalkeeper",
+        "bio": "Commanding goalkeeper with strong presence in penalty situations.",
+        "photoUrl": "/placeholders/goalkeeper-placeholder.png",
+        "age": 33,
+        "height": 195,
+        "weight": 88,
+        "gamesPlayed": 6,
+        "points": 0,
+        "assists": 0,
+        "cleanSheetsOrRebounds": 4,
+        "minutesPlayed": 540,
+        "mvpAwards": 1,
+        "yellowCards": 0,
+        "redCards": 0,
+        "baseAttributes": {
+          "pace": 90,
+          "stamina": 88,
+          "agility": 89,
+          "strength": 91,
+          "firstTouch": 89,
+          "shortPassing": 89
+        },
+        "positionAttributes": {
+          "Reflexes": 92,
+          "Handling": 88,
+          "Diving": 92,
+          "Distribution": 84
+        },
+        "registrationStatus": "Active",
+        "specialtyTraits": [
+          "Shot stopper",
+          "Penalty specialist"
+        ],
+        "coachNotes": "Keep distribution quick when opponents press high.",
+        "dateOfBirth": "1992-09-02",
+        "fprdsRole": "GK",
+        "fprdsLastAssessmentId": "assess-emi-martinez-2026-06-24",
+        "offenses": []
+      },
+      {
+        "id": "arg-nahuel-molina",
+        "name": "Nahuel Molina",
+        "number": 26,
+        "position": "Defender",
+        "bio": "Energetic right back who overlaps aggressively.",
+        "photoUrl": "/placeholders/defender-placeholder.png",
+        "age": 28,
+        "height": 175,
+        "weight": 70,
+        "gamesPlayed": 6,
+        "points": 0,
+        "assists": 2,
+        "cleanSheetsOrRebounds": 4,
+        "minutesPlayed": 488,
+        "mvpAwards": 0,
+        "yellowCards": 1,
+        "redCards": 0,
+        "baseAttributes": {
+          "pace": 92,
+          "stamina": 90,
+          "agility": 87,
+          "strength": 84,
+          "firstTouch": 87,
+          "shortPassing": 80
+        },
+        "positionAttributes": {
+          "Tackling": 83,
+          "Defensive Heading": 82,
+          "Positioning": 82,
+          "Crossing": 80
+        },
+        "registrationStatus": "Active",
+        "specialtyTraits": [
+          "Overlap runs",
+          "Recovery pace"
+        ],
+        "coachNotes": "Time the underlap when Messi drifts inside.",
+        "dateOfBirth": "1998-04-06",
+        "fprdsRole": "FB",
+        "fprdsLastAssessmentId": "assess-molina-2026-06-24",
+        "offenses": []
+      },
+      {
+        "id": "arg-cristian-romero",
+        "name": "Cristian Romero",
+        "number": 13,
+        "position": "Defender",
+        "bio": "Front-foot center back with strong duel success.",
+        "photoUrl": "/placeholders/defender-placeholder.png",
+        "age": 28,
+        "height": 185,
+        "weight": 79,
+        "gamesPlayed": 6,
+        "points": 1,
+        "assists": 0,
+        "cleanSheetsOrRebounds": 4,
+        "minutesPlayed": 530,
+        "mvpAwards": 0,
+        "yellowCards": 2,
+        "redCards": 0,
+        "baseAttributes": {
+          "pace": 89,
+          "stamina": 87,
+          "agility": 86,
+          "strength": 78,
+          "firstTouch": 86,
+          "shortPassing": 79
+        },
+        "positionAttributes": {
+          "Tackling": 91,
+          "Defensive Heading": 88,
+          "Positioning": 88,
+          "Crossing": 79
+        },
+        "registrationStatus": "Active",
+        "specialtyTraits": [
+          "Duel winner",
+          "Aggressive step"
+        ],
+        "coachNotes": "Avoid early card risk in first 20 minutes.",
+        "dateOfBirth": "1998-04-27",
+        "fprdsRole": "CB",
+        "fprdsLastAssessmentId": "assess-romero-2026-06-24",
+        "offenses": []
+      },
+      {
+        "id": "arg-nicolas-otamendi",
+        "name": "Nicolas Otamendi",
+        "number": 19,
+        "position": "Defender",
+        "bio": "Veteran organizer who leads the defensive line.",
+        "photoUrl": "/placeholders/defender-placeholder.png",
+        "age": 38,
+        "height": 183,
+        "weight": 81,
+        "gamesPlayed": 5,
+        "points": 0,
+        "assists": 0,
+        "cleanSheetsOrRebounds": 4,
+        "minutesPlayed": 412,
+        "mvpAwards": 0,
+        "yellowCards": 1,
+        "redCards": 0,
+        "baseAttributes": {
+          "pace": 82,
+          "stamina": 80,
+          "agility": 85,
+          "strength": 86,
+          "firstTouch": 85,
+          "shortPassing": 78
+        },
+        "positionAttributes": {
+          "Tackling": 84,
+          "Defensive Heading": 87,
+          "Positioning": 87,
+          "Crossing": 78
+        },
+        "registrationStatus": "Active",
+        "specialtyTraits": [
+          "Line organizer",
+          "Aerial defense"
+        ],
+        "coachNotes": "Pair with a faster cover defender against transition teams.",
+        "dateOfBirth": "1988-02-12",
+        "fprdsRole": "CB",
+        "offenses": []
+      },
+      {
+        "id": "arg-nicolas-tagliafico",
+        "name": "Nicolas Tagliafico",
+        "number": 3,
+        "position": "Defender",
+        "bio": "Reliable left back with balanced defending and support play.",
+        "photoUrl": "/placeholders/defender-placeholder.png",
+        "age": 33,
+        "height": 172,
+        "weight": 68,
+        "gamesPlayed": 5,
+        "points": 0,
+        "assists": 1,
+        "cleanSheetsOrRebounds": 4,
+        "minutesPlayed": 370,
+        "mvpAwards": 0,
+        "yellowCards": 1,
+        "redCards": 0,
+        "baseAttributes": {
+          "pace": 86,
+          "stamina": 84,
+          "agility": 86,
+          "strength": 88,
+          "firstTouch": 86,
+          "shortPassing": 78
+        },
+        "positionAttributes": {
+          "Tackling": 82,
+          "Defensive Heading": 84,
+          "Positioning": 84,
+          "Crossing": 78
+        },
+        "registrationStatus": "Active",
+        "specialtyTraits": [
+          "Compact defending",
+          "Back-post coverage"
+        ],
+        "coachNotes": "Can invert when Mac Allister drops into build-up.",
+        "dateOfBirth": "1992-08-31",
+        "fprdsRole": "FB",
+        "offenses": []
+      },
+      {
+        "id": "arg-rodrigo-de-paul",
+        "name": "Rodrigo De Paul",
+        "number": 7,
+        "position": "Midfielder",
+        "bio": "High-energy midfielder who connects midfield and attack.",
+        "photoUrl": "/placeholders/midfielder-placeholder.png",
+        "age": 32,
+        "height": 180,
+        "weight": 74,
+        "gamesPlayed": 6,
+        "points": 1,
+        "assists": 3,
+        "cleanSheetsOrRebounds": 0,
+        "minutesPlayed": 520,
+        "mvpAwards": 1,
+        "yellowCards": 2,
+        "redCards": 0,
+        "baseAttributes": {
+          "pace": 93,
+          "stamina": 92,
+          "agility": 90,
+          "strength": 83,
+          "firstTouch": 90,
+          "shortPassing": 87
+        },
+        "positionAttributes": {
+          "Long Passing": 87,
+          "Vision": 85,
+          "Ball Retention": 90,
+          "Pressing": 92
+        },
+        "registrationStatus": "Active",
+        "specialtyTraits": [
+          "Pressing engine",
+          "Half-space support"
+        ],
+        "coachNotes": "Primary counter-press trigger on right side.",
+        "dateOfBirth": "1994-05-24",
+        "fprdsRole": "CM",
+        "fprdsLastAssessmentId": "assess-de-paul-2026-06-24",
+        "offenses": []
+      },
+      {
+        "id": "arg-enzo-fernandez",
+        "name": "Enzo Fernandez",
+        "number": 24,
+        "position": "Midfielder",
+        "bio": "Progressive midfielder with strong passing range.",
+        "photoUrl": "/placeholders/midfielder-placeholder.png",
+        "age": 25,
+        "height": 178,
+        "weight": 76,
+        "gamesPlayed": 6,
+        "points": 1,
+        "assists": 2,
+        "cleanSheetsOrRebounds": 0,
+        "minutesPlayed": 505,
+        "mvpAwards": 0,
+        "yellowCards": 1,
+        "redCards": 0,
+        "baseAttributes": {
+          "pace": 88,
+          "stamina": 84,
+          "agility": 90,
+          "strength": 85,
+          "firstTouch": 90,
+          "shortPassing": 90
+        },
+        "positionAttributes": {
+          "Long Passing": 90,
+          "Vision": 88,
+          "Ball Retention": 90,
+          "Pressing": 84
+        },
+        "registrationStatus": "Active",
+        "specialtyTraits": [
+          "Diagonal passing",
+          "Tempo control"
+        ],
+        "coachNotes": "Anchor rest-defense shape when fullbacks advance.",
+        "dateOfBirth": "2001-01-17",
+        "fprdsRole": "CM",
+        "fprdsLastAssessmentId": "assess-enzo-2026-06-24",
+        "offenses": []
+      },
+      {
+        "id": "arg-alexis-mac-allister",
+        "name": "Alexis Mac Allister",
+        "number": 20,
+        "position": "Midfielder",
+        "bio": "Composed midfielder who controls tight central spaces.",
+        "photoUrl": "/placeholders/midfielder-placeholder.png",
+        "age": 27,
+        "height": 176,
+        "weight": 72,
+        "gamesPlayed": 6,
+        "points": 1,
+        "assists": 2,
+        "cleanSheetsOrRebounds": 0,
+        "minutesPlayed": 492,
+        "mvpAwards": 1,
+        "yellowCards": 0,
+        "redCards": 0,
+        "baseAttributes": {
+          "pace": 89,
+          "stamina": 86,
+          "agility": 91,
+          "strength": 90,
+          "firstTouch": 91,
+          "shortPassing": 89
+        },
+        "positionAttributes": {
+          "Long Passing": 89,
+          "Vision": 87,
+          "Ball Retention": 91,
+          "Pressing": 86
+        },
+        "registrationStatus": "Active",
+        "specialtyTraits": [
+          "Press resistance",
+          "Late box runs"
+        ],
+        "coachNotes": "Best used as left-sided connector in 4-3-3.",
+        "dateOfBirth": "1998-12-24",
+        "fprdsRole": "CM",
+        "fprdsLastAssessmentId": "assess-mac-allister-2026-06-24",
+        "offenses": []
+      },
+      {
+        "id": "arg-angel-di-maria",
+        "name": "Angel Di Maria",
+        "number": 11,
+        "position": "Forward",
+        "bio": "Creative winger with decisive crossing and final-third timing.",
+        "photoUrl": "/placeholders/forward-placeholder.png",
+        "age": 38,
+        "height": 180,
+        "weight": 75,
+        "gamesPlayed": 4,
+        "points": 1,
+        "assists": 4,
+        "cleanSheetsOrRebounds": 0,
+        "minutesPlayed": 255,
+        "mvpAwards": 0,
+        "yellowCards": 0,
+        "redCards": 0,
+        "baseAttributes": {
+          "pace": 84,
+          "stamina": 78,
+          "agility": 90,
+          "strength": 88,
+          "firstTouch": 87,
+          "shortPassing": 87
+        },
+        "positionAttributes": {
+          "Finishing": 84,
+          "Long Shots": 84,
+          "Offensive 1v1": 90,
+          "Attacking Heading": 88
+        },
+        "registrationStatus": "Active",
+        "specialtyTraits": [
+          "Big-match delivery",
+          "Left-foot crossing"
+        ],
+        "coachNotes": "Use as impact starter or early second-half matchup lever.",
+        "dateOfBirth": "1988-02-14",
+        "fprdsRole": "W",
+        "offenses": []
+      },
+      {
+        "id": "arg-lionel-messi",
+        "name": "Lionel Messi",
+        "number": 10,
+        "position": "Forward",
+        "bio": "Captain and primary creator operating between midfield and attack.",
+        "photoUrl": "/placeholders/forward-placeholder.png",
+        "age": 39,
+        "height": 170,
+        "weight": 72,
+        "gamesPlayed": 6,
+        "points": 4,
+        "assists": 6,
+        "cleanSheetsOrRebounds": 0,
+        "minutesPlayed": 475,
+        "mvpAwards": 2,
+        "yellowCards": 0,
+        "redCards": 0,
+        "baseAttributes": {
+          "pace": 80,
+          "stamina": 82,
+          "agility": 96,
+          "strength": 94,
+          "firstTouch": 95,
+          "shortPassing": 95
+        },
+        "positionAttributes": {
+          "Finishing": 94,
+          "Long Shots": 94,
+          "Offensive 1v1": 96,
+          "Attacking Heading": 94
+        },
+        "registrationStatus": "Active",
+        "specialtyTraits": [
+          "Chance creation",
+          "Set pieces",
+          "Penalty taker"
+        ],
+        "coachNotes": "Build right-sided rotations around his receiving lane.",
+        "dateOfBirth": "1987-06-24",
+        "fprdsRole": "W",
+        "fprdsLastAssessmentId": "assess-messi-2026-06-24",
+        "offenses": []
+      },
+      {
+        "id": "arg-lautaro-martinez",
+        "name": "Lautaro Martinez",
+        "number": 22,
+        "position": "Forward",
+        "bio": "Penalty-box striker with aggressive pressing and strong finishing.",
+        "photoUrl": "/placeholders/forward-placeholder.png",
+        "age": 28,
+        "height": 174,
+        "weight": 72,
+        "gamesPlayed": 6,
+        "points": 3,
+        "assists": 1,
+        "cleanSheetsOrRebounds": 0,
+        "minutesPlayed": 398,
+        "mvpAwards": 1,
+        "yellowCards": 1,
+        "redCards": 0,
+        "baseAttributes": {
+          "pace": 85,
+          "stamina": 89,
+          "agility": 84,
+          "strength": 84,
+          "firstTouch": 88,
+          "shortPassing": 88
+        },
+        "positionAttributes": {
+          "Finishing": 90,
+          "Long Shots": 90,
+          "Offensive 1v1": 84,
+          "Attacking Heading": 84
+        },
+        "registrationStatus": "Active",
+        "specialtyTraits": [
+          "Box movement",
+          "Near-post attack"
+        ],
+        "coachNotes": "Best first press when center backs split wide.",
+        "dateOfBirth": "1997-08-22",
+        "fprdsRole": "ST",
+        "fprdsLastAssessmentId": "assess-lautaro-2026-06-24",
+        "offenses": []
+      },
+      {
+        "id": "arg-julian-alvarez",
+        "name": "Julian Alvarez",
+        "number": 9,
+        "position": "Forward",
+        "bio": "Mobile forward who can press, combine, and attack depth.",
+        "photoUrl": "/placeholders/forward-placeholder.png",
+        "age": 26,
+        "height": 170,
+        "weight": 71,
+        "gamesPlayed": 6,
+        "points": 2,
+        "assists": 2,
+        "cleanSheetsOrRebounds": 0,
+        "minutesPlayed": 366,
+        "mvpAwards": 0,
+        "yellowCards": 0,
+        "redCards": 0,
+        "baseAttributes": {
+          "pace": 90,
+          "stamina": 90,
+          "agility": 84,
+          "strength": 88,
+          "firstTouch": 90,
+          "shortPassing": 90
+        },
+        "positionAttributes": {
+          "Finishing": 86,
+          "Long Shots": 86,
+          "Offensive 1v1": 84,
+          "Attacking Heading": 88
+        },
+        "registrationStatus": "Active",
+        "specialtyTraits": [
+          "Pressing forward",
+          "Second striker"
+        ],
+        "coachNotes": "Strong option when changing to two forwards.",
+        "dateOfBirth": "2000-01-31",
+        "fprdsRole": "ST",
+        "offenses": []
+      },
+      {
+        "id": "arg-paulo-dybala",
+        "name": "Paulo Dybala",
+        "number": 21,
+        "position": "Forward",
+        "bio": "Creative attacker with excellent left-footed final pass.",
+        "photoUrl": "/placeholders/forward-placeholder.png",
+        "age": 32,
+        "height": 177,
+        "weight": 75,
+        "gamesPlayed": 3,
+        "points": 0,
+        "assists": 2,
+        "cleanSheetsOrRebounds": 0,
+        "minutesPlayed": 155,
+        "mvpAwards": 0,
+        "yellowCards": 0,
+        "redCards": 0,
+        "baseAttributes": {
+          "pace": 79,
+          "stamina": 76,
+          "agility": 89,
+          "strength": 87,
+          "firstTouch": 86,
+          "shortPassing": 86
+        },
+        "positionAttributes": {
+          "Finishing": 86,
+          "Long Shots": 86,
+          "Offensive 1v1": 89,
+          "Attacking Heading": 87
+        },
+        "registrationStatus": "Active",
+        "specialtyTraits": [
+          "Between-lines creator",
+          "Curled finish"
+        ],
+        "coachNotes": "Manage minutes; ideal against compact blocks.",
+        "dateOfBirth": "1993-11-15",
+        "fprdsRole": "W",
+        "offenses": []
+      },
+      {
+        "id": "arg-leandro-paredes",
+        "name": "Leandro Paredes",
+        "number": 5,
+        "position": "Midfielder",
+        "bio": "Holding midfielder with passing range and tactical fouling awareness.",
+        "photoUrl": "/placeholders/midfielder-placeholder.png",
+        "age": 32,
+        "height": 180,
+        "weight": 75,
+        "gamesPlayed": 5,
+        "points": 0,
+        "assists": 1,
+        "cleanSheetsOrRebounds": 0,
+        "minutesPlayed": 310,
+        "mvpAwards": 0,
+        "yellowCards": 2,
+        "redCards": 0,
+        "baseAttributes": {
+          "pace": 84,
+          "stamina": 80,
+          "agility": 87,
+          "strength": 80,
+          "firstTouch": 87,
+          "shortPassing": 87
+        },
+        "positionAttributes": {
+          "Long Passing": 87,
+          "Vision": 84,
+          "Ball Retention": 87,
+          "Pressing": 80
+        },
+        "registrationStatus": "Active",
+        "specialtyTraits": [
+          "Switch of play",
+          "Game control"
+        ],
+        "coachNotes": "Use when protecting a lead and slowing tempo.",
+        "dateOfBirth": "1994-06-29",
+        "fprdsRole": "CDM",
+        "offenses": []
+      },
+      {
+        "id": "arg-giovani-lo-celso",
+        "name": "Giovani Lo Celso",
+        "number": 16,
+        "position": "Midfielder",
+        "bio": "Left-footed connector with strong attacking combinations.",
+        "photoUrl": "/placeholders/midfielder-placeholder.png",
+        "age": 30,
+        "height": 177,
+        "weight": 74,
+        "gamesPlayed": 4,
+        "points": 0,
+        "assists": 2,
+        "cleanSheetsOrRebounds": 0,
+        "minutesPlayed": 224,
+        "mvpAwards": 0,
+        "yellowCards": 1,
+        "redCards": 0,
+        "baseAttributes": {
+          "pace": 82,
+          "stamina": 78,
+          "agility": 88,
+          "strength": 84,
+          "firstTouch": 88,
+          "shortPassing": 85
+        },
+        "positionAttributes": {
+          "Long Passing": 85,
+          "Vision": 86,
+          "Ball Retention": 88,
+          "Pressing": 78
+        },
+        "registrationStatus": "Active",
+        "specialtyTraits": [
+          "Final pass",
+          "Left-side combination"
+        ],
+        "coachNotes": "Useful when rotating Mac Allister's minutes.",
+        "dateOfBirth": "1996-04-09",
+        "fprdsRole": "CM",
+        "offenses": []
+      },
+      {
+        "id": "arg-marcos-acuna",
+        "name": "Marcos Acuna",
+        "number": 8,
+        "position": "Defender",
+        "bio": "Combative left-sided defender with strong crossing.",
+        "photoUrl": "/placeholders/defender-placeholder.png",
+        "age": 34,
+        "height": 172,
+        "weight": 69,
+        "gamesPlayed": 4,
+        "points": 0,
+        "assists": 1,
+        "cleanSheetsOrRebounds": 4,
+        "minutesPlayed": 250,
+        "mvpAwards": 0,
+        "yellowCards": 2,
+        "redCards": 0,
+        "baseAttributes": {
+          "pace": 81,
+          "stamina": 79,
+          "agility": 84,
+          "strength": 76,
+          "firstTouch": 84,
+          "shortPassing": 80
+        },
+        "positionAttributes": {
+          "Tackling": 81,
+          "Defensive Heading": 79,
+          "Positioning": 79,
+          "Crossing": 80
+        },
+        "registrationStatus": "Active",
+        "specialtyTraits": [
+          "Wide aggression",
+          "Crossing"
+        ],
+        "coachNotes": "Monitor card risk when defending quick wingers.",
+        "dateOfBirth": "1991-10-28",
+        "fprdsRole": "FB",
+        "offenses": []
+      },
+      {
+        "id": "arg-gonzalo-montiel",
+        "name": "Gonzalo Montiel",
+        "number": 4,
+        "position": "Defender",
+        "bio": "Right back with penalty composure and defensive bite.",
+        "photoUrl": "/placeholders/defender-placeholder.png",
+        "age": 29,
+        "height": 176,
+        "weight": 72,
+        "gamesPlayed": 3,
+        "points": 0,
+        "assists": 0,
+        "cleanSheetsOrRebounds": 3,
+        "minutesPlayed": 180,
+        "mvpAwards": 0,
+        "yellowCards": 1,
+        "redCards": 0,
+        "baseAttributes": {
+          "pace": 84,
+          "stamina": 82,
+          "agility": 84,
+          "strength": 82,
+          "firstTouch": 84,
+          "shortPassing": 75
+        },
+        "positionAttributes": {
+          "Tackling": 80,
+          "Defensive Heading": 78,
+          "Positioning": 78,
+          "Crossing": 75
+        },
+        "registrationStatus": "Active",
+        "specialtyTraits": [
+          "Penalty composure",
+          "Defensive closing"
+        ],
+        "coachNotes": "Late-game defensive option on the right.",
+        "dateOfBirth": "1997-01-01",
+        "fprdsRole": "FB",
+        "offenses": []
+      },
+      {
+        "id": "arg-german-pezzella",
+        "name": "German Pezzella",
+        "number": 6,
+        "position": "Defender",
+        "bio": "Experienced center back with strong aerial profile.",
+        "photoUrl": "/placeholders/defender-placeholder.png",
+        "age": 35,
+        "height": 187,
+        "weight": 82,
+        "gamesPlayed": 3,
+        "points": 1,
+        "assists": 0,
+        "cleanSheetsOrRebounds": 2,
+        "minutesPlayed": 170,
+        "mvpAwards": 0,
+        "yellowCards": 0,
+        "redCards": 0,
+        "baseAttributes": {
+          "pace": 80,
+          "stamina": 78,
+          "agility": 84,
+          "strength": 86,
+          "firstTouch": 84,
+          "shortPassing": 73
+        },
+        "positionAttributes": {
+          "Tackling": 80,
+          "Defensive Heading": 83,
+          "Positioning": 83,
+          "Crossing": 73
+        },
+        "registrationStatus": "Active",
+        "specialtyTraits": [
+          "Aerial set pieces",
+          "Box defense"
+        ],
+        "coachNotes": "Target him on far-post corners if chasing a goal.",
+        "dateOfBirth": "1991-06-27",
+        "fprdsRole": "CB",
+        "offenses": []
+      },
+      {
+        "id": "arg-lisandro-martinez",
+        "name": "Lisandro Martinez",
+        "number": 25,
+        "position": "Defender",
+        "bio": "Left-footed defender who can step into midfield.",
+        "photoUrl": "/placeholders/defender-placeholder.png",
+        "age": 28,
+        "height": 175,
+        "weight": 77,
+        "gamesPlayed": 4,
+        "points": 0,
+        "assists": 1,
+        "cleanSheetsOrRebounds": 4,
+        "minutesPlayed": 246,
+        "mvpAwards": 0,
+        "yellowCards": 1,
+        "redCards": 0,
+        "baseAttributes": {
+          "pace": 86,
+          "stamina": 84,
+          "agility": 88,
+          "strength": 82,
+          "firstTouch": 88,
+          "shortPassing": 82
+        },
+        "positionAttributes": {
+          "Tackling": 86,
+          "Defensive Heading": 84,
+          "Positioning": 84,
+          "Crossing": 82
+        },
+        "registrationStatus": "Active",
+        "specialtyTraits": [
+          "Left-foot build-up",
+          "Front-foot defending"
+        ],
+        "coachNotes": "Can replace Otamendi when needing faster cover.",
+        "dateOfBirth": "1998-01-18",
+        "fprdsRole": "CB",
+        "offenses": []
+      },
+      {
+        "id": "arg-exequiel-palacios",
+        "name": "Exequiel Palacios",
+        "number": 14,
+        "position": "Midfielder",
+        "bio": "Balanced midfielder who covers ground and keeps possession moving.",
+        "photoUrl": "/placeholders/midfielder-placeholder.png",
+        "age": 27,
+        "height": 177,
+        "weight": 70,
+        "gamesPlayed": 4,
+        "points": 0,
+        "assists": 1,
+        "cleanSheetsOrRebounds": 0,
+        "minutesPlayed": 205,
+        "mvpAwards": 0,
+        "yellowCards": 0,
+        "redCards": 0,
+        "baseAttributes": {
+          "pace": 87,
+          "stamina": 86,
+          "agility": 88,
+          "strength": 87,
+          "firstTouch": 88,
+          "shortPassing": 82
+        },
+        "positionAttributes": {
+          "Long Passing": 82,
+          "Vision": 80,
+          "Ball Retention": 88,
+          "Pressing": 86
+        },
+        "registrationStatus": "Active",
+        "specialtyTraits": [
+          "Ball circulation",
+          "Defensive balance"
+        ],
+        "coachNotes": "Good closer when protecting central zones.",
+        "dateOfBirth": "1998-10-05",
+        "fprdsRole": "CM",
+        "offenses": []
+      },
+      {
+        "id": "arg-emiliano-buendia",
+        "name": "Emiliano Buendia",
+        "number": 18,
+        "position": "Forward",
+        "bio": "Creative wide attacker with quick combination play.",
+        "photoUrl": "/placeholders/forward-placeholder.png",
+        "age": 29,
+        "height": 172,
+        "weight": 72,
+        "gamesPlayed": 2,
+        "points": 0,
+        "assists": 1,
+        "cleanSheetsOrRebounds": 0,
+        "minutesPlayed": 94,
+        "mvpAwards": 0,
+        "yellowCards": 0,
+        "redCards": 0,
+        "baseAttributes": {
+          "pace": 81,
+          "stamina": 77,
+          "agility": 84,
+          "strength": 84,
+          "firstTouch": 85,
+          "shortPassing": 85
+        },
+        "positionAttributes": {
+          "Finishing": 78,
+          "Long Shots": 78,
+          "Offensive 1v1": 84,
+          "Attacking Heading": 84
+        },
+        "registrationStatus": "Active",
+        "specialtyTraits": [
+          "Combination play",
+          "Pressing winger"
+        ],
+        "coachNotes": "Bench creative option against low blocks.",
+        "dateOfBirth": "1996-12-25",
+        "fprdsRole": "W",
+        "offenses": []
+      },
+      {
+        "id": "arg-geronimo-rulli",
+        "name": "Geronimo Rulli",
+        "number": 12,
+        "position": "Goalkeeper",
+        "bio": "Backup goalkeeper with confident handling.",
+        "photoUrl": "/placeholders/goalkeeper-placeholder.png",
+        "age": 34,
+        "height": 189,
+        "weight": 84,
+        "gamesPlayed": 1,
+        "points": 0,
+        "assists": 0,
+        "cleanSheetsOrRebounds": 1,
+        "minutesPlayed": 90,
+        "mvpAwards": 0,
+        "yellowCards": 0,
+        "redCards": 0,
+        "baseAttributes": {
+          "pace": 84,
+          "stamina": 82,
+          "agility": 86,
+          "strength": 89,
+          "firstTouch": 86,
+          "shortPassing": 86
+        },
+        "positionAttributes": {
+          "Reflexes": 84,
+          "Handling": 82,
+          "Diving": 84,
+          "Distribution": 80
+        },
+        "registrationStatus": "Active",
+        "specialtyTraits": [
+          "Handling",
+          "Calm restart"
+        ],
+        "coachNotes": "Start in lower-risk rotation match.",
+        "dateOfBirth": "1992-05-20",
+        "fprdsRole": "GK",
+        "offenses": []
+      },
+      {
+        "id": "arg-franco-armani",
+        "name": "Franco Armani",
+        "number": 1,
+        "position": "Goalkeeper",
+        "bio": "Veteran goalkeeper and experienced dressing-room presence.",
+        "photoUrl": "/placeholders/goalkeeper-placeholder.png",
+        "age": 39,
+        "height": 189,
+        "weight": 85,
+        "gamesPlayed": 0,
+        "points": 0,
+        "assists": 0,
+        "cleanSheetsOrRebounds": 0,
+        "minutesPlayed": 0,
+        "mvpAwards": 0,
+        "yellowCards": 0,
+        "redCards": 0,
+        "baseAttributes": {
+          "pace": 78,
+          "stamina": 76,
+          "agility": 85,
+          "strength": 90,
+          "firstTouch": 85,
+          "shortPassing": 85
+        },
+        "positionAttributes": {
+          "Reflexes": 80,
+          "Handling": 81,
+          "Diving": 80,
+          "Distribution": 75
+        },
+        "registrationStatus": "Pending",
+        "specialtyTraits": [
+          "Veteran leadership",
+          "Training standard"
+        ],
+        "coachNotes": "Pending final paperwork for league eligibility.",
+        "dateOfBirth": "1986-10-16",
+        "fprdsRole": "GK",
+        "offenses": []
+      }
+    ],
+    "staff": [
+      {
+        "id": "staff-klein-head-coach",
+        "name": "Klein",
+        "role": "Head Coach",
+        "bio": "Owns squad planning, assessment signoff, and league submissions.",
+        "photoUrl": "/placeholders/staff-placeholder.png",
+        "email": "coach@argentina.mock",
+        "phone": "+63 900 000 0000",
+        "since": "2026",
+        "status": "Active"
+      },
+      {
+        "id": "staff-ana-ruiz",
+        "name": "Ana Ruiz",
+        "role": "Assistant Coach",
+        "bio": "Tracks availability, substitution plans, and match notes.",
+        "photoUrl": "/placeholders/staff-placeholder.png",
+        "email": "assistant@argentina.mock",
+        "phone": "+63 900 000 0001",
+        "since": "2026",
+        "status": "Active"
+      },
+      {
+        "id": "staff-mateo-santos",
+        "name": "Mateo Santos",
+        "role": "Team Manager",
+        "bio": "Handles payments, registration, and travel logistics.",
+        "photoUrl": "/placeholders/staff-placeholder.png",
+        "email": "manager@argentina.mock",
+        "phone": "+63 900 000 0002",
+        "since": "2026",
+        "status": "Active"
+      }
+    ],
+    "games": [
+      {
+        "id": "game-chile-2026-06-21",
+        "opponent": "Chile Mock XI",
+        "date": "2026-06-21",
+        "time": "20:00",
+        "location": "Queenstown Stadium",
+        "type": "League",
+        "status": "Completed",
+        "ourScore": 2,
+        "opponentScore": 0,
+        "scorers": [
+          {
+            "playerId": "arg-lionel-messi",
+            "playerName": "Lionel Messi",
+            "count": 1
+          },
+          {
+            "playerId": "arg-lautaro-martinez",
+            "playerName": "Lautaro Martinez",
+            "count": 1
+          }
+        ],
+        "creditedPlayerIds": [
+          "arg-emi-martinez",
+          "arg-nahuel-molina",
+          "arg-cristian-romero",
+          "arg-nicolas-otamendi",
+          "arg-nicolas-tagliafico",
+          "arg-rodrigo-de-paul",
+          "arg-enzo-fernandez",
+          "arg-alexis-mac-allister",
+          "arg-angel-di-maria",
+          "arg-lionel-messi",
+          "arg-lautaro-martinez",
+          "arg-julian-alvarez",
+          "arg-paulo-dybala",
+          "arg-leandro-paredes",
+          "arg-giovani-lo-celso",
+          "arg-marcos-acuna",
+          "arg-gonzalo-montiel",
+          "arg-lisandro-martinez",
+          "arg-exequiel-palacios",
+          "arg-emiliano-buendia",
+          "arg-geronimo-rulli"
+        ],
+        "mvpId": "arg-rodrigo-de-paul",
+        "notes": "Clean control after early goal. De Paul led counter-pressing."
+      },
+      {
+        "id": "game-peru-2026-06-14",
+        "opponent": "Peru Mock XI",
+        "date": "2026-06-14",
+        "time": "18:30",
+        "location": "Bishan Stadium",
+        "type": "League",
+        "status": "Completed",
+        "ourScore": 3,
+        "opponentScore": 0,
+        "scorers": [
+          {
+            "playerId": "arg-lionel-messi",
+            "playerName": "Lionel Messi",
+            "count": 1
+          },
+          {
+            "playerId": "arg-lautaro-martinez",
+            "playerName": "Lautaro Martinez",
+            "count": 1
+          },
+          {
+            "playerId": "arg-julian-alvarez",
+            "playerName": "Julian Alvarez",
+            "count": 1
+          }
+        ],
+        "creditedPlayerIds": [
+          "arg-emi-martinez",
+          "arg-nahuel-molina",
+          "arg-cristian-romero",
+          "arg-nicolas-otamendi",
+          "arg-nicolas-tagliafico",
+          "arg-rodrigo-de-paul",
+          "arg-enzo-fernandez",
+          "arg-alexis-mac-allister",
+          "arg-angel-di-maria",
+          "arg-lionel-messi",
+          "arg-lautaro-martinez",
+          "arg-julian-alvarez",
+          "arg-paulo-dybala",
+          "arg-leandro-paredes",
+          "arg-giovani-lo-celso",
+          "arg-marcos-acuna",
+          "arg-gonzalo-montiel",
+          "arg-german-pezzella",
+          "arg-lisandro-martinez",
+          "arg-exequiel-palacios",
+          "arg-emiliano-buendia"
+        ],
+        "mvpId": "arg-lionel-messi",
+        "notes": "Controlled possession and rotated the front line after halftime."
+      },
+      {
+        "id": "game-paraguay-2026-06-07",
+        "opponent": "Paraguay Mock XI",
+        "date": "2026-06-07",
+        "time": "18:00",
+        "location": "Jurong East Stadium",
+        "type": "League",
+        "status": "Completed",
+        "ourScore": 3,
+        "opponentScore": 0,
+        "scorers": [
+          {
+            "playerId": "arg-lionel-messi",
+            "playerName": "Lionel Messi",
+            "count": 1
+          },
+          {
+            "playerId": "arg-angel-di-maria",
+            "playerName": "Angel Di Maria",
+            "count": 1
+          },
+          {
+            "playerId": "arg-enzo-fernandez",
+            "playerName": "Enzo Fernandez",
+            "count": 1
+          }
+        ],
+        "creditedPlayerIds": [
+          "arg-emi-martinez",
+          "arg-nahuel-molina",
+          "arg-cristian-romero",
+          "arg-nicolas-otamendi",
+          "arg-nicolas-tagliafico",
+          "arg-rodrigo-de-paul",
+          "arg-enzo-fernandez",
+          "arg-alexis-mac-allister",
+          "arg-angel-di-maria",
+          "arg-lionel-messi",
+          "arg-lautaro-martinez",
+          "arg-julian-alvarez",
+          "arg-paulo-dybala",
+          "arg-leandro-paredes",
+          "arg-giovani-lo-celso",
+          "arg-marcos-acuna",
+          "arg-gonzalo-montiel",
+          "arg-german-pezzella",
+          "arg-lisandro-martinez",
+          "arg-exequiel-palacios"
+        ],
+        "mvpId": "arg-emi-martinez",
+        "notes": "Fast start from the right side and composed rest defense."
+      },
+      {
+        "id": "game-uruguay-2026-05-31",
+        "opponent": "Uruguay Mock XI",
+        "date": "2026-05-31",
+        "time": "19:00",
+        "location": "Jalan Besar Stadium",
+        "type": "League",
+        "status": "Completed",
+        "ourScore": 1,
+        "opponentScore": 0,
+        "scorers": [
+          {
+            "playerId": "arg-cristian-romero",
+            "playerName": "Cristian Romero",
+            "count": 1
+          }
+        ],
+        "creditedPlayerIds": [
+          "arg-emi-martinez",
+          "arg-nahuel-molina",
+          "arg-cristian-romero",
+          "arg-nicolas-otamendi",
+          "arg-nicolas-tagliafico",
+          "arg-rodrigo-de-paul",
+          "arg-enzo-fernandez",
+          "arg-alexis-mac-allister",
+          "arg-angel-di-maria",
+          "arg-lionel-messi",
+          "arg-lautaro-martinez",
+          "arg-julian-alvarez",
+          "arg-leandro-paredes",
+          "arg-giovani-lo-celso",
+          "arg-marcos-acuna",
+          "arg-lisandro-martinez",
+          "arg-exequiel-palacios"
+        ],
+        "mvpId": "arg-alexis-mac-allister",
+        "notes": "Physical match decided by a set-piece second phase."
+      },
+      {
+        "id": "game-brazil-2026-05-24",
+        "opponent": "Brazil Mock XI",
+        "date": "2026-05-24",
+        "time": "20:00",
+        "location": "National Stadium, Singapore",
+        "type": "League",
+        "status": "Completed",
+        "ourScore": 4,
+        "opponentScore": 2,
+        "scorers": [
+          {
+            "playerId": "arg-lionel-messi",
+            "playerName": "Lionel Messi",
+            "count": 1
+          },
+          {
+            "playerId": "arg-lautaro-martinez",
+            "playerName": "Lautaro Martinez",
+            "count": 1
+          },
+          {
+            "playerId": "arg-julian-alvarez",
+            "playerName": "Julian Alvarez",
+            "count": 1
+          },
+          {
+            "playerId": "arg-rodrigo-de-paul",
+            "playerName": "Rodrigo De Paul",
+            "count": 1
+          }
+        ],
+        "creditedPlayerIds": [
+          "arg-emi-martinez",
+          "arg-nahuel-molina",
+          "arg-cristian-romero",
+          "arg-nicolas-otamendi",
+          "arg-nicolas-tagliafico",
+          "arg-rodrigo-de-paul",
+          "arg-enzo-fernandez",
+          "arg-alexis-mac-allister",
+          "arg-lionel-messi",
+          "arg-lautaro-martinez",
+          "arg-julian-alvarez",
+          "arg-leandro-paredes"
+        ],
+        "mvpId": "arg-lautaro-martinez",
+        "notes": "Open match with decisive late pressing from the front three."
+      },
+      {
+        "id": "game-brazil-2026-05-17",
+        "opponent": "Brazil Mock XI",
+        "date": "2026-05-17",
+        "time": "20:00",
+        "location": "National Stadium, Singapore",
+        "type": "League",
+        "status": "Completed",
+        "ourScore": 2,
+        "opponentScore": 2,
+        "scorers": [
+          {
+            "playerId": "arg-alexis-mac-allister",
+            "playerName": "Alexis Mac Allister",
+            "count": 1
+          },
+          {
+            "playerId": "arg-german-pezzella",
+            "playerName": "German Pezzella",
+            "count": 1
+          }
+        ],
+        "creditedPlayerIds": [
+          "arg-emi-martinez",
+          "arg-nahuel-molina",
+          "arg-cristian-romero",
+          "arg-rodrigo-de-paul",
+          "arg-enzo-fernandez",
+          "arg-alexis-mac-allister",
+          "arg-lionel-messi",
+          "arg-lautaro-martinez",
+          "arg-julian-alvarez",
+          "arg-german-pezzella"
+        ],
+        "mvpId": "arg-lionel-messi",
+        "notes": "Recovered from a goal down and protected the draw with a compact midfield."
+      },
+      {
+        "id": "game-brazil-2026-06-28",
+        "opponent": "Brazil Mock XI",
+        "date": "2026-06-28",
+        "time": "19:30",
+        "location": "National Stadium, Singapore",
+        "type": "League",
+        "status": "Upcoming",
+        "notes": "High-possession opponent. Protect central spaces and attack right channel."
+      },
+      {
+        "id": "game-uruguay-2026-07-04",
+        "opponent": "Uruguay Mock XI",
+        "date": "2026-07-04",
+        "time": "18:00",
+        "location": "Jalan Besar Stadium",
+        "type": "League",
+        "status": "Upcoming",
+        "notes": "Expect physical duels and direct second balls."
+      },
+      {
+        "id": "training-2026-06-27",
+        "opponent": "Internal tactical session",
+        "date": "2026-06-27",
+        "time": "17:00",
+        "location": "Dumala Training Pitch",
+        "type": "Training",
+        "status": "Upcoming",
+        "notes": "Rehearse 4-3-3 defensive shifts and right-side rotations."
+      }
+    ],
+    "standings": [
+      {
+        "rank": 1,
+        "teamName": "Argentina Mockup Squad",
+        "played": 6,
+        "won": 5,
+        "drawn": 1,
+        "lost": 0,
+        "goalsFor": 15,
+        "goalsAgainst": 4,
+        "points": 16,
+        "isUserTeam": true
+      },
+      {
+        "rank": 2,
+        "teamName": "Brazil Mock XI",
+        "played": 2,
+        "won": 0,
+        "drawn": 1,
+        "lost": 1,
+        "goalsFor": 4,
+        "goalsAgainst": 6,
+        "points": 1,
+        "isUserTeam": false
+      },
+      {
+        "rank": 3,
+        "teamName": "Uruguay Mock XI",
+        "played": 1,
+        "won": 0,
+        "drawn": 0,
+        "lost": 1,
+        "goalsFor": 0,
+        "goalsAgainst": 1,
+        "points": 0,
+        "isUserTeam": false
+      },
+      {
+        "rank": 4,
+        "teamName": "Chile Mock XI",
+        "played": 1,
+        "won": 0,
+        "drawn": 0,
+        "lost": 1,
+        "goalsFor": 0,
+        "goalsAgainst": 2,
+        "points": 0,
+        "isUserTeam": false
+      },
+      {
+        "rank": 5,
+        "teamName": "Paraguay Mock XI",
+        "played": 1,
+        "won": 0,
+        "drawn": 0,
+        "lost": 1,
+        "goalsFor": 0,
+        "goalsAgainst": 3,
+        "points": 0,
+        "isUserTeam": false
+      },
+      {
+        "rank": 6,
+        "teamName": "Peru Mock XI",
+        "played": 1,
+        "won": 0,
+        "drawn": 0,
+        "lost": 1,
+        "goalsFor": 0,
+        "goalsAgainst": 3,
+        "points": 0,
+        "isUserTeam": false
+      }
+    ],
+    "announcements": [
+      {
+        "id": "bulletin-2026-06-24-review",
+        "title": "Assessment Review Complete",
+        "content": "Latest mock FPRDS assessments are ready for coach review before the Brazil fixture.",
+        "date": "2026-06-24",
+        "category": "Training",
+        "author": "Klein"
+      },
+      {
+        "id": "bulletin-2026-06-25-payments",
+        "title": "June Ledger Updated",
+        "content": "Registration and monthly fee entries have been mocked for finance workflow testing.",
+        "date": "2026-06-25",
+        "category": "Social",
+        "author": "Mateo Santos"
+      },
+      {
+        "id": "bulletin-2026-06-26-matchday",
+        "title": "Brazil Matchday Plan",
+        "content": "Players should confirm availability and arrive 90 minutes before kickoff.",
+        "date": "2026-06-26",
+        "category": "Matchday",
+        "author": "Ana Ruiz"
+      }
+    ],
+    "assessments": [
+      {
+        "id": "assess-messi-2026-06-24",
+        "playerId": "arg-lionel-messi",
+        "assessmentDate": "2026-06-24",
+        "createdAt": "2026-06-24T12:00:00.000Z",
+        "assessmentType": "Full",
+        "ageGroup": "Adult",
+        "role": "W",
+        "rawResults": {
+          "role": "W",
+          "assessmentType": "Full",
+          "base": {
+            "sprint10mSeconds": 1.72,
+            "sprint30mSeconds": 4.02,
+            "yoyoMeters": 1500,
+            "illinoisSeconds": 15.1,
+            "broadJumpCm": 220,
+            "medicineBallThrowCm": 520,
+            "firstTouchSuccessesOutOf10": 8,
+            "shortPassingSuccessesOutOf10": 9
+          },
+          "roleSpecific": {
+            "finishingGoalsOutOf6": 4,
+            "finishingOnTargetOutOf6": 5,
+            "shotPowerMaxControlledDistanceMeters": 24,
+            "offensive1v1TakeonsOutOf10": 7,
+            "attackingHeadingOnTargetOutOf10": 6
+          }
+        },
+        "attributeScores": {
+          "pace": 86,
+          "stamina": 87,
+          "agility": 88,
+          "strength": 89,
+          "firstTouch": 90,
+          "shortPassing": 91,
+          "finishingBox": 96,
+          "shotPower": 97,
+          "offensive1v1": 98,
+          "attackingHeading": 96,
+          "longPassing": 89,
+          "visionPlaymaking": 90,
+          "ballRetention": 91,
+          "pressingInterceptions": 92,
+          "tackling": 86,
+          "defensiveHeading": 87,
+          "positioningClearances": 88,
+          "crossing": 89,
+          "reflexes": 40,
+          "handling": 40,
+          "divingReach": 40,
+          "distribution": 40
+        },
+        "ovr": 94,
+        "labels": {
+          "weakestAttributeId": "tackling",
+          "ovrTierLabel": "Elite"
+        },
+        "deltas": {
+          "previousSessionId": "assess-messi-2026-05-24",
+          "ovrDelta": 1,
+          "attributeDeltas": {
+            "stamina": 2,
+            "shortPassing": 1
+          }
+        },
+        "coachNotes": "Elite chance creation remains the tactical anchor; protect workload with planned substitutions.",
+        "developmentPlan": {
+          "focusAttributeId": "tackling",
+          "priorityScore": 75,
+          "weeks": [
+            {
+              "weekNumber": 1,
+              "focus": "Baseline technical repetition",
+              "drillIds": [
+                "technical-reps"
+              ],
+              "notes": "Keep load moderate and record coach observations."
+            },
+            {
+              "weekNumber": 2,
+              "focus": "Game-speed application",
+              "drillIds": [
+                "small-sided-transfer"
+              ],
+              "notes": "Progress the same focus into opposed drills."
+            },
+            {
+              "weekNumber": 3,
+              "focus": "Pressure transfer",
+              "drillIds": [
+                "pressure-transfer"
+              ],
+              "notes": "Add fatigue and decision pressure."
+            },
+            {
+              "weekNumber": 4,
+              "focus": "Review and retest",
+              "drillIds": [
+                "retest-checkpoint"
+              ],
+              "notes": "Use the next assessment to confirm progress."
+            }
+          ]
+        }
+      },
+      {
+        "id": "assess-messi-2026-05-24",
+        "playerId": "arg-lionel-messi",
+        "assessmentDate": "2026-05-24",
+        "createdAt": "2026-05-24T12:00:00.000Z",
+        "assessmentType": "Quick",
+        "ageGroup": "Adult",
+        "role": "W",
+        "rawResults": {
+          "role": "W",
+          "assessmentType": "Quick",
+          "base": {
+            "sprint10mSeconds": 1.73,
+            "sprint30mSeconds": 4.05,
+            "yoyoMeters": 1555,
+            "illinoisSeconds": 15.18,
+            "broadJumpCm": 223,
+            "medicineBallThrowCm": 532,
+            "firstTouchSuccessesOutOf10": 9,
+            "shortPassingSuccessesOutOf10": 10
+          },
+          "roleSpecific": {
+            "finishingGoalsOutOf6": 5,
+            "finishingOnTargetOutOf6": 5,
+            "shotPowerMaxControlledDistanceMeters": 25,
+            "offensive1v1TakeonsOutOf10": 8,
+            "attackingHeadingOnTargetOutOf10": 7
+          }
+        },
+        "attributeScores": {
+          "pace": 85,
+          "stamina": 86,
+          "agility": 87,
+          "strength": 88,
+          "firstTouch": 89,
+          "shortPassing": 90,
+          "finishingBox": 95,
+          "shotPower": 96,
+          "offensive1v1": 97,
+          "attackingHeading": 95,
+          "longPassing": 88,
+          "visionPlaymaking": 89,
+          "ballRetention": 90,
+          "pressingInterceptions": 91,
+          "tackling": 85,
+          "defensiveHeading": 86,
+          "positioningClearances": 87,
+          "crossing": 88,
+          "reflexes": 40,
+          "handling": 40,
+          "divingReach": 40,
+          "distribution": 40
+        },
+        "ovr": 93,
+        "labels": {
+          "weakestAttributeId": "tackling",
+          "ovrTierLabel": "Elite"
+        },
+        "deltas": {},
+        "coachNotes": "Baseline session used for month-over-month history chart.",
+        "developmentPlan": {
+          "focusAttributeId": "tackling",
+          "priorityScore": 75,
+          "weeks": [
+            {
+              "weekNumber": 1,
+              "focus": "Baseline technical repetition",
+              "drillIds": [
+                "technical-reps"
+              ],
+              "notes": "Keep load moderate and record coach observations."
+            },
+            {
+              "weekNumber": 2,
+              "focus": "Game-speed application",
+              "drillIds": [
+                "small-sided-transfer"
+              ],
+              "notes": "Progress the same focus into opposed drills."
+            },
+            {
+              "weekNumber": 3,
+              "focus": "Pressure transfer",
+              "drillIds": [
+                "pressure-transfer"
+              ],
+              "notes": "Add fatigue and decision pressure."
+            },
+            {
+              "weekNumber": 4,
+              "focus": "Review and retest",
+              "drillIds": [
+                "retest-checkpoint"
+              ],
+              "notes": "Use the next assessment to confirm progress."
+            }
+          ]
+        }
+      },
+      {
+        "id": "assess-lautaro-2026-06-24",
+        "playerId": "arg-lautaro-martinez",
+        "assessmentDate": "2026-06-24",
+        "createdAt": "2026-06-24T12:20:00.000Z",
+        "assessmentType": "Full",
+        "ageGroup": "Adult",
+        "role": "ST",
+        "rawResults": {
+          "role": "ST",
+          "assessmentType": "Full",
+          "base": {
+            "sprint10mSeconds": 1.74,
+            "sprint30mSeconds": 4.08,
+            "yoyoMeters": 1610,
+            "illinoisSeconds": 15.26,
+            "broadJumpCm": 226,
+            "medicineBallThrowCm": 544,
+            "firstTouchSuccessesOutOf10": 10,
+            "shortPassingSuccessesOutOf10": 8
+          },
+          "roleSpecific": {
+            "finishingGoalsOutOf6": 4,
+            "finishingOnTargetOutOf6": 5,
+            "shotPowerMaxControlledDistanceMeters": 26,
+            "offensive1v1TakeonsOutOf10": 9,
+            "attackingHeadingOnTargetOutOf10": 8
+          }
+        },
+        "attributeScores": {
+          "pace": 80,
+          "stamina": 81,
+          "agility": 82,
+          "strength": 83,
+          "firstTouch": 84,
+          "shortPassing": 85,
+          "finishingBox": 90,
+          "shotPower": 91,
+          "offensive1v1": 92,
+          "attackingHeading": 90,
+          "longPassing": 83,
+          "visionPlaymaking": 84,
+          "ballRetention": 85,
+          "pressingInterceptions": 86,
+          "tackling": 80,
+          "defensiveHeading": 81,
+          "positioningClearances": 82,
+          "crossing": 83,
+          "reflexes": 40,
+          "handling": 40,
+          "divingReach": 40,
+          "distribution": 40
+        },
+        "ovr": 88,
+        "labels": {
+          "weakestAttributeId": "tackling",
+          "ovrTierLabel": "Advanced"
+        },
+        "deltas": {},
+        "coachNotes": "Excellent press and penalty-box timing; improve layoff consistency under contact.",
+        "developmentPlan": {
+          "focusAttributeId": "tackling",
+          "priorityScore": 75,
+          "weeks": [
+            {
+              "weekNumber": 1,
+              "focus": "Baseline technical repetition",
+              "drillIds": [
+                "technical-reps"
+              ],
+              "notes": "Keep load moderate and record coach observations."
+            },
+            {
+              "weekNumber": 2,
+              "focus": "Game-speed application",
+              "drillIds": [
+                "small-sided-transfer"
+              ],
+              "notes": "Progress the same focus into opposed drills."
+            },
+            {
+              "weekNumber": 3,
+              "focus": "Pressure transfer",
+              "drillIds": [
+                "pressure-transfer"
+              ],
+              "notes": "Add fatigue and decision pressure."
+            },
+            {
+              "weekNumber": 4,
+              "focus": "Review and retest",
+              "drillIds": [
+                "retest-checkpoint"
+              ],
+              "notes": "Use the next assessment to confirm progress."
+            }
+          ]
+        }
+      },
+      {
+        "id": "assess-enzo-2026-06-24",
+        "playerId": "arg-enzo-fernandez",
+        "assessmentDate": "2026-06-24",
+        "createdAt": "2026-06-24T12:40:00.000Z",
+        "assessmentType": "Full",
+        "ageGroup": "Adult",
+        "role": "CM",
+        "rawResults": {
+          "role": "CM",
+          "assessmentType": "Full",
+          "base": {
+            "sprint10mSeconds": 1.75,
+            "sprint30mSeconds": 4.11,
+            "yoyoMeters": 1665,
+            "illinoisSeconds": 15.34,
+            "broadJumpCm": 229,
+            "medicineBallThrowCm": 556,
+            "firstTouchSuccessesOutOf10": 8,
+            "shortPassingSuccessesOutOf10": 9
+          },
+          "roleSpecific": {
+            "longPassing30mSuccessesOutOf5": 4,
+            "longPassing40mSuccessesOutOf5": 4,
+            "visionCoachScore1to10": 8,
+            "ballRetentionBestSeconds": 12,
+            "pressingWinsOutOf5": 3
+          }
+        },
+        "attributeScores": {
+          "pace": 80,
+          "stamina": 81,
+          "agility": 82,
+          "strength": 83,
+          "firstTouch": 84,
+          "shortPassing": 85,
+          "finishingBox": 86,
+          "shotPower": 80,
+          "offensive1v1": 81,
+          "attackingHeading": 82,
+          "longPassing": 91,
+          "visionPlaymaking": 92,
+          "ballRetention": 90,
+          "pressingInterceptions": 91,
+          "tackling": 80,
+          "defensiveHeading": 81,
+          "positioningClearances": 82,
+          "crossing": 83,
+          "reflexes": 40,
+          "handling": 40,
+          "divingReach": 40,
+          "distribution": 40
+        },
+        "ovr": 88,
+        "labels": {
+          "weakestAttributeId": "strength",
+          "ovrTierLabel": "Advanced"
+        },
+        "deltas": {},
+        "coachNotes": "Best central controller; build rest-defense spacing around his positioning.",
+        "developmentPlan": {
+          "focusAttributeId": "strength",
+          "priorityScore": 75,
+          "weeks": [
+            {
+              "weekNumber": 1,
+              "focus": "Baseline technical repetition",
+              "drillIds": [
+                "technical-reps"
+              ],
+              "notes": "Keep load moderate and record coach observations."
+            },
+            {
+              "weekNumber": 2,
+              "focus": "Game-speed application",
+              "drillIds": [
+                "small-sided-transfer"
+              ],
+              "notes": "Progress the same focus into opposed drills."
+            },
+            {
+              "weekNumber": 3,
+              "focus": "Pressure transfer",
+              "drillIds": [
+                "pressure-transfer"
+              ],
+              "notes": "Add fatigue and decision pressure."
+            },
+            {
+              "weekNumber": 4,
+              "focus": "Review and retest",
+              "drillIds": [
+                "retest-checkpoint"
+              ],
+              "notes": "Use the next assessment to confirm progress."
+            }
+          ]
+        }
+      },
+      {
+        "id": "assess-mac-allister-2026-06-24",
+        "playerId": "arg-alexis-mac-allister",
+        "assessmentDate": "2026-06-24",
+        "createdAt": "2026-06-24T13:00:00.000Z",
+        "assessmentType": "Full",
+        "ageGroup": "Adult",
+        "role": "CM",
+        "rawResults": {
+          "role": "CM",
+          "assessmentType": "Full",
+          "base": {
+            "sprint10mSeconds": 1.76,
+            "sprint30mSeconds": 4.14,
+            "yoyoMeters": 1720,
+            "illinoisSeconds": 15.42,
+            "broadJumpCm": 232,
+            "medicineBallThrowCm": 568,
+            "firstTouchSuccessesOutOf10": 9,
+            "shortPassingSuccessesOutOf10": 10
+          },
+          "roleSpecific": {
+            "longPassing30mSuccessesOutOf5": 4,
+            "longPassing40mSuccessesOutOf5": 3,
+            "visionCoachScore1to10": 9,
+            "ballRetentionBestSeconds": 13,
+            "pressingWinsOutOf5": 4
+          }
+        },
+        "attributeScores": {
+          "pace": 80,
+          "stamina": 81,
+          "agility": 82,
+          "strength": 83,
+          "firstTouch": 84,
+          "shortPassing": 85,
+          "finishingBox": 86,
+          "shotPower": 80,
+          "offensive1v1": 81,
+          "attackingHeading": 82,
+          "longPassing": 91,
+          "visionPlaymaking": 92,
+          "ballRetention": 90,
+          "pressingInterceptions": 91,
+          "tackling": 80,
+          "defensiveHeading": 81,
+          "positioningClearances": 82,
+          "crossing": 83,
+          "reflexes": 40,
+          "handling": 40,
+          "divingReach": 40,
+          "distribution": 40
+        },
+        "ovr": 88,
+        "labels": {
+          "weakestAttributeId": "strength",
+          "ovrTierLabel": "Advanced"
+        },
+        "deltas": {},
+        "coachNotes": "Most press-resistant midfielder; keep him available for left half-space exits.",
+        "developmentPlan": {
+          "focusAttributeId": "strength",
+          "priorityScore": 75,
+          "weeks": [
+            {
+              "weekNumber": 1,
+              "focus": "Baseline technical repetition",
+              "drillIds": [
+                "technical-reps"
+              ],
+              "notes": "Keep load moderate and record coach observations."
+            },
+            {
+              "weekNumber": 2,
+              "focus": "Game-speed application",
+              "drillIds": [
+                "small-sided-transfer"
+              ],
+              "notes": "Progress the same focus into opposed drills."
+            },
+            {
+              "weekNumber": 3,
+              "focus": "Pressure transfer",
+              "drillIds": [
+                "pressure-transfer"
+              ],
+              "notes": "Add fatigue and decision pressure."
+            },
+            {
+              "weekNumber": 4,
+              "focus": "Review and retest",
+              "drillIds": [
+                "retest-checkpoint"
+              ],
+              "notes": "Use the next assessment to confirm progress."
+            }
+          ]
+        }
+      },
+      {
+        "id": "assess-de-paul-2026-06-24",
+        "playerId": "arg-rodrigo-de-paul",
+        "assessmentDate": "2026-06-24",
+        "createdAt": "2026-06-24T13:20:00.000Z",
+        "assessmentType": "Full",
+        "ageGroup": "Adult",
+        "role": "CM",
+        "rawResults": {
+          "role": "CM",
+          "assessmentType": "Full",
+          "base": {
+            "sprint10mSeconds": 1.77,
+            "sprint30mSeconds": 4.17,
+            "yoyoMeters": 1775,
+            "illinoisSeconds": 15.5,
+            "broadJumpCm": 235,
+            "medicineBallThrowCm": 580,
+            "firstTouchSuccessesOutOf10": 10,
+            "shortPassingSuccessesOutOf10": 8
+          },
+          "roleSpecific": {
+            "longPassing30mSuccessesOutOf5": 4,
+            "longPassing40mSuccessesOutOf5": 4,
+            "visionCoachScore1to10": 10,
+            "ballRetentionBestSeconds": 14,
+            "pressingWinsOutOf5": 5
+          }
+        },
+        "attributeScores": {
+          "pace": 79,
+          "stamina": 80,
+          "agility": 81,
+          "strength": 82,
+          "firstTouch": 83,
+          "shortPassing": 84,
+          "finishingBox": 85,
+          "shotPower": 79,
+          "offensive1v1": 80,
+          "attackingHeading": 81,
+          "longPassing": 90,
+          "visionPlaymaking": 91,
+          "ballRetention": 89,
+          "pressingInterceptions": 90,
+          "tackling": 79,
+          "defensiveHeading": 80,
+          "positioningClearances": 81,
+          "crossing": 82,
+          "reflexes": 40,
+          "handling": 40,
+          "divingReach": 40,
+          "distribution": 40
+        },
+        "ovr": 87,
+        "labels": {
+          "weakestAttributeId": "strength",
+          "ovrTierLabel": "Advanced"
+        },
+        "deltas": {},
+        "coachNotes": "Pressing and leadership remain major multipliers for the right side.",
+        "developmentPlan": {
+          "focusAttributeId": "strength",
+          "priorityScore": 75,
+          "weeks": [
+            {
+              "weekNumber": 1,
+              "focus": "Baseline technical repetition",
+              "drillIds": [
+                "technical-reps"
+              ],
+              "notes": "Keep load moderate and record coach observations."
+            },
+            {
+              "weekNumber": 2,
+              "focus": "Game-speed application",
+              "drillIds": [
+                "small-sided-transfer"
+              ],
+              "notes": "Progress the same focus into opposed drills."
+            },
+            {
+              "weekNumber": 3,
+              "focus": "Pressure transfer",
+              "drillIds": [
+                "pressure-transfer"
+              ],
+              "notes": "Add fatigue and decision pressure."
+            },
+            {
+              "weekNumber": 4,
+              "focus": "Review and retest",
+              "drillIds": [
+                "retest-checkpoint"
+              ],
+              "notes": "Use the next assessment to confirm progress."
+            }
+          ]
+        }
+      },
+      {
+        "id": "assess-romero-2026-06-24",
+        "playerId": "arg-cristian-romero",
+        "assessmentDate": "2026-06-24",
+        "createdAt": "2026-06-24T13:40:00.000Z",
+        "assessmentType": "Full",
+        "ageGroup": "Adult",
+        "role": "CB",
+        "rawResults": {
+          "role": "CB",
+          "assessmentType": "Full",
+          "base": {
+            "sprint10mSeconds": 1.78,
+            "sprint30mSeconds": 4.2,
+            "yoyoMeters": 1830,
+            "illinoisSeconds": 15.58,
+            "broadJumpCm": 238,
+            "medicineBallThrowCm": 592,
+            "firstTouchSuccessesOutOf10": 8,
+            "shortPassingSuccessesOutOf10": 9
+          },
+          "roleSpecific": {
+            "tacklingWinsOutOf10": 7,
+            "defensiveHeadingClearancesOutOf10": 8,
+            "positioningCoachScore1to10": 8,
+            "positioningClearancesToSafeZoneOutOf10": 7,
+            "crossingSuccessesOutOf10": 6
+          }
+        },
+        "attributeScores": {
+          "pace": 81,
+          "stamina": 82,
+          "agility": 83,
+          "strength": 84,
+          "firstTouch": 85,
+          "shortPassing": 86,
+          "finishingBox": 87,
+          "shotPower": 81,
+          "offensive1v1": 82,
+          "attackingHeading": 83,
+          "longPassing": 84,
+          "visionPlaymaking": 85,
+          "ballRetention": 86,
+          "pressingInterceptions": 87,
+          "tackling": 93,
+          "defensiveHeading": 91,
+          "positioningClearances": 92,
+          "crossing": 93,
+          "reflexes": 40,
+          "handling": 40,
+          "divingReach": 40,
+          "distribution": 40
+        },
+        "ovr": 89,
+        "labels": {
+          "weakestAttributeId": "finishingBox",
+          "ovrTierLabel": "Advanced"
+        },
+        "deltas": {},
+        "coachNotes": "Dominant defender; card management is the main match-control focus.",
+        "developmentPlan": {
+          "focusAttributeId": "finishingBox",
+          "priorityScore": 75,
+          "weeks": [
+            {
+              "weekNumber": 1,
+              "focus": "Baseline technical repetition",
+              "drillIds": [
+                "technical-reps"
+              ],
+              "notes": "Keep load moderate and record coach observations."
+            },
+            {
+              "weekNumber": 2,
+              "focus": "Game-speed application",
+              "drillIds": [
+                "small-sided-transfer"
+              ],
+              "notes": "Progress the same focus into opposed drills."
+            },
+            {
+              "weekNumber": 3,
+              "focus": "Pressure transfer",
+              "drillIds": [
+                "pressure-transfer"
+              ],
+              "notes": "Add fatigue and decision pressure."
+            },
+            {
+              "weekNumber": 4,
+              "focus": "Review and retest",
+              "drillIds": [
+                "retest-checkpoint"
+              ],
+              "notes": "Use the next assessment to confirm progress."
+            }
+          ]
+        }
+      },
+      {
+        "id": "assess-molina-2026-06-24",
+        "playerId": "arg-nahuel-molina",
+        "assessmentDate": "2026-06-24",
+        "createdAt": "2026-06-24T14:00:00.000Z",
+        "assessmentType": "Full",
+        "ageGroup": "Adult",
+        "role": "FB",
+        "rawResults": {
+          "role": "FB",
+          "assessmentType": "Full",
+          "base": {
+            "sprint10mSeconds": 1.79,
+            "sprint30mSeconds": 4.23,
+            "yoyoMeters": 1885,
+            "illinoisSeconds": 15.66,
+            "broadJumpCm": 241,
+            "medicineBallThrowCm": 604,
+            "firstTouchSuccessesOutOf10": 9,
+            "shortPassingSuccessesOutOf10": 10
+          },
+          "roleSpecific": {
+            "tacklingWinsOutOf10": 8,
+            "defensiveHeadingClearancesOutOf10": 9,
+            "positioningCoachScore1to10": 9,
+            "positioningClearancesToSafeZoneOutOf10": 8,
+            "crossingSuccessesOutOf10": 7
+          }
+        },
+        "attributeScores": {
+          "pace": 76,
+          "stamina": 77,
+          "agility": 78,
+          "strength": 79,
+          "firstTouch": 80,
+          "shortPassing": 81,
+          "finishingBox": 82,
+          "shotPower": 76,
+          "offensive1v1": 77,
+          "attackingHeading": 78,
+          "longPassing": 79,
+          "visionPlaymaking": 80,
+          "ballRetention": 81,
+          "pressingInterceptions": 82,
+          "tackling": 88,
+          "defensiveHeading": 86,
+          "positioningClearances": 87,
+          "crossing": 88,
+          "reflexes": 40,
+          "handling": 40,
+          "divingReach": 40,
+          "distribution": 40
+        },
+        "ovr": 84,
+        "labels": {
+          "weakestAttributeId": "finishingBox",
+          "ovrTierLabel": "Advanced"
+        },
+        "deltas": {},
+        "coachNotes": "Excellent high-running profile; needs cover cue when winger stays wide.",
+        "developmentPlan": {
+          "focusAttributeId": "finishingBox",
+          "priorityScore": 75,
+          "weeks": [
+            {
+              "weekNumber": 1,
+              "focus": "Baseline technical repetition",
+              "drillIds": [
+                "technical-reps"
+              ],
+              "notes": "Keep load moderate and record coach observations."
+            },
+            {
+              "weekNumber": 2,
+              "focus": "Game-speed application",
+              "drillIds": [
+                "small-sided-transfer"
+              ],
+              "notes": "Progress the same focus into opposed drills."
+            },
+            {
+              "weekNumber": 3,
+              "focus": "Pressure transfer",
+              "drillIds": [
+                "pressure-transfer"
+              ],
+              "notes": "Add fatigue and decision pressure."
+            },
+            {
+              "weekNumber": 4,
+              "focus": "Review and retest",
+              "drillIds": [
+                "retest-checkpoint"
+              ],
+              "notes": "Use the next assessment to confirm progress."
+            }
+          ]
+        }
+      },
+      {
+        "id": "assess-emi-martinez-2026-06-24",
+        "playerId": "arg-emi-martinez",
+        "assessmentDate": "2026-06-24",
+        "createdAt": "2026-06-24T14:20:00.000Z",
+        "assessmentType": "Full",
+        "ageGroup": "Adult",
+        "role": "GK",
+        "rawResults": {
+          "role": "GK",
+          "assessmentType": "Full",
+          "base": {
+            "sprint10mSeconds": 1.8,
+            "sprint30mSeconds": 4.26,
+            "yoyoMeters": 1940,
+            "illinoisSeconds": 15.74,
+            "broadJumpCm": 244,
+            "medicineBallThrowCm": 616,
+            "firstTouchSuccessesOutOf10": 10,
+            "shortPassingSuccessesOutOf10": 8
+          },
+          "roleSpecific": {
+            "gkReflexesSavesOutOf10": 8,
+            "gkHandlingCleanCatchesOutOf10": 9,
+            "gkDivingSavesOutOf10": 8,
+            "gkDistributionSuccessesOutOf10": 9
+          }
+        },
+        "attributeScores": {
+          "pace": 82,
+          "stamina": 83,
+          "agility": 84,
+          "strength": 85,
+          "firstTouch": 86,
+          "shortPassing": 87,
+          "finishingBox": 40,
+          "shotPower": 40,
+          "offensive1v1": 40,
+          "attackingHeading": 40,
+          "longPassing": 85,
+          "visionPlaymaking": 86,
+          "ballRetention": 87,
+          "pressingInterceptions": 88,
+          "tackling": 82,
+          "defensiveHeading": 83,
+          "positioningClearances": 84,
+          "crossing": 85,
+          "reflexes": 92,
+          "handling": 93,
+          "divingReach": 94,
+          "distribution": 92
+        },
+        "ovr": 90,
+        "labels": {
+          "weakestAttributeId": "finishingBox",
+          "ovrTierLabel": "Elite"
+        },
+        "deltas": {},
+        "coachNotes": "Elite shot-stopping and communication; keep short distribution options available.",
+        "developmentPlan": {
+          "focusAttributeId": "finishingBox",
+          "priorityScore": 75,
+          "weeks": [
+            {
+              "weekNumber": 1,
+              "focus": "Baseline technical repetition",
+              "drillIds": [
+                "technical-reps"
+              ],
+              "notes": "Keep load moderate and record coach observations."
+            },
+            {
+              "weekNumber": 2,
+              "focus": "Game-speed application",
+              "drillIds": [
+                "small-sided-transfer"
+              ],
+              "notes": "Progress the same focus into opposed drills."
+            },
+            {
+              "weekNumber": 3,
+              "focus": "Pressure transfer",
+              "drillIds": [
+                "pressure-transfer"
+              ],
+              "notes": "Add fatigue and decision pressure."
+            },
+            {
+              "weekNumber": 4,
+              "focus": "Review and retest",
+              "drillIds": [
+                "retest-checkpoint"
+              ],
+              "notes": "Use the next assessment to confirm progress."
+            }
+          ]
+        }
+      }
+    ],
+    "paymentLedger": [
+      {
+        "id": "pay-2026-06-01-registration-messi",
+        "playerId": "arg-lionel-messi",
+        "playerNameSnapshot": "Lionel Messi",
+        "type": "charge",
+        "category": "registration",
+        "amount": 120,
+        "date": "2026-06-01",
+        "method": "other",
+        "reference": "ARG-REG-010",
+        "note": "Registration charge for mock dataset.",
+        "createdAt": "2026-06-01T00:00:00.000Z"
+      },
+      {
+        "id": "pay-2026-06-03-payment-messi",
+        "playerId": "arg-lionel-messi",
+        "playerNameSnapshot": "Lionel Messi",
+        "type": "payment",
+        "category": "registration",
+        "amount": 120,
+        "date": "2026-06-03",
+        "method": "bank_transfer",
+        "reference": "BT-MESSI-0603",
+        "note": "Paid in full.",
+        "createdAt": "2026-06-03T00:00:00.000Z"
+      },
+      {
+        "id": "pay-2026-06-01-monthly-lautaro",
+        "playerId": "arg-lautaro-martinez",
+        "playerNameSnapshot": "Lautaro Martinez",
+        "type": "charge",
+        "category": "monthly_fee",
+        "amount": 80,
+        "date": "2026-06-01",
+        "method": "other",
+        "reference": "ARG-JUN-022",
+        "note": "Monthly fee charge.",
+        "createdAt": "2026-06-01T00:00:00.000Z"
+      },
+      {
+        "id": "pay-2026-06-08-payment-lautaro",
+        "playerId": "arg-lautaro-martinez",
+        "playerNameSnapshot": "Lautaro Martinez",
+        "type": "payment",
+        "category": "monthly_fee",
+        "amount": 80,
+        "date": "2026-06-08",
+        "method": "gcash",
+        "reference": "GC-LAUTARO-0608",
+        "note": "Paid by mobile wallet.",
+        "createdAt": "2026-06-08T00:00:00.000Z"
+      },
+      {
+        "id": "pay-2026-06-01-kit-enzo",
+        "playerId": "arg-enzo-fernandez",
+        "playerNameSnapshot": "Enzo Fernandez",
+        "type": "charge",
+        "category": "kit",
+        "amount": 95,
+        "date": "2026-06-01",
+        "method": "other",
+        "reference": "ARG-KIT-024",
+        "note": "Kit issue pending size confirmation.",
+        "createdAt": "2026-06-01T00:00:00.000Z"
+      },
+      {
+        "id": "pay-2026-06-12-payment-enzo",
+        "playerId": "arg-enzo-fernandez",
+        "playerNameSnapshot": "Enzo Fernandez",
+        "type": "payment",
+        "category": "kit",
+        "amount": 50,
+        "date": "2026-06-12",
+        "method": "cash",
+        "reference": "CASH-ENZO-0612",
+        "note": "Partial payment recorded.",
+        "createdAt": "2026-06-12T00:00:00.000Z"
+      },
+      {
+        "id": "pay-2026-06-01-training-romero",
+        "playerId": "arg-cristian-romero",
+        "playerNameSnapshot": "Cristian Romero",
+        "type": "charge",
+        "category": "training",
+        "amount": 60,
+        "date": "2026-06-01",
+        "method": "other",
+        "reference": "ARG-TRN-013",
+        "note": "Defensive unit add-on.",
+        "createdAt": "2026-06-01T00:00:00.000Z"
+      },
+      {
+        "id": "pay-2026-06-15-waiver-romero",
+        "playerId": "arg-cristian-romero",
+        "playerNameSnapshot": "Cristian Romero",
+        "type": "waiver",
+        "category": "training",
+        "amount": 60,
+        "date": "2026-06-15",
+        "method": "other",
+        "reference": "WAIVE-ROMERO-0615",
+        "note": "Waived for mock test case.",
+        "createdAt": "2026-06-15T00:00:00.000Z"
+      },
+      {
+        "id": "pay-2026-06-18-tournament-de-paul",
+        "playerId": "arg-rodrigo-de-paul",
+        "playerNameSnapshot": "Rodrigo De Paul",
+        "type": "charge",
+        "category": "tournament",
+        "amount": 110,
+        "date": "2026-06-18",
+        "method": "other",
+        "reference": "ARG-COPA-007",
+        "note": "Tournament fee charge.",
+        "createdAt": "2026-06-18T00:00:00.000Z"
+      },
+      {
+        "id": "pay-2026-06-20-payment-de-paul",
+        "playerId": "arg-rodrigo-de-paul",
+        "playerNameSnapshot": "Rodrigo De Paul",
+        "type": "payment",
+        "category": "tournament",
+        "amount": 110,
+        "date": "2026-06-20",
+        "method": "card",
+        "reference": "CARD-DEPAUL-0620",
+        "note": "Paid in full.",
+        "createdAt": "2026-06-20T00:00:00.000Z"
+      }
+    ]
+  },
+  "featureState": {
+    "availability": {
+      "training-2026-06-27": {
+        "arg-emi-martinez": "yes",
+        "arg-nahuel-molina": "yes",
+        "arg-cristian-romero": "maybe",
+        "arg-nicolas-otamendi": "yes",
+        "arg-nicolas-tagliafico": "yes",
+        "arg-rodrigo-de-paul": "yes",
+        "arg-enzo-fernandez": "yes",
+        "arg-alexis-mac-allister": "yes",
+        "arg-angel-di-maria": "no",
+        "arg-lionel-messi": "yes",
+        "arg-lautaro-martinez": "yes",
+        "arg-julian-alvarez": "yes",
+        "arg-paulo-dybala": "maybe",
+        "arg-leandro-paredes": "yes",
+        "arg-giovani-lo-celso": "yes",
+        "arg-marcos-acuna": "maybe",
+        "arg-gonzalo-montiel": "yes",
+        "arg-german-pezzella": "yes",
+        "arg-lisandro-martinez": "yes",
+        "arg-exequiel-palacios": "yes",
+        "arg-emiliano-buendia": "yes",
+        "arg-geronimo-rulli": "yes",
+        "arg-franco-armani": "no"
+      },
+      "game-brazil-2026-06-28": {
+        "arg-emi-martinez": "yes",
+        "arg-nahuel-molina": "yes",
+        "arg-cristian-romero": "yes",
+        "arg-nicolas-otamendi": "yes",
+        "arg-nicolas-tagliafico": "yes",
+        "arg-rodrigo-de-paul": "yes",
+        "arg-enzo-fernandez": "yes",
+        "arg-alexis-mac-allister": "yes",
+        "arg-angel-di-maria": "maybe",
+        "arg-lionel-messi": "yes",
+        "arg-lautaro-martinez": "yes",
+        "arg-julian-alvarez": "yes",
+        "arg-paulo-dybala": "maybe",
+        "arg-leandro-paredes": "yes",
+        "arg-giovani-lo-celso": "yes",
+        "arg-marcos-acuna": "maybe",
+        "arg-gonzalo-montiel": "yes",
+        "arg-german-pezzella": "yes",
+        "arg-lisandro-martinez": "yes",
+        "arg-exequiel-palacios": "yes",
+        "arg-emiliano-buendia": "yes",
+        "arg-geronimo-rulli": "yes",
+        "arg-franco-armani": "no"
+      },
+      "game-uruguay-2026-07-04": {
+        "arg-emi-martinez": "yes",
+        "arg-nahuel-molina": "yes",
+        "arg-cristian-romero": "maybe",
+        "arg-nicolas-otamendi": "yes",
+        "arg-nicolas-tagliafico": "yes",
+        "arg-rodrigo-de-paul": "yes",
+        "arg-enzo-fernandez": "yes",
+        "arg-alexis-mac-allister": "yes",
+        "arg-angel-di-maria": "maybe",
+        "arg-lionel-messi": "yes",
+        "arg-lautaro-martinez": "yes",
+        "arg-julian-alvarez": "yes",
+        "arg-paulo-dybala": "no",
+        "arg-leandro-paredes": "yes",
+        "arg-giovani-lo-celso": "yes",
+        "arg-marcos-acuna": "yes",
+        "arg-gonzalo-montiel": "yes",
+        "arg-german-pezzella": "yes",
+        "arg-lisandro-martinez": "yes",
+        "arg-exequiel-palacios": "yes",
+        "arg-emiliano-buendia": "maybe",
+        "arg-geronimo-rulli": "yes",
+        "arg-franco-armani": "no"
+      }
+    },
+    "coachNotes": {
+      "training-2026-06-27": "Walk through right-side triangle: Molina, De Paul, Messi. Finish with defensive transition reps.",
+      "game-brazil-2026-06-28": "Primary note: do not let Brazil Mock XI isolate the left back in early transitions.",
+      "game-uruguay-2026-07-04": "Prepare for set-piece volume. Pezzella and Romero mark central targets."
+    },
+    "weeklyTraining": {
+      "Monday": [
+        {
+          "id": "arg-monday-1",
+          "drillId": "recovery-mobility",
+          "name": "Recovery mobility",
+          "fatigueIncrease": 2
+        },
+        {
+          "id": "arg-monday-2",
+          "drillId": "video-review",
+          "name": "Video review",
+          "fatigueIncrease": 3
+        }
+      ],
+      "Tuesday": [
+        {
+          "id": "arg-tuesday-1",
+          "drillId": "pressing-triggers",
+          "name": "Pressing triggers",
+          "fatigueIncrease": 2
+        },
+        {
+          "id": "arg-tuesday-2",
+          "drillId": "small-sided-possession",
+          "name": "Small-sided possession",
+          "fatigueIncrease": 3
+        }
+      ],
+      "Wednesday": [
+        {
+          "id": "arg-wednesday-1",
+          "drillId": "finishing-patterns",
+          "name": "Finishing patterns",
+          "fatigueIncrease": 2
+        },
+        {
+          "id": "arg-wednesday-2",
+          "drillId": "set-pieces",
+          "name": "Set pieces",
+          "fatigueIncrease": 3
+        }
+      ],
+      "Thursday": [
+        {
+          "id": "arg-thursday-1",
+          "drillId": "defensive-unit-work",
+          "name": "Defensive unit work",
+          "fatigueIncrease": 2
+        },
+        {
+          "id": "arg-thursday-2",
+          "drillId": "transition-games",
+          "name": "Transition games",
+          "fatigueIncrease": 3
+        }
+      ],
+      "Friday": [
+        {
+          "id": "arg-friday-1",
+          "drillId": "tactical-rehearsal",
+          "name": "Tactical rehearsal",
+          "fatigueIncrease": 2
+        },
+        {
+          "id": "arg-friday-2",
+          "drillId": "penalty-practice",
+          "name": "Penalty practice",
+          "fatigueIncrease": 3
+        }
+      ],
+      "Saturday": [
+        {
+          "id": "arg-saturday-1",
+          "drillId": "matchday-activation",
+          "name": "Matchday activation",
+          "fatigueIncrease": 2
+        }
+      ],
+      "Sunday": [
+        {
+          "id": "arg-sunday-1",
+          "drillId": "rest-and-medical-check-ins",
+          "name": "Rest and medical check-ins",
+          "fatigueIncrease": 2
+        }
+      ]
+    },
+    "weeklyTrainingHistory": {
+      "Monday": [
+        {
+          "id": "arg-monday-1",
+          "drillId": "recovery-mobility",
+          "name": "Recovery mobility",
+          "fatigueIncrease": 2
+        },
+        {
+          "id": "arg-monday-2",
+          "drillId": "chile-match-review",
+          "name": "Chile match review",
+          "fatigueIncrease": 3
+        }
+      ],
+      "Tuesday": [
+        {
+          "id": "arg-tuesday-1",
+          "drillId": "build-up-under-pressure",
+          "name": "Build-up under pressure",
+          "fatigueIncrease": 2
+        },
+        {
+          "id": "arg-tuesday-2",
+          "drillId": "midfield-rondos",
+          "name": "Midfield rondos",
+          "fatigueIncrease": 3
+        }
+      ],
+      "Wednesday": [
+        {
+          "id": "arg-wednesday-1",
+          "drillId": "chance-creation",
+          "name": "Chance creation",
+          "fatigueIncrease": 2
+        },
+        {
+          "id": "arg-wednesday-2",
+          "drillId": "wide-crossing",
+          "name": "Wide crossing",
+          "fatigueIncrease": 3
+        }
+      ],
+      "Thursday": [
+        {
+          "id": "arg-thursday-1",
+          "drillId": "back-four-spacing",
+          "name": "Back-four spacing",
+          "fatigueIncrease": 2
+        },
+        {
+          "id": "arg-thursday-2",
+          "drillId": "defensive-set-pieces",
+          "name": "Defensive set pieces",
+          "fatigueIncrease": 3
+        }
+      ],
+      "Friday": [
+        {
+          "id": "arg-friday-1",
+          "drillId": "final-tactical-rehearsal",
+          "name": "Final tactical rehearsal",
+          "fatigueIncrease": 2
+        },
+        {
+          "id": "arg-friday-2",
+          "drillId": "free-kicks",
+          "name": "Free kicks",
+          "fatigueIncrease": 3
+        }
+      ],
+      "Saturday": [
+        {
+          "id": "arg-saturday-1",
+          "drillId": "matchday-activation",
+          "name": "Matchday activation",
+          "fatigueIncrease": 2
+        }
+      ],
+      "Sunday": [
+        {
+          "id": "arg-sunday-1",
+          "drillId": "rest",
+          "name": "Rest",
+          "fatigueIncrease": 2
+        }
+      ]
+    },
+    "standingsBackups": [
+      {
+        "id": "standings-backup-2026-06-14",
+        "createdAt": "2026-06-14T22:00:00.000Z",
+        "label": "After Matchday 4",
+        "source": "manual",
+        "standings": [
+          {
+            "rank": 1,
+            "teamName": "Argentina Mockup Squad",
+            "played": 4,
+            "won": 3,
+            "drawn": 1,
+            "lost": 0,
+            "goalsFor": 10,
+            "goalsAgainst": 3,
+            "points": 10,
+            "isUserTeam": true
+          },
+          {
+            "rank": 2,
+            "teamName": "Brazil Mock XI",
+            "played": 4,
+            "won": 3,
+            "drawn": 0,
+            "lost": 1,
+            "goalsFor": 9,
+            "goalsAgainst": 5,
+            "points": 9,
+            "isUserTeam": false
+          },
+          {
+            "rank": 3,
+            "teamName": "Uruguay Mock XI",
+            "played": 4,
+            "won": 2,
+            "drawn": 1,
+            "lost": 1,
+            "goalsFor": 7,
+            "goalsAgainst": 5,
+            "points": 7,
+            "isUserTeam": false
+          }
+        ]
+      },
+      {
+        "id": "standings-backup-2026-06-21",
+        "createdAt": "2026-06-21T22:30:00.000Z",
+        "label": "After Chile 2-0 Win",
+        "source": "sunday",
+        "standings": [
+          {
+            "rank": 1,
+            "teamName": "Argentina Mockup Squad",
+            "played": 6,
+            "won": 5,
+            "drawn": 1,
+            "lost": 0,
+            "goalsFor": 15,
+            "goalsAgainst": 4,
+            "points": 16,
+            "isUserTeam": true
+          },
+          {
+            "rank": 2,
+            "teamName": "Brazil Mock XI",
+            "played": 2,
+            "won": 0,
+            "drawn": 1,
+            "lost": 1,
+            "goalsFor": 4,
+            "goalsAgainst": 6,
+            "points": 1,
+            "isUserTeam": false
+          },
+          {
+            "rank": 3,
+            "teamName": "Uruguay Mock XI",
+            "played": 1,
+            "won": 0,
+            "drawn": 0,
+            "lost": 1,
+            "goalsFor": 0,
+            "goalsAgainst": 1,
+            "points": 0,
+            "isUserTeam": false
+          },
+          {
+            "rank": 4,
+            "teamName": "Chile Mock XI",
+            "played": 1,
+            "won": 0,
+            "drawn": 0,
+            "lost": 1,
+            "goalsFor": 0,
+            "goalsAgainst": 2,
+            "points": 0,
+            "isUserTeam": false
+          },
+          {
+            "rank": 5,
+            "teamName": "Paraguay Mock XI",
+            "played": 1,
+            "won": 0,
+            "drawn": 0,
+            "lost": 1,
+            "goalsFor": 0,
+            "goalsAgainst": 3,
+            "points": 0,
+            "isUserTeam": false
+          },
+          {
+            "rank": 6,
+            "teamName": "Peru Mock XI",
+            "played": 1,
+            "won": 0,
+            "drawn": 0,
+            "lost": 1,
+            "goalsFor": 0,
+            "goalsAgainst": 3,
+            "points": 0,
+            "isUserTeam": false
+          }
+        ]
+      }
+    ],
+    "standingsPreferences": {
+      "sundayBackupEnabled": true
+    },
+    "tactics": {
+      "matchFormat": "11-a-side",
+      "formation": "4-3-3",
+      "playstyle": "Possession with aggressive counter-press",
+      "isCustomStrategy": true,
+      "customPlaystyle": "Right-side overloads through Molina, De Paul, and Messi, with Mac Allister connecting the left half-space.",
+      "customDefensiveStyle": "Mid-block that jumps on backwards passes; protect central lane first.",
+      "customMentality": "Controlled attacking",
+      "customStrategyNotes": "Use Lautaro as first press. If leading after 70 minutes, add Paredes and shift to a more compact midfield triangle.",
+      "coachLevel": "Advanced",
+      "customPlaystyles": [
+        "Right overload",
+        "Counter-press",
+        "Rest-defense triangle"
+      ],
+      "captainId": "arg-lionel-messi",
+      "penaltyTakerId": "arg-lionel-messi",
+      "freeKickTakerId": "arg-lionel-messi",
+      "cornerTakerId": "arg-angel-di-maria",
+      "defensiveStyle": "Compact mid-block",
+      "playerExtras": {
+        "arg-emi-martinez": {
+          "status": "starting",
+          "yellowCards": 0,
+          "redCards": 0
+        },
+        "arg-nahuel-molina": {
+          "status": "starting",
+          "yellowCards": 1,
+          "redCards": 0
+        },
+        "arg-cristian-romero": {
+          "status": "starting",
+          "yellowCards": 2,
+          "redCards": 0
+        },
+        "arg-nicolas-otamendi": {
+          "status": "starting",
+          "yellowCards": 1,
+          "redCards": 0
+        },
+        "arg-nicolas-tagliafico": {
+          "status": "starting",
+          "yellowCards": 1,
+          "redCards": 0
+        },
+        "arg-rodrigo-de-paul": {
+          "status": "starting",
+          "yellowCards": 2,
+          "redCards": 0
+        },
+        "arg-enzo-fernandez": {
+          "status": "starting",
+          "yellowCards": 1,
+          "redCards": 0
+        },
+        "arg-alexis-mac-allister": {
+          "status": "starting",
+          "yellowCards": 0,
+          "redCards": 0
+        },
+        "arg-angel-di-maria": {
+          "status": "substitute",
+          "yellowCards": 0,
+          "redCards": 0
+        },
+        "arg-lionel-messi": {
+          "status": "starting",
+          "yellowCards": 0,
+          "redCards": 0
+        },
+        "arg-lautaro-martinez": {
+          "status": "starting",
+          "yellowCards": 1,
+          "redCards": 0
+        },
+        "arg-julian-alvarez": {
+          "status": "substitute",
+          "yellowCards": 0,
+          "redCards": 0
+        },
+        "arg-paulo-dybala": {
+          "status": "injured",
+          "yellowCards": 0,
+          "redCards": 0
+        },
+        "arg-leandro-paredes": {
+          "status": "substitute",
+          "yellowCards": 2,
+          "redCards": 0
+        },
+        "arg-lisandro-martinez": {
+          "status": "substitute",
+          "yellowCards": 1,
+          "redCards": 0
+        }
+      },
+      "lineup": {
+        "GK": {
+          "id": "arg-emi-martinez",
+          "name": "Emiliano Martinez",
+          "rating": 90,
+          "position": "GK",
+          "condition": "Fit",
+          "photoUrl": "/placeholders/goalkeeper-placeholder.png",
+          "isLegend": false
+        },
+        "RB": {
+          "id": "arg-nahuel-molina",
+          "name": "Nahuel Molina",
+          "rating": 84,
+          "position": "RB",
+          "condition": "Fit",
+          "photoUrl": "/placeholders/defender-placeholder.png",
+          "isLegend": false
+        },
+        "RCB": {
+          "id": "arg-cristian-romero",
+          "name": "Cristian Romero",
+          "rating": 89,
+          "position": "CB",
+          "condition": "Fit",
+          "photoUrl": "/placeholders/defender-placeholder.png",
+          "isLegend": false
+        },
+        "LCB": {
+          "id": "arg-nicolas-otamendi",
+          "name": "Nicolas Otamendi",
+          "rating": 84,
+          "position": "CB",
+          "condition": "Managed minutes",
+          "photoUrl": "/placeholders/defender-placeholder.png",
+          "isLegend": false
+        },
+        "LB": {
+          "id": "arg-nicolas-tagliafico",
+          "name": "Nicolas Tagliafico",
+          "rating": 82,
+          "position": "LB",
+          "condition": "Fit",
+          "photoUrl": "/placeholders/defender-placeholder.png",
+          "isLegend": false
+        },
+        "RCM": {
+          "id": "arg-rodrigo-de-paul",
+          "name": "Rodrigo De Paul",
+          "rating": 87,
+          "position": "CM",
+          "condition": "Fit",
+          "photoUrl": "/placeholders/midfielder-placeholder.png",
+          "isLegend": false
+        },
+        "CM": {
+          "id": "arg-enzo-fernandez",
+          "name": "Enzo Fernandez",
+          "rating": 88,
+          "position": "CM",
+          "condition": "Fit",
+          "photoUrl": "/placeholders/midfielder-placeholder.png",
+          "isLegend": false
+        },
+        "LCM": {
+          "id": "arg-alexis-mac-allister",
+          "name": "Alexis Mac Allister",
+          "rating": 88,
+          "position": "CM",
+          "condition": "Fit",
+          "photoUrl": "/placeholders/midfielder-placeholder.png",
+          "isLegend": false
+        },
+        "RW": {
+          "id": "arg-lionel-messi",
+          "name": "Lionel Messi",
+          "rating": 94,
+          "position": "RW",
+          "condition": "Managed minutes",
+          "photoUrl": "/placeholders/forward-placeholder.png",
+          "isLegend": true
+        },
+        "CF": {
+          "id": "arg-lautaro-martinez",
+          "name": "Lautaro Martinez",
+          "rating": 88,
+          "position": "ST",
+          "condition": "Fit",
+          "photoUrl": "/placeholders/forward-placeholder.png",
+          "isLegend": false
+        },
+        "LW": {
+          "id": "arg-julian-alvarez",
+          "name": "Julian Alvarez",
+          "rating": 85,
+          "position": "LW",
+          "condition": "Fit",
+          "photoUrl": "/placeholders/forward-placeholder.png",
+          "isLegend": false
+        }
+      },
+      "notes": [
+        {
+          "id": "tactic-note-arg-001",
+          "title": "Brazil Game Right Overload",
+          "content": "Start attacks through the right triangle, then switch quickly to Alvarez when the far-side fullback narrows.",
+          "category": "Strategy",
+          "createdAt": "2026-06-26T09:00:00.000Z"
+        },
+        {
+          "id": "tactic-note-arg-002",
+          "title": "Set Piece Priority",
+          "content": "Di Maria takes inswinging corners from the right; Messi takes direct free kicks and penalties.",
+          "category": "Set Pieces",
+          "createdAt": "2026-06-26T09:15:00.000Z"
+        },
+        {
+          "id": "tactic-note-arg-003",
+          "title": "Late Lead Shape",
+          "content": "Introduce Paredes, narrow the midfield, and reduce fullback overlap after minute 70 if leading.",
+          "category": "Formation",
+          "createdAt": "2026-06-26T09:30:00.000Z"
+        }
+      ],
+      "draggedPositions": {
+        "GK": {
+          "left": 50,
+          "top": 88
+        },
+        "RB": {
+          "left": 78,
+          "top": 66
+        },
+        "RCB": {
+          "left": 60,
+          "top": 70
+        },
+        "LCB": {
+          "left": 40,
+          "top": 70
+        },
+        "LB": {
+          "left": 22,
+          "top": 66
+        },
+        "RCM": {
+          "left": 64,
+          "top": 48
+        },
+        "CM": {
+          "left": 50,
+          "top": 52
+        },
+        "LCM": {
+          "left": 36,
+          "top": 48
+        },
+        "RW": {
+          "left": 76,
+          "top": 26
+        },
+        "CF": {
+          "left": 50,
+          "top": 20
+        },
+        "LW": {
+          "left": 24,
+          "top": 26
+        }
+      },
+      "drawings": []
+    }
+  }
+}

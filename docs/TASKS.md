@@ -1,6 +1,6 @@
 # Dumala Delivery Tasks
 
-Updated: 2026-06-25
+Updated: 2026-06-26
 
 Status values: **Done**, **In Progress**, **Next**, **Planned**, **Long Term**.
 
@@ -9,11 +9,11 @@ Status values: **Done**, **In Progress**, **Next**, **Planned**, **Long Term**.
 Progress is calculated from the completed capabilities and open checklist items in this document. The roadmap bars track implementation, while Release Validation tracks the latest verified build checks.
 
 ```text
-Overall roadmap                 [########--]  76%  74 / 98
+Overall roadmap                 [########--]  78%  77 / 99
 
 Shipped beta foundation         [##########] 100%  20 / 20
 Current Beta: Reliability       [##########] 100%  24 / 24
-FPRDS Beta                      [######----]  60%   9 / 15
+FPRDS Beta                      [#######---]  73%  11 / 15
 Phase 1: Offline-ready PWA      [##########] 100%   7 / 7
 Phase 2: Mobile and tablet      [##########] 100%   4 / 4
 Phase 3: Cloud and sync         [##########] 100%   6 / 6
@@ -23,14 +23,14 @@ Future: Coach education         [----------]   0%   0 / 6
 Future: Club operations         [----------]   0%   0 / 5
 Release: App stores             [----------]   0%   0 / 1
 
-Release validation              [##########] 100%  12 / 12
+Release validation              [##########] 100%  13 / 13
 ```
 
 | Phase | Completed | Total | Progress | Status |
 | --- | ---: | ---: | ---: | --- |
 | Shipped beta foundation | 20 | 20 | 100% | Done |
 | Current Beta: Reliability and data confidence | 24 | 24 | 100% | Done |
-| FPRDS Beta | 9 | 15 | 60% | In Progress |
+| FPRDS Beta | 11 | 15 | 73% | In Progress |
 | Phase 1: Offline-ready web app | 7 | 7 | 100% | Done |
 | Phase 2: Mobile and tablet experience | 4 | 4 | 100% | Done |
 | Phase 3: Cloud accounts and synchronization | 6 | 6 | 100% | Done |
@@ -40,9 +40,21 @@ Release validation              [##########] 100%  12 / 12
 | Future Expansion: Club operations | 0 | 5 | 0% | Long Term |
 | Future Release: App store distribution | 0 | 1 | 0% | Deferred |
 
-The FPRDS total includes nine completed capabilities: the five shipped assessment features plus interpolation, role-weighting, age-transition, and required-field validation coverage. Its six remaining review and reporting tasks appear below.
+The FPRDS total includes eleven completed capabilities: the five shipped assessment features plus interpolation, role-weighting, age-transition, required-field validation coverage, true historical progress charts, and player/session comparison reports. Practitioner benchmark review is deferred until qualified external reviewers are available.
 
 ## Recent changes
+
+### Completed: 2026-06-26
+
+- [x] Created the FPRDS benchmark practitioner review package with current benchmark tables, scoring assumptions, role-weight review, Quick assessment fields, reviewer signoff fields, and a correction log.
+- [x] Refreshed the product roadmap statuses so Phase 2, Phase 3, and Phase 4 match the task tracker.
+- [x] Deferred external practitioner benchmark signoff and added true historical FPRDS progress charts from saved assessment sessions.
+- [x] Added FPRDS player-to-player and session-to-session reports with latest-assessment comparison, selectable session baselines, OVR deltas, and weighted attribute gap tables.
+- [x] Added Assessment Center team history access and per-session coach notes that persist with assessment records and backups.
+- [x] Added the validated Argentina mock workspace export in `docs/argentina.json` with roster, staff, assessments, availability, payments, standings history, and tactics data.
+- [x] Redesigned the Home dashboard hero with a larger club logo, clean app-gradient background, readable club metadata chips, and compact rank/registration cards.
+- [x] Removed the Home dashboard tactics promo banner so the overview moves directly from the hero into operational cards.
+- [x] Added week navigation to the Development training planner so coaches can move to previous or next weeks and schedule separate training plans per week.
 
 ### Completed: 2026-06-25
 
@@ -79,7 +91,7 @@ The FPRDS total includes nine completed capabilities: the five shipped assessmen
 - [x] Added shared accessible validation for match results, assessments, roster/profile editing, backup import, and manual standings.
 - [x] Added browser quota monitoring with actionable full-workspace backup guidance.
 - [x] Added blocking startup recovery for malformed saved data with raw recovery export, retry, diagnostics, and confirmed reset.
-- [x] Split player and staff domain models, storage, profiles, and Full Workspace V3 backup records with legacy migration.
+- [x] Split player and staff domain models, storage, profiles, and Full Workspace backup records with legacy migration.
 - [x] Defined supported mobile/tablet viewport bands, touch targets, and Phase 2 verification requirements.
 - [x] Improved tablet layouts for dense roster, schedule, assessment, and standings forms and tables.
 - [x] Improved tactics-board touch dragging, drawing, and tablet hit targets.
@@ -171,14 +183,14 @@ The FPRDS total includes nine completed capabilities: the five shipped assessmen
 
 ## FPRDS Beta
 
-- [ ] **Next:** Review every benchmark table with qualified football practitioners.
+- [ ] **Planned:** Deferred qualified football practitioner review of every benchmark table using `docs/FPRDS_BENCHMARK_REVIEW_PACKAGE.md`.
 - [x] **Done:** Add tests for lower-is-better and higher-is-better interpolation.
 - [x] **Done:** Test OVR weighting for all seven roles.
 - [x] **Done:** Validate age calculation and age-group transitions.
 - [x] **Done:** Verify Quick and Full required-field behavior.
-- [ ] **Planned:** Add true historical progress charts.
-- [ ] **Planned:** Add player-to-player and session-to-session reports.
-- [ ] **Planned:** Add downloadable assessment and development reports.
+- [x] **Done:** Add true historical progress charts.
+- [x] **Done:** Add player-to-player and session-to-session reports.
+- [ ] **Next:** Add downloadable assessment and development reports.
 - [ ] **Planned:** Add assessment export suitable for coach review.
 - [ ] **Planned:** Define benchmark versioning so historical sessions remain reproducible.
 
@@ -264,6 +276,7 @@ Phase 3 implementation baseline is complete. Local launch-readiness checks now i
 - [x] Match results update standings and player totals once.
 - [x] Tactics auto-fill matches positions and preserves manual assignments.
 - [x] Training schedule persists and syncs calendar events.
+- [x] Training planner supports week navigation and separate locally persisted schedules by week.
 - [x] Full and Quick assessment save/restore and assessment deletion logic are validated.
 - [x] League, Bulletins, and Updates all render.
 - [x] Desktop, mobile, and tablet smoke tests pass.

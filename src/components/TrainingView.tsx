@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { z } from 'zod';
 import { Player, Game } from '../types';
 import { weeklyScheduleSchema } from '../persistence/schemas';
 import { readJsonStorage, STORAGE_KEYS, writeJsonStorage } from '../persistence/storage';
@@ -14,7 +15,7 @@ import {
   Dumbbell, Sparkles, Activity, Zap, RotateCcw, Flame, TrendingUp, Search, Filter,
   User, CheckCircle, CalendarPlus, HeartPulse, ShieldCheck, Target, Footprints,
   Shield, Timer, Gauge, ArrowUpRight, Crosshair, Waves, Goal, Hand, Route,
-  ChevronDown, ChevronUp, Clock, Box, Users, ClipboardList, Trophy
+  ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Clock, Box, Users, ClipboardList, Trophy
 } from 'lucide-react';
 
 interface TrainingViewProps {
@@ -1047,21 +1048,98 @@ const DEFAULT_SCHEDULE: WeeklySchedule = {
   Sunday: []
 };
 
+const weeklyScheduleWeeksSchema = z.record(z.string(), weeklyScheduleSchema);
+
+const createEmptyWeeklySchedule = (): WeeklySchedule => ({
+  Monday: [],
+  Tuesday: [],
+  Wednesday: [],
+  Thursday: [],
+  Friday: [],
+  Saturday: [],
+  Sunday: []
+});
+
+const toDateKey = (date: Date) => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+const getWeekStartDate = (date: Date) => {
+  const day = date.getDay();
+  const diff = day === 0 ? -6 : 1 - day;
+  const start = new Date(date);
+  start.setHours(12, 0, 0, 0);
+  start.setDate(date.getDate() + diff);
+  return start;
+};
+
+const addWeeks = (date: Date, weeks: number) => {
+  const next = new Date(date);
+  next.setDate(date.getDate() + weeks * 7);
+  return getWeekStartDate(next);
+};
+
+const getWeekRangeLabel = (weekStart: Date) => {
+  const weekEnd = new Date(weekStart);
+  weekEnd.setDate(weekStart.getDate() + 6);
+  const sameYear = weekStart.getFullYear() === weekEnd.getFullYear();
+  const startLabel = weekStart.toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    ...(sameYear ? {} : { year: 'numeric' })
+  });
+  const endLabel = weekEnd.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  return `${startLabel} - ${endLabel}`;
+};
+
+const readWeeklyScheduleWeeks = () => readJsonStorage(
+  STORAGE_KEYS.weeklyScheduleWeeks,
+  weeklyScheduleWeeksSchema,
+  {},
+  'Weekly training weeks'
+);
+
+const readScheduleForWeek = (weekKey: string, currentWeekKey: string) => {
+  const scheduleWeeks = readWeeklyScheduleWeeks();
+  if (scheduleWeeks[weekKey]) return scheduleWeeks[weekKey];
+  if (weekKey === currentWeekKey) {
+    return readJsonStorage(STORAGE_KEYS.weeklySchedule, weeklyScheduleSchema, DEFAULT_SCHEDULE, 'Weekly training');
+  }
+  return createEmptyWeeklySchedule();
+};
+
+const writeScheduleForWeek = (weekKey: string, schedule: WeeklySchedule) => {
+  const scheduleWeeks = readWeeklyScheduleWeeks();
+  writeJsonStorage(STORAGE_KEYS.weeklyScheduleWeeks, {
+    ...scheduleWeeks,
+    [weekKey]: schedule
+  });
+};
+
 export default function TrainingView({ players, onUpdatePlayer, games, onUpdateGames }: TrainingViewProps) {
   const [selectedDrillId, setSelectedDrillId] = useState<string>(CRITICAL_DRILLS[0].id);
   const [expandedDrills, setExpandedDrills] = useState<Set<string>>(new Set());
+  const currentWeekKey = useMemo(() => toDateKey(getWeekStartDate(new Date())), []);
+  const [selectedWeekStart, setSelectedWeekStart] = useState<Date>(() => getWeekStartDate(new Date()));
+  const selectedWeekKey = useMemo(() => toDateKey(selectedWeekStart), [selectedWeekStart]);
   const [weeklySchedule, setWeeklySchedule] = useState<WeeklySchedule>(() => {
-    return readJsonStorage(STORAGE_KEYS.weeklySchedule, weeklyScheduleSchema, DEFAULT_SCHEDULE, 'Weekly training');
+    return readScheduleForWeek(currentWeekKey, currentWeekKey);
   });
 
-  const weekDaysMap = useMemo(() => getWeekDaysMap(new Date()), []);
+  const weekDaysMap = useMemo(() => getWeekDaysMap(selectedWeekStart), [selectedWeekStart]);
+  const weekRangeLabel = useMemo(() => getWeekRangeLabel(selectedWeekStart), [selectedWeekStart]);
+  const isCurrentWeek = selectedWeekKey === currentWeekKey;
 
   useEffect(() => {
     // Archive current week as history before overwriting
     const current = readJsonStorage(STORAGE_KEYS.weeklySchedule, weeklyScheduleSchema, weeklySchedule, 'Weekly training');
     writeJsonStorage(STORAGE_KEYS.weeklyScheduleHistory, current);
+    writeScheduleForWeek(selectedWeekKey, weeklySchedule);
     writeJsonStorage(STORAGE_KEYS.weeklySchedule, weeklySchedule);
-  }, [weeklySchedule]);
+  }, [selectedWeekKey, weeklySchedule]);
 
   // Synchronize Weekly Training to Calendar Games
   useEffect(() => {
@@ -1074,6 +1152,21 @@ export default function TrainingView({ players, onUpdatePlayer, games, onUpdateG
       onUpdateGames(result.games);
     }
   }, [weeklySchedule, games, onUpdateGames, weekDaysMap]);
+
+  const handleNavigateWeek = (direction: -1 | 1) => {
+    writeScheduleForWeek(selectedWeekKey, weeklySchedule);
+    const nextWeekStart = addWeeks(selectedWeekStart, direction);
+    const nextWeekKey = toDateKey(nextWeekStart);
+    setSelectedWeekStart(nextWeekStart);
+    setWeeklySchedule(readScheduleForWeek(nextWeekKey, currentWeekKey));
+  };
+
+  const handleReturnToCurrentWeek = () => {
+    writeScheduleForWeek(selectedWeekKey, weeklySchedule);
+    const currentStart = getWeekStartDate(new Date());
+    setSelectedWeekStart(currentStart);
+    setWeeklySchedule(readScheduleForWeek(currentWeekKey, currentWeekKey));
+  };
 
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedAttributeFilter, setSelectedAttributeFilter] = useState('all');
@@ -1644,6 +1737,50 @@ export default function TrainingView({ players, onUpdatePlayer, games, onUpdateG
                 );
               })}
             </div>
+          </div>
+        </div>
+
+        {/* Week Navigation */}
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-slate-50/70 p-2.5">
+          <button
+            type="button"
+            onClick={() => handleNavigateWeek(-1)}
+            className="h-10 px-3 rounded-xl border border-slate-200 bg-white text-slate-700 hover:bg-slate-100 hover:text-indigo-700 transition-colors flex items-center justify-center gap-2 text-xs font-black"
+            aria-label="Open previous week's training schedule"
+            title="Previous week"
+          >
+            <ChevronLeft size={16} aria-hidden="true" />
+            Previous
+          </button>
+
+          <div className="flex flex-col items-center justify-center text-center px-3">
+            <span className="text-[9px] font-black uppercase tracking-widest text-slate-400">Training Week</span>
+            <span className="text-sm font-display font-black text-slate-800">{weekRangeLabel}</span>
+            <span className="text-[10px] font-bold text-indigo-600">
+              {isCurrentWeek ? 'Current week' : selectedWeekStart > getWeekStartDate(new Date()) ? 'Future week' : 'Past week'}
+            </span>
+          </div>
+
+          <div className="flex gap-2">
+            {!isCurrentWeek && (
+              <button
+                type="button"
+                onClick={handleReturnToCurrentWeek}
+                className="h-10 px-3 rounded-xl border border-indigo-100 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 transition-colors text-xs font-black"
+              >
+                This Week
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => handleNavigateWeek(1)}
+              className="h-10 px-3 rounded-xl border border-slate-200 bg-white text-slate-700 hover:bg-slate-100 hover:text-indigo-700 transition-colors flex items-center justify-center gap-2 text-xs font-black grow sm:grow-0"
+              aria-label="Open next week's training schedule"
+              title="Next week"
+            >
+              Next
+              <ChevronRight size={16} aria-hidden="true" />
+            </button>
           </div>
         </div>
 

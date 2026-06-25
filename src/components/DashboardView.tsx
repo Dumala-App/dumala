@@ -65,6 +65,24 @@ const renderOutcomeDot = ({ cx, cy, payload, index }: DashboardDotProps) => {
   );
 };
 
+const dashboardHeroStyle: React.CSSProperties = {
+  background: [
+    'linear-gradient(115deg, #1e5bff 0%, #2854e6 34%, #493ed0 68%, #2f258f 100%)',
+    'linear-gradient(180deg, rgba(255,255,255,0.08) 0%, rgba(15,23,42,0.08) 100%)'
+  ].join(', '),
+  boxShadow: '0 24px 58px rgba(37, 99, 235, 0.22)'
+};
+
+const dashboardLogoTileStyle: React.CSSProperties = {
+  background: 'linear-gradient(150deg, rgba(255,255,255,0.32) 0%, rgba(255,255,255,0.17) 48%, rgba(99,102,241,0.18) 100%)',
+  boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.42), inset 0 -1px 0 rgba(15,23,42,0.16), 0 20px 38px rgba(15,23,42,0.22)'
+};
+
+const dashboardStatTileStyle: React.CSSProperties = {
+  background: 'linear-gradient(145deg, rgba(99,102,241,0.48) 0%, rgba(124,58,237,0.44) 54%, rgba(49,46,129,0.34) 100%)',
+  boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.26), inset 0 -1px 0 rgba(15,23,42,0.18), 0 16px 32px rgba(30,27,75,0.2)'
+};
+
 interface DashboardViewProps {
   teamInfo: TeamInfo;
   players: Player[];
@@ -367,57 +385,74 @@ export default function DashboardView({
     <div id="dashboard-view-container" className="space-y-6">
 
       {/* Hero Header Banner */}
-      <div className={`p-6 md:p-8 rounded-2xl bg-gradient-to-r ${teamInfo.logoColor} text-white shadow-lg relative overflow-hidden flex flex-col md:flex-row justify-between items-start md:items-center gap-6 border border-white/10`}>
-        <div className="absolute right-0 top-0 bottom-0 opacity-10 flex items-center pr-8 pointer-events-none">
-          {renderLogo(teamInfo.logoUrl, 240, "stroke-[1.5] text-white")}
+      <div
+        className="min-h-[172px] p-5 md:px-7 md:py-6 rounded-2xl text-white relative overflow-hidden flex flex-col md:flex-row justify-between items-stretch md:items-center gap-6 border border-white/[0.15]"
+        style={dashboardHeroStyle}
+      >
+        <div className="absolute -right-8 -top-10 bottom-0 opacity-[0.08] hidden md:flex items-center pointer-events-none">
+          {renderLogo(teamInfo.logoUrl, 260, "stroke-[1.5] text-white")}
         </div>
 
-        <div className="flex flex-col sm:flex-row items-center gap-5 relative z-10 w-full md:w-auto">
+        <div className="flex flex-col sm:flex-row items-center gap-5 md:gap-6 relative z-10 w-full md:w-auto">
           {/* logo circle uploader with overlay action button */}
           <div className="relative group shrink-0">
             <div 
               onClick={() => setShowLogoPicker(!showLogoPicker)}
-              className="w-20 h-20 bg-white/10 backdrop-blur-md border border-white/20 hover:border-white/40 rounded-2xl flex items-center justify-center p-3 shadow-md hover:scale-[1.03] cursor-pointer transition-all"
+              className="w-[6.8rem] h-[6.8rem] border border-white/[0.24] rounded-2xl flex items-center justify-center p-3 hover:border-white/[0.45] hover:scale-[1.02] cursor-pointer transition-all"
+              style={dashboardLogoTileStyle}
             >
-              {renderLogo(teamInfo.logoUrl, 56, "text-white select-none")}
+              {renderLogo(teamInfo.logoUrl, 78, "text-white select-none drop-shadow-sm")}
             </div>
             <button 
               id="edit-logo-trigger-btn"
               onClick={() => setShowLogoPicker(!showLogoPicker)}
-              className="absolute -bottom-1 -right-1 bg-white hover:bg-indigo-50 text-slate-900 hover:text-indigo-600 p-1.5 rounded-full shadow-md border border-slate-200 hover:scale-105 active:scale-95 transition-all"
+              className="absolute -bottom-1.5 -right-1.5 bg-white hover:bg-indigo-50 text-slate-900 hover:text-indigo-600 p-2 rounded-full shadow-md border border-slate-200 hover:scale-105 active:scale-95 transition-all"
               title="Edit Team Logo"
             >
-              <Edit size={11} />
+              <Edit size={12} />
             </button>
           </div>
 
-          <div className="space-y-2.5 text-center sm:text-left">
+          <div className="space-y-3 text-center sm:text-left">
             <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
-              <span className="bg-amber-400 text-slate-950 text-[10px] uppercase font-black px-2.5 py-0.5 rounded-full tracking-wider">
+              <span className="bg-amber-300 text-slate-950 text-[10px] uppercase font-black px-2.5 py-1 rounded-full tracking-wider shadow-sm">
                 Club Administration
               </span>
-              <span className="text-white/70 text-xs font-semibold">Since {teamInfo.founded}</span>
+              <span className="text-indigo-100/[0.85] text-xs font-black">
+                Since {teamInfo.founded}
+              </span>
             </div>
-            <h2 id="team-hero-name" className="text-3xl md:text-4xl font-display font-black tracking-tight">{teamInfo.name}</h2>
+            <h2 id="team-hero-name" className="text-3xl md:text-5xl font-display font-black tracking-tight text-white drop-shadow-sm">{teamInfo.name}</h2>
             
-            <div className="flex flex-wrap justify-center sm:justify-start gap-x-4 gap-y-1.5 text-xs text-indigo-100/90 pt-1">
-              <span className="flex items-center gap-1.5 bg-white/10 px-2.5 py-1 rounded-md">🏆 {teamInfo.league}</span>
-              <span className="flex items-center gap-1.5 bg-white/10 px-2.5 py-1 rounded-md">🏟️ Stadium: {teamInfo.stadium}</span>
-              <span className="flex items-center gap-1.5 bg-white/10 px-2.5 py-1 rounded-md">👔 Coach: {teamInfo.coach}</span>
+            <div className="flex flex-wrap justify-center sm:justify-start gap-2 text-xs text-white pt-0.5">
+              <span className="flex items-center gap-1.5 bg-white/[0.13] border border-white/[0.12] px-2.5 py-1.5 rounded-md shadow-sm backdrop-blur-sm">
+                <Trophy size={12} className="text-amber-300" aria-hidden="true" />
+                <span className="font-semibold">{teamInfo.league}</span>
+              </span>
+              <span className="flex items-center gap-1.5 bg-white/[0.13] border border-white/[0.12] px-2.5 py-1.5 rounded-md shadow-sm backdrop-blur-sm">
+                <MapPin size={12} className="text-cyan-200" aria-hidden="true" />
+                <span className="font-semibold">Stadium: {teamInfo.stadium}</span>
+              </span>
+              <span className="flex items-center gap-1.5 bg-white/[0.13] border border-white/[0.12] px-2.5 py-1.5 rounded-md shadow-sm backdrop-blur-sm">
+                <ClipboardList size={12} className="text-emerald-200" aria-hidden="true" />
+                <span className="font-semibold">Coach: {teamInfo.coach}</span>
+              </span>
             </div>
           </div>
         </div>
 
-        <div className="flex gap-4 relative z-10 shrink-0 self-center sm:self-auto">
-          <div className="bg-white/10 backdrop-blur-md border border-white/15 rounded-2xl p-4 text-center min-w-24 shadow-inner">
-            <span id="dashboard-league-rank" className="text-2xl font-display font-black text-amber-305">
+        <div className="grid grid-cols-2 gap-3 relative z-10 shrink-0 w-full sm:w-auto md:mr-1">
+          <div className="relative overflow-hidden border border-white/[0.2] rounded-2xl px-5 py-4 text-center min-w-28 text-white backdrop-blur-md" style={dashboardStatTileStyle}>
+            <div className="absolute inset-x-0 top-0 h-px bg-white/[0.45]" />
+            <span id="dashboard-league-rank" className="relative text-2xl md:text-3xl font-display font-black text-white drop-shadow-sm">
               {leagueRank ? `#${leagueRank}` : 'N/A'}
             </span>
-            <span className="block text-[10px] text-white/80 uppercase font-bold mt-1 tracking-wider">League Rank</span>
+            <span className="relative block text-[10px] text-white/85 uppercase font-black mt-1 tracking-wider">League Rank</span>
           </div>
-          <div className="bg-white/10 backdrop-blur-md border border-white/15 rounded-2xl p-4 text-center min-w-24 shadow-inner">
-            <span className="text-2xl font-display font-black text-white">{players.length}</span>
-            <span className="block text-[10px] text-white/80 uppercase font-bold mt-1 tracking-wider">Registered</span>
+          <div className="relative overflow-hidden border border-white/[0.2] rounded-2xl px-5 py-4 text-center min-w-28 text-white backdrop-blur-md" style={dashboardStatTileStyle}>
+            <div className="absolute inset-x-0 top-0 h-px bg-white/[0.45]" />
+            <span className="relative text-2xl md:text-3xl font-display font-black text-white drop-shadow-sm">{players.length}</span>
+            <span className="relative block text-[10px] text-white/85 uppercase font-black mt-1 tracking-wider">Registered</span>
           </div>
         </div>
       </div>
@@ -562,45 +597,6 @@ export default function DashboardView({
           </motion.div>
         )}
       </AnimatePresence>
-
-      {/* Interactive Tactics Board Highlight Promo Banner */}
-      <div 
-        id="dashboard-tactics-promo"
-        onClick={() => onNavigate({ primary: 'tactics' })}
-        className="group relative overflow-hidden bg-slate-900 border border-slate-800 rounded-2xl p-5 md:p-6 shadow-lg shadow-indigo-950/20 flex flex-col md:flex-row items-center justify-between gap-5 cursor-pointer hover:border-amber-405 hover:shadow-xl transition-all duration-300"
-      >
-        <div className="absolute top-0 right-1/4 w-80 h-80 bg-indigo-600/10 rounded-full blur-3xl pointer-events-none group-hover:bg-indigo-650/15 transition-all" />
-        <div className="absolute bottom-0 right-10 opacity-10 font-bold text-slate-400 text-6xl font-mono select-none pointer-events-none hidden md:block">
-          4 - 1 - 2 - 3
-        </div>
-
-        <div className="flex items-center gap-4 relative z-10">
-          <div className="w-12 h-12 bg-amber-450/10 text-amber-400 rounded-2xl flex items-center justify-center border border-amber-400/20 shrink-0">
-            <Zap size={22} className="animate-pulse" />
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="text-[10px] bg-indigo-500/10 text-indigo-400 font-black px-2 py-0.5 rounded uppercase tracking-wider border border-indigo-500/20">
-                Brand New Feature
-              </span>
-              <span className="text-[10px] text-amber-400 font-bold">🎮 Console Grade UI</span>
-            </div>
-            <h3 className="font-display font-black text-slate-100 text-lg mt-1 group-hover:text-amber-400 transition-colors">
-              Dynamic Team Formations & Squad Board
-            </h3>
-            <p className="text-slate-400 text-xs mt-0.5 leading-relaxed max-w-xl">
-              Fine-tune starting lineups, test active playstyles, and assign legendary guests or registered roster athletes live on the virtual pitch.
-            </p>
-          </div>
-        </div>
-
-        <button 
-          id="btn-launch-tactics-from-dashboard"
-          className="bg-amber-400 hover:bg-amber-500 text-slate-950 text-xs font-black uppercase px-5 py-3 rounded-xl shadow-sm hover:scale-[1.03] active:scale-[0.97] transition-all relative z-10 shrink-0 flex items-center gap-1.5"
-        >
-          Open Tactics Board <ArrowRight size={13} />
-        </button>
-      </div>
 
       {/* Grid: Next Clash Spotlight & Latest Announcement notices */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">

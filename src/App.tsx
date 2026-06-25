@@ -455,6 +455,18 @@ export default function App() {
     setAssessments(transition.assessments);
   };
 
+  const handleUpdateAssessmentNotes = (sessionId: string, coachNotes: string) => {
+    const trimmedNotes = coachNotes.trim();
+    setAssessments(current => current.map(session => (
+      session.id === sessionId
+        ? {
+            ...session,
+            coachNotes: trimmedNotes || undefined
+          }
+        : session
+    )));
+  };
+
   const downloadJson = (value: unknown, fileName: string) => {
     const blob = new Blob([JSON.stringify(value, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
@@ -1001,6 +1013,7 @@ export default function App() {
                   onClearPreselectedAssessmentsPlayerId={() => setPreselectedAssessmentsPlayerId(null)}
                   onAddAssessment={handleAddAssessment}
                   onDeleteAssessment={handleDeleteAssessment}
+                  onUpdateAssessmentNotes={handleUpdateAssessmentNotes}
                 />
               </ViewErrorBoundary>
             )}

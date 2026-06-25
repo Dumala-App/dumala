@@ -287,6 +287,7 @@ export const assessmentSessionSchema = z.object({
     ovrDelta: finiteNumber.optional(),
     attributeDeltas: z.record(z.string(), finiteNumber).optional()
   }),
+  coachNotes: z.string().optional(),
   developmentPlan: developmentPlanSchema.optional()
 });
 export const assessmentsSchema = z.array(assessmentSessionSchema);

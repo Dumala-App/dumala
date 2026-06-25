@@ -2,18 +2,30 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import type { AgeGroup, AssessmentRawResults, AssessmentSession, FprdsAttributeId, FprdsRole, Player } from '../types';
 import {
   AlertCircle,
+  ArrowLeftRight,
   BookOpen,
   Calendar,
   CheckCircle2,
   ChevronLeft,
   ChevronRight,
   ClipboardList,
+  History,
+  NotebookPen,
   Save,
   Search,
   Sparkles,
   Trash2,
   User
 } from 'lucide-react';
+import {
+  CartesianGrid,
+  Line,
+  LineChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis
+} from 'recharts';
 import AssessmentQuickGuide from './AssessmentQuickGuide';
 import { FieldError, FormErrorSummary } from './FormValidation';
 import { FieldErrors, focusFirstInvalidField } from '../forms/validation';
@@ -24,6 +36,17 @@ import {
   getAttributeLabel
 } from '../fprds/scoring';
 import { ROLE_LABELS, ROLE_WEIGHTS } from '../fprds/weights';
+import {
+  buildAssessmentProgressSeries,
+  buildPlayerAssessmentReport,
+  buildSessionAssessmentReport,
+  calculateProgressDelta,
+  filterProgressSeriesByRole,
+  getLatestRoleFromProgress,
+  getWeightedProgressAttributes,
+  selectLatestAssessmentByPlayer,
+  type AssessmentProgressPoint
+} from '../fprds/progress';
 import type { DrillGuideCategory } from '../fprds/drillGuide';
 import AssessmentPlayerCardPreview from './AssessmentPlayerCardPreview';
 
@@ -36,6 +59,68 @@ const weightedAttributeIdsForRole = (role: FprdsRole): FprdsAttributeId[] => (
   (Object.keys(ROLE_WEIGHTS[role]) as FprdsAttributeId[]).filter(attrId => ROLE_WEIGHTS[role][attrId] > 0)
 );
 
+const ATTRIBUTE_LABELS: Record<FprdsAttributeId, string> = {
+  pace: 'Pace',
+  stamina: 'Stamina',
+  agility: 'Agility',
+  strength: 'Strength',
+  firstTouch: 'First touch',
+  shortPassing: 'Short passing',
+  finishingBox: 'Finishing',
+  shotPower: 'Shot power',
+  offensive1v1: 'Offensive 1v1',
+  attackingHeading: 'Attacking heading',
+  longPassing: 'Long passing',
+  visionPlaymaking: 'Vision',
+  ballRetention: 'Ball retention',
+  pressingInterceptions: 'Pressing',
+  tackling: 'Tackling',
+  defensiveHeading: 'Defensive heading',
+  positioningClearances: 'Positioning',
+  crossing: 'Crossing',
+  reflexes: 'Reflexes',
+  handling: 'Handling',
+  divingReach: 'Diving',
+  distribution: 'Distribution'
+};
+
+const ATTRIBUTE_LINE_COLORS = ['#4f46e5', '#059669', '#f59e0b', '#dc2626'];
+
+type ProgressTooltipPayload = Array<{
+  name?: string;
+  value?: number;
+  color?: string;
+  payload: AssessmentProgressPoint & { [key: string]: unknown };
+}>;
+
+const AssessmentProgressTooltip = ({
+  active,
+  payload
+}: {
+  active?: boolean;
+  payload?: ProgressTooltipPayload;
+}) => {
+  if (!active || !payload || payload.length === 0) return null;
+  const point = payload[0].payload;
+
+  return (
+    <div className="rounded-xl border border-slate-200 bg-white px-3 py-2 shadow-lg">
+      <p className="text-[10px] font-black uppercase tracking-wider text-slate-500">{point.assessmentDate}</p>
+      <p className="text-xs font-black text-slate-900">
+        {ROLE_LABELS[point.role]} • {point.assessmentType} • {point.ageGroup}
+      </p>
+      <div className="mt-2 space-y-1">
+        {payload.map((entry) => (
+          <div key={entry.name} className="flex items-center justify-between gap-4 text-[11px] font-semibold">
+            <span style={{ color: entry.color }}>{entry.name}</span>
+            <span className="text-slate-800">{entry.value}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
 interface AssessmentsViewProps {
   players: Player[];
   assessments: AssessmentSession[];
@@ -43,6 +128,7 @@ interface AssessmentsViewProps {
   onClearPreselectedPlayer: () => void;
   onAddAssessment: (session: AssessmentSession) => void;
   onDeleteAssessment: (sessionId: string) => void;
+  onUpdateAssessmentNotes: (sessionId: string, coachNotes: string) => void;
 }
 
 const getDefaultRoleForPlayer = (player: Player): FprdsRole => {
@@ -114,7 +200,8 @@ export default function AssessmentsView({
   preselectedPlayerId,
   onClearPreselectedPlayer,
   onAddAssessment,
-  onDeleteAssessment
+  onDeleteAssessment,
+  onUpdateAssessmentNotes
 }: AssessmentsViewProps) {
   const assessmentContainerRef = useRef<HTMLDivElement | null>(null);
   const eligiblePlayers = useMemo(() => players, [players]);
@@ -143,6 +230,10 @@ export default function AssessmentsView({
   const [assessmentSubmitErrors, setAssessmentSubmitErrors] = useState<FieldErrors<string>>({});
   const [isQuickGuideOpen, setIsQuickGuideOpen] = useState(false);
   const [quickGuideLaunchContext, setQuickGuideLaunchContext] = useState<{ initialCategory?: DrillGuideCategory; initialDrillId?: string } | null>(null);
+  const [comparisonPlayerId, setComparisonPlayerId] = useState('');
+  const [baselineSessionId, setBaselineSessionId] = useState('');
+  const [targetSessionId, setTargetSessionId] = useState('');
+  const [noteDrafts, setNoteDrafts] = useState<Record<string, string>>({});
 
   const selectedPlayer = useMemo(
     () => eligiblePlayers.find(p => p.id === selectedPlayerId) ?? null,
@@ -182,6 +273,123 @@ export default function AssessmentsView({
         return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
       });
   }, [assessments, selectedPlayerId]);
+
+  const playerNameById = useMemo(
+    () => new Map(eligiblePlayers.map((player) => [player.id, player.name])),
+    [eligiblePlayers]
+  );
+
+  const assessmentProgressSeries = useMemo(
+    () => buildAssessmentProgressSeries(playerAssessments),
+    [playerAssessments]
+  );
+
+  const latestProgressRole = useMemo(
+    () => getLatestRoleFromProgress(assessmentProgressSeries),
+    [assessmentProgressSeries]
+  );
+
+  const roleProgressSeries = useMemo(
+    () => latestProgressRole ? filterProgressSeriesByRole(assessmentProgressSeries, latestProgressRole) : [],
+    [assessmentProgressSeries, latestProgressRole]
+  );
+
+  const progressDelta = useMemo(
+    () => calculateProgressDelta(assessmentProgressSeries),
+    [assessmentProgressSeries]
+  );
+
+  const weightedProgressAttributes = useMemo(
+    () => latestProgressRole ? getWeightedProgressAttributes(latestProgressRole, 4) : [],
+    [latestProgressRole]
+  );
+
+  const roleAttributeTrendData = useMemo(
+    () => roleProgressSeries.map((point) => {
+      const row: AssessmentProgressPoint & { [key: string]: number | string | Record<FprdsAttributeId, number> } = {
+        ...point
+      };
+      weightedProgressAttributes.forEach((attributeId) => {
+        row[attributeId] = point.attributeScores[attributeId];
+      });
+      return row;
+    }),
+    [roleProgressSeries, weightedProgressAttributes]
+  );
+
+  const latestAssessmentByPlayerId = useMemo(() => {
+    const map = new Map<string, AssessmentSession>();
+    eligiblePlayers.forEach((player) => {
+      const latest = selectLatestAssessmentByPlayer(assessments, player.id);
+      if (latest) map.set(player.id, latest);
+    });
+    return map;
+  }, [assessments, eligiblePlayers]);
+
+  const assessedPlayerSummaries = useMemo(() => (
+    eligiblePlayers
+      .map((player) => {
+        const playerSessions = assessments.filter((session) => session.playerId === player.id);
+        const latest = latestAssessmentByPlayerId.get(player.id) ?? null;
+        return {
+          player,
+          latest,
+          sessionCount: playerSessions.length
+        };
+      })
+      .filter((summary): summary is { player: Player; latest: AssessmentSession; sessionCount: number } => summary.latest !== null)
+      .sort((a, b) => {
+        const ad = new Date(a.latest.assessmentDate).getTime();
+        const bd = new Date(b.latest.assessmentDate).getTime();
+        if (ad !== bd) return bd - ad;
+        return a.player.name.localeCompare(b.player.name);
+      })
+  ), [assessments, eligiblePlayers, latestAssessmentByPlayerId]);
+
+  const playerComparisonOptions = useMemo(
+    () => eligiblePlayers.filter((player) => player.id !== selectedPlayerId && latestAssessmentByPlayerId.has(player.id)),
+    [eligiblePlayers, latestAssessmentByPlayerId, selectedPlayerId]
+  );
+
+  useEffect(() => {
+    const hasCurrentOption = playerComparisonOptions.some((player) => player.id === comparisonPlayerId);
+    if (hasCurrentOption) return;
+    setComparisonPlayerId(playerComparisonOptions[0]?.id ?? '');
+  }, [comparisonPlayerId, playerComparisonOptions]);
+
+  useEffect(() => {
+    if (assessmentProgressSeries.length === 0) {
+      setBaselineSessionId('');
+      setTargetSessionId('');
+      return;
+    }
+
+    const latest = assessmentProgressSeries[assessmentProgressSeries.length - 1];
+    const previous = assessmentProgressSeries[assessmentProgressSeries.length - 2] ?? null;
+    setTargetSessionId((current) => (
+      assessmentProgressSeries.some((point) => point.id === current) ? current : latest.id
+    ));
+    setBaselineSessionId((current) => (
+      current && assessmentProgressSeries.some((point) => point.id === current)
+        ? current
+        : previous?.id ?? ''
+    ));
+  }, [assessmentProgressSeries]);
+
+  const selectedPlayerLatestAssessment = selectedPlayerId ? latestAssessmentByPlayerId.get(selectedPlayerId) ?? null : null;
+  const comparisonPlayer = playerComparisonOptions.find((player) => player.id === comparisonPlayerId) ?? null;
+  const comparisonPlayerLatestAssessment = comparisonPlayerId ? latestAssessmentByPlayerId.get(comparisonPlayerId) ?? null : null;
+  const playerAssessmentReport = useMemo(
+    () => buildPlayerAssessmentReport(selectedPlayerLatestAssessment, comparisonPlayerLatestAssessment),
+    [comparisonPlayerLatestAssessment, selectedPlayerLatestAssessment]
+  );
+
+  const baselineSession = baselineSessionId ? playerAssessments.find((session) => session.id === baselineSessionId) ?? null : null;
+  const targetSession = targetSessionId ? playerAssessments.find((session) => session.id === targetSessionId) ?? null : null;
+  const sessionAssessmentReport = useMemo(
+    () => buildSessionAssessmentReport(baselineSession, targetSession),
+    [baselineSession, targetSession]
+  );
 
   const requiredRoleFields = useMemo(() => {
     const fields: Array<{ key: string; label: string; hint?: string; min?: number; max?: number; step?: number }> = [];
@@ -403,6 +611,20 @@ export default function AssessmentsView({
     setSaveError(null);
     setAssessmentSubmitErrors({});
     setStep(2);
+  };
+
+  const handleOpenTeamHistory = () => {
+    setSelectedPlayerId('');
+    setPlayerSearch('');
+    setSaveError(null);
+    setAssessmentSubmitErrors({});
+    setStep(6);
+  };
+
+  const handleSaveSessionNote = (sessionId: string) => {
+    const sourceSession = assessments.find((session) => session.id === sessionId);
+    const nextNotes = noteDrafts[sessionId] ?? sourceSession?.coachNotes ?? '';
+    onUpdateAssessmentNotes(sessionId, nextNotes);
   };
 
   const handleNextStep = () => {
@@ -695,8 +917,9 @@ export default function AssessmentsView({
     if (step === 3) return 'Assessment Settings';
     if (step === 4) return 'Age Group';
     if (step === 5) return 'Enter Results';
+    if (!selectedPlayer) return 'Team History';
     return 'Review & History';
-  }, [step]);
+  }, [selectedPlayer, step]);
 
   const canGoNext = useMemo(() => {
     if (step === 1) return !!selectedPlayerId;
@@ -723,7 +946,15 @@ export default function AssessmentsView({
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={handleOpenTeamHistory}
+              aria-label="Open team assessment history"
+              className="inline-flex items-center gap-1 rounded-lg border border-indigo-200 bg-indigo-50 px-2 py-1 text-[8px] font-black uppercase tracking-wider text-indigo-700 hover:bg-indigo-100 transition-colors"
+            >
+              <History size={10} /> Team history
+            </button>
             <div className="text-[10px] font-black uppercase tracking-widest text-slate-400 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2">
               Step {step} / 6: {stepTitle}
             </div>
@@ -737,19 +968,23 @@ export default function AssessmentsView({
         )}
 
         <div className="mt-5 flex items-center justify-between gap-3">
-          <button
-            type="button"
-            onClick={handlePrevStep}
-            disabled={step === 1}
-            aria-label="Previous step"
-            className={`inline-flex items-center gap-2 rounded-xl border px-4 py-2 text-xs font-black transition-colors ${
-              step === 1
-                ? 'border-slate-200 bg-slate-50 text-slate-300 cursor-not-allowed'
-                : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
-            }`}
-          >
-            <ChevronLeft size={14} /> Back
-          </button>
+          {step < 6 ? (
+            <button
+              type="button"
+              onClick={handlePrevStep}
+              disabled={step === 1}
+              aria-label="Previous step"
+              className={`inline-flex items-center gap-2 rounded-xl border px-4 py-2 text-xs font-black transition-colors ${
+                step === 1
+                  ? 'border-slate-200 bg-slate-50 text-slate-300 cursor-not-allowed'
+                  : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
+              }`}
+            >
+              <ChevronLeft size={14} /> Back
+            </button>
+          ) : (
+            <div aria-hidden="true" />
+          )}
 
           {step < 6 ? (
             <button
@@ -1173,21 +1408,383 @@ export default function AssessmentsView({
 
           {step === 6 && (
             <div className="bg-white border border-slate-200/70 rounded-2xl shadow-md shadow-slate-100/30 p-5 sm:p-6 space-y-4">
-              <h3 className="font-display font-black text-slate-900 text-sm uppercase tracking-wide flex items-center gap-2">
-                <Sparkles size={16} className="text-indigo-600" /> Assessment History
-              </h3>
+              <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                <div>
+                  <h3 className="font-display font-black text-slate-900 text-sm uppercase tracking-wide flex items-center gap-2">
+                    <Sparkles size={16} className="text-indigo-600" /> {selectedPlayer ? 'Assessment History' : 'Team Assessment History'}
+                  </h3>
+                  <p className="mt-1 text-xs font-semibold text-slate-500">
+                    {selectedPlayer
+                      ? `Review saved sessions, reports, and notes for ${selectedPlayer.name}.`
+                      : 'Choose an assessed player to view organized history, reports, and notes.'}
+                  </p>
+                </div>
+              </div>
 
-              {!selectedPlayer && <p className="text-sm text-slate-500 font-semibold">Select a player to view assessment history.</p>}
+              <div className="space-y-3">
+                  {!selectedPlayer && assessedPlayerSummaries.length === 0 && (
+                    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5 text-sm text-slate-500 font-semibold">
+                      No team assessments saved yet. Start a new assessment from the player roster to build history.
+                    </div>
+                  )}
 
-              {selectedPlayer && (
-                <div className="space-y-3">
-                  {playerAssessments.length === 0 && (
+                  {!selectedPlayer && assessedPlayerSummaries.length > 0 && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      {assessedPlayerSummaries.map(({ player, latest, sessionCount }) => (
+                        <button
+                          key={player.id}
+                          type="button"
+                          onClick={() => setSelectedPlayerId(player.id)}
+                          aria-label={`Open assessment history for ${player.name}`}
+                          className="text-left rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition-colors hover:border-indigo-200 hover:bg-indigo-50/40 focus:outline-none focus:ring-2 focus:ring-indigo-100"
+                        >
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="flex items-center gap-3 min-w-0">
+                              <img
+                                src={player.photoUrl}
+                                alt=""
+                                className="w-12 h-12 rounded-xl object-cover border border-slate-200 shrink-0"
+                                referrerPolicy="no-referrer"
+                              />
+                              <div className="min-w-0">
+                                <p className="font-black text-sm text-slate-900 truncate">{player.name}</p>
+                                <p className="mt-0.5 text-xs font-semibold text-slate-500 truncate">
+                                  #{player.number || '-'} • {player.position}
+                                </p>
+                              </div>
+                            </div>
+                            <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-center">
+                              <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">OVR</p>
+                              <p className="text-lg font-display font-black text-slate-900 leading-none">{latest.ovr}</p>
+                            </div>
+                          </div>
+                          <div className="mt-4 grid grid-cols-3 gap-2 text-center">
+                            <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
+                              <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Sessions</p>
+                              <p className="text-sm font-black text-slate-900">{sessionCount}</p>
+                            </div>
+                            <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
+                              <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Latest</p>
+                              <p className="text-xs font-black text-slate-900">{latest.assessmentDate}</p>
+                            </div>
+                            <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
+                              <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Role</p>
+                              <p className="text-xs font-black text-slate-900">{ROLE_LABELS[latest.role]}</p>
+                            </div>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
+                  {selectedPlayer && playerAssessments.length === 0 && (
                     <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-500 font-semibold">
                       No assessments saved for this player yet.
                     </div>
                   )}
 
-                  {playerAssessments.map((s) => (
+                  {selectedPlayer && assessmentProgressSeries.length > 0 && (
+                    <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
+                      <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                        <div>
+                          <p className="text-[11px] font-black uppercase tracking-wider text-slate-500">Historical progress</p>
+                          <h4 className="mt-1 text-sm font-black text-slate-900">Saved assessment trend</h4>
+                          <p className="mt-1 text-xs font-semibold text-slate-500">
+                            Built from actual saved assessment sessions for {selectedPlayer.name}.
+                          </p>
+                        </div>
+                        <div className="grid grid-cols-3 gap-2 text-center">
+                          <div className="rounded-xl border border-slate-200 bg-white px-3 py-2">
+                            <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Sessions</p>
+                            <p className="text-lg font-display font-black text-slate-900 leading-none">{assessmentProgressSeries.length}</p>
+                          </div>
+                          <div className="rounded-xl border border-slate-200 bg-white px-3 py-2">
+                            <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Latest OVR</p>
+                            <p className="text-lg font-display font-black text-slate-900 leading-none">
+                              {assessmentProgressSeries[assessmentProgressSeries.length - 1].ovr}
+                            </p>
+                          </div>
+                          <div className="rounded-xl border border-slate-200 bg-white px-3 py-2">
+                            <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Change</p>
+                            <p className={`text-lg font-display font-black leading-none ${
+                              progressDelta === null
+                                ? 'text-slate-400'
+                                : progressDelta >= 0 ? 'text-emerald-600' : 'text-rose-600'
+                            }`}>
+                              {progressDelta === null ? '-' : progressDelta >= 0 ? `+${progressDelta}` : progressDelta}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="mt-4 grid grid-cols-1 xl:grid-cols-2 gap-4">
+                        <div className="rounded-2xl border border-white bg-white p-4">
+                          <div className="flex items-center justify-between gap-3">
+                            <p className="text-[10px] font-black uppercase tracking-wider text-slate-500">OVR timeline</p>
+                            <span className="text-[9px] font-black uppercase tracking-widest text-indigo-700 bg-indigo-50 border border-indigo-100 rounded-full px-2 py-1">
+                              All roles
+                            </span>
+                          </div>
+                          <div className="mt-3 h-[220px] w-full">
+                            <ResponsiveContainer width="100%" height="100%">
+                              <LineChart data={assessmentProgressSeries} margin={{ top: 10, right: 12, left: -25, bottom: 0 }}>
+                                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
+                                <XAxis dataKey="label" tick={{ fill: '#64748b', fontSize: 10, fontWeight: 700 }} axisLine={false} tickLine={false} />
+                                <YAxis domain={[10, 99]} tick={{ fill: '#64748b', fontSize: 10, fontWeight: 700 }} axisLine={false} tickLine={false} allowDecimals={false} />
+                                <Tooltip content={<AssessmentProgressTooltip />} />
+                                <Line
+                                  name="OVR"
+                                  type="monotone"
+                                  dataKey="ovr"
+                                  stroke="#4f46e5"
+                                  strokeWidth={3}
+                                  dot={{ r: 4, strokeWidth: 2, fill: '#ffffff', stroke: '#4f46e5' }}
+                                  activeDot={{ r: 5, strokeWidth: 0 }}
+                                />
+                              </LineChart>
+                            </ResponsiveContainer>
+                          </div>
+                        </div>
+
+                        <div className="rounded-2xl border border-white bg-white p-4">
+                          <div className="flex items-center justify-between gap-3">
+                            <p className="text-[10px] font-black uppercase tracking-wider text-slate-500">Role attribute trend</p>
+                            <span className="text-[9px] font-black uppercase tracking-widest text-emerald-700 bg-emerald-50 border border-emerald-100 rounded-full px-2 py-1">
+                              {latestProgressRole ? ROLE_LABELS[latestProgressRole] : 'No role'}
+                            </span>
+                          </div>
+                          {roleAttributeTrendData.length < 2 ? (
+                            <div className="mt-3 flex min-h-[220px] items-center justify-center rounded-xl border border-dashed border-slate-200 bg-slate-50 p-4 text-center">
+                              <p className="max-w-xs text-xs font-semibold text-slate-500">
+                                Save at least two assessments with the same latest role to compare role-weighted attributes over time.
+                              </p>
+                            </div>
+                          ) : (
+                            <div className="mt-3 h-[220px] w-full">
+                              <ResponsiveContainer width="100%" height="100%">
+                                <LineChart data={roleAttributeTrendData} margin={{ top: 10, right: 12, left: -25, bottom: 0 }}>
+                                  <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
+                                  <XAxis dataKey="label" tick={{ fill: '#64748b', fontSize: 10, fontWeight: 700 }} axisLine={false} tickLine={false} />
+                                  <YAxis domain={[10, 99]} tick={{ fill: '#64748b', fontSize: 10, fontWeight: 700 }} axisLine={false} tickLine={false} allowDecimals={false} />
+                                  <Tooltip content={<AssessmentProgressTooltip />} />
+                                  {weightedProgressAttributes.map((attributeId, index) => (
+                                    <Line
+                                      key={attributeId}
+                                      name={ATTRIBUTE_LABELS[attributeId]}
+                                      type="monotone"
+                                      dataKey={attributeId}
+                                      stroke={ATTRIBUTE_LINE_COLORS[index % ATTRIBUTE_LINE_COLORS.length]}
+                                      strokeWidth={2.5}
+                                      dot={{ r: 3, strokeWidth: 1.5, fill: '#ffffff', stroke: ATTRIBUTE_LINE_COLORS[index % ATTRIBUTE_LINE_COLORS.length] }}
+                                      activeDot={{ r: 5, strokeWidth: 0 }}
+                                    />
+                                  ))}
+                                </LineChart>
+                              </ResponsiveContainer>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {selectedPlayer && assessmentProgressSeries.length > 0 && (
+                    <div className="rounded-2xl border border-slate-200 bg-white p-4">
+                      <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                        <div>
+                          <p className="text-[11px] font-black uppercase tracking-wider text-slate-500 flex items-center gap-2">
+                            <ArrowLeftRight size={14} className="text-indigo-600" /> FPRDS reports
+                          </p>
+                          <h4 className="mt-1 text-sm font-black text-slate-900">Player and session comparisons</h4>
+                          <p className="mt-1 text-xs font-semibold text-slate-500">
+                            Compare latest player assessments or inspect how one saved session changed from another.
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="mt-4 grid grid-cols-1 xl:grid-cols-2 gap-4">
+                        <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
+                          <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+                            <div>
+                              <p className="text-[10px] font-black uppercase tracking-wider text-slate-500">Player-to-player report</p>
+                              <p className="mt-1 text-xs font-semibold text-slate-500">Latest assessment vs latest assessment.</p>
+                            </div>
+                            <label className="min-w-[220px] space-y-1">
+                              <span className="block text-[10px] font-black uppercase tracking-wider text-slate-500">Compare with</span>
+                              <select
+                                value={comparisonPlayerId}
+                                onChange={(event) => setComparisonPlayerId(event.target.value)}
+                                disabled={playerComparisonOptions.length === 0}
+                                aria-label="Select player for FPRDS comparison report"
+                                className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 outline-none focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100 disabled:bg-slate-100 disabled:text-slate-400"
+                              >
+                                {playerComparisonOptions.length === 0 ? (
+                                  <option value="">No assessed players</option>
+                                ) : (
+                                  playerComparisonOptions.map((player) => (
+                                    <option key={player.id} value={player.id}>
+                                      {player.name}
+                                    </option>
+                                  ))
+                                )}
+                              </select>
+                            </label>
+                          </div>
+
+                          {!playerAssessmentReport || !comparisonPlayer ? (
+                            <div className="mt-4 rounded-xl border border-dashed border-slate-200 bg-white p-4 text-xs font-semibold text-slate-500">
+                              Add assessments for another player to generate a side-by-side FPRDS report.
+                            </div>
+                          ) : (
+                            <div className="mt-4 space-y-4">
+                              <div className="grid grid-cols-3 gap-2 text-center">
+                                <div className="rounded-xl border border-slate-200 bg-white px-3 py-2">
+                                  <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">{selectedPlayer.name}</p>
+                                  <p className="text-lg font-display font-black text-slate-900 leading-none">{playerAssessmentReport.primarySession.ovr}</p>
+                                </div>
+                                <div className="rounded-xl border border-slate-200 bg-white px-3 py-2">
+                                  <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">OVR Gap</p>
+                                  <p className={`text-lg font-display font-black leading-none ${playerAssessmentReport.ovrDelta >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+                                    {playerAssessmentReport.ovrDelta >= 0 ? `+${playerAssessmentReport.ovrDelta}` : playerAssessmentReport.ovrDelta}
+                                  </p>
+                                </div>
+                                <div className="rounded-xl border border-slate-200 bg-white px-3 py-2">
+                                  <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">{comparisonPlayer.name}</p>
+                                  <p className="text-lg font-display font-black text-slate-900 leading-none">{playerAssessmentReport.comparisonSession.ovr}</p>
+                                </div>
+                              </div>
+
+                              <div className="overflow-x-auto">
+                                <table className="w-full min-w-[420px] text-left text-xs">
+                                  <thead>
+                                    <tr className="text-[9px] font-black uppercase tracking-widest text-slate-400">
+                                      <th className="px-2 py-2">Attribute</th>
+                                      <th className="px-2 py-2 text-right">{selectedPlayer.name}</th>
+                                      <th className="px-2 py-2 text-right">{comparisonPlayer.name}</th>
+                                      <th className="px-2 py-2 text-right">Gap</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody className="divide-y divide-slate-200">
+                                    {playerAssessmentReport.rows.map((row) => (
+                                      <tr key={`player-report-${row.attributeId}`}>
+                                        <td className="px-2 py-2 font-bold text-slate-700">{ATTRIBUTE_LABELS[row.attributeId]}</td>
+                                        <td className="px-2 py-2 text-right font-black text-slate-900">{row.primaryScore}</td>
+                                        <td className="px-2 py-2 text-right font-black text-slate-900">{row.comparisonScore}</td>
+                                        <td className={`px-2 py-2 text-right font-black ${row.delta >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+                                          {row.delta >= 0 ? `+${row.delta}` : row.delta}
+                                        </td>
+                                      </tr>
+                                    ))}
+                                  </tbody>
+                                </table>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
+                          <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+                            <div>
+                              <p className="text-[10px] font-black uppercase tracking-wider text-slate-500">Session-to-session report</p>
+                              <p className="mt-1 text-xs font-semibold text-slate-500">Target session compared against a baseline.</p>
+                            </div>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                              <label className="space-y-1">
+                                <span className="block text-[10px] font-black uppercase tracking-wider text-slate-500">Baseline</span>
+                                <select
+                                  value={baselineSessionId}
+                                  onChange={(event) => setBaselineSessionId(event.target.value)}
+                                  aria-label="Select baseline assessment session"
+                                  className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 outline-none focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100"
+                                >
+                                  <option value="">Select session</option>
+                                  {assessmentProgressSeries.map((point) => (
+                                    <option key={`baseline-${point.id}`} value={point.id}>
+                                      {point.assessmentDate} · {ROLE_LABELS[point.role]}
+                                    </option>
+                                  ))}
+                                </select>
+                              </label>
+                              <label className="space-y-1">
+                                <span className="block text-[10px] font-black uppercase tracking-wider text-slate-500">Target</span>
+                                <select
+                                  value={targetSessionId}
+                                  onChange={(event) => setTargetSessionId(event.target.value)}
+                                  aria-label="Select target assessment session"
+                                  className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 outline-none focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100"
+                                >
+                                  <option value="">Select session</option>
+                                  {assessmentProgressSeries.map((point) => (
+                                    <option key={`target-${point.id}`} value={point.id}>
+                                      {point.assessmentDate} · {ROLE_LABELS[point.role]}
+                                    </option>
+                                  ))}
+                                </select>
+                              </label>
+                            </div>
+                          </div>
+
+                          {!sessionAssessmentReport ? (
+                            <div className="mt-4 rounded-xl border border-dashed border-slate-200 bg-white p-4 text-xs font-semibold text-slate-500">
+                              Select two different saved sessions to generate a session comparison report.
+                            </div>
+                          ) : (
+                            <div className="mt-4 space-y-4">
+                              <div className="grid grid-cols-3 gap-2 text-center">
+                                <div className="rounded-xl border border-slate-200 bg-white px-3 py-2">
+                                  <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Baseline</p>
+                                  <p className="text-lg font-display font-black text-slate-900 leading-none">{sessionAssessmentReport.baselineSession.ovr}</p>
+                                </div>
+                                <div className="rounded-xl border border-slate-200 bg-white px-3 py-2">
+                                  <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Change</p>
+                                  <p className={`text-lg font-display font-black leading-none ${sessionAssessmentReport.ovrDelta >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+                                    {sessionAssessmentReport.ovrDelta >= 0 ? `+${sessionAssessmentReport.ovrDelta}` : sessionAssessmentReport.ovrDelta}
+                                  </p>
+                                </div>
+                                <div className="rounded-xl border border-slate-200 bg-white px-3 py-2">
+                                  <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Target</p>
+                                  <p className="text-lg font-display font-black text-slate-900 leading-none">{sessionAssessmentReport.targetSession.ovr}</p>
+                                </div>
+                              </div>
+
+                              <div className="overflow-x-auto">
+                                <table className="w-full min-w-[420px] text-left text-xs">
+                                  <thead>
+                                    <tr className="text-[9px] font-black uppercase tracking-widest text-slate-400">
+                                      <th className="px-2 py-2">Attribute</th>
+                                      <th className="px-2 py-2 text-right">Baseline</th>
+                                      <th className="px-2 py-2 text-right">Target</th>
+                                      <th className="px-2 py-2 text-right">Change</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody className="divide-y divide-slate-200">
+                                    {sessionAssessmentReport.rows.map((row) => (
+                                      <tr key={`session-report-${row.attributeId}`}>
+                                        <td className="px-2 py-2 font-bold text-slate-700">{ATTRIBUTE_LABELS[row.attributeId]}</td>
+                                        <td className="px-2 py-2 text-right font-black text-slate-900">{row.comparisonScore}</td>
+                                        <td className="px-2 py-2 text-right font-black text-slate-900">{row.primaryScore}</td>
+                                        <td className={`px-2 py-2 text-right font-black ${row.delta >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+                                          {row.delta >= 0 ? `+${row.delta}` : row.delta}
+                                        </td>
+                                      </tr>
+                                    ))}
+                                  </tbody>
+                                </table>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {selectedPlayer && playerAssessments.map((s) => {
+                    const sessionPlayerName = playerNameById.get(s.playerId) ?? 'Unknown player';
+                    const noteValue = noteDrafts[s.id] ?? s.coachNotes ?? '';
+                    const savedNoteValue = s.coachNotes ?? '';
+                    const noteChanged = noteValue.trim() !== savedNoteValue.trim();
+
+                    return (
                     <div key={s.id} className="rounded-2xl border border-slate-200 bg-white p-4">
                       <div className="flex items-start justify-between gap-3">
                         <div>
@@ -1247,6 +1844,39 @@ export default function AssessmentsView({
                         })}
                       </div>
 
+                      <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
+                        <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                          <label htmlFor={`assessment-note-${s.id}`} className="text-[11px] font-black uppercase tracking-wider text-slate-500 flex items-center gap-2">
+                            <NotebookPen size={14} className="text-indigo-600" /> Coach notes
+                          </label>
+                          <button
+                            type="button"
+                            onClick={() => handleSaveSessionNote(s.id)}
+                            disabled={!noteChanged}
+                            aria-label={`Save coach notes for ${sessionPlayerName} assessment on ${s.assessmentDate}`}
+                            className={`inline-flex items-center justify-center gap-2 rounded-xl border px-3 py-2 text-[10px] font-black uppercase tracking-wider transition-colors ${
+                              noteChanged
+                                ? 'border-indigo-200 bg-indigo-600 text-white hover:bg-indigo-700'
+                                : 'border-slate-200 bg-white text-slate-300 cursor-not-allowed'
+                            }`}
+                          >
+                            <Save size={12} /> Save note
+                          </button>
+                        </div>
+                        <textarea
+                          id={`assessment-note-${s.id}`}
+                          value={noteValue}
+                          onChange={(event) => setNoteDrafts(current => ({ ...current, [s.id]: event.target.value }))}
+                          placeholder="Add coaching observations, context, follow-up reminders, or player feedback from this assessment."
+                          aria-label={`Coach notes for ${sessionPlayerName} assessment on ${s.assessmentDate}`}
+                          rows={3}
+                          className="mt-3 w-full resize-y rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 outline-none focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100"
+                        />
+                        <p className="mt-2 text-[11px] font-medium text-slate-400">
+                          Notes are stored with this assessment and included in workspace backups.
+                        </p>
+                      </div>
+
                       {s.developmentPlan && (
                         <div className="mt-4 rounded-2xl border border-indigo-200 bg-indigo-50/60 p-4">
                           <p className="text-[11px] font-black uppercase tracking-wider text-indigo-700 flex items-center gap-2">
@@ -1273,9 +1903,9 @@ export default function AssessmentsView({
                         </div>
                       )}
                     </div>
-                  ))}
+                    );
+                  })}
                 </div>
-              )}
             </div>
           )}
         </div>
