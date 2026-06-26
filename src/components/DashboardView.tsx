@@ -93,7 +93,7 @@ interface DashboardViewProps {
   onNavigate: (target: {
     primary: 'home' | 'squad' | 'tactics' | 'development' | 'league_updates';
     homeTab?: 'overview' | 'game_week';
-    developmentTab?: 'assessments' | 'training';
+    developmentTab?: 'assessments' | 'training' | 'assessment_guide';
     leagueUpdatesTab?: 'league' | 'updates' | 'bulletins';
   }) => void;
   onSelectPlayer: (player: Player) => void;
@@ -195,6 +195,7 @@ export default function DashboardView({
     if (files && files[0]) {
       processFile(files[0]);
     }
+    e.target.value = '';
   };
 
   const handleDragOver = (e: React.DragEvent) => {
@@ -534,9 +535,8 @@ export default function DashboardView({
                       ? 'border-emerald-400 bg-emerald-500/5' 
                       : 'border-slate-800 hover:border-slate-700 bg-slate-950'
                   }`}
-                  onClick={() => document.getElementById('logo-file-picker')?.click()}
                 >
-                  <label htmlFor="logo-file-picker" className="cursor-pointer flex flex-col items-center gap-2">
+                  <label htmlFor="logo-file-picker" className="flex h-full w-full cursor-pointer flex-col items-center justify-center gap-2">
                     <Upload size={20} className={dragOver ? 'text-emerald-400 animate-bounce' : 'text-slate-500'} />
                     <div className="space-y-0.5">
                       <span className="text-[10px] font-black text-slate-300 block">
