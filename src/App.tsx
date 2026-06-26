@@ -55,6 +55,7 @@ import {
   type IntegritySection,
   type WorkspaceIntegrityReport
 } from './integrity/workspaceIntegrity';
+import { findUserStanding } from './standings';
 
 import { 
   Shield, 
@@ -385,12 +386,39 @@ export default function App() {
     setStandings(next.standings);
   };
 
+  const renameUserStanding = (rows: Standing[], previousName: string, nextName: string): Standing[] => {
+    const normalizedPrevious = previousName.trim().toLowerCase();
+    const normalizedNext = nextName.trim().toLowerCase();
+    if (!normalizedNext || normalizedPrevious === normalizedNext) return rows;
+
+    let renamed = false;
+    return rows.map(row => {
+      const isCurrentUserRow = row.isUserTeam || row.teamName.trim().toLowerCase() === normalizedPrevious;
+      if (!isCurrentUserRow || renamed) return row;
+      renamed = true;
+      return { ...row, teamName: nextName, isUserTeam: true };
+    });
+  };
+
   const handleUpdateStanding = (updatedStanding: Standing) => {
     setStandings(prev => prev.map(s => s.teamName === updatedStanding.teamName ? updatedStanding : s));
   };
 
   const handleUpdateTeamInfo = (updatedInfo: TeamInfo) => {
-    setTeamInfo(updatedInfo);
+    setTeamInfo(current => {
+      if (current && current.name.trim() !== updatedInfo.name.trim()) {
+        setStandings(rows => renameUserStanding(rows, current.name, updatedInfo.name.trim()));
+      }
+      return updatedInfo;
+    });
+  };
+
+  const handleUpdateAllStandings = (updatedStandings: Standing[]) => {
+    const userStanding = teamInfo ? findUserStanding(updatedStandings, teamInfo.name) : updatedStandings.find(row => row.isUserTeam);
+    if (teamInfo && userStanding && userStanding.teamName.trim() !== teamInfo.name.trim()) {
+      setTeamInfo(current => current ? { ...current, name: userStanding.teamName.trim() } : current);
+    }
+    setStandings(updatedStandings);
   };
 
   const handleResetStandings = () => {
@@ -1038,7 +1066,7 @@ export default function App() {
                   teamName={teamInfo?.name || 'Apex Rangers'}
                   teamInfo={teamInfo}
                   onUpdateTeamInfo={handleUpdateTeamInfo}
-                  onUpdateAllStandings={setStandings}
+                  onUpdateAllStandings={handleUpdateAllStandings}
                   players={players}
                   onUpdatePlayer={handleUpdatePlayer}
                   announcements={announcements}
