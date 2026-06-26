@@ -4,6 +4,18 @@ import { motion } from 'motion/react';
 import type { StaffMember } from '../types';
 import { STAFF_POSITIONS } from '../types';
 import { useDialogAccessibility } from '../hooks/useDialogAccessibility';
+import { Button } from './ui/button';
+import { Input } from './ui/input';
+import { Label } from './ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from './ui/select';
+import { Textarea } from './ui/textarea';
+import { cn } from '../lib/utils';
 
 interface StaffProfileModalProps {
   staff: StaffMember;
@@ -11,6 +23,9 @@ interface StaffProfileModalProps {
   onUpdate: (staff: StaffMember) => void;
   onRemove: (staffId: string) => void;
 }
+
+const staffInputClass = 'mt-1 rounded-md border-slate-300 text-sm';
+const staffInputErrorClass = 'border-rose-300 focus-visible:ring-rose-500/25';
 
 export default function StaffProfileModal({ staff, onClose, onUpdate, onRemove }: StaffProfileModalProps) {
   const dialogRef = useRef<HTMLDivElement | null>(null);
@@ -69,14 +84,16 @@ export default function StaffProfileModal({ staff, onClose, onUpdate, onRemove }
         exit={{ opacity: 0, y: 16 }}
       >
         <header className="bg-[#07111f] px-5 py-5 text-white">
-          <button
+          <Button
             type="button"
             onClick={onClose}
             aria-label="Close staff profile"
-            className="absolute right-4 top-4 rounded-md p-2 text-slate-300 hover:bg-white/10 hover:text-white"
+            variant="ghost"
+            size="icon"
+            className="absolute right-4 top-4 text-slate-300 hover:bg-white/10 hover:text-white"
           >
             <X size={18} />
-          </button>
+          </Button>
           <div className="flex items-center gap-4 pr-10">
             <img src={photoUrl} alt={name} className="h-20 w-20 rounded-lg border border-white/15 object-cover" />
             <div className="min-w-0">
@@ -90,9 +107,11 @@ export default function StaffProfileModal({ staff, onClose, onUpdate, onRemove }
         <div className="space-y-5 p-5">
           {isEditing ? (
             <div className="grid gap-4 sm:grid-cols-2">
-              <label className="text-xs font-bold text-slate-700">
-                Full name
-                <input
+              <div>
+                <Label htmlFor="edit-staff-name" className="text-xs normal-case tracking-normal text-slate-700">
+                  Full name
+                </Label>
+                <Input
                   id="edit-staff-name"
                   value={name}
                   onChange={event => {
@@ -100,44 +119,54 @@ export default function StaffProfileModal({ staff, onClose, onUpdate, onRemove }
                     setNameError('');
                   }}
                   aria-invalid={Boolean(nameError)}
-                  className="mt-1 w-full rounded-md border border-slate-300 p-2.5 text-sm"
+                  className={cn(staffInputClass, nameError && staffInputErrorClass)}
                 />
                 {nameError && <span className="mt-1 block text-xs text-rose-700">{nameError}</span>}
-              </label>
-              <label className="text-xs font-bold text-slate-700">
-                Role
-                <select value={role} onChange={event => setRole(event.target.value)} className="mt-1 w-full rounded-md border border-slate-300 bg-white p-2.5 text-sm">
-                  {STAFF_POSITIONS.map(option => <option key={option} value={option}>{option}</option>)}
-                  {!STAFF_POSITIONS.includes(role) && <option value={role}>{role}</option>}
-                </select>
-              </label>
-              <label className="text-xs font-bold text-slate-700">
-                Email
-                <input type="email" value={email} onChange={event => setEmail(event.target.value)} className="mt-1 w-full rounded-md border border-slate-300 p-2.5 text-sm" />
-              </label>
-              <label className="text-xs font-bold text-slate-700">
-                Phone
-                <input value={phone} onChange={event => setPhone(event.target.value)} className="mt-1 w-full rounded-md border border-slate-300 p-2.5 text-sm" />
-              </label>
-              <label className="text-xs font-bold text-slate-700">
-                With club since
-                <input value={since} onChange={event => setSince(event.target.value)} className="mt-1 w-full rounded-md border border-slate-300 p-2.5 text-sm" />
-              </label>
-              <label className="text-xs font-bold text-slate-700">
-                Status
-                <select value={status} onChange={event => setStatus(event.target.value as StaffMember['status'])} className="mt-1 w-full rounded-md border border-slate-300 bg-white p-2.5 text-sm">
-                  <option value="Active">Active</option>
-                  <option value="Inactive">Inactive</option>
-                </select>
-              </label>
-              <label className="text-xs font-bold text-slate-700 sm:col-span-2">
-                Photo URL
-                <input value={photoUrl} onChange={event => setPhotoUrl(event.target.value)} className="mt-1 w-full rounded-md border border-slate-300 p-2.5 text-sm" />
-              </label>
-              <label className="text-xs font-bold text-slate-700 sm:col-span-2">
-                Biography
-                <textarea value={bio} onChange={event => setBio(event.target.value)} rows={5} className="mt-1 w-full rounded-md border border-slate-300 p-2.5 text-sm" />
-              </label>
+              </div>
+              <div>
+                <Label className="text-xs normal-case tracking-normal text-slate-700">Role</Label>
+                <Select value={role} onValueChange={setRole}>
+                  <SelectTrigger className={staffInputClass}>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {STAFF_POSITIONS.map(option => <SelectItem key={option} value={option}>{option}</SelectItem>)}
+                    {!STAFF_POSITIONS.includes(role) && <SelectItem value={role}>{role}</SelectItem>}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label className="text-xs normal-case tracking-normal text-slate-700">Email</Label>
+                <Input type="email" value={email} onChange={event => setEmail(event.target.value)} className={staffInputClass} />
+              </div>
+              <div>
+                <Label className="text-xs normal-case tracking-normal text-slate-700">Phone</Label>
+                <Input value={phone} onChange={event => setPhone(event.target.value)} className={staffInputClass} />
+              </div>
+              <div>
+                <Label className="text-xs normal-case tracking-normal text-slate-700">With club since</Label>
+                <Input value={since} onChange={event => setSince(event.target.value)} className={staffInputClass} />
+              </div>
+              <div>
+                <Label className="text-xs normal-case tracking-normal text-slate-700">Status</Label>
+                <Select value={status} onValueChange={value => setStatus(value as StaffMember['status'])}>
+                  <SelectTrigger className={staffInputClass}>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Active">Active</SelectItem>
+                    <SelectItem value="Inactive">Inactive</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="sm:col-span-2">
+                <Label className="text-xs normal-case tracking-normal text-slate-700">Photo URL</Label>
+                <Input value={photoUrl} onChange={event => setPhotoUrl(event.target.value)} className={staffInputClass} />
+              </div>
+              <div className="sm:col-span-2">
+                <Label className="text-xs normal-case tracking-normal text-slate-700">Biography</Label>
+                <Textarea value={bio} onChange={event => setBio(event.target.value)} rows={5} className={cn('mt-1 min-h-32 rounded-md border-slate-300 text-sm')} />
+              </div>
             </div>
           ) : (
             <>
@@ -153,11 +182,17 @@ export default function StaffProfileModal({ staff, onClose, onUpdate, onRemove }
 
           <div className="flex flex-wrap justify-end gap-2 border-t border-slate-200 pt-4">
             {isEditing ? (
-              <button type="button" onClick={handleSave} className="inline-flex items-center gap-2 rounded-md bg-slate-950 px-4 py-2 text-xs font-bold text-white"><Save size={14} /> Save staff</button>
+              <Button type="button" onClick={handleSave} className="rounded-md">
+                <Save size={14} /> Save staff
+              </Button>
             ) : (
-              <button type="button" onClick={() => setIsEditing(true)} className="inline-flex items-center gap-2 rounded-md border border-slate-300 px-4 py-2 text-xs font-bold text-slate-700"><Edit2 size={14} /> Edit staff</button>
+              <Button type="button" onClick={() => setIsEditing(true)} variant="outline" className="rounded-md border-slate-300">
+                <Edit2 size={14} /> Edit staff
+              </Button>
             )}
-            <button type="button" onClick={() => setShowRemoveConfirm(true)} className="inline-flex items-center gap-2 rounded-md border border-rose-200 bg-rose-50 px-4 py-2 text-xs font-bold text-rose-700"><Trash2 size={14} /> Remove staff</button>
+            <Button type="button" onClick={() => setShowRemoveConfirm(true)} variant="outline" className="rounded-md border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100 hover:text-rose-800">
+              <Trash2 size={14} /> Remove staff
+            </Button>
           </div>
 
           {showRemoveConfirm && (
@@ -165,8 +200,12 @@ export default function StaffProfileModal({ staff, onClose, onUpdate, onRemove }
               <h3 className="text-sm font-black text-rose-950">Remove {staff.name}?</h3>
               <p className="mt-1 text-xs text-rose-800">This permanently removes this staff profile from the browser workspace.</p>
               <div className="mt-3 flex gap-2">
-                <button type="button" onClick={() => onRemove(staff.id)} className="rounded-md bg-rose-700 px-3 py-2 text-xs font-bold text-white">Confirm removal</button>
-                <button type="button" onClick={() => setShowRemoveConfirm(false)} className="rounded-md border border-rose-200 bg-white px-3 py-2 text-xs font-bold text-rose-700">Cancel</button>
+                <Button type="button" onClick={() => onRemove(staff.id)} variant="destructive" size="sm" className="rounded-md bg-rose-700">
+                  Confirm removal
+                </Button>
+                <Button type="button" onClick={() => setShowRemoveConfirm(false)} variant="outline" size="sm" className="rounded-md border-rose-200 bg-white text-rose-700 hover:bg-rose-50 hover:text-rose-800">
+                  Cancel
+                </Button>
               </div>
             </div>
           )}

@@ -1,7 +1,20 @@
 import React, { useState } from 'react';
 import { Announcement } from '../types';
-import { Megaphone, MessageSquare, Plus, Bell, Info, ShieldAlert, BookOpen, Trash2 } from 'lucide-react';
-import { motion, AnimatePresence } from 'motion/react';
+import { Megaphone, Plus, Bell, Info, Trash2 } from 'lucide-react';
+import { motion } from 'motion/react';
+import { Badge } from './ui/badge';
+import { Button } from './ui/button';
+import { Input } from './ui/input';
+import { Label } from './ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from './ui/select';
+import { Textarea } from './ui/textarea';
+import { cn } from '../lib/utils';
 
 interface AnnouncementsViewProps {
   announcements: Announcement[];
@@ -12,10 +25,24 @@ interface AnnouncementsViewProps {
 type AnnouncementCategory = Announcement['category'];
 
 const ANNOUNCEMENT_CATEGORIES: readonly AnnouncementCategory[] = ['Urgent', 'Matchday', 'Training', 'Social'];
+const ANNOUNCEMENT_CATEGORY_LABELS: Record<AnnouncementCategory, string> = {
+  Urgent: 'Urgent action required',
+  Matchday: 'Match day details',
+  Training: 'Training session info',
+  Social: 'Social events'
+};
+const ANNOUNCEMENT_BADGE_VARIANTS: Record<AnnouncementCategory, React.ComponentProps<typeof Badge>['variant']> = {
+  Urgent: 'destructive',
+  Matchday: 'info',
+  Training: 'warning',
+  Social: 'success'
+};
 
 const parseAnnouncementCategory = (value: string): AnnouncementCategory => (
   ANNOUNCEMENT_CATEGORIES.includes(value as AnnouncementCategory) ? value as AnnouncementCategory : 'Urgent'
 );
+
+const announcementControlClass = 'rounded-xl text-sm';
 
 export default function AnnouncementsView({ announcements, onAddAnnouncement, onDeleteAnnouncement }: AnnouncementsViewProps) {
   const [isAdding, setIsAdding] = useState(false);
@@ -60,14 +87,15 @@ export default function AnnouncementsView({ announcements, onAddAnnouncement, on
           </div>
         </div>
 
-        <button
+        <Button
           id="toggle-announcement-form-btn"
+          type="button"
           onClick={() => setIsAdding(!isAdding)}
-          className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs px-4 py-2.5 rounded-xl transition-all shadow-sm flex items-center gap-1.5 border border-indigo-650/10"
+          className="rounded-xl border border-indigo-650/10 bg-indigo-600 text-xs font-bold text-white shadow-sm hover:bg-indigo-700"
         >
           {isAdding ? <Plus size={14} className="rotate-45" /> : <Plus size={14} />}
           {isAdding ? 'Cancel Post' : 'Post Announcement'}
-        </button>
+        </Button>
       </div>
 
       {/* Write Announcement Form */}
@@ -86,75 +114,80 @@ export default function AnnouncementsView({ announcements, onAddAnnouncement, on
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="md:col-span-2">
-                <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Headline Notice *</label>
-                <input 
+                <Label htmlFor="ann-title-input" className="mb-1 block">Headline Notice *</Label>
+                <Input
                   id="ann-title-input"
                   type="text" 
                   required 
                   placeholder="e.g. Venue Change: Match vs Vanguard"
                   value={title}
                   onChange={e => setTitle(e.target.value)}
-                  className="w-full border border-slate-200 rounded-xl p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className={announcementControlClass}
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Importance Category *</label>
-                <select
-                  id="ann-category-select"
+                <Label className="mb-1 block">Importance Category *</Label>
+                <Select
                   value={realCategory}
-                  onChange={e => setRealCategory(parseAnnouncementCategory(e.target.value))}
-                  className="w-full border border-slate-200 rounded-xl p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
+                  onValueChange={value => setRealCategory(parseAnnouncementCategory(value))}
                 >
-                  <option value="Urgent">⚠️ Urgent Action Required</option>
-                  <option value="Matchday">⚽ Match Day details</option>
-                  <option value="Training">🏃 Training Session info</option>
-                  <option value="Social">🍻 Social Events</option>
-                </select>
+                  <SelectTrigger id="ann-category-select" className={announcementControlClass}>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {ANNOUNCEMENT_CATEGORIES.map(category => (
+                      <SelectItem key={category} value={category}>
+                        {ANNOUNCEMENT_CATEGORY_LABELS[category]}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
               <div className="md:col-span-3">
-                <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1 font-medium">Author Name / Role *</label>
-                <input 
+                <Label htmlFor="ann-author-input" className="mb-1 block">Author Name / Role *</Label>
+                <Input
                   id="ann-author-input"
                   type="text" 
                   required 
                   value={author}
                   onChange={e => setAuthor(e.target.value)}
-                  className="w-full border border-slate-200 rounded-xl p-2.5 text-sm focus:outline-none"
+                  className={announcementControlClass}
                 />
               </div>
 
               <div className="md:col-span-3">
-                <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Body Content *</label>
-                <textarea 
+                <Label htmlFor="ann-content-input" className="mb-1 block">Body Content *</Label>
+                <Textarea
                   id="ann-content-input"
                   required
                   placeholder="Detailed directions, timing changes, setup arrangements, kits..."
                   value={content}
                   onChange={e => setContent(e.target.value)}
                   rows={4}
-                  className="w-full border border-slate-200 rounded-xl p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className={cn('min-h-28', announcementControlClass)}
                 />
               </div>
             </div>
 
             <div className="flex gap-2 justify-end border-t border-slate-50 pt-3">
-              <button 
+              <Button
                 id="cancel-add-ann-btn"
                 type="button" 
                 onClick={() => setIsAdding(false)}
-                className="px-4 py-2 border border-slate-200 hover:bg-slate-50 rounded-xl text-slate-600 text-sm font-medium transition-all"
+                variant="outline"
+                className="rounded-xl text-sm font-medium text-slate-600"
               >
                 Cancel
-              </button>
-              <button 
+              </Button>
+              <Button
                 id="submit-ann-btn"
                 type="submit" 
-                className="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-semibold transition-all shadow-md"
+                className="rounded-xl bg-indigo-600 px-5 text-sm font-semibold shadow-md hover:bg-indigo-700"
               >
                 Publish Notice
-              </button>
+              </Button>
             </div>
           </form>
         </motion.div>
@@ -195,14 +228,13 @@ export default function AnnouncementsView({ announcements, onAddAnnouncement, on
                 <div className="flex justify-between items-start pl-2 gap-4">
                   <div className="space-y-1">
                     <div className="flex flex-wrap items-center gap-2">
-                      <span id={`ann-${ann.id}-cat-badge`} className={`text-[10px] uppercase font-bold tracking-widest px-2.5 py-0.5 rounded-full ${
-                        isUrgent ? 'bg-rose-100 text-rose-800' :
-                        isMatchday ? 'bg-blue-100 text-blue-800' :
-                        isTraining ? 'bg-amber-100 text-amber-800' :
-                        'bg-emerald-100 text-emerald-800'
-                      }`}>
+                      <Badge
+                        id={`ann-${ann.id}-cat-badge`}
+                        variant={ANNOUNCEMENT_BADGE_VARIANTS[ann.category]}
+                        className="rounded-full px-2.5"
+                      >
                         {ann.category}
-                      </span>
+                      </Badge>
                       <span id={`ann-${ann.id}-date`} className="text-slate-400 text-xs">
                         Posted: {ann.date}
                       </span>
@@ -213,14 +245,18 @@ export default function AnnouncementsView({ announcements, onAddAnnouncement, on
                     </h4>
                   </div>
 
-                  <button
+                  <Button
                     id={`delete-ann-btn-${ann.id}`}
+                    type="button"
                     onClick={() => onDeleteAnnouncement(ann.id)}
-                    className="p-1.5 text-slate-300 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-colors"
+                    variant="ghost"
+                    size="icon"
+                    className="size-8 text-slate-300 hover:bg-rose-50 hover:text-rose-500"
                     title="Remove Bulletin"
+                    aria-label={`Remove ${ann.title}`}
                   >
                     <Trash2 size={14} />
-                  </button>
+                  </Button>
                 </div>
 
                 <div className="mt-3.5 pl-2">
@@ -250,3 +286,4 @@ export default function AnnouncementsView({ announcements, onAddAnnouncement, on
     </div>
   );
 }
+

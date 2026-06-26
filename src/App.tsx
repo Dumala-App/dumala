@@ -7,6 +7,20 @@ import PwaStatusBanners from './components/PwaStatusBanners';
 import WorkspaceIntegrityBanner from './components/WorkspaceIntegrityBanner';
 import StartupRecoveryScreen from './components/StartupRecoveryScreen';
 import { ViewErrorBoundary } from './components/ErrorBoundary';
+import ShellNavItem from './components/ShellNavItem';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger
+} from './components/ui/alert-dialog';
+import { Badge } from './components/ui/badge';
+import { Button } from './components/ui/button';
 import { addAssessmentToWorkspace, deleteAssessmentFromWorkspace } from './fprds/assessmentService';
 import {
   announcementsSchema,
@@ -46,7 +60,6 @@ import {
   type WorkspaceBackupV4
 } from './persistence/backup';
 import { deleteGameAndReconcile, recordMatchResult } from './matches/results';
-import { useDialogAccessibility } from './hooks/useDialogAccessibility';
 import {
   checkWorkspaceIntegrity,
   getActionableIntegrityFindings,
@@ -91,7 +104,6 @@ export default function App() {
     gameId?: string | null;
     standingTeamName?: string | null;
   };
-  const resetDialogRef = useRef<HTMLDivElement | null>(null);
   const [initialWorkspace] = useState(() => {
     const startupIssues = inspectDumalaStorage();
     if (startupIssues.length > 0) {
@@ -566,8 +578,6 @@ export default function App() {
 
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [showFeedback, setShowFeedback] = useState(false);
-  const closeResetDialog = useCallback(() => setShowResetConfirm(false), []);
-  useDialogAccessibility(resetDialogRef, showResetConfirm, closeResetDialog);
 
   const confirmResetApp = () => {
     clearDumalaStorage();
@@ -736,13 +746,14 @@ export default function App() {
           </div>
         </div>
         {teamInfo && (
-          <button
+          <Button
             type="button"
             onClick={handleExportBackup}
-            className="inline-flex min-h-10 shrink-0 items-center justify-center gap-2 rounded-md bg-slate-950 px-3 py-2 text-xs font-bold text-white hover:bg-slate-800"
+            size="sm"
+            className="min-h-10 shrink-0"
           >
             <Download size={15} aria-hidden="true" /> Export backup
-          </button>
+          </Button>
         )}
       </div>
     </div>
@@ -757,13 +768,15 @@ export default function App() {
             {recoveryWarnings.map(warning => warning.section).join(', ')} contained invalid saved data and was reset safely.
           </p>
         </div>
-        <button
+        <Button
           type="button"
           onClick={() => setRecoveryWarnings([])}
-          className="text-xs font-black uppercase tracking-wider text-amber-800 hover:text-amber-950"
+          variant="ghost"
+          size="sm"
+          className="-mr-2 -mt-1 text-amber-800 hover:bg-amber-100 hover:text-amber-950"
         >
           Dismiss
-        </button>
+        </Button>
       </div>
     </div>
   ) : null;
@@ -845,23 +858,16 @@ export default function App() {
             {/* Desktop Navigation Link Tabs */}
             <nav id="desktop-nav" aria-label="Primary navigation" className="hidden lg:flex items-center gap-1 bg-white/[0.06] border border-white/[0.08] rounded-2xl p-1.5">
               {primaryTabs.map((tab) => {
-                const TabIcon = tab.icon;
-                const isActive = primaryTab === tab.id;
                 return (
-                  <button
+                  <ShellNavItem
                     id={`nav-tab-btn-${tab.id}`}
                     key={tab.id}
-                    onClick={() => handleSelectPrimaryTab(tab.id)}
-                    aria-current={isActive ? 'page' : undefined}
-                    className={`flex items-center gap-2 px-3 py-2 rounded-xl text-[11px] font-bold transition-all border ${
-                      isActive 
-                        ? 'bg-white border-white text-slate-950 shadow-md' 
-                        : 'border-transparent text-slate-300 hover:text-white hover:bg-white/10'
-                    }`}
-                  >
-                    <TabIcon size={14} />
-                    {tab.label}
-                  </button>
+                    label={tab.label}
+                    icon={tab.icon}
+                    isActive={primaryTab === tab.id}
+                    onSelect={() => handleSelectPrimaryTab(tab.id)}
+                    layout="desktop"
+                  />
                 );
               })}
             </nav>
@@ -886,24 +892,16 @@ export default function App() {
         {mobileMenuOpen && (
           <div id="mobile-nav-panel" className="lg:hidden bg-[#07111f] border-t border-white/10 p-3 grid grid-cols-2 gap-2">
             {primaryTabs.map((tab) => {
-              const TabIcon = tab.icon;
-              const isActive = primaryTab === tab.id;
               return (
-                <button
+                <ShellNavItem
                   id={`mobile-nav-btn-${tab.id}`}
                   key={tab.id}
-                  onClick={() => {
-                    handleSelectPrimaryTab(tab.id);
-                  }}
-                  className={`flex items-center gap-3 w-full px-4 py-3 rounded-xl text-xs font-bold transition-all ${
-                    isActive 
-                      ? 'bg-white text-slate-950' 
-                      : 'text-slate-300 hover:text-white hover:bg-white/5'
-                  }`}
-                >
-                  <TabIcon size={16} />
-                  {tab.label}
-                </button>
+                  label={tab.label}
+                  icon={tab.icon}
+                  isActive={primaryTab === tab.id}
+                  onSelect={() => handleSelectPrimaryTab(tab.id)}
+                  layout="mobile"
+                />
               );
             })}
           </div>
@@ -925,18 +923,49 @@ export default function App() {
             </p>
           </div>
           <div className="flex w-full flex-wrap gap-2 sm:w-auto sm:shrink-0 sm:justify-end">
-            <span className="text-[10px] bg-emerald-50 text-emerald-700 font-bold px-2.5 py-1 rounded-lg border border-emerald-100">Saved locally</span>
+            <Badge variant="success">Saved locally</Badge>
             <Suspense fallback={null}>
               <CloudAccountGate clubName={teamInfo.name} />
             </Suspense>
             <PwaInstallControl />
-            <button
+            <Button
+              type="button"
               onClick={() => setShowFeedback(true)}
-              className="flex items-center gap-1 rounded-lg border border-indigo-100 bg-indigo-50 px-2.5 py-1 text-[10px] font-bold text-indigo-700 transition-colors hover:border-indigo-200 hover:bg-indigo-100"
+              variant="outline"
+              size="sm"
+              className="h-6 border-indigo-100 bg-indigo-50 px-2.5 text-[10px] text-indigo-700 hover:border-indigo-200 hover:bg-indigo-100 hover:text-indigo-800"
             >
               <MessageSquare size={10} /> Feedback
-            </button>
-            <button onClick={() => setShowResetConfirm(true)} className="text-[10px] bg-slate-50 text-slate-600 font-bold px-2.5 py-1 rounded-lg border border-slate-200 hover:bg-rose-50 hover:text-rose-700 hover:border-rose-100 transition-colors flex items-center gap-1"><RotateCcw size={10} /> Reset</button>
+            </Button>
+            <AlertDialog open={showResetConfirm} onOpenChange={setShowResetConfirm}>
+              <AlertDialogTrigger asChild>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-6 bg-slate-50 px-2.5 text-[10px] text-slate-600 hover:border-rose-100 hover:bg-rose-50 hover:text-rose-700"
+                >
+                  <RotateCcw size={10} /> Reset
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Reset workspace?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This removes the team, roster, payments, schedule, and statistics saved in this browser.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={confirmResetApp}
+                    className="bg-rose-600 text-white hover:bg-rose-700"
+                  >
+                    Reset everything
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </div>
         </div>
 
@@ -947,26 +976,6 @@ export default function App() {
               onClose={() => setShowFeedback(false)}
             />
           </Suspense>
-        )}
-
-        {showResetConfirm && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4">
-            <div
-              ref={resetDialogRef}
-              tabIndex={-1}
-              role="dialog"
-              aria-modal="true"
-              aria-labelledby="reset-workspace-title"
-              className="bg-white border border-slate-200 p-6 rounded-2xl shadow-2xl max-w-sm w-full font-sans"
-            >
-              <h3 id="reset-workspace-title" className="text-lg font-display font-extrabold text-slate-900 mb-2">Reset workspace?</h3>
-              <p className="text-sm text-slate-600 mb-6 font-medium">This removes the team, roster, payments, schedule, and statistics saved in this browser.</p>
-              <div className="flex justify-end gap-3 font-semibold">
-                <button onClick={() => setShowResetConfirm(false)} className="px-4 py-2 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 transition-colors text-xs">Cancel</button>
-                <button onClick={confirmResetApp} className="px-4 py-2 bg-rose-600 text-white rounded-lg hover:bg-rose-700 shadow-md transition-colors text-xs font-bold">Reset everything</button>
-              </div>
-            </div>
-          </div>
         )}
 
         {recoveryBanner}

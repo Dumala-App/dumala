@@ -23,6 +23,18 @@ import {
   mergeFieldErrors,
   parseIntegerInput
 } from '../forms/validation';
+import { Badge } from './ui/badge';
+import { Button } from './ui/button';
+import { Input } from './ui/input';
+import { Label } from './ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from './ui/select';
+import { cn } from '../lib/utils';
 
 interface StandingsViewProps {
   standings: Standing[];
@@ -43,6 +55,21 @@ type StandingEditField = 'teamName' | 'won' | 'drawn' | 'lost' | 'goalsFor' | 'g
 type AddClubField = 'clubName';
 
 const CARD_TYPES: readonly CardType[] = ['Yellow', 'Red', 'Second Yellow', 'Straight Red'];
+const CARD_TYPE_LABELS: Record<CardType, string> = {
+  Yellow: 'Yellow',
+  Red: 'Red',
+  'Second Yellow': 'Second yellow',
+  'Straight Red': 'Straight red'
+};
+const CARD_TYPE_BADGE_VARIANTS: Record<CardType, React.ComponentProps<typeof Badge>['variant']> = {
+  Yellow: 'warning',
+  Red: 'destructive',
+  'Second Yellow': 'warning',
+  'Straight Red': 'destructive'
+};
+const standingsCompactControlClass = 'h-8 rounded-md text-[10px] font-medium';
+const standingsPanelControlClass = 'rounded-xl text-xs font-semibold';
+const standingsPanelInvalidClass = 'border-rose-300 focus-visible:ring-rose-500/25';
 
 const parseCardType = (value: string): CardType => (
   CARD_TYPES.includes(value as CardType) ? value as CardType : 'Yellow'
@@ -428,17 +455,20 @@ export default function StandingsView({
             </p>
           </div>
           <div className="flex flex-wrap gap-2 mt-4">
-            <button 
+            <Button
               id="toggle-add-club-btn"
+              type="button"
               onClick={() => {
                 setShowAddClubPanel(!showAddClubPanel);
                 setShowLogger(false);
               }}
-              className="bg-indigo-50 hover:bg-indigo-100 border border-indigo-100 text-indigo-700 font-bold text-xs py-2 px-3 rounded-xl transition-all flex items-center gap-1.5"
+              variant="outline"
+              size="sm"
+              className="rounded-xl border-indigo-100 bg-indigo-50 text-xs font-bold text-indigo-700 hover:bg-indigo-100 hover:text-indigo-800"
             >
               <Plus size={13} />
               Add Club
-            </button>
+            </Button>
           </div>
         </div>
 
@@ -451,17 +481,18 @@ export default function StandingsView({
               Instantly log a league match score to automatically crunch the standings numbers, update points, and adjust ranks!
             </p>
           </div>
-          <button 
+          <Button
             id="toggle-scoreboard-logger-btn"
+            type="button"
             onClick={() => {
               setShowLogger(!showLogger);
               setShowAddClubPanel(false);
             }}
-            className="mt-4 w-full bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-700 hover:to-emerald-600 text-white font-bold text-xs py-2.5 px-4 rounded-xl shadow-sm transition-all flex items-center justify-center gap-2"
+            className="mt-4 w-full rounded-xl bg-emerald-600 text-xs font-bold text-white shadow-sm hover:bg-emerald-700"
           >
             <Calendar size={13} />
             {showLogger ? "Hide Weekly Updater" : "Open Weekly Scoreboard Updater"}
-          </button>
+          </Button>
         </div>
 
       </div>
@@ -489,13 +520,22 @@ export default function StandingsView({
               <h4 className="font-display font-bold text-xs text-indigo-900 uppercase tracking-wider flex items-center gap-2">
                 <Plus size={14} className="text-indigo-650" /> Add Competitor Club Team
               </h4>
-              <button onClick={() => setShowAddClubPanel(false)} className="text-indigo-400 hover:text-indigo-700">
+              <Button
+                type="button"
+                onClick={() => setShowAddClubPanel(false)}
+                variant="ghost"
+                size="icon"
+                className="size-8 text-indigo-400 hover:bg-indigo-100 hover:text-indigo-700"
+                aria-label="Close add club panel"
+              >
                 <X size={16} />
-              </button>
+              </Button>
             </div>
             <form ref={addClubFormRef} onSubmit={handleAddClub} className="flex flex-col sm:flex-row gap-3" noValidate>
               <div className="flex-1">
-                <input 
+                <Label htmlFor="add-club-name-input" className="sr-only">Club name</Label>
+                <Input
+                  id="add-club-name-input"
                   data-validation-field="clubName"
                   type="text"
                   value={newClubName}
@@ -506,20 +546,16 @@ export default function StandingsView({
                   placeholder="e.g. Metro Knights, City Falcons, Vale United..."
                   aria-invalid={Boolean(addClubErrors.clubName)}
                   aria-describedby={addClubErrors.clubName ? 'add-club-name-error' : undefined}
-                  className={`w-full bg-white border rounded-xl px-4 py-2.5 text-xs font-semibold focus:outline-none focus:ring-1 ${
-                    addClubErrors.clubName
-                      ? 'border-rose-300 focus:ring-rose-500 focus:border-rose-500'
-                      : 'border-slate-250 focus:ring-indigo-500 focus:border-indigo-500'
-                  }`}
+                  className={cn('bg-white px-4', standingsPanelControlClass, addClubErrors.clubName && standingsPanelInvalidClass)}
                 />
                 <FieldError id="add-club-name-error" message={addClubErrors.clubName} />
               </div>
-              <button 
+              <Button
                 type="submit"
-                className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs px-5 py-2.5 rounded-xl flex items-center justify-center gap-1.5 transition-all shadow-sm"
+                className="rounded-xl bg-indigo-600 px-5 text-xs font-bold text-white shadow-sm hover:bg-indigo-700"
               >
                 <CheckCircle size={14} /> Commit Team
-              </button>
+              </Button>
             </form>
             <p className="text-[10px] text-slate-500 mt-2 font-medium">Entering a new club will start them off with 0 played, 0 points. You can modify stats anytime.</p>
           </motion.div>
@@ -537,9 +573,16 @@ export default function StandingsView({
               <h4 className="font-display font-bold text-xs text-emerald-900 uppercase tracking-wider flex items-center gap-2">
                 <Calendar size={14} className="text-emerald-700" /> Weekly Scoreboard Match Logger
               </h4>
-              <button onClick={() => setShowLogger(false)} className="text-emerald-400 hover:text-emerald-700">
+              <Button
+                type="button"
+                onClick={() => setShowLogger(false)}
+                variant="ghost"
+                size="icon"
+                className="size-8 text-emerald-400 hover:bg-emerald-100 hover:text-emerald-700"
+                aria-label="Close scoreboard logger"
+              >
                 <X size={16} />
-              </button>
+              </Button>
             </div>
             
             <form ref={scoreboardFormRef} onSubmit={handleApplyMatchResults} className="space-y-4" noValidate>
@@ -548,35 +591,36 @@ export default function StandingsView({
                 
                 {/* Home Team select */}
                 <div className="lg:col-span-2">
-                  <label className="text-[10px] uppercase font-bold text-slate-400 mb-1 block">Home Team</label>
-                  <select
-                    data-validation-field="homeTeam"
+                  <Label className="mb-1 block text-[10px] text-slate-400">Home Team</Label>
+                  <Select
                     value={logHomeTeam}
-                    onChange={e => {
-                      setLogHomeTeam(e.target.value);
+                    onValueChange={value => {
+                      setLogHomeTeam(value);
                       setScoreboardErrors(previous => ({ ...previous, homeTeam: undefined, awayTeam: undefined }));
                     }}
-                    aria-invalid={Boolean(scoreboardErrors.homeTeam)}
-                    aria-describedby={scoreboardErrors.homeTeam ? 'scoreboard-home-team-error' : undefined}
-                    className={`w-full bg-white border rounded-xl px-3 py-2 text-xs font-semibold focus:ring-1 focus:outline-none text-slate-800 ${
-                      scoreboardErrors.homeTeam
-                        ? 'border-rose-300 focus:ring-rose-500'
-                        : 'border-slate-255 focus:ring-emerald-505'
-                    }`}
                   >
-                    <option value="">-- Choose Home Club --</option>
-                    {standings.map(t => (
-                      <option key={t.teamName} value={t.teamName}>{t.teamName}</option>
-                    ))}
-                  </select>
+                    <SelectTrigger
+                      data-validation-field="homeTeam"
+                      aria-invalid={Boolean(scoreboardErrors.homeTeam)}
+                      aria-describedby={scoreboardErrors.homeTeam ? 'scoreboard-home-team-error' : undefined}
+                      className={cn('bg-white text-slate-800', standingsPanelControlClass, scoreboardErrors.homeTeam && standingsPanelInvalidClass)}
+                    >
+                      <SelectValue placeholder="Choose Home Club" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {standings.map(t => (
+                        <SelectItem key={t.teamName} value={t.teamName}>{t.teamName}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                   <FieldError id="scoreboard-home-team-error" message={scoreboardErrors.homeTeam} />
                 </div>
 
                 {/* Score section */}
                 <div className="flex items-center justify-center gap-2">
                   <div className="text-center">
-                    <label className="text-[9px] uppercase font-bold text-slate-400 mb-1 block">Score</label>
-                    <input 
+                    <Label className="mb-1 block text-[9px] text-slate-400">Score</Label>
+                    <Input
                       data-validation-field="homeScore"
                       type="number"
                       min="0"
@@ -589,16 +633,14 @@ export default function StandingsView({
                       }}
                       aria-invalid={Boolean(scoreboardErrors.homeScore)}
                       aria-describedby={scoreboardErrors.homeScore ? 'scoreboard-home-score-error' : undefined}
-                      className={`w-12 text-center p-2 border rounded-lg text-xs font-black text-slate-800 ${
-                        scoreboardErrors.homeScore ? 'border-rose-300' : 'border-slate-300'
-                      }`}
+                      className={cn('h-9 w-12 rounded-lg p-2 text-center text-xs font-black text-slate-800', scoreboardErrors.homeScore && standingsPanelInvalidClass)}
                     />
                     <FieldError id="scoreboard-home-score-error" message={scoreboardErrors.homeScore} />
                   </div>
                   <span className="text-[10px] font-bold text-slate-400 mt-4">VS</span>
                   <div className="text-center">
-                    <label className="text-[9px] uppercase font-bold text-slate-400 mb-1 block">Score</label>
-                    <input 
+                    <Label className="mb-1 block text-[9px] text-slate-400">Score</Label>
+                    <Input
                       data-validation-field="awayScore"
                       type="number"
                       min="0"
@@ -611,9 +653,7 @@ export default function StandingsView({
                       }}
                       aria-invalid={Boolean(scoreboardErrors.awayScore)}
                       aria-describedby={scoreboardErrors.awayScore ? 'scoreboard-away-score-error' : undefined}
-                      className={`w-12 text-center p-2 border rounded-lg text-xs font-black text-slate-800 ${
-                        scoreboardErrors.awayScore ? 'border-rose-300' : 'border-slate-300'
-                      }`}
+                      className={cn('h-9 w-12 rounded-lg p-2 text-center text-xs font-black text-slate-800', scoreboardErrors.awayScore && standingsPanelInvalidClass)}
                     />
                     <FieldError id="scoreboard-away-score-error" message={scoreboardErrors.awayScore} />
                   </div>
@@ -621,27 +661,28 @@ export default function StandingsView({
 
                 {/* Away Team select */}
                 <div className="lg:col-span-2">
-                  <label className="text-[10px] uppercase font-bold text-slate-400 mb-1 block">Away Team</label>
-                  <select
-                    data-validation-field="awayTeam"
+                  <Label className="mb-1 block text-[10px] text-slate-400">Away Team</Label>
+                  <Select
                     value={logAwayTeam}
-                    onChange={e => {
-                      setLogAwayTeam(e.target.value);
+                    onValueChange={value => {
+                      setLogAwayTeam(value);
                       setScoreboardErrors(previous => ({ ...previous, homeTeam: undefined, awayTeam: undefined }));
                     }}
-                    aria-invalid={Boolean(scoreboardErrors.awayTeam)}
-                    aria-describedby={scoreboardErrors.awayTeam ? 'scoreboard-away-team-error' : undefined}
-                    className={`w-full bg-white border rounded-xl px-3 py-2 text-xs font-semibold focus:ring-1 focus:outline-none text-slate-800 ${
-                      scoreboardErrors.awayTeam
-                        ? 'border-rose-300 focus:ring-rose-500'
-                        : 'border-slate-255 focus:ring-emerald-505'
-                    }`}
                   >
-                    <option value="">-- Choose Away Club --</option>
-                    {standings.map(t => (
-                      <option key={t.teamName} value={t.teamName}>{t.teamName}</option>
-                    ))}
-                  </select>
+                    <SelectTrigger
+                      data-validation-field="awayTeam"
+                      aria-invalid={Boolean(scoreboardErrors.awayTeam)}
+                      aria-describedby={scoreboardErrors.awayTeam ? 'scoreboard-away-team-error' : undefined}
+                      className={cn('bg-white text-slate-800', standingsPanelControlClass, scoreboardErrors.awayTeam && standingsPanelInvalidClass)}
+                    >
+                      <SelectValue placeholder="Choose Away Club" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {standings.map(t => (
+                        <SelectItem key={t.teamName} value={t.teamName}>{t.teamName}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                   <FieldError id="scoreboard-away-team-error" message={scoreboardErrors.awayTeam} />
                 </div>
 
@@ -649,15 +690,15 @@ export default function StandingsView({
 
               <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2">
                 <span className="text-[10px] text-slate-500 font-medium leading-tight">
-                  🎉 Logs 1 Match Game. Updates Wins, Draws, Losses, Goals scored & conceded, and points automatically for both teams.
+                  Logs 1 match game. Updates wins, draws, losses, goals scored and conceded, and points automatically for both teams.
                 </span>
-                <button
+                <Button
                   type="submit"
                   disabled={!logHomeTeam || !logAwayTeam || logHomeTeam === logAwayTeam}
-                  className="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold text-xs px-5 py-2.5 rounded-xl flex items-center justify-center gap-1.5 transition-all shadow-sm shrink-0"
+                  className="w-full rounded-xl bg-emerald-600 px-5 text-xs font-bold text-white shadow-sm hover:bg-emerald-700 sm:w-auto"
                 >
                   <CheckCircle size={14} /> Calculate & Apply Result
-                </button>
+                </Button>
               </div>
             </form>
 
@@ -1386,15 +1427,11 @@ function DisciplinaryRecords({
           <p className="text-[11px] text-slate-500 mt-0.5">Log player offences and award Man of the Match honours</p>
         </div>
         <div className="flex items-center gap-2 text-[10px]">
-          <span className="bg-amber-100 text-amber-800 font-bold px-2 py-0.5 rounded-full border border-amber-200">
-            🟨 {players.reduce((s, p) => s + (p.yellowCards || 0), 0)}
-          </span>
-          <span className="bg-red-100 text-red-800 font-bold px-2 py-0.5 rounded-full border border-red-200">
-            🟥 {players.reduce((s, p) => s + (p.redCards || 0), 0)}
-          </span>
-          <span className="bg-amber-50 text-amber-700 font-bold px-2 py-0.5 rounded-full border border-amber-200">
-            ⭐ {players.reduce((s, p) => s + (p.mvpAwards || 0), 0)}
-          </span>
+          <Badge variant="warning" className="rounded-full">Yellow {players.reduce((s, p) => s + (p.yellowCards || 0), 0)}</Badge>
+          <Badge variant="destructive" className="rounded-full">Red {players.reduce((s, p) => s + (p.redCards || 0), 0)}</Badge>
+          <Badge variant="warning" className="rounded-full border-amber-200 bg-amber-50 text-amber-700">
+            MVP {players.reduce((s, p) => s + (p.mvpAwards || 0), 0)}
+          </Badge>
         </div>
       </div>
 
@@ -1408,11 +1445,11 @@ function DisciplinaryRecords({
               <h3 className="font-display font-black text-slate-800 text-sm flex items-center gap-1.5">
                 <AlertTriangle size={15} className="text-amber-500" /> Disciplinary
               </h3>
-              <p className="text-[10px] text-slate-500">Log player offences — yellow & red cards</p>
+              <p className="text-[10px] text-slate-500">Log player offences - yellow & red cards</p>
             </div>
             <div className="flex items-center gap-1.5 text-[9px]">
-              <span className="bg-amber-100 text-amber-800 font-bold px-1.5 py-0.5 rounded border border-amber-200">🟨 {players.reduce((s, p) => s + (p.yellowCards || 0), 0)}</span>
-              <span className="bg-red-100 text-red-800 font-bold px-1.5 py-0.5 rounded border border-red-200">🟥 {players.reduce((s, p) => s + (p.redCards || 0), 0)}</span>
+              <Badge variant="warning" className="rounded">Yellow {players.reduce((s, p) => s + (p.yellowCards || 0), 0)}</Badge>
+              <Badge variant="destructive" className="rounded">Red {players.reduce((s, p) => s + (p.redCards || 0), 0)}</Badge>
             </div>
           </div>
 
@@ -1423,54 +1460,60 @@ function DisciplinaryRecords({
             </h4>
             <div className="grid grid-cols-2 gap-1.5 mb-2">
               <div>
-                <label className="block text-[8px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Player *</label>
-                <select value={selectedPlayerId} onChange={e => setSelectedPlayerId(e.target.value)} className="w-full border border-slate-200 rounded-md p-1.5 text-[10px] focus:ring-2 focus:ring-indigo-500 focus:outline-none bg-white font-medium">
-                  <option value="">Select...</option>
-                  {activePlayers.map(p => (<option key={p.id} value={p.id}>{p.name}</option>))}
-                </select>
+                <Label className="mb-0.5 block text-[8px] text-slate-400">Player *</Label>
+                <Select value={selectedPlayerId} onValueChange={setSelectedPlayerId}>
+                  <SelectTrigger className={standingsCompactControlClass}>
+                    <SelectValue placeholder="Select..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {activePlayers.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
               </div>
               <div>
-                <label className="block text-[8px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Date *</label>
-                <input type="date" value={offenseDate} onChange={e => setOffenseDate(e.target.value)} className="w-full border border-slate-200 rounded-md p-1.5 text-[10px] focus:ring-2 focus:ring-indigo-500 focus:outline-none bg-white font-medium" />
+                <Label className="mb-0.5 block text-[8px] text-slate-400">Date *</Label>
+                <Input type="date" value={offenseDate} onChange={e => setOffenseDate(e.target.value)} className={standingsCompactControlClass} />
               </div>
               <div>
-                <label className="block text-[8px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Card *</label>
-                <select value={cardType} onChange={e => setCardType(parseCardType(e.target.value))} className="w-full border border-slate-200 rounded-md p-1.5 text-[10px] focus:ring-2 focus:ring-indigo-500 focus:outline-none bg-white font-medium">
-                  <option value="Yellow">🟨 Yellow</option>
-                  <option value="Second Yellow">🟨🟨 2nd Yellow</option>
-                  <option value="Straight Red">🟥 Straight Red</option>
-                  <option value="Red">🟥 Red</option>
-                </select>
+                <Label className="mb-0.5 block text-[8px] text-slate-400">Card *</Label>
+                <Select value={cardType} onValueChange={value => setCardType(parseCardType(value))}>
+                  <SelectTrigger className={standingsCompactControlClass}>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {CARD_TYPES.map(type => <SelectItem key={type} value={type}>{CARD_TYPE_LABELS[type]}</SelectItem>)}
+                  </SelectContent>
+                </Select>
               </div>
               <div>
-                <label className="block text-[8px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Minute</label>
-                <input type="number" min="1" max="120" placeholder="67'" value={offenseMinute} onChange={e => setOffenseMinute(e.target.value)} className="w-full border border-slate-200 rounded-md p-1.5 text-[10px] focus:ring-2 focus:ring-indigo-500 focus:outline-none bg-white font-medium" />
+                <Label className="mb-0.5 block text-[8px] text-slate-400">Minute</Label>
+                <Input type="number" min="1" max="120" placeholder="67'" value={offenseMinute} onChange={e => setOffenseMinute(e.target.value)} className={standingsCompactControlClass} />
               </div>
               <div>
-                <label className="block text-[8px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Opponent</label>
-                <input type="text" placeholder="Metro Knights" value={opponent} onChange={e => setOpponent(e.target.value)} className="w-full border border-slate-200 rounded-md p-1.5 text-[10px] focus:ring-2 focus:ring-indigo-500 focus:outline-none bg-white font-medium" />
+                <Label className="mb-0.5 block text-[8px] text-slate-400">Opponent</Label>
+                <Input type="text" placeholder="Metro Knights" value={opponent} onChange={e => setOpponent(e.target.value)} className={standingsCompactControlClass} />
               </div>
               <div>
-                <label className="block text-[8px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Reason *</label>
-                <input type="text" placeholder="Reckless tackle..." value={reason} onChange={e => setReason(e.target.value)} className="w-full border border-slate-200 rounded-md p-1.5 text-[10px] focus:ring-2 focus:ring-indigo-500 focus:outline-none bg-white font-medium" />
+                <Label className="mb-0.5 block text-[8px] text-slate-400">Reason *</Label>
+                <Input type="text" placeholder="Reckless tackle..." value={reason} onChange={e => setReason(e.target.value)} className={standingsCompactControlClass} />
               </div>
             </div>
-            <button onClick={handleLogOffense} disabled={!selectedPlayerId || !reason.trim()} className="text-[9px] font-bold bg-amber-500 hover:bg-amber-600 disabled:bg-slate-300 disabled:text-slate-500 text-white px-3 py-1.5 rounded-md transition-all flex items-center gap-1">
+            <Button type="button" onClick={handleLogOffense} disabled={!selectedPlayerId || !reason.trim()} size="sm" className="h-8 rounded-md bg-amber-500 px-3 text-[9px] font-bold text-white hover:bg-amber-600">
               <Plus size={10} /> Record Offence
-            </button>
+            </Button>
           </div>
 
           {/* Player Card Tally */}
           {playersWithCards.length > 0 && (
             <div>
-              <h4 className="text-[9px] font-mono font-black uppercase tracking-wider text-slate-400 mb-1.5 flex items-center gap-1">📋 Card Tally</h4>
+              <h4 className="text-[9px] font-mono font-black uppercase tracking-wider text-slate-400 mb-1.5 flex items-center gap-1"><ClipboardList size={12} className="text-slate-500" /> Card Tally</h4>
               <div className="grid grid-cols-2 gap-1.5">
                 {playersWithCards.map(p => (
                   <div key={p.id} className="bg-slate-50 rounded-lg p-2 border border-slate-200 flex items-center justify-between">
                     <div className="min-w-0 text-[9px] font-bold text-slate-700 truncate pr-1">{p.name}</div>
                     <div className="flex items-center gap-1 shrink-0">
-                      <span className="text-[9px] font-bold text-amber-700 bg-amber-100 px-1 py-0.5 rounded">{p.yellowCards} 🟨</span>
-                      {p.redCards > 0 && (<span className="text-[9px] font-bold text-red-700 bg-red-100 px-1 py-0.5 rounded">{p.redCards} 🟥</span>)}
+                      <Badge variant="warning" className="rounded px-1 py-0 text-[9px]">{p.yellowCards} Yellow</Badge>
+                      {p.redCards > 0 && (<Badge variant="destructive" className="rounded px-1 py-0 text-[9px]">{p.redCards} Red</Badge>)}
                     </div>
                   </div>
                 ))}
@@ -1500,14 +1543,16 @@ function DisciplinaryRecords({
                         <td className="py-1.5 pr-1.5 text-[9px] font-mono text-slate-500 whitespace-nowrap">{new Date(o.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</td>
                         <td className="py-1.5 pr-1.5 text-[9px] font-bold text-slate-700 whitespace-nowrap">{o.playerName}</td>
                         <td className="py-1.5 pr-1.5 whitespace-nowrap">
-                          <span className={`text-[8px] font-bold px-1 py-0.5 rounded ${o.cardType === 'Yellow' ? 'bg-amber-100 text-amber-800' : o.cardType === 'Second Yellow' ? 'bg-orange-100 text-orange-800' : 'bg-red-100 text-red-800'}`}>
-                            {o.cardType === 'Yellow' ? '🟨' : o.cardType === 'Second Yellow' ? '🟨🟨' : '🟥'} {o.cardType}
-                          </span>
+                          <Badge variant={CARD_TYPE_BADGE_VARIANTS[o.cardType]} className={cn('rounded px-1 py-0 text-[8px]', o.cardType === 'Second Yellow' && 'border-orange-100 bg-orange-50 text-orange-800')}>
+                            {CARD_TYPE_LABELS[o.cardType]}
+                          </Badge>
                         </td>
-                        <td className="py-1.5 pr-1.5 text-[9px] font-mono text-slate-400 whitespace-nowrap">{o.matchMinute ? `${o.matchMinute}'` : '—'}</td>
+                        <td className="py-1.5 pr-1.5 text-[9px] font-mono text-slate-400 whitespace-nowrap">{o.matchMinute ? `${o.matchMinute}'` : '-'}</td>
                         <td className="py-1.5 text-[9px] text-slate-600 max-w-[140px] truncate">{o.reason}</td>
                         <td className="py-1.5 pl-1 text-center">
-                          <button onClick={() => handleDeleteOffense(o.id, o.playerId)} className="text-slate-400 hover:text-rose-600 opacity-0 group-hover:opacity-100" title="Delete"><Trash2 size={10} /></button>
+                          <Button type="button" onClick={() => handleDeleteOffense(o.id, o.playerId)} variant="ghost" size="icon" className="size-6 text-slate-400 opacity-0 hover:text-rose-600 group-hover:opacity-100" title="Delete offence" aria-label={`Delete offence for ${o.playerName}`}>
+                            <Trash2 size={10} />
+                          </Button>
                         </td>
                       </tr>
                     ))}
@@ -1527,7 +1572,7 @@ function DisciplinaryRecords({
               </h3>
               <p className="text-[10px] text-slate-500">Award match MVP to standout performers</p>
             </div>
-            <span className="text-[9px] bg-amber-100 text-amber-800 font-bold px-1.5 py-0.5 rounded border border-amber-200">⭐ {players.reduce((s, p) => s + (p.mvpAwards || 0), 0)} Total</span>
+            <Badge variant="warning" className="rounded">MVP {players.reduce((s, p) => s + (p.mvpAwards || 0), 0)} Total</Badge>
           </div>
 
           {/* MVP Award Form */}
@@ -1537,34 +1582,38 @@ function DisciplinaryRecords({
             </h4>
             <div className="grid grid-cols-2 gap-1.5 mb-2">
               <div>
-                <label className="block text-[8px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Player *</label>
-                <select value={mvpPlayerId} onChange={e => setMvpPlayerId(e.target.value)} className="w-full border border-slate-200 rounded-md p-1.5 text-[10px] focus:ring-2 focus:ring-amber-500 focus:outline-none bg-white font-medium">
-                  <option value="">Select...</option>
-                  {activePlayers.map(p => (<option key={p.id} value={p.id}>{p.name} ⭐{p.mvpAwards || 0}</option>))}
-                </select>
+                <Label className="mb-0.5 block text-[8px] text-slate-400">Player *</Label>
+                <Select value={mvpPlayerId} onValueChange={setMvpPlayerId}>
+                  <SelectTrigger className={standingsCompactControlClass}>
+                    <SelectValue placeholder="Select..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {activePlayers.map(p => <SelectItem key={p.id} value={p.id}>{p.name} MVP {p.mvpAwards || 0}</SelectItem>)}
+                  </SelectContent>
+                </Select>
               </div>
               <div>
-                <label className="block text-[8px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Date</label>
-                <input type="date" value={mvpDate} onChange={e => setMvpDate(e.target.value)} className="w-full border border-slate-200 rounded-md p-1.5 text-[10px] focus:ring-2 focus:ring-amber-500 focus:outline-none bg-white font-medium" />
+                <Label className="mb-0.5 block text-[8px] text-slate-400">Date</Label>
+                <Input type="date" value={mvpDate} onChange={e => setMvpDate(e.target.value)} className={standingsCompactControlClass} />
               </div>
               <div>
-                <label className="block text-[8px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Opponent</label>
-                <input type="text" placeholder="vs Metro Knights" value={mvpOpponent} onChange={e => setMvpOpponent(e.target.value)} className="w-full border border-slate-200 rounded-md p-1.5 text-[10px] focus:ring-2 focus:ring-amber-500 focus:outline-none bg-white font-medium" />
+                <Label className="mb-0.5 block text-[8px] text-slate-400">Opponent</Label>
+                <Input type="text" placeholder="vs Metro Knights" value={mvpOpponent} onChange={e => setMvpOpponent(e.target.value)} className={standingsCompactControlClass} />
               </div>
               <div>
-                <label className="block text-[8px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Note</label>
-                <input type="text" placeholder="Hat-trick, clean sheet…" value={mvpNote} onChange={e => setMvpNote(e.target.value)} className="w-full border border-slate-200 rounded-md p-1.5 text-[10px] focus:ring-2 focus:ring-amber-500 focus:outline-none bg-white font-medium" />
+                <Label className="mb-0.5 block text-[8px] text-slate-400">Note</Label>
+                <Input type="text" placeholder="Hat-trick, clean sheet..." value={mvpNote} onChange={e => setMvpNote(e.target.value)} className={standingsCompactControlClass} />
               </div>
             </div>
-            <button onClick={handleAwardMVP} disabled={!mvpPlayerId} className="text-[9px] font-bold bg-amber-500 hover:bg-amber-600 disabled:bg-slate-300 disabled:text-slate-500 text-white px-3 py-1.5 rounded-md transition-all flex items-center gap-1">
+            <Button type="button" onClick={handleAwardMVP} disabled={!mvpPlayerId} size="sm" className="h-8 rounded-md bg-amber-500 px-3 text-[9px] font-bold text-white hover:bg-amber-600">
               <Award size={10} /> Award MVP
-            </button>
+            </Button>
           </div>
 
           {/* MVP Leaderboard */}
           {activePlayers.filter(p => (p.mvpAwards || 0) > 0).length > 0 && (
             <div>
-              <h4 className="text-[9px] font-mono font-black uppercase tracking-wider text-slate-400 mb-1.5 flex items-center gap-1">⭐ MVP Leaderboard</h4>
+              <h4 className="text-[9px] font-mono font-black uppercase tracking-wider text-slate-400 mb-1.5 flex items-center gap-1"><Star size={12} className="text-amber-500" /> MVP Leaderboard</h4>
               <div className="grid grid-cols-1 gap-1.5">
                 {[...activePlayers].filter(p => (p.mvpAwards || 0) > 0).sort((a,b) => (b.mvpAwards || 0) - (a.mvpAwards || 0)).slice(0, 8).map((p, idx) => (
                   <div key={p.id} className="bg-slate-50 rounded-lg p-2 border border-slate-200 flex items-center justify-between">
@@ -1572,7 +1621,7 @@ function DisciplinaryRecords({
                       <span className="font-display font-black text-[10px] text-slate-300 w-4">{idx+1}</span>
                       <span className="text-[9px] font-bold text-slate-700 truncate">{p.name}</span>
                     </div>
-                    <span className="text-[9px] font-black text-amber-700 bg-amber-100 px-1.5 py-0.5 rounded border border-amber-200 shrink-0">⭐ {p.mvpAwards}</span>
+                    <Badge variant="warning" className="shrink-0 rounded px-1.5 py-0 text-[9px]">MVP {p.mvpAwards}</Badge>
                   </div>
                 ))}
               </div>
@@ -1599,16 +1648,20 @@ function DisciplinaryRecords({
                       <tr key={m.id} className="hover:bg-slate-50/50 group">
                         <td className="py-1.5 pr-1.5 text-[9px] font-mono text-slate-500 whitespace-nowrap">{new Date(m.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</td>
                         <td className="py-1.5 pr-1.5 text-[9px] font-bold text-slate-700 whitespace-nowrap">{m.playerName}</td>
-                        <td className="py-1.5 pr-1.5 text-[9px] text-slate-500 whitespace-nowrap">{m.opponent || '—'}</td>
-                        <td className="py-1.5 text-[9px] text-slate-600 max-w-[160px] truncate">{m.note || '—'}</td>
+                        <td className="py-1.5 pr-1.5 text-[9px] text-slate-500 whitespace-nowrap">{m.opponent || '-'}</td>
+                        <td className="py-1.5 text-[9px] text-slate-600 max-w-[160px] truncate">{m.note || '-'}</td>
                         <td className="py-1.5 pl-1 text-center">
-                          <button
+                          <Button
+                            type="button"
                             onClick={() => handleDeleteMvp(m.id, m.playerId)}
-                            className="text-slate-400 hover:text-rose-600 opacity-0 group-hover:opacity-100 transition-colors"
+                            variant="ghost"
+                            size="icon"
+                            className="size-6 text-slate-400 opacity-0 hover:text-rose-600 group-hover:opacity-100"
                             title="Delete this MVP award"
+                            aria-label={`Delete MVP award for ${m.playerName}`}
                           >
                             <Trash2 size={10} />
-                          </button>
+                          </Button>
                         </td>
                       </tr>
                     ))}
@@ -1622,3 +1675,5 @@ function DisciplinaryRecords({
     </div>
   );
 }
+
+

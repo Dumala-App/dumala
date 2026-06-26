@@ -6,6 +6,18 @@ import { availabilitySchema, coachNotesSchema } from '../persistence/schemas';
 import { readJsonStorage, STORAGE_KEYS, writeJsonStorage } from '../persistence/storage';
 import { useDialogAccessibility } from '../hooks/useDialogAccessibility';
 import { FieldError, FormErrorSummary } from './FormValidation';
+import { Button } from './ui/button';
+import { Input } from './ui/input';
+import { Label } from './ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from './ui/select';
+import { Textarea } from './ui/textarea';
+import { cn } from '@/src/lib/utils';
 import {
   FieldErrors,
   focusFirstInvalidField,
@@ -44,6 +56,20 @@ interface ValidMatchResultForm {
 }
 
 const GAME_TYPES: readonly GameType[] = ['League', 'Cup', 'Friendly', 'Training', 'Meeting'];
+const GAME_TYPE_LABELS: Record<GameType, string> = {
+  League: 'League Match',
+  Cup: 'Cup Tournament',
+  Friendly: 'Friendly Exhibition',
+  Training: 'Training Session',
+  Meeting: 'Team Meeting'
+};
+
+const scheduleInputClass = (hasError?: boolean) => cn(
+  'rounded-xl text-sm focus-visible:ring-2',
+  hasError
+    ? 'border-rose-300 focus-visible:ring-rose-500/30'
+    : 'border-slate-200 focus-visible:ring-indigo-500/30'
+);
 
 const parseGameType = (value: string): GameType => (
   GAME_TYPES.includes(value as GameType) ? value as GameType : 'League'
@@ -447,100 +473,101 @@ export default function ScheduleView({ games, players, standings, onAddGame, onR
 
           <form onSubmit={handleAddGameSubmit} className="grid grid-cols-1 lg:grid-cols-3 gap-4">
             <div>
-              <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">
+              <Label className="mb-1 block text-slate-500">
                 {type === 'Training' ? 'Session Title' : type === 'Meeting' ? 'Meeting Subject' : 'Opposing Club Name'} *
-              </label>
-              <input 
+              </Label>
+              <Input
                 id="new-opponent-name"
                 type="text" 
                 placeholder={type === 'Training' ? 'e.g. Shooting & Passing Drills' : type === 'Meeting' ? 'e.g. Tactical Strategy Briefing' : 'e.g. Glacier Rovers'}
                 value={opponent}
                 onChange={e => setOpponent(e.target.value)}
-                className="w-full border border-slate-200 rounded-xl p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className={scheduleInputClass()}
               />
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Event Date *</label>
-              <input 
+              <Label className="mb-1 block text-slate-500">Event Date *</Label>
+              <Input
                 id="new-game-date"
                 type="date" 
                 required 
                 value={date}
                 onChange={e => setDate(e.target.value)}
-                className="w-full border border-slate-200 rounded-xl p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
+                className={scheduleInputClass()}
               />
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Start Time *</label>
-              <input 
+              <Label className="mb-1 block text-slate-500">Start Time *</Label>
+              <Input
                 id="new-game-time"
                 type="time" 
                 required 
                 value={time}
                 onChange={e => setTime(e.target.value)}
-                className="w-full border border-slate-200 rounded-xl p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
+                className={scheduleInputClass()}
               />
             </div>
 
             <div className="lg:col-span-2">
-              <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Venu / Field Location *</label>
-              <input 
+              <Label className="mb-1 block text-slate-500">Venue / Field Location *</Label>
+              <Input
                 id="new-game-location"
                 type="text" 
                 required 
                 placeholder="e.g. Arena Field 2, Metro Sports Hub"
                 value={location}
                 onChange={e => setLocation(e.target.value)}
-                className="w-full border border-slate-200 rounded-xl p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className={scheduleInputClass()}
               />
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Event Type *</label>
-              <select
-                id="new-game-type"
-                value={type}
-                onChange={e => setType(parseGameType(e.target.value))}
-                className="w-full border border-slate-200 rounded-xl p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
-              >
-                <option value="League">🏆 League Match</option>
-                <option value="Cup">🏆 Cup Tournament</option>
-                <option value="Friendly">🤝 Friendly Exhibition</option>
-                <option value="Training">💪 Training Session</option>
-                <option value="Meeting">📋 Team Meeting</option>
-              </select>
+              <Label className="mb-1 block text-slate-500">Event Type *</Label>
+              <Select value={type} onValueChange={value => setType(parseGameType(value))}>
+                <SelectTrigger id="new-game-type" className={scheduleInputClass()}>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {GAME_TYPES.map(gameType => (
+                    <SelectItem key={gameType} value={gameType}>
+                      {GAME_TYPE_LABELS[gameType]}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="lg:col-span-3">
-              <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Squad Tactical Instructions / Notes</label>
-              <textarea 
+              <Label className="mb-1 block text-slate-500">Squad Tactical Instructions / Notes</Label>
+              <Textarea
                 id="new-game-notes"
                 placeholder="Required uniform color, warmup hours, agenda items..."
                 value={notes}
                 onChange={e => setNotes(e.target.value)}
                 rows={2}
-                className="w-full border border-slate-200 rounded-xl p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="min-h-20 rounded-xl text-sm focus-visible:ring-indigo-500/30"
               />
             </div>
 
             <div className="lg:col-span-3 flex flex-col sm:flex-row justify-end gap-2 p-1">
-              <button 
+              <Button
                 id="cancel-add-game-btn"
                 type="button" 
                 onClick={() => setIsAdding(false)}
-                className="px-4 py-2 border border-slate-200 hover:bg-slate-50 rounded-xl text-slate-600 text-sm font-medium transition-all"
+                variant="outline"
+                className="rounded-xl"
               >
                 Cancel
-              </button>
-              <button 
+              </Button>
+              <Button
                 id="submit-add-game-btn"
                 type="submit" 
-                className="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-semibold transition-all shadow-md"
+                className="rounded-xl bg-indigo-600 text-white hover:bg-indigo-700"
               >
                 Save Event
-              </button>
+              </Button>
             </div>
           </form>
         </motion.div>
@@ -567,23 +594,25 @@ export default function ScheduleView({ games, players, standings, onAddGame, onR
                   ? 'Edit Match Result'
                   : 'Record Match Scores'}
               </h3>
-              <button 
+              <Button
                 id="close-record-modal"
                 onClick={closeResultDialog}
-                className="text-slate-400 hover:text-slate-600 p-1"
+                variant="ghost"
+                size="sm"
+                className="text-slate-400 hover:text-slate-600"
               >
                 Cancel
-              </button>
+              </Button>
             </div>
 
             <form ref={resultFormRef} onSubmit={handleRecordSubmit} className="mt-4 space-y-4" noValidate>
               <FormErrorSummary id="match-result-error-summary" errors={resultErrors} />
               <div>
-                <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1.5">Record Final Score</label>
+                <Label className="mb-1.5 block text-slate-500">Record Final Score</Label>
                 <div className="grid grid-cols-5 gap-2 items-center text-center">
                   <div className="col-span-2">
                     <span className="text-[11px] font-bold text-slate-400 uppercase">{teamName ? teamName.substring(0, 10) : 'Us'}</span>
-                    <input 
+                    <Input
                       id="record-score-rangers"
                       data-validation-field="ourScore"
                       type="number" 
@@ -597,18 +626,14 @@ export default function ScheduleView({ games, players, standings, onAddGame, onR
                       }}
                       aria-invalid={Boolean(resultErrors.ourScore)}
                       aria-describedby={resultErrors.ourScore ? 'record-score-rangers-error' : undefined}
-                      className={`w-full text-center font-display font-black text-2xl border rounded-xl p-2 focus:outline-none focus:ring-2 ${
-                        resultErrors.ourScore
-                          ? 'border-rose-300 focus:ring-rose-500'
-                          : 'border-slate-200 focus:ring-indigo-500'
-                      }`}
+                      className={cn(scheduleInputClass(Boolean(resultErrors.ourScore)), 'h-14 text-center font-display text-2xl font-black')}
                     />
                     <FieldError id="record-score-rangers-error" message={resultErrors.ourScore} />
                   </div>
                   <div className="text-xl font-bold text-slate-400">:</div>
                   <div className="col-span-2">
                     <span className="text-[11px] font-bold text-slate-400 uppercase">Opponent</span>
-                    <input 
+                    <Input
                       id="record-score-opponent"
                       data-validation-field="opponentScore"
                       type="number" 
@@ -622,11 +647,7 @@ export default function ScheduleView({ games, players, standings, onAddGame, onR
                       }}
                       aria-invalid={Boolean(resultErrors.opponentScore)}
                       aria-describedby={resultErrors.opponentScore ? 'record-score-opponent-error' : undefined}
-                      className={`w-full text-center font-display font-black text-2xl border rounded-xl p-2 focus:outline-none focus:ring-2 ${
-                        resultErrors.opponentScore
-                          ? 'border-rose-300 focus:ring-rose-500'
-                          : 'border-slate-200 focus:ring-indigo-500'
-                      }`}
+                      className={cn(scheduleInputClass(Boolean(resultErrors.opponentScore)), 'h-14 text-center font-display text-2xl font-black')}
                     />
                     <FieldError id="record-score-opponent-error" message={resultErrors.opponentScore} />
                   </div>
@@ -642,27 +663,30 @@ export default function ScheduleView({ games, players, standings, onAddGame, onR
                     resultErrors.scorers ? 'border-rose-200' : 'border-slate-100'
                   }`}
                 >
-                  <span className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Track Team Scorers</span>
+                  <Label className="mb-2 block text-slate-500">Track Team Scorers</Label>
                   <div className="flex flex-col sm:flex-row gap-2">
-                    <select
-                      id="scorer-player-select"
+                    <Select
                       value={selectedScorer}
-                      onChange={e => setSelectedScorer(e.target.value)}
-                      className="flex-1 border border-slate-200 rounded-lg p-1.5 text-xs bg-white"
+                      onValueChange={setSelectedScorer}
                     >
-                      <option value="">-- Choose Scorer --</option>
-                      {activeAthletes.map(p => (
-                        <option key={p.id} value={p.id}>{p.name} (#{p.number})</option>
-                      ))}
-                    </select>
-                    <button
+                      <SelectTrigger id="scorer-player-select" className="h-9 flex-1 rounded-lg text-xs">
+                        <SelectValue placeholder="Choose scorer" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {activeAthletes.map(p => (
+                          <SelectItem key={p.id} value={p.id}>{p.name} (#{p.number})</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Button
                       id="add-scorer-btn"
                       type="button"
                       onClick={handleScorerAdd}
-                      className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg px-3 py-1.5 text-xs font-semibold"
+                      size="sm"
+                      className="rounded-lg bg-indigo-600 text-white hover:bg-indigo-700"
                     >
                       Add Scorer
-                    </button>
+                    </Button>
                   </div>
 
                   {currentScorers.length > 0 && (
@@ -670,14 +694,17 @@ export default function ScheduleView({ games, players, standings, onAddGame, onR
                       {currentScorers.map(sc => (
                         <span key={sc.playerName} className="inline-flex items-center gap-1 bg-white border border-indigo-100 rounded-lg px-2 py-1 text-xs font-medium text-slate-700">
                           {sc.playerName} ({sc.count})
-                          <button 
+                          <Button
                             id={`remove-scorer-${sc.playerName.replace(/\s+/g, '-')}`}
                             type="button" 
                             onClick={() => handleScorerRemove(sc.playerId, sc.playerName)}
-                            className="text-rose-500 hover:text-rose-700 ml-1 font-bold"
+                            variant="ghost"
+                            size="icon"
+                            className="ml-0.5 size-5 text-rose-500 hover:bg-rose-50 hover:text-rose-700"
+                            aria-label={`Remove ${sc.playerName} from scorers`}
                           >
-                            ×
-                          </button>
+                            <XCircle size={12} aria-hidden="true" />
+                          </Button>
                         </span>
                       ))}
                     </div>
@@ -687,28 +714,29 @@ export default function ScheduleView({ games, players, standings, onAddGame, onR
               )}
 
               <div>
-                <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Match MVP Award *</label>
-                <select
-                  id="mvp-player-select"
-                  data-validation-field="mvpId"
+                <Label className="mb-1 block text-slate-500">Match MVP Award *</Label>
+                <Select
                   value={selectedMvp}
-                  onChange={e => {
-                    setSelectedMvp(e.target.value);
+                  onValueChange={value => {
+                    setSelectedMvp(value);
                     clearResultFieldError('mvpId');
                   }}
-                  aria-invalid={Boolean(resultErrors.mvpId)}
-                  aria-describedby={resultErrors.mvpId ? 'mvp-player-select-error' : undefined}
-                  className={`w-full border rounded-xl p-2.5 text-sm bg-white focus:outline-none focus:ring-2 ${
-                    resultErrors.mvpId
-                      ? 'border-rose-300 focus:ring-rose-500'
-                      : 'border-slate-200 focus:ring-indigo-500'
-                  }`}
                 >
-                  <option value="">-- Select Most Valuable Player --</option>
-                  {activeAthletes.map(p => (
-                    <option key={p.id} value={p.id}>{p.name} (#{p.number}) - {p.position}</option>
-                  ))}
-                </select>
+                  <SelectTrigger
+                    id="mvp-player-select"
+                    data-validation-field="mvpId"
+                    aria-invalid={Boolean(resultErrors.mvpId)}
+                    aria-describedby={resultErrors.mvpId ? 'mvp-player-select-error' : undefined}
+                    className={scheduleInputClass(Boolean(resultErrors.mvpId))}
+                  >
+                    <SelectValue placeholder="Select Most Valuable Player" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {activeAthletes.map(p => (
+                      <SelectItem key={p.id} value={p.id}>{p.name} (#{p.number}) - {p.position}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
                 <FieldError id="mvp-player-select-error" message={resultErrors.mvpId} />
               </div>
 
@@ -719,34 +747,35 @@ export default function ScheduleView({ games, players, standings, onAddGame, onR
               )}
 
               <div>
-                <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1 font-medium">Post-Match Coach Analysis</label>
-                <textarea 
+                <Label className="mb-1 block text-slate-500">Post-Match Coach Analysis</Label>
+                <Textarea
                   id="game-post-notes"
                   placeholder="Analyze team shape, highlighting tactical setups or standout performers."
                   value={gameNotes}
                   onChange={e => setGameNotes(e.target.value)}
                   rows={2}
-                  className="w-full border border-slate-200 rounded-xl p-2.5 text-sm focus:outline-none"
+                  className="min-h-20 rounded-xl text-sm focus-visible:ring-indigo-500/30"
                 />
               </div>
 
               <div className="flex gap-2 justify-end pt-2">
-                <button
+                <Button
                   id="cancel-record-modal-btn"
                   type="button"
                   onClick={closeResultDialog}
-                  className="px-4 py-2 border border-slate-200 hover:bg-slate-50 rounded-xl text-slate-600 text-sm font-medium"
+                  variant="outline"
+                  className="rounded-xl"
                 >
                   Cancel
-                </button>
-                <button
+                </Button>
+                <Button
                   id="submit-record-result-btn"
                   type="submit"
                   disabled={isRecordingResult}
-                  className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-300 disabled:text-slate-500 text-white font-semibold rounded-xl text-sm shadow-md"
+                  className="rounded-xl bg-emerald-600 text-white hover:bg-emerald-700 disabled:bg-slate-300 disabled:text-slate-500"
                 >
                   {isRecordingResult ? 'Publishing...' : 'Publish Scorecard'}
-                </button>
+                </Button>
               </div>
             </form>
           </motion.div>
