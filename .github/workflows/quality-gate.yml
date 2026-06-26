@@ -50,6 +50,9 @@ jobs:
       - name: Verify PWA output and cache policy
         run: npm run verify:pwa
 
+      - name: Verify cloud launch boundaries
+        run: npm run verify:cloud-launch
+
       - name: Upload production build
         uses: actions/upload-artifact@v7
         with:

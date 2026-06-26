@@ -1,8 +1,10 @@
 import type { DumalaSupabaseClient } from './client';
+import type { Database, Json } from './database.types';
 import type { CloudImportPayload, CloudImportRecord } from '../migrations/localToCloud';
 import { createContentFingerprint, toCloudUuid } from '../migrations/localToCloud';
 
 type ImportTable = ReturnType<DumalaSupabaseClient['from']>;
+type WorkspaceImportUpdate = Database['public']['Tables']['workspace_imports']['Update'];
 
 export interface CloudImportDeviceContext {
   label?: string;
@@ -103,7 +105,7 @@ const upsertRows = async (
 ) => {
   if (rows.length === 0) return;
   await expectMutation(
-    table.upsert(rows, { onConflict }),
+    table.upsert(rows as Array<Record<string, Json | undefined>>, { onConflict }),
     code,
     `Failed to upsert ${rows.length} row(s)`
   );
@@ -112,7 +114,7 @@ const upsertRows = async (
 const updateWorkspaceImportStatus = async (
   client: DumalaSupabaseClient,
   cloudImportId: string,
-  values: Record<string, unknown>
+  values: WorkspaceImportUpdate
 ) => {
   await expectMutation(
     client.from('workspace_imports').update(values).eq('id', cloudImportId),

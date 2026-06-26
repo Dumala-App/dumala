@@ -3,6 +3,7 @@ import { Megaphone, FlaskConical, Calculator, Target, TrendingUp, Hash, ChevronD
 
 export default function UpdatesView() {
   const [openEntries, setOpenEntries] = useState<Record<string, boolean>>({
+    coaching_library_redesigned: true,
     assessment_team_history_notes: true,
     fprds_comparison_reports: true,
     fprds_historical_progress_charts: true,
@@ -25,8 +26,55 @@ export default function UpdatesView() {
 
   const changelogEntries = [
     {
-      id: 'assessment_team_history_notes',
+      id: 'coaching_library_redesigned',
       date: '2026-06-26',
+      title: 'Coaching Library Redesigned and Expanded',
+      summary: 'Tactics now includes a cleaner Coaching Library with data-driven articles, SVG tactical diagrams, and more formation references for future expansion.',
+      accent: 'border-violet-200 bg-violet-50/70',
+      renderContent: () => (
+        <div className="space-y-4">
+          <p className="text-sm text-slate-600 leading-relaxed">
+            The Tactics workspace now separates live match-board planning from a structured Coaching Library. Coaches can browse formation references, attack and defense concepts, tactical principles, and famous tactical models without crowding the pitch layout.
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {[
+              {
+                title: 'Cleaner reading layout',
+                desc: 'The library moved away from dense nested boxes into lighter article cards with bullet-point learning notes and clearer coaching takeaways.'
+              },
+              {
+                title: 'Reusable knowledge model',
+                desc: 'Formation, phase, principle, and case-study content now lives in structured data so future topics can be added without rewriting the component.'
+              },
+              {
+                title: 'Inline tactical SVGs',
+                desc: 'Simple pitch diagrams now show formations, overloads, defensive blocks, pressing ideas, and case-study movement patterns directly in each topic.'
+              },
+              {
+                title: 'More formation coverage',
+                desc: 'The library now includes additional shapes such as 3-4-3, 4-1-4-1, 5-3-2, 4-3-1-2, and 4-4-1-1 alongside the original core systems.'
+              },
+              {
+                title: 'Better diagram consistency',
+                desc: 'Formation SVG spacing, arrow thickness, arrowhead sizing, and caption behavior were adjusted so cards read more evenly.'
+              },
+              {
+                title: 'Drill library groundwork',
+                desc: 'Training drills were also extracted into a typed data module with reusable drill cards, preparing the training catalog for easier future expansion.'
+              }
+            ].map(item => (
+              <div key={item.title} className="bg-white border border-violet-200 rounded-xl p-4">
+                <h5 className="text-xs font-black text-slate-800 uppercase tracking-wider mb-1.5">{item.title}</h5>
+                <p className="text-xs text-slate-600 leading-relaxed">{item.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )
+    },
+    {
+      id: 'assessment_team_history_notes',
+      date: '2026-06-25',
       title: 'Assessment Team History and Notes Added',
       summary: 'Assessment Center now has direct team history access and coach notes on saved assessment sessions.',
       accent: 'border-sky-200 bg-sky-50/70',
@@ -65,7 +113,7 @@ export default function UpdatesView() {
     },
     {
       id: 'fprds_comparison_reports',
-      date: '2026-06-26',
+      date: '2026-06-22',
       title: 'FPRDS Player and Session Reports Added',
       summary: 'Assessment History now includes player-to-player and session-to-session reports for comparing OVR and weighted attribute gaps.',
       accent: 'border-indigo-200 bg-indigo-50/70',
@@ -104,7 +152,7 @@ export default function UpdatesView() {
     },
     {
       id: 'fprds_historical_progress_charts',
-      date: '2026-06-26',
+      date: '2026-06-20',
       title: 'FPRDS Historical Progress Charts Added',
       summary: 'Assessment History now charts real saved FPRDS sessions so coaches can see OVR movement and same-role attribute trends over time.',
       accent: 'border-emerald-200 bg-emerald-50/70',
@@ -143,7 +191,7 @@ export default function UpdatesView() {
     },
     {
       id: 'fprds_benchmark_review_package',
-      date: '2026-06-26',
+      date: '2026-06-18',
       title: 'FPRDS Benchmark Review Package Prepared',
       summary: 'The next FPRDS beta gate is now organized around a practitioner review packet for benchmark tables, assumptions, role weights, signoff, and corrections.',
       accent: 'border-sky-200 bg-sky-50/70',

@@ -76,7 +76,7 @@ export const listSharedBulletins = async (
       .order('created_at', { ascending: false }),
     'LIST_BULLETINS_FAILED',
     'Failed to list shared bulletins.'
-  ) as SharedBulletin[];
+  ) as unknown as SharedBulletin[];
 
 export const createSharedBulletin = async (
   client: DumalaSupabaseClient,
@@ -110,7 +110,7 @@ export const createSharedBulletin = async (
       .single(),
     'CREATE_BULLETIN_FAILED',
     'Failed to create shared bulletin.'
-  ) as SharedBulletin;
+  ) as unknown as SharedBulletin;
 
   await writeTeamActivityEvent(client, 'bulletin_created', {
     clubId: input.clubId,
@@ -144,7 +144,7 @@ export const updateSharedBulletinControlled = async (
     }),
     'UPDATE_BULLETIN_FAILED',
     'Failed to update shared bulletin.'
-  ) as SharedBulletin;
+  ) as unknown as SharedBulletin;
 
 export const removeSharedBulletinControlled = async (
   client: DumalaSupabaseClient,
@@ -160,4 +160,4 @@ export const removeSharedBulletinControlled = async (
     }),
     'REMOVE_BULLETIN_FAILED',
     'Failed to remove shared bulletin.'
-  ) as SharedBulletin;
+  ) as unknown as SharedBulletin;

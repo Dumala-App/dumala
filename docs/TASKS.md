@@ -23,7 +23,7 @@ Future: Coach education         [----------]   0%   0 / 6
 Future: Club operations         [----------]   0%   0 / 5
 Release: App stores             [----------]   0%   0 / 1
 
-Release validation              [##########] 100%  13 / 13
+Release validation              [##########] 100%  14 / 14
 ```
 
 | Phase | Completed | Total | Progress | Status |
@@ -138,7 +138,7 @@ The FPRDS total includes eleven completed capabilities: the five shipped assessm
 - [x] Added offline, reconnect, offline-ready, update-available, and registration-warning status messages.
 - [x] Added repeatable generated-service-worker policy verification.
 - [x] Self-hosted DM Sans and Manrope for reliable offline typography.
-- [x] Added GitHub Actions CI for TypeScript, tests, production build, and PWA verification.
+- [x] Added GitHub Actions CI for TypeScript, tests, production build, PWA verification, and cloud-launch boundary verification.
 - [x] Protected `main` with pull requests, required current CI, no bypass, and no force-push or deletion access.
 - [x] Added validated private-repository production deployment from GitHub Actions to Vercel.
 - [x] Updated PRD, MVP, architecture, roadmap, audit, tasks, and README.
@@ -179,7 +179,7 @@ The FPRDS total includes eleven completed capabilities: the five shipped assessm
 - [x] **Done:** Extract the assessment snapshot service from `App.tsx`.
 - [x] **Done:** Replace avoidable application-facing `any` usage while keeping a typed legacy player-attributes boundary.
 - [x] **Done:** Split Player and Staff models before credential and permission work.
-- [x] **Done:** Add CI for type-check, tests, production build, PWA verification, and build artifacts.
+- [x] **Done:** Add CI for type-check, tests, production build, PWA verification, cloud-launch boundary verification, and build artifacts.
 
 ## FPRDS Beta
 
@@ -218,7 +218,7 @@ Deferred by product decision: Google Play packaging is a future release task, no
 
 ## Phase 3: Cloud accounts and synchronization
 
-- [x] **Done:** Select backend, database, authentication, and hosting.
+- [x] **Done:** Confirm Supabase, PostgreSQL, Supabase Auth, and Vercel as the Phase 3 platform foundation.
 - [x] **Done:** Design club, user, membership, and durable domain schemas.
 - [x] **Done:** Create local-to-cloud migration with non-destructive rollback.
 - [x] **Done:** Define offline mutation queue and conflict strategy.
@@ -269,6 +269,7 @@ Phase 3 implementation baseline is complete. Local launch-readiness checks now i
 
 - [x] TypeScript validation passes.
 - [x] Production build passes.
+- [x] Cloud-launch artifact and browser environment boundary verification passes.
 - [x] Production chunks remain below Vite's 500 kB warning threshold after view-level code splitting.
 - [x] Onboarding and reset start with clean standings.
 - [x] Roster create/edit/remove works for players and staff.

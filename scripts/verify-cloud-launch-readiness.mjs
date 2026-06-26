@@ -25,6 +25,11 @@ for (const file of requiredFiles) {
 }
 
 const envExample = existsSync(join(root, '.env.example')) ? read('.env.example') : '';
+const browserEnvAllowlist = new Set([
+  'VITE_DUMALA_CLOUD_ENABLED',
+  'VITE_SUPABASE_URL',
+  'VITE_SUPABASE_PUBLISHABLE_KEY'
+]);
 const forbiddenEnvNames = [
   'VITE_SUPABASE_SECRET',
   'VITE_SUPABASE_SERVICE_ROLE',
@@ -33,6 +38,14 @@ const forbiddenEnvNames = [
   'VITE_SUPABASE_DB_URL',
   'VITE_SUPABASE_ACCESS_TOKEN'
 ];
+const browserEnvFiles = [
+  '.env.example',
+  'src/vite-env.d.ts',
+  'src/cloud/config.ts',
+  'docs/SUPABASE_SETUP.md'
+];
+const sensitiveBrowserEnvPattern = /VITE_[A-Z0-9_]*(SECRET|SERVICE_ROLE|JWT|DATABASE|DB|PASSWORD|TOKEN|PRIVATE|KEY_SECRET|CONNECTION)[A-Z0-9_]*/g;
+const viteEnvPattern = /\bVITE_[A-Z0-9_]+\b/g;
 
 for (const name of forbiddenEnvNames) {
   if (envExample.includes(name)) {
@@ -40,9 +53,26 @@ for (const name of forbiddenEnvNames) {
   }
 }
 
-for (const requiredName of ['VITE_DUMALA_CLOUD_ENABLED', 'VITE_SUPABASE_URL', 'VITE_SUPABASE_PUBLISHABLE_KEY']) {
+for (const requiredName of browserEnvAllowlist) {
   if (!envExample.includes(requiredName)) {
     failures.push(`.env.example is missing ${requiredName}.`);
+  }
+}
+
+for (const file of browserEnvFiles) {
+  if (!existsSync(join(root, file))) continue;
+  const contents = read(file);
+  const envNames = [...contents.matchAll(viteEnvPattern)].map(match => match[0]);
+  const forbiddenNames = [...contents.matchAll(sensitiveBrowserEnvPattern)].map(match => match[0]);
+
+  for (const envName of envNames) {
+    if (!browserEnvAllowlist.has(envName)) {
+      failures.push(`${file} references unapproved browser env variable ${envName}.`);
+    }
+  }
+
+  for (const envName of forbiddenNames) {
+    failures.push(`${file} references secret-shaped browser env variable ${envName}.`);
   }
 }
 

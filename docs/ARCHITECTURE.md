@@ -232,11 +232,12 @@ When startup validation fails, Dumala does not create a normal workspace backup 
 3. runs the Vitest suite
 4. performs a clean production build
 5. verifies generated service-worker and offline-cache policy
-6. retains the generated `dist/` artifact for seven days
+6. verifies Phase 3 cloud-launch artifacts, browser env boundaries, and operations gates
+7. retains the generated `dist/` artifact for seven days
 
 The workflow has read-only repository permissions, cancels superseded runs on the same branch, and applies a 15-minute timeout.
 
-The `main` branch is protected in the private `Dumala-App/dumala` repository. All changes must arrive through a pull request, the **TypeScript, tests, build, and PWA** check must pass, and the pull-request branch must be current with `main`. Administrators cannot bypass these requirements. Force pushes and branch deletion are disabled.
+The `main` branch is protected in the private `Dumala-App/dumala` repository. All changes must arrive through a pull request, the **TypeScript, tests, build, PWA, and cloud launch** check must pass, and the pull-request branch must be current with `main`. Administrators cannot bypass these requirements. Force pushes and branch deletion are disabled.
 
 After validation succeeds on a push to `main`, the dependent **Deploy validated main to Vercel** job rebuilds the same merged revision with the pinned Vercel CLI and deploys its prebuilt output to production. The job uses the GitHub `Production` environment and its encrypted `VERCEL_TOKEN`, `VERCEL_ORG_ID`, and `VERCEL_PROJECT_ID` secrets. Pull-request jobs cannot access those credentials and never deploy production. The direct Vercel Git connection remains disabled because the private repository belongs to a GitHub organization on the Vercel Hobby plan.
 

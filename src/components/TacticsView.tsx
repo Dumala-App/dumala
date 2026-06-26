@@ -28,6 +28,9 @@ import {
   type TacticsLineup,
   type TacticsPlayer
 } from '../tactics/lineup';
+import { CoachKnowledgeBase } from './CoachKnowledgeBase';
+
+export { CoachKnowledgeBase as TacticsKnowledgeBase } from './CoachKnowledgeBase';
 
 type PlayerStatus = 'starting' | 'substitute' | 'injured';
 type PlayerStatusExtras = Record<string, {
@@ -50,6 +53,7 @@ type DrawingPath = {
   width: number;
   points: DrawingPoint[];
 };
+type TacticsWorkspaceSection = 'board' | 'library';
 
 const TACTICS_NOTE_CATEGORIES: readonly TacticsNoteCategory[] = ['Formation', 'Set Pieces', 'Strategy', 'General'];
 
@@ -122,6 +126,7 @@ export default function TacticsView({ players, staff, teamCoach, teamName, teamL
   const [formation, setFormation] = useState<string>(() => readStringStorage(STORAGE_KEYS.formation, stringSchema, '4-1-2-3', 'Tactics formation'));
   const [playstyle, setPlaystyle] = useState<string>(() => readStringStorage(STORAGE_KEYS.playstyle, stringSchema, 'Quick Counter', 'Tactics playstyle'));
   const [activeTab, setActiveTab] = useState<'Tactics' | 'Team' | 'Substitutes' | 'Reserves'>('Tactics');
+  const [activeWorkspaceSection, setActiveWorkspaceSection] = useState<TacticsWorkspaceSection>('board');
   
   // Custom Strategy Mode States
   const [isCustomMode, setIsCustomMode] = useState<boolean>(() => {
@@ -906,6 +911,41 @@ export default function TacticsView({ players, staff, teamCoach, teamName, teamL
       <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-indigo-650/10 rounded-full blur-[140px] pointer-events-none" />
       <div className="absolute bottom-0 right-1/4 w-[500px] h-[500px] bg-emerald-600/10 rounded-full blur-[140px] pointer-events-none" />
 
+      <div className="xl:col-span-12 relative z-10">
+        <div className="flex flex-col gap-3 rounded-2xl border border-slate-800 bg-[#0f172a]/95 p-3 shadow-md md:flex-row md:items-center md:justify-between">
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-widest text-amber-400">Tactics Workspace</p>
+            <p className="text-xs text-slate-400">Switch between live squad planning and tactical study material.</p>
+          </div>
+          <div className="grid grid-cols-2 gap-2 rounded-xl border border-slate-800 bg-slate-950/70 p-1">
+            <button
+              type="button"
+              onClick={() => setActiveWorkspaceSection('board')}
+              className={`rounded-lg px-3 py-2 text-xs font-black uppercase tracking-wide transition-all ${
+                activeWorkspaceSection === 'board'
+                  ? 'bg-emerald-500 text-slate-950 shadow-sm'
+                  : 'text-slate-400 hover:bg-white/5 hover:text-white'
+              }`}
+            >
+              Tactical Board
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveWorkspaceSection('library')}
+              className={`rounded-lg px-3 py-2 text-xs font-black uppercase tracking-wide transition-all ${
+                activeWorkspaceSection === 'library'
+                  ? 'bg-indigo-500 text-white shadow-sm'
+                  : 'text-slate-400 hover:bg-white/5 hover:text-white'
+              }`}
+            >
+              Coaching Library
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {activeWorkspaceSection === 'board' ? (
+        <>
       {/* LEFT SIDE PANEL FOR NAVIGATION & CONTROLS */}
       <div className="xl:col-span-3 flex flex-col gap-5 relative z-10">
         
@@ -1421,19 +1461,20 @@ export default function TacticsView({ players, staff, teamCoach, teamName, teamL
             <p id="pitch-hud-val-formation" className="font-display font-black text-white text-lg leading-tight uppercase">{activeFormation}</p>
           </div>
 
-          <div className="absolute bottom-4 right-4 p-2 bg-slate-950/80 border border-slate-800 rounded-lg text-right">
-            <div className="flex items-center justify-end gap-1.5">
-              {isCustomMode && (
-                <span id="pitch-hud-val-mentality" className="text-[8.5px] text-indigo-400 font-bold uppercase tracking-widest">{customMentality}</span>
-              )}
-              <span className="text-[10px] text-slate-400 font-bold tracking-widest uppercase">Active Tactic Style</span>
-            </div>
-            <p id="pitch-hud-val-playstyle" className="font-display font-black text-amber-400 text-sm leading-tight uppercase">{activePlaystyle}</p>
-          </div>
-
         </div>
 
-        {/* Removed Tactical board controls & details footer */}
+        <div
+          id="tactical-field-style-summary"
+          className="mt-3 w-full max-w-[576px] mx-auto rounded-xl border border-slate-800 bg-slate-950/80 px-3 py-2 text-center shadow-sm"
+        >
+          <div className="flex flex-wrap items-center justify-center gap-1.5">
+            {isCustomMode && (
+              <span id="pitch-hud-val-mentality" className="text-[8.5px] text-indigo-400 font-bold uppercase tracking-widest">{customMentality}</span>
+            )}
+            <span className="text-[10px] text-slate-400 font-bold tracking-widest uppercase">Active Tactic Style</span>
+          </div>
+          <p id="pitch-hud-val-playstyle" className="font-display font-black text-amber-400 text-sm leading-tight uppercase">{activePlaystyle}</p>
+        </div>
 
       </div>
 
@@ -2502,6 +2543,11 @@ export default function TacticsView({ players, staff, teamCoach, teamName, teamL
 
         </div>
       </div>
+
+        </>
+      ) : (
+        <CoachKnowledgeBase />
+      )}
 
     </div>
   );

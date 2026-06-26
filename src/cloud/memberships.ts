@@ -99,7 +99,7 @@ export const listClubInvitations = async (
       .order('invited_at', { ascending: false }),
     'LIST_INVITATIONS_FAILED',
     'Failed to list club invitations.'
-  ) as ClubInvitation[];
+  ) as unknown as ClubInvitation[];
 
 export const createClubInvitation = async (
   client: DumalaSupabaseClient,
@@ -197,7 +197,7 @@ export const listClubMemberships = async (
       .order('created_at', { ascending: true }),
     'LIST_MEMBERSHIPS_FAILED',
     'Failed to list club memberships.'
-  ) as ClubMembershipSummary[];
+  ) as unknown as ClubMembershipSummary[];
 
 export const changeClubMemberRole = async (
   client: DumalaSupabaseClient,
