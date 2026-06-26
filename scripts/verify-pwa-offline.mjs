@@ -139,7 +139,12 @@ const openPrimaryArea = async (page, name) => {
 };
 
 const openNestedArea = async (page, name) => {
-  await page.getByRole('button', {name: `Open ${name}`, exact: true}).click();
+  try {
+    await page.getByRole('tab', {name, exact: true}).click({timeout: 10000});
+    return;
+  } catch {
+    await page.getByRole('button', {name: `Open ${name}`, exact: true}).click();
+  }
 };
 
 const verifyOfflineWorkflows = async page => {
