@@ -163,6 +163,76 @@ export default function PlayerProfileModal({ player, onClose, onUpdate, onRemove
   const displayMinutesPlayed = Number.isFinite(parsedMinutesPlayed) ? parsedMinutesPlayed : 0;
   const displayYellowCards = Number.isFinite(parsedYellowCards) ? parsedYellowCards : 0;
   const displayRedCards = Number.isFinite(parsedRedCards) ? parsedRedCards : 0;
+  const attributeLabels: Record<string, string> = {
+    pace: 'Pace',
+    stamina: 'Stamina',
+    agility: 'Agility',
+    strength: 'Strength',
+    firstTouch: 'First Touch',
+    shortPassing: 'Passing'
+  };
+  const baseAttributeEntries = Object.entries(baseAttributes);
+  const positionAttributeValues = Object.values(positionAttributes).filter((value): value is number => typeof value === 'number');
+  const baseAttributeAverage = Math.round(
+    baseAttributeEntries.reduce((total, [, value]) => total + value, 0) / Math.max(1, baseAttributeEntries.length)
+  );
+  const positionAttributeAverage = positionAttributeValues.length > 0
+    ? Math.round(positionAttributeValues.reduce((total, value) => total + value, 0) / positionAttributeValues.length)
+    : undefined;
+  const strongestAttribute = baseAttributeEntries.reduce((best, current) => current[1] > best[1] ? current : best);
+  const developmentFocusAttribute = baseAttributeEntries.reduce((lowest, current) => current[1] < lowest[1] ? current : lowest);
+  const fprdsAttributeLabels: Record<string, string> = {
+    ...attributeLabels,
+    finishingBox: 'Box Finishing',
+    shotPower: 'Shot Power',
+    offensive1v1: 'Offensive 1v1',
+    attackingHeading: 'Attacking Heading',
+    longPassing: 'Long Passing',
+    visionPlaymaking: 'Vision',
+    ballRetention: 'Ball Retention',
+    pressingInterceptions: 'Pressing',
+    tackling: 'Tackling',
+    defensiveHeading: 'Defensive Heading',
+    positioningClearances: 'Positioning',
+    crossing: 'Crossing',
+    reflexes: 'Reflexes',
+    handling: 'Handling',
+    divingReach: 'Diving Reach',
+    distribution: 'Distribution'
+  };
+  const goalContributions = displayPoints + displayAssists;
+  const goalsPerMatch = displayGamesPlayed > 0 ? (displayPoints / displayGamesPlayed).toFixed(1) : '0.0';
+  const assistsPerMatch = displayGamesPlayed > 0 ? (displayAssists / displayGamesPlayed).toFixed(1) : '0.0';
+  const contributionsPerMatch = displayGamesPlayed > 0 ? (goalContributions / displayGamesPlayed).toFixed(1) : '0.0';
+  const minutesPerContribution = goalContributions > 0 ? `${Math.round(displayMinutesPlayed / goalContributions)}m` : 'N/A';
+  const mvpRate = displayGamesPlayed > 0 ? `${Math.round((displayMvpAwards / displayGamesPlayed) * 100)}%` : '0%';
+  const disciplineCount = displayYellowCards + displayRedCards;
+  const developmentPriorityId = latestAssessment?.labels.weakestAttributeId;
+  const developmentPriorityLabel = developmentPriorityId
+    ? fprdsAttributeLabels[developmentPriorityId] ?? developmentPriorityId
+    : attributeLabels[developmentFocusAttribute[0]] ?? developmentFocusAttribute[0];
+  const developmentPriorityScore = developmentPriorityId
+    ? latestAssessment?.attributeScores[developmentPriorityId]
+    : developmentFocusAttribute[1];
+  const developmentPrioritySource = latestAssessment ? 'Latest FPRDS' : 'Base attributes';
+  const priorityScore = developmentPriorityScore ?? 0;
+  const improvementLevel = priorityScore < 50
+    ? 'Build the basics'
+    : priorityScore < 65
+    ? 'Improve consistency'
+    : priorityScore < 80
+    ? 'Apply under pressure'
+    : 'Fine-tune for match use';
+  const priorityFocusType = developmentPriorityId?.includes('passing') || developmentPriorityId?.includes('vision') || developmentPriorityId === 'distribution'
+    ? 'passing and decision speed'
+    : developmentPriorityId?.includes('finishing') || developmentPriorityId?.includes('shot')
+    ? 'finishing and controlled shooting'
+    : developmentPriorityId?.includes('tackling') || developmentPriorityId?.includes('defensive') || developmentPriorityId?.includes('positioning')
+    ? 'defensive timing and positioning'
+    : developmentPriorityId?.includes('reflexes') || developmentPriorityId?.includes('handling') || developmentPriorityId?.includes('diving')
+    ? 'goalkeeper reactions and handling'
+    : developmentPriorityLabel.toLowerCase();
+  const suggestedTrainingFocus = `${improvementLevel}: focus on ${priorityFocusType} because ${developmentPriorityLabel} is currently rated ${developmentPriorityScore ?? 'N/A'}.`;
 
   const progressionData = useMemo(() => {
     const isGoalkeeper = position === 'Goalkeeper';
@@ -1274,14 +1344,6 @@ export default function PlayerProfileModal({ player, onClose, onUpdate, onRemove
                           {latestAssessment.assessmentDate} • {latestAssessment.role} • {latestAssessment.assessmentType}
                         </div>
                       </div>
-                      <button
-                        type="button"
-                        onClick={() => onOpenAssessments(player.id)}
-                        aria-label="Open assessment center"
-                        className="bg-indigo-600 hover:bg-indigo-700 text-white text-[10px] font-black px-3 py-2 rounded-lg transition-colors shrink-0"
-                      >
-                        Open
-                      </button>
                     </div>
                   </div>
                 )}
@@ -1313,6 +1375,29 @@ export default function PlayerProfileModal({ player, onClose, onUpdate, onRemove
                   <div className="text-right">
                     <div className="text-[10px] font-bold text-indigo-500 bg-indigo-50 px-2 py-0.5 rounded uppercase tracking-widest inline-block">
                       {player.position} Model
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2 text-[10px]">
+                  <div className="rounded-lg border border-slate-100 bg-slate-50 p-2">
+                    <div className="text-slate-400 font-bold mb-0.5">Base Avg</div>
+                    <div className="font-mono font-black text-slate-800">{baseAttributeAverage}</div>
+                  </div>
+                  <div className="rounded-lg border border-slate-100 bg-slate-50 p-2">
+                    <div className="text-slate-400 font-bold mb-0.5">Position Avg</div>
+                    <div className="font-mono font-black text-slate-800">{positionAttributeAverage ?? 'N/A'}</div>
+                  </div>
+                  <div className="rounded-lg border border-slate-100 bg-slate-50 p-2">
+                    <div className="text-slate-400 font-bold mb-0.5">Top Tool</div>
+                    <div className="font-mono font-black text-slate-800 text-[9px] leading-tight">
+                      {attributeLabels[strongestAttribute[0]] ?? strongestAttribute[0]} ({strongestAttribute[1]})
+                    </div>
+                  </div>
+                  <div className="rounded-lg border border-slate-100 bg-slate-50 p-2">
+                    <div className="text-slate-400 font-bold mb-0.5">Focus Area</div>
+                    <div className="font-mono font-black text-slate-800 text-[9px] leading-tight">
+                      {attributeLabels[developmentFocusAttribute[0]] ?? developmentFocusAttribute[0]} ({developmentFocusAttribute[1]})
                     </div>
                   </div>
                 </div>
@@ -1384,34 +1469,40 @@ export default function PlayerProfileModal({ player, onClose, onUpdate, onRemove
               </div>
             </div>
 
-            {/* Performance Insights */}
-            <div className="pt-4 mt-4 border-t border-slate-100 space-y-2">
-              <span className="text-[9px] font-mono text-slate-400 uppercase tracking-wider font-black">Performance Insights</span>
+            {/* Match Impact Profile */}
+            <div className="order-3 bg-white p-4.5 rounded-xl shadow-sm border border-slate-200/50 space-y-3">
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-[9px] font-mono text-slate-400 uppercase tracking-wider font-black">Match Impact Profile</span>
+                <Activity size={14} className="text-indigo-600" aria-hidden="true" />
+              </div>
               <div className="grid grid-cols-2 gap-2 text-[10px]">
                 <div className="bg-slate-50 rounded-lg p-2 border border-slate-100">
-                  <div className="text-slate-400 font-bold mb-0.5">Goals / Game</div>
-                  <div className="font-mono font-black text-slate-700">
-                    {displayGamesPlayed > 0 ? (displayPoints / displayGamesPlayed).toFixed(1) : '0.0'}
-                  </div>
+                  <div className="text-slate-400 font-bold mb-0.5">Goals / Match</div>
+                  <div className="font-mono font-black text-slate-700">{goalsPerMatch}</div>
                 </div>
                 <div className="bg-slate-50 rounded-lg p-2 border border-slate-100">
-                  <div className="text-slate-400 font-bold mb-0.5">Key Strength</div>
-                  <div className="font-mono font-black text-slate-700 text-[9px] leading-tight">
-                    {(() => {
-                      const topAttr = Object.entries(baseAttributes).reduce((a, b) => a[1] > b[1] ? a : b);
-                      const labels: Record<string, string> = {
-                        pace: 'Pace',
-                        stamina: 'Stamina',
-                        agility: 'Agility',
-                        strength: 'Strength',
-                        firstTouch: 'First Touch',
-                        shortPassing: 'Passing'
-                      };
-                      return `${labels[topAttr[0]]} (${topAttr[1]})`;
-                    })()}
-                  </div>
+                  <div className="text-slate-400 font-bold mb-0.5">Assists / Match</div>
+                  <div className="font-mono font-black text-slate-700">{assistsPerMatch}</div>
                 </div>
                 <div className="bg-slate-50 rounded-lg p-2 border border-slate-100">
+                  <div className="text-slate-400 font-bold mb-0.5">G+A / Match</div>
+                  <div className="font-mono font-black text-slate-700">{contributionsPerMatch}</div>
+                </div>
+                <div className="bg-slate-50 rounded-lg p-2 border border-slate-100">
+                  <div className="text-slate-400 font-bold mb-0.5">Mins / G+A</div>
+                  <div className="font-mono font-black text-slate-700">{minutesPerContribution}</div>
+                </div>
+                <div className="bg-slate-50 rounded-lg p-2 border border-slate-100">
+                  <div className="text-slate-400 font-bold mb-0.5">MVP Rate</div>
+                  <div className="font-mono font-black text-slate-700">{mvpRate}</div>
+                </div>
+                <div className="bg-slate-50 rounded-lg p-2 border border-slate-100">
+                  <div className="text-slate-400 font-bold mb-0.5">Discipline</div>
+                  <div className={`font-mono font-black ${disciplineCount > 0 ? 'text-amber-700' : 'text-slate-700'}`}>
+                    {disciplineCount} cards
+                  </div>
+                </div>
+                <div className="hidden">
                   <div className="text-slate-400 font-bold mb-0.5">Form</div>
                   <div className="font-mono font-black text-slate-700 text-[9px] leading-tight">
                     {displayGamesPlayed > 0 
@@ -1421,7 +1512,7 @@ export default function PlayerProfileModal({ player, onClose, onUpdate, onRemove
                     : 'No games'}
                   </div>
                 </div>
-                <div className="bg-slate-50 rounded-lg p-2 border border-slate-100">
+                <div className="hidden">
                   <div className="text-slate-400 font-bold mb-0.5">Avg Mins/Game</div>
                   <div className="font-mono font-black text-slate-700">
                     {displayGamesPlayed > 0 ? Math.round(displayMinutesPlayed / displayGamesPlayed) : '—'}
@@ -1430,8 +1521,49 @@ export default function PlayerProfileModal({ player, onClose, onUpdate, onRemove
               </div>
             </div>
 
+            {/* Areas for Improvement */}
+            <div className="order-4 bg-white p-4.5 rounded-xl shadow-sm border border-slate-200/50 space-y-3">
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-[9px] font-mono text-slate-400 uppercase tracking-wider font-black">Areas for Improvement</span>
+                <Zap size={14} className="text-amber-500" aria-hidden="true" />
+              </div>
+              <div className="grid grid-cols-2 gap-2 text-[10px]">
+                <div className="bg-amber-50 rounded-lg p-2 border border-amber-100">
+                  <div className="text-amber-600 font-bold mb-0.5">Primary Focus</div>
+                  <div className="font-mono font-black text-amber-800 text-[9px] leading-tight">
+                    {developmentPriorityLabel}
+                  </div>
+                </div>
+                <div className="bg-slate-50 rounded-lg p-2 border border-slate-100">
+                  <div className="text-slate-400 font-bold mb-0.5">Source</div>
+                  <div className="font-mono font-black text-slate-700 text-[9px] leading-tight">{developmentPrioritySource}</div>
+                </div>
+                <div className="bg-slate-50 rounded-lg p-2 border border-slate-100">
+                  <div className="text-slate-400 font-bold mb-0.5">Focus Score</div>
+                  <div className="font-mono font-black text-slate-700">{developmentPriorityScore ?? 'N/A'}</div>
+                </div>
+                <div className="bg-slate-50 rounded-lg p-2 border border-slate-100">
+                  <div className="text-slate-400 font-bold mb-0.5">Strongest Tool</div>
+                  <div className="font-mono font-black text-slate-700 text-[9px] leading-tight">
+                    {attributeLabels[strongestAttribute[0]] ?? strongestAttribute[0]} ({strongestAttribute[1]})
+                  </div>
+                </div>
+              </div>
+              <div className="rounded-xl border border-indigo-100 bg-indigo-50/60 p-3">
+                <div className="text-[9px] font-black uppercase tracking-widest text-indigo-700">Recommended Training Focus</div>
+                <div className="mt-1 text-[11px] font-semibold leading-relaxed text-slate-700">{suggestedTrainingFocus}</div>
+              </div>
+              <button
+                type="button"
+                onClick={() => onOpenAssessments(player.id)}
+                className="inline-flex w-fit items-center justify-center gap-1 rounded-md bg-slate-900 px-2 py-1 text-[8px] font-black uppercase tracking-wider text-white transition-colors hover:bg-slate-800"
+              >
+                <Shield size={9} /> Open Assessment Center
+              </button>
+            </div>
+
           {/* Points Progression Chart - Fullwidth footer span */}
-          <div id="points-progression-chart-card" className="order-3 col-span-1 lg:col-span-2 bg-white p-4.5 rounded-xl shadow-sm border border-slate-200/50">
+          <div id="points-progression-chart-card" className="order-5 col-span-1 lg:col-span-2 bg-white p-4.5 rounded-xl shadow-sm border border-slate-200/50">
             <div className="flex justify-between items-center pb-2.5 border-b border-slate-100">
               <div>
                 <h3 className="font-display font-black text-slate-700 text-xs flex items-center gap-1.5">

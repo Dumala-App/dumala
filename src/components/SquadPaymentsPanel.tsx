@@ -1,5 +1,5 @@
 import React, { useMemo, useRef, useState } from 'react';
-import { AlertCircle, Ban, Banknote, CheckCircle2, CircleDollarSign, Plus, ReceiptText, Search } from 'lucide-react';
+import { AlertCircle, Ban, Banknote, CalendarClock, CheckCircle2, CircleDollarSign, Plus, ReceiptText, Search, TrendingUp } from 'lucide-react';
 import type {
   PaymentLedgerCategory,
   PaymentLedgerEntry,
@@ -27,6 +27,16 @@ interface SquadPaymentsPanelProps {
 
 type EntryFormField = 'playerId' | 'amount' | 'date' | 'method' | 'note';
 type BulkFormField = 'amount' | 'date';
+type MonthlyPaymentSummary = {
+  monthKey: string;
+  monthLabel: string;
+  charged: number;
+  paid: number;
+  waived: number;
+  refunded: number;
+  balance: number;
+  entryCount: number;
+};
 
 const categories: Array<{ value: PaymentLedgerCategory; label: string }> = [
   { value: 'registration', label: 'Registration' },
@@ -67,6 +77,13 @@ const parsePositiveAmount = (rawValue: string, label = 'Amount') => {
 
 const makeEntryId = () => `pay_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 
+const formatMonthLabel = (monthKey: string): string => {
+  const [year, month] = monthKey.split('-').map(Number);
+  return new Intl.DateTimeFormat('en-PH', { month: 'short', year: 'numeric' }).format(new Date(year, month - 1, 1));
+};
+
+const roundMoney = (value: number): number => Math.round((value + Number.EPSILON) * 100) / 100;
+
 const statusStyles: Record<string, string> = {
   paid: 'border-emerald-200 bg-emerald-50 text-emerald-700',
   partial: 'border-sky-200 bg-sky-50 text-sky-700',
@@ -85,6 +102,7 @@ export default function SquadPaymentsPanel({
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [categoryFilter, setCategoryFilter] = useState<'all' | PaymentLedgerCategory>('all');
+  const [monthFilter, setMonthFilter] = useState('all');
   const [entryType, setEntryType] = useState<PaymentLedgerEntryType>('charge');
   const [playerId, setPlayerId] = useState('');
   const [category, setCategory] = useState<PaymentLedgerCategory>('monthly_fee');
@@ -108,6 +126,49 @@ export default function SquadPaymentsPanel({
   const summaries = useMemo(() => summarizePaymentLedger(players, entries), [entries, players]);
   const totals = useMemo(() => calculatePaymentLedgerTotals(summaries), [summaries]);
   const playerById = useMemo(() => new Map(players.map(player => [player.id, player])), [players]);
+  const activeEntries = useMemo(() => entries.filter(entry => !entry.voidedAt), [entries]);
+  const monthlyHistory = useMemo(() => {
+    const byMonth = new Map<string, MonthlyPaymentSummary>();
+
+    activeEntries.forEach(entry => {
+      const monthKey = entry.date.slice(0, 7);
+      const current = byMonth.get(monthKey) ?? {
+        monthKey,
+        monthLabel: formatMonthLabel(monthKey),
+        charged: 0,
+        paid: 0,
+        waived: 0,
+        refunded: 0,
+        balance: 0,
+        entryCount: 0
+      };
+
+      if (entry.type === 'charge' || entry.type === 'adjustment') current.charged += entry.amount;
+      if (entry.type === 'payment') current.paid += entry.amount;
+      if (entry.type === 'waiver') current.waived += entry.amount;
+      if (entry.type === 'refund') current.refunded += entry.amount;
+      current.entryCount += 1;
+      current.balance = roundMoney(current.charged + current.refunded - current.paid - current.waived);
+      byMonth.set(monthKey, current);
+    });
+
+    return Array.from(byMonth.values())
+      .map(month => ({
+        ...month,
+        charged: roundMoney(month.charged),
+        paid: roundMoney(month.paid),
+        waived: roundMoney(month.waived),
+        refunded: roundMoney(month.refunded),
+        balance: roundMoney(month.balance)
+      }))
+      .sort((a, b) => b.monthKey.localeCompare(a.monthKey));
+  }, [activeEntries]);
+  const currentMonthKey = today().slice(0, 7);
+  const currentMonthSummary = monthlyHistory.find(month => month.monthKey === currentMonthKey);
+  const currentMonthRate = currentMonthSummary && currentMonthSummary.charged > 0
+    ? Math.min(100, Math.round(((currentMonthSummary.paid + currentMonthSummary.waived) / currentMonthSummary.charged) * 100))
+    : 0;
+  const recentMonthlyHistory = monthlyHistory.slice(0, 6);
 
   const filteredSummaries = summaries.filter(summary => {
     const matchesSearch = summary.playerName.toLowerCase().includes(searchTerm.toLowerCase());
@@ -118,7 +179,8 @@ export default function SquadPaymentsPanel({
   const filteredEntries = entries.filter(entry => {
     const matchesSearch = entry.playerNameSnapshot.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCategory = categoryFilter === 'all' || entry.category === categoryFilter;
-    return matchesSearch && matchesCategory;
+    const matchesMonth = monthFilter === 'all' || entry.date.startsWith(monthFilter);
+    return matchesSearch && matchesCategory && matchesMonth;
   });
 
   const resetEntryForm = () => {
@@ -234,6 +296,95 @@ export default function SquadPaymentsPanel({
         })}
       </div>
 
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(280px,0.38fr)_minmax(0,0.62fr)]">
+        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Current month</p>
+              <h3 className="mt-1 font-display text-sm font-black uppercase tracking-wider text-slate-800">
+                {formatMonthLabel(currentMonthKey)}
+              </h3>
+            </div>
+            <CalendarClock size={18} className="text-indigo-600" aria-hidden="true" />
+          </div>
+          <div className="mt-4 grid grid-cols-2 gap-2 text-xs">
+            <div className="rounded-xl border border-slate-100 bg-slate-50 p-3">
+              <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Charged</p>
+              <p className="mt-1 font-black text-slate-800">{formatPeso(currentMonthSummary?.charged ?? 0)}</p>
+            </div>
+            <div className="rounded-xl border border-emerald-100 bg-emerald-50 p-3">
+              <p className="text-[10px] font-black uppercase tracking-widest text-emerald-600">Collected</p>
+              <p className="mt-1 font-black text-emerald-700">{formatPeso(currentMonthSummary?.paid ?? 0)}</p>
+            </div>
+            <div className="rounded-xl border border-amber-100 bg-amber-50 p-3">
+              <p className="text-[10px] font-black uppercase tracking-widest text-amber-600">Remaining</p>
+              <p className="mt-1 font-black text-amber-700">{formatPeso(Math.max(currentMonthSummary?.balance ?? 0, 0))}</p>
+            </div>
+            <div className="rounded-xl border border-slate-100 bg-slate-50 p-3">
+              <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Entries</p>
+              <p className="mt-1 font-black text-slate-800">{currentMonthSummary?.entryCount ?? 0}</p>
+            </div>
+          </div>
+          <div className="mt-4">
+            <div className="mb-1.5 flex items-center justify-between text-[10px] font-black uppercase tracking-widest text-slate-400">
+              <span>Collection rate</span>
+              <span>{currentMonthRate}%</span>
+            </div>
+            <div className="h-2 overflow-hidden rounded-full bg-slate-100">
+              <div className="h-full rounded-full bg-emerald-500 transition-all" style={{ width: `${currentMonthRate}%` }} />
+            </div>
+          </div>
+        </div>
+
+        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Previous months</p>
+              <h3 className="mt-1 font-display text-sm font-black uppercase tracking-wider text-slate-800">Monthly payment history</h3>
+            </div>
+            <TrendingUp size={18} className="text-emerald-600" aria-hidden="true" />
+          </div>
+          {recentMonthlyHistory.length > 0 ? (
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
+              {recentMonthlyHistory.map(month => (
+                <button
+                  key={month.monthKey}
+                  type="button"
+                  onClick={() => setMonthFilter(month.monthKey)}
+                  className={`rounded-xl border p-3 text-left transition-colors hover:border-indigo-200 hover:bg-indigo-50/40 ${
+                    monthFilter === month.monthKey ? 'border-indigo-300 bg-indigo-50' : 'border-slate-100 bg-slate-50'
+                  }`}
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">{month.monthLabel}</p>
+                    <span className="text-[10px] font-black text-slate-400">{month.entryCount} rows</span>
+                  </div>
+                  <div className="mt-2 grid grid-cols-3 gap-2 text-[10px]">
+                    <div>
+                      <p className="font-black uppercase tracking-widest text-slate-400">Fee</p>
+                      <p className="mt-0.5 font-black text-slate-700">{formatPeso(month.charged)}</p>
+                    </div>
+                    <div>
+                      <p className="font-black uppercase tracking-widest text-emerald-600">Paid</p>
+                      <p className="mt-0.5 font-black text-emerald-700">{formatPeso(month.paid)}</p>
+                    </div>
+                    <div>
+                      <p className="font-black uppercase tracking-widest text-amber-600">Open</p>
+                      <p className="mt-0.5 font-black text-amber-700">{formatPeso(Math.max(month.balance, 0))}</p>
+                    </div>
+                  </div>
+                </button>
+              ))}
+            </div>
+          ) : (
+            <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 p-6 text-center">
+              <p className="text-xs font-black text-slate-700">No monthly history yet</p>
+              <p className="mt-1 text-[11px] font-medium text-slate-500">Monthly summaries appear after you record charges or payments.</p>
+            </div>
+          )}
+        </div>
+      </div>
+
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1.35fr)_minmax(320px,0.65fr)]">
         <div className="space-y-4">
           <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
@@ -307,14 +458,26 @@ export default function SquadPaymentsPanel({
                 <h3 className="font-display text-sm font-black uppercase tracking-wider text-slate-800">Ledger history</h3>
                 <p className="mt-1 text-[11px] font-medium text-slate-500">Voided entries remain visible for review.</p>
               </div>
-              <select
-                value={categoryFilter}
-                onChange={event => setCategoryFilter(event.target.value as 'all' | PaymentLedgerCategory)}
-                className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-600 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
-              >
-                <option value="all">All categories</option>
-                {categories.map(item => <option key={item.value} value={item.value}>{item.label}</option>)}
-              </select>
+              <div className="flex flex-col gap-2 sm:flex-row">
+                <select
+                  value={monthFilter}
+                  onChange={event => setMonthFilter(event.target.value)}
+                  className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-600 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                  aria-label="Filter ledger by month"
+                >
+                  <option value="all">All months</option>
+                  {monthlyHistory.map(month => <option key={month.monthKey} value={month.monthKey}>{month.monthLabel}</option>)}
+                </select>
+                <select
+                  value={categoryFilter}
+                  onChange={event => setCategoryFilter(event.target.value as 'all' | PaymentLedgerCategory)}
+                  className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-600 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                  aria-label="Filter ledger by category"
+                >
+                  <option value="all">All categories</option>
+                  {categories.map(item => <option key={item.value} value={item.value}>{item.label}</option>)}
+                </select>
+              </div>
             </div>
 
             {filteredEntries.length > 0 ? (
