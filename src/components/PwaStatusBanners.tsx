@@ -21,7 +21,7 @@ export default function PwaStatusBanners() {
 
   return (
     <div
-      className="pointer-events-none fixed inset-x-0 bottom-4 z-[130] mx-auto flex w-full max-w-xl flex-col gap-2 px-4"
+      className="pointer-events-none fixed inset-x-0 bottom-4 z-[45] mx-auto flex w-full max-w-xl flex-col gap-2 px-4"
       aria-live="polite"
       aria-atomic="true"
     >

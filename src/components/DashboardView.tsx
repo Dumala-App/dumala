@@ -896,7 +896,7 @@ export default function DashboardView({
           </button>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 lg:gap-6 mt-6">
           <div className="bg-slate-50/60 border border-slate-100/80 rounded-2xl p-4">
             <h4 className="font-display font-bold text-xs uppercase text-slate-400 mb-3 flex items-center gap-1">
               <Star size={14} className="text-amber-500" /> Top Prospects
