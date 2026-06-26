@@ -3,9 +3,10 @@ import type { AssessmentSession, Game, Player } from '../types';
 import ViewLoadingFallback from './ViewLoadingFallback';
 
 const AssessmentsView = lazy(() => import('./AssessmentsView'));
+const AssessmentDrillGuideView = lazy(() => import('./AssessmentDrillGuideView'));
 const TrainingView = lazy(() => import('./TrainingView'));
 
-export type DevelopmentTab = 'assessments' | 'training';
+export type DevelopmentTab = 'assessments' | 'training' | 'assessment_guide';
 
 interface DevelopmentHubViewProps {
   activeTab: DevelopmentTab;
@@ -48,11 +49,16 @@ export default function DevelopmentHubView(props: DevelopmentHubViewProps) {
         <div className="flex flex-wrap items-center gap-2">
           <TabPill label="Training" isActive={props.activeTab === 'training'} onClick={() => props.onTabChange('training')} />
           <TabPill label="Assessments" isActive={props.activeTab === 'assessments'} onClick={() => props.onTabChange('assessments')} />
+          <TabPill label="Assessment Guide" isActive={props.activeTab === 'assessment_guide'} onClick={() => props.onTabChange('assessment_guide')} />
         </div>
       </div>
 
       <Suspense fallback={<ViewLoadingFallback label={props.activeTab} />}>
-        {props.activeTab === 'assessments' ? (
+        {props.activeTab === 'assessment_guide' && (
+          <AssessmentDrillGuideView />
+        )}
+
+        {props.activeTab === 'assessments' && (
           <AssessmentsView
             players={props.players}
             assessments={props.assessments}
@@ -62,7 +68,9 @@ export default function DevelopmentHubView(props: DevelopmentHubViewProps) {
             onDeleteAssessment={props.onDeleteAssessment}
             onUpdateAssessmentNotes={props.onUpdateAssessmentNotes}
           />
-        ) : (
+        )}
+
+        {props.activeTab === 'training' && (
           <TrainingView players={props.players} onUpdatePlayer={props.onUpdatePlayer} games={props.games} onUpdateGames={props.onUpdateGames} />
         )}
       </Suspense>

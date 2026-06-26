@@ -190,6 +190,7 @@ The FPRDS total includes eleven completed capabilities: the five shipped assessm
 - [x] **Done:** Verify Quick and Full required-field behavior.
 - [x] **Done:** Add true historical progress charts.
 - [x] **Done:** Add player-to-player and session-to-session reports.
+- [ ] **Next:** Design and build the FPRDS private beta results database for opt-in submitted assessment sessions, aggregate benchmark analysis, and correction review.
 - [ ] **Next:** Add downloadable assessment and development reports.
 - [ ] **Planned:** Add assessment export suitable for coach review.
 - [ ] **Planned:** Define benchmark versioning so historical sessions remain reproducible.

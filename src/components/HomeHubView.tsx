@@ -11,7 +11,7 @@ export type HubNavigateTarget =
   | { primary: 'home'; homeTab: HomeTab }
   | { primary: 'squad' }
   | { primary: 'tactics' }
-  | { primary: 'development'; developmentTab: 'assessments' | 'training' }
+  | { primary: 'development'; developmentTab: 'assessments' | 'training' | 'assessment_guide' }
   | { primary: 'league_updates'; leagueUpdatesTab: 'league' | 'updates' | 'bulletins' };
 
 interface HomeHubViewProps {

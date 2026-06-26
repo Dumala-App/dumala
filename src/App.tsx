@@ -142,7 +142,7 @@ export default function App() {
   const [isOnboarded, setIsOnboarded] = useState(initialWorkspace.isOnboarded);
   type PrimaryTab = 'home' | 'squad' | 'tactics' | 'development' | 'league_updates';
   type HomeTab = 'overview' | 'game_week';
-  type DevelopmentTab = 'assessments' | 'training';
+  type DevelopmentTab = 'assessments' | 'training' | 'assessment_guide';
   type LeagueUpdatesTab = 'league' | 'updates' | 'bulletins';
   const primaryTabs: Array<{ id: PrimaryTab; label: string; icon: LucideIcon }> = [
     { id: 'home', label: 'Home', icon: Shield },
@@ -1009,7 +1009,7 @@ export default function App() {
             )}
 
             {primaryTab === 'development' && (
-              <ViewErrorBoundary viewName={developmentTab === 'training' ? 'Training' : 'Assessments'} onReturnHome={handleReturnHomeFromError} resetKeys={[primaryTab, developmentTab]}>
+              <ViewErrorBoundary viewName={developmentTab === 'training' ? 'Training' : developmentTab === 'assessment_guide' ? 'Assessment Guide' : 'Assessments'} onReturnHome={handleReturnHomeFromError} resetKeys={[primaryTab, developmentTab]}>
                 <DevelopmentHubView
                   activeTab={developmentTab}
                   onTabChange={setDevelopmentTab}
