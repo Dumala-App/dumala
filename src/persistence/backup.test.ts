@@ -3,6 +3,7 @@ import {
   applyWorkspaceBackup,
   collectFeatureState,
   createWorkspaceBackup,
+  formatBackupSourceLabel,
   parseWorkspaceBackup,
   workspaceBackupV3Schema,
   workspaceBackupV4Schema
@@ -203,7 +204,7 @@ const core = {
   paymentLedger: [paymentEntry]
 };
 
-describe('workspace backup V2', () => {
+describe('workspace backup V4', () => {
   it('round-trips core and feature state', () => {
     const storage = new MemoryStorage();
     storage.setItem(STORAGE_KEYS.availability, JSON.stringify({ g1: { p1: 'yes' } }));
@@ -253,6 +254,40 @@ describe('workspace backup V2', () => {
     expect(JSON.parse(restored.getItem(STORAGE_KEYS.weeklySchedule)!).Monday).toHaveLength(1);
     expect(JSON.parse(restored.getItem(STORAGE_KEYS.lineup)!).CF.id).toBe('p1');
     expect(JSON.parse(restored.getItem(STORAGE_KEYS.tacticsNotes)!)).toHaveLength(1);
+  });
+
+  it('parses a current V4 backup without legacy migration and preserves payment ledger records', () => {
+    const backup = createWorkspaceBackup(core, new MemoryStorage(), '2026-06-21T00:00:00.000Z');
+    const staleFeatureState = collectFeatureState(new MemoryStorage());
+
+    const result = parseWorkspaceBackup(backup, staleFeatureState);
+
+    expect(result.sourceVersion).toBe('4');
+    expect(result.backup).toEqual(backup);
+    expect(result.backup.core.paymentLedger).toEqual([paymentEntry]);
+    expect(result.backup.featureState).toEqual(backup.featureState);
+  });
+
+  it('restores a current V4 backup over stale payment ledger storage', () => {
+    const backup = createWorkspaceBackup(core, new MemoryStorage(), '2026-06-21T00:00:00.000Z');
+    const target = new MemoryStorage();
+    target.setItem(STORAGE_KEYS.paymentLedger, JSON.stringify([{
+      ...paymentEntry,
+      id: 'stale-payment',
+      amount: 1
+    }]));
+
+    const { backup: parsedBackup, sourceVersion } = parseWorkspaceBackup(backup, collectFeatureState(target));
+    applyWorkspaceBackup(parsedBackup, target);
+
+    expect(sourceVersion).toBe('4');
+    expect(JSON.parse(target.getItem(STORAGE_KEYS.paymentLedger)!)).toEqual([paymentEntry]);
+  });
+
+  it('labels V4 as the current full-workspace format in restore copy', () => {
+    expect(formatBackupSourceLabel('4')).toBe('V4 full workspace');
+    expect(formatBackupSourceLabel('3')).toBe('V3 full workspace');
+    expect(formatBackupSourceLabel('1.1.0')).toBe('legacy V1.1.0');
   });
 
   it.each(['1.0.0', '1.1.0'] as const)('migrates legacy backup %s', version => {

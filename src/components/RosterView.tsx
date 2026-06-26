@@ -7,7 +7,7 @@ import {
 import { motion } from 'motion/react';
 import PlayerComparer from './PlayerComparer';
 import { getPlayerPlaceholder, STAFF_PLACEHOLDER } from '../playerPlaceholders';
-import type { BackupRestoreSummary } from '../persistence/backup';
+import { formatBackupSourceLabel, type BackupRestoreSummary } from '../persistence/backup';
 import { FieldError, FormErrorSummary } from './FormValidation';
 import {
   FieldErrors,
@@ -98,9 +98,7 @@ export default function RosterView({
     }
     try {
       const summary = await onImportBackup(file);
-      const sourceLabel = ['2', '3'].includes(summary.sourceVersion)
-        ? `V${summary.sourceVersion} full workspace`
-        : `legacy V${summary.sourceVersion}`;
+      const sourceLabel = formatBackupSourceLabel(summary.sourceVersion);
       setBackupMessageType('success');
       setBackupMessage(
         `${sourceLabel} restored: ${summary.players} players, ${summary.staff} staff, ${summary.paymentEntries} payment records, ${summary.games} events, ${summary.standings} league rows, ${summary.announcements} bulletins, and ${summary.assessments} assessments.`
