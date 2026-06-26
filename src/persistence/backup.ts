@@ -165,7 +165,7 @@ const defaultTactics = {
   drawings: []
 };
 
-export const collectFeatureState = (storage: StorageLike = window.localStorage): WorkspaceBackupV3['featureState'] => ({
+export const collectFeatureState = (storage: StorageLike = window.localStorage): WorkspaceBackupV4['featureState'] => ({
   availability: readJsonStorage(STORAGE_KEYS.availability, availabilitySchema, {}, 'Match availability', storage),
   coachNotes: readJsonStorage(STORAGE_KEYS.coachNotes, coachNotesSchema, {}, 'Coach notes', storage),
   weeklyTraining: readJsonStorage(STORAGE_KEYS.weeklySchedule, weeklyScheduleSchema, emptyWeeklySchedule, 'Weekly training', storage),
@@ -363,3 +363,9 @@ export const summarizeBackup = (backup: WorkspaceBackupV4, sourceVersion = '4'):
   paymentEntries: 'paymentLedger' in backup.core ? backup.core.paymentLedger.length : 0,
   includedFeatureState: ['2', '3', '4'].includes(sourceVersion)
 });
+
+export const formatBackupSourceLabel = (sourceVersion: string): string => (
+  ['2', '3', '4'].includes(sourceVersion)
+    ? `V${sourceVersion} full workspace`
+    : `legacy V${sourceVersion}`
+);
