@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { AssessmentSession, Game, Player, Standing, Announcement, TeamInfo } from '../types';
 import {findUserStanding, sortStandings} from '../standings';
 import { Calendar, MapPin, Trophy, Shield, Megaphone, Star, Award, Zap, ArrowRight, CornerRightDown, TrendingUp, Edit, Upload, Link, Check, X, Image, Crown, Target, Flame, AlertCircle, Table, Users, ClipboardList } from 'lucide-react';
@@ -114,6 +114,8 @@ export default function DashboardView({
   
   // Team logo management states
   const [showLogoPicker, setShowLogoPicker] = useState(false);
+  const [clubNameInput, setClubNameInput] = useState(teamInfo.name);
+  const [clubNameError, setClubNameError] = useState('');
   const [logoInputUrl, setLogoInputUrl] = useState("");
   const [dragOver, setDragOver] = useState(false);
   const [logoStatus, setLogoStatus] = useState<'idle' | 'success' | 'error'>('idle');
@@ -126,6 +128,11 @@ export default function DashboardView({
     { key: 'target', label: 'Bullseye Target', icon: Target },
     { key: 'trophy', label: 'Gold Trophy', icon: Trophy },
   ];
+
+  useEffect(() => {
+    setClubNameInput(teamInfo.name);
+    setClubNameError('');
+  }, [teamInfo.name]);
 
   const renderLogo = (logoUrl: string | undefined, size = 64, className = "") => {
     if (!logoUrl) {
@@ -234,6 +241,35 @@ export default function DashboardView({
     });
     setLogoStatus('success');
     setLogoInputUrl("");
+    setTimeout(() => setLogoStatus('idle'), 2500);
+  };
+
+  const handleClubNameSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const trimmedName = clubNameInput.trim();
+    if (!trimmedName) {
+      setClubNameError('Club name is required.');
+      return;
+    }
+
+    const normalizedCurrentName = teamInfo.name.trim().toLowerCase();
+    const nameTaken = standings.some(team => {
+      const normalizedStandingName = team.teamName.trim().toLowerCase();
+      const isCurrentUserTeam = team.isUserTeam || normalizedStandingName === normalizedCurrentName;
+      return !isCurrentUserTeam && normalizedStandingName === trimmedName.toLowerCase();
+    });
+
+    if (nameTaken) {
+      setClubNameError('Another standings club already uses this name.');
+      return;
+    }
+
+    onUpdateTeamInfo({
+      ...teamInfo,
+      name: trimmedName
+    });
+    setClubNameError('');
+    setLogoStatus('success');
     setTimeout(() => setLogoStatus('idle'), 2500);
   };
   
@@ -488,7 +524,40 @@ export default function DashboardView({
               </button>
             </div>
 
-            <div className="p-5 grid grid-cols-1 md:grid-cols-12 gap-6">
+            <div className="p-5 space-y-5">
+              <form onSubmit={handleClubNameSubmit} className="rounded-2xl border border-slate-800 bg-slate-950 p-4">
+                <div className="flex flex-col gap-3 lg:flex-row lg:items-end">
+                  <div className="min-w-0 flex-1">
+                    <label htmlFor="club-name-editor" className="text-[10px] font-black uppercase text-amber-400 tracking-wider block">
+                      Club Name
+                    </label>
+                    <input
+                      id="club-name-editor"
+                      value={clubNameInput}
+                      onChange={e => {
+                        setClubNameInput(e.target.value);
+                        setClubNameError('');
+                      }}
+                      className={`mt-2 w-full rounded-xl border bg-slate-900 px-3 py-2.5 text-sm font-black text-slate-100 placeholder-slate-600 focus:outline-none focus:ring-1 ${
+                        clubNameError ? 'border-rose-500 focus:ring-rose-500' : 'border-slate-800 focus:ring-amber-400'
+                      }`}
+                      placeholder="Enter club name"
+                    />
+                    <p className={`mt-1.5 text-[10px] font-semibold ${clubNameError ? 'text-rose-300' : 'text-slate-500'}`}>
+                      {clubNameError || 'This name syncs with your user-team row in League Standings.'}
+                    </p>
+                  </div>
+                  <button
+                    type="submit"
+                    disabled={clubNameInput.trim() === teamInfo.name.trim()}
+                    className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-amber-400 px-4 py-2.5 text-xs font-black uppercase tracking-wider text-slate-950 shadow-md transition-all hover:bg-amber-300 disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    <Check size={13} /> Save Name
+                  </button>
+                </div>
+              </form>
+
+              <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
               {/* Option 1: Vector Preset Badges */}
               <div className="md:col-span-4 space-y-3">
                 <span className="text-[10px] font-black uppercase text-amber-400 tracking-wider block">
@@ -585,6 +654,7 @@ export default function DashboardView({
                     <Check size={13} /> Link Emblem URL
                   </button>
                 </form>
+              </div>
               </div>
             </div>
 
