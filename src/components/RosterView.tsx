@@ -341,12 +341,7 @@ export default function RosterView({
     return matchesSearch && matchesPosition;
   });
 
-  const staffMembers = filterPos === 'All'
-    ? staff.filter(member =>
-        member.name.toLowerCase().includes(searchTerm.toLowerCase())
-        || member.role.toLowerCase().includes(searchTerm.toLowerCase())
-      )
-    : [];
+  const staffMembers = staff;
   const duplicateJerseyPlayer = newPlayerNumber.trim()
       ? players.find(player => player.number === Number(newPlayerNumber))
     : undefined;
@@ -406,6 +401,7 @@ export default function RosterView({
           })}
         </div>
 
+        {activeSection === 'players' && (
         <div className="rounded-xl border border-slate-200/70 bg-white px-3 py-3 shadow-sm font-medium">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
             <div className="relative w-full lg:max-w-sm">
@@ -507,6 +503,7 @@ export default function RosterView({
             Full Workspace V4 includes players, staff, payments, schedule, league, bulletins, assessments, tactics, training, availability, coach notes, and standings history.
           </p>
         </div>
+        )}
 
         {/* Section Layouts */}
         {activeSection === 'staff' && <div id="management-staff-section" className="space-y-4">
