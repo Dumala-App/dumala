@@ -3,7 +3,6 @@ import type { AgeGroup, AssessmentRawResults, AssessmentSession, FprdsAttributeI
 import {
   AlertCircle,
   ArrowLeftRight,
-  BookOpen,
   Calendar,
   CheckCircle2,
   ChevronLeft,
@@ -26,9 +25,8 @@ import {
   XAxis,
   YAxis
 } from 'recharts';
-import AssessmentQuickGuide from './AssessmentQuickGuide';
 import { FieldError, FormErrorSummary } from './FormValidation';
-import { FieldErrors, focusFirstInvalidField } from '../forms/validation';
+import { FieldErrors, focusFirstInvalidField, hasFieldErrors } from '../forms/validation';
 import { generateFourWeekPlan } from '../fprds/development';
 import {
   computeAgeGroupFromDob,
@@ -47,7 +45,6 @@ import {
   selectLatestAssessmentByPlayer,
   type AssessmentProgressPoint
 } from '../fprds/progress';
-import type { DrillGuideCategory } from '../fprds/drillGuide';
 import AssessmentPlayerCardPreview from './AssessmentPlayerCardPreview';
 
 type AssessmentType = 'Full' | 'Quick';
@@ -228,8 +225,6 @@ export default function AssessmentsView({
   const [roleSpecific, setRoleSpecific] = useState<Record<string, string>>({});
   const [saveError, setSaveError] = useState<string | null>(null);
   const [assessmentSubmitErrors, setAssessmentSubmitErrors] = useState<FieldErrors<string>>({});
-  const [isQuickGuideOpen, setIsQuickGuideOpen] = useState(false);
-  const [quickGuideLaunchContext, setQuickGuideLaunchContext] = useState<{ initialCategory?: DrillGuideCategory; initialDrillId?: string } | null>(null);
   const [comparisonPlayerId, setComparisonPlayerId] = useState('');
   const [baselineSessionId, setBaselineSessionId] = useState('');
   const [targetSessionId, setTargetSessionId] = useState('');
@@ -496,63 +491,6 @@ export default function AssessmentsView({
     return fields;
   }, [assessmentType, role]);
 
-  const recommendedDrillIds = useMemo(() => {
-    const baseIds = [
-      'base_sprint_10_30',
-      'base_yoyo',
-      'base_illinois',
-      'base_power',
-      'base_first_touch',
-      'base_short_passing'
-    ];
-
-    const roleIds: string[] = [];
-
-    if (role === 'ST') {
-      roleIds.push('fw_finishing_box', assessmentType === 'Quick' ? 'fw_shot_power' : 'fw_shot_power');
-      if (assessmentType === 'Full') roleIds.push('fw_offensive_1v1', 'fw_attacking_heading');
-    }
-
-    if (role === 'W') {
-      roleIds.push('fw_finishing_box', 'fw_offensive_1v1');
-      if (assessmentType === 'Full') roleIds.push('fw_shot_power', 'fw_attacking_heading');
-    }
-
-    if (role === 'CM') {
-      roleIds.push('mid_long_passing', 'mid_vision_rondo');
-      if (assessmentType === 'Full') roleIds.push('mid_ball_retention', 'mid_pressing_cage');
-    }
-
-    if (role === 'CDM') {
-      roleIds.push('mid_long_passing', 'mid_pressing_cage');
-      if (assessmentType === 'Full') roleIds.push('mid_vision_rondo', 'mid_ball_retention');
-    }
-
-    if (role === 'FB') {
-      roleIds.push('def_tackling_1v1', 'def_crossing_target');
-      if (assessmentType === 'Full') roleIds.push('def_heading_clearance', 'def_positioning_clearances');
-    }
-
-    if (role === 'CB') {
-      roleIds.push('def_tackling_1v1', 'def_heading_clearance');
-      if (assessmentType === 'Full') roleIds.push('def_positioning_clearances', 'def_crossing_target');
-    }
-
-    if (role === 'GK') {
-      roleIds.push('gk_reflexes', 'gk_handling');
-      if (assessmentType === 'Full') roleIds.push('gk_diving', 'gk_distribution');
-    }
-
-    return [...baseIds, ...roleIds];
-  }, [assessmentType, role]);
-
-  const getRoleGuideCategory = (r: FprdsRole): DrillGuideCategory => {
-    if (r === 'ST' || r === 'W') return 'ForwardsWingers';
-    if (r === 'CM' || r === 'CDM') return 'Midfielders';
-    if (r === 'FB' || r === 'CB') return 'Defenders';
-    return 'Goalkeepers';
-  };
-
   const parsedBase = useMemo(() => {
     const toNum = (v: string) => (v.trim() ? Number(v) : NaN);
     return {
@@ -605,6 +543,7 @@ export default function AssessmentsView({
     });
     return map;
   }, [scorePreview]);
+  const showAssessmentSubmitErrors = hasFieldErrors(assessmentSubmitErrors);
 
   const handleSelectPlayer = (playerId: string) => {
     setSelectedPlayerId(playerId);
@@ -1221,36 +1160,19 @@ export default function AssessmentsView({
               </h3>
               <FormErrorSummary
                 id="assessment-error-summary"
-                errors={Object.keys(assessmentSubmitErrors).length > 0 ? assessmentSubmitErrors : fieldErrors}
+                errors={showAssessmentSubmitErrors ? assessmentSubmitErrors : {}}
               />
 
               <div className="rounded-2xl border border-slate-200 bg-slate-50/50 p-4">
-                <div className="flex items-center justify-between gap-3">
-                  <p className="text-[11px] font-black uppercase tracking-wider text-slate-500">Base attributes (all players)</p>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setQuickGuideLaunchContext({
-                        initialCategory: 'Base',
-                        initialDrillId: 'base_sprint_10_30'
-                      });
-                      setIsQuickGuideOpen(true);
-                    }}
-                    aria-label="Open guide for base drills"
-                    className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-1.5 py-1 text-[8px] font-black uppercase tracking-wide text-slate-700 hover:bg-slate-50 transition-colors"
-                  >
-                    <BookOpen size={10} className="text-indigo-600" />
-                    Guide for these drills
-                  </button>
-                </div>
-              <div className="mt-3 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+                <p className="text-[11px] font-black uppercase tracking-wider text-slate-500">Base attributes (all players)</p>
+                <div className="mt-3 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
                   <NumberInput
                     id="base-sprint10"
                     fieldName="sprint10mSeconds"
                     label="10m split (seconds)"
                     value={base.sprint10mSeconds}
                     step={0.01}
-                    error={fieldErrors.sprint10mSeconds}
+                    error={assessmentSubmitErrors.sprint10mSeconds}
                     onChange={(v) => {
                       setAssessmentSubmitErrors(previous => ({ ...previous, sprint10mSeconds: undefined }));
                       setBase(prev => ({ ...prev, sprint10mSeconds: v }));
@@ -1262,7 +1184,7 @@ export default function AssessmentsView({
                     label="30m sprint (seconds)"
                     value={base.sprint30mSeconds}
                     step={0.01}
-                    error={fieldErrors.sprint30mSeconds}
+                    error={assessmentSubmitErrors.sprint30mSeconds}
                     onChange={(v) => {
                       setAssessmentSubmitErrors(previous => ({ ...previous, sprint30mSeconds: undefined }));
                       setBase(prev => ({ ...prev, sprint30mSeconds: v }));
@@ -1274,7 +1196,7 @@ export default function AssessmentsView({
                     label="Yo-Yo distance (meters)"
                     value={base.yoyoMeters}
                     step={1}
-                    error={fieldErrors.yoyoMeters}
+                    error={assessmentSubmitErrors.yoyoMeters}
                     onChange={(v) => {
                       setAssessmentSubmitErrors(previous => ({ ...previous, yoyoMeters: undefined }));
                       setBase(prev => ({ ...prev, yoyoMeters: v }));
@@ -1286,7 +1208,7 @@ export default function AssessmentsView({
                     label="Illinois agility (seconds)"
                     value={base.illinoisSeconds}
                     step={0.01}
-                    error={fieldErrors.illinoisSeconds}
+                    error={assessmentSubmitErrors.illinoisSeconds}
                     onChange={(v) => {
                       setAssessmentSubmitErrors(previous => ({ ...previous, illinoisSeconds: undefined }));
                       setBase(prev => ({ ...prev, illinoisSeconds: v }));
@@ -1298,7 +1220,7 @@ export default function AssessmentsView({
                     label="Standing broad jump (cm)"
                     value={base.broadJumpCm}
                     step={1}
-                    error={fieldErrors.broadJumpCm}
+                    error={assessmentSubmitErrors.broadJumpCm}
                     onChange={(v) => {
                       setAssessmentSubmitErrors(previous => ({ ...previous, broadJumpCm: undefined }));
                       setBase(prev => ({ ...prev, broadJumpCm: v }));
@@ -1310,7 +1232,7 @@ export default function AssessmentsView({
                     label="Medicine ball throw (cm)"
                     value={base.medicineBallThrowCm}
                     step={1}
-                    error={fieldErrors.medicineBallThrowCm}
+                    error={assessmentSubmitErrors.medicineBallThrowCm}
                     onChange={(v) => {
                       setAssessmentSubmitErrors(previous => ({ ...previous, medicineBallThrowCm: undefined }));
                       setBase(prev => ({ ...prev, medicineBallThrowCm: v }));
@@ -1324,7 +1246,7 @@ export default function AssessmentsView({
                     step={1}
                     min={0}
                     max={10}
-                    error={fieldErrors.firstTouchSuccessesOutOf10}
+                    error={assessmentSubmitErrors.firstTouchSuccessesOutOf10}
                     onChange={(v) => {
                       setAssessmentSubmitErrors(previous => ({ ...previous, firstTouchSuccessesOutOf10: undefined }));
                       setBase(prev => ({ ...prev, firstTouchSuccessesOutOf10: v }));
@@ -1338,7 +1260,7 @@ export default function AssessmentsView({
                     step={1}
                     min={0}
                     max={10}
-                    error={fieldErrors.shortPassingSuccessesOutOf10}
+                    error={assessmentSubmitErrors.shortPassingSuccessesOutOf10}
                     onChange={(v) => {
                       setAssessmentSubmitErrors(previous => ({ ...previous, shortPassingSuccessesOutOf10: undefined }));
                       setBase(prev => ({ ...prev, shortPassingSuccessesOutOf10: v }));
@@ -1348,25 +1270,7 @@ export default function AssessmentsView({
               </div>
 
               <div className="rounded-2xl border border-slate-200 bg-white p-4">
-                <div className="flex items-center justify-between gap-3">
-                  <p className="text-[11px] font-black uppercase tracking-wider text-slate-500">Role attributes ({ROLE_LABELS[role]})</p>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const firstRoleDrill = recommendedDrillIds.find(id => !id.startsWith('base_')) ?? 'fw_finishing_box';
-                      setQuickGuideLaunchContext({
-                        initialCategory: getRoleGuideCategory(role),
-                        initialDrillId: firstRoleDrill
-                      });
-                      setIsQuickGuideOpen(true);
-                    }}
-                    aria-label="Open guide for role drills"
-                    className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-1.5 py-1 text-[8px] font-black uppercase tracking-wide text-slate-700 hover:bg-slate-50 transition-colors"
-                  >
-                    <BookOpen size={10} className="text-indigo-600" />
-                    Guide for these drills
-                  </button>
-                </div>
+                <p className="text-[11px] font-black uppercase tracking-wider text-slate-500">Role attributes ({ROLE_LABELS[role]})</p>
                 <div className="mt-3 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
                   {requiredRoleFields.map(f => (
                     <NumberInput
@@ -1379,7 +1283,7 @@ export default function AssessmentsView({
                       min={f.min}
                       max={f.max}
                       step={f.step}
-                      error={fieldErrors[f.key]}
+                      error={assessmentSubmitErrors[f.key]}
                       onChange={(v) => {
                         setAssessmentSubmitErrors(previous => ({ ...previous, [f.key]: undefined }));
                         setRoleSpecific(prev => ({ ...prev, [f.key]: v }));
@@ -1954,14 +1858,6 @@ export default function AssessmentsView({
         </div>
       </div>
 
-      <AssessmentQuickGuide
-        isOpen={isQuickGuideOpen}
-        onClose={() => setIsQuickGuideOpen(false)}
-        initialCategory={quickGuideLaunchContext?.initialCategory}
-        initialDrillId={quickGuideLaunchContext?.initialDrillId}
-        recommendedDrillIds={recommendedDrillIds}
-        title="Quick Guide"
-      />
     </div>
   );
 }

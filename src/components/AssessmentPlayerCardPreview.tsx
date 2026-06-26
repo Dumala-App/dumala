@@ -124,44 +124,7 @@ export default function AssessmentPlayerCardPreview(props: {
 
   return (
     <div className="mt-4 grid grid-cols-1 lg:grid-cols-2 gap-4">
-      {/* Season Stats Ledger (left) */}
-      <div className="bg-white border border-slate-200/70 rounded-2xl p-4">
-        <div className="flex items-center gap-2">
-          <Sparkles size={14} className="text-indigo-600" />
-          <p className="text-[11px] font-black uppercase tracking-wider text-slate-400">Season Stats Ledger</p>
-        </div>
-
-        <div className="mt-3 divide-y divide-slate-100">
-          {[
-            { icon: Activity, label: 'Games Played', value: safeNumber(props.player.gamesPlayed, 0) },
-            { icon: Zap, label: 'Goals Scored', value: goals },
-            { icon: Award, label: 'Assists Made', value: assists },
-            { icon: Target, label: 'Goal Contributions', value: goalsAndAssists },
-            { icon: Clock, label: 'Total Minutes', value: minutes },
-            { icon: Target, label: cleanSheetLabel, value: safeNumber(props.player.cleanSheetsOrRebounds, 0) },
-            { icon: Star, label: 'Man of the Match', value: safeNumber(props.player.mvpAwards, 0) },
-            { icon: ShieldAlert, label: 'Discipline', value: disciplineValue, valueClassName: disciplineValue === 'Clean' ? 'text-slate-500' : 'text-slate-900' },
-            { icon: Timer, label: 'Mins per Goal', value: minsPerGoal, valueClassName: goals > 0 ? 'text-slate-900' : 'text-slate-500' }
-          ].map((row) => {
-            const RowIcon = row.icon;
-            return (
-              <div key={row.label} className="flex items-center justify-between gap-3 py-3">
-                <div className="flex items-center gap-2 min-w-0">
-                  <div className="w-7 h-7 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-center shrink-0">
-                    <RowIcon size={14} className="text-indigo-600" />
-                  </div>
-                  <span className="text-sm font-medium text-slate-700 truncate">{row.label}</span>
-                </div>
-                <span className={`text-sm font-black whitespace-nowrap ${row.valueClassName ?? 'text-slate-900'}`}>
-                  {String(row.value)}
-                </span>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Attributes Card (right) */}
+      {/* Identity and base attributes (left) */}
       <div className="bg-white border border-slate-200/70 rounded-2xl p-4">
         <div className="bg-slate-50 rounded-2xl border border-slate-200 p-3">
           <div className="grid grid-cols-[64px_1fr] items-center gap-3">
@@ -197,6 +160,43 @@ export default function AssessmentPlayerCardPreview(props: {
               <ProgressMetric key={m.label} label={m.label} value={m.value} colorClass="bg-amber-500" />
             ))}
           </div>
+        </div>
+      </div>
+
+      {/* Season stats ledger (right) */}
+      <div className="bg-white border border-slate-200/70 rounded-2xl p-4">
+        <div className="flex items-center gap-2">
+          <Sparkles size={14} className="text-indigo-600" />
+          <p className="text-[11px] font-black uppercase tracking-wider text-slate-400">Season Stats Ledger</p>
+        </div>
+
+        <div className="mt-3 divide-y divide-slate-100">
+          {[
+            { icon: Activity, label: 'Games Played', value: safeNumber(props.player.gamesPlayed, 0) },
+            { icon: Zap, label: 'Goals Scored', value: goals },
+            { icon: Award, label: 'Assists Made', value: assists },
+            { icon: Target, label: 'Goal Contributions', value: goalsAndAssists },
+            { icon: Clock, label: 'Total Minutes', value: minutes },
+            { icon: Target, label: cleanSheetLabel, value: safeNumber(props.player.cleanSheetsOrRebounds, 0) },
+            { icon: Star, label: 'Man of the Match', value: safeNumber(props.player.mvpAwards, 0) },
+            { icon: ShieldAlert, label: 'Discipline', value: disciplineValue, valueClassName: disciplineValue === 'Clean' ? 'text-slate-500' : 'text-slate-900' },
+            { icon: Timer, label: 'Mins per Goal', value: minsPerGoal, valueClassName: goals > 0 ? 'text-slate-900' : 'text-slate-500' }
+          ].map((row) => {
+            const RowIcon = row.icon;
+            return (
+              <div key={row.label} className="flex items-center justify-between gap-3 py-3">
+                <div className="flex items-center gap-2 min-w-0">
+                  <div className="w-7 h-7 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-center shrink-0">
+                    <RowIcon size={14} className="text-indigo-600" />
+                  </div>
+                  <span className="text-sm font-medium text-slate-700 truncate">{row.label}</span>
+                </div>
+                <span className={`text-sm font-black whitespace-nowrap ${row.valueClassName ?? 'text-slate-900'}`}>
+                  {String(row.value)}
+                </span>
+              </div>
+            );
+          })}
         </div>
       </div>
     </div>
