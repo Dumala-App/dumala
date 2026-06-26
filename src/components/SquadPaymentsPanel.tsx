@@ -10,12 +10,24 @@ import type {
 import { calculatePaymentLedgerTotals, summarizePaymentLedger } from '../payments/ledger';
 import { formatPeso } from '../payments/formatting';
 import { FieldError, FormErrorSummary } from './FormValidation';
+import { Button } from './ui/button';
+import { Input } from './ui/input';
+import { Label } from './ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from './ui/select';
+import { Textarea } from './ui/textarea';
 import {
   FieldErrors,
   focusFirstInvalidField,
   hasFieldErrors,
   mergeFieldErrors
 } from '../forms/validation';
+import { cn } from '../lib/utils';
 
 interface SquadPaymentsPanelProps {
   players: Player[];
@@ -91,6 +103,9 @@ const statusStyles: Record<string, string> = {
   overdue: 'border-rose-200 bg-rose-50 text-rose-700',
   no_activity: 'border-slate-200 bg-slate-50 text-slate-500'
 };
+
+const paymentInputClass = 'rounded-xl text-xs font-semibold';
+const invalidPaymentClass = 'border-rose-300 focus-visible:ring-rose-500/25 focus:ring-rose-500/25';
 
 export default function SquadPaymentsPanel({
   players,
@@ -347,11 +362,12 @@ export default function SquadPaymentsPanel({
           {recentMonthlyHistory.length > 0 ? (
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
               {recentMonthlyHistory.map(month => (
-                <button
+                <Button
                   key={month.monthKey}
                   type="button"
                   onClick={() => setMonthFilter(month.monthKey)}
-                  className={`rounded-xl border p-3 text-left transition-colors hover:border-indigo-200 hover:bg-indigo-50/40 ${
+                  variant="ghost"
+                  className={`h-auto w-full flex-col items-stretch justify-start gap-0 whitespace-normal rounded-xl border p-3 text-left transition-colors hover:border-indigo-200 hover:bg-indigo-50/40 ${
                     monthFilter === month.monthKey ? 'border-indigo-300 bg-indigo-50' : 'border-slate-100 bg-slate-50'
                   }`}
                 >
@@ -373,7 +389,7 @@ export default function SquadPaymentsPanel({
                       <p className="mt-0.5 font-black text-amber-700">{formatPeso(Math.max(month.balance, 0))}</p>
                     </div>
                   </div>
-                </button>
+                </Button>
               ))}
             </div>
           ) : (
@@ -396,25 +412,29 @@ export default function SquadPaymentsPanel({
               <div className="flex flex-col gap-2 sm:flex-row">
                 <div className="relative">
                   <Search className="absolute left-3 top-2.5 text-slate-400" size={14} />
-                  <input
+                  <Input
                     value={searchTerm}
                     onChange={event => setSearchTerm(event.target.value)}
                     placeholder="Search player..."
-                    className="w-full rounded-lg border border-slate-200 bg-slate-50 py-2 pl-9 pr-3 text-xs font-medium text-slate-700 focus:border-indigo-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 sm:w-52"
+                    className="h-9 w-full bg-slate-50 pl-9 pr-3 text-xs font-medium text-slate-700 focus-visible:bg-white sm:w-52"
                   />
                 </div>
-                <select
+                <Select
                   value={statusFilter}
-                  onChange={event => setStatusFilter(event.target.value)}
-                  className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-600 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                  onValueChange={setStatusFilter}
                 >
-                  <option value="all">All statuses</option>
-                  <option value="paid">Paid</option>
-                  <option value="partial">Partial</option>
-                  <option value="due">Due</option>
-                  <option value="overdue">Overdue</option>
-                  <option value="no_activity">No activity</option>
-                </select>
+                  <SelectTrigger className="h-9 text-xs font-bold text-slate-600 sm:w-40">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All statuses</SelectItem>
+                    <SelectItem value="paid">Paid</SelectItem>
+                    <SelectItem value="partial">Partial</SelectItem>
+                    <SelectItem value="due">Due</SelectItem>
+                    <SelectItem value="overdue">Overdue</SelectItem>
+                    <SelectItem value="no_activity">No activity</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
 
@@ -459,24 +479,30 @@ export default function SquadPaymentsPanel({
                 <p className="mt-1 text-[11px] font-medium text-slate-500">Voided entries remain visible for review.</p>
               </div>
               <div className="flex flex-col gap-2 sm:flex-row">
-                <select
+                <Select
                   value={monthFilter}
-                  onChange={event => setMonthFilter(event.target.value)}
-                  className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-600 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
-                  aria-label="Filter ledger by month"
+                  onValueChange={setMonthFilter}
                 >
-                  <option value="all">All months</option>
-                  {monthlyHistory.map(month => <option key={month.monthKey} value={month.monthKey}>{month.monthLabel}</option>)}
-                </select>
-                <select
+                  <SelectTrigger className="h-9 text-xs font-bold text-slate-600 sm:w-40" aria-label="Filter ledger by month">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All months</SelectItem>
+                    {monthlyHistory.map(month => <SelectItem key={month.monthKey} value={month.monthKey}>{month.monthLabel}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+                <Select
                   value={categoryFilter}
-                  onChange={event => setCategoryFilter(event.target.value as 'all' | PaymentLedgerCategory)}
-                  className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-600 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
-                  aria-label="Filter ledger by category"
+                  onValueChange={value => setCategoryFilter(value as 'all' | PaymentLedgerCategory)}
                 >
-                  <option value="all">All categories</option>
-                  {categories.map(item => <option key={item.value} value={item.value}>{item.label}</option>)}
-                </select>
+                  <SelectTrigger className="h-9 text-xs font-bold text-slate-600 sm:w-44" aria-label="Filter ledger by category">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All categories</SelectItem>
+                    {categories.map(item => <SelectItem key={item.value} value={item.value}>{item.label}</SelectItem>)}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
 
@@ -510,20 +536,22 @@ export default function SquadPaymentsPanel({
                             <span className="text-[10px] font-black uppercase text-slate-400">Voided</span>
                           ) : (
                             <div className="flex min-w-56 items-center gap-2">
-                              <input
+                              <Input
                                 value={voidReasonById[entry.id] ?? ''}
                                 onChange={event => setVoidReasonById(current => ({ ...current, [entry.id]: event.target.value }))}
                                 placeholder="Void reason"
-                                className="w-full rounded-lg border border-slate-200 px-2 py-1.5 text-[11px] no-underline focus:outline-none focus:ring-2 focus:ring-rose-500/20"
+                                className="h-8 w-full px-2 text-[11px] no-underline focus-visible:ring-rose-500/20"
                               />
-                              <button
+                              <Button
                                 type="button"
                                 onClick={() => handleVoid(entry.id)}
                                 disabled={!voidReasonById[entry.id]?.trim()}
-                                className="inline-flex items-center gap-1 rounded-lg border border-rose-200 bg-rose-50 px-2 py-1.5 text-[10px] font-black uppercase text-rose-700 no-underline hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-40"
+                                variant="outline"
+                                size="sm"
+                                className="h-8 border-rose-200 bg-rose-50 px-2 text-[10px] font-black uppercase text-rose-700 no-underline hover:bg-rose-100 hover:text-rose-800"
                               >
                                 <Ban size={12} /> Void
-                              </button>
+                              </Button>
                             </div>
                           )}
                         </td>
@@ -551,38 +579,53 @@ export default function SquadPaymentsPanel({
             <FormErrorSummary id="payment-entry-errors" errors={formErrors} />
             <div className="space-y-3">
               <div>
-                <label className="mb-1.5 block text-[10px] font-black uppercase tracking-widest text-slate-400">Type</label>
-                <select value={entryType} onChange={event => setEntryType(event.target.value as PaymentLedgerEntryType)} className="w-full rounded-xl border border-slate-200 p-2.5 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                  {entryTypes.map(item => <option key={item.value} value={item.value}>{item.label}</option>)}
-                </select>
+                <Label className="mb-1.5 block">Type</Label>
+                <Select value={entryType} onValueChange={value => setEntryType(value as PaymentLedgerEntryType)}>
+                  <SelectTrigger className={paymentInputClass}>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {entryTypes.map(item => <SelectItem key={item.value} value={item.value}>{item.label}</SelectItem>)}
+                  </SelectContent>
+                </Select>
               </div>
               <div>
-                <label className="mb-1.5 block text-[10px] font-black uppercase tracking-widest text-slate-400">Player *</label>
-                <select
-                  data-validation-field="playerId"
+                <Label className="mb-1.5 block">Player *</Label>
+                <Select
                   value={playerId}
-                  onChange={event => {
-                    setPlayerId(event.target.value);
+                  onValueChange={value => {
+                    setPlayerId(value);
                     setFormErrors(previous => ({ ...previous, playerId: undefined }));
                   }}
-                  aria-invalid={Boolean(formErrors.playerId)}
-                  className={`w-full rounded-xl border p-2.5 text-xs font-semibold focus:outline-none focus:ring-2 ${formErrors.playerId ? 'border-rose-300 focus:ring-rose-500' : 'border-slate-200 focus:ring-indigo-500'}`}
                 >
-                  <option value="">Choose player</option>
-                  {players.map(player => <option key={player.id} value={player.id}>{player.name}</option>)}
-                </select>
+                  <SelectTrigger
+                    data-validation-field="playerId"
+                    aria-invalid={Boolean(formErrors.playerId)}
+                    className={cn(paymentInputClass, formErrors.playerId && invalidPaymentClass)}
+                  >
+                    <SelectValue placeholder="Choose player" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {players.map(player => <SelectItem key={player.id} value={player.id}>{player.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
                 <FieldError id="payment-player-error" message={formErrors.playerId} />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="mb-1.5 block text-[10px] font-black uppercase tracking-widest text-slate-400">Category</label>
-                  <select value={category} onChange={event => setCategory(event.target.value as PaymentLedgerCategory)} className="w-full rounded-xl border border-slate-200 p-2.5 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                    {categories.map(item => <option key={item.value} value={item.value}>{item.label}</option>)}
-                  </select>
+                  <Label className="mb-1.5 block">Category</Label>
+                  <Select value={category} onValueChange={value => setCategory(value as PaymentLedgerCategory)}>
+                    <SelectTrigger className={paymentInputClass}>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {categories.map(item => <SelectItem key={item.value} value={item.value}>{item.label}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div>
-                  <label className="mb-1.5 block text-[10px] font-black uppercase tracking-widest text-slate-400">Amount *</label>
-                  <input
+                  <Label className="mb-1.5 block">Amount *</Label>
+                  <Input
                     data-validation-field="amount"
                     type="number"
                     min="0.01"
@@ -594,15 +637,15 @@ export default function SquadPaymentsPanel({
                       setFormErrors(previous => ({ ...previous, amount: undefined }));
                     }}
                     aria-invalid={Boolean(formErrors.amount)}
-                    className={`w-full rounded-xl border p-2.5 text-xs font-semibold focus:outline-none focus:ring-2 ${formErrors.amount ? 'border-rose-300 focus:ring-rose-500' : 'border-slate-200 focus:ring-indigo-500'}`}
+                    className={cn(paymentInputClass, formErrors.amount && invalidPaymentClass)}
                   />
                   <FieldError id="payment-amount-error" message={formErrors.amount} />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="mb-1.5 block text-[10px] font-black uppercase tracking-widest text-slate-400">Date *</label>
-                  <input
+                  <Label className="mb-1.5 block">Date *</Label>
+                  <Input
                     data-validation-field="date"
                     type="date"
                     value={date}
@@ -610,30 +653,35 @@ export default function SquadPaymentsPanel({
                       setDate(event.target.value);
                       setFormErrors(previous => ({ ...previous, date: undefined }));
                     }}
-                    className={`w-full rounded-xl border p-2.5 text-xs font-semibold focus:outline-none focus:ring-2 ${formErrors.date ? 'border-rose-300 focus:ring-rose-500' : 'border-slate-200 focus:ring-indigo-500'}`}
+                    className={cn(paymentInputClass, formErrors.date && invalidPaymentClass)}
                   />
                   <FieldError id="payment-date-error" message={formErrors.date} />
                 </div>
                 <div>
-                  <label className="mb-1.5 block text-[10px] font-black uppercase tracking-widest text-slate-400">Due date</label>
-                  <input type="date" value={dueDate} onChange={event => setDueDate(event.target.value)} disabled={entryType !== 'charge'} className="w-full rounded-xl border border-slate-200 p-2.5 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:bg-slate-100 disabled:text-slate-400" />
+                  <Label className="mb-1.5 block">Due date</Label>
+                  <Input type="date" value={dueDate} onChange={event => setDueDate(event.target.value)} disabled={entryType !== 'charge'} className={paymentInputClass} />
                 </div>
               </div>
               {entryType === 'payment' && (
                 <div>
-                  <label className="mb-1.5 block text-[10px] font-black uppercase tracking-widest text-slate-400">Method</label>
-                  <select value={method} onChange={event => setMethod(event.target.value as PaymentMethod)} className="w-full rounded-xl border border-slate-200 p-2.5 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                    {paymentMethods.map(item => <option key={item.value} value={item.value}>{item.label}</option>)}
-                  </select>
+                  <Label className="mb-1.5 block">Method</Label>
+                  <Select value={method} onValueChange={value => setMethod(value as PaymentMethod)}>
+                    <SelectTrigger className={paymentInputClass}>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {paymentMethods.map(item => <SelectItem key={item.value} value={item.value}>{item.label}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
                 </div>
               )}
               <div>
-                <label className="mb-1.5 block text-[10px] font-black uppercase tracking-widest text-slate-400">Reference</label>
-                <input value={reference} onChange={event => setReference(event.target.value)} placeholder="Receipt, GCash ref, or OR number" className="w-full rounded-xl border border-slate-200 p-2.5 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                <Label className="mb-1.5 block">Reference</Label>
+                <Input value={reference} onChange={event => setReference(event.target.value)} placeholder="Receipt, GCash ref, or OR number" className={paymentInputClass} />
               </div>
               <div>
-                <label className="mb-1.5 block text-[10px] font-black uppercase tracking-widest text-slate-400">Note</label>
-                <textarea
+                <Label className="mb-1.5 block">Note</Label>
+                <Textarea
                   data-validation-field="note"
                   value={note}
                   onChange={event => {
@@ -641,13 +689,13 @@ export default function SquadPaymentsPanel({
                     setFormErrors(previous => ({ ...previous, note: undefined }));
                   }}
                   rows={2}
-                  className={`w-full rounded-xl border p-2.5 text-xs font-semibold focus:outline-none focus:ring-2 ${formErrors.note ? 'border-rose-300 focus:ring-rose-500' : 'border-slate-200 focus:ring-indigo-500'}`}
+                  className={cn('min-h-16', paymentInputClass, formErrors.note && invalidPaymentClass)}
                 />
                 <FieldError id="payment-note-error" message={formErrors.note} />
               </div>
-              <button type="submit" className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-xs font-black uppercase tracking-wider text-white shadow-sm hover:bg-indigo-700">
+              <Button type="submit" className="w-full rounded-xl bg-indigo-600 text-xs font-black uppercase tracking-wider hover:bg-indigo-700">
                 <CheckCircle2 size={14} /> Save entry
-              </button>
+              </Button>
             </div>
           </form>
 
@@ -656,13 +704,21 @@ export default function SquadPaymentsPanel({
             <p className="mt-1 text-[11px] font-medium text-slate-500">Creates one fee entry per active player.</p>
             <FormErrorSummary id="bulk-payment-errors" errors={bulkErrors} />
             <div className="mt-3 space-y-3">
-              <select value={bulkCategory} onChange={event => setBulkCategory(event.target.value as PaymentLedgerCategory)} className="w-full rounded-xl border border-slate-200 p-2.5 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                {categories.map(item => <option key={item.value} value={item.value}>{item.label}</option>)}
-              </select>
+              <div>
+                <Label className="mb-1.5 block">Category</Label>
+                <Select value={bulkCategory} onValueChange={value => setBulkCategory(value as PaymentLedgerCategory)}>
+                  <SelectTrigger className={paymentInputClass}>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {categories.map(item => <SelectItem key={item.value} value={item.value}>{item.label}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="mb-1.5 block text-[10px] font-black uppercase tracking-widest text-slate-400">Amount *</label>
-                  <input
+                  <Label className="mb-1.5 block">Amount *</Label>
+                  <Input
                     data-validation-field="amount"
                     type="number"
                     min="0.01"
@@ -672,13 +728,13 @@ export default function SquadPaymentsPanel({
                       setBulkAmount(event.target.value);
                       setBulkErrors(previous => ({ ...previous, amount: undefined }));
                     }}
-                    className={`w-full rounded-xl border p-2.5 text-xs font-semibold focus:outline-none focus:ring-2 ${bulkErrors.amount ? 'border-rose-300 focus:ring-rose-500' : 'border-slate-200 focus:ring-indigo-500'}`}
+                    className={cn(paymentInputClass, bulkErrors.amount && invalidPaymentClass)}
                   />
                   <FieldError id="bulk-payment-amount-error" message={bulkErrors.amount} />
                 </div>
                 <div>
-                  <label className="mb-1.5 block text-[10px] font-black uppercase tracking-widest text-slate-400">Date *</label>
-                  <input
+                  <Label className="mb-1.5 block">Date *</Label>
+                  <Input
                     data-validation-field="date"
                     type="date"
                     value={bulkDate}
@@ -686,16 +742,22 @@ export default function SquadPaymentsPanel({
                       setBulkDate(event.target.value);
                       setBulkErrors(previous => ({ ...previous, date: undefined }));
                     }}
-                    className={`w-full rounded-xl border p-2.5 text-xs font-semibold focus:outline-none focus:ring-2 ${bulkErrors.date ? 'border-rose-300 focus:ring-rose-500' : 'border-slate-200 focus:ring-indigo-500'}`}
+                    className={cn(paymentInputClass, bulkErrors.date && invalidPaymentClass)}
                   />
                   <FieldError id="bulk-payment-date-error" message={bulkErrors.date} />
                 </div>
               </div>
-              <input type="date" value={bulkDueDate} onChange={event => setBulkDueDate(event.target.value)} className="w-full rounded-xl border border-slate-200 p-2.5 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500" />
-              <textarea value={bulkNote} onChange={event => setBulkNote(event.target.value)} rows={2} placeholder="Optional note" className="w-full rounded-xl border border-slate-200 p-2.5 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500" />
-              <button type="submit" disabled={players.filter(player => player.registrationStatus === 'Active').length === 0} className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-slate-900 px-4 py-2.5 text-xs font-black uppercase tracking-wider text-white shadow-sm hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-40">
+              <div>
+                <Label className="mb-1.5 block">Due date</Label>
+                <Input type="date" value={bulkDueDate} onChange={event => setBulkDueDate(event.target.value)} className={paymentInputClass} />
+              </div>
+              <div>
+                <Label className="mb-1.5 block">Note</Label>
+                <Textarea value={bulkNote} onChange={event => setBulkNote(event.target.value)} rows={2} placeholder="Optional note" className={cn('min-h-16', paymentInputClass)} />
+              </div>
+              <Button type="submit" disabled={players.filter(player => player.registrationStatus === 'Active').length === 0} className="w-full rounded-xl bg-slate-900 text-xs font-black uppercase tracking-wider hover:bg-slate-800">
                 <ReceiptText size={14} /> Charge active roster
-              </button>
+              </Button>
             </div>
           </form>
         </aside>

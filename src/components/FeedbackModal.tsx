@@ -1,6 +1,18 @@
 import {FormEvent, useRef, useState} from 'react';
 import {Bug, Lightbulb, MessageSquare, Send, X} from 'lucide-react';
 import {useDialogAccessibility} from '../hooks/useDialogAccessibility';
+import { Button } from './ui/button';
+import { Input } from './ui/input';
+import { Label } from './ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from './ui/select';
+import { Textarea } from './ui/textarea';
+import { cn } from '../lib/utils';
 
 interface FeedbackModalProps {
   teamName: string;
@@ -27,6 +39,9 @@ const INITIAL_FORM: FeedbackForm = {
   urgency: 'Normal',
   contactEmail: '',
 };
+
+const feedbackControlClass = 'rounded-xl text-sm font-medium text-slate-800';
+const feedbackLabelClass = 'space-y-1.5 text-xs normal-case tracking-normal text-slate-700';
 
 export default function FeedbackModal({teamName, onClose}: FeedbackModalProps) {
   const dialogRef = useRef<HTMLDivElement | null>(null);
@@ -139,116 +154,130 @@ export default function FeedbackModal({teamName, onClose}: FeedbackModalProps) {
               </p>
             </div>
           </div>
-          <button
+          <Button
             type="button"
             onClick={onClose}
-            className="rounded-lg p-2 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700"
+            variant="ghost"
+            size="icon"
+            className="text-slate-400 hover:bg-slate-100 hover:text-slate-700"
             aria-label="Close feedback form"
           >
             <X size={18} />
-          </button>
+          </Button>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-5 p-5 sm:p-6">
           <div className="grid gap-4 sm:grid-cols-2">
-            <label className="space-y-1.5 text-xs font-bold text-slate-700">
-              Feedback type
-              <select
+            <div className="space-y-1.5">
+              <Label className="text-xs normal-case tracking-normal text-slate-700">Feedback type</Label>
+              <Select
                 value={form.category}
-                onChange={event => updateField('category', event.target.value)}
-                className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-medium text-slate-800 outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+                onValueChange={value => updateField('category', value)}
               >
-                <option>Improvement</option>
-                <option>Suggestion</option>
-                <option>Bug</option>
-                <option>Usability issue</option>
-                <option>Feature request</option>
-                <option>Other</option>
-              </select>
-            </label>
+                <SelectTrigger className={feedbackControlClass}>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Improvement">Improvement</SelectItem>
+                  <SelectItem value="Suggestion">Suggestion</SelectItem>
+                  <SelectItem value="Bug">Bug</SelectItem>
+                  <SelectItem value="Usability issue">Usability issue</SelectItem>
+                  <SelectItem value="Feature request">Feature request</SelectItem>
+                  <SelectItem value="Other">Other</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
 
-            <label className="space-y-1.5 text-xs font-bold text-slate-700">
-              Affected area
-              <select
+            <div className="space-y-1.5">
+              <Label className="text-xs normal-case tracking-normal text-slate-700">Affected area</Label>
+              <Select
                 value={form.area}
-                onChange={event => updateField('area', event.target.value)}
-                className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-medium text-slate-800 outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+                onValueChange={value => updateField('area', value)}
               >
-                <option>Dashboard</option>
-                <option>Roster</option>
-                <option>Tactics</option>
-                <option>Training</option>
-                <option>Schedule</option>
-                <option>League</option>
-                <option>Updates</option>
-                <option>Backup and restore</option>
-                <option>Mobile experience</option>
-                <option>Entire app</option>
-              </select>
-            </label>
+                <SelectTrigger className={feedbackControlClass}>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Dashboard">Dashboard</SelectItem>
+                  <SelectItem value="Roster">Roster</SelectItem>
+                  <SelectItem value="Tactics">Tactics</SelectItem>
+                  <SelectItem value="Training">Training</SelectItem>
+                  <SelectItem value="Schedule">Schedule</SelectItem>
+                  <SelectItem value="League">League</SelectItem>
+                  <SelectItem value="Updates">Updates</SelectItem>
+                  <SelectItem value="Backup and restore">Backup and restore</SelectItem>
+                  <SelectItem value="Mobile experience">Mobile experience</SelectItem>
+                  <SelectItem value="Entire app">Entire app</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
-          <label className="block space-y-1.5 text-xs font-bold text-slate-700">
+          <Label className={cn('block', feedbackLabelClass)}>
             Short summary
-            <input
+            <Input
               required
               maxLength={120}
               value={form.subject}
               onChange={event => updateField('subject', event.target.value)}
               placeholder="Briefly describe the idea or problem"
-              className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm font-medium text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+              className={feedbackControlClass}
             />
-          </label>
+          </Label>
 
-          <label className="block space-y-1.5 text-xs font-bold text-slate-700">
+          <Label className={cn('block', feedbackLabelClass)}>
             Detailed information
-            <textarea
+            <Textarea
               required
               minLength={10}
               rows={5}
               value={form.details}
               onChange={event => updateField('details', event.target.value)}
               placeholder="What happened? What were you trying to do? Include steps to reproduce a bug or explain why an improvement would help."
-              className="w-full resize-y rounded-xl border border-slate-200 px-3 py-2.5 text-sm font-medium leading-relaxed text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+              className="min-h-32 resize-y rounded-xl text-sm font-medium leading-relaxed text-slate-800"
             />
-          </label>
+          </Label>
 
-          <label className="block space-y-1.5 text-xs font-bold text-slate-700">
+          <Label className={cn('block', feedbackLabelClass)}>
             Expected behavior or suggested outcome
-            <textarea
+            <Textarea
               rows={3}
               value={form.expectedBehavior}
               onChange={event => updateField('expectedBehavior', event.target.value)}
               placeholder="Describe what you expected to happen or how you would improve it."
-              className="w-full resize-y rounded-xl border border-slate-200 px-3 py-2.5 text-sm font-medium leading-relaxed text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+              className="min-h-24 resize-y rounded-xl text-sm font-medium leading-relaxed text-slate-800"
             />
-          </label>
+          </Label>
 
           <div className="grid gap-4 sm:grid-cols-2">
-            <label className="space-y-1.5 text-xs font-bold text-slate-700">
-              Urgency
-              <select
+            <div className="space-y-1.5">
+              <Label className="text-xs normal-case tracking-normal text-slate-700">Urgency</Label>
+              <Select
                 value={form.urgency}
-                onChange={event => updateField('urgency', event.target.value)}
-                className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-medium text-slate-800 outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+                onValueChange={value => updateField('urgency', value)}
               >
-                <option>Low</option>
-                <option>Normal</option>
-                <option>High</option>
-                <option>Blocking my testing</option>
-              </select>
-            </label>
+                <SelectTrigger className={feedbackControlClass}>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Low">Low</SelectItem>
+                  <SelectItem value="Normal">Normal</SelectItem>
+                  <SelectItem value="High">High</SelectItem>
+                  <SelectItem value="Blocking my testing">Blocking my testing</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
 
-            <label className="space-y-1.5 text-xs font-bold text-slate-700">
+            <Label className={feedbackLabelClass}>
               Your email (optional)
-              <input
+              <Input
                 type="email"
                 value={form.contactEmail}
                 onChange={event => updateField('contactEmail', event.target.value)}
                 placeholder="For follow-up questions"
-                className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm font-medium text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+                className={feedbackControlClass}
               />
-            </label>
+            </Label>
           </div>
 
           <div className="grid gap-3 rounded-2xl border border-indigo-100 bg-indigo-50/70 p-4 text-xs text-indigo-950 sm:grid-cols-2">
@@ -277,29 +306,31 @@ export default function FeedbackModal({teamName, onClose}: FeedbackModalProps) {
 
           <div className="flex flex-col-reverse gap-2 border-t border-slate-100 pt-4 sm:flex-row sm:justify-end">
             {status === 'error' && (
-              <button
+              <Button
                 type="button"
                 onClick={openEmailFallback}
-                className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-black text-slate-700 transition hover:bg-slate-50"
+                variant="outline"
+                className="rounded-xl border-slate-200 bg-white text-xs font-black text-slate-700"
               >
                 Open email app
-              </button>
+              </Button>
             )}
-            <button
+            <Button
               type="button"
               onClick={onClose}
-              className="rounded-xl border border-slate-200 bg-slate-100 px-4 py-2.5 text-xs font-black text-slate-700 transition hover:bg-slate-200"
+              variant="secondary"
+              className="rounded-xl text-xs font-black"
             >
               Cancel
-            </button>
-            <button
+            </Button>
+            <Button
               type="submit"
               disabled={isSubmitting}
-              className="flex items-center justify-center gap-2 rounded-xl bg-indigo-600 px-5 py-2.5 text-xs font-black text-white shadow-md transition hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-60"
+              className="rounded-xl bg-indigo-600 px-5 text-xs font-black shadow-md hover:bg-indigo-500"
             >
               <Send size={14} />
               {isSubmitting ? 'Sending feedback...' : 'Send feedback'}
-            </button>
+            </Button>
           </div>
         </form>
       </div>

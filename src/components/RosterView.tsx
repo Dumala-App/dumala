@@ -17,6 +17,17 @@ import {
   parseIntegerInput
 } from '../forms/validation';
 import SquadPaymentsPanel from './SquadPaymentsPanel';
+import { Button } from './ui/button';
+import { Input } from './ui/input';
+import { Label } from './ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from './ui/select';
+import { Textarea } from './ui/textarea';
 
 interface RosterViewProps {
   players: Player[];
@@ -40,6 +51,18 @@ type PlayerFormField = 'name' | 'number' | 'position' | 'age' | 'height' | 'weig
 type SquadSection = 'players' | 'staff' | 'payments';
 
 const PLAYER_POSITIONS = ['Forward', 'Midfielder', 'Defender', 'Goalkeeper'] as const;
+const STAFF_ROLE_OPTIONS = [
+  'Founder',
+  'Manager',
+  'Coach',
+  'Vice President',
+  'President',
+  'Team Owner',
+  'Director of Football',
+  'Assistant Coach',
+  'Staff',
+  'Other'
+] as const;
 
 const integerError = (result: ReturnType<typeof parseIntegerInput>): string | undefined => (
   'errors' in result ? result.errors.value : undefined
@@ -548,8 +571,8 @@ export default function RosterView({
                     />
                   </div>
                   <div className="flex-1">
-                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">STAFF PHOTO</label>
-                    <input 
+                    <Label className="mb-1 block text-slate-400">Staff Photo</Label>
+                    <Input
                       id="new-staff-photo"
                       type="file"
                       accept="image/*"
@@ -567,138 +590,142 @@ export default function RosterView({
                       }}
                       className="hidden"
                     />
-                    <button
+                    <Button
                       type="button"
                       onClick={() => document.getElementById('new-staff-photo')?.click()}
-                      className="bg-white hover:bg-slate-50 text-slate-700 text-[11px] font-semibold px-3 py-1.5 rounded-lg border border-slate-200 transition-all cursor-pointer"
+                      variant="outline"
+                      size="sm"
+                      className="h-8 text-[11px]"
                     >
                       Upload Custom Photo
-                    </button>
+                    </Button>
                     {newStaffPhoto && (
-                      <button
+                      <Button
                         type="button"
                         onClick={() => setNewStaffPhoto('')}
-                        className="text-[11px] text-rose-500 hover:underline ml-3"
+                        variant="link"
+                        className="ml-3 text-[11px] text-rose-500"
                       >
                         Clear Image
-                      </button>
+                      </Button>
                     )}
                   </div>
                 </div>
 
                 <div className="lg:col-span-2">
-                  <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Full Name *</label>
-                  <input 
+                  <Label className="mb-1.5 block text-slate-400">Full Name *</Label>
+                  <Input
                     id="new-staff-name-input"
                     type="text" 
                     required 
                     placeholder="e.g. Richard Hendricks"
                     value={newStaffName}
                     onChange={e => setNewStaffName(e.target.value)}
-                    className="w-full border border-slate-200 rounded-xl p-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-amber-500"
+                    className="h-10 rounded-xl text-xs focus-visible:ring-amber-500/30"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Role / Position *</label>
-                  <select
-                    id="new-staff-role-select"
+                  <Label className="mb-1.5 block text-slate-400">Role / Position *</Label>
+                  <Select
                     value={newStaffRole}
-                    onChange={e => setNewStaffRole(e.target.value)}
-                    className="w-full border border-slate-200 rounded-xl p-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-amber-500 bg-white"
+                    onValueChange={setNewStaffRole}
                   >
-                    <option value="Founder">Founder</option>
-                    <option value="Manager">Manager</option>
-                    <option value="Coach">Coach</option>
-                    <option value="Vice President">Vice President</option>
-                    <option value="President">President</option>
-                    <option value="Team Owner">Team Owner</option>
-                    <option value="Director of Football">Director of Football</option>
-                    <option value="Assistant Coach">Assistant Coach</option>
-                    <option value="Staff">Staff</option>
-                    <option value="Other">Other / Custom Title</option>
-                  </select>
+                    <SelectTrigger id="new-staff-role-select" className="h-10 rounded-xl text-xs focus:ring-amber-500/30">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {STAFF_ROLE_OPTIONS.map(role => (
+                        <SelectItem key={role} value={role}>
+                          {role === 'Other' ? 'Other / Custom Title' : role}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 {newStaffRole === "Other" && (
                   <div>
-                    <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Custom Role Title *</label>
-                    <input 
+                    <Label className="mb-1.5 block text-slate-400">Custom Role Title *</Label>
+                    <Input
                       id="custom-staff-role-input"
                       type="text" 
                       required 
                       placeholder="e.g. Treasurer"
                       value={customStaffRole}
                       onChange={e => setCustomStaffRole(e.target.value)}
-                      className="w-full border border-slate-200 rounded-xl p-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-amber-500"
+                      className="h-10 rounded-xl text-xs focus-visible:ring-amber-500/30"
                     />
                   </div>
                 )}
 
                 <div className="lg:col-span-4 grid grid-cols-1 md:grid-cols-3 gap-3">
                   <div>
-                    <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Email</label>
-                    <input 
+                    <Label className="mb-1.5 block text-slate-400">Email</Label>
+                    <Input
                       id="new-staff-email-input"
                       type="email"
                       placeholder="coach@club.com"
                       value={newStaffEmail}
                       onChange={e => setNewStaffEmail(e.target.value)}
-                      className="w-full border border-slate-200 rounded-xl p-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-amber-500"
+                      className="h-10 rounded-xl text-xs focus-visible:ring-amber-500/30"
                     />
                   </div>
                   <div>
-                    <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Phone</label>
-                    <input 
+                    <Label className="mb-1.5 block text-slate-400">Phone</Label>
+                    <Input
                       id="new-staff-phone-input"
                       type="text"
                       placeholder="+1 234 567 890"
                       value={newStaffPhone}
                       onChange={e => setNewStaffPhone(e.target.value)}
-                      className="w-full border border-slate-200 rounded-xl p-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-amber-500"
+                      className="h-10 rounded-xl text-xs focus-visible:ring-amber-500/30"
                     />
                   </div>
                   <div>
-                    <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Since</label>
-                    <input 
+                    <Label className="mb-1.5 block text-slate-400">Since</Label>
+                    <Input
                       id="new-staff-since-input"
                       type="text"
                       placeholder="e.g. Jan 2025"
                       value={newStaffSince}
                       onChange={e => setNewStaffSince(e.target.value)}
-                      className="w-full border border-slate-200 rounded-xl p-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-amber-500"
+                      className="h-10 rounded-xl text-xs focus-visible:ring-amber-500/30"
                     />
                   </div>
                 </div>
 
                 <div className="lg:col-span-4">
-                  <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Short Bio Statement (Optional)</label>
-                  <textarea 
+                  <Label className="mb-1.5 block text-slate-400">Short Bio Statement (Optional)</Label>
+                  <Textarea
                     id="new-staff-bio-input"
                     placeholder="Write a brief description of their background, philosophy, key responsibilities..."
                     value={newStaffBio}
                     onChange={e => setNewStaffBio(e.target.value)}
                     rows={2}
-                    className="w-full border border-slate-200 rounded-xl p-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-amber-500"
+                    className="min-h-20 rounded-xl text-xs focus-visible:ring-amber-500/30"
                   />
                 </div>
 
                 <div className="lg:col-span-4 flex flex-col sm:flex-row justify-end gap-2 p-1">
-                  <button 
+                  <Button
                     id="cancel-add-staff-btn"
                     type="button" 
                     onClick={() => setIsAddingStaff(false)}
-                    className="px-4 py-2 border border-slate-200 hover:bg-slate-50 rounded-xl text-slate-600 text-xs font-medium transition-all"
+                    variant="outline"
+                    size="sm"
+                    className="rounded-xl"
                   >
                     Cancel
-                  </button>
-                  <button 
+                  </Button>
+                  <Button
                     id="submit-add-staff-btn"
                     type="submit" 
-                    className="px-5 py-2 bg-amber-500 hover:bg-amber-600 text-slate-950 font-semibold rounded-xl text-xs transition-all shadow-md"
+                    size="sm"
+                    className="rounded-xl bg-amber-500 text-slate-950 hover:bg-amber-600"
                   >
                     Add Staff Member
-                  </button>
+                  </Button>
                 </div>
               </form>
             </motion.div>
@@ -828,8 +855,8 @@ export default function RosterView({
                     />
                   </div>
                   <div className="flex-1">
-                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">ATHLETE PHOTO</label>
-                    <input 
+                    <Label className="mb-1 block text-slate-400">Athlete Photo</Label>
+                    <Input
                       id="new-player-photo"
                       type="file"
                       accept="image/*"
@@ -847,28 +874,31 @@ export default function RosterView({
                       }}
                       className="hidden"
                     />
-                    <button
+                    <Button
                       type="button"
                       onClick={() => document.getElementById('new-player-photo')?.click()}
-                      className="bg-white hover:bg-slate-50 text-slate-700 text-[11px] font-semibold px-3 py-1.5 rounded-lg border border-slate-200 transition-all cursor-pointer"
+                      variant="outline"
+                      size="sm"
+                      className="h-8 text-[11px]"
                     >
                       Upload Custom Photo
-                    </button>
+                    </Button>
                     {newPlayerPhoto && (
-                      <button
+                      <Button
                         type="button"
                         onClick={() => setNewPlayerPhoto('')}
-                        className="text-[11px] text-rose-500 hover:underline ml-3"
+                        variant="link"
+                        className="ml-3 text-[11px] text-rose-500"
                       >
                         Clear Image
-                      </button>
+                      </Button>
                     )}
                   </div>
                 </div>
 
                 <div className="lg:col-span-2">
-                  <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Full Athlete Name *</label>
-                  <input 
+                  <Label className="mb-1.5 block text-slate-400">Full Athlete Name *</Label>
+                  <Input
                     id="new-player-name-input"
                     data-validation-field="name"
                     type="text" 
@@ -882,16 +912,16 @@ export default function RosterView({
                     aria-describedby={playerFormErrors.name ? 'new-player-name-error' : undefined}
                     className={`w-full border rounded-xl p-2.5 text-xs focus:outline-none focus:ring-2 ${
                       playerFormErrors.name
-                        ? 'border-rose-300 focus:ring-rose-500'
-                        : 'border-slate-200 focus:ring-indigo-500'
+                        ? 'border-rose-300 focus-visible:ring-rose-500/30'
+                        : 'border-slate-200 focus-visible:ring-indigo-500/30'
                     }`}
                   />
                   <FieldError id="new-player-name-error" message={playerFormErrors.name} />
                 </div>
 
                 <div>
-                  <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Squad Number *</label>
-                  <input 
+                  <Label className="mb-1.5 block text-slate-400">Squad Number *</Label>
+                  <Input
                     id="new-player-jersey-input"
                     data-validation-field="number"
                     type="number" 
@@ -909,8 +939,8 @@ export default function RosterView({
                     aria-describedby={playerFormErrors.number ? 'new-player-jersey-error' : duplicateJerseyPlayer ? 'new-player-jersey-warning' : undefined}
                     className={`w-full border rounded-xl p-2.5 text-xs focus:outline-none focus:ring-2 ${
                       playerFormErrors.number
-                        ? 'border-rose-300 focus:ring-rose-500'
-                        : 'border-slate-200 focus:ring-indigo-500'
+                        ? 'border-rose-300 focus-visible:ring-rose-500/30'
+                        : 'border-slate-200 focus-visible:ring-indigo-500/30'
                     }`}
                   />
                   <FieldError id="new-player-jersey-error" message={playerFormErrors.number} />
@@ -922,34 +952,41 @@ export default function RosterView({
                 </div>
 
                 <div>
-                  <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Position *</label>
-                  <select
-                    id="new-player-position-select"
-                    data-validation-field="position"
+                  <Label className="mb-1.5 block text-slate-400">Position *</Label>
+                  <Select
                     value={newPlayerPos}
-                    onChange={e => {
-                      handlePositionChange(e.target.value);
+                    onValueChange={value => {
+                      handlePositionChange(value);
                       setPlayerFormErrors(previous => ({ ...previous, position: undefined }));
                     }}
-                    aria-invalid={Boolean(playerFormErrors.position)}
-                    aria-describedby={playerFormErrors.position ? 'new-player-position-error' : undefined}
-                    className={`w-full border rounded-xl p-2.5 text-xs focus:outline-none focus:ring-2 bg-white ${
-                      playerFormErrors.position
-                        ? 'border-rose-300 focus:ring-rose-500'
-                        : 'border-slate-200 focus:ring-indigo-500'
-                    }`}
                   >
-                    <option value="Forward">Forward</option>
-                    <option value="Midfielder">Midfielder</option>
-                    <option value="Defender">Defender</option>
-                    <option value="Goalkeeper">Goalkeeper</option>
-                  </select>
+                    <SelectTrigger
+                      id="new-player-position-select"
+                      data-validation-field="position"
+                      aria-invalid={Boolean(playerFormErrors.position)}
+                      aria-describedby={playerFormErrors.position ? 'new-player-position-error' : undefined}
+                      className={`h-10 rounded-xl text-xs ${
+                        playerFormErrors.position
+                          ? 'border-rose-300 focus:ring-rose-500/30'
+                          : 'border-slate-200 focus:ring-indigo-500/30'
+                      }`}
+                    >
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {PLAYER_POSITIONS.map(position => (
+                        <SelectItem key={position} value={position}>
+                          {position}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                   <FieldError id="new-player-position-error" message={playerFormErrors.position} />
                 </div>
 
                 <div>
-                  <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Age</label>
-                  <input
+                  <Label className="mb-1.5 block text-slate-400">Age</Label>
+                  <Input
                     id="new-player-age-input"
                     data-validation-field="age"
                     type="number"
@@ -967,16 +1004,16 @@ export default function RosterView({
                     aria-describedby={playerFormErrors.age ? 'new-player-age-error' : undefined}
                     className={`w-full border rounded-xl p-2.5 text-xs focus:outline-none focus:ring-2 ${
                       playerFormErrors.age
-                        ? 'border-rose-300 focus:ring-rose-500'
-                        : 'border-slate-200 focus:ring-indigo-500'
+                        ? 'border-rose-300 focus-visible:ring-rose-500/30'
+                        : 'border-slate-200 focus-visible:ring-indigo-500/30'
                     }`}
                   />
                   <FieldError id="new-player-age-error" message={playerFormErrors.age} />
                 </div>
 
                 <div>
-                  <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Height (cm)</label>
-                  <input
+                  <Label className="mb-1.5 block text-slate-400">Height (cm)</Label>
+                  <Input
                     id="new-player-height-input"
                     data-validation-field="height"
                     type="number"
@@ -994,16 +1031,16 @@ export default function RosterView({
                     aria-describedby={playerFormErrors.height ? 'new-player-height-error' : undefined}
                     className={`w-full border rounded-xl p-2.5 text-xs focus:outline-none focus:ring-2 ${
                       playerFormErrors.height
-                        ? 'border-rose-300 focus:ring-rose-500'
-                        : 'border-slate-200 focus:ring-indigo-500'
+                        ? 'border-rose-300 focus-visible:ring-rose-500/30'
+                        : 'border-slate-200 focus-visible:ring-indigo-500/30'
                     }`}
                   />
                   <FieldError id="new-player-height-error" message={playerFormErrors.height} />
                 </div>
 
                 <div>
-                  <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Weight (kg)</label>
-                  <input
+                  <Label className="mb-1.5 block text-slate-400">Weight (kg)</Label>
+                  <Input
                     id="new-player-weight-input"
                     data-validation-field="weight"
                     type="number"
@@ -1021,8 +1058,8 @@ export default function RosterView({
                     aria-describedby={playerFormErrors.weight ? 'new-player-weight-error' : undefined}
                     className={`w-full border rounded-xl p-2.5 text-xs focus:outline-none focus:ring-2 ${
                       playerFormErrors.weight
-                        ? 'border-rose-300 focus:ring-rose-500'
-                        : 'border-slate-200 focus:ring-indigo-500'
+                        ? 'border-rose-300 focus-visible:ring-rose-500/30'
+                        : 'border-slate-200 focus-visible:ring-indigo-500/30'
                     }`}
                   />
                   <FieldError id="new-player-weight-error" message={playerFormErrors.weight} />
@@ -1031,9 +1068,9 @@ export default function RosterView({
                 <div className="lg:col-span-4 rounded-xl border border-slate-200 bg-slate-50 p-4">
                   <div className="mb-3 flex items-center justify-between gap-3">
                     <div>
-                      <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                      <Label className="block text-slate-500">
                         {newPlayerPos} Traits
-                      </label>
+                      </Label>
                       <p className="mt-1 text-[10px] text-slate-400">Choose up to four traits for this player.</p>
                     </div>
                     <span className="rounded-lg border border-indigo-100 bg-indigo-50 px-2 py-1 text-[10px] font-black text-indigo-600">
@@ -1067,33 +1104,36 @@ export default function RosterView({
                 </div>
 
                 <div className="lg:col-span-4">
-                  <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Short Bio Statement (Optional)</label>
-                  <textarea 
+                  <Label className="mb-1.5 block text-slate-400">Short Bio Statement (Optional)</Label>
+                  <Textarea
                     id="new-player-bio-input"
                     placeholder="Write a brief synopsis of the player's background, past clubs, strengths..."
                     value={newPlayerBio}
                     onChange={e => setNewPlayerBio(e.target.value)}
                     rows={2}
-                    className="w-full border border-slate-200 rounded-xl p-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className="min-h-20 rounded-xl text-xs focus-visible:ring-indigo-500/30"
                   />
                 </div>
 
                 <div className="lg:col-span-4 flex flex-col sm:flex-row justify-end gap-2 p-1">
-                  <button 
+                  <Button
                     id="cancel-add-player-btn"
                     type="button" 
                     onClick={() => setIsAdding(false)}
-                    className="px-4 py-2 border border-slate-200 hover:bg-slate-50 rounded-xl text-slate-600 text-xs font-medium transition-all"
+                    variant="outline"
+                    size="sm"
+                    className="rounded-xl"
                   >
                     Cancel
-                  </button>
-                  <button 
+                  </Button>
+                  <Button
                     id="submit-add-player-btn"
                     type="submit" 
-                    className="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-semibold transition-all shadow-md"
+                    size="sm"
+                    className="rounded-xl bg-indigo-600 text-white hover:bg-indigo-700"
                   >
                     Register Athlete
-                  </button>
+                  </Button>
                 </div>
               </form>
             </motion.div>

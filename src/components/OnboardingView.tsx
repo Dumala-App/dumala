@@ -2,6 +2,17 @@ import React, { useState } from 'react';
 import { Shield, User, ArrowRight, CheckCircle, Flag, Trophy, MapPin } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { TeamInfo, StaffMember } from '../types';
+import { Button } from './ui/button';
+import { Input } from './ui/input';
+import { Label } from './ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from './ui/select';
+import { Textarea } from './ui/textarea';
 
 interface OnboardingViewProps {
   onComplete: (team: TeamInfo, headCoach: StaffMember) => void;
@@ -93,59 +104,60 @@ export default function OnboardingView({ onComplete }: OnboardingViewProps) {
 
                 <div className="space-y-4">
                   <div>
-                    <label className="text-[10px] font-black tracking-widest text-slate-400 uppercase block mb-1.5">Official Team Name <span className="text-rose-500">*</span></label>
-                    <input 
+                    <Label className="mb-1.5 block text-slate-400">Official Team Name <span className="text-rose-500">*</span></Label>
+                    <Input
                       type="text" 
                       value={teamName}
                       onChange={(e) => setTeamName(e.target.value)}
                       placeholder="e.g. Apex Rangers FC"
-                      className="w-full bg-[#060b13] border border-slate-800 text-slate-100 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 transition-all font-semibold placeholder:font-normal placeholder-slate-600"
+                      className="h-11 rounded-xl border-slate-800 bg-[#060b13] px-4 font-semibold text-slate-100 placeholder:font-normal placeholder:text-slate-600 focus-visible:ring-indigo-500/40"
                     />
                   </div>
 
                   <div>
                     <div>
-                      <label className="text-[10px] font-black tracking-widest text-slate-400 uppercase block mb-1.5 flex items-center gap-1.5"><MapPin size={12}/> Home Ground</label>
-                      <input 
+                      <Label className="mb-1.5 flex items-center gap-1.5 text-slate-400"><MapPin size={12}/> Home Ground</Label>
+                      <Input
                         type="text" 
                         value={stadium}
                         onChange={(e) => setStadium(e.target.value)}
                         placeholder="e.g. Metro Sports Park"
-                        className="w-full bg-[#060b13] border border-slate-800 text-slate-100 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 transition-all placeholder-slate-600"
+                        className="h-11 rounded-xl border-slate-800 bg-[#060b13] px-4 text-slate-100 placeholder:text-slate-600 focus-visible:ring-indigo-500/40"
                       />
                     </div>
                     <div>
-                      <label className="text-[10px] font-black tracking-widest text-slate-400 uppercase block mb-1.5 flex items-center gap-1.5"><Flag size={12}/> League / Division</label>
-                      <input 
+                      <Label className="mb-1.5 flex items-center gap-1.5 text-slate-400"><Flag size={12}/> League / Division</Label>
+                      <Input
                         type="text" 
                         value={league}
                         onChange={(e) => setLeague(e.target.value)}
                         placeholder="e.g. Regional Premier"
-                        className="w-full bg-[#060b13] border border-slate-800 text-slate-100 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 transition-all placeholder-slate-600"
+                        className="h-11 rounded-xl border-slate-800 bg-[#060b13] px-4 text-slate-100 placeholder:text-slate-600 focus-visible:ring-indigo-500/40"
                       />
                     </div>
                   </div>
                   
                   <div>
-                    <label className="text-[10px] font-black tracking-widest text-slate-400 uppercase block mb-1.5">Founded Year</label>
-                    <input 
+                    <Label className="mb-1.5 block text-slate-400">Founded Year</Label>
+                    <Input
                       type="number" 
                       value={founded}
                       onChange={(e) => setFounded(e.target.value)}
-                      className="w-full md:w-1/2 bg-[#060b13] border border-slate-800 text-slate-100 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 transition-all font-mono"
+                      className="h-11 w-full rounded-xl border-slate-800 bg-[#060b13] px-4 font-mono text-slate-100 focus-visible:ring-indigo-500/40 md:w-1/2"
                     />
                   </div>
                 </div>
 
                 <div className="pt-6 mt-6 border-t border-slate-800/80 text-right">
-                  <button 
+                  <Button
                     type="button"
                     onClick={handleNext}
                     disabled={!teamName.trim()}
-                    className="inline-flex items-center gap-2 bg-gradient-to-r from-blue-500 to-cyan-500 text-white font-bold text-sm px-6 py-3 rounded-xl hover:shadow-lg hover:shadow-blue-500/20 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:pointer-events-none"
+                    size="lg"
+                    className="rounded-xl bg-gradient-to-r from-blue-500 to-cyan-500 text-sm text-white hover:shadow-lg hover:shadow-blue-500/20 active:scale-95"
                   >
                     Confirm Identity <ArrowRight size={16} />
-                  </button>
+                  </Button>
                 </div>
               </motion.div>
             )}
@@ -178,8 +190,8 @@ export default function OnboardingView({ onComplete }: OnboardingViewProps) {
                       />
                     </div>
                     <div className="flex-1">
-                      <label className="text-[10px] font-black tracking-widest text-slate-400 uppercase block mb-1">YOUR PROFILE PHOTO</label>
-                      <input 
+                      <Label className="mb-1 block text-slate-400">Your Profile Photo</Label>
+                      <Input
                         id="onboarding-mgr-photo"
                         type="file"
                         accept="image/*"
@@ -197,72 +209,80 @@ export default function OnboardingView({ onComplete }: OnboardingViewProps) {
                         }}
                         className="hidden"
                       />
-                      <button
+                      <Button
                         type="button"
                         onClick={() => document.getElementById('onboarding-mgr-photo')?.click()}
-                        className="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold px-3 py-1.5 rounded-lg border border-slate-705 transition-all text-[11px] uppercase tracking-wider"
+                        variant="outline"
+                        size="sm"
+                        className="h-8 border-slate-700 bg-slate-800 text-[11px] uppercase tracking-wider text-slate-200 hover:bg-slate-700 hover:text-white"
                       >
                         Choose Custom Picture
-                      </button>
+                      </Button>
                       <p className="text-[9px] text-slate-500 mt-1">Supports PNG, JPG (maximum 5MB size limit)</p>
                     </div>
                   </div>
 
                   <div>
-                    <label className="text-[10px] font-black tracking-widest text-slate-400 uppercase block mb-1.5">Your Full Name <span className="text-rose-500">*</span></label>
-                    <input 
+                    <Label className="mb-1.5 block text-slate-400">Your Full Name <span className="text-rose-500">*</span></Label>
+                    <Input
                       type="text" 
                       value={mgrName}
                       onChange={(e) => setMgrName(e.target.value)}
                       placeholder="e.g. Alex Sterling"
-                      className="w-full bg-[#060b13] border border-slate-800 text-slate-100 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 transition-all font-semibold placeholder:font-normal placeholder-slate-600"
+                      className="h-11 rounded-xl border-slate-800 bg-[#060b13] px-4 font-semibold text-slate-100 placeholder:font-normal placeholder:text-slate-600 focus-visible:ring-indigo-500/40"
                     />
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <label className="text-[10px] font-black tracking-widest text-slate-400 uppercase block mb-1.5">Primary Role</label>
-                      <select 
+                      <Label className="mb-1.5 block text-slate-400">Primary Role</Label>
+                      <Select
                         value={mgrPosition}
-                        onChange={(e) => setMgrPosition(e.target.value)}
-                        className="w-full bg-[#060b13] border border-slate-800 text-slate-100 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 transition-all cursor-pointer"
+                        onValueChange={setMgrPosition}
                       >
-                        <option value="Manager / Coach">Manager / Coach</option>
-                        <option value="Head Coach">Head Coach</option>
-                        <option value="Assistant Coach">Assistant Coach</option>
-                        <option value="Manager">Manager</option>
-                      </select>
+                        <SelectTrigger className="h-11 rounded-xl border-slate-800 bg-[#060b13] px-4 text-slate-100 focus:ring-indigo-500/40">
+                          <SelectValue placeholder="Choose role" />
+                        </SelectTrigger>
+                        <SelectContent className="border-slate-800 bg-[#060b13] text-slate-100">
+                          <SelectItem value="Manager / Coach" className="focus:bg-slate-800 focus:text-white">Manager / Coach</SelectItem>
+                          <SelectItem value="Head Coach" className="focus:bg-slate-800 focus:text-white">Head Coach</SelectItem>
+                          <SelectItem value="Assistant Coach" className="focus:bg-slate-800 focus:text-white">Assistant Coach</SelectItem>
+                          <SelectItem value="Manager" className="focus:bg-slate-800 focus:text-white">Manager</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
                   </div>
                   
                   <div>
-                    <label className="text-[10px] font-black tracking-widest text-slate-400 uppercase block mb-1.5">Brief Bio / Playing Style</label>
-                    <textarea 
+                    <Label className="mb-1.5 block text-slate-400">Brief Bio / Playing Style</Label>
+                    <Textarea
                       value={mgrBio}
                       onChange={(e) => setMgrBio(e.target.value)}
                       placeholder="Tactical philosophy or your playing background..."
                       rows={3}
-                      className="w-full bg-[#060b13] border border-slate-800 text-slate-100 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 transition-all resize-none placeholder-slate-600"
+                      className="resize-none rounded-xl border-slate-800 bg-[#060b13] px-4 py-3 text-slate-100 placeholder:text-slate-600 focus-visible:ring-indigo-500/40"
                     />
                   </div>
                 </div>
 
                 <div className="pt-6 mt-6 border-t border-slate-800/80 flex justify-between items-center">
-                  <button 
+                  <Button
                     type="button"
                     onClick={() => setStep(1)}
-                    className="text-slate-400 hover:text-white text-xs font-bold uppercase tracking-wider transition-colors px-4 py-2"
+                    variant="ghost"
+                    className="px-4 py-2 text-xs uppercase tracking-wider text-slate-400 hover:bg-white/5 hover:text-white"
                   >
                     Back
-                  </button>
-                  <button 
+                  </Button>
+                  <Button
                     type="button"
                     onClick={generateTeam}
                     disabled={!mgrName.trim()}
-                    className="inline-flex items-center gap-2 bg-gradient-to-r from-blue-400 to-cyan-300 text-slate-950 font-black text-sm px-6 py-3 rounded-xl hover:shadow-lg hover:shadow-blue-500/20 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:pointer-events-none"
+                    size="lg"
+                    className="rounded-xl bg-gradient-to-r from-blue-400 to-cyan-300 text-sm font-black text-slate-950 hover:shadow-lg hover:shadow-blue-500/20 active:scale-95"
                   >
                     Enter Workspace <CheckCircle size={16} />
-                  </button>
+                  </Button>
                 </div>
               </motion.div>
             )}

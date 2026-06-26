@@ -4,6 +4,18 @@ import { X, Award, Shield, User, Zap, CircleDot, Activity, Save, Edit2, Briefcas
 import { motion, AnimatePresence } from 'motion/react';
 import { useDialogAccessibility } from '../hooks/useDialogAccessibility';
 import { FieldError, FormErrorSummary } from './FormValidation';
+import { Button } from './ui/button';
+import { Input } from './ui/input';
+import { Label } from './ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from './ui/select';
+import { Textarea } from './ui/textarea';
+import { cn } from '@/src/lib/utils';
 import {
   FieldErrors,
   focusFirstInvalidField,
@@ -52,6 +64,26 @@ type ProfileField =
   | 'weight';
 
 const PLAYER_POSITIONS = ['Forward', 'Midfielder', 'Defender', 'Goalkeeper'] as const;
+const REGISTRATION_STATUS_OPTIONS: Array<NonNullable<Player['registrationStatus']>> = ['Active', 'Pending', 'Suspended'];
+
+const profileInputClass = (hasError?: boolean) => cn(
+  'rounded-lg text-xs font-bold focus-visible:ring-2',
+  hasError
+    ? 'border-rose-300 focus-visible:ring-rose-500/30'
+    : 'border-slate-200 focus-visible:ring-indigo-500/30'
+);
+
+const profileStatInputClass = (hasError?: boolean) => cn(
+  profileInputClass(hasError),
+  'h-9 font-mono'
+);
+
+const profileHeaderInputClass = (hasError?: boolean) => cn(
+  'rounded-lg border bg-white/15 text-white placeholder:text-white/45 focus-visible:ring-2',
+  hasError
+    ? 'border-rose-300 focus-visible:ring-rose-300/40'
+    : 'border-white/20 focus-visible:ring-amber-400/40'
+);
 
 const integerError = (result: ReturnType<typeof parseIntegerInput>): string | undefined => (
   'errors' in result ? result.errors.value : undefined
@@ -486,13 +518,15 @@ export default function PlayerProfileModal({ player, onClose, onUpdate, onRemove
       >
         {/* Modal Header Compact Banner */}
         <div className="p-5.5 bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white relative border-b border-indigo-900/50">
-          <button 
+          <Button
             id="close-profile-btn"
             onClick={onClose}
-            className="absolute top-4.5 right-4.5 bg-white/10 hover:bg-white/20 p-2 rounded-full transition-colors text-white/90 hover:text-white"
+            variant="ghost"
+            size="icon"
+            className="absolute right-4.5 top-4.5 rounded-full bg-white/10 text-white/90 hover:bg-white/20 hover:text-white"
           >
             <X size={15} />
-          </button>
+          </Button>
           
           <div className="flex flex-col sm:flex-row items-center gap-5 mt-2">
             <div className="relative group shrink-0">
@@ -523,14 +557,14 @@ export default function PlayerProfileModal({ player, onClose, onUpdate, onRemove
                     }}
                     className="hidden"
                   />
-                  <button 
+                  <Button
                     type="button"
                     onClick={() => document.getElementById('profile-photo-upload-input')?.click()}
-                    className="absolute inset-0 bg-slate-950/75 hover:bg-slate-950/85 rounded-full flex flex-col items-center justify-center text-white text-[9px] font-black uppercase tracking-wider transition-all border border-indigo-500/30 cursor-pointer"
+                    className="absolute inset-0 flex h-auto flex-col items-center justify-center rounded-full border border-indigo-500/30 bg-slate-950/75 text-[9px] font-black uppercase tracking-wider text-white hover:bg-slate-950/85"
                   >
                     <span>Upload</span>
                     <span>Photo</span>
-                  </button>
+                  </Button>
                 </>
               )}
             </div>
@@ -563,7 +597,7 @@ export default function PlayerProfileModal({ player, onClose, onUpdate, onRemove
                   <FormErrorSummary id="profile-error-summary" errors={profileErrors} />
                   <div className="flex flex-col sm:flex-row gap-2">
                     <div>
-                      <input 
+                      <Input
                         id="edit-player-name"
                         data-validation-field="name"
                         type="text" 
@@ -574,30 +608,29 @@ export default function PlayerProfileModal({ player, onClose, onUpdate, onRemove
                         }}
                         aria-invalid={Boolean(profileErrors.name)}
                         aria-describedby={profileErrors.name ? 'edit-player-name-error' : undefined}
-                        className={`bg-white/15 border text-white px-3 py-1.5 rounded-lg focus:outline-none focus:ring-2 font-display font-bold text-lg w-full max-w-[240px] ${
-                          profileErrors.name
-                            ? 'border-rose-300 focus:ring-rose-300'
-                            : 'border-white/20 focus:ring-amber-400'
-                        }`}
+                        className={cn(profileHeaderInputClass(Boolean(profileErrors.name)), 'h-10 w-full max-w-[240px] px-3 font-display text-lg')}
                         placeholder={isStaff ? "Staff Name" : "Player Name"}
                       />
                       <FieldError id="edit-player-name-error" message={profileErrors.name} />
                     </div>
                     {isStaff ? (
-                      <select
-                        id="edit-staff-role-select"
+                      <Select
                         value={position}
-                        onChange={e => setPosition(e.target.value)}
-                        className="bg-white px-2 py-1.5 rounded-lg text-xs font-bold"
+                        onValueChange={setPosition}
                       >
-                        {STAFF_POSITIONS.map((role) => (
-                          <option key={role} value={role}>{role}</option>
-                        ))}
-                      </select>
+                        <SelectTrigger id="edit-staff-role-select" className="h-9 rounded-lg bg-white text-xs font-bold text-slate-900">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {STAFF_POSITIONS.map((role) => (
+                            <SelectItem key={role} value={role}>{role}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     ) : (
                       <div className="flex gap-2 text-slate-900 shrink-0">
                         <div>
-                          <input 
+                          <Input
                             id="edit-player-number"
                             data-validation-field="number"
                             type="number" 
@@ -613,32 +646,35 @@ export default function PlayerProfileModal({ player, onClose, onUpdate, onRemove
                             }}
                             aria-invalid={Boolean(profileErrors.number)}
                             aria-describedby={profileErrors.number ? 'edit-player-number-error' : undefined}
-                            className={`bg-white px-2.5 py-1.5 rounded-lg w-16 text-xs font-mono font-bold border ${
-                              profileErrors.number ? 'border-rose-400' : 'border-transparent'
-                            }`}
+                            className={cn(profileInputClass(Boolean(profileErrors.number)), 'h-9 w-16 bg-white px-2.5 font-mono')}
                           />
                           <FieldError id="edit-player-number-error" message={profileErrors.number} />
                         </div>
                         <div>
-                          <select
-                            id="edit-player-pos-select"
-                            data-validation-field="position"
+                          <Select
                             value={position}
-                            onChange={e => {
-                              setPosition(e.target.value);
+                            onValueChange={value => {
+                              setPosition(value);
                               setProfileErrors(previous => ({ ...previous, position: undefined }));
                             }}
-                            aria-invalid={Boolean(profileErrors.position)}
-                            aria-describedby={profileErrors.position ? 'edit-player-position-error' : undefined}
-                            className={`bg-white px-2 py-1.5 rounded-lg text-xs font-bold border ${
-                              profileErrors.position ? 'border-rose-400' : 'border-transparent'
-                            }`}
                           >
-                            <option value="Forward">Forward</option>
-                            <option value="Midfielder">Midfielder</option>
-                            <option value="Defender">Defender</option>
-                            <option value="Goalkeeper">Goalkeeper</option>
-                          </select>
+                            <SelectTrigger
+                              id="edit-player-pos-select"
+                              data-validation-field="position"
+                              aria-invalid={Boolean(profileErrors.position)}
+                              aria-describedby={profileErrors.position ? 'edit-player-position-error' : undefined}
+                              className={cn(profileInputClass(Boolean(profileErrors.position)), 'h-9 bg-white text-xs')}
+                            >
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {PLAYER_POSITIONS.map(playerPosition => (
+                                <SelectItem key={playerPosition} value={playerPosition}>
+                                  {playerPosition}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
                           <FieldError id="edit-player-position-error" message={profileErrors.position} />
                         </div>
                       </div>
@@ -673,12 +709,12 @@ export default function PlayerProfileModal({ player, onClose, onUpdate, onRemove
               {!isStaff && (
                 <p id="player-profile-bio-summary" className="text-slate-300 text-xs mt-1.5 leading-relaxed max-w-lg italic font-medium">
                   {isEditing ? (
-                    <textarea 
+                    <Textarea
                       id="edit-player-bio"
                       value={bio}
                       onChange={e => setBio(e.target.value)}
                       rows={2}
-                      className="w-full bg-white/10 border border-white/25 rounded-lg p-2 text-white text-xs focus:outline-none focus:ring-2 focus:ring-amber-400 not-italic leading-relaxed font-normal"
+                      className="min-h-16 rounded-lg border-white/25 bg-white/10 p-2 text-xs font-normal leading-relaxed text-white not-italic focus-visible:ring-amber-400/40"
                       placeholder="Enter athlete synopsis or personal bio..."
                     />
                   ) : (
@@ -690,32 +726,35 @@ export default function PlayerProfileModal({ player, onClose, onUpdate, onRemove
 
             <div className="shrink-0 self-center pt-2 sm:pt-0 flex flex-col items-center gap-1">
               {isEditing ? (
-                <button 
+                <Button
                   id="save-profile-btn"
                   onClick={handleSave}
-                  className="bg-amber-400 hover:bg-amber-500 text-slate-950 font-black px-3.5 py-2 rounded-xl transition-all shadow-md flex items-center gap-1.5 text-xs uppercase tracking-wide"
+                  size="sm"
+                  className="rounded-xl bg-amber-400 text-xs font-black uppercase tracking-wide text-slate-950 hover:bg-amber-500"
                 >
                   <Save size={13} /> Save Data
-                </button>
+                </Button>
               ) : (
-                <button 
+                <Button
                   id="edit-profile-btn"
                   onClick={() => setIsEditing(true)}
-                  className="bg-white/10 hover:bg-white/20 text-white font-black px-1.5 py-1 rounded-md transition-all border border-white/15 inline-flex items-center justify-center gap-0.5 text-[7px] uppercase tracking-normal"
+                  variant="outline"
+                  className="h-6 rounded-md border-white/15 bg-white/10 px-1.5 py-1 text-[7px] font-black uppercase tracking-normal text-white hover:bg-white/20 hover:text-white"
                 >
                   <Edit2 size={8} /> Modify Profile
-                </button>
+                </Button>
               )}
               {!isStaff && !isEditing && (
-                <button
+                <Button
                   type="button"
                   id="remove-player-profile-btn"
                   onClick={() => setShowRemoveConfirm(true)}
-                  className="inline-flex items-center justify-center gap-0.5 rounded px-1 py-0.5 text-[6px] font-bold uppercase tracking-normal text-rose-300 transition hover:bg-rose-500/10 hover:text-rose-200"
+                  variant="ghost"
+                  className="h-5 rounded px-1 py-0.5 text-[6px] font-bold uppercase tracking-normal text-rose-300 hover:bg-rose-500/10 hover:text-rose-200"
                 >
                   <Trash2 size={7} />
                   Remove Player
-                </button>
+                </Button>
               )}
             </div>
           </div>
@@ -739,21 +778,25 @@ export default function PlayerProfileModal({ player, onClose, onUpdate, onRemove
                 This permanently removes the player and their saved statistics from this browser.
               </p>
               <div className="mt-6 flex justify-end gap-2">
-                <button
+                <Button
                   type="button"
                   onClick={() => setShowRemoveConfirm(false)}
-                  className="rounded-xl border border-slate-200 bg-slate-100 px-4 py-2.5 text-xs font-bold text-slate-700 transition hover:bg-slate-200"
+                  variant="secondary"
+                  size="sm"
+                  className="rounded-xl"
                 >
                   Cancel
-                </button>
-                <button
+                </Button>
+                <Button
                   type="button"
                   onClick={() => onRemove(player.id)}
-                  className="flex items-center gap-1.5 rounded-xl bg-rose-600 px-4 py-2.5 text-xs font-black text-white shadow-md transition hover:bg-rose-700"
+                  variant="destructive"
+                  size="sm"
+                  className="rounded-xl"
                 >
                   <Trash2 size={13} />
                   Remove Player
-                </button>
+                </Button>
               </div>
             </div>
           </div>
@@ -769,13 +812,13 @@ export default function PlayerProfileModal({ player, onClose, onUpdate, onRemove
                 <Briefcase size={13} className="text-amber-500" /> Staff Profile
               </h3>
               {isEditing ? (
-                <textarea
+                <Textarea
                   id="edit-staff-bio"
                   value={staffBio}
                   onChange={e => setStaffBio(e.target.value)}
                   rows={5}
                   placeholder="Write a detailed staff bio covering their background, experience, philosophy, and key responsibilities within the club..."
-                  className="w-full border border-slate-200 rounded-xl p-3 text-xs focus:ring-2 focus:ring-indigo-500 focus:outline-none font-medium leading-relaxed text-slate-700"
+                  className="min-h-32 rounded-xl p-3 text-xs font-medium leading-relaxed text-slate-700 focus-visible:ring-indigo-500/30"
                 />
               ) : (
                 <p className="text-xs text-slate-600 leading-relaxed whitespace-pre-wrap">
@@ -800,37 +843,37 @@ export default function PlayerProfileModal({ player, onClose, onUpdate, onRemove
                     <div className="flex items-center gap-3 text-xs">
                       <Mail size={13} className="text-slate-400 shrink-0" />
                       <span className="text-slate-500 w-20 shrink-0 font-bold uppercase tracking-wider text-[10px]">Email</span>
-                      <input
+                      <Input
                         id="edit-staff-email"
                         type="email"
                         value={staffEmail}
                         onChange={e => setStaffEmail(e.target.value)}
                         placeholder="coach@club.com"
-                        className="flex-1 border border-slate-200 rounded-lg p-1.5 text-xs focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                        className="h-8 flex-1 rounded-lg text-xs focus-visible:ring-indigo-500/30"
                       />
                     </div>
                     <div className="flex items-center gap-3 text-xs">
                       <Phone size={13} className="text-slate-400 shrink-0" />
                       <span className="text-slate-500 w-20 shrink-0 font-bold uppercase tracking-wider text-[10px]">Phone</span>
-                      <input
+                      <Input
                         id="edit-staff-phone"
                         type="text"
                         value={staffPhone}
                         onChange={e => setStaffPhone(e.target.value)}
                         placeholder="+1 234 567 890"
-                        className="flex-1 border border-slate-200 rounded-lg p-1.5 text-xs focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                        className="h-8 flex-1 rounded-lg text-xs focus-visible:ring-indigo-500/30"
                       />
                     </div>
                     <div className="flex items-center gap-3 text-xs">
                       <Calendar size={13} className="text-slate-400 shrink-0" />
                       <span className="text-slate-500 w-20 shrink-0 font-bold uppercase tracking-wider text-[10px]">Since</span>
-                      <input
+                      <Input
                         id="edit-staff-since"
                         type="text"
                         value={staffSince}
                         onChange={e => setStaffSince(e.target.value)}
                         placeholder="e.g. Jan 2025"
-                        className="flex-1 border border-slate-200 rounded-lg p-1.5 text-xs focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                        className="h-8 flex-1 rounded-lg text-xs focus-visible:ring-indigo-500/30"
                       />
                     </div>
                   </>
@@ -895,8 +938,8 @@ export default function PlayerProfileModal({ player, onClose, onUpdate, onRemove
               {isEditing ? (
                 <div className="grid grid-cols-2 gap-2.5 text-xs text-slate-600">
                   <div>
-                    <label className="block mb-1 font-bold text-slate-400 text-[9px] uppercase tracking-wider">Matches Played</label>
-                    <input 
+                    <Label className="mb-1 block text-[9px] text-slate-400">Matches Played</Label>
+                    <Input
                       id="edit-games-played"
                       data-validation-field="gamesPlayed"
                       type="number" 
@@ -910,15 +953,13 @@ export default function PlayerProfileModal({ player, onClose, onUpdate, onRemove
                       }}
                       aria-invalid={Boolean(profileErrors.gamesPlayed)}
                       aria-describedby={profileErrors.gamesPlayed ? 'edit-games-played-error' : undefined}
-                      className={`w-full border rounded-lg p-2 focus:ring-2 focus:outline-none font-mono text-xs font-bold ${
-                        profileErrors.gamesPlayed ? 'border-rose-300 focus:ring-rose-500' : 'border-slate-200 focus:ring-indigo-500'
-                      }`}
+                      className={profileStatInputClass(Boolean(profileErrors.gamesPlayed))}
                     />
                     <FieldError id="edit-games-played-error" message={profileErrors.gamesPlayed} />
                   </div>
                   <div>
-                    <label className="block mb-1 font-bold text-slate-400 text-[9px] uppercase tracking-wider">Goals Scored</label>
-                    <input 
+                    <Label className="mb-1 block text-[9px] text-slate-400">Goals Scored</Label>
+                    <Input
                       id="edit-stat-goals"
                       data-validation-field="points"
                       type="number" 
@@ -932,15 +973,13 @@ export default function PlayerProfileModal({ player, onClose, onUpdate, onRemove
                       }}
                       aria-invalid={Boolean(profileErrors.points)}
                       aria-describedby={profileErrors.points ? 'edit-stat-goals-error' : undefined}
-                      className={`w-full border rounded-lg p-2 focus:ring-2 focus:outline-none font-mono text-xs font-bold ${
-                        profileErrors.points ? 'border-rose-300 focus:ring-rose-500' : 'border-slate-200 focus:ring-indigo-500'
-                      }`}
+                      className={profileStatInputClass(Boolean(profileErrors.points))}
                     />
                     <FieldError id="edit-stat-goals-error" message={profileErrors.points} />
                   </div>
                   <div>
-                    <label className="block mb-1 font-bold text-slate-400 text-[9px] uppercase tracking-wider">Assists</label>
-                    <input 
+                    <Label className="mb-1 block text-[9px] text-slate-400">Assists</Label>
+                    <Input
                       id="edit-stat-assists"
                       data-validation-field="assists"
                       type="number" 
@@ -954,17 +993,15 @@ export default function PlayerProfileModal({ player, onClose, onUpdate, onRemove
                       }}
                       aria-invalid={Boolean(profileErrors.assists)}
                       aria-describedby={profileErrors.assists ? 'edit-stat-assists-error' : undefined}
-                      className={`w-full border rounded-lg p-2 focus:ring-2 focus:outline-none font-mono text-xs font-bold ${
-                        profileErrors.assists ? 'border-rose-300 focus:ring-rose-500' : 'border-slate-200 focus:ring-indigo-500'
-                      }`}
+                      className={profileStatInputClass(Boolean(profileErrors.assists))}
                     />
                     <FieldError id="edit-stat-assists-error" message={profileErrors.assists} />
                   </div>
                   <div>
-                    <label className="block mb-1 font-bold text-slate-400 text-[9px] uppercase tracking-wider">
+                    <Label className="mb-1 block text-[9px] text-slate-400">
                       {position === 'Goalkeeper' ? 'Clean Sheets' : position === 'Defender' ? 'Clean Sheets' : 'G+A Combined'}
-                    </label>
-                    <input 
+                    </Label>
+                    <Input
                       id="edit-stat-sheets"
                       data-validation-field="cleanSheetsOrRebounds"
                       type="number" 
@@ -978,15 +1015,13 @@ export default function PlayerProfileModal({ player, onClose, onUpdate, onRemove
                       }}
                       aria-invalid={Boolean(profileErrors.cleanSheetsOrRebounds)}
                       aria-describedby={profileErrors.cleanSheetsOrRebounds ? 'edit-stat-sheets-error' : undefined}
-                      className={`w-full border rounded-lg p-2 focus:ring-2 focus:outline-none font-mono text-xs font-bold ${
-                        profileErrors.cleanSheetsOrRebounds ? 'border-rose-300 focus:ring-rose-500' : 'border-slate-200 focus:ring-indigo-500'
-                      }`}
+                      className={profileStatInputClass(Boolean(profileErrors.cleanSheetsOrRebounds))}
                     />
                     <FieldError id="edit-stat-sheets-error" message={profileErrors.cleanSheetsOrRebounds} />
                   </div>
                   <div>
-                    <label className="block mb-1 font-bold text-slate-400 text-[9px] uppercase tracking-wider">Mins Placed</label>
-                    <input 
+                    <Label className="mb-1 block text-[9px] text-slate-400">Mins Played</Label>
+                    <Input
                       id="edit-stat-mins"
                       data-validation-field="minutesPlayed"
                       type="number" 
@@ -1000,15 +1035,13 @@ export default function PlayerProfileModal({ player, onClose, onUpdate, onRemove
                       }}
                       aria-invalid={Boolean(profileErrors.minutesPlayed)}
                       aria-describedby={profileErrors.minutesPlayed ? 'edit-stat-mins-error' : undefined}
-                      className={`w-full border rounded-lg p-2 focus:ring-2 focus:outline-none font-mono text-xs font-bold ${
-                        profileErrors.minutesPlayed ? 'border-rose-300 focus:ring-rose-500' : 'border-slate-200 focus:ring-indigo-500'
-                      }`}
+                      className={profileStatInputClass(Boolean(profileErrors.minutesPlayed))}
                     />
                     <FieldError id="edit-stat-mins-error" message={profileErrors.minutesPlayed} />
                   </div>
                   <div>
-                    <label className="block mb-1 font-bold text-slate-400 text-[9px] uppercase tracking-wider">Total Minutes</label>
-                    <input 
+                    <Label className="mb-1 block text-[9px] text-slate-400">Total Minutes</Label>
+                    <Input
                       id="edit-stat-mins-total"
                       data-validation-field="minutesPlayed"
                       type="number" 
@@ -1022,15 +1055,13 @@ export default function PlayerProfileModal({ player, onClose, onUpdate, onRemove
                       }}
                       aria-invalid={Boolean(profileErrors.minutesPlayed)}
                       aria-describedby={profileErrors.minutesPlayed ? 'edit-stat-mins-total-error' : undefined}
-                      className={`w-full border rounded-lg p-2 focus:ring-2 focus:outline-none font-mono text-xs font-bold ${
-                        profileErrors.minutesPlayed ? 'border-rose-300 focus:ring-rose-500' : 'border-slate-200 focus:ring-indigo-500'
-                      }`}
+                      className={profileStatInputClass(Boolean(profileErrors.minutesPlayed))}
                     />
                     <FieldError id="edit-stat-mins-total-error" message={profileErrors.minutesPlayed} />
                   </div>
                   <div>
-                    <label className="block mb-1 font-bold text-slate-400 text-[9px] uppercase tracking-wider">🟨 Yellow Cards</label>
-                    <input 
+                    <Label className="mb-1 block text-[9px] text-slate-400">Yellow Cards</Label>
+                    <Input
                       id="edit-stat-yellows"
                       data-validation-field="yellowCards"
                       type="number" 
@@ -1044,15 +1075,13 @@ export default function PlayerProfileModal({ player, onClose, onUpdate, onRemove
                       }}
                       aria-invalid={Boolean(profileErrors.yellowCards)}
                       aria-describedby={profileErrors.yellowCards ? 'edit-stat-yellows-error' : undefined}
-                      className={`w-full border rounded-lg p-2 focus:ring-2 focus:outline-none font-mono text-xs font-bold ${
-                        profileErrors.yellowCards ? 'border-rose-300 focus:ring-rose-500' : 'border-slate-200 focus:ring-indigo-500'
-                      }`}
+                      className={profileStatInputClass(Boolean(profileErrors.yellowCards))}
                     />
                     <FieldError id="edit-stat-yellows-error" message={profileErrors.yellowCards} />
                   </div>
                   <div>
-                    <label className="block mb-1 font-bold text-slate-400 text-[9px] uppercase tracking-wider">🟥 Red Cards</label>
-                    <input 
+                    <Label className="mb-1 block text-[9px] text-slate-400">Red Cards</Label>
+                    <Input
                       id="edit-stat-reds"
                       data-validation-field="redCards"
                       type="number" 
@@ -1066,15 +1095,13 @@ export default function PlayerProfileModal({ player, onClose, onUpdate, onRemove
                       }}
                       aria-invalid={Boolean(profileErrors.redCards)}
                       aria-describedby={profileErrors.redCards ? 'edit-stat-reds-error' : undefined}
-                      className={`w-full border rounded-lg p-2 focus:ring-2 focus:outline-none font-mono text-xs font-bold ${
-                        profileErrors.redCards ? 'border-rose-300 focus:ring-rose-500' : 'border-slate-200 focus:ring-indigo-500'
-                      }`}
+                      className={profileStatInputClass(Boolean(profileErrors.redCards))}
                     />
                     <FieldError id="edit-stat-reds-error" message={profileErrors.redCards} />
                   </div>
                   <div>
-                    <label className="block mb-1 font-bold text-slate-400 text-[9px] uppercase tracking-wider">⭐ MVP Awards</label>
-                    <input 
+                    <Label className="mb-1 block text-[9px] text-slate-400">MVP Awards</Label>
+                    <Input
                       id="edit-stat-mvps"
                       data-validation-field="mvpAwards"
                       type="number" 
@@ -1088,29 +1115,32 @@ export default function PlayerProfileModal({ player, onClose, onUpdate, onRemove
                       }}
                       aria-invalid={Boolean(profileErrors.mvpAwards)}
                       aria-describedby={profileErrors.mvpAwards ? 'edit-stat-mvps-error' : undefined}
-                      className={`w-full border rounded-lg p-2 focus:ring-2 focus:outline-none font-mono text-xs font-bold ${
-                        profileErrors.mvpAwards ? 'border-rose-300 focus:ring-rose-500' : 'border-slate-200 focus:ring-indigo-500'
-                      }`}
+                      className={profileStatInputClass(Boolean(profileErrors.mvpAwards))}
                     />
                     <FieldError id="edit-stat-mvps-error" message={profileErrors.mvpAwards} />
                   </div>
                   <div className="col-span-2">
-                    <label className="block mb-1 font-bold text-slate-400 text-[9px] uppercase tracking-wider">Squad Status</label>
-                    <select
-                      id="edit-reg-status"
+                    <Label className="mb-1 block text-[9px] text-slate-400">Squad Status</Label>
+                    <Select
                       value={status}
-                      onChange={e => setStatus(e.target.value as Player['registrationStatus'])}
-                      className="w-full border border-slate-200 rounded-lg p-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none bg-white font-bold"
+                      onValueChange={value => setStatus(value as Player['registrationStatus'])}
                     >
-                      <option value="Active">Active</option>
-                      <option value="Pending">Pending</option>
-                      <option value="Suspended">Suspended</option>
-                    </select>
+                      <SelectTrigger id="edit-reg-status" className="h-9 rounded-lg font-bold focus:ring-indigo-500/30">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {REGISTRATION_STATUS_OPTIONS.map(option => (
+                          <SelectItem key={option} value={option}>
+                            {option}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                   <div className="col-span-2 grid grid-cols-3 gap-2">
                     <div>
-                      <label className="block mb-1 font-bold text-slate-400 text-[9px] uppercase tracking-wider">Age</label>
-                      <input 
+                      <Label className="mb-1 block text-[9px] text-slate-400">Age</Label>
+                      <Input
                         id="edit-player-age"
                         data-validation-field="age"
                         type="number" 
@@ -1124,15 +1154,13 @@ export default function PlayerProfileModal({ player, onClose, onUpdate, onRemove
                         }}
                         aria-invalid={Boolean(profileErrors.age)}
                         aria-describedby={profileErrors.age ? 'edit-player-age-error' : undefined}
-                        className={`w-full border rounded-lg p-2 focus:ring-2 focus:outline-none font-mono text-xs font-bold ${
-                          profileErrors.age ? 'border-rose-300 focus:ring-rose-500' : 'border-slate-200 focus:ring-indigo-500'
-                        }`}
+                        className={profileStatInputClass(Boolean(profileErrors.age))}
                       />
                       <FieldError id="edit-player-age-error" message={profileErrors.age} />
                     </div>
                     <div>
-                      <label className="block mb-1 font-bold text-slate-400 text-[9px] uppercase tracking-wider">Height (cm)</label>
-                      <input 
+                      <Label className="mb-1 block text-[9px] text-slate-400">Height (cm)</Label>
+                      <Input
                         id="edit-player-height"
                         data-validation-field="height"
                         type="number" 
@@ -1146,15 +1174,13 @@ export default function PlayerProfileModal({ player, onClose, onUpdate, onRemove
                         }}
                         aria-invalid={Boolean(profileErrors.height)}
                         aria-describedby={profileErrors.height ? 'edit-player-height-error' : undefined}
-                        className={`w-full border rounded-lg p-2 focus:ring-2 focus:outline-none font-mono text-xs font-bold ${
-                          profileErrors.height ? 'border-rose-300 focus:ring-rose-500' : 'border-slate-200 focus:ring-indigo-500'
-                        }`}
+                        className={profileStatInputClass(Boolean(profileErrors.height))}
                       />
                       <FieldError id="edit-player-height-error" message={profileErrors.height} />
                     </div>
                     <div>
-                      <label className="block mb-1 font-bold text-slate-400 text-[9px] uppercase tracking-wider">Weight (kg)</label>
-                      <input 
+                      <Label className="mb-1 block text-[9px] text-slate-400">Weight (kg)</Label>
+                      <Input
                         id="edit-player-weight"
                         data-validation-field="weight"
                         type="number" 
@@ -1168,34 +1194,34 @@ export default function PlayerProfileModal({ player, onClose, onUpdate, onRemove
                         }}
                         aria-invalid={Boolean(profileErrors.weight)}
                         aria-describedby={profileErrors.weight ? 'edit-player-weight-error' : undefined}
-                        className={`w-full border rounded-lg p-2 focus:ring-2 focus:outline-none font-mono text-xs font-bold ${
-                          profileErrors.weight ? 'border-rose-300 focus:ring-rose-500' : 'border-slate-200 focus:ring-indigo-500'
-                        }`}
+                        className={profileStatInputClass(Boolean(profileErrors.weight))}
                       />
                       <FieldError id="edit-player-weight-error" message={profileErrors.weight} />
                     </div>
                   </div>
                   <div className="col-span-2">
-                    <label className="block mb-1.5 font-bold text-slate-400 text-[9px] uppercase tracking-wider">
+                    <Label className="mb-1.5 block text-[9px] text-slate-400">
                       Specialty Traits ({specialtyTraits.length}/4)
-                    </label>
+                    </Label>
                     <div className="flex flex-wrap gap-1">
                       {getAvailableTraits(position).map((trait) => {
                         const isSelected = specialtyTraits.includes(trait.label);
                         return (
-                          <button
+                          <Button
                             key={trait.label}
                             type="button"
                             onClick={() => handleToggleTrait(trait.label)}
-                            className={`text-[10px] font-bold px-2 py-1 rounded-md border transition-all flex items-center gap-1 ${
+                            variant="outline"
+                            size="sm"
+                            className={`h-7 rounded-md px-2 py-1 text-[10px] ${
                               isSelected
-                                ? 'bg-indigo-600 border-indigo-600 text-white'
+                                ? 'border-indigo-600 bg-indigo-600 text-white hover:bg-indigo-700 hover:text-white'
                                 : 'bg-white border-slate-200 text-slate-500 hover:border-indigo-300 hover:text-indigo-600'
                             }`}
                           >
                             <span className="text-xs">{trait.icon}</span>
                             {trait.label}
-                          </button>
+                          </Button>
                         );
                       })}
                     </div>
@@ -1299,13 +1325,13 @@ export default function PlayerProfileModal({ player, onClose, onUpdate, onRemove
                   <div className="text-[10px] text-slate-400 uppercase tracking-widest font-black font-mono">Coach's Notes</div>
                   <span className="text-[8px] text-slate-400 font-mono">Editable — select traits to auto-populate</span>
                 </div>
-                <textarea
+                <Textarea
                   id="edit-coach-notes"
                   value={coachNotes}
                   onChange={e => setCoachNotes(e.target.value)}
                   rows={4}
                   placeholder="Write your coaching assessment, tactical observations, and development notes for this athlete..."
-                  className="w-full border border-slate-200 rounded-xl p-2.5 text-xs focus:ring-2 focus:ring-indigo-500 focus:outline-none font-medium leading-relaxed text-slate-700 resize-none"
+                  className="min-h-28 resize-none rounded-xl p-2.5 text-xs font-medium leading-relaxed text-slate-700 focus-visible:ring-indigo-500/30"
                 />
                 {specialtyTraits.length === 0 && !coachNotes && (
                   <p className="text-[9px] text-indigo-500 mt-1.5 font-medium">
@@ -1553,13 +1579,14 @@ export default function PlayerProfileModal({ player, onClose, onUpdate, onRemove
                 <div className="text-[9px] font-black uppercase tracking-widest text-indigo-700">Recommended Training Focus</div>
                 <div className="mt-1 text-[11px] font-semibold leading-relaxed text-slate-700">{suggestedTrainingFocus}</div>
               </div>
-              <button
+              <Button
                 type="button"
                 onClick={() => onOpenAssessments(player.id)}
-                className="inline-flex w-fit items-center justify-center gap-1 rounded-md bg-slate-900 px-2 py-1 text-[8px] font-black uppercase tracking-wider text-white transition-colors hover:bg-slate-800"
+                size="sm"
+                className="h-7 w-fit rounded-md px-2 py-1 text-[8px] font-black uppercase tracking-wider"
               >
                 <Shield size={9} /> Open Assessment Center
-              </button>
+              </Button>
             </div>
 
           {/* Points Progression Chart - Fullwidth footer span */}

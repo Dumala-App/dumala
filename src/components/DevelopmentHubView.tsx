@@ -1,12 +1,19 @@
 import React, { lazy, Suspense, useEffect, useState } from 'react';
 import type { AssessmentSession, Game, Player } from '../types';
 import ViewLoadingFallback from './ViewLoadingFallback';
+import { SegmentedTabs } from './ui/segmented-tabs';
 
 const AssessmentsView = lazy(() => import('./AssessmentsView'));
 const AssessmentDrillGuideView = lazy(() => import('./AssessmentDrillGuideView'));
 const TrainingView = lazy(() => import('./TrainingView'));
 
 export type DevelopmentTab = 'assessments' | 'training' | 'assessment_guide';
+
+const DEVELOPMENT_TAB_OPTIONS: Array<{ value: DevelopmentTab; label: string }> = [
+  { value: 'training', label: 'Training' },
+  { value: 'assessments', label: 'Assessments' },
+  { value: 'assessment_guide', label: 'Assessment Guide' }
+];
 
 interface DevelopmentHubViewProps {
   activeTab: DevelopmentTab;
@@ -25,23 +32,6 @@ interface DevelopmentHubViewProps {
   onUpdateAssessmentNotes: (sessionId: string, coachNotes: string) => void;
 }
 
-const TabPill = (props: { label: string; isActive: boolean; onClick: () => void }) => {
-  return (
-    <button
-      type="button"
-      onClick={props.onClick}
-      aria-label={`Open ${props.label}`}
-      className={`rounded-xl border px-4 py-2 text-xs font-black transition-colors ${
-        props.isActive
-          ? 'border-indigo-200 bg-indigo-600 text-white'
-          : 'border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100'
-      }`}
-    >
-      {props.label}
-    </button>
-  );
-};
-
 export default function DevelopmentHubView(props: DevelopmentHubViewProps) {
   const [visitedTabs, setVisitedTabs] = useState<Set<DevelopmentTab>>(() => new Set([props.activeTab]));
   const shouldRenderTab = (tab: DevelopmentTab) => props.activeTab === tab || visitedTabs.has(tab);
@@ -57,13 +47,12 @@ export default function DevelopmentHubView(props: DevelopmentHubViewProps) {
 
   return (
     <div className="space-y-6">
-      <div className="bg-white border border-slate-200/70 rounded-2xl p-2 shadow-sm">
-        <div className="flex flex-wrap items-center gap-2">
-          <TabPill label="Training" isActive={props.activeTab === 'training'} onClick={() => props.onTabChange('training')} />
-          <TabPill label="Assessments" isActive={props.activeTab === 'assessments'} onClick={() => props.onTabChange('assessments')} />
-          <TabPill label="Assessment Guide" isActive={props.activeTab === 'assessment_guide'} onClick={() => props.onTabChange('assessment_guide')} />
-        </div>
-      </div>
+      <SegmentedTabs
+        value={props.activeTab}
+        options={DEVELOPMENT_TAB_OPTIONS}
+        onValueChange={props.onTabChange}
+        label="Development workspace sections"
+      />
 
       <Suspense fallback={<ViewLoadingFallback label={props.activeTab} />}>
         {shouldRenderTab('assessment_guide') && (
