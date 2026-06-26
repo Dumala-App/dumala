@@ -16,7 +16,7 @@ permissions:
 
 jobs:
   validate:
-    name: TypeScript, tests, build, PWA, and cloud launch
+    name: TypeScript, tests, build, and PWA
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
