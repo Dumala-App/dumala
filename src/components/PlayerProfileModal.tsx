@@ -398,7 +398,7 @@ export default function PlayerProfileModal({ player, onClose, onUpdate, onRemove
   return (
     <div 
       id="player-profile-overlay"
-      className="fixed inset-0 bg-slate-950/85 backdrop-blur-sm flex justify-center items-start py-6 px-4 z-50 overflow-y-auto"
+      className="fixed inset-0 bg-slate-950/85 flex justify-center items-start py-4 sm:py-6 px-4 z-[140] overflow-y-auto"
       onClick={onClose}
     >
       <motion.div 
@@ -408,10 +408,10 @@ export default function PlayerProfileModal({ player, onClose, onUpdate, onRemove
         aria-modal="true"
         aria-labelledby="player-profile-fullname"
         id="player-profile-modal-card"
-        initial={{ opacity: 0, scale: 0.97, y: 10 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        exit={{ opacity: 0, scale: 0.97, y: 10 }}
-        className="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden text-slate-800 border border-slate-100 my-auto"
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: 8 }}
+        className="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[calc(100dvh-2rem)] sm:max-h-[calc(100dvh-3rem)] overflow-y-auto text-slate-800 border border-slate-100"
         onClick={e => e.stopPropagation()}
       >
         {/* Modal Header Compact Banner */}
@@ -809,12 +809,16 @@ export default function PlayerProfileModal({ player, onClose, onUpdate, onRemove
           </div>
         ) : (
           /* ATHLETE PROFILE LAYOUT */
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5 p-5 bg-slate-50/50">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 p-5 bg-slate-50/50">
           
           {/* Section A: Season Statistics (Compact layout) */}
-          <div className="bg-white p-4.5 rounded-xl shadow-sm border border-slate-200/50 flex flex-col justify-between">
+          <section
+            id="season-stats-ledger-card"
+            aria-labelledby="season-stats-ledger-title"
+            className="relative order-1 min-h-[360px] bg-white p-4.5 rounded-xl shadow-sm border border-slate-200/50"
+          >
             <div className="space-y-3.5">
-              <h3 className="text-[10px] font-mono font-black uppercase tracking-wider text-slate-400 mb-2 flex items-center gap-1.5">
+              <h3 id="season-stats-ledger-title" className="text-[10px] font-mono font-black uppercase tracking-wider text-slate-400 mb-2 flex items-center gap-1.5">
                 <Activity size={13} className="text-indigo-600" /> Season Stats Ledger
               </h3>
 
@@ -1240,10 +1244,10 @@ export default function PlayerProfileModal({ player, onClose, onUpdate, onRemove
                 )}
               </div>
             )}
-          </div>
+          </section>
 
             {/* Section B: Base & Positional Attributes */}
-            <div className="bg-white p-4.5 rounded-xl shadow-sm border border-slate-200/50 flex flex-col justify-between">
+            <div className="order-2 bg-white p-4.5 rounded-xl shadow-sm border border-slate-200/50 flex flex-col justify-between">
               <div className="space-y-3.5">
                 <h3 className="text-[10px] font-mono font-black uppercase tracking-wider text-slate-400 mb-2 flex items-center gap-1.5">
                   <Shield size={13} className="text-indigo-600" /> Base Attributes
@@ -1427,7 +1431,7 @@ export default function PlayerProfileModal({ player, onClose, onUpdate, onRemove
             </div>
 
           {/* Points Progression Chart - Fullwidth footer span */}
-          <div id="points-progression-chart-card" className="col-span-1 md:col-span-2 bg-white p-4.5 rounded-xl shadow-sm border border-slate-200/50">
+          <div id="points-progression-chart-card" className="order-3 col-span-1 lg:col-span-2 bg-white p-4.5 rounded-xl shadow-sm border border-slate-200/50">
             <div className="flex justify-between items-center pb-2.5 border-b border-slate-100">
               <div>
                 <h3 className="font-display font-black text-slate-700 text-xs flex items-center gap-1.5">
@@ -1438,7 +1442,7 @@ export default function PlayerProfileModal({ player, onClose, onUpdate, onRemove
             </div>
             
             <div id="recharts-wrapper-container" className="h-[180px] w-full mt-4">
-              <ResponsiveContainer width="100%" height="105%">
+              <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={progressionData} margin={{ top: 10, right: 10, left: -25, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
                   <XAxis 
