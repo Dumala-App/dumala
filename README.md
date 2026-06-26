@@ -71,9 +71,10 @@ npm run lint
 npm test
 npm run build
 npm run verify:pwa
+npm run verify:cloud-launch
 ```
 
-The production-ready static site is generated in `dist/`. The PWA verifier inspects the generated service worker, starts a Vite production preview, and uses Playwright Chromium to confirm Dumala can reopen, traverse every core coaching area, preserve a seeded workspace, and refresh offline after an initial online load.
+The production-ready static site is generated in `dist/`. The PWA verifier inspects the generated service worker, starts a Vite production preview, and uses Playwright Chromium to confirm Dumala can reopen, traverse every core coaching area, preserve a seeded workspace, and refresh offline after an initial online load. The cloud-launch verifier checks Phase 3 approval artifacts, browser environment boundaries, and operations gates.
 
 Physical-device completion is tracked in [Phase 1 Offline Device Validation](docs/PHASE_1_OFFLINE_DEVICE_VALIDATION.md).
 

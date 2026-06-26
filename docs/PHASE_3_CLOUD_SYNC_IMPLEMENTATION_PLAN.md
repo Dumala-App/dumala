@@ -1360,13 +1360,13 @@ Provider limits, prices, regions, backup retention, and authentication behavior 
 
 ## 27. Immediate next action
 
-Begin Tranche 9 by creating an architecture decision record that confirms:
+Continue Tranche 9 by keeping the Supabase foundation behind explicit boundaries:
 
-1. Supabase/PostgreSQL/Auth as the selected cloud platform.
-2. Vercel remains the frontend host.
-3. Email OTP or magic link is the first authentication method.
-4. IndexedDB becomes the cloud-backed local replica and mutation outbox.
-5. PostgreSQL is the durable source of truth after verified migration.
-6. Optimistic concurrency and explicit conflict handling replace silent last-write-wins behavior.
+1. Keep cloud sync disabled by default through the Vite environment template.
+2. Bootstrap the browser Supabase client only from publishable environment values.
+3. Route cloud operations through repository/data-access modules instead of React components.
+4. Keep service-role, secret, database, and production credentials outside the browser bundle.
+5. Add generated database types when the reviewed schema is stable enough to commit.
+6. Keep local-only mode behavior unchanged while cloud migration work continues.
 
 No production cloud data should be created until the schema, RLS test matrix, environment separation, backup tier, and privacy review are approved.

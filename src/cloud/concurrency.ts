@@ -1,4 +1,5 @@
 import type { DumalaSupabaseClient } from './client';
+import type { Json } from './database.types';
 
 export type ControlledRecordTable =
   | 'players'
@@ -93,7 +94,7 @@ export const applyControlledRecordUpdate = async <RecordShape = Record<string, u
     target_table: input.table,
     target_id: input.id,
     expected_version: input.expectedVersion,
-    patch: sanitizePatch(input.patch)
+    patch: sanitizePatch(input.patch) as Json
   });
 
   if (error) {

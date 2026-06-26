@@ -152,13 +152,13 @@ export const PRODUCTION_GATES: ProductionGateId[] = [
 
 const SENSITIVE_KEY_PATTERN = /(token|secret|password|otp|magic|link|payload|note|assessment|payment|amount|reference|player|staff|email|phone|name)/i;
 
-export const sanitizeOperationalMetadata = (metadata: Record<string, unknown> = {}) =>
+export const sanitizeOperationalMetadata = (metadata: Record<string, unknown> = {}): Record<string, string | number | boolean | null> =>
   Object.fromEntries(
     Object.entries(metadata).filter(([key, value]) => {
       if (SENSITIVE_KEY_PATTERN.test(key)) return false;
       return ['string', 'number', 'boolean'].includes(typeof value) || value === null;
     })
-  );
+  ) as Record<string, string | number | boolean | null>;
 
 export const createDiagnosticSnapshot = (
   input: DiagnosticSnapshotInput,

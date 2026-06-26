@@ -93,4 +93,4 @@ export const listTeamActivityHistory = async (
       .limit(limit),
     'TEAM_ACTIVITY_READ_FAILED',
     'Failed to read team activity history'
-  ) as TeamActivityEvent[];
+  ) as unknown as TeamActivityEvent[];

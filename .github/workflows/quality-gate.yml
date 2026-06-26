@@ -16,7 +16,7 @@ permissions:
 
 jobs:
   validate:
-    name: TypeScript, tests, build, and PWA
+    name: TypeScript, tests, build, PWA, and cloud launch
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
@@ -49,6 +49,9 @@ jobs:
 
       - name: Verify PWA output and cache policy
         run: npm run verify:pwa
+
+      - name: Verify cloud launch boundaries
+        run: npm run verify:cloud-launch
 
       - name: Upload production build
         uses: actions/upload-artifact@v7

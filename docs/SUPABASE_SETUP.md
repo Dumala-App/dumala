@@ -31,6 +31,8 @@ VITE_SUPABASE_PUBLISHABLE_KEY=<local publishable key>
 
 Do not commit `.env.local`.
 
+Only these `VITE_` variables are approved for browser exposure. `npm run verify:cloud-launch` fails if the env template, Vite typings, cloud config, or setup docs add secret-shaped or unapproved browser variables.
+
 ## Local Commands
 
 ```bash
