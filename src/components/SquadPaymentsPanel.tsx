@@ -130,7 +130,7 @@ export default function SquadPaymentsPanel({
   const monthlyHistory = useMemo(() => {
     const byMonth = new Map<string, MonthlyPaymentSummary>();
 
-    activeEntries.forEach(entry => {
+    activeEntries.filter(entry => entry.category === 'monthly_fee').forEach(entry => {
       const monthKey = entry.date.slice(0, 7);
       const current = byMonth.get(monthKey) ?? {
         monthKey,
@@ -168,7 +168,7 @@ export default function SquadPaymentsPanel({
   const currentMonthRate = currentMonthSummary && currentMonthSummary.charged > 0
     ? Math.min(100, Math.round(((currentMonthSummary.paid + currentMonthSummary.waived) / currentMonthSummary.charged) * 100))
     : 0;
-  const recentMonthlyHistory = monthlyHistory.slice(0, 6);
+  const recentMonthlyHistory = monthlyHistory.slice(0, 9);
 
   const filteredSummaries = summaries.filter(summary => {
     const matchesSearch = summary.playerName.toLowerCase().includes(searchTerm.toLowerCase());
