@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { PaymentLedgerEntry, Player, StaffMember, SPECIALTY_TRAITS, SpecialtyTrait, POSITION_ATTRIBUTES_MAP } from '../types';
 import { 
   UserPlus, Search, Shield, Plus, AlertCircle, Download, Upload,
-  Award, ArrowLeftRight, Mail, Phone, Calendar, ReceiptText
+  Award, ArrowLeftRight, ArrowRight, Mail, Phone, Calendar, ReceiptText
 } from 'lucide-react';
 import { motion } from 'motion/react';
 import PlayerComparer from './PlayerComparer';
@@ -403,15 +403,17 @@ export default function RosterView({
             const Icon = item.icon;
             const isActive = activeSection === item.id;
             return (
-              <button
+              <Button
                 key={item.id}
                 type="button"
+                variant={isActive ? 'default' : 'outline'}
                 onClick={() => {
                   setActiveSection(item.id);
                   setIsAdding(false);
                   setIsAddingStaff(false);
                 }}
-                className={`inline-flex items-center gap-2 rounded-xl border px-4 py-2 text-[11px] font-black uppercase tracking-wider transition ${
+                aria-pressed={isActive}
+                className={`rounded-xl px-4 text-[11px] font-black uppercase tracking-wider ${
                   isActive
                     ? 'border-slate-900 bg-slate-900 text-white shadow-sm'
                     : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
@@ -419,7 +421,7 @@ export default function RosterView({
               >
                 <Icon size={14} aria-hidden="true" />
                 {item.label}
-              </button>
+              </Button>
             );
           })}
         </div>
@@ -429,42 +431,48 @@ export default function RosterView({
           <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
             <div className="relative w-full lg:max-w-sm">
               <Search className="absolute left-3 top-2.5 text-slate-400" size={14} />
-              <input
+              <Input
                 id="search-roster-input"
                 type="text"
                 placeholder="Search squad..."
                 value={searchTerm}
                 onChange={e => setSearchTerm(e.target.value)}
-                className="h-9 w-full rounded-lg border border-slate-200 bg-slate-50 pl-9 pr-3 text-xs font-medium text-slate-800 transition-all placeholder:text-slate-400 focus:border-indigo-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/10"
+                className="h-9 bg-slate-50 pl-9 text-xs font-medium text-slate-800 focus-visible:border-indigo-400 focus-visible:bg-white focus-visible:ring-indigo-500/10"
+                aria-label="Search squad"
               />
             </div>
 
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between lg:justify-end">
-              <div className="flex max-w-full overflow-x-auto rounded-lg border border-slate-200 bg-slate-50 p-0.5" aria-label="Filter roster by position">
+              <div className="flex max-w-full overflow-x-auto rounded-lg border border-slate-200 bg-slate-50 p-0.5" role="group" aria-label="Filter roster by position">
                 {["All", "Forward", "Midfielder", "Defender", "Goalkeeper"].map((pos) => (
-                  <button
+                  <Button
                     id={`filter-pos-${pos.toLowerCase()}`}
                     key={pos}
                     type="button"
+                    variant="ghost"
+                    size="sm"
                     onClick={() => setFilterPos(pos)}
                     aria-pressed={filterPos === pos}
-                    className={`min-h-8 whitespace-nowrap rounded-md px-2.5 text-[10px] font-bold transition-colors ${
+                    className={`rounded-md px-2.5 text-[10px] ${
                       filterPos === pos
                         ? 'bg-white text-slate-900 shadow-sm ring-1 ring-slate-200'
                         : 'text-slate-500 hover:bg-white/70 hover:text-slate-800'
                     }`}
                   >
                     {pos === 'All' ? 'All' : pos}
-                  </button>
+                  </Button>
                 ))}
               </div>
 
               <div className="flex items-center gap-1.5">
-                <button
+                <Button
                   id="toggle-compare-widget-btn"
                   type="button"
+                  variant="outline"
+                  size="sm"
                   onClick={() => setShowCompareWidget(!showCompareWidget)}
-                  className={`inline-flex min-h-8 items-center gap-1.5 rounded-lg border px-2.5 text-[10px] font-bold transition-colors ${
+                  aria-pressed={showCompareWidget}
+                  className={`gap-1.5 px-2.5 text-[10px] ${
                     showCompareWidget
                       ? 'border-indigo-200 bg-indigo-50 text-indigo-700'
                       : 'border-slate-200 bg-white text-slate-500 hover:bg-slate-50 hover:text-slate-800'
@@ -473,20 +481,22 @@ export default function RosterView({
                 >
                   <ArrowLeftRight size={12} className="stroke-[2.5]" />
                   <span>{showCompareWidget ? 'Comparing' : 'Compare'}</span>
-                </button>
+                </Button>
 
-                <button
+                <Button
                   id="btn-export-backup"
                   type="button"
+                  variant="outline"
+                  size="sm"
                   onClick={onExportBackup}
-                  className="inline-flex min-h-8 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 text-[10px] font-bold text-slate-500 transition-colors hover:bg-slate-50 hover:text-slate-800"
+                  className="gap-1.5 px-2.5 text-[10px] text-slate-500 hover:text-slate-800"
                   title="Export roster, assessments, tactics, training, notes, availability, payments, and standings history"
                 >
                   <Download size={12} className="stroke-[2.5]" />
                   <span>Export</span>
-                </button>
+                </Button>
 
-                <input
+                <Input
                   ref={importInputRef}
                   type="file"
                   accept="application/json,.json"
@@ -494,16 +504,18 @@ export default function RosterView({
                   onChange={(event) => void handleImportFile(event.target.files?.[0])}
                   aria-label="Restore team backup file"
                 />
-                <button
+                <Button
                   id="btn-import-backup"
                   type="button"
+                  variant="outline"
+                  size="sm"
                   onClick={() => importInputRef.current?.click()}
-                  className="inline-flex min-h-8 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 text-[10px] font-bold text-slate-500 transition-colors hover:bg-slate-50 hover:text-slate-800"
+                  className="gap-1.5 px-2.5 text-[10px] text-slate-500 hover:text-slate-800"
                   title="Restore a Dumala full-workspace or legacy JSON backup"
                 >
                   <Upload size={12} className="stroke-[2.5]" />
                   <span>Restore</span>
-                </button>
+                </Button>
               </div>
             </div>
 
@@ -535,17 +547,19 @@ export default function RosterView({
               <Shield className="text-amber-500" size={20} />
               Management & Staff
             </h3>
-            <button 
+            <Button
               id="toggle-add-staff-form-btn"
+              type="button"
               onClick={() => {
                 setIsAddingStaff(!isAddingStaff);
                 setIsAdding(false);
               }}
-              className="bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-[10px] uppercase tracking-wider px-3.5 py-1.5 rounded-lg transition-all shadow-sm flex items-center gap-1.5 border border-amber-500/10 hover:scale-[1.02] active:scale-[0.98]"
+              aria-expanded={isAddingStaff}
+              className="h-8 rounded-lg border border-amber-500/10 bg-amber-500 px-3.5 text-[10px] font-black uppercase tracking-wider text-slate-950 shadow-sm hover:scale-[1.02] hover:bg-amber-600 active:scale-[0.98]"
             >
               {isAddingStaff ? <Plus size={12} className="rotate-45" /> : <UserPlus size={12} />}
               <span>{isAddingStaff ? 'Cancel' : 'Add Staff'}</span>
-            </button>
+            </Button>
           </div>
 
           {/* Add Staff form */}
@@ -768,12 +782,14 @@ export default function RosterView({
                     <div className="p-4 flex flex-col gap-2 bg-slate-950 border-t border-slate-800">
                       <div className="flex items-center justify-between">
                         <span className="text-[10px] uppercase tracking-widest text-slate-400 font-bold">Staff Directory</span>
-                        <button 
+                        <Button
+                          type="button"
+                          variant="link"
                           onClick={() => onSelectStaff(staff)}
-                          className="text-amber-400 font-bold hover:underline flex items-center gap-0.5 text-xs"
+                          className="gap-0.5 text-xs text-amber-400"
                         >
-                          Profile &rarr;
-                        </button>
+                          Profile <ArrowRight aria-hidden="true" />
+                        </Button>
                       </div>
                       <div className="space-y-1 text-[10px]">
                         {staff.email && (
@@ -816,17 +832,19 @@ export default function RosterView({
               <UserPlus className="text-indigo-500" size={20} />
               Active Roster
             </h3>
-            <button 
+            <Button
               id="toggle-add-player-form-btn"
+              type="button"
               onClick={() => {
                 setIsAdding(!isAdding);
                 setIsAddingStaff(false);
               }}
-              className="bg-indigo-600 hover:bg-indigo-700 text-white font-black text-[10px] uppercase tracking-wider px-3.5 py-1.5 rounded-lg transition-all shadow-sm flex items-center gap-1.5 border border-indigo-650/10"
+              aria-expanded={isAdding}
+              className="h-8 rounded-lg border border-indigo-650/10 bg-indigo-600 px-3.5 text-[10px] font-black uppercase tracking-wider text-white shadow-sm hover:bg-indigo-700"
             >
               {isAdding ? <Plus size={12} className="rotate-45" /> : <UserPlus size={12} />}
               <span>{isAdding ? 'Cancel' : 'Add Player'}</span>
-            </button>
+            </Button>
           </div>
 
           {/* Add Player Form (Expands inline) */}
@@ -1083,21 +1101,23 @@ export default function RosterView({
                       const selectionLimitReached = newPlayerTraits.length >= 4 && !isSelected;
 
                       return (
-                        <button
+                        <Button
                           key={trait.label}
                           type="button"
+                          variant="outline"
+                          size="sm"
                           aria-pressed={isSelected}
                           disabled={selectionLimitReached}
                           onClick={() => handleToggleTrait(trait.label)}
-                          className={`rounded-lg border px-2.5 py-1.5 text-[10px] font-bold transition ${
+                          className={`h-auto rounded-lg px-2.5 py-1.5 text-[10px] ${
                             isSelected
                               ? 'border-indigo-500 bg-indigo-600 text-white shadow-sm'
-                              : 'border-slate-200 bg-white text-slate-600 hover:border-indigo-300 hover:text-indigo-700 disabled:cursor-not-allowed disabled:opacity-40'
+                              : 'border-slate-200 bg-white text-slate-600 hover:border-indigo-300 hover:text-indigo-700'
                           }`}
                         >
                           <span className="mr-1">{trait.icon}</span>
                           {trait.label}
-                        </button>
+                        </Button>
                       );
                     })}
                   </div>

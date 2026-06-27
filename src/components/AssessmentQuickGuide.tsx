@@ -2,6 +2,8 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { BookOpen, Search, Star, X } from 'lucide-react';
 import { DRILL_GUIDE_CATEGORIES, DRILL_GUIDE_ENTRIES, type DrillGuideCategory, type DrillGuideEntry } from '../fprds/drillGuide';
 import { useDialogAccessibility } from '../hooks/useDialogAccessibility';
+import { Button } from './ui/button';
+import { Input } from './ui/input';
 
 interface AssessmentQuickGuideProps {
   isOpen: boolean;
@@ -105,11 +107,12 @@ export default function AssessmentQuickGuide({
 
   return (
     <div className="fixed inset-0 z-[120]">
-      <button
+      <Button
         type="button"
+        variant="ghost"
         aria-label="Close quick guide (overlay)"
         onClick={handleClose}
-        className="absolute inset-0 bg-slate-950/45 backdrop-blur-sm"
+        className="absolute inset-0 h-auto w-auto rounded-none bg-slate-950/45 p-0 backdrop-blur-sm hover:bg-slate-950/45"
       />
 
       <div
@@ -135,67 +138,78 @@ export default function AssessmentQuickGuide({
                 <p className="text-[12px] text-slate-500 font-semibold truncate">How to run each drill consistently</p>
               </div>
             </div>
-            <button
+            <Button
               type="button"
+              variant="outline"
+              size="icon"
               onClick={handleClose}
               aria-label="Close quick guide"
-              className="rounded-xl border border-slate-200 bg-white p-2 hover:bg-slate-50 transition-colors"
+              className="rounded-xl"
             >
               <X size={16} className="text-slate-700" />
-            </button>
+            </Button>
           </div>
 
           {/* Search */}
           <div className="mt-4 relative">
             <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-            <input
+            <Input
               ref={searchInputRef}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search drills (e.g., sprint, yoyo, finishing)"
               aria-label="Search drills"
-              className="w-full rounded-xl border border-slate-200 bg-white pl-9 pr-3 py-2.5 text-sm font-semibold text-slate-800 focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100 outline-none"
+              className="rounded-xl pl-9 text-sm font-semibold text-slate-800 focus-visible:border-indigo-300 focus-visible:ring-indigo-100"
             />
           </div>
 
           {/* Filters */}
           <div className="mt-4 flex flex-wrap items-center gap-2">
-            <button
+            <Button
               type="button"
+              variant="outline"
+              size="sm"
               onClick={() => setActiveCategory('All')}
               aria-label="Show all drills"
-              className={`rounded-full border px-3 py-1 text-[10px] font-black uppercase tracking-wider transition-colors ${
+              aria-pressed={activeCategory === 'All'}
+              className={`h-7 rounded-full px-3 text-[10px] font-black uppercase tracking-wider ${
                 activeCategory === 'All' ? 'border-indigo-200 bg-indigo-600 text-white' : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
               }`}
             >
               All
-            </button>
+            </Button>
             {DRILL_GUIDE_CATEGORIES.map(c => (
-              <button
+              <Button
                 key={c.id}
                 type="button"
+                variant="outline"
+                size="sm"
                 onClick={() => setActiveCategory(c.id)}
                 aria-label={`Filter category ${c.label}`}
-                className={`rounded-full border px-3 py-1 text-[10px] font-black uppercase tracking-wider transition-colors ${
+                aria-pressed={activeCategory === c.id}
+                className={`h-7 rounded-full px-3 text-[10px] font-black uppercase tracking-wider [&_svg]:size-3 ${
                   activeCategory === c.id ? 'border-indigo-200 bg-indigo-600 text-white' : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
                 }`}
               >
                 {c.label}
-              </button>
+              </Button>
             ))}
 
             {isRecommendedModeAvailable && (
-              <button
+              <Button
                 type="button"
+                variant="outline"
+                size="sm"
                 onClick={() => setRecommendedOnly(v => !v)}
                 aria-label="Toggle recommended drills only"
-                className={`rounded-full border px-3 py-1 text-[10px] font-black uppercase tracking-wider transition-colors inline-flex items-center gap-1.5 ${
+                aria-pressed={recommendedOnly}
+                className={`h-7 rounded-full px-3 text-[10px] font-black uppercase tracking-wider ${
                   recommendedOnly ? 'border-amber-200 bg-amber-500 text-slate-950' : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
                 }`}
               >
                 <Star size={12} className={recommendedOnly ? 'text-slate-950' : 'text-amber-500'} />
                 Recommended
-              </button>
+              </Button>
             )}
           </div>
         </div>
@@ -214,12 +228,14 @@ export default function AssessmentQuickGuide({
               {filteredEntries.map((entry) => {
                 const active = entry.id === selectedDrillId;
                 return (
-                  <button
+                  <Button
                     key={entry.id}
                     type="button"
+                    variant="outline"
                     onClick={() => setSelectedDrillId(entry.id)}
                     aria-label={`Open guide for ${entry.title}`}
-                    className={`w-full text-left rounded-2xl border p-3 transition-colors ${
+                    aria-pressed={active}
+                    className={`h-auto w-full flex-col items-start gap-0 rounded-2xl p-3 text-left whitespace-normal ${
                       active ? 'border-indigo-300 bg-indigo-50' : 'border-slate-200 bg-white hover:bg-slate-50'
                     }`}
                   >
@@ -228,7 +244,7 @@ export default function AssessmentQuickGuide({
                       {entry.attributeCode ? `${entry.attributeCode} • ` : ''}
                       {entry.category}
                     </p>
-                  </button>
+                  </Button>
                 );
               })}
             </div>
