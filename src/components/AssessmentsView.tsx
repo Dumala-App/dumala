@@ -26,6 +26,17 @@ import {
   YAxis
 } from 'recharts';
 import { FieldError, FormErrorSummary } from './FormValidation';
+import { Badge } from '@/src/components/ui/badge';
+import { Button } from '@/src/components/ui/button';
+import { Input } from '@/src/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from '@/src/components/ui/select';
+import { Textarea } from '@/src/components/ui/textarea';
 import { FieldErrors, focusFirstInvalidField, hasFieldErrors } from '../forms/validation';
 import { generateFourWeekPlan } from '../fprds/development';
 import {
@@ -165,7 +176,7 @@ const NumberInput: React.FC<NumberInputProps> = (props) => {
       <label htmlFor={props.id} className="text-[11px] font-black uppercase tracking-wider text-slate-500">
         {props.label}
       </label>
-      <input
+      <Input
         id={props.id}
         data-validation-field={props.fieldName}
         type="number"
@@ -179,10 +190,10 @@ const NumberInput: React.FC<NumberInputProps> = (props) => {
         aria-label={props.label}
         aria-invalid={Boolean(props.error)}
         aria-describedby={props.error ? `${props.id}-error` : undefined}
-        className={`w-full rounded-xl border bg-white px-3 py-2 text-sm font-semibold text-slate-800 shadow-sm outline-none transition-colors ${
+        className={`rounded-xl text-sm font-semibold text-slate-800 shadow-sm ${
           props.error
-            ? 'border-rose-300 focus:border-rose-400 focus:ring-2 focus:ring-rose-200'
-            : 'border-slate-200 focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100'
+            ? 'border-rose-300 focus-visible:ring-rose-200'
+            : 'border-slate-200 focus-visible:ring-indigo-100'
         }`}
       />
       {props.hint && !props.error && <p className="text-[11px] text-slate-400 font-medium">{props.hint}</p>}
@@ -886,14 +897,16 @@ export default function AssessmentsView({
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
-            <button
+            <Button
               type="button"
+              variant="outline"
+              size="sm"
               onClick={handleOpenTeamHistory}
               aria-label="Open team assessment history"
-              className="inline-flex items-center gap-1 rounded-lg border border-indigo-200 bg-indigo-50 px-2 py-1 text-[8px] font-black uppercase tracking-wider text-indigo-700 hover:bg-indigo-100 transition-colors"
+              className="h-7 rounded-lg border-indigo-200 bg-indigo-50 px-2 py-1 text-[8px] font-black uppercase tracking-wider text-indigo-700 hover:bg-indigo-100 hover:text-indigo-800"
             >
               <History size={10} /> Team history
-            </button>
+            </Button>
             <div className="text-[10px] font-black uppercase tracking-widest text-slate-400 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2">
               Step {step} / 6: {stepTitle}
             </div>
@@ -908,40 +921,42 @@ export default function AssessmentsView({
 
         <div className="mt-5 flex items-center justify-between gap-3">
           {step < 6 ? (
-            <button
+            <Button
               type="button"
+              variant="outline"
               onClick={handlePrevStep}
               disabled={step === 1}
               aria-label="Previous step"
-              className={`inline-flex items-center gap-2 rounded-xl border px-4 py-2 text-xs font-black transition-colors ${
+              className={`rounded-xl px-4 py-2 text-xs font-black ${
                 step === 1
-                  ? 'border-slate-200 bg-slate-50 text-slate-300 cursor-not-allowed'
+                  ? 'border-slate-200 bg-slate-50 text-slate-300'
                   : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
               }`}
             >
               <ChevronLeft size={14} /> Back
-            </button>
+            </Button>
           ) : (
             <div aria-hidden="true" />
           )}
 
           {step < 6 ? (
-            <button
+            <Button
               type="button"
               onClick={handleNextStep}
               disabled={!canGoNext}
               aria-label="Next step"
-              className={`inline-flex items-center gap-2 rounded-xl border px-4 py-2 text-xs font-black transition-colors ${
+              className={`rounded-xl border px-4 py-2 text-xs font-black ${
                 canGoNext
                   ? 'border-indigo-200 bg-indigo-600 text-white hover:bg-indigo-700'
-                  : 'border-slate-200 bg-slate-50 text-slate-300 cursor-not-allowed'
+                  : 'border-slate-200 bg-slate-50 text-slate-300'
               }`}
             >
               Next <ChevronRight size={14} />
-            </button>
+            </Button>
           ) : (
-            <button
+            <Button
               type="button"
+              variant="outline"
               onClick={() => {
                 setStep(1);
                 setSelectedPlayerId('');
@@ -964,10 +979,10 @@ export default function AssessmentsView({
                 setSaveError(null);
               }}
               aria-label="Start new assessment"
-              className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-black text-slate-700 hover:bg-slate-50 transition-colors"
+              className="rounded-xl border-slate-200 bg-white px-4 py-2 text-xs font-black text-slate-700 hover:bg-slate-50"
             >
               <Sparkles size={14} /> New assessment
-            </button>
+            </Button>
           )}
         </div>
       </div>
@@ -982,12 +997,12 @@ export default function AssessmentsView({
                 </h3>
                 <div className="relative w-full max-w-xs">
                   <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                  <input
+                  <Input
                     value={playerSearch}
                     onChange={(e) => setPlayerSearch(e.target.value)}
                     placeholder="Search name or number"
                     aria-label="Search players"
-                    className="w-full rounded-xl border border-slate-200 bg-white pl-9 pr-3 py-2 text-sm font-semibold text-slate-800 focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100 outline-none"
+                    className="rounded-xl border-slate-200 bg-white pl-9 pr-3 text-sm font-semibold text-slate-800 focus-visible:ring-indigo-100"
                   />
                 </div>
               </div>
@@ -996,13 +1011,14 @@ export default function AssessmentsView({
                 {filteredPlayers.map(p => {
                   const isActive = selectedPlayerId === p.id;
                   return (
-                    <button
+                    <Button
                       key={p.id}
                       type="button"
+                      variant="outline"
                       data-validation-field={isActive ? 'playerId' : undefined}
                       onClick={() => handleSelectPlayer(p.id)}
                       aria-label={`Select ${p.name}`}
-                      className={`text-left rounded-2xl border p-4 transition-all ${
+                      className={`h-auto justify-start whitespace-normal rounded-2xl p-4 text-left ${
                         isActive
                           ? 'border-indigo-300 bg-indigo-50 shadow-md'
                           : 'border-slate-200 bg-white hover:bg-slate-50'
@@ -1030,7 +1046,7 @@ export default function AssessmentsView({
                           <CheckCircle2 size={14} /> Selected
                         </div>
                       )}
-                    </button>
+                    </Button>
                   );
                 })}
               </div>
@@ -1053,12 +1069,13 @@ export default function AssessmentsView({
                 {(['ST', 'W', 'CM', 'CDM', 'FB', 'CB', 'GK'] as FprdsRole[]).map(r => {
                   const active = role === r;
                   return (
-                    <button
+                    <Button
                       key={r}
                       type="button"
+                      variant="outline"
                       onClick={() => setRole(r)}
                       aria-label={`Select role ${ROLE_LABELS[r]}`}
-                      className={`rounded-2xl border p-4 text-left transition-all ${
+                      className={`h-auto justify-start whitespace-normal rounded-2xl p-4 text-left ${
                         active ? 'border-indigo-300 bg-indigo-50 shadow-md' : 'border-slate-200 bg-white hover:bg-slate-50'
                       }`}
                     >
@@ -1069,7 +1086,7 @@ export default function AssessmentsView({
                         </div>
                         {active && <CheckCircle2 size={18} className="text-indigo-700" />}
                       </div>
-                    </button>
+                    </Button>
                   );
                 })}
               </div>
@@ -1089,17 +1106,18 @@ export default function AssessmentsView({
                     {(['Full', 'Quick'] as AssessmentType[]).map(t => {
                       const active = assessmentType === t;
                       return (
-                        <button
+                        <Button
                           key={t}
                           type="button"
+                          variant={active ? 'default' : 'outline'}
                           onClick={() => setAssessmentType(t)}
                           aria-label={`Select ${t} assessment`}
-                          className={`rounded-xl border px-4 py-2 text-xs font-black transition-colors ${
+                          className={`rounded-xl px-4 py-2 text-xs font-black ${
                             active ? 'border-indigo-300 bg-indigo-600 text-white' : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
                           }`}
                         >
                           {t}
-                        </button>
+                        </Button>
                       );
                     })}
                   </div>
@@ -1110,12 +1128,12 @@ export default function AssessmentsView({
 
                 <div className="space-y-1.5">
                   <label className="text-[11px] font-black uppercase tracking-wider text-slate-500">Assessment date</label>
-                  <input
+                  <Input
                     type="date"
                     value={assessmentDate}
                     onChange={(e) => setAssessmentDate(e.target.value)}
                     aria-label="Assessment date"
-                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-800 focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100 outline-none"
+                    className="rounded-xl border-slate-200 bg-white text-sm font-semibold text-slate-800 focus-visible:ring-indigo-100"
                   />
                 </div>
               </div>
@@ -1135,18 +1153,19 @@ export default function AssessmentsView({
                 {(['U12', 'U15', 'U18', 'Adult'] as AgeGroup[]).map(g => {
                   const active = ageGroup === g;
                   return (
-                    <button
+                    <Button
                       key={g}
                       type="button"
+                      variant={active ? 'default' : 'outline'}
                       data-validation-field={active ? 'ageGroup' : undefined}
                       onClick={() => setAgeGroup(g)}
                       aria-label={`Select age group ${g}`}
-                      className={`rounded-xl border px-4 py-2 text-xs font-black transition-colors ${
+                      className={`rounded-xl px-4 py-2 text-xs font-black ${
                         active ? 'border-indigo-300 bg-indigo-600 text-white' : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
                       }`}
                     >
                       {g}
-                    </button>
+                    </Button>
                   );
                 })}
               </div>
@@ -1294,18 +1313,18 @@ export default function AssessmentsView({
               </div>
 
               <div className="flex items-center justify-end">
-                <button
+                <Button
                   type="button"
                   onClick={handleSaveAssessment}
                   aria-label="Save assessment"
-                  className={`inline-flex items-center gap-2 rounded-xl border px-4 py-2 text-xs font-black transition-colors ${
+                  className={`rounded-xl border px-4 py-2 text-xs font-black ${
                     scorePreview && scorePreview.ok
                       ? 'border-emerald-200 bg-emerald-600 text-white hover:bg-emerald-700'
                       : 'border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100'
                   }`}
                 >
                   <Save size={14} /> Save assessment
-                </button>
+                </Button>
               </div>
             </div>
           )}
@@ -1335,12 +1354,13 @@ export default function AssessmentsView({
                   {!selectedPlayer && assessedPlayerSummaries.length > 0 && (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                       {assessedPlayerSummaries.map(({ player, latest, sessionCount }) => (
-                        <button
+                        <Button
                           key={player.id}
                           type="button"
+                          variant="outline"
                           onClick={() => setSelectedPlayerId(player.id)}
                           aria-label={`Open assessment history for ${player.name}`}
-                          className="text-left rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition-colors hover:border-indigo-200 hover:bg-indigo-50/40 focus:outline-none focus:ring-2 focus:ring-indigo-100"
+                          className="h-auto justify-start whitespace-normal rounded-2xl border-slate-200 bg-white p-4 text-left shadow-sm hover:border-indigo-200 hover:bg-indigo-50/40 focus-visible:ring-indigo-100"
                         >
                           <div className="flex items-start justify-between gap-3">
                             <div className="flex items-center gap-3 min-w-0">
@@ -1376,7 +1396,7 @@ export default function AssessmentsView({
                               <p className="text-xs font-black text-slate-900">{ROLE_LABELS[latest.role]}</p>
                             </div>
                           </div>
-                        </button>
+                        </Button>
                       ))}
                     </div>
                   )}
@@ -1515,23 +1535,32 @@ export default function AssessmentsView({
                             </div>
                             <label className="min-w-[220px] space-y-1">
                               <span className="block text-[10px] font-black uppercase tracking-wider text-slate-500">Compare with</span>
-                              <select
-                                value={comparisonPlayerId}
-                                onChange={(event) => setComparisonPlayerId(event.target.value)}
+                              <Select
+                                value={comparisonPlayerId || 'none'}
+                                onValueChange={(value) => setComparisonPlayerId(value === 'none' ? '' : value)}
                                 disabled={playerComparisonOptions.length === 0}
-                                aria-label="Select player for FPRDS comparison report"
-                                className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 outline-none focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100 disabled:bg-slate-100 disabled:text-slate-400"
                               >
-                                {playerComparisonOptions.length === 0 ? (
-                                  <option value="">No assessed players</option>
-                                ) : (
-                                  playerComparisonOptions.map((player) => (
-                                    <option key={player.id} value={player.id}>
-                                      {player.name}
-                                    </option>
-                                  ))
-                                )}
-                              </select>
+                                <SelectTrigger
+                                  aria-label="Select player for FPRDS comparison report"
+                                  className="h-9 rounded-xl border-slate-200 bg-white text-xs font-bold text-slate-700 focus:ring-indigo-100 disabled:bg-slate-100 disabled:text-slate-400"
+                                >
+                                  <SelectValue placeholder="No assessed players" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {playerComparisonOptions.length === 0 ? (
+                                    <SelectItem value="none">No assessed players</SelectItem>
+                                  ) : (
+                                    <>
+                                      <SelectItem value="none">Select player</SelectItem>
+                                      {playerComparisonOptions.map((player) => (
+                                        <SelectItem key={player.id} value={player.id}>
+                                          {player.name}
+                                        </SelectItem>
+                                      ))}
+                                    </>
+                                  )}
+                                </SelectContent>
+                              </Select>
                             </label>
                           </div>
 
@@ -1595,35 +1624,47 @@ export default function AssessmentsView({
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                               <label className="space-y-1">
                                 <span className="block text-[10px] font-black uppercase tracking-wider text-slate-500">Baseline</span>
-                                <select
-                                  value={baselineSessionId}
-                                  onChange={(event) => setBaselineSessionId(event.target.value)}
-                                  aria-label="Select baseline assessment session"
-                                  className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 outline-none focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100"
+                                <Select
+                                  value={baselineSessionId || 'none'}
+                                  onValueChange={(value) => setBaselineSessionId(value === 'none' ? '' : value)}
                                 >
-                                  <option value="">Select session</option>
-                                  {assessmentProgressSeries.map((point) => (
-                                    <option key={`baseline-${point.id}`} value={point.id}>
-                                      {point.assessmentDate} · {ROLE_LABELS[point.role]}
-                                    </option>
-                                  ))}
-                                </select>
+                                  <SelectTrigger
+                                    aria-label="Select baseline assessment session"
+                                    className="h-9 rounded-xl border-slate-200 bg-white text-xs font-bold text-slate-700 focus:ring-indigo-100"
+                                  >
+                                    <SelectValue placeholder="Select session" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="none">Select session</SelectItem>
+                                    {assessmentProgressSeries.map((point) => (
+                                      <SelectItem key={`baseline-${point.id}`} value={point.id}>
+                                        {point.assessmentDate} - {ROLE_LABELS[point.role]}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
                               </label>
                               <label className="space-y-1">
                                 <span className="block text-[10px] font-black uppercase tracking-wider text-slate-500">Target</span>
-                                <select
-                                  value={targetSessionId}
-                                  onChange={(event) => setTargetSessionId(event.target.value)}
-                                  aria-label="Select target assessment session"
-                                  className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 outline-none focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100"
+                                <Select
+                                  value={targetSessionId || 'none'}
+                                  onValueChange={(value) => setTargetSessionId(value === 'none' ? '' : value)}
                                 >
-                                  <option value="">Select session</option>
-                                  {assessmentProgressSeries.map((point) => (
-                                    <option key={`target-${point.id}`} value={point.id}>
-                                      {point.assessmentDate} · {ROLE_LABELS[point.role]}
-                                    </option>
-                                  ))}
-                                </select>
+                                  <SelectTrigger
+                                    aria-label="Select target assessment session"
+                                    className="h-9 rounded-xl border-slate-200 bg-white text-xs font-bold text-slate-700 focus:ring-indigo-100"
+                                  >
+                                    <SelectValue placeholder="Select session" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="none">Select session</SelectItem>
+                                    {assessmentProgressSeries.map((point) => (
+                                      <SelectItem key={`target-${point.id}`} value={point.id}>
+                                        {point.assessmentDate} - {ROLE_LABELS[point.role]}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
                               </label>
                             </div>
                           </div>
@@ -1704,18 +1745,20 @@ export default function AssessmentsView({
                             <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">OVR</p>
                             <p className="text-lg font-display font-black text-slate-900 leading-none">{s.ovr}</p>
                           </div>
-                          <button
+                          <Button
                             type="button"
+                            variant="outline"
+                            size="icon"
                             onClick={() => {
                               const confirmed = window.confirm('Delete this assessment session? This cannot be undone.');
                               if (!confirmed) return;
                               onDeleteAssessment(s.id);
                             }}
                             aria-label="Delete assessment"
-                            className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-rose-700 hover:bg-rose-100 transition-colors"
+                            className="rounded-xl border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100 hover:text-rose-800"
                           >
                             <Trash2 size={16} />
-                          </button>
+                          </Button>
                         </div>
                       </div>
 
@@ -1734,9 +1777,9 @@ export default function AssessmentsView({
                               <div className="flex items-center justify-between gap-2">
                                 <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 truncate">{String(attrId)}</p>
                                 {isWeakest && (
-                                  <span className="text-[9px] font-black text-amber-700 bg-amber-100 border border-amber-200 rounded-full px-2 py-0.5">
+                                  <Badge className="rounded-full border-amber-200 bg-amber-100 px-2 py-0.5 text-[9px] text-amber-700">
                                     Weakest
-                                  </span>
+                                  </Badge>
                                 )}
                               </div>
                               <div className="mt-1 flex items-baseline justify-between gap-2">
@@ -1753,28 +1796,30 @@ export default function AssessmentsView({
                           <label htmlFor={`assessment-note-${s.id}`} className="text-[11px] font-black uppercase tracking-wider text-slate-500 flex items-center gap-2">
                             <NotebookPen size={14} className="text-indigo-600" /> Coach notes
                           </label>
-                          <button
+                          <Button
                             type="button"
+                            variant={noteChanged ? 'default' : 'outline'}
+                            size="sm"
                             onClick={() => handleSaveSessionNote(s.id)}
                             disabled={!noteChanged}
                             aria-label={`Save coach notes for ${sessionPlayerName} assessment on ${s.assessmentDate}`}
-                            className={`inline-flex items-center justify-center gap-2 rounded-xl border px-3 py-2 text-[10px] font-black uppercase tracking-wider transition-colors ${
+                            className={`rounded-xl px-3 py-2 text-[10px] font-black uppercase tracking-wider ${
                               noteChanged
                                 ? 'border-indigo-200 bg-indigo-600 text-white hover:bg-indigo-700'
-                                : 'border-slate-200 bg-white text-slate-300 cursor-not-allowed'
+                                : 'border-slate-200 bg-white text-slate-300'
                             }`}
                           >
                             <Save size={12} /> Save note
-                          </button>
+                          </Button>
                         </div>
-                        <textarea
+                        <Textarea
                           id={`assessment-note-${s.id}`}
                           value={noteValue}
                           onChange={(event) => setNoteDrafts(current => ({ ...current, [s.id]: event.target.value }))}
                           placeholder="Add coaching observations, context, follow-up reminders, or player feedback from this assessment."
                           aria-label={`Coach notes for ${sessionPlayerName} assessment on ${s.assessmentDate}`}
                           rows={3}
-                          className="mt-3 w-full resize-y rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 outline-none focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100"
+                          className="mt-3 resize-y rounded-xl border-slate-200 bg-white text-sm font-medium text-slate-700 focus-visible:ring-indigo-100"
                         />
                         <p className="mt-2 text-[11px] font-medium text-slate-400">
                           Notes are stored with this assessment and included in workspace backups.

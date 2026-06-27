@@ -13,11 +13,21 @@ import {
 } from '../training/synchronization';
 import { DRILL_INSTRUCTIONS, TRAINING_DRILLS, type TrainingDrill } from '../training/drillLibrary';
 import { TrainingDrillCard, getDrillIcon } from './TrainingDrillCard';
+import { Badge } from '@/src/components/ui/badge';
+import { Button } from '@/src/components/ui/button';
+import { Input } from '@/src/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from '@/src/components/ui/select';
 import { 
   Dumbbell, Sparkles, RotateCcw, TrendingUp, Search, Filter,
   User, CheckCircle, CalendarPlus, HeartPulse, ShieldCheck, Target, Footprints,
   Shield, Timer, Gauge, ArrowUpRight, Crosshair, Waves, Goal, Hand, Route,
-  ChevronLeft, ChevronRight, Trophy
+  ChevronLeft, ChevronRight, Trophy, X
 } from 'lucide-react';
 
 interface TrainingViewProps {
@@ -598,76 +608,106 @@ export default function TrainingView({ players, onUpdatePlayer, games, onUpdateG
           {/* Controls */}
           <div className="flex items-center gap-2 flex-wrap text-xs font-bold text-slate-700">
             <span className="text-slate-400 text-[10px] tracking-wider uppercase mr-1">Load Preset Mode:</span>
-            <button 
+            <Button
               id="btn-pres-heavy"
+              type="button"
+              variant="outline"
+              size="sm"
               onClick={() => handleLoadTemplate('heavy')} 
-              className="px-2.5 py-1.5 rounded bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-100 transition-colors"
+              className="h-7 border-rose-100 bg-rose-50 px-2.5 py-1.5 text-rose-700 hover:bg-rose-100 hover:text-rose-800"
             >
-              <Dumbbell size={11} className="inline mr-1" /> Heavy Fitness
-            </button>
-            <button 
+              <Dumbbell size={11} /> Heavy Fitness
+            </Button>
+            <Button
               id="btn-pres-tactical"
+              type="button"
+              variant="outline"
+              size="sm"
               onClick={() => handleLoadTemplate('tactical')} 
-              className="px-2.5 py-1.5 rounded bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-100 transition-colors"
+              className="h-7 border-indigo-100 bg-indigo-50 px-2.5 py-1.5 text-indigo-700 hover:bg-indigo-100 hover:text-indigo-800"
             >
-              <Shield size={11} className="inline mr-1" /> Tactical Focus
-            </button>
-            <button 
+              <Shield size={11} /> Tactical Focus
+            </Button>
+            <Button
               id="btn-pres-taper"
+              type="button"
+              variant="outline"
+              size="sm"
               onClick={() => handleLoadTemplate('taper')} 
-              className="px-2.5 py-1.5 rounded bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-100 transition-colors"
+              className="h-7 border-emerald-100 bg-emerald-50 px-2.5 py-1.5 text-emerald-700 hover:bg-emerald-100 hover:text-emerald-800"
             >
-              <Sparkles size={11} className="inline mr-1" /> Match Taper
-            </button>
-            <button 
+              <Sparkles size={11} /> Match Taper
+            </Button>
+            <Button
               id="btn-pres-prematch"
+              type="button"
+              variant="outline"
+              size="sm"
               onClick={() => handleLoadTemplate('prematch')} 
-              className="px-2.5 py-1.5 rounded bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-100 transition-colors"
+              className="h-7 border-amber-100 bg-amber-50 px-2.5 py-1.5 text-amber-700 hover:bg-amber-100 hover:text-amber-800"
             >
-              <Target size={11} className="inline mr-1" /> Pre-Match Week
-            </button>
-            <button 
+              <Target size={11} /> Pre-Match Week
+            </Button>
+            <Button
               id="btn-pres-recovery"
+              type="button"
+              variant="outline"
+              size="sm"
               onClick={() => handleLoadTemplate('recovery')} 
-              className="px-2.5 py-1.5 rounded bg-teal-50 hover:bg-teal-100 text-teal-700 border border-teal-100 transition-colors"
+              className="h-7 border-teal-100 bg-teal-50 px-2.5 py-1.5 text-teal-700 hover:bg-teal-100 hover:text-teal-800"
             >
-              <HeartPulse size={11} className="inline mr-1" /> Recovery Week
-            </button>
-            <button 
+              <HeartPulse size={11} /> Recovery Week
+            </Button>
+            <Button
               id="btn-pres-forward"
+              type="button"
+              variant="outline"
+              size="sm"
               onClick={() => handleLoadTemplate('forward-focus')} 
-              className="px-2.5 py-1.5 rounded bg-red-50 hover:bg-red-100 text-red-700 border border-red-100 transition-colors"
+              className="h-7 border-red-100 bg-red-50 px-2.5 py-1.5 text-red-700 hover:bg-red-100 hover:text-red-800"
             >
-              <Crosshair size={11} className="inline mr-1" /> Forward Focus
-            </button>
-            <button 
+              <Crosshair size={11} /> Forward Focus
+            </Button>
+            <Button
               id="btn-pres-midfield"
+              type="button"
+              variant="outline"
+              size="sm"
               onClick={() => handleLoadTemplate('midfield-focus')} 
-              className="px-2.5 py-1.5 rounded bg-sky-50 hover:bg-sky-100 text-sky-700 border border-sky-100 transition-colors"
+              className="h-7 border-sky-100 bg-sky-50 px-2.5 py-1.5 text-sky-700 hover:bg-sky-100 hover:text-sky-800"
             >
-              <Route size={11} className="inline mr-1" /> Midfield Focus
-            </button>
-            <button 
+              <Route size={11} /> Midfield Focus
+            </Button>
+            <Button
               id="btn-pres-defender"
+              type="button"
+              variant="outline"
+              size="sm"
               onClick={() => handleLoadTemplate('defender-focus')} 
-              className="px-2.5 py-1.5 rounded bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-100 transition-colors"
+              className="h-7 border-blue-100 bg-blue-50 px-2.5 py-1.5 text-blue-700 hover:bg-blue-100 hover:text-blue-800"
             >
-              <Shield size={11} className="inline mr-1" /> Defender Focus
-            </button>
-            <button 
+              <Shield size={11} /> Defender Focus
+            </Button>
+            <Button
               id="btn-pres-last-week"
+              type="button"
+              variant="outline"
+              size="sm"
               onClick={() => handleLoadTemplate('last-week')} 
-              className="px-2.5 py-1.5 rounded bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-100 transition-colors"
+              className="h-7 border-purple-100 bg-purple-50 px-2.5 py-1.5 text-purple-700 hover:bg-purple-100 hover:text-purple-800"
             >
-              <RotateCcw size={11} className="inline mr-1" /> Last Week
-            </button>
-            <button 
+              <RotateCcw size={11} /> Last Week
+            </Button>
+            <Button
               id="btn-pres-reset"
+              type="button"
+              variant="secondary"
+              size="sm"
               onClick={handleClearAllWeekly} 
-              className="px-2.5 py-1.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-600 transition-colors"
+              className="h-7 px-2.5 py-1.5 text-slate-600"
             >
               Reset Week
-            </button>
+            </Button>
           </div>
         </div>
 
@@ -740,8 +780,9 @@ export default function TrainingView({ players, onUpdatePlayer, games, onUpdateG
 
         {/* Week Navigation */}
         <div className="grid grid-cols-1 items-stretch gap-3 rounded-2xl border border-slate-200 bg-slate-50/70 p-2.5 sm:grid-cols-[9rem_minmax(15rem,1fr)_9rem] sm:items-center">
-          <button
+          <Button
             type="button"
+            variant="outline"
             onClick={() => handleNavigateWeek(-1)}
             className="h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-slate-700 hover:bg-slate-100 hover:text-indigo-700 transition-colors flex items-center justify-center gap-2 text-xs font-black"
             aria-label="Open previous week's training schedule"
@@ -749,7 +790,7 @@ export default function TrainingView({ players, onUpdatePlayer, games, onUpdateG
           >
             <ChevronLeft size={16} aria-hidden="true" />
             Previous
-          </button>
+          </Button>
 
           <div className="flex min-h-12 flex-col items-center justify-center text-center px-3">
             <span className="text-[9px] font-black uppercase tracking-widest text-slate-400">Training Week</span>
@@ -761,16 +802,18 @@ export default function TrainingView({ players, onUpdatePlayer, games, onUpdateG
 
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-1">
             {!isCurrentWeek && (
-              <button
+              <Button
                 type="button"
+                variant="outline"
                 onClick={handleReturnToCurrentWeek}
                 className="h-10 w-full rounded-xl border border-indigo-100 bg-indigo-50 px-3 text-indigo-700 hover:bg-indigo-100 transition-colors text-xs font-black"
               >
                 This Week
-              </button>
+              </Button>
             )}
-            <button
+            <Button
               type="button"
+              variant="outline"
               onClick={() => handleNavigateWeek(1)}
               className={`${isCurrentWeek ? 'col-span-2 sm:col-span-1' : ''} h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-slate-700 hover:bg-slate-100 hover:text-indigo-700 transition-colors flex items-center justify-center gap-2 text-xs font-black`}
               aria-label="Open next week's training schedule"
@@ -778,7 +821,7 @@ export default function TrainingView({ players, onUpdatePlayer, games, onUpdateG
             >
               Next
               <ChevronRight size={16} aria-hidden="true" />
-            </button>
+            </Button>
           </div>
         </div>
 
@@ -868,13 +911,16 @@ export default function TrainingView({ players, onUpdatePlayer, games, onUpdateG
                               {item.name.replace("Challenge", "").replace("Workout", "").replace("Walkthrough", "").replace("Sprints", "")}
                             </span>
                           </div>
-                          <button
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
                             onClick={() => handleRemoveDrill(day, item.id)}
-                            className="text-slate-400 hover:text-rose-500 font-bold text-[10px] bg-slate-100 hover:bg-rose-50 w-4 h-4 rounded flex items-center justify-center transition-all shrink-0"
+                            className="size-4 rounded bg-slate-100 text-slate-400 hover:bg-rose-50 hover:text-rose-500"
                             title="Remove Drill"
                           >
-                            ×
-                          </button>
+                            <X size={10} aria-hidden="true" />
+                          </Button>
                         </div>
                       ))
                     )}
@@ -921,20 +967,23 @@ export default function TrainingView({ players, onUpdatePlayer, games, onUpdateG
               {/* Search Bar */}
               <div className="relative">
                 <Search className="absolute left-3 top-2.5 w-4 h-4 text-slate-400" />
-                <input
+                <Input
                   type="text"
                   placeholder="Search drills by name, category, or benefit (e.g. speed, physical, shooting)..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-9 pr-4 py-2 text-xs border border-slate-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 transition-all text-slate-700 font-sans"
+                  className="h-10 rounded-xl pl-9 pr-14 text-xs font-sans text-slate-700"
                 />
                 {searchQuery && (
-                  <button
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
                     onClick={() => setSearchQuery('')}
-                    className="absolute right-3 top-2.5 text-xs text-slate-400 hover:text-slate-600 font-bold"
+                    className="absolute right-1.5 top-1.5 h-7 px-2 text-xs text-slate-400 hover:text-slate-600"
                   >
                     Clear
-                  </button>
+                  </Button>
                 )}
               </div>
 
@@ -959,17 +1008,20 @@ export default function TrainingView({ players, onUpdatePlayer, games, onUpdateG
                 ].map((pill) => {
                   const isActive = selectedAttributeFilter === pill.id;
                   return (
-                    <button
+                    <Button
                       key={pill.id}
+                      type="button"
+                      variant={isActive ? 'default' : 'outline'}
+                      size="sm"
                       onClick={() => setSelectedAttributeFilter(pill.id)}
-                      className={`px-2.5 py-1 text-xs font-bold rounded-lg transition-all ${
+                      className={`h-7 px-2.5 py-1 text-xs ${
                         isActive
                           ? 'bg-indigo-600 text-white shadow-sm'
                           : 'bg-slate-50 hover:bg-slate-100 text-slate-600 border border-slate-200'
                       }`}
                     >
                       {pill.label}
-                    </button>
+                    </Button>
                   );
                 })}
               </div>
@@ -1044,13 +1096,14 @@ export default function TrainingView({ players, onUpdatePlayer, games, onUpdateG
               </div>
             </div>
 
-            <button
+            <Button
               type="button"
+              variant="outline"
               onClick={() => addDrillsToDay([TRAINING_DRILLS.find(drill => drill.id === 'drill-mobility')!], developmentDay)}
-              className="w-full bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-100 rounded-xl py-2 text-[10px] font-black"
+              className="w-full rounded-xl border-emerald-100 bg-emerald-50 py-2 text-[10px] font-black text-emerald-700 hover:bg-emerald-100 hover:text-emerald-800"
             >
               Add recovery flow to {developmentDay}
-            </button>
+            </Button>
           </div>
           <div className="bg-slate-900 text-white p-5 rounded-2xl shadow-xl border border-slate-800 space-y-4">
             <div className="flex items-center gap-2.5 pb-3 border-b border-slate-800">
@@ -1065,21 +1118,25 @@ export default function TrainingView({ players, onUpdatePlayer, games, onUpdateG
 
             <div>
               <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 block mb-1.5">Select player</label>
-              <select
-                value={recommendPlayerId}
-                onChange={(e) => {
-                  setRecommendPlayerId(e.target.value);
+              <Select
+                value={recommendPlayerId || 'none'}
+                onValueChange={(value) => {
+                  setRecommendPlayerId(value === 'none' ? '' : value);
                   setSelectedTrainingDrillIds([]);
                 }}
-                className="w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-xs text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-400"
               >
-                <option value="">Choose a squad member</option>
-                {players.map(player => (
-                  <option key={player.id} value={player.id}>
-                    {player.name} ({player.position})
-                  </option>
-                ))}
-              </select>
+                <SelectTrigger className="h-10 rounded-xl border-slate-700 bg-slate-950 text-xs text-slate-200 focus:ring-blue-400/30">
+                  <SelectValue placeholder="Choose a squad member" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Choose a squad member</SelectItem>
+                  {players.map(player => (
+                    <SelectItem key={player.id} value={player.id}>
+                      {player.name} ({player.position})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             {recommendedPlayer && growthNeeds ? (
@@ -1223,18 +1280,20 @@ export default function TrainingView({ players, onUpdatePlayer, games, onUpdateG
                         { id: 'conditioning', label: 'Conditioning' },
                         { id: 'recovery', label: 'Recovery' }
                       ].map(focus => (
-                        <button
+                        <Button
                           key={focus.id}
                           type="button"
+                          variant={developmentFocus === focus.id ? 'default' : 'outline'}
+                          size="sm"
                           onClick={() => setDevelopmentFocus(focus.id as typeof developmentFocus)}
-                          className={`px-2 py-1 rounded-lg text-[9px] font-bold border transition-colors ${
+                          className={`h-7 px-2 py-1 text-[9px] ${
                             developmentFocus === focus.id
                               ? 'bg-blue-500 border-blue-400 text-white'
                               : 'bg-slate-950 border-slate-700 text-slate-400 hover:text-white'
                           }`}
                         >
                           {focus.label}
-                        </button>
+                        </Button>
                       ))}
                     </div>
                     <div className="max-h-64 overflow-y-auto pr-1 space-y-1.5">
@@ -1242,12 +1301,13 @@ export default function TrainingView({ players, onUpdatePlayer, games, onUpdateG
                         const isChosen = selectedTrainingDrillIds.includes(drill.id);
                         const supportsGap = drill.targetAttributes.includes(growthNeeds.lowestAttr);
                         return (
-                          <button
+                          <Button
                             key={drill.id}
                             type="button"
+                            variant="outline"
                             onClick={() => toggleTrainingDrill(drill.id)}
                             aria-pressed={isChosen}
-                            className={`w-full text-left flex items-center gap-2.5 rounded-xl p-2.5 border transition-all ${
+                            className={`h-auto w-full justify-start whitespace-normal rounded-xl p-2.5 text-left ${
                               isChosen
                                 ? 'bg-blue-500/15 border-blue-400/60'
                                 : 'bg-slate-950/50 border-slate-800 hover:border-slate-700'
@@ -1262,30 +1322,32 @@ export default function TrainingView({ players, onUpdatePlayer, games, onUpdateG
                               <div className="flex items-center gap-1.5">
                                 <span className="text-[10px] text-white font-bold truncate">{drill.name}</span>
                                 {supportsGap && (
-                                  <span className="text-[7px] bg-rose-500/10 text-rose-300 border border-rose-500/20 px-1 py-0.5 rounded shrink-0">
+                                  <Badge className="shrink-0 border-rose-500/20 bg-rose-500/10 px-1 py-0.5 text-[7px] text-rose-300">
                                     Develops gap
-                                  </span>
+                                  </Badge>
                                 )}
                               </div>
                               <div className="text-[8px] text-slate-500 mt-0.5">
                                 {drill.category} · Load {drill.fatigueIncrease}% · {Object.entries(drill.statsBumps).map(([key, value]) => `${key === 'physicalness' ? 'conditioning' : key} +${value}`).join(', ')}
                               </div>
                             </div>
-                          </button>
+                          </Button>
                         );
                       })}
                     </div>
                     <div className="bg-slate-950/70 border border-slate-800 rounded-xl p-3 space-y-2">
                       <div className="flex items-center justify-between">
                         <span className="text-[9px] font-black uppercase tracking-wider text-slate-400">Session summary</span>
-                        <button
+                        <Button
                           type="button"
+                          variant="ghost"
+                          size="sm"
                           onClick={() => setSelectedTrainingDrillIds([])}
                           disabled={selectedTrainingDrillIds.length === 0}
-                          className="text-[8px] text-slate-500 hover:text-white disabled:opacity-40"
+                          className="h-6 px-2 text-[8px] text-slate-500 hover:text-white"
                         >
                           Clear
-                        </button>
+                        </Button>
                       </div>
                       <div className="grid grid-cols-2 gap-2">
                         <div className="bg-slate-900 rounded-lg p-2">
@@ -1302,9 +1364,9 @@ export default function TrainingView({ players, onUpdatePlayer, games, onUpdateG
                       {Object.keys(projectedTrainingGains).length > 0 ? (
                         <div className="flex flex-wrap gap-1">
                           {Object.entries(projectedTrainingGains).map(([attribute, gain]) => (
-                            <span key={attribute} className="text-[8px] capitalize bg-emerald-500/10 text-emerald-300 border border-emerald-500/20 px-1.5 py-0.5 rounded">
+                            <Badge key={attribute} className="border-emerald-500/20 bg-emerald-500/10 px-1.5 py-0.5 text-[8px] capitalize text-emerald-300">
                               {attribute === 'physicalness' ? 'conditioning' : attribute} +{gain}
-                            </span>
+                            </Badge>
                           ))}
                         </div>
                       ) : (
@@ -1324,32 +1386,41 @@ export default function TrainingView({ players, onUpdatePlayer, games, onUpdateG
                 </div>
 
                 <div className="grid grid-cols-[1fr_auto] gap-2">
-                  <select
+                  <Select
                     value={developmentDay}
-                    onChange={(e) => setDevelopmentDay(e.target.value as DayName)}
-                    className="bg-slate-950 border border-slate-700 rounded-xl px-2.5 py-2 text-[11px] text-slate-200"
-                    aria-label="Development plan day"
+                    onValueChange={(value) => setDevelopmentDay(value as DayName)}
                   >
-                    {DAYS_OF_WEEK.map(day => <option key={day} value={day}>{day}</option>)}
-                  </select>
-                  <button
+                    <SelectTrigger
+                      aria-label="Development plan day"
+                      className="h-9 rounded-xl border-slate-700 bg-slate-950 px-2.5 py-2 text-[11px] text-slate-200"
+                    >
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {DAYS_OF_WEEK.map(day => (
+                        <SelectItem key={day} value={day}>{day}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Button
                     type="button"
                     onClick={() => addDrillsToDay(selectedTrainingDrills, developmentDay, recommendedPlayer?.name)}
                     disabled={selectedTrainingDrills.length === 0}
-                    className="bg-blue-500 hover:bg-blue-400 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-xl px-3 py-2 text-[10px] font-black flex items-center gap-1.5"
+                    className="h-9 rounded-xl bg-blue-500 px-3 py-2 text-[10px] font-black text-white hover:bg-blue-400"
                   >
                     <CalendarPlus size={13} /> Schedule
-                  </button>
+                  </Button>
                 </div>
 
-                <button
+                <Button
                   type="button"
+                  variant="outline"
                   onClick={handleCompleteDevelopmentSession}
                   disabled={selectedTrainingDrills.length === 0}
-                  className="w-full border border-emerald-500/30 bg-emerald-500/10 hover:bg-emerald-500/20 disabled:opacity-40 disabled:cursor-not-allowed text-emerald-300 rounded-xl py-2 text-[10px] font-black flex items-center justify-center gap-1.5"
+                  className="w-full rounded-xl border-emerald-500/30 bg-emerald-500/10 py-2 text-[10px] font-black text-emerald-300 hover:bg-emerald-500/20 hover:text-emerald-200"
                 >
                   <CheckCircle size={13} /> Complete selected training and apply gains
-                </button>
+                </Button>
               </>
             ) : (
               <div className="border border-dashed border-slate-700 rounded-xl p-5 text-center">
