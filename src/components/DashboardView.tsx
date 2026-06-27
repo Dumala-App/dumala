@@ -4,6 +4,9 @@ import {findUserStanding, sortStandings} from '../standings';
 import { Calendar, MapPin, Trophy, Shield, Megaphone, Star, Award, Zap, ArrowRight, CornerRightDown, TrendingUp, Edit, Upload, Link, Check, X, Image, Crown, Target, Flame, AlertCircle, Table, Users, ClipboardList } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
+import { Button } from './ui/button';
+import { Input } from './ui/input';
+import { Label } from './ui/label';
 
 type MatchOutcome = 'W' | 'D' | 'L';
 type DashboardChartPoint = {
@@ -440,14 +443,18 @@ export default function DashboardView({
             >
               {renderLogo(teamInfo.logoUrl, 78, "text-white select-none drop-shadow-sm")}
             </div>
-            <button 
+            <Button
               id="edit-logo-trigger-btn"
+              type="button"
+              variant="outline"
+              size="icon"
               onClick={() => setShowLogoPicker(!showLogoPicker)}
-              className="absolute -bottom-1.5 -right-1.5 bg-white hover:bg-indigo-50 text-slate-900 hover:text-indigo-600 p-2 rounded-full shadow-md border border-slate-200 hover:scale-105 active:scale-95 transition-all"
+              className="absolute -bottom-1.5 -right-1.5 size-8 rounded-full bg-white text-slate-900 shadow-md hover:scale-105 hover:bg-indigo-50 hover:text-indigo-600 active:scale-95 [&_svg]:size-3"
               title="Edit Team Logo"
+              aria-label="Edit team logo"
             >
               <Edit size={12} />
-            </button>
+            </Button>
           </div>
 
           <div className="space-y-3 text-center sm:text-left">
@@ -516,44 +523,49 @@ export default function DashboardView({
                   </p>
                 </div>
               </div>
-              <button 
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
                 onClick={() => setShowLogoPicker(false)}
-                className="p-1 px-2.5 bg-slate-805 hover:bg-slate-800 hover:text-white text-slate-400 rounded-lg text-xs font-semibold border border-slate-800"
+                className="border border-slate-800 bg-slate-805 text-slate-400 hover:bg-slate-800 hover:text-white"
               >
                 Close Editor
-              </button>
+              </Button>
             </div>
 
             <div className="p-5 space-y-5">
               <form onSubmit={handleClubNameSubmit} className="rounded-2xl border border-slate-800 bg-slate-950 p-4">
                 <div className="flex flex-col gap-3 lg:flex-row lg:items-end">
                   <div className="min-w-0 flex-1">
-                    <label htmlFor="club-name-editor" className="text-[10px] font-black uppercase text-amber-400 tracking-wider block">
+                    <Label htmlFor="club-name-editor" className="block text-amber-400">
                       Club Name
-                    </label>
-                    <input
+                    </Label>
+                    <Input
                       id="club-name-editor"
                       value={clubNameInput}
                       onChange={e => {
                         setClubNameInput(e.target.value);
                         setClubNameError('');
                       }}
-                      className={`mt-2 w-full rounded-xl border bg-slate-900 px-3 py-2.5 text-sm font-black text-slate-100 placeholder-slate-600 focus:outline-none focus:ring-1 ${
-                        clubNameError ? 'border-rose-500 focus:ring-rose-500' : 'border-slate-800 focus:ring-amber-400'
+                      className={`mt-2 rounded-xl bg-slate-900 font-black text-slate-100 placeholder:text-slate-600 ${
+                        clubNameError ? 'border-rose-500 focus-visible:ring-rose-500/30' : 'border-slate-800 focus-visible:ring-amber-400/30'
                       }`}
                       placeholder="Enter club name"
+                      aria-invalid={Boolean(clubNameError)}
+                      aria-describedby="club-name-editor-help"
                     />
-                    <p className={`mt-1.5 text-[10px] font-semibold ${clubNameError ? 'text-rose-300' : 'text-slate-500'}`}>
+                    <p id="club-name-editor-help" className={`mt-1.5 text-[10px] font-semibold ${clubNameError ? 'text-rose-300' : 'text-slate-500'}`}>
                       {clubNameError || 'This name syncs with your user-team row in League Standings.'}
                     </p>
                   </div>
-                  <button
+                  <Button
                     type="submit"
                     disabled={clubNameInput.trim() === teamInfo.name.trim()}
-                    className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-amber-400 px-4 py-2.5 text-xs font-black uppercase tracking-wider text-slate-950 shadow-md transition-all hover:bg-amber-300 disabled:cursor-not-allowed disabled:opacity-40"
+                    className="rounded-xl bg-amber-400 text-xs font-black uppercase tracking-wider text-slate-950 shadow-md hover:bg-amber-300"
                   >
                     <Check size={13} /> Save Name
-                  </button>
+                  </Button>
                 </div>
               </form>
 
@@ -569,11 +581,12 @@ export default function DashboardView({
                     const isActive = teamInfo.logoUrl === `preset:${preset.key}` || (!teamInfo.logoUrl && preset.key === 'shield');
                     
                     return (
-                      <button
+                      <Button
                         key={preset.key}
                         type="button"
+                        variant="ghost"
                         onClick={() => handlePresetSelect(preset.key)}
-                        className={`p-3 rounded-xl border flex flex-col items-center justify-center gap-2 transition-all ${
+                        className={`h-auto min-w-0 flex-col rounded-xl border p-3 whitespace-normal [&_svg]:size-6 ${
                           isActive 
                             ? 'bg-amber-400/10 border-amber-400 text-amber-400' 
                             : 'bg-slate-950 border-slate-800/85 text-slate-400 hover:text-slate-200 hover:border-slate-700'
@@ -584,7 +597,7 @@ export default function DashboardView({
                         <span className="text-[9px] font-bold tracking-tight truncate w-full text-center">
                           {preset.label.split(' ')[1]}
                         </span>
-                      </button>
+                      </Button>
                     );
                   })}
                 </div>
@@ -605,7 +618,7 @@ export default function DashboardView({
                       : 'border-slate-800 hover:border-slate-700 bg-slate-950'
                   }`}
                 >
-                  <label htmlFor="logo-file-picker" className="flex h-full w-full cursor-pointer flex-col items-center justify-center gap-2">
+                  <Label htmlFor="logo-file-picker" className="flex h-full w-full cursor-pointer flex-col items-center justify-center gap-2 normal-case tracking-normal">
                     <Upload size={20} className={dragOver ? 'text-emerald-400 animate-bounce' : 'text-slate-500'} />
                     <div className="space-y-0.5">
                       <span className="text-[10px] font-black text-slate-300 block">
@@ -615,8 +628,8 @@ export default function DashboardView({
                         PNG, JPG, SVG up to 1.5MB
                       </span>
                     </div>
-                  </label>
-                  <input 
+                  </Label>
+                  <Input
                     id="logo-file-picker" 
                     type="file" 
                     accept="image/*"
@@ -634,25 +647,27 @@ export default function DashboardView({
                 
                 <form onSubmit={handleUrlSubmit} className="space-y-2">
                   <div className="relative">
-                    <input
+                    <Input
+                      id="logo-url-editor"
                       type="url"
                       placeholder="https://example.com/logo.png"
                       value={logoInputUrl}
                       onChange={e => setLogoInputUrl(e.target.value)}
-                      className="w-full bg-slate-950 border border-slate-800 text-slate-200 placeholder-slate-600 rounded-xl pl-8 pr-3 py-2.5 text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                      className="rounded-xl border-slate-800 bg-slate-950 pl-8 pr-3 text-xs font-semibold text-slate-200 placeholder:text-slate-600 focus-visible:ring-indigo-500/30"
+                      aria-label="Team logo image URL"
                     />
                     <div className="absolute left-2.5 top-3 text-slate-500">
                       <Link size={13} />
                     </div>
                   </div>
                   
-                  <button
+                  <Button
                     type="submit"
                     disabled={!logoInputUrl.trim()}
-                    className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs font-black py-2.5 px-4 rounded-xl shadow-md transition-all flex items-center justify-center gap-1.5"
+                    className="w-full rounded-xl bg-indigo-600 text-xs font-black text-white shadow-md hover:bg-indigo-700"
                   >
                     <Check size={13} /> Link Emblem URL
-                  </button>
+                  </Button>
                 </form>
               </div>
               </div>
@@ -745,13 +760,15 @@ export default function DashboardView({
 
           <div className="pt-4 border-t border-slate-50 flex justify-between items-center text-xs mt-4">
             <span className="text-slate-400 font-medium">Coordinate calendars in real-time</span>
-            <button 
+            <Button
               id="dash-go-schedule"
+              type="button"
+              variant="link"
               onClick={() => onNavigate({ primary: 'home', homeTab: 'game_week' })}
-              className="text-indigo-600 font-bold hover:underline flex items-center gap-1"
+              className="gap-1 text-indigo-600"
             >
               Examine Complete Schedule <ArrowRight size={13} />
-            </button>
+            </Button>
           </div>
         </div>
 
@@ -799,13 +816,15 @@ export default function DashboardView({
             </div>
           </div>
 
-          <button 
+          <Button
             id="dash-go-ann"
+            type="button"
+            variant="secondary"
             onClick={() => onNavigate({ primary: 'league_updates', leagueUpdatesTab: 'updates' })}
-            className="w-full text-center bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-600 font-bold text-xs py-2 rounded-xl transition-all mt-4 flex items-center justify-center gap-1"
+            className="mt-4 w-full rounded-xl bg-slate-50 text-slate-600 hover:bg-slate-100"
           >
             Open All Club Bulletin Notices <ArrowRight size={12} />
-          </button>
+          </Button>
         </div>
 
       </div>
@@ -957,13 +976,14 @@ export default function DashboardView({
             </h3>
             <p className="text-slate-450 text-xs">Top prospects, recent improvements, and latest assessment sessions.</p>
           </div>
-          <button
+          <Button
             id="dash-open-assessments"
+            type="button"
             onClick={() => onNavigate({ primary: 'development', developmentTab: 'assessments' })}
-            className="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-black px-4 py-2 rounded-xl transition-colors flex items-center gap-2 shadow-md"
+            className="rounded-xl bg-indigo-600 text-xs font-black text-white shadow-md hover:bg-indigo-700"
           >
             Open Assessments <ArrowRight size={14} />
-          </button>
+          </Button>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 lg:gap-6 mt-6">
@@ -973,10 +993,12 @@ export default function DashboardView({
             </h4>
             <div className="space-y-2.5">
               {topProspects.map(({ player, session }, idx) => (
-                <button
+                <Button
                   key={player.id}
+                  type="button"
+                  variant="outline"
                   onClick={() => onSelectPlayer(player)}
-                  className="w-full text-left bg-white border border-slate-200/60 rounded-xl p-3 flex items-center justify-between hover:border-indigo-300 hover:bg-indigo-50/40 transition-colors"
+                  className="h-auto w-full justify-between rounded-xl border-slate-200/60 bg-white p-3 text-left whitespace-normal hover:border-indigo-300 hover:bg-indigo-50/40"
                 >
                   <div className="flex items-center gap-2.5 min-w-0">
                     <span className="font-display font-black text-slate-300 text-xs w-4 shrink-0">#{idx + 1}</span>
@@ -990,7 +1012,7 @@ export default function DashboardView({
                     <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest">OVR</p>
                     <p className="text-lg font-display font-black text-slate-900 leading-none">{session.ovr}</p>
                   </div>
-                </button>
+                </Button>
               ))}
               {topProspects.length === 0 && (
                 <div className="text-center text-slate-400 text-xs py-10">No assessments recorded yet.</div>
@@ -1004,10 +1026,12 @@ export default function DashboardView({
             </h4>
             <div className="space-y-2.5">
               {topImprovers.map(({ player, session }, idx) => (
-                <button
+                <Button
                   key={player.id}
+                  type="button"
+                  variant="outline"
                   onClick={() => onSelectPlayer(player)}
-                  className="w-full text-left bg-white border border-slate-200/60 rounded-xl p-3 flex items-center justify-between hover:border-emerald-300 hover:bg-emerald-50/40 transition-colors"
+                  className="h-auto w-full justify-between rounded-xl border-slate-200/60 bg-white p-3 text-left whitespace-normal hover:border-emerald-300 hover:bg-emerald-50/40"
                 >
                   <div className="flex items-center gap-2.5 min-w-0">
                     <span className="font-display font-black text-slate-300 text-xs w-4 shrink-0">#{idx + 1}</span>
@@ -1023,7 +1047,7 @@ export default function DashboardView({
                       {(session.deltas.ovrDelta ?? 0) >= 0 ? `+${session.deltas.ovrDelta ?? 0}` : `${session.deltas.ovrDelta ?? 0}`}
                     </p>
                   </div>
-                </button>
+                </Button>
               ))}
               {topImprovers.length === 0 && (
                 <div className="text-center text-slate-400 text-xs py-10">No improvement data yet.</div>
@@ -1040,10 +1064,12 @@ export default function DashboardView({
                 const player = players.find(p => p.id === s.playerId);
                 if (!player) return null;
                 return (
-                  <button
+                  <Button
                     key={s.id}
+                    type="button"
+                    variant="outline"
                     onClick={() => onSelectPlayer(player)}
-                    className="w-full text-left bg-white border border-slate-200/60 rounded-xl p-3 flex items-center justify-between hover:border-indigo-300 hover:bg-indigo-50/40 transition-colors"
+                    className="h-auto w-full justify-between rounded-xl border-slate-200/60 bg-white p-3 text-left whitespace-normal hover:border-indigo-300 hover:bg-indigo-50/40"
                   >
                     <div className="flex items-center gap-2.5 min-w-0">
                       <img src={player.photoUrl} alt="" className="w-7 h-7 rounded-full object-cover border border-slate-200 shrink-0" referrerPolicy="no-referrer" />
@@ -1056,7 +1082,7 @@ export default function DashboardView({
                       <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest">OVR</p>
                       <p className="text-lg font-display font-black text-slate-900 leading-none">{s.ovr}</p>
                     </div>
-                  </button>
+                  </Button>
                 );
               })}
               {recentAssessments.length === 0 && (

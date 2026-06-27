@@ -19,6 +19,14 @@ import {
 } from '../fprds/benchmarks';
 import { QUICK_ROLE_POSITION_ATTRIBUTES, ROLE_LABELS, ROLE_WEIGHTS } from '../fprds/weights';
 import type { FprdsAttributeId, FprdsRole } from '../types';
+import { Button } from './ui/button';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from './ui/select';
 
 type ActiveGuideCategory = 'All' | DrillGuideEntry['category'];
 
@@ -435,49 +443,59 @@ export default function AssessmentDrillGuideView() {
             </span>
           </div>
 
-          <div className="mt-4 flex flex-wrap gap-1 rounded-lg border border-slate-200 bg-slate-50 p-1">
-            <button
+          <div className="mt-4 flex flex-wrap gap-1 rounded-lg border border-slate-200 bg-slate-50 p-1" role="group" aria-label="Filter drills by category">
+            <Button
               type="button"
+              variant="ghost"
+              size="sm"
               onClick={() => setActiveCategory('All')}
-              className={`rounded-md px-2 py-1 text-[8px] font-black uppercase tracking-wide leading-none transition-colors ${
+              aria-pressed={activeCategory === 'All'}
+              className={`h-6 rounded-md px-2 text-[8px] font-black uppercase leading-none tracking-wide ${
                 activeCategory === 'All' ? 'bg-slate-900 text-white shadow-sm' : 'text-slate-500 hover:bg-white hover:text-slate-800'
               }`}
             >
               All
-            </button>
+            </Button>
             {DRILL_GUIDE_CATEGORIES.map((category) => (
-              <button
+              <Button
                 key={category.id}
                 type="button"
+                variant="ghost"
+                size="sm"
                 onClick={() => setActiveCategory(category.id)}
-                className={`rounded-md px-2 py-1 text-[8px] font-black uppercase tracking-wide leading-none transition-colors ${
+                aria-pressed={activeCategory === category.id}
+                className={`h-6 rounded-md px-2 text-[8px] font-black uppercase leading-none tracking-wide ${
                   activeCategory === category.id ? 'bg-slate-900 text-white shadow-sm' : 'text-slate-500 hover:bg-white hover:text-slate-800'
                 }`}
               >
                 {category.label}
-              </button>
+              </Button>
             ))}
           </div>
 
           <div className="mt-4 max-h-[560px] space-y-3 overflow-y-auto pr-1">
-            {filteredDrills.map((entry) => (
-              <button
+            {filteredDrills.map((entry) => {
+              const isSelected = selectedDrill?.id === entry.id;
+              return (
+              <Button
                 key={entry.id}
                 type="button"
+                variant="outline"
                 onClick={() => setSelectedDrillId(entry.id)}
-                className={`group w-full overflow-hidden rounded-2xl border text-left transition-all ${
-                  selectedDrill?.id === entry.id
+                aria-pressed={isSelected}
+                className={`group h-auto w-full flex-col items-stretch gap-0 overflow-hidden rounded-2xl p-0 text-left whitespace-normal ${
+                  isSelected
                     ? 'border-indigo-300 bg-white shadow-md shadow-indigo-100/70 ring-1 ring-indigo-100'
                     : 'border-slate-200 bg-white hover:border-indigo-200 hover:shadow-sm'
                 }`}
               >
-                <div className={`h-1 w-full ${selectedDrill?.id === entry.id ? 'bg-indigo-600' : 'bg-slate-100 group-hover:bg-indigo-200'}`} />
+                <div className={`h-1 w-full ${isSelected ? 'bg-indigo-600' : 'bg-slate-100 group-hover:bg-indigo-200'}`} />
                 <div className="p-3">
                   <div className="flex items-start justify-between gap-3">
                     <p className="text-sm font-black leading-snug text-slate-900">{entry.title}</p>
                     {entry.attributeCode && (
                       <span className={`shrink-0 rounded-md px-2 py-0.5 text-[9px] font-black uppercase tracking-widest ${
-                        selectedDrill?.id === entry.id ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-500 group-hover:bg-indigo-50 group-hover:text-indigo-700'
+                        isSelected ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-500 group-hover:bg-indigo-50 group-hover:text-indigo-700'
                       }`}>
                         {entry.attributeCode}
                       </span>
@@ -495,8 +513,9 @@ export default function AssessmentDrillGuideView() {
                     {entry.dataToRecord.join(' | ')}
                   </p>
                 </div>
-              </button>
-            ))}
+              </Button>
+              );
+            })}
           </div>
         </div>
 
@@ -542,17 +561,20 @@ export default function AssessmentDrillGuideView() {
                 </p>
               </div>
               <div className="grid grid-cols-1 gap-2">
-                <select
+                <Select
                   value={selectedAgeGroup}
-                  onChange={(event) => setSelectedAgeGroup(event.target.value as AgeGroup)}
-                  aria-label="Select benchmark age group"
-                  className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 outline-none focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
+                  onValueChange={(value) => setSelectedAgeGroup(value as AgeGroup)}
                   disabled={!hasAgeBandedBenchmark}
                 >
-                  {ageGroups.map((ageGroup) => (
-                    <option key={ageGroup} value={ageGroup}>{ageGroup}</option>
-                  ))}
-                </select>
+                  <SelectTrigger aria-label="Select benchmark age group" className="w-32 rounded-xl text-xs font-bold text-slate-700 focus:ring-indigo-100 disabled:bg-slate-100 disabled:text-slate-400">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {ageGroups.map((ageGroup) => (
+                      <SelectItem key={ageGroup} value={ageGroup}>{ageGroup}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
 
@@ -580,16 +602,19 @@ export default function AssessmentDrillGuideView() {
                   </p>
                   <h3 className="mt-1 font-display text-lg font-black text-slate-950">{ROLE_LABELS[selectedRole]}</h3>
                 </div>
-                <select
+                <Select
                   value={selectedRole}
-                  onChange={(event) => setSelectedRole(event.target.value as FprdsRole)}
-                  aria-label="Select FPRDS role"
-                  className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 outline-none focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100"
+                  onValueChange={(value) => setSelectedRole(value as FprdsRole)}
                 >
-                  {roles.map((role) => (
-                    <option key={role} value={role}>{role} - {ROLE_LABELS[role]}</option>
-                  ))}
-                </select>
+                  <SelectTrigger aria-label="Select FPRDS role" className="w-full rounded-xl text-xs font-bold text-slate-700 focus:ring-indigo-100 sm:w-64">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {roles.map((role) => (
+                      <SelectItem key={role} value={role}>{role} - {ROLE_LABELS[role]}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
               <div className="mt-4 space-y-2">
