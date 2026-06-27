@@ -23,6 +23,7 @@ import {
   Zap
 } from 'lucide-react';
 import type { DrillInstruction, TrainingDrill } from '../training/drillLibrary';
+import { Button } from './ui/button';
 
 export function getDrillIcon(drillId: string): React.ReactNode {
   const iconMap: Record<string, React.ReactNode> = {
@@ -208,14 +209,16 @@ export const TrainingDrillCard = ({
       </div>
 
       <div className="mt-2 pt-2 border-t border-slate-100">
-        <button
+        <Button
           type="button"
+          variant="ghost"
           onClick={toggleExpand}
-          className="w-full flex items-center justify-between text-xs font-black text-slate-400 hover:text-slate-600 uppercase tracking-wider transition-colors"
+          aria-expanded={isExpanded}
+          className="h-auto w-full justify-between p-0 text-xs font-black uppercase tracking-wider text-slate-400 hover:bg-transparent hover:text-slate-600"
         >
           <span className="flex items-center gap-1.5"><ClipboardList size={12} /> How-To Guide</span>
           {isExpanded ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
-        </button>
+        </Button>
         {isExpanded && instructions && (
           <div className="mt-2 space-y-2.5 text-[11px] text-slate-600 bg-slate-50 rounded-lg p-3 border border-slate-100">
             <div className="flex items-start gap-2">

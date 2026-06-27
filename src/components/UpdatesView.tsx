@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Megaphone, FlaskConical, Calculator, Target, TrendingUp, Hash, ChevronDown, ChevronRight } from 'lucide-react';
+import { Button } from './ui/button';
 
 export default function UpdatesView() {
   const [openEntries, setOpenEntries] = useState<Record<string, boolean>>({
@@ -994,10 +995,11 @@ export default function UpdatesView() {
                 key={entry.id}
                 className={`rounded-2xl border p-4 md:p-5 shadow-sm ${entry.accent}`}
               >
-                <button
+                <Button
                   type="button"
+                  variant="ghost"
                   onClick={() => handleToggleEntry(entry.id)}
-                  className="w-full text-left flex items-start justify-between gap-4"
+                  className="h-auto w-full items-start justify-between gap-4 p-0 text-left whitespace-normal hover:bg-transparent"
                   aria-expanded={isOpen}
                   aria-label={`Toggle ${entry.title}`}
                 >
@@ -1019,7 +1021,7 @@ export default function UpdatesView() {
                   <div className={`shrink-0 mt-0.5 ${isDarkEntry ? 'text-slate-300' : 'text-slate-500'}`}>
                     {isOpen ? <ChevronDown size={18} /> : <ChevronRight size={18} />}
                   </div>
-                </button>
+                </Button>
 
                 {isOpen && (
                   <div className="mt-5 pt-5 border-t border-current/10">

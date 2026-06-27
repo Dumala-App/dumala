@@ -2,6 +2,7 @@ import { useRef } from 'react';
 import { Download, Share2, Smartphone, X } from 'lucide-react';
 import { useDialogAccessibility } from '../hooks/useDialogAccessibility';
 import { usePwaInstall } from '../hooks/usePwaInstall';
+import { Button } from './ui/button';
 
 export default function PwaInstallControl() {
   const {
@@ -26,14 +27,16 @@ export default function PwaInstallControl() {
 
   return (
     <>
-      <button
+      <Button
         type="button"
+        variant="outline"
+        size="sm"
         onClick={requestInstall}
-        className="inline-flex items-center gap-1 rounded-lg border border-blue-100 bg-blue-50 px-2.5 py-1 text-[10px] font-bold text-blue-700 transition-colors hover:border-blue-200 hover:bg-blue-100"
+        className="h-7 gap-1 rounded-lg border-blue-100 bg-blue-50 px-2.5 text-[10px] text-blue-700 hover:border-blue-200 hover:bg-blue-100 hover:text-blue-800 [&_svg]:size-3"
       >
         <Download size={10} />
         Install Dumala
-      </button>
+      </Button>
 
       {installMessage && (
         <span
@@ -62,14 +65,16 @@ export default function PwaInstallControl() {
                   Install Dumala
                 </h2>
               </div>
-              <button
+              <Button
                 type="button"
+                variant="ghost"
+                size="icon"
                 onClick={closeInstructions}
                 aria-label="Close installation instructions"
-                className="rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+                className="rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-700"
               >
                 <X size={17} />
-              </button>
+              </Button>
             </div>
 
             <ol className="mt-5 space-y-3 text-sm font-medium text-slate-600">

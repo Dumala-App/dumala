@@ -539,7 +539,7 @@ export default function PlayerProfileModal({ player, onClose, onUpdate, onRemove
               />
               {isEditing && (
                 <>
-                  <input 
+                  <Input
                     id="profile-photo-upload-input"
                     type="file"
                     accept="image/*"
@@ -1439,12 +1439,13 @@ export default function PlayerProfileModal({ player, onClose, onUpdate, onRemove
                           <span className="font-mono">{value}</span>
                         </div>
                         {isEditing ? (
-                          <input 
+                          <Input
                             type="range" 
                             min="1" max="99" 
                             value={value} 
                             onChange={(e) => handleBaseAttrChange(key as keyof Player['baseAttributes'], Number(e.target.value))}
-                            className="w-full h-1 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-indigo-600"
+                            className="h-1 cursor-pointer appearance-none rounded-lg border-0 bg-slate-200 p-0 accent-indigo-600 focus-visible:ring-indigo-500/30"
+                            aria-label={`${displayLabel} rating`}
                           />
                         ) : (
                           <div className="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
@@ -1472,12 +1473,13 @@ export default function PlayerProfileModal({ player, onClose, onUpdate, onRemove
                             <span className="font-mono">{value}</span>
                           </div>
                           {isEditing ? (
-                            <input 
+                            <Input
                               type="range" 
                               min="1" max="99" 
                               value={value} 
                               onChange={(e) => handlePosAttrChange(key, Number(e.target.value))}
-                              className="w-full h-1 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-amber-500"
+                              className="h-1 cursor-pointer appearance-none rounded-lg border-0 bg-slate-200 p-0 accent-amber-500 focus-visible:ring-amber-500/30"
+                              aria-label={`${key} rating`}
                             />
                           ) : (
                             <div className="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">

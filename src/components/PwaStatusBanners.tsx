@@ -1,5 +1,6 @@
 import {AlertTriangle, CheckCircle2, RefreshCw, WifiOff, X} from 'lucide-react';
 import {usePwaLifecycle} from '../hooks/usePwaLifecycle';
+import { Button } from './ui/button';
 
 export default function PwaStatusBanners() {
   const {
@@ -56,22 +57,25 @@ export default function PwaStatusBanners() {
                 Your workspace data is preserved. Update when you are ready for one controlled reload.
               </p>
               <div className="mt-3 flex flex-wrap gap-2">
-                <button
+                <Button
                   type="button"
+                  size="sm"
                   onClick={activateUpdate}
                   disabled={isUpdating}
-                  className="rounded-lg bg-blue-700 px-3 py-1.5 text-[11px] font-black text-white transition hover:bg-blue-600 disabled:cursor-wait disabled:opacity-60"
+                  className="h-8 rounded-lg bg-blue-700 text-[11px] font-black text-white hover:bg-blue-600 disabled:cursor-wait"
                 >
                   {isUpdating ? 'Updating...' : 'Update now'}
-                </button>
-                <button
+                </Button>
+                <Button
                   type="button"
+                  variant="outline"
+                  size="sm"
                   onClick={dismissUpdate}
                   disabled={isUpdating}
-                  className="rounded-lg border border-blue-200 bg-white px-3 py-1.5 text-[11px] font-black text-blue-800 transition hover:bg-blue-100"
+                  className="h-8 rounded-lg border-blue-200 text-[11px] font-black text-blue-800 hover:bg-blue-100 hover:text-blue-900"
                 >
                   Later
-                </button>
+                </Button>
               </div>
             </div>
           </div>
@@ -85,9 +89,9 @@ export default function PwaStatusBanners() {
             <p className="text-xs font-black uppercase tracking-wide">Dumala is ready offline</p>
             <p className="mt-1 text-xs leading-relaxed">The app shell and local assets are saved on this device.</p>
           </div>
-          <button type="button" onClick={dismissOfflineReady} className="rounded-lg p-1 text-emerald-700 hover:bg-emerald-100" aria-label="Dismiss offline-ready message">
+          <Button type="button" variant="ghost" size="icon" onClick={dismissOfflineReady} className="size-7 rounded-lg text-emerald-700 hover:bg-emerald-100 hover:text-emerald-900" aria-label="Dismiss offline-ready message">
             <X size={15} />
-          </button>
+          </Button>
         </div>
       )}
 
@@ -98,9 +102,9 @@ export default function PwaStatusBanners() {
             <p className="text-xs font-black uppercase tracking-wide">Offline setup warning</p>
             <p className="mt-1 text-xs leading-relaxed">{registrationError}</p>
           </div>
-          <button type="button" onClick={dismissRegistrationError} className="rounded-lg p-1 text-amber-700 hover:bg-amber-100" aria-label="Dismiss offline setup warning">
+          <Button type="button" variant="ghost" size="icon" onClick={dismissRegistrationError} className="size-7 rounded-lg text-amber-700 hover:bg-amber-100 hover:text-amber-900" aria-label="Dismiss offline setup warning">
             <X size={15} />
-          </button>
+          </Button>
         </div>
       )}
     </div>

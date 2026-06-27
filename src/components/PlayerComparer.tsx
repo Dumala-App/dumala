@@ -5,6 +5,15 @@ import {
   ResponsiveContainer, Legend, Tooltip 
 } from 'recharts';
 import { ArrowLeftRight, X, Sparkles, Award, Shield, Zap, Flame } from 'lucide-react';
+import { Button } from './ui/button';
+import { Label } from './ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from './ui/select';
 
 interface PlayerComparerProps {
   players: Player[];
@@ -32,9 +41,8 @@ export default function PlayerComparer({
   const player2 = players.find(p => p.id === selectedCompareIds[1]) || null;
 
   // Handler for select dropdowns
-  const handleSelectP1 = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const id = e.target.value;
-    if (!id) {
+  const handleSelectP1 = (id: string) => {
+    if (id === 'none') {
       if (player1) onToggleCompare(player1.id);
       return;
     }
@@ -43,9 +51,8 @@ export default function PlayerComparer({
     onToggleCompare(id);
   };
 
-  const handleSelectP2 = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const id = e.target.value;
-    if (!id) {
+  const handleSelectP2 = (id: string) => {
+    if (id === 'none') {
       if (player2) onToggleCompare(player2.id);
       return;
     }
@@ -201,14 +208,17 @@ export default function PlayerComparer({
         </div>
         
         {selectedCompareIds.length > 0 && (
-          <button
+          <Button
             id="clear-comparison-btn"
+            type="button"
+            variant="outline"
+            size="sm"
             onClick={onClearCompare}
-            className="self-start sm:self-center bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-500 font-bold text-[10px] uppercase px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1"
+            className="self-start gap-1 rounded-lg bg-slate-50 text-[10px] uppercase text-slate-500 hover:bg-slate-100 sm:self-center [&_svg]:size-3"
           >
             <X size={12} />
             <span>Reset Matchup</span>
-          </button>
+          </Button>
         )}
       </div>
 
@@ -221,23 +231,23 @@ export default function PlayerComparer({
           {/* Player 1 Selection */}
           <div className="bg-slate-50/50 rounded-xl p-4 border border-slate-150/60 space-y-3.5">
             <div className="space-y-1">
-              <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider font-mono">Primary Athlete</label>
-              <select
-                id="select-player-1-dropdown"
-                value={player1?.id || ""}
-                onChange={handleSelectP1}
-                className="w-full bg-white border border-slate-250 rounded-lg p-2 text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              >
-                <option value="">-- Choose Athlete --</option>
-                {players
-                  .filter(p => p.id !== player2?.id)
-                  .map(p => (
-                    <option key={p.id} value={p.id}>
-                      #{p.number} - {p.name} ({p.position})
-                    </option>
-                  ))
-                }
-              </select>
+              <Label htmlFor="select-player-1-dropdown" className="block font-mono text-slate-400">Primary Athlete</Label>
+              <Select value={player1?.id ?? 'none'} onValueChange={handleSelectP1}>
+                <SelectTrigger id="select-player-1-dropdown" className="w-full border-slate-250 text-xs font-semibold text-slate-700 focus:ring-indigo-500/30">
+                  <SelectValue placeholder="Choose athlete" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Choose Athlete</SelectItem>
+                  {players
+                    .filter(p => p.id !== player2?.id)
+                    .map(p => (
+                      <SelectItem key={p.id} value={p.id}>
+                        #{p.number} - {p.name} ({p.position})
+                      </SelectItem>
+                    ))
+                  }
+                </SelectContent>
+              </Select>
             </div>
 
             {player1 ? (
@@ -290,23 +300,23 @@ export default function PlayerComparer({
           {/* Player 2 Selection */}
           <div className="bg-slate-50/50 rounded-xl p-4 border border-slate-150/60 space-y-3.5">
             <div className="space-y-1">
-              <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider font-mono">Opposing Athlete / Matchup</label>
-              <select
-                id="select-player-2-dropdown"
-                value={player2?.id || ""}
-                onChange={handleSelectP2}
-                className="w-full bg-white border border-slate-250 rounded-lg p-2 text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              >
-                <option value="">-- Choose Athlete --</option>
-                {players
-                  .filter(p => p.id !== player1?.id)
-                  .map(p => (
-                    <option key={p.id} value={p.id}>
-                      #{p.number} - {p.name} ({p.position})
-                    </option>
-                  ))
-                }
-              </select>
+              <Label htmlFor="select-player-2-dropdown" className="block font-mono text-slate-400">Opposing Athlete / Matchup</Label>
+              <Select value={player2?.id ?? 'none'} onValueChange={handleSelectP2}>
+                <SelectTrigger id="select-player-2-dropdown" className="w-full border-slate-250 text-xs font-semibold text-slate-700 focus:ring-indigo-500/30">
+                  <SelectValue placeholder="Choose athlete" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Choose Athlete</SelectItem>
+                  {players
+                    .filter(p => p.id !== player1?.id)
+                    .map(p => (
+                      <SelectItem key={p.id} value={p.id}>
+                        #{p.number} - {p.name} ({p.position})
+                      </SelectItem>
+                    ))
+                  }
+                </SelectContent>
+              </Select>
             </div>
 
             {player2 ? (
