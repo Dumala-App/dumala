@@ -29,6 +29,19 @@ import {
   type TacticsPlayer
 } from '../tactics/lineup';
 import { CoachKnowledgeBase } from './CoachKnowledgeBase';
+import { Badge } from './ui/badge';
+import { Button } from './ui/button';
+import { Input } from './ui/input';
+import { Label } from './ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from './ui/select';
+import { Textarea } from './ui/textarea';
+import { cn } from '../lib/utils';
 
 export { CoachKnowledgeBase as TacticsKnowledgeBase } from './CoachKnowledgeBase';
 
@@ -56,6 +69,7 @@ type DrawingPath = {
 type TacticsWorkspaceSection = 'board' | 'library';
 
 const TACTICS_NOTE_CATEGORIES: readonly TacticsNoteCategory[] = ['Formation', 'Set Pieces', 'Strategy', 'General'];
+const EMPTY_SELECT_VALUE = '__none__';
 
 const parseTacticsNoteCategory = (value: string): TacticsNoteCategory => (
   TACTICS_NOTE_CATEGORIES.includes(value as TacticsNoteCategory) ? value as TacticsNoteCategory : 'General'
@@ -918,28 +932,32 @@ export default function TacticsView({ players, staff, teamCoach, teamName, teamL
             <p className="text-xs text-slate-400">Switch between live squad planning and tactical study material.</p>
           </div>
           <div className="grid grid-cols-2 gap-2 rounded-xl border border-slate-800 bg-slate-950/70 p-1">
-            <button
+            <Button
               type="button"
               onClick={() => setActiveWorkspaceSection('board')}
-              className={`rounded-lg px-3 py-2 text-xs font-black uppercase tracking-wide transition-all ${
+              variant="ghost"
+              size="sm"
+              className={`h-9 rounded-lg px-3 text-xs font-black uppercase tracking-wide ${
                 activeWorkspaceSection === 'board'
                   ? 'bg-emerald-500 text-slate-950 shadow-sm'
                   : 'text-slate-400 hover:bg-white/5 hover:text-white'
               }`}
             >
               Tactical Board
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
               onClick={() => setActiveWorkspaceSection('library')}
-              className={`rounded-lg px-3 py-2 text-xs font-black uppercase tracking-wide transition-all ${
+              variant="ghost"
+              size="sm"
+              className={`h-9 rounded-lg px-3 text-xs font-black uppercase tracking-wide ${
                 activeWorkspaceSection === 'library'
                   ? 'bg-indigo-500 text-white shadow-sm'
                   : 'text-slate-400 hover:bg-white/5 hover:text-white'
               }`}
             >
               Coaching Library
-            </button>
+            </Button>
           </div>
         </div>
       </div>
@@ -955,13 +973,15 @@ export default function TacticsView({ players, staff, teamCoach, teamName, teamL
             <div className="space-y-2.5 text-xs">
               <div className="flex justify-between items-center pb-1.5 border-b border-slate-800/80">
                 <span className="text-[10px] text-amber-400 font-extrabold uppercase tracking-widest">Edit Coach Details</span>
-                <button 
+                <Button
                   id="btn-save-coach-details"
+                  type="button"
                   onClick={() => setIsEditingCoach(false)} 
-                  className="text-[10px] bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-black px-2.5 py-0.5 rounded-md transition-all shadow shadow-emerald-700/20"
+                  size="sm"
+                  className="h-7 rounded-md bg-emerald-600 px-2.5 text-[10px] font-black text-slate-950 shadow shadow-emerald-700/20 hover:bg-emerald-500"
                 >
                   SAVE
-                </button>
+                </Button>
               </div>
               
               <div className="rounded-lg border border-slate-800 bg-slate-950/70 p-2">
@@ -981,12 +1001,12 @@ export default function TacticsView({ players, staff, teamCoach, teamName, teamL
 
               <div>
                 <label className="text-[9px] text-slate-400 uppercase tracking-widest font-black block mb-0.5">Tactics Level</label>
-                <input 
+                <Input
                   id="input-coach-level"
                   type="text" 
                   value={coachLevel} 
                   onChange={(e) => setCoachLevel(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-800 text-slate-100 rounded-lg px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-amber-400"
+                  className="h-8 rounded-lg border-slate-800 bg-slate-950 px-2 py-1 text-xs text-slate-100 focus-visible:ring-amber-400/30"
                 />
               </div>
 
@@ -1010,14 +1030,18 @@ export default function TacticsView({ players, staff, teamCoach, teamName, teamL
                 </div>
               </div>
 
-              <button
+              <Button
                 id="btn-trigger-edit-coach"
+                type="button"
                 onClick={() => setIsEditingCoach(true)}
-                className="p-1.5 hover:bg-white/5 text-slate-400 hover:text-amber-400 rounded-lg transition-all"
+                variant="ghost"
+                size="icon"
+                className="size-8 rounded-lg text-slate-400 hover:bg-white/5 hover:text-amber-400"
                 title="Edit Coach Details"
+                aria-label="Edit coach details"
               >
-                ✏️
-              </button>
+                <Edit size={14} />
+              </Button>
             </div>
           )}
         </div>
@@ -1040,10 +1064,13 @@ export default function TacticsView({ players, staff, teamCoach, teamName, teamL
         <div className="bg-[#0f172a]/95 p-3.5 rounded-2xl border border-slate-800/80 space-y-1.5 shadow-md">
           <span className="text-[10px] font-bold text-slate-400 tracking-wider uppercase block px-2 pb-1.5 border-b border-slate-800">Squad Directory</span>
           
-          <button
+          <Button
             id="sidebar-team"
+            type="button"
             onClick={() => setActiveTab('Team')}
-            className={`w-full py-2.5 px-3 rounded-xl text-left text-xs font-bold transition-all flex items-center gap-2.5 ${
+            variant="ghost"
+            size="sm"
+            className={`h-10 w-full justify-start rounded-xl px-3 text-left text-xs font-bold ${
               activeTab === 'Team' 
                 ? 'bg-slate-800 text-white border-l-4 border-amber-400 pl-2' 
                 : 'text-slate-300 hover:bg-white/5'
@@ -1051,12 +1078,15 @@ export default function TacticsView({ players, staff, teamCoach, teamName, teamL
           >
             <UserCheck size={14} className="text-amber-400" />
             <span>Starting {MATCH_FORMAT_CONFIG[matchFormat].size} roster</span>
-          </button>
+          </Button>
 
-          <button
+          <Button
             id="sidebar-substitutes"
+            type="button"
             onClick={() => setActiveTab('Substitutes')}
-            className={`w-full py-2.5 px-3 rounded-xl text-left text-xs font-bold transition-all flex items-center gap-2.5 ${
+            variant="ghost"
+            size="sm"
+            className={`h-10 w-full justify-start rounded-xl px-3 text-left text-xs font-bold ${
               activeTab === 'Substitutes' 
                 ? 'bg-slate-800 text-white border-l-4 border-amber-400 pl-2' 
                 : 'text-slate-300 hover:bg-white/5'
@@ -1064,12 +1094,15 @@ export default function TacticsView({ players, staff, teamCoach, teamName, teamL
           >
             <Zap size={14} className="text-amber-400 animate-pulse" />
             <span>Substitutes ({substitutes.length})</span>
-          </button>
+          </Button>
 
-          <button
+          <Button
             id="sidebar-reserves"
+            type="button"
             onClick={() => setActiveTab('Reserves')}
-            className={`w-full py-2.5 px-3 rounded-xl text-left text-xs font-bold transition-all flex items-center gap-2.5 ${
+            variant="ghost"
+            size="sm"
+            className={`h-10 w-full justify-start rounded-xl px-3 text-left text-xs font-bold ${
               activeTab === 'Reserves' 
                 ? 'bg-slate-800 text-white border-l-4 border-amber-400 pl-2' 
                 : 'text-slate-300 hover:bg-white/5'
@@ -1077,7 +1110,7 @@ export default function TacticsView({ players, staff, teamCoach, teamName, teamL
           >
             <Shield size={14} className="text-indigo-400" />
             <span>Reserves ({allEligiblePool.length})</span>
-          </button>
+          </Button>
         </div>
 
         {/* Dedicated Tactic Configuration & Plays Section Card */}
@@ -1086,10 +1119,13 @@ export default function TacticsView({ players, staff, teamCoach, teamName, teamL
             <span className="text-[10px] text-amber-400 font-extrabold uppercase tracking-widest">TACTICS CONTROL</span>
             <span className="text-[9px] text-slate-400 font-mono">Formations & Plays</span>
           </div>
-          <button 
+          <Button
             id="sidebar-tactics"
+            type="button"
             onClick={() => setActiveTab(activeTab === 'Tactics' ? 'Team' : 'Tactics')}
-            className={`w-full py-2.5 px-3 rounded-xl text-left text-xs font-bold transition-all flex items-center justify-between ${
+            variant="ghost"
+            size="sm"
+            className={`h-10 w-full justify-between rounded-xl px-3 text-left text-xs font-bold ${
               activeTab === 'Tactics' 
                 ? 'bg-amber-400 text-slate-950 shadow-sm shadow-amber-400/20' 
                 : 'bg-white/5 text-slate-300 hover:bg-white/10'
@@ -1097,7 +1133,7 @@ export default function TacticsView({ players, staff, teamCoach, teamName, teamL
           >
             <span>Tactic Configuration & Plays</span>
             <ChevronRight size={13} className={`transition-transform duration-200 ${activeTab === 'Tactics' ? 'rotate-90' : ''}`} />
-          </button>
+          </Button>
           <div className="mt-3.5 space-y-2 text-[11px] text-slate-400 font-mono border-t border-slate-800/50 pt-2.5">
             <div className="flex justify-between">
               <span>Formation:</span>
@@ -1135,18 +1171,24 @@ export default function TacticsView({ players, staff, teamCoach, teamName, teamL
         <div className="flex justify-between items-center mb-4">
           <h3 className="font-display font-black text-white text-sm tracking-widest uppercase text-emerald-400">Match Layout</h3>
           <div className="flex items-center gap-2">
-            <button
+            <Button
+              type="button"
               onClick={handleAutoFillBoard}
-              className="text-[7px] uppercase tracking-wider bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 px-2 py-1 rounded-lg font-normal hover:bg-emerald-500 hover:text-slate-950 transition-all"
+              variant="outline"
+              size="sm"
+              className="h-7 rounded-lg border-emerald-500/30 bg-emerald-500/10 px-2 text-[7px] font-normal uppercase tracking-wider text-emerald-400 hover:bg-emerald-500 hover:text-slate-950"
             >
               Auto Fill
-            </button>
-            <button
+            </Button>
+            <Button
+              type="button"
               onClick={handleClearBoard}
-              className="text-[7px] uppercase tracking-wider bg-rose-500/10 text-rose-400 border border-rose-500/30 px-2 py-1 rounded-lg font-normal hover:bg-rose-500 hover:text-white transition-all flex items-center gap-1"
+              variant="outline"
+              size="sm"
+              className="h-7 rounded-lg border-rose-500/30 bg-rose-500/10 px-2 text-[7px] font-normal uppercase tracking-wider text-rose-400 hover:bg-rose-500 hover:text-white"
             >
               Clear Board
-            </button>
+            </Button>
           </div>
         </div>
 
@@ -1361,8 +1403,10 @@ export default function TacticsView({ players, staff, teamCoach, teamName, teamL
                 </div>
 
                 {/* Remove Player Button - positioned absolutely on top-right of the card container */}
-                <button 
+                <Button
                   type="button"
+                  variant="destructive"
+                  size="icon"
                   onPointerDown={(e) => {
                     e.stopPropagation();
                   }}
@@ -1376,13 +1420,13 @@ export default function TacticsView({ players, staff, teamCoach, teamName, teamL
                     e.stopPropagation();
                     e.preventDefault();
                     handleRemovePlayer(e, idx);
-                  }} 
-                  className="absolute -top-3 -right-3 w-9 h-9 bg-rose-500 border border-red-600 rounded-full flex items-center justify-center text-white shadow-xl opacity-100 sm:opacity-0 sm:group-hover:opacity-100 sm:focus-visible:opacity-100 hover:bg-rose-600 transition-all z-40 cursor-pointer pointer-events-auto hover:scale-110 active:scale-95 touch-manipulation"
+                  }}
+                  className="absolute -top-3 -right-3 z-40 size-9 rounded-full border border-red-600 bg-rose-500 text-white opacity-100 shadow-xl hover:scale-110 hover:bg-rose-600 active:scale-95 sm:opacity-0 sm:group-hover:opacity-100 sm:focus-visible:opacity-100"
                   title="Remove Squad Player from Position"
                   aria-label={`Remove ${player.name || 'player'} from ${pos.role}`}
                 >
-                  <span className="text-[12px] font-black leading-none mb-0.5 pointer-events-none">×</span>
-                </button>
+                  <Trash2 size={14} />
+                </Button>
 
                 {/* Absolute naming label placed safely beneath card container */}
                 <span
@@ -1486,32 +1530,35 @@ export default function TacticsView({ players, staff, teamCoach, teamName, teamL
         <div className="bg-[#0f172a]/95 p-4 rounded-2xl border border-slate-800/80 shadow-lg space-y-4">
           <div className="flex items-center justify-between pb-2 border-b border-slate-800/60">
             <div className="flex items-center gap-2">
-              <span className="text-xl">📋</span>
+              <BookOpen size={20} className="text-indigo-400" />
               <div>
                 <h4 className="text-[10px] font-black uppercase tracking-widest text-amber-400">COACH'S TOOLSET</h4>
                 <p className="text-[9px] text-slate-500 font-mono">Interactive Playbook Designer</p>
               </div>
             </div>
             {isDrawingMode && (
-              <span className="text-[7.5px] bg-amber-450/15 text-amber-400 font-mono font-bold px-1.5 py-0.5 rounded uppercase tracking-wider animate-pulse">DRAW ACTIVE</span>
+              <Badge variant="warning" className="animate-pulse rounded px-1.5 py-0 text-[7.5px] font-mono">DRAW ACTIVE</Badge>
             )}
           </div>
 
           {/* Draw & Brush Tools Section */}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">✏️ Board Markings</span>
-              <button 
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block flex items-center gap-1.5"><Edit size={12} /> Board Markings</span>
+              <Button
                 id="btn-coach-draw-toggle"
+                type="button"
                 onClick={() => setIsDrawingMode(!isDrawingMode)}
-                className={`text-[9px] uppercase tracking-wider font-extrabold px-2.5 py-1 rounded-md border transition-all ${
-                  isDrawingMode 
-                    ? 'bg-amber-400 text-slate-950 border-amber-400 font-black shadow-md shadow-amber-400/10' 
+                variant="outline"
+                size="sm"
+                className={`h-7 rounded-md px-2.5 text-[9px] font-extrabold uppercase tracking-wider ${
+                  isDrawingMode
+                    ? 'bg-amber-400 text-slate-950 border-amber-400 font-black shadow-md shadow-amber-400/10'
                     : 'bg-white/5 text-slate-400 hover:text-white border-slate-800/80'
                 }`}
               >
                 {isDrawingMode ? 'Drawing On' : 'Drawing Off'}
-              </button>
+              </Button>
             </div>
 
             {isDrawingMode && (
@@ -1527,14 +1574,18 @@ export default function TacticsView({ players, staff, teamCoach, teamName, teamL
                       { hex: '#ffffff', label: 'White' },
                       { hex: '#10b981', label: 'Lime' }
                     ].map((col) => (
-                      <button
+                      <Button
                         key={col.hex}
+                        type="button"
+                        variant="ghost"
+                        size="icon"
                         onClick={() => setBrushColor(col.hex)}
                         style={{ backgroundColor: col.hex }}
-                        className={`w-4 h-4 rounded-full border transition-transform ${
+                        className={`size-4 rounded-full border p-0 transition-transform hover:bg-transparent ${
                           brushColor === col.hex ? 'scale-125 border-cyan-400 ring-1 ring-cyan-500/30' : 'border-black/50 hover:scale-110'
                         }`}
                         title={col.label}
+                        aria-label={`Set brush color to ${col.label}`}
                       />
                     ))}
                   </div>
@@ -1544,15 +1595,18 @@ export default function TacticsView({ players, staff, teamCoach, teamName, teamL
                   <span className="text-[9px] text-slate-400 font-bold uppercase font-mono">Brush Size</span>
                   <div className="flex gap-1">
                     {[2, 3, 5].map((size) => (
-                      <button
+                      <Button
                         key={size}
+                        type="button"
+                        variant="ghost"
+                        size="sm"
                         onClick={() => setBrushWidth(size)}
-                        className={`text-[8.5px] px-2 py-0.5 rounded font-mono font-bold transition-all ${
+                        className={`h-6 rounded px-2 text-[8.5px] font-mono font-bold ${
                           brushWidth === size ? 'bg-amber-400 text-slate-950 font-black' : 'bg-slate-800 text-slate-400 hover:text-slate-100'
                         }`}
                       >
                         {size === 2 ? 'Thin' : size === 3 ? 'Mid' : 'Thick'}
-                      </button>
+                      </Button>
                     ))}
                   </div>
                 </div>
@@ -1561,69 +1615,84 @@ export default function TacticsView({ players, staff, teamCoach, teamName, teamL
 
             {/* Path controls help indicators */}
             <div className="grid grid-cols-2 gap-1.5">
-              <button
+              <Button
                 id="btn-coach-draw-undo"
+                type="button"
                 disabled={paths.length === 0}
                 onClick={handleUndoDrawing}
-                className="text-[9.5px] font-bold text-slate-300 hover:text-white bg-slate-850 hover:bg-slate-805 border border-slate-800/80 px-2 py-1.5 rounded-lg transition-all disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center gap-1"
+                variant="outline"
+                size="sm"
+                className="h-8 rounded-lg border-slate-800/80 bg-slate-850 px-2 text-[9.5px] font-bold text-slate-300 hover:bg-slate-805 hover:text-white disabled:opacity-30"
               >
-                ↩️ Undo Line
-              </button>
-              <button
+                <RefreshCw size={11} /> Undo Line
+              </Button>
+              <Button
                 id="btn-coach-draw-clear"
+                type="button"
                 disabled={paths.length === 0}
                 onClick={handleClearDrawings}
-                className="text-[9.5px] font-bold text-rose-400 hover:text-rose-300 bg-rose-500/5 hover:bg-rose-500/10 border border-slate-800/80 px-2 py-1.5 rounded-lg transition-all disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center gap-1"
+                variant="outline"
+                size="sm"
+                className="h-8 rounded-lg border-slate-800/80 bg-rose-500/5 px-2 text-[9.5px] font-bold text-rose-400 hover:bg-rose-500/10 hover:text-rose-300 disabled:opacity-30"
                 title="Clear all drawn board lines"
               >
-                🗑️ Clear Ink
-              </button>
+                <Trash2 size={11} /> Clear Ink
+              </Button>
             </div>
           </div>
 
           {/* Tactical Game Elements Section */}
           <div className="border-t border-slate-800/60 pt-3 space-y-2.5">
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">⚽ Accessories & Runs</span>
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block flex items-center gap-1.5"><Target size={12} /> Accessories & Runs</span>
             
             <div className="grid grid-cols-2 gap-2">
-              <button
+              <Button
                 id="btn-coach-ball-toggle"
+                type="button"
                 onClick={() => setShowBall(!showBall)}
-                className={`py-1.5 px-2.5 rounded-xl text-left border flex items-center justify-between transition-all ${
-                  showBall 
-                    ? 'bg-emerald-600/10 text-emerald-400 border-emerald-500/30' 
-                    : 'bg-slate-900/40 text-slate-400 border-slate-805'
+                variant="outline"
+                size="sm"
+                className={`h-9 justify-between rounded-xl px-2.5 text-left ${
+                  showBall
+                    ? 'bg-emerald-600/10 text-emerald-400 border-emerald-500/30 hover:bg-emerald-600/15 hover:text-emerald-300'
+                    : 'bg-slate-900/40 text-slate-400 border-slate-805 hover:bg-slate-800 hover:text-slate-200'
                 }`}
               >
-                <span className="text-[10.5px] font-bold flex items-center gap-1">⚽ Ball Icon</span>
+                <span className="text-[10.5px] font-bold flex items-center gap-1"><Target size={11} /> Ball Icon</span>
                 <span className="text-[9px] font-bold uppercase">{showBall ? 'On' : 'Off'}</span>
-              </button>
+              </Button>
 
-              <button
+              <Button
                 id="btn-coach-wall-toggle"
+                type="button"
                 onClick={() => setShowWall(!showWall)}
-                className={`py-1.5 px-2.5 rounded-xl text-left border flex items-center justify-between transition-all ${
-                  showWall 
-                    ? 'bg-red-650/10 text-red-500 border-red-500/20' 
-                    : 'bg-slate-900/40 text-slate-400 border-slate-805'
+                variant="outline"
+                size="sm"
+                className={`h-9 justify-between rounded-xl px-2.5 text-left ${
+                  showWall
+                    ? 'bg-red-650/10 text-red-500 border-red-500/20 hover:bg-red-650/15 hover:text-red-400'
+                    : 'bg-slate-900/40 text-slate-400 border-slate-805 hover:bg-slate-800 hover:text-slate-200'
                 }`}
               >
-                <span className="text-[10.5px] font-bold flex items-center gap-1">🛡️ Def. Wall</span>
+                <span className="text-[10.5px] font-bold flex items-center gap-1"><Shield size={11} /> Def. Wall</span>
                 <span className="text-[9px] font-bold uppercase">{showWall ? 'On' : 'Off'}</span>
-              </button>
+              </Button>
             </div>
 
             {/* Reset Drags Action */}
-            <button
+            <Button
               id="btn-coach-reset-drag"
+              type="button"
               onClick={handleResetPositions}
-              className="w-full text-center text-[10px] font-bold uppercase tracking-wider bg-slate-900 text-slate-300 hover:text-white hover:bg-slate-850 px-3 py-2 rounded-xl transition-all border border-slate-800/80 hover:border-slate-700 block"
+              variant="outline"
+              size="sm"
+              className="h-9 w-full rounded-xl border-slate-800/80 bg-slate-900 px-3 text-[10px] font-bold uppercase tracking-wider text-slate-300 hover:border-slate-700 hover:bg-slate-850 hover:text-white"
             >
-              🔄 Reset Dragged Offsets
-            </button>
+              <RefreshCw size={12} /> Reset Dragged Offsets
+            </Button>
             
             <p className="text-[8.5px] text-slate-500 italic text-center leading-normal">
-              💡 Toggle <strong>Drawing On</strong> to paint runs, or <strong>Drawing Off</strong> to drag players, the ball & the defensive wall!
+              <Info size={11} className="inline-block align-[-2px] text-slate-500" /> Toggle <strong>Drawing On</strong> to paint runs, or <strong>Drawing Off</strong> to drag players, the ball & the defensive wall!
             </p>
           </div>
         </div>
@@ -1634,18 +1703,24 @@ export default function TacticsView({ players, staff, teamCoach, teamName, teamL
             <div className="flex justify-between items-center pb-2.5 border-b border-slate-800/80">
               <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">POSITION DETAIL VIEW</span>
               <div className="flex bg-slate-800 text-slate-300 p-0.5 rounded-lg text-[10px] font-bold">
-                <button 
+                <Button
+                  type="button"
                   onClick={() => setRightPanelTab('Basic')} 
-                  className={`px-2.5 py-1 rounded-md transition-all ${rightPanelTab === 'Basic' ? 'bg-indigo-600 text-white font-extrabold' : ''}`}
+                  variant="ghost"
+                  size="sm"
+                  className={`h-7 rounded-md px-2.5 text-[10px] font-bold ${rightPanelTab === 'Basic' ? 'bg-indigo-600 text-white font-extrabold hover:bg-indigo-600' : 'text-slate-300 hover:bg-slate-700 hover:text-white'}`}
                 >
                   Basic
-                </button>
-                <button 
+                </Button>
+                <Button
+                  type="button"
                   onClick={() => setRightPanelTab('Status')} 
-                  className={`px-2.5 py-1 rounded-md transition-all ${rightPanelTab === 'Status' ? 'bg-indigo-600 text-white font-extrabold' : ''}`}
+                  variant="ghost"
+                  size="sm"
+                  className={`h-7 rounded-md px-2.5 text-[10px] font-bold ${rightPanelTab === 'Status' ? 'bg-indigo-600 text-white font-extrabold hover:bg-indigo-600' : 'text-slate-300 hover:bg-slate-700 hover:text-white'}`}
                 >
                   Status
-                </button>
+                </Button>
               </div>
             </div>
 
@@ -1769,14 +1844,17 @@ export default function TacticsView({ players, staff, teamCoach, teamName, teamL
                           }
 
                           return (
-                            <button
+                            <Button
                               id={`status-btn-${st}`}
                               key={st}
+                              type="button"
+                              variant="outline"
+                              size="sm"
                               onClick={() => updatePlayerExtras(activeSelectedPlayer.id, { status: st })}
-                              className={`py-1.5 px-1 rounded-lg border text-[10px] transition-all capitalize text-center font-bold ${bgClass}`}
+                              className={`h-8 rounded-lg px-1 text-center text-[10px] font-bold capitalize ${bgClass}`}
                             >
                               {st}
-                            </button>
+                            </Button>
                           );
                         })}
                       </div>
@@ -1794,26 +1872,32 @@ export default function TacticsView({ players, staff, teamCoach, teamName, teamL
                       </div>
                       
                       <div className="flex gap-2">
-                        <button
+                        <Button
                           id="btn-remove-yellow"
+                          type="button"
+                          variant="outline"
+                          size="sm"
                           onClick={() => {
                             const current = getPlayerExtras(activeSelectedPlayer.id).yellowCards;
                             updatePlayerExtras(activeSelectedPlayer.id, { yellowCards: Math.max(0, current - 1) });
                           }}
-                          className="flex-1 py-1 px-2 bg-slate-800 text-slate-350 border border-slate-700 rounded-lg hover:bg-slate-750 text-[10px] font-bold"
+                          className="h-8 flex-1 rounded-lg border-slate-700 bg-slate-800 px-2 text-[10px] font-bold text-slate-350 hover:bg-slate-750 hover:text-slate-100"
                         >
                           Clear Card
-                        </button>
-                        <button
+                        </Button>
+                        <Button
                           id="btn-add-yellow"
+                          type="button"
+                          variant="outline"
+                          size="sm"
                           onClick={() => {
                             const current = getPlayerExtras(activeSelectedPlayer.id).yellowCards;
                             updatePlayerExtras(activeSelectedPlayer.id, { yellowCards: Math.min(2, current + 1) });
                           }}
-                          className="flex-1 py-1 px-2 bg-yellow-500 hover:bg-yellow-400 text-slate-950 font-bold rounded-lg border border-yellow-600/30 text-[10px]"
+                          className="h-8 flex-1 rounded-lg border-yellow-600/30 bg-yellow-500 px-2 text-[10px] font-bold text-slate-950 hover:bg-yellow-400"
                         >
                           + Add Yellow
-                        </button>
+                        </Button>
                       </div>
                     </div>
 
@@ -1827,20 +1911,24 @@ export default function TacticsView({ players, staff, teamCoach, teamName, teamL
                       </div>
                       
                       <div className="flex gap-2">
-                        <button
+                        <Button
                           id="btn-toggle-red"
+                          type="button"
+                          variant="outline"
+                          size="sm"
                           onClick={() => {
                             const current = getPlayerExtras(activeSelectedPlayer.id).redCards;
                             updatePlayerExtras(activeSelectedPlayer.id, { redCards: current > 0 ? 0 : 1 });
                           }}
-                          className={`w-full py-1.5 px-2 text-[10px] font-black rounded-lg border transition-all text-center ${
+                          className={`h-8 w-full rounded-lg px-2 text-center text-[10px] font-black ${
                             getPlayerExtras(activeSelectedPlayer.id).redCards > 0
                               ? 'bg-rose-600 hover:bg-rose-500 text-white border-rose-700 font-extrabold'
-                              : 'bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-750'
+                              : 'bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-750 hover:text-white'
                           }`}
                         >
-                          {getPlayerExtras(activeSelectedPlayer.id).redCards > 0 ? '🔴 Dismiss Red Card' : '🔴 Sentence Red Card'}
-                        </button>
+                          <span className="size-2.5 rounded-full bg-red-500" />
+                          {getPlayerExtras(activeSelectedPlayer.id).redCards > 0 ? 'Dismiss red card' : 'Sentence red card'}
+                        </Button>
                       </div>
                     </div>
 
@@ -1850,8 +1938,8 @@ export default function TacticsView({ players, staff, teamCoach, teamName, teamL
               </div>
             ) : (
               <div className="mt-4 py-8 px-4 bg-slate-950/40 rounded-2xl border border-slate-900/60 border-dashed text-center space-y-3.5">
-                <div className="w-12 h-12 rounded-full bg-slate-900 border border-slate-800 flex items-center justify-center text-slate-500 text-xl mx-auto">
-                  👤
+                <div className="w-12 h-12 rounded-full bg-slate-900 border border-slate-800 flex items-center justify-center text-slate-500 mx-auto">
+                  <User size={20} />
                 </div>
                 <div className="space-y-1">
                   <h4 className="text-[11px] font-black uppercase text-slate-300 tracking-wider font-mono">Empty Slot ({fieldPositions[selectedSlotIndex]?.role || 'N/A'})</h4>
@@ -1865,37 +1953,41 @@ export default function TacticsView({ players, staff, teamCoach, teamName, teamL
 
           {/* Selector Dropdown to Swap Player into this slot */}
           <div className="mt-4 pt-4 border-t border-slate-800/80">
-            <label className="text-[10px] font-black text-slate-400 tracking-wider block uppercase mb-1.5 font-mono">
-              {activeSelectedPlayer ? '🔄 Swap Athlete / Re-assign Position' : '👥 Assign Athlete to Position'}
-            </label>
+            <Label className="mb-1.5 flex items-center gap-1.5 text-slate-400">
+              {activeSelectedPlayer ? <RefreshCw size={11} /> : <UserCheck size={11} />}
+              {activeSelectedPlayer ? 'Swap athlete / re-assign position' : 'Assign athlete to position'}
+            </Label>
             <div className="relative">
-              <select
-                id="select-squad-player"
-                value={activeSelectedPlayer?.id || ''}
-                onChange={(e) => {
-                  const found = allEligiblePool.find(p => p.id === e.target.value);
+              <Select
+                value={activeSelectedPlayer?.id || EMPTY_SELECT_VALUE}
+                onValueChange={(value) => {
+                  if (value === EMPTY_SELECT_VALUE) return;
+                  const found = allEligiblePool.find(p => p.id === value);
                   if (found) {
                     handleAssignPlayer(found);
                   }
                 }}
-                className="w-full bg-slate-900 border border-slate-800 rounded-xl py-2 px-3 text-xs text-amber-300 font-bold focus:outline-none focus:ring-1 focus:ring-amber-400 cursor-pointer"
               >
-                <option value="" disabled className="text-slate-500">
-                  {activeSelectedPlayer ? '-- Keep Current Athlete --' : '-- Choose Athlete to Place --'}
-                </option>
-                {allEligiblePool.length > 0 && (
-                  <optgroup label="SQUAD ATHELETES POOL" className="bg-[#0f172a] text-slate-300">
-                    {allEligiblePool.map(p => {
-                      const isAssignedElsewhere = (Object.values(lineup) as (TacticsPlayer | null | undefined)[]).some(lp => lp?.id === p.id && lp?.id !== activeSelectedPlayer?.id);
-                      return (
-                        <option key={p.id} value={p.id} className="text-slate-100 font-bold">
-                          👥 {p.name} ({p.position} - Rating: {p.rating}) {isAssignedElsewhere ? '⚠️ [On Pitch]' : ''}
-                        </option>
-                      );
-                    })}
-                  </optgroup>
-                )}
-              </select>
+                <SelectTrigger
+                  id="select-squad-player"
+                  className="h-9 rounded-xl border-slate-800 bg-slate-900 text-xs font-bold text-amber-300 focus:ring-amber-400/30"
+                >
+                  <SelectValue placeholder={activeSelectedPlayer ? 'Keep current athlete' : 'Choose athlete to place'} />
+                </SelectTrigger>
+                <SelectContent className="border-slate-800 bg-slate-950 text-slate-100">
+                  <SelectItem value={EMPTY_SELECT_VALUE} disabled className="text-slate-500">
+                    {activeSelectedPlayer ? 'Keep current athlete' : 'Choose athlete to place'}
+                  </SelectItem>
+                  {allEligiblePool.map(p => {
+                    const isAssignedElsewhere = (Object.values(lineup) as (TacticsPlayer | null | undefined)[]).some(lp => lp?.id === p.id && lp?.id !== activeSelectedPlayer?.id);
+                    return (
+                      <SelectItem key={p.id} value={p.id} className="text-xs font-bold">
+                        {p.name} ({p.position} - Rating: {p.rating}) {isAssignedElsewhere ? '[On pitch]' : ''}
+                      </SelectItem>
+                    );
+                  })}
+                </SelectContent>
+              </Select>
             </div>
           </div>
         </div>
@@ -1929,18 +2021,22 @@ export default function TacticsView({ players, staff, teamCoach, teamName, teamL
                     Select the game type to automatically adjust squad size and available tactical templates.
                   </p>
                 </div>
-                <select
+                <Select
                   value={matchFormat}
-                  onChange={(e) => setMatchFormat(e.target.value as MatchFormat)}
-                  className="w-full sm:w-auto min-w-[200px] bg-slate-900 border border-slate-700 text-slate-100 font-bold px-3 py-2 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-amber-400 cursor-pointer shadow-inner"
+                  onValueChange={(value) => setMatchFormat(value as MatchFormat)}
                 >
-                  <option value="11-a-side">11-a-side (Full Squad)</option>
-                  <option value="9-a-side">9-a-side (Compact)</option>
-                  <option value="8-a-side">8-a-side (Flexible)</option>
-                  <option value="7-a-side">7-a-side (Half Pitch)</option>
-                  <option value="6-a-side">6-a-side (Small Sided)</option>
-                  <option value="5-a-side">5-a-side (Futsal / Cage)</option>
-                </select>
+                  <SelectTrigger className="h-9 w-full min-w-[200px] rounded-lg border-slate-700 bg-slate-900 text-xs font-bold text-slate-100 shadow-inner focus:ring-amber-400/30 sm:w-auto">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="border-slate-800 bg-slate-950 text-slate-100">
+                    <SelectItem value="11-a-side">11-a-side (Full Squad)</SelectItem>
+                    <SelectItem value="9-a-side">9-a-side (Compact)</SelectItem>
+                    <SelectItem value="8-a-side">8-a-side (Flexible)</SelectItem>
+                    <SelectItem value="7-a-side">7-a-side (Half Pitch)</SelectItem>
+                    <SelectItem value="6-a-side">6-a-side (Small Sided)</SelectItem>
+                    <SelectItem value="5-a-side">5-a-side (Futsal / Cage)</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
 
@@ -1948,9 +2044,9 @@ export default function TacticsView({ players, staff, teamCoach, teamName, teamL
             <div className="bg-slate-950/60 p-4 rounded-xl border border-indigo-500/30 flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-5">
               <div className="space-y-1">
                 <div className="flex items-center gap-2">
-                  <span className="bg-indigo-600 text-white text-[9px] font-black uppercase px-2 py-0.5 rounded tracking-widest animate-pulse">
+                  <Badge className="rounded bg-indigo-600 px-2 py-0.5 text-[9px] text-white">
                     COACH ENGINE
-                  </span>
+                  </Badge>
                   <span className="text-slate-300 font-bold text-xs">Custom Strategy Mode</span>
                 </div>
                 <p className="text-slate-400 text-[11px] font-sans">
@@ -1962,16 +2058,21 @@ export default function TacticsView({ players, staff, teamCoach, teamName, teamL
                 <span className={`text-[10px] font-black tracking-wider leading-none ${isCustomMode ? 'text-amber-400' : 'text-slate-500'}`}>
                   {isCustomMode ? "CUSTOM STRATEGY ACTIVE" : "DEFAULT TEMPLATES ONLY"}
                 </span>
-                <label className="relative inline-flex items-center cursor-pointer select-none">
-                  <input
-                    type="checkbox"
-                    id="toggle-custom-strategy-mode"
-                    checked={isCustomMode}
-                    onChange={(e) => setIsCustomMode(e.target.checked)}
-                    className="sr-only peer"
-                  />
-                  <div className="w-11 h-6 bg-slate-800 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
-                </label>
+                <Button
+                  id="toggle-custom-strategy-mode"
+                  type="button"
+                  aria-pressed={isCustomMode}
+                  onClick={() => setIsCustomMode(!isCustomMode)}
+                  variant="ghost"
+                  size="sm"
+                  className={cn(
+                    'h-7 w-12 justify-start rounded-full border border-slate-700 bg-slate-800 p-0.5 hover:bg-slate-700',
+                    isCustomMode && 'justify-end border-indigo-500 bg-indigo-600 hover:bg-indigo-600'
+                  )}
+                  aria-label="Toggle custom strategy mode"
+                >
+                  <span className="size-5 rounded-full border border-slate-300 bg-white shadow-sm" />
+                </Button>
               </div>
             </div>
 
@@ -1980,18 +2081,21 @@ export default function TacticsView({ players, staff, teamCoach, teamName, teamL
               <label className="text-[10px] font-black tracking-widest text-slate-400 uppercase block mb-1.5">Team Formation</label>
               <div className="grid grid-cols-3 gap-2 max-h-[160px] overflow-y-auto pr-1">
                 {MATCH_FORMAT_CONFIG[matchFormat].formations.map((fmt) => (
-                  <button
+                  <Button
                     id={`btn-formation-${fmt}`}
                     key={fmt}
+                    type="button"
+                    variant="outline"
+                    size="sm"
                     onClick={() => setFormation(fmt)}
-                    className={`py-2 px-2 rounded-lg font-semibold border transition-all text-center text-[10px] ${
+                    className={`h-8 rounded-lg px-2 text-center text-[10px] ${
                       formation === fmt
-                        ? 'bg-amber-400 border-amber-400 text-slate-950 font-black'
-                        : 'bg-slate-800/80 border-slate-700 text-slate-300 hover:bg-slate-800'
+                        ? 'border-amber-400 bg-amber-400 text-slate-950 hover:bg-amber-300'
+                        : 'border-slate-700 bg-slate-800/80 text-slate-300 hover:bg-slate-800 hover:text-white'
                     }`}
                   >
                     {fmt}
-                  </button>
+                  </Button>
                 ))}
               </div>
               <p className="text-[11px] text-slate-500 mt-2">Adjusting the template shifts designated positions dynamically over the digital terrain.</p>
@@ -2009,13 +2113,13 @@ export default function TacticsView({ players, staff, teamCoach, teamName, teamL
                   <label className="text-[10px] font-black tracking-widest text-slate-300 uppercase block">
                     Custom Playstyle Directive
                   </label>
-                  <input
+                  <Input
                     type="text"
                     id="input-custom-playstyle"
                     value={customPlaystyleInput}
                     onChange={(e) => setCustomPlaystyleInput(e.target.value)}
                     placeholder="Direct Attacking Tiki-Taka"
-                    className="w-full bg-slate-900 border border-slate-850 text-indigo-300 font-bold px-3 py-2 rounded-lg text-xs focus:ring-1 focus:ring-indigo-400 focus:outline-none"
+                    className="h-9 rounded-lg border-slate-800 bg-slate-900 text-xs font-bold text-indigo-300 focus-visible:ring-indigo-400/30"
                   />
                   <p className="text-[10px] text-slate-500 leading-normal">
                     Designate custom transitional playstyles for counter attacks or localized retention focus.
@@ -2027,13 +2131,13 @@ export default function TacticsView({ players, staff, teamCoach, teamName, teamL
                   <label className="text-[10px] font-black tracking-widest text-slate-300 uppercase block">
                     Custom Defensive Anchor
                   </label>
-                  <input
+                  <Input
                     type="text"
                     id="input-custom-defensive"
                     value={customDefensiveInput}
                     onChange={(e) => setCustomDefensiveInput(e.target.value)}
                     placeholder="Aggressive Wing Press"
-                    className="w-full bg-slate-900 border border-slate-850 text-emerald-400 font-bold px-3 py-2 rounded-lg text-xs focus:ring-1 focus:ring-emerald-500 focus:outline-none"
+                    className="h-9 rounded-lg border-slate-800 bg-slate-900 text-xs font-bold text-emerald-400 focus-visible:ring-emerald-500/30"
                   />
                   <p className="text-[10px] text-slate-500 leading-normal">
                     Dictate custom pressing models, offside triggers, or backline depth constraints.
@@ -2049,18 +2153,24 @@ export default function TacticsView({ players, staff, teamCoach, teamName, teamL
                       Tactical Mentality Setting
                     </label>
                     <div className="grid grid-cols-1 gap-2">
-                      <select
-                        id="select-custom-mentality"
+                      <Select
                         value={customMentality}
-                        onChange={(e) => setCustomMentality(e.target.value)}
-                        className="w-full bg-slate-900 border border-slate-850 text-slate-100 font-bold px-3 py-2 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500 cursor-pointer"
+                        onValueChange={setCustomMentality}
                       >
-                        <option value="Ultra Defensive">🛡️ Ultra Defensive (Park the Bus)</option>
-                        <option value="Defensive">⚔️ Defensive (Cautious Build Up)</option>
-                        <option value="Balanced">⚖️ Balanced (Fluid Interchange)</option>
-                        <option value="Attacking">🔥 Attacking (Overload Flanks)</option>
-                        <option value="Ultra Attacking">⚡ Ultra Attacking (All Out Rush)</option>
-                      </select>
+                        <SelectTrigger
+                          id="select-custom-mentality"
+                          className="h-9 rounded-lg border-slate-800 bg-slate-900 text-xs font-bold text-slate-100 focus:ring-indigo-500/30"
+                        >
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent className="border-slate-800 bg-slate-950 text-slate-100">
+                          <SelectItem value="Ultra Defensive">Ultra Defensive (Park the Bus)</SelectItem>
+                          <SelectItem value="Defensive">Defensive (Cautious Build Up)</SelectItem>
+                          <SelectItem value="Balanced">Balanced (Fluid Interchange)</SelectItem>
+                          <SelectItem value="Attacking">Attacking (Overload Flanks)</SelectItem>
+                          <SelectItem value="Ultra Attacking">Ultra Attacking (All Out Rush)</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
                     <p className="text-[10px] text-slate-500 leading-normal">
                       Adjusts baseline squad aggression indices and transition speeds overall.
@@ -2072,13 +2182,13 @@ export default function TacticsView({ players, staff, teamCoach, teamName, teamL
                     <label className="text-[10px] font-black tracking-widest text-slate-300 uppercase block">
                       Coach Directives & Game Plan Commentary
                     </label>
-                    <textarea
+                    <Textarea
                       id="textarea-custom-strategy-notes"
                       value={customStrategyNotes}
                       onChange={(e) => setCustomStrategyNotes(e.target.value)}
                       rows={3}
                       placeholder="Input comprehensive instructions, marking guides, setup requirements..."
-                      className="w-full bg-slate-900 border border-slate-850 text-slate-200 font-medium px-3 py-2 rounded-lg text-xs focus:ring-1 focus:ring-indigo-500 focus:outline-none font-mono"
+                      className="min-h-24 rounded-lg border-slate-800 bg-slate-900 text-xs font-medium text-slate-200 focus-visible:ring-indigo-500/30"
                     />
                   </div>
                 </div>
@@ -2090,18 +2200,21 @@ export default function TacticsView({ players, staff, teamCoach, teamName, teamL
                   <label className="text-[10px] font-black tracking-widest text-slate-400 uppercase block mb-1.5">Change Tactic Playstyle</label>
                   <div className="grid grid-cols-2 gap-2 max-h-[140px] overflow-y-auto pr-1">
                     {playstyles.map((style) => (
-                      <button
+                      <Button
                         id={`btn-playstyle-${style.replaceAll(' ', '-')}`}
                         key={style}
+                        type="button"
+                        variant="outline"
+                        size="sm"
                         onClick={() => setPlaystyle(style)}
-                        className={`py-2 px-3 rounded-lg font-semibold border transition-all text-center text-xs truncate ${
+                        className={`h-8 rounded-lg px-3 text-center text-xs ${
                           playstyle === style 
-                            ? 'bg-indigo-600 border-indigo-500 text-white font-bold shadow-sm' 
-                            : 'bg-slate-800/80 border-slate-700 text-slate-300 hover:bg-slate-800'
+                            ? 'border-indigo-500 bg-indigo-600 text-white hover:bg-indigo-700' 
+                            : 'border-slate-700 bg-slate-800/80 text-slate-300 hover:bg-slate-800 hover:text-white'
                         }`}
                       >
                         {style}
-                      </button>
+                      </Button>
                     ))}
                   </div>
                   <p className="text-[11px] text-slate-500 mt-2">Select strategy to dictate how players coordinate in transitions on the playing field.</p>
@@ -2111,18 +2224,21 @@ export default function TacticsView({ players, staff, teamCoach, teamName, teamL
                   <label className="text-[10px] font-black tracking-widest text-slate-400 uppercase block mb-1.5">Defensive Play Style</label>
                   <div className="grid grid-cols-2 gap-2">
                     {['High Press', 'Half Press', 'Man to Man', 'Low Block'].map((defStyle) => (
-                      <button
+                      <Button
                         id={`btn-defstyle-${defStyle.replaceAll(' ', '-')}`}
                         key={defStyle}
+                        type="button"
+                        variant="outline"
+                        size="sm"
                         onClick={() => setDefensiveStyle(defStyle)}
-                        className={`py-2 px-3 rounded-lg font-semibold border transition-all text-center ${
+                        className={`h-8 rounded-lg px-3 text-center ${
                           defensiveStyle === defStyle 
-                            ? 'bg-emerald-600 border-emerald-500 text-white font-bold shadow-sm' 
-                            : 'bg-slate-800/80 border-slate-700 text-slate-300 hover:bg-slate-800'
+                            ? 'border-emerald-500 bg-emerald-600 text-white hover:bg-emerald-700' 
+                            : 'border-slate-700 bg-slate-800/80 text-slate-300 hover:bg-slate-800 hover:text-white'
                         }`}
                       >
                         {defStyle}
-                      </button>
+                      </Button>
                     ))}
                   </div>
                   <p className="text-[11px] text-slate-500 mt-2">Dictates how high up the field and in what pattern your squad coordinates when defending.</p>
@@ -2137,77 +2253,77 @@ export default function TacticsView({ players, staff, teamCoach, teamName, teamL
                 {/* Captaincy Card */}
                 <div className="bg-slate-950/40 border border-slate-800/80 p-3 rounded-xl flex flex-col justify-between gap-2">
                   <div>
-                    <span className="text-[10px] text-amber-400 font-bold uppercase tracking-wider block">© Captain</span>
+                    <span className="text-[10px] text-amber-400 font-bold uppercase tracking-wider block">Captain</span>
                     <p className="text-[11px] text-slate-400 mt-0.5">Leads motivational boost.</p>
                   </div>
-                  <select
-                    id="select-captain"
-                    value={captainId}
-                    onChange={(e) => setCaptainId(e.target.value)}
-                    className="w-full bg-slate-900 border border-slate-800 rounded-lg py-1.5 px-2 text-[11px] text-slate-100 font-semibold focus:outline-none focus:ring-1 focus:ring-amber-400 cursor-pointer"
-                  >
-                    <option value="">-- Select Captain --</option>
-                    {allEligiblePool.map((player) => (
-                      <option key={player.id} value={player.id} className="bg-[#0f172a] text-white font-bold">{player.name}</option>
-                    ))}
-                  </select>
+                  <Select value={captainId || EMPTY_SELECT_VALUE} onValueChange={(value) => setCaptainId(value === EMPTY_SELECT_VALUE ? '' : value)}>
+                    <SelectTrigger id="select-captain" className="h-8 rounded-lg border-slate-800 bg-slate-900 text-[11px] font-semibold text-slate-100 focus:ring-amber-400/30">
+                      <SelectValue placeholder="Select captain" />
+                    </SelectTrigger>
+                    <SelectContent className="border-slate-800 bg-slate-950 text-slate-100">
+                      <SelectItem value={EMPTY_SELECT_VALUE}>Select captain</SelectItem>
+                      {allEligiblePool.map((player) => (
+                        <SelectItem key={player.id} value={player.id} className="text-xs font-bold">{player.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 {/* Free Kick Taker Card */}
                 <div className="bg-slate-950/40 border border-slate-800/80 p-3 rounded-xl flex flex-col justify-between gap-2">
                   <div>
-                    <span className="text-[10px] text-cyan-400 font-bold uppercase tracking-wider block">🎯 Free Kicks</span>
+                    <span className="text-[10px] text-cyan-400 font-bold uppercase tracking-wider block">Free Kicks</span>
                     <p className="text-[11px] text-slate-400 mt-0.5">Takes precision direct kicks.</p>
                   </div>
-                  <select
-                    id="select-free-kick"
-                    value={freeKickTakerId}
-                    onChange={(e) => setFreeKickTakerId(e.target.value)}
-                    className="w-full bg-slate-900 border border-slate-800 rounded-lg py-1.5 px-2 text-[11px] text-slate-100 font-semibold focus:outline-none focus:ring-1 focus:ring-amber-400 cursor-pointer"
-                  >
-                    <option value="">-- Select Free Kicker --</option>
-                    {allEligiblePool.map((player) => (
-                      <option key={player.id} value={player.id} className="bg-[#0f172a] text-white font-bold">{player.name}</option>
-                    ))}
-                  </select>
+                  <Select value={freeKickTakerId || EMPTY_SELECT_VALUE} onValueChange={(value) => setFreeKickTakerId(value === EMPTY_SELECT_VALUE ? '' : value)}>
+                    <SelectTrigger id="select-free-kick" className="h-8 rounded-lg border-slate-800 bg-slate-900 text-[11px] font-semibold text-slate-100 focus:ring-amber-400/30">
+                      <SelectValue placeholder="Select free kicker" />
+                    </SelectTrigger>
+                    <SelectContent className="border-slate-800 bg-slate-950 text-slate-100">
+                      <SelectItem value={EMPTY_SELECT_VALUE}>Select free kicker</SelectItem>
+                      {allEligiblePool.map((player) => (
+                        <SelectItem key={player.id} value={player.id} className="text-xs font-bold">{player.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 {/* Penalty Taker Card */}
                 <div className="bg-slate-950/40 border border-slate-800/80 p-3 rounded-xl flex flex-col justify-between gap-2">
                   <div>
-                    <span className="text-[10px] text-rose-400 font-bold uppercase tracking-wider block">🥅 Penalty Kicker</span>
+                    <span className="text-[10px] text-rose-400 font-bold uppercase tracking-wider block">Penalty Kicker</span>
                     <p className="text-[11px] text-slate-400 mt-0.5">Assigned for highest composure.</p>
                   </div>
-                  <select
-                    id="select-penalties"
-                    value={penaltyTakerId}
-                    onChange={(e) => setPenaltyTakerId(e.target.value)}
-                    className="w-full bg-slate-900 border border-slate-800 rounded-lg py-1.5 px-2 text-[11px] text-slate-100 font-semibold focus:outline-none focus:ring-1 focus:ring-amber-400 cursor-pointer"
-                  >
-                    <option value="">-- Select Penalty Kicker --</option>
-                    {allEligiblePool.map((player) => (
-                      <option key={player.id} value={player.id} className="bg-[#0f172a] text-white font-bold">{player.name}</option>
-                    ))}
-                  </select>
+                  <Select value={penaltyTakerId || EMPTY_SELECT_VALUE} onValueChange={(value) => setPenaltyTakerId(value === EMPTY_SELECT_VALUE ? '' : value)}>
+                    <SelectTrigger id="select-penalties" className="h-8 rounded-lg border-slate-800 bg-slate-900 text-[11px] font-semibold text-slate-100 focus:ring-amber-400/30">
+                      <SelectValue placeholder="Select penalty kicker" />
+                    </SelectTrigger>
+                    <SelectContent className="border-slate-800 bg-slate-950 text-slate-100">
+                      <SelectItem value={EMPTY_SELECT_VALUE}>Select penalty kicker</SelectItem>
+                      {allEligiblePool.map((player) => (
+                        <SelectItem key={player.id} value={player.id} className="text-xs font-bold">{player.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 {/* Corner Taker Card */}
                 <div className="bg-slate-950/40 border border-slate-800/80 p-3 rounded-xl flex flex-col justify-between gap-2">
                   <div>
-                    <span className="text-[10px] text-yellow-400 font-bold uppercase tracking-wider block">🚩 Corner Kicks</span>
+                    <span className="text-[10px] text-yellow-400 font-bold uppercase tracking-wider block">Corner Kicks</span>
                     <p className="text-[11px] text-slate-400 mt-0.5">Crosses from left and right flags.</p>
                   </div>
-                  <select
-                    id="select-corners"
-                    value={cornerTakerId}
-                    onChange={(e) => setCornerTakerId(e.target.value)}
-                    className="w-full bg-slate-900 border border-slate-800 rounded-lg py-1.5 px-2 text-[11px] text-slate-100 font-semibold focus:outline-none focus:ring-1 focus:ring-amber-400 cursor-pointer"
-                  >
-                    <option value="">-- Select Corner Kicker --</option>
-                    {allEligiblePool.map((player) => (
-                      <option key={player.id} value={player.id} className="bg-[#0f172a] text-white font-bold">{player.name}</option>
-                    ))}
-                  </select>
+                  <Select value={cornerTakerId || EMPTY_SELECT_VALUE} onValueChange={(value) => setCornerTakerId(value === EMPTY_SELECT_VALUE ? '' : value)}>
+                    <SelectTrigger id="select-corners" className="h-8 rounded-lg border-slate-800 bg-slate-900 text-[11px] font-semibold text-slate-100 focus:ring-amber-400/30">
+                      <SelectValue placeholder="Select corner kicker" />
+                    </SelectTrigger>
+                    <SelectContent className="border-slate-800 bg-slate-950 text-slate-100">
+                      <SelectItem value={EMPTY_SELECT_VALUE}>Select corner kicker</SelectItem>
+                      {allEligiblePool.map((player) => (
+                        <SelectItem key={player.id} value={player.id} className="text-xs font-bold">{player.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
             </div>
@@ -2337,18 +2453,20 @@ export default function TacticsView({ players, staff, teamCoach, teamName, teamL
           {/* Quick Note Filter Pills */}
           <div className="flex flex-wrap items-center gap-1.5 bg-slate-900 p-1 rounded-xl border border-slate-800">
             {['All', 'Formation', 'Set Pieces', 'Strategy', 'General'].map(cat => (
-              <button
+              <Button
                 key={cat}
                 type="button"
+                variant="ghost"
+                size="sm"
                 onClick={() => setNotesFilter(cat)}
-                className={`px-3 py-1.5 rounded-lg text-[10px] font-black transition-all ${
+                className={`h-7 rounded-lg px-3 text-[10px] font-black ${
                   notesFilter === cat 
                     ? 'bg-indigo-600 text-white' 
                     : 'text-slate-400 hover:text-white hover:bg-white/5'
                 }`}
               >
                 {cat}
-              </button>
+              </Button>
             ))}
           </div>
         </div>
@@ -2366,13 +2484,13 @@ export default function TacticsView({ players, staff, teamCoach, teamName, teamL
                 <label className="text-[9px] uppercase font-black text-slate-400 tracking-wider block mb-1">
                   Note Title
                 </label>
-                <input
+                <Input
                   type="text"
                   required
                   placeholder="e.g. Near-Post Header Routine"
                   value={noteTitle}
                   onChange={e => setNoteTitle(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-800 text-slate-200 placeholder-slate-650 rounded-lg px-3 py-2 text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-amber-500 focus:border-amber-500"
+                  className="h-9 rounded-lg border-slate-800 bg-slate-950 text-xs font-semibold text-slate-200 placeholder:text-slate-600 focus-visible:ring-amber-500/30"
                 />
               </div>
 
@@ -2380,39 +2498,44 @@ export default function TacticsView({ players, staff, teamCoach, teamName, teamL
                 <label className="text-[9px] uppercase font-black text-slate-400 tracking-wider block mb-1">
                   Category
                 </label>
-                <select
+                <Select
                   value={noteCategory}
-                  onChange={e => setNoteCategory(parseTacticsNoteCategory(e.target.value))}
-                  className="w-full bg-slate-950 border border-slate-800 text-slate-300 rounded-lg px-2.5 py-2 text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-amber-500 cursor-pointer"
+                  onValueChange={(value) => setNoteCategory(parseTacticsNoteCategory(value))}
                 >
-                  <option value="Strategy">🧠 Strategy</option>
-                  <option value="Formation">📐 Formation</option>
-                  <option value="Set Pieces">🚩 Set Pieces</option>
-                  <option value="General">📝 General</option>
-                </select>
+                  <SelectTrigger className="h-9 rounded-lg border-slate-800 bg-slate-950 text-xs font-semibold text-slate-300 focus:ring-amber-500/30">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="border-slate-800 bg-slate-950 text-slate-100">
+                    {TACTICS_NOTE_CATEGORIES.map((category) => (
+                      <SelectItem key={category} value={category} className="text-xs font-bold">
+                        {category}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
               <div>
                 <label className="text-[9px] uppercase font-black text-slate-400 tracking-wider block mb-1">
                   Note Text / Instructions
                 </label>
-                <textarea
+                <Textarea
                   required
                   rows={3}
                   placeholder="Write clear play instructions or defensive roles..."
                   value={noteContent}
                   onChange={e => setNoteContent(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-800 text-slate-200 placeholder-slate-650 rounded-lg px-3 py-2 text-xs font-medium focus:outline-none focus:ring-1 focus:ring-amber-500 focus:border-amber-500 resize-none leading-relaxed"
+                  className="min-h-24 resize-none rounded-lg border-slate-800 bg-slate-950 text-xs font-medium leading-relaxed text-slate-200 placeholder:text-slate-600 focus-visible:ring-amber-500/30"
                 />
               </div>
             </div>
 
-            <button
+            <Button
               type="submit"
-              className="w-full bg-gradient-to-r from-indigo-600 to-indigo-500 hover:from-indigo-700 hover:to-indigo-600 text-white font-bold text-xs py-2.5 px-4 rounded-lg shadow-md transition-all flex items-center justify-center gap-1.5"
+              className="h-10 w-full rounded-lg bg-indigo-600 px-4 text-xs font-bold text-white shadow-md hover:bg-indigo-700"
             >
               <Plus size={13} /> Include in Playbook
-            </button>
+            </Button>
           </form>
 
           {/* RIGHT SIDE: NOTES CONTAINER */}
@@ -2442,37 +2565,42 @@ export default function TacticsView({ players, staff, teamCoach, teamName, teamL
                         <div className="space-y-2.5">
                           <div className="flex items-center gap-2">
                             <span className="text-[10px] text-slate-400 font-mono font-bold tracking-tight">Edit Mode</span>
-                            <select
+                            <Select
                               value={editingNoteCategory}
-                              onChange={e => setEditingNoteCategory(parseTacticsNoteCategory(e.target.value))}
-                              className="bg-slate-950 text-[10px] text-slate-300 border border-slate-800 rounded px-1.5 py-0.5"
+                              onValueChange={(value) => setEditingNoteCategory(parseTacticsNoteCategory(value))}
                             >
-                              <option value="Strategy">Strategy</option>
-                              <option value="Formation">Formation</option>
-                              <option value="Set Pieces">Set Pieces</option>
-                              <option value="General">General</option>
-                            </select>
+                              <SelectTrigger className="h-7 w-32 rounded border-slate-800 bg-slate-950 px-2 text-[10px] text-slate-300">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent className="border-slate-800 bg-slate-950 text-slate-100">
+                                {TACTICS_NOTE_CATEGORIES.map((category) => (
+                                  <SelectItem key={category} value={category} className="text-xs">
+                                    {category}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
                           </div>
-                          <input
+                          <Input
                             type="text"
                             value={editingNoteTitle}
                             onChange={e => setEditingNoteTitle(e.target.value)}
-                            className="w-full bg-slate-955 border border-slate-800 text-slate-200 rounded px-2 py-1 text-xs font-bold"
+                            className="h-8 rounded border-slate-800 bg-slate-950 px-2 py-1 text-xs font-bold text-slate-200"
                           />
-                          <textarea
+                          <Textarea
                             rows={3}
                             value={editingNoteContent}
                             onChange={e => setEditingNoteContent(e.target.value)}
-                            className="w-full bg-slate-955 border border-slate-800 text-slate-300 rounded px-2 py-1 text-xs font-medium resize-none leading-relaxed"
+                            className="min-h-24 resize-none rounded border-slate-800 bg-slate-950 px-2 py-1 text-xs font-medium leading-relaxed text-slate-300"
                           />
                         </div>
                       ) : (
                         /* Standard display note */
                         <div>
                           <div className="flex items-center justify-between gap-2.5 mb-1.5">
-                            <span className={`text-[9.5px] font-black uppercase tracking-widest px-1.5 py-0.5 border rounded-md ${catStyle}`}>
+                            <Badge className={`rounded-md px-1.5 py-0 text-[9.5px] ${catStyle}`}>
                               {note.category || 'General'}
-                            </span>
+                            </Badge>
                             <span className="text-[9px] font-mono text-slate-500">
                               {note.createdAt ? new Date(note.createdAt).toLocaleDateString() : 'Active'}
                             </span>
@@ -2491,38 +2619,45 @@ export default function TacticsView({ players, staff, teamCoach, teamName, teamL
                       <div className="flex items-center justify-end gap-2 border-t border-slate-800/65 pt-2">
                         {isEditing ? (
                           <>
-                            <button
+                            <Button
                               type="button"
                               onClick={() => handleSaveEditNote(note.id)}
-                              className="text-[10px] font-black bg-emerald-600 hover:bg-emerald-500 text-slate-950 px-2.5 py-1 rounded flex items-center gap-1 transition-all"
+                              size="sm"
+                              className="h-7 rounded bg-emerald-600 px-2.5 text-[10px] font-black text-slate-950 hover:bg-emerald-500"
                             >
                               <Check size={11} /> Save
-                            </button>
-                            <button
+                            </Button>
+                            <Button
                               type="button"
                               onClick={() => setEditingNoteId(null)}
-                              className="text-[10px] font-bold bg-slate-850 hover:bg-slate-800 text-slate-400 px-2.5 py-1 rounded transition-all"
+                              variant="ghost"
+                              size="sm"
+                              className="h-7 rounded px-2.5 text-[10px] font-bold text-slate-400 hover:bg-slate-800 hover:text-slate-200"
                             >
                               Cancel
-                            </button>
+                            </Button>
                           </>
                         ) : (
                           <>
-                            <button
+                            <Button
                               type="button"
                               onClick={() => handleStartEditNote(note)}
-                              className="text-[10px] font-bold text-slate-400 hover:text-amber-400 flex items-center gap-1 transition-colors"
+                              variant="ghost"
+                              size="sm"
+                              className="h-7 px-2 text-[10px] font-bold text-slate-400 hover:bg-amber-500/10 hover:text-amber-400"
                             >
                               <Edit size={11} /> Edit
-                            </button>
+                            </Button>
                             <span className="text-slate-800 text-[10px]">|</span>
-                            <button
+                            <Button
                               type="button"
                               onClick={() => handleDeleteNote(note.id)}
-                              className="text-[10px] font-bold text-slate-400 hover:text-rose-500 flex items-center gap-1 transition-colors"
+                              variant="ghost"
+                              size="sm"
+                              className="h-7 px-2 text-[10px] font-bold text-slate-400 hover:bg-rose-500/10 hover:text-rose-500"
                             >
                               <Trash2 size={11} /> Delete
-                            </button>
+                            </Button>
                           </>
                         )}
                       </div>
@@ -2533,7 +2668,7 @@ export default function TacticsView({ players, staff, teamCoach, teamName, teamL
 
               {quickNotes.filter(note => notesFilter === 'All' || note.category === notesFilter).length === 0 && (
                 <div className="col-span-2 py-12 flex flex-col items-center justify-center text-center gap-2 border border-dashed border-slate-800 rounded-xl">
-                  <span className="text-slate-500 text-sm">📕</span>
+                  <BookOpen size={18} className="text-slate-500" />
                   <p className="text-xs text-slate-400 font-medium">No playbook reminders match the "{notesFilter}" filter.</p>
                   <p className="text-[10px] text-slate-505">Create a new key note on the left to populate your layout!</p>
                 </div>
