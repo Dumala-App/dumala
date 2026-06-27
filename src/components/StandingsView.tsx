@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Standing, TeamInfo, Player, PlayerOffense, MvpAwardRecord } from '../types';
 import {findUserStanding, sortStandings} from '../standings';
 import { 
@@ -14,7 +14,6 @@ import {
   writeBooleanStorage,
   writeJsonStorage
 } from '../persistence/storage';
-import { useDialogAccessibility } from '../hooks/useDialogAccessibility';
 import { FieldError, FormErrorSummary } from './FormValidation';
 import {
   FieldErrors,
@@ -25,8 +24,20 @@ import {
 } from '../forms/validation';
 import { Badge } from './ui/badge';
 import { Button } from './ui/button';
+import { Checkbox } from './ui/checkbox';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger
+} from './ui/alert-dialog';
 import {
   Select,
   SelectContent,
@@ -103,7 +114,6 @@ export default function StandingsView({
   onUpdatePlayer,
   highlightStandingTeamName
 }: StandingsViewProps) {
-  const resetDialogRef = useRef<HTMLDivElement | null>(null);
   const scoreboardFormRef = useRef<HTMLFormElement | null>(null);
   const addClubFormRef = useRef<HTMLFormElement | null>(null);
   // Editing individual team row state
@@ -125,8 +135,6 @@ export default function StandingsView({
   const [addClubErrors, setAddClubErrors] = useState<FieldErrors<AddClubField>>({});
   const [showAddClubPanel, setShowAddClubPanel] = useState(false);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
-  const closeResetDialog = useCallback(() => setShowResetConfirm(false), []);
-  useDialogAccessibility(resetDialogRef, showResetConfirm, closeResetDialog);
   const [showBackupLog, setShowBackupLog] = useState(false);
   const [standingsBackups, setStandingsBackups] = useState<StandingsBackup[]>(() => {
     return readJsonStorage(STORAGE_KEYS.standingsBackups, standingsBackupsSchema, [], 'Standings history');
@@ -742,42 +750,51 @@ export default function StandingsView({
           <div className="flex items-center gap-3">
             {isEditingLeagueName ? (
               <div className="flex items-center gap-2">
-                <input 
+                <Input
                   id="edit-division-name-input"
                   type="text"
                   value={tempLeagueName}
                   onChange={e => setTempLeagueName(e.target.value)}
-                  className="bg-white text-xs font-bold font-display px-3 py-1.5 border border-slate-250 rounded-xl focus:outline-none focus:ring-1 focus:ring-indigo-500 text-slate-800"
+                  className="h-8 w-52 rounded-xl bg-white px-3 py-1.5 font-display text-xs font-bold text-slate-800"
                   placeholder="Division Name"
                 />
-                <button 
+                <Button
+                  type="button"
                   onClick={handleSaveLeagueName}
-                  className="p-1 px-2.2 bg-indigo-650 text-white rounded-lg text-[10px] font-bold shadow-sm"
+                  size="sm"
+                  className="h-8 rounded-lg bg-indigo-600 px-2.5 text-[10px] font-bold text-white hover:bg-indigo-700"
                 >
                   Save
-                </button>
-                <button 
+                </Button>
+                <Button
+                  type="button"
                   onClick={() => setIsEditingLeagueName(false)}
-                  className="p-1 px-2 bg-slate-250 text-slate-700 rounded-lg text-[10px] font-medium"
+                  variant="secondary"
+                  size="sm"
+                  className="h-8 rounded-lg px-2.5 text-[10px] font-medium"
                 >
                   Cancel
-                </button>
+                </Button>
               </div>
             ) : (
               <div className="flex items-center gap-2.5">
                 <h4 className="font-display font-bold text-xs text-slate-800 uppercase tracking-widest flex items-center gap-2">
                   <Trophy size={16} className="text-indigo-600 animate-pulse" /> {teamInfo.league || "Regional Premier Division"} Standings
                 </h4>
-                <button 
+                <Button
+                  type="button"
                   onClick={() => {
                     setTempLeagueName(teamInfo.league || "Regional Premier Division");
                     setIsEditingLeagueName(true);
                   }}
-                  className="text-slate-400 hover:text-indigo-650 transition-colors p-1 rounded-md"
+                  variant="ghost"
+                  size="icon"
+                  className="size-7 text-slate-400 hover:bg-indigo-50 hover:text-indigo-700"
                   title="Edit League Name"
+                  aria-label="Edit league name"
                 >
                   <Edit3 size={11} />
-                </button>
+                </Button>
               </div>
             )}
           </div>
@@ -856,7 +873,7 @@ export default function StandingsView({
                       <td id={`standing-team-${team.rank}-name`} className="py-3.5 px-4 font-medium text-slate-800 text-sm">
                         {editingTeam === team.teamName ? (
                           <div>
-                            <input 
+                            <Input
                               id="edit-standing-team-name-input"
                               data-validation-field="teamName"
                               type="text"
@@ -867,11 +884,10 @@ export default function StandingsView({
                               }}
                               aria-invalid={Boolean(standingEditErrors.teamName)}
                               aria-describedby={standingEditErrors.teamName ? 'edit-standing-team-name-error' : undefined}
-                              className={`bg-white border rounded px-2 py-1 text-xs font-semibold focus:outline-none focus:ring-1 text-slate-800 ${
-                                standingEditErrors.teamName
-                                  ? 'border-rose-300 focus:ring-rose-500'
-                                  : 'border-slate-300 focus:ring-indigo-500'
-                              }`}
+                              className={cn(
+                                'h-8 rounded px-2 py-1 text-xs font-semibold text-slate-800',
+                                standingEditErrors.teamName && standingsPanelInvalidClass
+                              )}
                               placeholder="Club Name"
                             />
                             <FieldError id="edit-standing-team-name-error" message={standingEditErrors.teamName} />
@@ -880,14 +896,14 @@ export default function StandingsView({
                           <div className="flex items-center gap-2">
                             <span className="truncate max-w-[170px]">{team.teamName}</span>
                             {isIntegrityHighlighted && (
-                              <span className="bg-amber-100 text-amber-900 text-[9px] font-bold px-1.5 py-0.5 rounded uppercase shrink-0 border border-amber-200">
+                              <Badge variant="warning" className="shrink-0 rounded px-1.5 py-0 text-[9px]">
                                 Review
-                              </span>
+                              </Badge>
                             )}
                             {isUser && (
-                              <span className="bg-indigo-600 text-white text-[9px] font-bold px-1.5 py-0.5 rounded uppercase shrink-0">
+                              <Badge className="shrink-0 rounded border-transparent bg-indigo-600 px-1.5 py-0 text-[9px] text-white">
                                 My Team
-                              </span>
+                              </Badge>
                             )}
                           </div>
                         )}
@@ -901,7 +917,7 @@ export default function StandingsView({
                             {previewWon + previewDrawn + previewLost}
                           </td>
                           <td className="py-3.5 px-3">
-                            <input 
+                            <Input
                               id="edit-standing-won"
                               data-validation-field="won"
                               type="number" 
@@ -915,14 +931,15 @@ export default function StandingsView({
                               }}
                               aria-invalid={Boolean(standingEditErrors.won)}
                               aria-describedby={standingEditErrors.won ? 'edit-standing-won-error' : undefined}
-                              className={`w-11 text-center border rounded p-1 bg-white font-bold text-slate-800 ${
-                                standingEditErrors.won ? 'border-rose-300' : 'border-slate-300'
-                              }`}
+                              className={cn(
+                                'h-8 w-11 rounded p-1 text-center text-xs font-bold text-slate-800',
+                                standingEditErrors.won && standingsPanelInvalidClass
+                              )}
                             />
                             <FieldError id="edit-standing-won-error" message={standingEditErrors.won} />
                           </td>
                           <td className="py-3.5 px-3">
-                            <input 
+                            <Input
                               id="edit-standing-drawn"
                               data-validation-field="drawn"
                               type="number" 
@@ -936,14 +953,15 @@ export default function StandingsView({
                               }}
                               aria-invalid={Boolean(standingEditErrors.drawn)}
                               aria-describedby={standingEditErrors.drawn ? 'edit-standing-drawn-error' : undefined}
-                              className={`w-11 text-center border rounded p-1 bg-white font-bold text-slate-800 ${
-                                standingEditErrors.drawn ? 'border-rose-300' : 'border-slate-300'
-                              }`}
+                              className={cn(
+                                'h-8 w-11 rounded p-1 text-center text-xs font-bold text-slate-800',
+                                standingEditErrors.drawn && standingsPanelInvalidClass
+                              )}
                             />
                             <FieldError id="edit-standing-drawn-error" message={standingEditErrors.drawn} />
                           </td>
                           <td className="py-3.5 px-3">
-                            <input 
+                            <Input
                               id="edit-standing-lost"
                               data-validation-field="lost"
                               type="number" 
@@ -957,14 +975,15 @@ export default function StandingsView({
                               }}
                               aria-invalid={Boolean(standingEditErrors.lost)}
                               aria-describedby={standingEditErrors.lost ? 'edit-standing-lost-error' : undefined}
-                              className={`w-11 text-center border rounded p-1 bg-white font-bold text-slate-800 ${
-                                standingEditErrors.lost ? 'border-rose-300' : 'border-slate-300'
-                              }`}
+                              className={cn(
+                                'h-8 w-11 rounded p-1 text-center text-xs font-bold text-slate-800',
+                                standingEditErrors.lost && standingsPanelInvalidClass
+                              )}
                             />
                             <FieldError id="edit-standing-lost-error" message={standingEditErrors.lost} />
                           </td>
                           <td className="py-3.5 px-3">
-                            <input 
+                            <Input
                               id="edit-standing-gf"
                               data-validation-field="goalsFor"
                               type="number" 
@@ -978,14 +997,15 @@ export default function StandingsView({
                               }}
                               aria-invalid={Boolean(standingEditErrors.goalsFor)}
                               aria-describedby={standingEditErrors.goalsFor ? 'edit-standing-gf-error' : undefined}
-                              className={`w-11 text-center border rounded p-1 bg-white font-bold text-slate-800 ${
-                                standingEditErrors.goalsFor ? 'border-rose-300' : 'border-slate-300'
-                              }`}
+                              className={cn(
+                                'h-8 w-11 rounded p-1 text-center text-xs font-bold text-slate-800',
+                                standingEditErrors.goalsFor && standingsPanelInvalidClass
+                              )}
                             />
                             <FieldError id="edit-standing-gf-error" message={standingEditErrors.goalsFor} />
                           </td>
                           <td className="py-3.5 px-3">
-                            <input 
+                            <Input
                               id="edit-standing-ga"
                               data-validation-field="goalsAgainst"
                               type="number" 
@@ -999,9 +1019,10 @@ export default function StandingsView({
                               }}
                               aria-invalid={Boolean(standingEditErrors.goalsAgainst)}
                               aria-describedby={standingEditErrors.goalsAgainst ? 'edit-standing-ga-error' : undefined}
-                              className={`w-11 text-center border rounded p-1 bg-white font-bold text-slate-800 ${
-                                standingEditErrors.goalsAgainst ? 'border-rose-300' : 'border-slate-300'
-                              }`}
+                              className={cn(
+                                'h-8 w-11 rounded p-1 text-center text-xs font-bold text-slate-800',
+                                standingEditErrors.goalsAgainst && standingsPanelInvalidClass
+                              )}
                             />
                             <FieldError id="edit-standing-ga-error" message={standingEditErrors.goalsAgainst} />
                           </td>
@@ -1032,33 +1053,41 @@ export default function StandingsView({
                       <td className="py-3.5 px-4">
                         <div className="flex items-center justify-center gap-2">
                           {editingTeam === team.teamName ? (
-                            <button
+                            <Button
                               id={`save-standing-btn-${team.rank}`}
+                              type="button"
                               onClick={() => handleSave(team)}
-                              className="bg-emerald-600 text-white rounded-lg px-2.5 py-1 hover:bg-emerald-700 font-bold text-[10px] flex items-center gap-1 transition-all shadow-sm"
+                              size="sm"
+                              className="h-8 rounded-lg bg-emerald-600 px-2.5 text-[10px] font-bold text-white hover:bg-emerald-700"
                             >
                               <Save size={11} /> Save
-                            </button>
+                            </Button>
                           ) : (
                             <>
-                              <button
+                              <Button
                                 id={`edit-standing-btn-${team.rank}`}
+                                type="button"
                                 onClick={() => startEdit(team)}
-                                className="text-indigo-650 hover:text-indigo-900 font-bold hover:underline text-[10px] flex items-center gap-1 transition-colors"
+                                variant="ghost"
+                                size="sm"
+                                className="h-8 px-2 text-[10px] font-bold text-indigo-700 hover:bg-indigo-50 hover:text-indigo-900"
                               >
                                 <Edit size={11} /> Edit
-                              </button>
+                              </Button>
                               
                               {/* Allow delete for other clubs, but not user team to protect key app contexts */}
                               {!isUser && (
-                                <button
+                                <Button
                                   id={`delete-standing-btn-${team.rank}`}
+                                  type="button"
                                   onClick={() => handleDeleteTeam(team.teamName)}
-                                  className="text-rose-500 hover:text-rose-750 font-bold hover:underline text-[10px] flex items-center gap-1 transition-colors"
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-8 px-2 text-[10px] font-bold text-rose-600 hover:bg-rose-50 hover:text-rose-700"
                                   title="Remove from League"
                                 >
                                   <Trash2 size={11} /> Remove
-                                </button>
+                                </Button>
                               )}
                             </>
                           )}
@@ -1117,32 +1146,33 @@ export default function StandingsView({
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <label className="inline-flex items-center gap-2 px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-[10px] font-bold text-slate-600">
-              <input
-                type="checkbox"
+            <Label className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-[10px] font-bold normal-case tracking-normal text-slate-600">
+              <Checkbox
                 checked={sundayBackupEnabled}
                 onChange={(event) => setSundayBackupEnabled(event.target.checked)}
-                className="accent-indigo-600"
               />
               Auto-save Sundays
-            </label>
-            <button
+            </Label>
+            <Button
               type="button"
               onClick={() => createStandingsBackup('manual')}
               disabled={standings.length === 0}
-              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-lg text-[10px] font-bold"
+              size="sm"
+              className="h-8 rounded-lg bg-indigo-600 px-2.5 text-[10px] font-bold text-white hover:bg-indigo-700 disabled:opacity-40"
             >
               <Save size={11} />
               Save snapshot
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
               onClick={() => setShowBackupLog(!showBackupLog)}
-              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-white hover:bg-slate-50 border border-slate-200 text-slate-600 rounded-lg text-[10px] font-bold"
+              variant="outline"
+              size="sm"
+              className="h-8 rounded-lg px-2.5 text-[10px] font-bold text-slate-600"
             >
               <History size={11} />
               {showBackupLog ? 'Hide logs' : `View logs (${standingsBackups.length})`}
-            </button>
+            </Button>
           </div>
         </div>
 
@@ -1172,38 +1202,41 @@ export default function StandingsView({
                       <div key={backup.id} className="p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                         <div className="min-w-0">
                           <div className="flex items-center gap-2">
-                            <span className={`text-[8px] uppercase font-black px-1.5 py-0.5 rounded ${
-                              backup.source === 'sunday'
-                                ? 'bg-indigo-50 text-indigo-700'
-                                : 'bg-slate-100 text-slate-600'
-                            }`}>
+                            <Badge
+                              variant={backup.source === 'sunday' ? 'info' : 'secondary'}
+                              className="rounded px-1.5 py-0 text-[8px]"
+                            >
                               {backup.source === 'sunday' ? 'Sunday auto' : 'Manual'}
-                            </span>
+                            </Badge>
                             <strong className="text-xs text-slate-800 truncate">{backup.label}</strong>
                           </div>
                           <p className="text-[10px] text-slate-500 mt-1">
                             {backup.standings.length} clubs
-                            {leader ? ` · Leader: ${leader.teamName} (${leader.points} pts)` : ''}
-                            {' · '}
+                            {leader ? ` - Leader: ${leader.teamName} (${leader.points} pts)` : ''}
+                            {' - '}
                             {new Date(backup.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                           </p>
                         </div>
                         <div className="flex items-center gap-2 shrink-0">
-                          <button
+                          <Button
                             type="button"
                             onClick={() => restoreStandingsBackup(backup)}
-                            className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-lg text-[10px] font-bold"
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 rounded-lg px-2.5 text-[10px] font-bold text-indigo-700 hover:bg-indigo-50 hover:text-indigo-900"
                           >
                             <RotateCcw size={10} /> Restore
-                          </button>
-                          <button
+                          </Button>
+                          <Button
                             type="button"
                             onClick={() => deleteStandingsBackup(backup.id)}
-                            className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg"
+                            variant="ghost"
+                            size="icon"
+                            className="size-8 text-slate-400 hover:bg-rose-50 hover:text-rose-600"
                             aria-label={`Delete ${backup.label}`}
                           >
                             <Trash2 size={12} />
-                          </button>
+                          </Button>
                         </div>
                       </div>
                     );
@@ -1216,70 +1249,49 @@ export default function StandingsView({
       </div>
 
       {/* Bottom safety controls */}
-      <div className="flex justify-end">
-        <button
-          id="reset-standings-btn"
-          type="button"
-          onClick={() => setShowResetConfirm(true)}
-          className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-rose-200 bg-white text-rose-600 hover:bg-rose-50 text-[10px] font-bold transition-colors"
-        >
-          <RefreshCw size={11} />
-          Clear standings table
-        </button>
-      </div>
-
-      <AnimatePresence>
-        {showResetConfirm && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[100] bg-slate-950/50 backdrop-blur-sm p-4 flex items-center justify-center"
-          >
-            <motion.div
-              ref={resetDialogRef}
-              tabIndex={-1}
-              role="dialog"
-              aria-modal="true"
-              aria-labelledby="clear-standings-title"
-              initial={{ opacity: 0, scale: 0.96, y: 8 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.96 }}
-              className="bg-white rounded-2xl border border-slate-200 shadow-2xl p-6 max-w-sm w-full"
+      <AlertDialog open={showResetConfirm} onOpenChange={setShowResetConfirm}>
+        <div className="flex justify-end">
+          <AlertDialogTrigger asChild>
+            <Button
+              id="reset-standings-btn"
+              type="button"
+              variant="outline"
+              size="sm"
+              className="h-8 rounded-lg border-rose-200 px-2.5 text-[10px] font-bold text-rose-600 hover:bg-rose-50 hover:text-rose-700"
             >
-              <div className="w-10 h-10 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center mb-4">
-                <RefreshCw size={18} />
-              </div>
-              <h3 id="clear-standings-title" className="font-display font-black text-lg text-slate-900">Clear league table?</h3>
-              <p className="text-sm text-slate-600 mt-2 leading-relaxed">
-                This clears every club from the table and resets recorded matches, announcements, and season player totals. Your backup logs will remain available.
-              </p>
-              <div className="flex justify-end gap-2 mt-6">
-                <button
-                  type="button"
-                  onClick={() => setShowResetConfirm(false)}
-                  className="px-3 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (standings.length > 0) {
-                      createStandingsBackup('manual', `Pre-clear backup - ${new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`);
-                    }
-                    onResetStandings();
-                    setShowResetConfirm(false);
-                  }}
-                  className="px-3 py-2 rounded-lg bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold"
-                >
-                  Yes, clear the table
-                </button>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+              <RefreshCw size={11} />
+              Clear standings table
+            </Button>
+          </AlertDialogTrigger>
+        </div>
+        <AlertDialogContent className="max-w-sm rounded-2xl">
+          <div className="flex size-10 items-center justify-center rounded-xl bg-rose-50 text-rose-600">
+            <RefreshCw size={18} />
+          </div>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Clear league table?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This clears every club from the table and resets recorded matches, announcements, and season player totals. Your backup logs will remain available.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="h-9 rounded-lg bg-slate-100 px-3 text-xs font-bold text-slate-700 hover:bg-slate-200">
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (standings.length > 0) {
+                  createStandingsBackup('manual', `Pre-clear backup - ${new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`);
+                }
+                onResetStandings();
+              }}
+              className="h-9 rounded-lg bg-rose-600 px-3 text-xs font-bold text-white hover:bg-rose-700"
+            >
+              Yes, clear the table
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* === DISCIPLINARY RECORDS === */}
       <section className="bg-white rounded-2xl shadow-lg shadow-slate-100/30 border border-slate-200/60 p-5 mt-6">
