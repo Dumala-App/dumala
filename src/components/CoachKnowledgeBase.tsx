@@ -7,6 +7,7 @@ import {
   type CoachingLibraryItem
 } from '../knowledge/coachingLibrary';
 import { CoachingLibraryDiagram } from './CoachingLibraryDiagram';
+import { Button } from './ui/button';
 
 const CATEGORY_ORDER: readonly CoachingLibraryCategory[] = [
   'formation',
@@ -129,7 +130,7 @@ export const CoachKnowledgeBase = () => {
           </div>
         </div>
 
-        <div className="mt-5 flex flex-wrap items-center gap-2">
+        <div className="mt-5 flex flex-wrap items-center gap-2" role="group" aria-label="Filter coaching library topics">
           <span className="inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-slate-500">
             <Filter size={13} aria-hidden="true" />
             Focus
@@ -138,18 +139,21 @@ export const CoachKnowledgeBase = () => {
             const isActive = activeFilter === filter;
             const label = filter === 'all' ? 'All' : COACHING_LIBRARY_CATEGORY_LABELS[filter];
             return (
-              <button
+              <Button
                 key={filter}
                 type="button"
+                variant="outline"
+                size="sm"
                 onClick={() => setActiveFilter(filter)}
-                className={`rounded-lg border px-3 py-1.5 text-[10px] font-black uppercase tracking-widest transition-colors ${
+                aria-pressed={isActive}
+                className={`h-8 rounded-lg px-3 text-[10px] font-black uppercase tracking-widest ${
                   isActive
-                    ? 'border-amber-400 bg-amber-400 text-slate-950'
+                    ? 'border-amber-400 bg-amber-400 text-slate-950 hover:bg-amber-400 hover:text-slate-950'
                     : 'border-slate-800 bg-slate-900 text-slate-400 hover:border-slate-700 hover:text-white'
                 }`}
               >
                 {label}
-              </button>
+              </Button>
             );
           })}
         </div>

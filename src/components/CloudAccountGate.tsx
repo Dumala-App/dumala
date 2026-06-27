@@ -5,6 +5,9 @@ import { useCloudRuntime } from '../hooks/useCloudRuntime';
 import type { AccountBootstrapInput } from '../cloud/account';
 import type { AuthState } from '../cloud/auth';
 import type { CloudRuntime } from '../cloud/runtime';
+import { Button } from './ui/button';
+import { Input } from './ui/input';
+import { Label } from './ui/label';
 
 const CLOUD_DEVICE_ID_KEY = 'dumala_cloud_device_id';
 
@@ -116,9 +119,9 @@ export const CloudAccountGate = ({
       <section aria-label="Cloud account" className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-800 shadow-sm">
         <div className="flex flex-wrap items-center gap-2">
           <span className="inline-flex items-center gap-1.5"><CheckCircle2 size={14} /> Cloud account connected</span>
-          <button type="button" onClick={() => void auth.signOut()} className="inline-flex items-center gap-1 rounded-lg border border-emerald-200 bg-white px-2 py-1 text-[11px] font-bold text-emerald-800 hover:bg-emerald-100">
+          <Button type="button" variant="outline" size="sm" onClick={() => void auth.signOut()} className="h-7 gap-1 rounded-lg border-emerald-200 px-2 text-[11px] text-emerald-800 hover:bg-emerald-100 hover:text-emerald-900 [&_svg]:size-3">
             <LogOut size={12} /> Sign out
-          </button>
+          </Button>
         </div>
         {message && <p className="mt-1 text-[11px] text-amber-700">{message}</p>}
       </section>
@@ -128,24 +131,25 @@ export const CloudAccountGate = ({
   return (
     <section aria-label="Cloud account" className="rounded-xl border border-slate-200 bg-white px-3 py-2 shadow-sm">
       <form onSubmit={handleSubmit} className="flex flex-col gap-2 sm:flex-row sm:items-center">
-        <label htmlFor="cloud-account-email" className="text-xs font-bold text-slate-700">Cloud account</label>
-        <input
+        <Label htmlFor="cloud-account-email" className="text-xs normal-case tracking-normal text-slate-700">Cloud account</Label>
+        <Input
           id="cloud-account-email"
           type="email"
           value={email}
           onChange={event => setEmail(event.target.value)}
           placeholder="coach@example.com"
-          className="min-w-0 rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs text-slate-900 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+          className="h-8 min-w-0 rounded-lg px-2.5 text-xs focus-visible:border-indigo-400 focus-visible:ring-indigo-100"
           required
         />
-        <button
+        <Button
           type="submit"
+          size="sm"
           disabled={submitState === 'sending'}
-          className="inline-flex items-center justify-center gap-1 rounded-lg bg-indigo-600 px-2.5 py-1.5 text-xs font-bold text-white hover:bg-indigo-700 disabled:cursor-not-allowed disabled:bg-slate-400"
+          className="h-8 gap-1 rounded-lg bg-indigo-600 px-2.5 text-xs text-white hover:bg-indigo-700 disabled:bg-slate-400 [&_svg]:size-3.5"
         >
           {submitState === 'sending' ? <Loader2 size={13} className="animate-spin" /> : <Mail size={13} />}
           Send link
-        </button>
+        </Button>
       </form>
       {message && (
         <p className={`mt-1 text-[11px] font-semibold ${submitState === 'error' || auth.state.status === 'error' ? 'text-rose-700' : 'text-emerald-700'}`}>

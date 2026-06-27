@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { AlertTriangle, Download, RefreshCw, RotateCcw, ShieldCheck } from 'lucide-react';
 import type { StorageRecoveryIssue } from '../persistence/storage';
+import { Button } from './ui/button';
 
 interface StartupRecoveryScreenProps {
   issues: StorageRecoveryIssue[];
@@ -77,27 +78,33 @@ export default function StartupRecoveryScreen({
           </div>
 
           <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
-            <button
+            <Button
               type="button"
+              size="lg"
               onClick={onExport}
-              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-md bg-slate-950 px-4 py-2 text-sm font-bold text-white hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-950 focus-visible:ring-offset-2"
+              className="min-h-11 rounded-md bg-slate-950 px-4 text-sm text-white hover:bg-slate-800 focus-visible:ring-slate-950"
             >
               <Download size={17} aria-hidden="true" /> Export recovery copy
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
+              variant="outline"
+              size="lg"
               onClick={onRetry}
-              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-bold text-slate-800 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2"
+              className="min-h-11 rounded-md border-slate-300 px-4 text-sm text-slate-800 focus-visible:ring-blue-600"
             >
               <RefreshCw size={17} aria-hidden="true" /> Retry validation
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
+              variant="outline"
+              size="lg"
               onClick={() => setConfirmReset(true)}
-              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-md border border-rose-200 bg-rose-50 px-4 py-2 text-sm font-bold text-rose-800 hover:bg-rose-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-600 focus-visible:ring-offset-2"
+              aria-expanded={confirmReset}
+              className="min-h-11 rounded-md border-rose-200 bg-rose-50 px-4 text-sm text-rose-800 hover:bg-rose-100 hover:text-rose-900 focus-visible:ring-rose-600"
             >
               <RotateCcw size={17} aria-hidden="true" /> Reset browser workspace
-            </button>
+            </Button>
           </div>
 
           <details className="rounded-md border border-slate-200 bg-slate-50 p-4">
@@ -118,20 +125,22 @@ export default function StartupRecoveryScreen({
                 This permanently removes Dumala data stored in this browser. Export a recovery copy first if you may need these records.
               </p>
               <div className="mt-4 flex flex-col gap-2 sm:flex-row">
-                <button
+                <Button
                   type="button"
+                  variant="destructive"
                   onClick={onReset}
-                  className="min-h-10 rounded-md bg-rose-700 px-4 py-2 text-xs font-black uppercase text-white hover:bg-rose-800"
+                  className="min-h-10 rounded-md bg-rose-700 px-4 text-xs font-black uppercase hover:bg-rose-800"
                 >
                   Delete and restart
-                </button>
-                <button
+                </Button>
+                <Button
                   type="button"
+                  variant="outline"
                   onClick={() => setConfirmReset(false)}
-                  className="min-h-10 rounded-md border border-rose-200 bg-white px-4 py-2 text-xs font-black uppercase text-rose-800 hover:bg-rose-100"
+                  className="min-h-10 rounded-md border-rose-200 px-4 text-xs font-black uppercase text-rose-800 hover:bg-rose-100 hover:text-rose-900"
                 >
                   Keep saved data
-                </button>
+                </Button>
               </div>
             </div>
           )}

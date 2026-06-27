@@ -1,4 +1,5 @@
 import React, { Component } from 'react';
+import { Button } from './ui/button';
 
 type BoundaryLevel = 'application' | 'view' | 'widget';
 
@@ -68,21 +69,22 @@ export function ErrorFallback({ boundaryName, level, error, onRetry, onReturnHom
           {copy.message}
         </p>
         <div className="mt-5 flex flex-wrap gap-2">
-          <button
+          <Button
             type="button"
             onClick={onRetry}
-            className="rounded-xl bg-slate-950 px-4 py-2 text-xs font-black uppercase tracking-wide text-white transition-colors hover:bg-slate-800"
+            className="rounded-xl px-4 text-xs font-black uppercase tracking-wide"
           >
             {level === 'application' ? 'Reload Dumala' : 'Retry view'}
-          </button>
+          </Button>
           {onReturnHome && (
-            <button
+            <Button
               type="button"
+              variant="secondary"
               onClick={onReturnHome}
-              className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-2 text-xs font-black uppercase tracking-wide text-slate-700 transition-colors hover:bg-slate-100"
+              className="rounded-xl bg-slate-50 px-4 text-xs font-black uppercase tracking-wide text-slate-700 hover:bg-slate-100"
             >
               Return to Overview
-            </button>
+            </Button>
           )}
         </div>
         {import.meta.env.DEV && (

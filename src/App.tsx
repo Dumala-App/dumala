@@ -874,15 +874,18 @@ export default function App() {
 
             {/* Mobile Navigation Sandwich Trigger */}
             <div className="lg:hidden">
-              <button
+              <Button
                 id="mobile-menu-hamburger"
+                type="button"
+                variant="ghost"
+                size="icon"
                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
                 aria-label={mobileMenuOpen ? 'Close navigation' : 'Open navigation'}
                 aria-expanded={mobileMenuOpen}
-                className="bg-white/10 p-2.5 rounded-xl hover:bg-white/15 transition-transform active:scale-95"
+                className="size-10 rounded-xl bg-white/10 text-white hover:bg-white/15 hover:text-white active:scale-95 [&_svg]:size-5"
               >
                 {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
-              </button>
+              </Button>
             </div>
 
           </div>

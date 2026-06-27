@@ -5,6 +5,7 @@ import {
   type IntegritySection,
   type WorkspaceIntegrityReport
 } from '../integrity/workspaceIntegrity';
+import { Button } from './ui/button';
 
 interface WorkspaceIntegrityBannerProps {
   report: WorkspaceIntegrityReport;
@@ -65,14 +66,16 @@ export default function WorkspaceIntegrityBanner({
                 {sections.map(section => SECTION_LABELS[section]).join(', ')}. No workspace data was changed.
               </p>
             </div>
-            <button
+            <Button
               type="button"
+              variant="ghost"
+              size="icon"
               onClick={onDismiss}
-              className="rounded-md p-1 text-amber-700 hover:bg-amber-100"
+              className="size-7 rounded-md text-amber-700 hover:bg-amber-100 hover:text-amber-900"
               aria-label="Dismiss workspace consistency warning"
             >
               <X size={15} />
-            </button>
+            </Button>
           </div>
 
           <div className="mt-3 space-y-2">
@@ -97,13 +100,15 @@ export default function WorkspaceIntegrityBanner({
                     </div>
                     <p className="mt-1 text-xs leading-relaxed text-amber-950">{finding.message}</p>
                   </div>
-                  <button
+                  <Button
                     type="button"
+                    variant="outline"
+                    size="sm"
                     onClick={() => onOpenFinding(finding)}
-                    className="inline-flex shrink-0 items-center gap-1 rounded-md border border-amber-300 bg-amber-100 px-2 py-1 text-[11px] font-black text-amber-950 hover:bg-amber-200"
+                    className="h-7 shrink-0 gap-1 rounded-md border-amber-300 bg-amber-100 px-2 text-[11px] font-black text-amber-950 hover:bg-amber-200 hover:text-amber-950 [&_svg]:size-3"
                   >
                     Review <ArrowRight size={12} />
-                  </button>
+                  </Button>
                 </div>
               </div>
             ))}
@@ -115,27 +120,32 @@ export default function WorkspaceIntegrityBanner({
           </div>
 
           <div className="mt-3 flex flex-wrap gap-2">
-            <button
+            <Button
               type="button"
+              size="sm"
               onClick={() => onOpenSection(targetSection)}
-              className="inline-flex items-center gap-1.5 rounded-md bg-amber-800 px-3 py-1.5 text-[11px] font-black text-white hover:bg-amber-700"
+              className="h-8 gap-1.5 rounded-md bg-amber-800 text-[11px] font-black text-white hover:bg-amber-700 [&_svg]:size-3"
             >
               Review {SECTION_LABELS[targetSection]} <ArrowRight size={13} />
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
+              variant="outline"
+              size="sm"
               onClick={onExportBackup}
-              className="inline-flex items-center gap-1.5 rounded-md border border-amber-300 bg-white px-3 py-1.5 text-[11px] font-black text-amber-900 hover:bg-amber-100"
+              className="h-8 gap-1.5 rounded-md border-amber-300 text-[11px] font-black text-amber-900 hover:bg-amber-100 hover:text-amber-950 [&_svg]:size-3"
             >
               <Download size={13} /> Export backup
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
+              variant="outline"
+              size="sm"
               onClick={onRerun}
-              className="inline-flex items-center gap-1.5 rounded-md border border-amber-300 bg-white px-3 py-1.5 text-[11px] font-black text-amber-900 hover:bg-amber-100"
+              className="h-8 gap-1.5 rounded-md border-amber-300 text-[11px] font-black text-amber-900 hover:bg-amber-100 hover:text-amber-950 [&_svg]:size-3"
             >
               <RefreshCw size={13} /> Rerun check
-            </button>
+            </Button>
           </div>
         </div>
       </div>
