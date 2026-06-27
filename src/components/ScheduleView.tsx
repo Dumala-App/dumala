@@ -6,6 +6,7 @@ import { availabilitySchema, coachNotesSchema } from '../persistence/schemas';
 import { readJsonStorage, STORAGE_KEYS, writeJsonStorage } from '../persistence/storage';
 import { useDialogAccessibility } from '../hooks/useDialogAccessibility';
 import { FieldError, FormErrorSummary } from './FormValidation';
+import { Badge } from './ui/badge';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
@@ -424,38 +425,45 @@ export default function ScheduleView({ games, players, standings, onAddGame, onR
       {/* View Selector Filters */}
       <div className="flex flex-col sm:flex-row justify-between items-center bg-white p-4 rounded-2xl shadow-md shadow-slate-100/30 border border-slate-200/60 gap-4">
         <div className="bg-[#f1f5f9] p-1.5 rounded-xl flex gap-1 border border-slate-200/40">
-          <button
+          <Button
             id="tab-upcoming-games"
+            type="button"
+            variant={filterTab === 'Upcoming' ? 'default' : 'ghost'}
+            size="sm"
             onClick={() => setFilterTab('Upcoming')}
-            className={`px-5 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-all ${
+            className={`rounded-lg px-5 py-2 text-xs font-bold uppercase tracking-wider ${
               filterTab === 'Upcoming' 
                 ? 'bg-slate-900 text-white shadow-sm' 
                 : 'text-slate-600 hover:text-slate-950'
             }`}
           >
             Upcoming Matches
-          </button>
-          <button
+          </Button>
+          <Button
             id="tab-completed-games"
+            type="button"
+            variant={filterTab === 'Completed' ? 'default' : 'ghost'}
+            size="sm"
             onClick={() => setFilterTab('Completed')}
-            className={`px-5 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-all ${
+            className={`rounded-lg px-5 py-2 text-xs font-bold uppercase tracking-wider ${
               filterTab === 'Completed' 
                 ? 'bg-slate-900 text-white shadow-sm' 
                 : 'text-slate-600 hover:text-slate-950'
             }`}
           >
             Match Results
-          </button>
+          </Button>
         </div>
 
-        <button 
+        <Button
           id="toggle-schedule-form-btn"
+          type="button"
           onClick={() => setIsAdding(!isAdding)}
-          className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs px-4 py-2.5 rounded-xl transition-all shadow-sm flex items-center gap-1.5 border border-indigo-650/10"
+          className="rounded-xl border border-indigo-650/10 bg-indigo-600 px-4 py-2.5 text-xs font-bold text-white shadow-sm hover:bg-indigo-700"
         >
           {isAdding ? <Plus size={14} className="rotate-45" /> : <Plus size={14} />}
           {isAdding ? 'Cancel' : 'Schedule Tournament Event'}
-        </button>
+        </Button>
       </div>
 
       {/* Slide down Schedule Form */}
@@ -796,33 +804,39 @@ export default function ScheduleView({ games, players, standings, onAddGame, onR
                 <span>{monthNames[viewDate.getMonth()]} {viewDate.getFullYear()}</span>
               </h3>
               <div className="flex gap-1">
-                <button 
+                <Button
                   type="button"
+                  variant="outline"
+                  size="icon"
                   onClick={prevMonth}
-                  className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-500 transition-all border border-slate-100 cursor-pointer"
+                  className="size-8 rounded-lg border-slate-100 p-1.5 text-slate-500 hover:bg-slate-100"
                   title="Previous Month"
                 >
                   <ChevronLeft size={15} />
-                </button>
-                <button 
+                </Button>
+                <Button
                   type="button"
+                  variant="outline"
+                  size="sm"
                   onClick={() => {
                     setViewDate(new Date());
                     setSelectedDateStr(null);
                   }}
-                  className="text-[9px] font-bold text-slate-500 hover:text-slate-800 uppercase px-2 hover:bg-slate-100 rounded-md transition-all border border-slate-100 flex items-center justify-center cursor-pointer"
+                  className="h-8 rounded-md border-slate-100 px-2 text-[9px] font-bold uppercase text-slate-500 hover:bg-slate-100 hover:text-slate-800"
                   title="Reset to Active Work Month"
                 >
                   Today
-                </button>
-                <button 
+                </Button>
+                <Button
                   type="button"
+                  variant="outline"
+                  size="icon"
                   onClick={nextMonth}
-                  className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-500 transition-all border border-slate-100 cursor-pointer"
+                  className="size-8 rounded-lg border-slate-100 p-1.5 text-slate-500 hover:bg-slate-100"
                   title="Next Month"
                 >
                   <ChevronRight size={15} />
-                </button>
+                </Button>
               </div>
             </div>
 
@@ -842,9 +856,10 @@ export default function ScheduleView({ games, players, standings, onAddGame, onR
                 const hasEvents = dayEvents.length > 0;
 
                 return (
-                  <button
+                  <Button
                     key={idx}
                     type="button"
+                    variant="outline"
                     onClick={() => {
                       if (selectedDateStr === dateStr) {
                         setSelectedDateStr(null);
@@ -856,7 +871,7 @@ export default function ScheduleView({ games, players, standings, onAddGame, onR
                         setViewDate(new Date(date.getFullYear(), date.getMonth(), 1));
                       }
                     }}
-                    className={`aspect-square relative rounded-xl flex flex-col items-center justify-center text-xs transition-all border p-1 cursor-pointer select-none ${
+                    className={`relative flex aspect-square h-auto flex-col items-center justify-center whitespace-normal rounded-xl border p-1 text-xs ${
                       isSelected 
                         ? 'bg-slate-900 border-slate-900 text-white font-bold shadow-md hover:bg-slate-800' 
                         : isToday
@@ -890,7 +905,7 @@ export default function ScheduleView({ games, players, standings, onAddGame, onR
                         )}
                       </div>
                     )}
-                  </button>
+                  </Button>
                 );
               })}
             </div>
@@ -956,10 +971,10 @@ export default function ScheduleView({ games, players, standings, onAddGame, onR
                     <div key={game.id} className="border border-slate-100 rounded-xl p-3 bg-slate-50/60">
                       <div className="flex items-center justify-between mb-2">
                         <div className="flex items-center gap-2">
-                          <span className={`text-[8px] font-black uppercase px-1.5 py-0.5 rounded border ${
+                          <Badge className={`px-1.5 py-0.5 text-[8px] ${
                             game.type === 'League' ? 'bg-blue-100 text-blue-700 border-blue-200' :
                             'bg-amber-100 text-amber-700 border-amber-200'
-                          }`}>{game.type}</span>
+                          }`}>{game.type}</Badge>
                           <span className="text-[10px] font-bold text-slate-800">vs {game.opponent}</span>
                           <span className="text-[9px] text-slate-400">{game.date} · {daysUntil}d</span>
                         </div>
@@ -976,15 +991,18 @@ export default function ScheduleView({ games, players, standings, onAddGame, onR
                         {activePlayers.map(p => {
                           const status = av[p.id] || '';
                           return (
-                            <button
+                            <Button
                               key={p.id}
+                              type="button"
+                              variant="outline"
+                              size="sm"
                               onClick={() => setPlayerAvail(game.id, p.id, status === 'yes' ? 'yes' : status === 'no' ? 'no' : status === 'maybe' ? 'maybe' : 'yes')}
                               onContextMenu={(e) => {
                                 e.preventDefault();
                                 setPlayerAvail(game.id, p.id, 'no');
                               }}
                               title={`${p.name}: ${status || 'unset'} (right-click = No)`}
-                              className={`text-[9px] font-bold px-2 py-1 rounded-full border transition-all ${
+                              className={`h-7 rounded-full px-2 py-1 text-[9px] font-bold ${
                                 status === 'yes' ? 'bg-emerald-100 text-emerald-700 border-emerald-300' :
                                 status === 'no' ? 'bg-rose-100 text-rose-700 border-rose-300 line-through' :
                                 status === 'maybe' ? 'bg-amber-100 text-amber-700 border-amber-300' :
@@ -992,7 +1010,7 @@ export default function ScheduleView({ games, players, standings, onAddGame, onR
                               }`}
                             >
                               {p.name.length > 10 ? p.name.substring(0, 10) + '…' : p.name}
-                            </button>
+                            </Button>
                           );
                         })}
                       </div>
@@ -1112,51 +1130,62 @@ export default function ScheduleView({ games, players, standings, onAddGame, onR
                     <p className="text-[10px] text-slate-500">vs {nextMatch.opponent} · {nextMatch.date}</p>
                   </div>
                   {!editing && (
-                    <button
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
                       onClick={() => { setCoachDraft(note); setCoachEditGameId(nextMatch.id); }}
-                      className="text-[9px] font-bold text-indigo-600 hover:text-indigo-800 bg-indigo-50 hover:bg-indigo-100 px-2 py-1 rounded-lg border border-indigo-100 transition-colors"
+                      className="h-7 rounded-lg border-indigo-100 bg-indigo-50 px-2 py-1 text-[9px] font-bold text-indigo-600 hover:bg-indigo-100 hover:text-indigo-800"
                     >
                       {note ? 'Edit' : '+ Add Notes'}
-                    </button>
+                    </Button>
                   )}
                 </div>
 
                 {editing ? (
                   <div className="space-y-2">
-                    <textarea
+                    <Textarea
                       value={coachDraft}
                       onChange={e => setCoachDraft(e.target.value)}
                       placeholder="Tactical notes, set-piece instructions, key player matchups, motivational message…"
                       rows={4}
-                      className="w-full text-[10px] font-medium text-slate-700 border border-slate-200 rounded-lg p-2.5 focus:ring-2 focus:ring-indigo-500 focus:outline-none resize-none bg-slate-50 placeholder-slate-400"
+                      className="resize-none rounded-lg border-slate-200 bg-slate-50 p-2.5 text-[10px] font-medium text-slate-700 placeholder-slate-400 focus-visible:ring-indigo-500/30"
                       autoFocus
                     />
                     <div className="flex items-center gap-2">
-                      <button
+                      <Button
+                        type="button"
+                        size="sm"
                         onClick={() => {
                           setCoachNoteForGame(nextMatch.id, coachDraft);
                           setCoachEditGameId(null);
                         }}
-                        className="text-[9px] font-black bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded-lg transition-colors"
+                        className="h-7 rounded-lg bg-indigo-600 px-3 py-1.5 text-[9px] font-black text-white hover:bg-indigo-700"
                       >
                         Save Notes
-                      </button>
-                      <button
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
                         onClick={() => { setCoachEditGameId(null); }}
-                        className="text-[9px] font-bold text-slate-500 hover:text-slate-700 px-2 py-1.5"
+                        className="h-7 px-2 py-1.5 text-[9px] font-bold text-slate-500 hover:text-slate-700"
                       >
                         Cancel
-                      </button>
+                      </Button>
                       {note && (
-                        <button
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
                           onClick={() => {
                             setCoachNoteForGame(nextMatch.id, '');
                             setCoachEditGameId(null);
                           }}
-                          className="text-[9px] font-bold text-rose-500 hover:text-rose-700 ml-auto"
+                          className="ml-auto h-7 px-2 text-[9px] font-bold text-rose-500 hover:text-rose-700"
                         >
                           Clear
-                        </button>
+                        </Button>
                       )}
                     </div>
                   </div>
@@ -1182,13 +1211,14 @@ export default function ScheduleView({ games, players, standings, onAddGame, onR
                 <CalendarDays size={14} className="text-indigo-600 animate-pulse" />
                 <span>Showing events matching date: <strong>{new Date(selectedDateStr).toLocaleDateString(undefined, {month: 'long', day: 'numeric', year: 'numeric', timeZone: 'UTC'})}</strong></span>
               </span>
-              <button
+              <Button
                 type="button"
+                variant="link"
                 onClick={() => setSelectedDateStr(null)}
-                className="text-indigo-600 font-bold hover:underline cursor-pointer"
+                className="text-xs font-bold text-indigo-600"
               >
                 Clear Filter
-              </button>
+              </Button>
             </div>
           )}
 
@@ -1237,7 +1267,7 @@ export default function ScheduleView({ games, players, standings, onAddGame, onR
 
                       <div>
                         <div className="flex items-center gap-2">
-                          <span id={`game-${game.id}-type-badge`} className={`text-[9px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full border ${
+                          <Badge id={`game-${game.id}-type-badge`} className={`rounded-full px-2 py-0.5 text-[9px] ${
                             game.type === 'League' ? 'bg-blue-50 text-blue-700 border-blue-100' :
                             game.type === 'Cup' ? 'bg-amber-50 text-amber-705 border-amber-100' :
                             game.type === 'Friendly' ? 'bg-zinc-50 text-zinc-650 border-zinc-150' :
@@ -1245,16 +1275,16 @@ export default function ScheduleView({ games, players, standings, onAddGame, onR
                             'bg-rose-50 text-rose-700 border-rose-100'
                           }`}>
                             {game.type}
-                          </span>
+                          </Badge>
                           {isIntegrityHighlighted && (
-                            <span className="text-[9px] bg-amber-100 border border-amber-200 text-amber-900 font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">
+                            <Badge className="rounded-full border-amber-200 bg-amber-100 px-2 py-0.5 text-[9px] text-amber-900">
                               Review
-                            </span>
+                            </Badge>
                           )}
                           {game.status === 'Upcoming' && daysLeft > 0 && (
-                            <span id={`game-${game.id}-countdown-badge`} className="text-[9px] bg-rose-50 border border-rose-100 text-rose-700 font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">
+                            <Badge id={`game-${game.id}-countdown-badge`} className="rounded-full border-rose-100 bg-rose-50 px-2 py-0.5 text-[9px] text-rose-700">
                               In {daysLeft} Days
-                            </span>
+                            </Badge>
                           )}
                         </div>
                         
@@ -1294,44 +1324,51 @@ export default function ScheduleView({ games, players, standings, onAddGame, onR
                               </div>
                             )}
                           </div>
-                          <button
+                          <Button
                             type="button"
+                            variant="outline"
+                            size="sm"
                             onClick={() => openResultEditor(game)}
-                            className="rounded-lg border border-slate-200 bg-slate-50 px-2 py-1 text-[10px] font-bold text-slate-600 hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700"
+                            className="h-7 rounded-lg border-slate-200 bg-slate-50 px-2 py-1 text-[10px] font-bold text-slate-600 hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700"
                           >
                             Edit Result
-                          </button>
+                          </Button>
                         </div>
                       ) : (
                         <div className="flex gap-2">
                           {/* Only show Log scorecard for non-training / non-meeting events */}
                           {game.type !== 'Training' && game.type !== 'Meeting' && (
-                            <button
+                            <Button
                               type="button"
                               id={`record-score-btn-${game.id}`}
+                              variant="outline"
+                              size="sm"
                               onClick={() => openResultEditor(game)}
-                              className="bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-700 px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all flex items-center gap-1 shadow-sm cursor-pointer"
+                              className="rounded-xl border-emerald-200 bg-emerald-50 px-3.5 py-1.5 text-xs font-semibold text-emerald-700 shadow-sm hover:bg-emerald-100 hover:text-emerald-800"
                             >
                               <Trophy size={11} />
                               Log Score
-                            </button>
+                            </Button>
                           )}
                         </div>
                       )}
 
                       {/* Options: Delete Match Event */}
-                      <button 
+                      <Button
                         id={`delete-game-btn-${game.id}`}
+                        type="button"
+                        variant="ghost"
+                        size="icon"
                         onClick={() => {
                           if (window.confirm(`Remove the ${game.opponent} event? Completed match statistics will be reversed.`)) {
                             onDeleteGame(game.id);
                           }
                         }}
-                        className="p-1.5 text-slate-300 hover:text-rose-500 rounded-lg hover:bg-rose-50 transition-colors cursor-pointer"
+                        className="size-8 rounded-lg p-1.5 text-slate-300 hover:bg-rose-50 hover:text-rose-500"
                         title="Remove Event"
                       >
                         <Trash2 size={14} />
-                      </button>
+                      </Button>
 
                     </div>
 
