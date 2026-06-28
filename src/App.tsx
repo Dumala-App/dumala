@@ -111,7 +111,6 @@ const FeedbackModal = lazy(() => import('./components/FeedbackModal'));
 const HomeHubView = lazy(() => import('./components/HomeHubView'));
 const DevelopmentHubView = lazy(() => import('./components/DevelopmentHubView'));
 const LeagueUpdatesHubView = lazy(() => import('./components/LeagueUpdatesHubView'));
-const CloudAccountGate = lazy(() => import('./components/CloudAccountGate'));
 const AdminConsoleView = lazy(() => import('./components/AdminConsoleView'));
 
 const getHashRoute = () => typeof window === 'undefined' ? '' : window.location.hash.replace(/^#\/?/, '');
@@ -1057,11 +1056,6 @@ export default function App() {
         <div className="fixed right-4 top-4 z-40">
           <PwaInstallControl />
         </div>
-        <div className="mx-auto max-w-3xl px-4 pt-4">
-          <Suspense fallback={null}>
-            <CloudAccountGate />
-          </Suspense>
-        </div>
         {storageWarningBanner && <div className="mx-auto max-w-3xl px-4 pt-4">{storageWarningBanner}</div>}
         {recoveryBanner && <div className="mx-auto max-w-3xl px-4 pt-4">{recoveryBanner}</div>}
         <Suspense fallback={<div className="mx-auto max-w-3xl p-4"><ViewLoadingFallback label="onboarding" /></div>}>
@@ -1190,9 +1184,6 @@ export default function App() {
           </div>
           <div className="flex w-full flex-wrap gap-2 sm:w-auto sm:shrink-0 sm:justify-end">
             <Badge variant="success">Saved locally</Badge>
-            <Suspense fallback={null}>
-              <CloudAccountGate clubName={teamInfo.name} />
-            </Suspense>
             <PwaInstallControl />
             <Button
               type="button"
