@@ -83,6 +83,7 @@ import {
   type WorkspaceIntegrityReport
 } from './integrity/workspaceIntegrity';
 import { findUserStanding } from './standings';
+import { useCloudRuntime } from './hooks/useCloudRuntime';
 
 import { 
   Shield, 
@@ -111,6 +112,39 @@ const HomeHubView = lazy(() => import('./components/HomeHubView'));
 const DevelopmentHubView = lazy(() => import('./components/DevelopmentHubView'));
 const LeagueUpdatesHubView = lazy(() => import('./components/LeagueUpdatesHubView'));
 const CloudAccountGate = lazy(() => import('./components/CloudAccountGate'));
+const AdminConsoleView = lazy(() => import('./components/AdminConsoleView'));
+
+const getHashRoute = () => typeof window === 'undefined' ? '' : window.location.hash.replace(/^#\/?/, '');
+
+const getOrCreateAnalyticsSessionId = () => {
+  if (typeof window === 'undefined') return 'server-session';
+  const key = 'dumala_admin_analytics_session_id';
+  const existing = window.sessionStorage.getItem(key);
+  if (existing) return existing;
+  const generated = typeof window.crypto?.randomUUID === 'function'
+    ? window.crypto.randomUUID()
+    : `session-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  window.sessionStorage.setItem(key, generated);
+  return generated;
+};
+
+const getDeviceType = () => {
+  if (typeof navigator === 'undefined') return 'unknown';
+  const agent = navigator.userAgent.toLowerCase();
+  if (/ipad|tablet/.test(agent)) return 'tablet';
+  if (/mobi|android|iphone/.test(agent)) return 'mobile';
+  return 'desktop';
+};
+
+const getBrowserFamily = () => {
+  if (typeof navigator === 'undefined') return 'unknown';
+  const agent = navigator.userAgent;
+  if (agent.includes('Edg/')) return 'Edge';
+  if (agent.includes('Chrome/')) return 'Chrome';
+  if (agent.includes('Firefox/')) return 'Firefox';
+  if (agent.includes('Safari/') && !agent.includes('Chrome/')) return 'Safari';
+  return 'Other';
+};
 
 const readPersistedWorkspaceState = () => {
   const teamInfo = readJsonStorage(STORAGE_KEYS.teamInfo, teamInfoSchema.nullable(), null, 'Team information');
@@ -142,6 +176,9 @@ const readPersistedWorkspaceState = () => {
 };
 
 export default function App() {
+  const cloudRuntime = useCloudRuntime();
+  const analyticsSessionIdRef = useRef(getOrCreateAnalyticsSessionId());
+  const [hashRoute, setHashRoute] = useState(getHashRoute);
   type IntegrityFocus = {
     playerId?: string | null;
     gameId?: string | null;
@@ -641,6 +678,51 @@ export default function App() {
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [showFeedback, setShowFeedback] = useState(false);
 
+  useEffect(() => {
+    const handleHashChange = () => setHashRoute(getHashRoute());
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, []);
+
+  useEffect(() => {
+    if (!cloudRuntime.enabled) return;
+    const viewName = primaryTab;
+    const eventPayload = {
+      sessionId: analyticsSessionIdRef.current,
+      viewName,
+      appVersion: '0.0.0',
+      deviceType: getDeviceType(),
+      browserFamily: getBrowserFamily()
+    };
+
+    void cloudRuntime.dataAccess.admin.recordUsageEvent({
+      ...eventPayload,
+      eventType: 'view_opened',
+      featureName: viewName
+    }).catch(error => {
+      console.warn('Failed to record usage event', error);
+    });
+  }, [cloudRuntime, primaryTab]);
+
+  useEffect(() => {
+    if (!cloudRuntime.enabled) return;
+    const heartbeat = () => {
+      void cloudRuntime.dataAccess.admin.recordSessionHeartbeat({
+        sessionId: analyticsSessionIdRef.current,
+        currentView: primaryTab,
+        appVersion: '0.0.0',
+        deviceType: getDeviceType(),
+        browserFamily: getBrowserFamily()
+      }).catch(error => {
+        console.warn('Failed to record admin analytics heartbeat', error);
+      });
+    };
+
+    heartbeat();
+    const intervalId = window.setInterval(heartbeat, 60000);
+    return () => window.clearInterval(intervalId);
+  }, [cloudRuntime, primaryTab]);
+
   const confirmResetApp = () => {
     if (activeWorkspaceId) {
       const next = deleteManagedWorkspace(activeWorkspaceId);
@@ -876,6 +958,14 @@ export default function App() {
     clearDumalaStorage();
     window.location.reload();
   };
+
+  if (hashRoute === 'admin') {
+    return (
+      <Suspense fallback={<ViewLoadingFallback label="admin console" />}>
+        <AdminConsoleView />
+      </Suspense>
+    );
+  }
 
   if (startupRecoveryIssues.length > 0) {
     return (

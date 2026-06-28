@@ -8,6 +8,7 @@ import {
   ChevronLeft,
   ChevronRight,
   ClipboardList,
+  FlaskConical,
   History,
   NotebookPen,
   Save,
@@ -57,6 +58,7 @@ import {
   type AssessmentProgressPoint
 } from '../fprds/progress';
 import AssessmentPlayerCardPreview from './AssessmentPlayerCardPreview';
+import FprdsBetaSubmissionDialog from './FprdsBetaSubmissionDialog';
 
 type AssessmentType = 'Full' | 'Quick';
 type AssessmentStep = 1 | 2 | 3 | 4 | 5 | 6;
@@ -240,6 +242,8 @@ export default function AssessmentsView({
   const [baselineSessionId, setBaselineSessionId] = useState('');
   const [targetSessionId, setTargetSessionId] = useState('');
   const [noteDrafts, setNoteDrafts] = useState<Record<string, string>>({});
+  const [betaSubmissionSession, setBetaSubmissionSession] = useState<AssessmentSession | null>(null);
+  const [submittedBetaAssessmentIds, setSubmittedBetaAssessmentIds] = useState<Set<string>>(() => new Set());
 
   const selectedPlayer = useMemo(
     () => eligiblePlayers.find(p => p.id === selectedPlayerId) ?? null,
@@ -1741,6 +1745,19 @@ export default function AssessmentsView({
                           </p>
                         </div>
                         <div className="flex items-center gap-2">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setBetaSubmissionSession(s)}
+                            aria-label={`Share assessment from ${s.assessmentDate} with the FPRDS beta`}
+                            className={submittedBetaAssessmentIds.has(s.id)
+                              ? 'border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
+                              : 'border-indigo-200 bg-indigo-50 text-indigo-700 hover:bg-indigo-100'}
+                          >
+                            {submittedBetaAssessmentIds.has(s.id) ? <CheckCircle2 size={14} /> : <FlaskConical size={14} />}
+                            <span className="hidden sm:inline">{submittedBetaAssessmentIds.has(s.id) ? 'Shared' : 'Beta'}</span>
+                          </Button>
                           <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-center">
                             <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">OVR</p>
                             <p className="text-lg font-display font-black text-slate-900 leading-none">{s.ovr}</p>
@@ -1902,6 +1919,23 @@ export default function AssessmentsView({
           )}
         </div>
       </div>
+
+      {selectedPlayer && betaSubmissionSession && (
+        <FprdsBetaSubmissionDialog
+          open
+          player={selectedPlayer}
+          session={betaSubmissionSession}
+          onOpenChange={open => {
+            if (!open) setBetaSubmissionSession(null);
+          }}
+          onSubmitted={assessmentId => setSubmittedBetaAssessmentIds(current => {
+            if (current.has(assessmentId)) return current;
+            const next = new Set(current);
+            next.add(assessmentId);
+            return next;
+          })}
+        />
+      )}
 
     </div>
   );

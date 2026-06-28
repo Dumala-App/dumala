@@ -121,6 +121,25 @@ if (!operations.includes('SENSITIVE_KEY_PATTERN')) {
   failures.push('Operations module must define audit/diagnostic redaction rules.');
 }
 
+const qualityGate = existsSync(join(root, '.github/workflows/quality-gate.yml'))
+  ? read('.github/workflows/quality-gate.yml')
+  : '';
+for (const deploymentBoundary of [
+  'deploy-production-database:',
+  'SUPABASE_ACCESS_TOKEN',
+  'SUPABASE_DB_PASSWORD',
+  'supabase db push --linked --dry-run',
+  'supabase db push --linked'
+]) {
+  if (!qualityGate.includes(deploymentBoundary)) {
+    failures.push(`Production workflow is missing database deployment boundary: ${deploymentBoundary}`);
+  }
+}
+
+if (!qualityGate.includes('- deploy-production-database')) {
+  failures.push('Vercel production deployment must wait for the Supabase migration job.');
+}
+
 if (failures.length > 0) {
   console.error('Cloud launch readiness verification failed:');
   for (const failure of failures) console.error(`- ${failure}`);

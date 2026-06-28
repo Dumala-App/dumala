@@ -13,6 +13,8 @@ import {
 } from './ui/select';
 import { Textarea } from './ui/textarea';
 import { cn } from '../lib/utils';
+import { useCloudRuntime } from '../hooks/useCloudRuntime';
+import type { FeedbackCategory, FeedbackUrgency } from '../cloud/admin';
 
 interface FeedbackModalProps {
   teamName: string;
@@ -43,7 +45,24 @@ const INITIAL_FORM: FeedbackForm = {
 const feedbackControlClass = 'rounded-xl text-sm font-medium text-slate-800';
 const feedbackLabelClass = 'space-y-1.5 text-xs normal-case tracking-normal text-slate-700';
 
+const categoryMap: Record<string, FeedbackCategory> = {
+  Improvement: 'improvement',
+  Suggestion: 'suggestion',
+  Bug: 'bug',
+  'Usability issue': 'usability_issue',
+  'Feature request': 'feature_request',
+  Other: 'other'
+};
+
+const urgencyMap: Record<string, FeedbackUrgency> = {
+  Low: 'low',
+  Normal: 'normal',
+  High: 'high',
+  'Blocking my testing': 'blocking'
+};
+
 export default function FeedbackModal({teamName, onClose}: FeedbackModalProps) {
+  const cloudRuntime = useCloudRuntime();
   const dialogRef = useRef<HTMLDivElement | null>(null);
   const [form, setForm] = useState(INITIAL_FORM);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -110,19 +129,37 @@ export default function FeedbackModal({teamName, onClose}: FeedbackModalProps) {
     };
 
     try {
-      const response = await fetch(`https://formsubmit.co/ajax/${FEEDBACK_EMAIL}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Accept: 'application/json',
-        },
-        body: JSON.stringify(payload),
-      });
+      if (cloudRuntime.enabled) {
+        await cloudRuntime.dataAccess.admin.createFeedback({
+          category: categoryMap[form.category] ?? 'other',
+          affectedArea: form.area,
+          urgency: urgencyMap[form.urgency] ?? 'normal',
+          subject: form.subject,
+          details: form.details,
+          expectedBehavior: form.expectedBehavior || null,
+          contactEmail: form.contactEmail || null,
+          pageUrl: window.location.href,
+          browser: navigator.userAgent,
+          teamWorkspace: teamName
+        });
+      } else {
+        const response = await fetch(`https://formsubmit.co/ajax/${FEEDBACK_EMAIL}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Accept: 'application/json',
+          },
+          body: JSON.stringify(payload),
+        });
 
-      if (!response.ok) throw new Error('Feedback service rejected the submission.');
+        if (!response.ok) throw new Error('Feedback service rejected the submission.');
+      }
 
       setStatus('success');
-      setStatusMessage('Feedback sent. Thank you for helping improve Dumala.');
+      setStatusMessage(cloudRuntime.enabled
+        ? 'Feedback saved to the Dumala admin inbox. Thank you for helping improve the app.'
+        : 'Feedback sent. Thank you for helping improve Dumala.'
+      );
       setForm(INITIAL_FORM);
     } catch {
       setStatus('error');
