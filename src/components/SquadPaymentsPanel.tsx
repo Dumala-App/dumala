@@ -1,5 +1,5 @@
 import React, { useMemo, useRef, useState } from 'react';
-import { AlertCircle, Ban, Banknote, CalendarClock, CheckCircle2, CircleDollarSign, Plus, ReceiptText, Search, TrendingUp } from 'lucide-react';
+import { AlertCircle, Ban, Banknote, CalendarClock, CheckCircle2, ChevronDown, ChevronUp, CircleDollarSign, Plus, ReceiptText, Search, TrendingUp } from 'lucide-react';
 import type {
   PaymentLedgerCategory,
   PaymentLedgerEntry,
@@ -135,6 +135,9 @@ export default function SquadPaymentsPanel({
   const [bulkNote, setBulkNote] = useState('');
   const [bulkErrors, setBulkErrors] = useState<FieldErrors<BulkFormField>>({});
   const [voidReasonById, setVoidReasonById] = useState<Record<string, string>>({});
+  const [showAllMonthlyHistory, setShowAllMonthlyHistory] = useState(false);
+  const [ledgerExpanded, setLedgerExpanded] = useState(false);
+  const [activeAction, setActiveAction] = useState<'record' | 'charge'>('record');
   const formRef = useRef<HTMLFormElement | null>(null);
   const bulkFormRef = useRef<HTMLFormElement | null>(null);
 
@@ -183,7 +186,7 @@ export default function SquadPaymentsPanel({
   const currentMonthRate = currentMonthSummary && currentMonthSummary.charged > 0
     ? Math.min(100, Math.round(((currentMonthSummary.paid + currentMonthSummary.waived) / currentMonthSummary.charged) * 100))
     : 0;
-  const recentMonthlyHistory = monthlyHistory.slice(0, 9);
+  const visibleMonthlyHistory = showAllMonthlyHistory ? monthlyHistory : monthlyHistory.slice(0, 4);
 
   const filteredSummaries = summaries.filter(summary => {
     const matchesSearch = summary.playerName.toLowerCase().includes(searchTerm.toLowerCase());
@@ -311,103 +314,14 @@ export default function SquadPaymentsPanel({
         })}
       </div>
 
-      <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(280px,0.38fr)_minmax(0,0.62fr)]">
-        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Current month</p>
-              <h3 className="mt-1 font-display text-sm font-black uppercase tracking-wider text-slate-800">
-                {formatMonthLabel(currentMonthKey)}
-              </h3>
-            </div>
-            <CalendarClock size={18} className="text-indigo-600" aria-hidden="true" />
-          </div>
-          <div className="mt-4 grid grid-cols-2 gap-2 text-xs">
-            <div className="rounded-xl border border-slate-100 bg-slate-50 p-3">
-              <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Charged</p>
-              <p className="mt-1 font-black text-slate-800">{formatPeso(currentMonthSummary?.charged ?? 0)}</p>
-            </div>
-            <div className="rounded-xl border border-emerald-100 bg-emerald-50 p-3">
-              <p className="text-[10px] font-black uppercase tracking-widest text-emerald-600">Collected</p>
-              <p className="mt-1 font-black text-emerald-700">{formatPeso(currentMonthSummary?.paid ?? 0)}</p>
-            </div>
-            <div className="rounded-xl border border-amber-100 bg-amber-50 p-3">
-              <p className="text-[10px] font-black uppercase tracking-widest text-amber-600">Remaining</p>
-              <p className="mt-1 font-black text-amber-700">{formatPeso(Math.max(currentMonthSummary?.balance ?? 0, 0))}</p>
-            </div>
-            <div className="rounded-xl border border-slate-100 bg-slate-50 p-3">
-              <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Entries</p>
-              <p className="mt-1 font-black text-slate-800">{currentMonthSummary?.entryCount ?? 0}</p>
-            </div>
-          </div>
-          <div className="mt-4">
-            <div className="mb-1.5 flex items-center justify-between text-[10px] font-black uppercase tracking-widest text-slate-400">
-              <span>Collection rate</span>
-              <span>{currentMonthRate}%</span>
-            </div>
-            <div className="h-2 overflow-hidden rounded-full bg-slate-100">
-              <div className="h-full rounded-full bg-emerald-500 transition-all" style={{ width: `${currentMonthRate}%` }} />
-            </div>
-          </div>
-        </div>
-
-        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-          <div className="mb-3 flex items-center justify-between gap-3">
-            <div>
-              <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Previous months</p>
-              <h3 className="mt-1 font-display text-sm font-black uppercase tracking-wider text-slate-800">Monthly payment history</h3>
-            </div>
-            <TrendingUp size={18} className="text-emerald-600" aria-hidden="true" />
-          </div>
-          {recentMonthlyHistory.length > 0 ? (
-            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
-              {recentMonthlyHistory.map(month => (
-                <Button
-                  key={month.monthKey}
-                  type="button"
-                  onClick={() => setMonthFilter(month.monthKey)}
-                  variant="ghost"
-                  className={`h-auto w-full flex-col items-stretch justify-start gap-0 whitespace-normal rounded-xl border p-3 text-left transition-colors hover:border-indigo-200 hover:bg-indigo-50/40 ${
-                    monthFilter === month.monthKey ? 'border-indigo-300 bg-indigo-50' : 'border-slate-100 bg-slate-50'
-                  }`}
-                >
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">{month.monthLabel}</p>
-                    <span className="text-[10px] font-black text-slate-400">{month.entryCount} rows</span>
-                  </div>
-                  <div className="mt-2 grid grid-cols-3 gap-2 text-[10px]">
-                    <div>
-                      <p className="font-black uppercase tracking-widest text-slate-400">Fee</p>
-                      <p className="mt-0.5 font-black text-slate-700">{formatPeso(month.charged)}</p>
-                    </div>
-                    <div>
-                      <p className="font-black uppercase tracking-widest text-emerald-600">Paid</p>
-                      <p className="mt-0.5 font-black text-emerald-700">{formatPeso(month.paid)}</p>
-                    </div>
-                    <div>
-                      <p className="font-black uppercase tracking-widest text-amber-600">Open</p>
-                      <p className="mt-0.5 font-black text-amber-700">{formatPeso(Math.max(month.balance, 0))}</p>
-                    </div>
-                  </div>
-                </Button>
-              ))}
-            </div>
-          ) : (
-            <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 p-6 text-center">
-              <p className="text-xs font-black text-slate-700">No monthly history yet</p>
-              <p className="mt-1 text-[11px] font-medium text-slate-500">Monthly summaries appear after you record charges or payments.</p>
-            </div>
-          )}
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1.35fr)_minmax(320px,0.65fr)]">
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1.65fr)_minmax(340px,0.6fr)]">
         <div className="space-y-4">
-          <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-            <div className="mb-3 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm ring-1 ring-slate-100">
+            <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
               <div>
-                <h3 className="font-display text-sm font-black uppercase tracking-wider text-slate-800">Player balances</h3>
-                <p className="mt-1 text-[11px] font-medium text-slate-500">Balances are calculated from ledger entries.</p>
+                <p className="text-[10px] font-black uppercase tracking-widest text-indigo-600">Main workspace</p>
+                <h3 className="mt-1 font-display text-lg font-black text-slate-900">Player balances</h3>
+                <p className="mt-1 text-xs font-medium text-slate-500">Review who is paid, partial, overdue, or still missing activity.</p>
               </div>
               <div className="flex flex-col gap-2 sm:flex-row">
                 <div className="relative">
@@ -438,10 +352,10 @@ export default function SquadPaymentsPanel({
               </div>
             </div>
 
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto rounded-xl border border-slate-100">
               <table className="min-w-[760px] w-full text-left text-xs">
                 <thead>
-                  <tr className="border-y border-slate-100 bg-slate-50 text-[10px] uppercase tracking-widest text-slate-400">
+                  <tr className="border-b border-slate-100 bg-slate-50 text-[10px] uppercase tracking-widest text-slate-400">
                     <th className="px-3 py-2 font-black">Player</th>
                     <th className="px-3 py-2 font-black">Charged</th>
                     <th className="px-3 py-2 font-black">Paid</th>
@@ -476,7 +390,9 @@ export default function SquadPaymentsPanel({
             <div className="mb-3 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
               <div>
                 <h3 className="font-display text-sm font-black uppercase tracking-wider text-slate-800">Ledger history</h3>
-                <p className="mt-1 text-[11px] font-medium text-slate-500">Voided entries remain visible for review.</p>
+                <p className="mt-1 text-[11px] font-medium text-slate-500">
+                  {filteredEntries.length} entr{filteredEntries.length === 1 ? 'y' : 'ies'} match the current filters. Voided entries remain visible for review.
+                </p>
               </div>
               <div className="flex flex-col gap-2 sm:flex-row">
                 <Select
@@ -503,10 +419,36 @@ export default function SquadPaymentsPanel({
                     {categories.map(item => <SelectItem key={item.value} value={item.value}>{item.label}</SelectItem>)}
                   </SelectContent>
                 </Select>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setLedgerExpanded(current => !current)}
+                  className="h-9 gap-1 rounded-lg px-3 text-[10px] font-black uppercase tracking-wider"
+                  aria-expanded={ledgerExpanded}
+                >
+                  {ledgerExpanded ? (
+                    <>
+                      <ChevronUp size={13} aria-hidden="true" /> Minimize
+                    </>
+                  ) : (
+                    <>
+                      <ChevronDown size={13} aria-hidden="true" /> Show ledger
+                    </>
+                  )}
+                </Button>
               </div>
             </div>
 
-            {filteredEntries.length > 0 ? (
+            {!ledgerExpanded ? (
+              <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 py-5 text-center">
+                <ReceiptText className="mx-auto text-slate-300" size={26} aria-hidden="true" />
+                <p className="mt-2 text-sm font-black text-slate-800">Ledger history is minimized</p>
+                <p className="mt-1 text-xs font-medium text-slate-500">
+                  Expand only when you need to review or void individual payment records.
+                </p>
+              </div>
+            ) : filteredEntries.length > 0 ? (
               <div className="overflow-x-auto">
                 <table className="min-w-[900px] w-full text-left text-xs">
                   <thead>
@@ -571,50 +513,227 @@ export default function SquadPaymentsPanel({
         </div>
 
         <aside className="space-y-4">
-          <form ref={formRef} onSubmit={handleSubmitEntry} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm" noValidate>
-            <div className="mb-4 flex items-center gap-2">
-              <Plus size={16} className="text-indigo-600" />
-              <h3 className="font-display text-sm font-black uppercase tracking-wider text-slate-800">Record entry</h3>
+          <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Current month</p>
+                <h3 className="mt-1 font-display text-sm font-black uppercase tracking-wider text-slate-800">
+                  {formatMonthLabel(currentMonthKey)}
+                </h3>
+              </div>
+              <CalendarClock size={18} className="text-indigo-600" aria-hidden="true" />
             </div>
-            <FormErrorSummary id="payment-entry-errors" errors={formErrors} />
-            <div className="space-y-3">
-              <div>
-                <Label className="mb-1.5 block">Type</Label>
-                <Select value={entryType} onValueChange={value => setEntryType(value as PaymentLedgerEntryType)}>
-                  <SelectTrigger className={paymentInputClass}>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {entryTypes.map(item => <SelectItem key={item.value} value={item.value}>{item.label}</SelectItem>)}
-                  </SelectContent>
-                </Select>
+            <div className="mt-4 grid grid-cols-2 gap-2 text-xs">
+              <div className="rounded-xl border border-slate-100 bg-slate-50 p-3">
+                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Charged</p>
+                <p className="mt-1 font-black text-slate-800">{formatPeso(currentMonthSummary?.charged ?? 0)}</p>
               </div>
-              <div>
-                <Label className="mb-1.5 block">Player *</Label>
-                <Select
-                  value={playerId}
-                  onValueChange={value => {
-                    setPlayerId(value);
-                    setFormErrors(previous => ({ ...previous, playerId: undefined }));
-                  }}
-                >
-                  <SelectTrigger
-                    data-validation-field="playerId"
-                    aria-invalid={Boolean(formErrors.playerId)}
-                    className={cn(paymentInputClass, formErrors.playerId && invalidPaymentClass)}
-                  >
-                    <SelectValue placeholder="Choose player" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {players.map(player => <SelectItem key={player.id} value={player.id}>{player.name}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-                <FieldError id="payment-player-error" message={formErrors.playerId} />
+              <div className="rounded-xl border border-emerald-100 bg-emerald-50 p-3">
+                <p className="text-[10px] font-black uppercase tracking-widest text-emerald-600">Collected</p>
+                <p className="mt-1 font-black text-emerald-700">{formatPeso(currentMonthSummary?.paid ?? 0)}</p>
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="rounded-xl border border-amber-100 bg-amber-50 p-3">
+                <p className="text-[10px] font-black uppercase tracking-widest text-amber-600">Remaining</p>
+                <p className="mt-1 font-black text-amber-700">{formatPeso(Math.max(currentMonthSummary?.balance ?? 0, 0))}</p>
+              </div>
+              <div className="rounded-xl border border-slate-100 bg-slate-50 p-3">
+                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Entries</p>
+                <p className="mt-1 font-black text-slate-800">{currentMonthSummary?.entryCount ?? 0}</p>
+              </div>
+            </div>
+            <div className="mt-4">
+              <div className="mb-1.5 flex items-center justify-between text-[10px] font-black uppercase tracking-widest text-slate-400">
+                <span>Collection rate</span>
+                <span>{currentMonthRate}%</span>
+              </div>
+              <div className="h-2 overflow-hidden rounded-full bg-slate-100">
+                <div className="h-full rounded-full bg-emerald-500 transition-all" style={{ width: `${currentMonthRate}%` }} />
+              </div>
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
+            <div className="mb-3 flex items-start justify-between gap-3">
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Payment actions</p>
+                <h3 className="mt-1 font-display text-sm font-black uppercase tracking-wider text-slate-800">
+                  {activeAction === 'record' ? 'Record entry' : 'Charge roster'}
+                </h3>
+              </div>
+              {activeAction === 'record' ? (
+                <Plus size={18} className="shrink-0 text-indigo-600" aria-hidden="true" />
+              ) : (
+                <ReceiptText size={18} className="shrink-0 text-slate-700" aria-hidden="true" />
+              )}
+            </div>
+
+            <div className="mb-3 grid grid-cols-2 rounded-xl bg-slate-100 p-1">
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => setActiveAction('record')}
+                className={cn(
+                  'h-8 rounded-lg text-[10px] font-black uppercase tracking-wider',
+                  activeAction === 'record' ? 'bg-white text-indigo-700 shadow-sm hover:bg-white' : 'text-slate-500 hover:bg-white/70'
+                )}
+              >
+                Record
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => setActiveAction('charge')}
+                className={cn(
+                  'h-8 rounded-lg text-[10px] font-black uppercase tracking-wider',
+                  activeAction === 'charge' ? 'bg-white text-slate-900 shadow-sm hover:bg-white' : 'text-slate-500 hover:bg-white/70'
+                )}
+              >
+                Charge
+              </Button>
+            </div>
+
+            {activeAction === 'record' ? (
+              <form ref={formRef} onSubmit={handleSubmitEntry} className="space-y-2" noValidate>
+                <FormErrorSummary id="payment-entry-errors" errors={formErrors} />
+                <div className="grid grid-cols-1 gap-2">
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <Label className="mb-1.5 block">Type</Label>
+                      <Select value={entryType} onValueChange={value => setEntryType(value as PaymentLedgerEntryType)}>
+                        <SelectTrigger className={paymentInputClass}>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {entryTypes.map(item => <SelectItem key={item.value} value={item.value}>{item.label}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label className="mb-1.5 block">Category</Label>
+                      <Select value={category} onValueChange={value => setCategory(value as PaymentLedgerCategory)}>
+                        <SelectTrigger className={paymentInputClass}>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {categories.map(item => <SelectItem key={item.value} value={item.value}>{item.label}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  <div>
+                    <Label className="mb-1.5 block">Player *</Label>
+                    <Select
+                      value={playerId}
+                      onValueChange={value => {
+                        setPlayerId(value);
+                        setFormErrors(previous => ({ ...previous, playerId: undefined }));
+                      }}
+                    >
+                      <SelectTrigger
+                        data-validation-field="playerId"
+                        aria-invalid={Boolean(formErrors.playerId)}
+                        className={cn(paymentInputClass, formErrors.playerId && invalidPaymentClass)}
+                      >
+                        <SelectValue placeholder="Choose player" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {players.map(player => <SelectItem key={player.id} value={player.id}>{player.name}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                    <FieldError id="payment-player-error" message={formErrors.playerId} />
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <Label className="mb-1.5 block">Amount *</Label>
+                      <Input
+                        data-validation-field="amount"
+                        type="number"
+                        min="0.01"
+                        step="0.01"
+                        inputMode="decimal"
+                        value={amount}
+                        onChange={event => {
+                          setAmount(event.target.value);
+                          setFormErrors(previous => ({ ...previous, amount: undefined }));
+                        }}
+                        aria-invalid={Boolean(formErrors.amount)}
+                        className={cn(paymentInputClass, formErrors.amount && invalidPaymentClass)}
+                      />
+                      <FieldError id="payment-amount-error" message={formErrors.amount} />
+                    </div>
+                    <div>
+                      <Label className="mb-1.5 block">Date *</Label>
+                      <Input
+                        data-validation-field="date"
+                        type="date"
+                        value={date}
+                        onChange={event => {
+                          setDate(event.target.value);
+                          setFormErrors(previous => ({ ...previous, date: undefined }));
+                        }}
+                        className={cn(paymentInputClass, formErrors.date && invalidPaymentClass)}
+                      />
+                      <FieldError id="payment-date-error" message={formErrors.date} />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <Label className="mb-1.5 block">Due date</Label>
+                      <Input type="date" value={dueDate} onChange={event => setDueDate(event.target.value)} disabled={entryType !== 'charge'} className={paymentInputClass} />
+                    </div>
+                    {entryType === 'payment' ? (
+                      <div>
+                        <Label className="mb-1.5 block">Method</Label>
+                        <Select value={method} onValueChange={value => setMethod(value as PaymentMethod)}>
+                          <SelectTrigger className={paymentInputClass}>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {paymentMethods.map(item => <SelectItem key={item.value} value={item.value}>{item.label}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    ) : (
+                      <div>
+                        <Label className="mb-1.5 block">Reference</Label>
+                        <Input value={reference} onChange={event => setReference(event.target.value)} placeholder="Receipt or ref" className={paymentInputClass} />
+                      </div>
+                    )}
+                  </div>
+                  {entryType === 'payment' && (
+                    <div>
+                      <Label className="mb-1.5 block">Reference</Label>
+                      <Input value={reference} onChange={event => setReference(event.target.value)} placeholder="Receipt or ref" className={paymentInputClass} />
+                    </div>
+                  )}
+                  <div>
+                    <Label className="mb-1.5 block">Note</Label>
+                    <Textarea
+                      data-validation-field="note"
+                      value={note}
+                      onChange={event => {
+                        setNote(event.target.value);
+                        setFormErrors(previous => ({ ...previous, note: undefined }));
+                      }}
+                      rows={2}
+                      className={cn('min-h-14', paymentInputClass, formErrors.note && invalidPaymentClass)}
+                    />
+                    <FieldError id="payment-note-error" message={formErrors.note} />
+                  </div>
+                </div>
+                <Button type="submit" className="w-full rounded-xl bg-indigo-600 text-xs font-black uppercase tracking-wider hover:bg-indigo-700">
+                  <CheckCircle2 size={14} /> Save entry
+                </Button>
+              </form>
+            ) : (
+              <form ref={bulkFormRef} onSubmit={handleBulkSubmit} className="space-y-2" noValidate>
+                <p className="text-[11px] font-medium text-slate-500">Creates one fee entry per active player.</p>
+                <FormErrorSummary id="bulk-payment-errors" errors={bulkErrors} />
                 <div>
                   <Label className="mb-1.5 block">Category</Label>
-                  <Select value={category} onValueChange={value => setCategory(value as PaymentLedgerCategory)}>
+                  <Select value={bulkCategory} onValueChange={value => setBulkCategory(value as PaymentLedgerCategory)}>
                     <SelectTrigger className={paymentInputClass}>
                       <SelectValue />
                     </SelectTrigger>
@@ -623,143 +742,125 @@ export default function SquadPaymentsPanel({
                     </SelectContent>
                   </Select>
                 </div>
-                <div>
-                  <Label className="mb-1.5 block">Amount *</Label>
-                  <Input
-                    data-validation-field="amount"
-                    type="number"
-                    min="0.01"
-                    step="0.01"
-                    inputMode="decimal"
-                    value={amount}
-                    onChange={event => {
-                      setAmount(event.target.value);
-                      setFormErrors(previous => ({ ...previous, amount: undefined }));
-                    }}
-                    aria-invalid={Boolean(formErrors.amount)}
-                    className={cn(paymentInputClass, formErrors.amount && invalidPaymentClass)}
-                  />
-                  <FieldError id="payment-amount-error" message={formErrors.amount} />
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <Label className="mb-1.5 block">Date *</Label>
-                  <Input
-                    data-validation-field="date"
-                    type="date"
-                    value={date}
-                    onChange={event => {
-                      setDate(event.target.value);
-                      setFormErrors(previous => ({ ...previous, date: undefined }));
-                    }}
-                    className={cn(paymentInputClass, formErrors.date && invalidPaymentClass)}
-                  />
-                  <FieldError id="payment-date-error" message={formErrors.date} />
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <Label className="mb-1.5 block">Amount *</Label>
+                    <Input
+                      data-validation-field="amount"
+                      type="number"
+                      min="0.01"
+                      step="0.01"
+                      value={bulkAmount}
+                      onChange={event => {
+                        setBulkAmount(event.target.value);
+                        setBulkErrors(previous => ({ ...previous, amount: undefined }));
+                      }}
+                      className={cn(paymentInputClass, bulkErrors.amount && invalidPaymentClass)}
+                    />
+                    <FieldError id="bulk-payment-amount-error" message={bulkErrors.amount} />
+                  </div>
+                  <div>
+                    <Label className="mb-1.5 block">Date *</Label>
+                    <Input
+                      data-validation-field="date"
+                      type="date"
+                      value={bulkDate}
+                      onChange={event => {
+                        setBulkDate(event.target.value);
+                        setBulkErrors(previous => ({ ...previous, date: undefined }));
+                      }}
+                      className={cn(paymentInputClass, bulkErrors.date && invalidPaymentClass)}
+                    />
+                    <FieldError id="bulk-payment-date-error" message={bulkErrors.date} />
+                  </div>
                 </div>
                 <div>
                   <Label className="mb-1.5 block">Due date</Label>
-                  <Input type="date" value={dueDate} onChange={event => setDueDate(event.target.value)} disabled={entryType !== 'charge'} className={paymentInputClass} />
+                  <Input type="date" value={bulkDueDate} onChange={event => setBulkDueDate(event.target.value)} className={paymentInputClass} />
                 </div>
-              </div>
-              {entryType === 'payment' && (
                 <div>
-                  <Label className="mb-1.5 block">Method</Label>
-                  <Select value={method} onValueChange={value => setMethod(value as PaymentMethod)}>
-                    <SelectTrigger className={paymentInputClass}>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {paymentMethods.map(item => <SelectItem key={item.value} value={item.value}>{item.label}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
+                  <Label className="mb-1.5 block">Note</Label>
+                  <Textarea value={bulkNote} onChange={event => setBulkNote(event.target.value)} rows={2} placeholder="Optional note" className={cn('min-h-14', paymentInputClass)} />
                 </div>
-              )}
-              <div>
-                <Label className="mb-1.5 block">Reference</Label>
-                <Input value={reference} onChange={event => setReference(event.target.value)} placeholder="Receipt, GCash ref, or OR number" className={paymentInputClass} />
-              </div>
-              <div>
-                <Label className="mb-1.5 block">Note</Label>
-                <Textarea
-                  data-validation-field="note"
-                  value={note}
-                  onChange={event => {
-                    setNote(event.target.value);
-                    setFormErrors(previous => ({ ...previous, note: undefined }));
-                  }}
-                  rows={2}
-                  className={cn('min-h-16', paymentInputClass, formErrors.note && invalidPaymentClass)}
-                />
-                <FieldError id="payment-note-error" message={formErrors.note} />
-              </div>
-              <Button type="submit" className="w-full rounded-xl bg-indigo-600 text-xs font-black uppercase tracking-wider hover:bg-indigo-700">
-                <CheckCircle2 size={14} /> Save entry
-              </Button>
-            </div>
-          </form>
+                <Button type="submit" disabled={players.filter(player => player.registrationStatus === 'Active').length === 0} className="w-full rounded-xl bg-slate-900 text-xs font-black uppercase tracking-wider hover:bg-slate-800">
+                  <ReceiptText size={14} /> Charge active roster
+                </Button>
+              </form>
+            )}
+          </div>
 
-          <form ref={bulkFormRef} onSubmit={handleBulkSubmit} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm" noValidate>
-            <h3 className="font-display text-sm font-black uppercase tracking-wider text-slate-800">Charge active players</h3>
-            <p className="mt-1 text-[11px] font-medium text-slate-500">Creates one fee entry per active player.</p>
-            <FormErrorSummary id="bulk-payment-errors" errors={bulkErrors} />
-            <div className="mt-3 space-y-3">
+          <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+            <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
               <div>
-                <Label className="mb-1.5 block">Category</Label>
-                <Select value={bulkCategory} onValueChange={value => setBulkCategory(value as PaymentLedgerCategory)}>
-                  <SelectTrigger className={paymentInputClass}>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {categories.map(item => <SelectItem key={item.value} value={item.value}>{item.label}</SelectItem>)}
-                  </SelectContent>
-                </Select>
+                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Previous months</p>
+                <h3 className="mt-1 font-display text-sm font-black uppercase tracking-wider text-slate-800">Monthly payment history</h3>
+                <p className="mt-1 text-[11px] font-medium text-slate-500">
+                  Showing {visibleMonthlyHistory.length} of {monthlyHistory.length} month{monthlyHistory.length === 1 ? '' : 's'}.
+                </p>
               </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <Label className="mb-1.5 block">Amount *</Label>
-                  <Input
-                    data-validation-field="amount"
-                    type="number"
-                    min="0.01"
-                    step="0.01"
-                    value={bulkAmount}
-                    onChange={event => {
-                      setBulkAmount(event.target.value);
-                      setBulkErrors(previous => ({ ...previous, amount: undefined }));
-                    }}
-                    className={cn(paymentInputClass, bulkErrors.amount && invalidPaymentClass)}
-                  />
-                  <FieldError id="bulk-payment-amount-error" message={bulkErrors.amount} />
-                </div>
-                <div>
-                  <Label className="mb-1.5 block">Date *</Label>
-                  <Input
-                    data-validation-field="date"
-                    type="date"
-                    value={bulkDate}
-                    onChange={event => {
-                      setBulkDate(event.target.value);
-                      setBulkErrors(previous => ({ ...previous, date: undefined }));
-                    }}
-                    className={cn(paymentInputClass, bulkErrors.date && invalidPaymentClass)}
-                  />
-                  <FieldError id="bulk-payment-date-error" message={bulkErrors.date} />
-                </div>
+              <div className="flex items-center gap-2">
+                {monthlyHistory.length > 4 && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowAllMonthlyHistory(current => !current)}
+                    className="h-8 gap-1 rounded-lg px-2 text-[10px] font-black uppercase tracking-wider"
+                  >
+                    {showAllMonthlyHistory ? (
+                      <>
+                        <ChevronUp size={12} aria-hidden="true" /> Show 4
+                      </>
+                    ) : (
+                      <>
+                        <ChevronDown size={12} aria-hidden="true" /> Show all
+                      </>
+                    )}
+                  </Button>
+                )}
+                <TrendingUp size={18} className="text-emerald-600" aria-hidden="true" />
               </div>
-              <div>
-                <Label className="mb-1.5 block">Due date</Label>
-                <Input type="date" value={bulkDueDate} onChange={event => setBulkDueDate(event.target.value)} className={paymentInputClass} />
-              </div>
-              <div>
-                <Label className="mb-1.5 block">Note</Label>
-                <Textarea value={bulkNote} onChange={event => setBulkNote(event.target.value)} rows={2} placeholder="Optional note" className={cn('min-h-16', paymentInputClass)} />
-              </div>
-              <Button type="submit" disabled={players.filter(player => player.registrationStatus === 'Active').length === 0} className="w-full rounded-xl bg-slate-900 text-xs font-black uppercase tracking-wider hover:bg-slate-800">
-                <ReceiptText size={14} /> Charge active roster
-              </Button>
             </div>
-          </form>
+            {visibleMonthlyHistory.length > 0 ? (
+              <div className="grid grid-cols-1 gap-2">
+                {visibleMonthlyHistory.map(month => (
+                  <Button
+                    key={month.monthKey}
+                    type="button"
+                    onClick={() => setMonthFilter(month.monthKey)}
+                    variant="ghost"
+                    className={`h-auto min-h-[6.75rem] w-full flex-col items-stretch justify-start gap-0 whitespace-normal rounded-xl border p-2.5 text-left transition-colors hover:border-indigo-200 hover:bg-indigo-50/40 ${
+                      monthFilter === month.monthKey ? 'border-indigo-300 bg-indigo-50' : 'border-slate-100 bg-slate-50'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">{month.monthLabel}</p>
+                      <span className="text-[10px] font-black text-slate-400">{month.entryCount} rows</span>
+                    </div>
+                    <div className="mt-2 grid grid-cols-3 gap-1.5 text-[9px]">
+                      <div>
+                        <p className="font-black uppercase tracking-widest text-slate-400">Fee</p>
+                        <p className="mt-0.5 font-black text-slate-700">{formatPeso(month.charged)}</p>
+                      </div>
+                      <div>
+                        <p className="font-black uppercase tracking-widest text-emerald-600">Paid</p>
+                        <p className="mt-0.5 font-black text-emerald-700">{formatPeso(month.paid)}</p>
+                      </div>
+                      <div>
+                        <p className="font-black uppercase tracking-widest text-amber-600">Open</p>
+                        <p className="mt-0.5 font-black text-amber-700">{formatPeso(Math.max(month.balance, 0))}</p>
+                      </div>
+                    </div>
+                  </Button>
+                ))}
+              </div>
+            ) : (
+              <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 p-6 text-center">
+                <p className="text-xs font-black text-slate-700">No monthly history yet</p>
+                <p className="mt-1 text-[11px] font-medium text-slate-500">Monthly summaries appear after you record charges or payments.</p>
+              </div>
+            )}
+          </div>
         </aside>
       </div>
     </div>

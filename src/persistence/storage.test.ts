@@ -147,6 +147,7 @@ describe('startup storage inspection', () => {
     storage.setItem(STORAGE_KEYS.players, JSON.stringify([legacyPlayer]));
     storage.setItem(STORAGE_KEYS.onboarded, 'true');
     storage.setItem(STORAGE_KEYS.formation, '4-3-3');
+    storage.setItem(STORAGE_KEYS.matchFormat, '9-a-side');
     storage.setItem(STORAGE_KEYS.isCustomStrategy, 'false');
 
     expect(inspectDumalaStorage(storage)).toEqual([]);

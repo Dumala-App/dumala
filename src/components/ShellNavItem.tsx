@@ -32,8 +32,8 @@ export default function ShellNavItem({
           ? 'gap-2 rounded-xl px-3 py-2 text-[11px] [&_svg]:size-3.5'
           : 'min-h-11 w-full gap-3 rounded-xl px-4 py-3 text-xs [&_svg]:size-4',
         isActive
-          ? 'border-white bg-white text-slate-950 shadow-md hover:bg-white hover:text-slate-950'
-          : 'border-transparent text-slate-300 hover:bg-white/10 hover:text-white'
+          ? 'border-accent/70 bg-accent text-accent-foreground shadow-md shadow-orange-950/20 hover:bg-accent hover:text-accent-foreground'
+          : 'border-transparent text-white/72 hover:bg-white/10 hover:text-white'
       )}
     >
       <Icon size={layout === 'desktop' ? 14 : 16} aria-hidden="true" />

@@ -4,6 +4,7 @@ import {findUserStanding, sortStandings} from '../standings';
 import { Calendar, MapPin, Trophy, Shield, Megaphone, Star, Award, Zap, ArrowRight, CornerRightDown, TrendingUp, Edit, Upload, Link, Check, X, Image, Crown, Target, Flame, AlertCircle, Table, Users, ClipboardList } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
+import { Badge } from './ui/badge';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
@@ -85,6 +86,13 @@ const dashboardStatTileStyle: React.CSSProperties = {
   background: 'linear-gradient(145deg, rgba(99,102,241,0.48) 0%, rgba(124,58,237,0.44) 54%, rgba(49,46,129,0.34) 100%)',
   boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.26), inset 0 -1px 0 rgba(15,23,42,0.18), 0 16px 32px rgba(30,27,75,0.2)'
 };
+
+const dashboardCardClass = 'rounded-2xl border border-border bg-card p-5 shadow-sm sm:p-6';
+const dashboardHeaderClass = 'border-b border-border pb-4';
+const dashboardSectionTitleClass = 'flex items-center gap-2 font-display text-base font-black tracking-tight text-foreground';
+const dashboardSectionDescriptionClass = 'mt-1 text-sm font-medium leading-relaxed text-muted-foreground';
+const dashboardPanelClass = 'rounded-2xl border border-border bg-muted/45 p-4';
+const dashboardListButtonClass = 'h-auto w-full justify-between rounded-xl border-border bg-card p-3 text-left whitespace-normal hover:border-primary/30 hover:bg-primary/5';
 
 interface DashboardViewProps {
   teamInfo: TeamInfo;
@@ -687,130 +695,141 @@ export default function DashboardView({
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         
         {/* Next Clash Spotlight (Left col 7) */}
-        <div className="lg:col-span-7 bg-white p-6 rounded-2xl border border-slate-200/60 shadow-md shadow-slate-100/30 flex flex-col justify-between hover:shadow-lg transition-shadow duration-300">
+        <div className={`lg:col-span-7 flex flex-col justify-between ${dashboardCardClass}`}>
           <div>
-            <div className="flex justify-between items-center pb-4 border-b border-slate-100">
-              <h3 className="text-xs font-display font-black uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
-                <Calendar size={14} className="text-indigo-600 animate-pulse" /> Match Day Prep
-              </h3>
-              <span className="text-xs bg-indigo-50 text-indigo-700 font-semibold px-2.5 py-1 rounded-xl">
-                {nextMatch ? (nextMatch.type === 'Training' ? 'Practice Session' : nextMatch.type === 'Meeting' ? 'Team Meeting' : 'Next Match') : 'Spotlight'}
-              </span>
+            <div className={`${dashboardHeaderClass} flex items-start justify-between gap-3`}>
+              <div>
+                <h3 className={dashboardSectionTitleClass}>
+                  <Calendar size={18} className="text-primary" aria-hidden="true" /> Match Day Prep
+                </h3>
+                <p className={dashboardSectionDescriptionClass}>
+                  Next event details, location, and coach directives.
+                </p>
+              </div>
+              <Badge variant={nextMatch ? 'info' : 'outline'} className="shrink-0">
+                {nextMatch ? (nextMatch.type === 'Training' ? 'Practice' : nextMatch.type === 'Meeting' ? 'Meeting' : 'Matchday') : 'Spotlight'}
+              </Badge>
             </div>
 
             {nextMatch ? (
-              <div className="mt-4 space-y-4">
+              <div className="mt-5 space-y-4">
                 <div className="flex items-center gap-4 justify-between">
                   {nextMatch.type === 'Training' || nextMatch.type === 'Meeting' ? (
                     <div className="text-left w-full">
-                      <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Scheduled Event</span>
-                      <h4 id="next-match-opponent-slug" className="font-display font-black text-xl text-indigo-650 mt-0.5">{nextMatch.opponent}</h4>
+                      <span className="text-xs font-bold text-muted-foreground">Scheduled event</span>
+                      <h4 id="next-match-opponent-slug" className="mt-1 font-display text-2xl font-black tracking-tight text-foreground">{nextMatch.opponent}</h4>
                     </div>
                   ) : (
                     <>
                       <div className="text-left">
-                        <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Our Squad</span>
-                        <h4 className="font-display font-black text-xl text-slate-800 truncate max-w-[150px]">{teamInfo?.name || "Apex Rangers"}</h4>
+                        <span className="text-xs font-bold text-muted-foreground">Our squad</span>
+                        <h4 className="mt-1 max-w-[160px] truncate font-display text-xl font-black text-foreground">{teamInfo?.name || "Apex Rangers"}</h4>
                       </div>
-                      <div className="px-3.5 py-1.5 bg-slate-100 rounded-full font-display font-bold text-slate-500 text-sm">VS</div>
+                      <div className="rounded-full border border-border bg-muted px-3.5 py-1.5 font-display text-sm font-bold text-muted-foreground">VS</div>
                       <div className="text-right">
-                        <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Opponent</span>
-                        <h4 id="next-match-opponent-slug" className="font-display font-black text-xl text-indigo-600 truncate max-w-[150px]">{nextMatch.opponent}</h4>
+                        <span className="text-xs font-bold text-muted-foreground">Opponent</span>
+                        <h4 id="next-match-opponent-slug" className="mt-1 max-w-[160px] truncate font-display text-xl font-black text-primary">{nextMatch.opponent}</h4>
                       </div>
                     </>
                   )}
                 </div>
 
-                <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 grid grid-cols-2 gap-4 text-xs">
+                <div className="grid grid-cols-1 gap-3 rounded-xl border border-border bg-muted/45 p-4 text-sm sm:grid-cols-2">
                   <div>
                     <span className="text-slate-400 font-semibold block">🏟️ Kickoff Location</span>
-                    <span id="next-match-loc" className="text-slate-700 block mt-0.5 font-medium">{nextMatch.location}</span>
+                    <span id="next-match-loc" className="mt-0.5 block font-semibold text-foreground">{nextMatch.location}</span>
                   </div>
                   <div>
                     <span className="text-slate-400 font-semibold block">🕒 Date & Timing</span>
-                    <span id="next-match-datetime" className="text-slate-750 block mt-0.5 font-medium">{nextMatch.date} @ {nextMatch.time}</span>
+                    <span id="next-match-datetime" className="mt-0.5 block font-semibold text-foreground">{nextMatch.date} @ {nextMatch.time}</span>
                   </div>
                 </div>
 
-                <div className="p-3 bg-indigo-50/50 rounded-xl border border-indigo-100/55 text-xs text-slate-750 flex items-start gap-2">
+                <div className="flex items-start gap-3 rounded-xl border border-primary/15 bg-primary/5 p-4 text-sm">
                   <span className="text-base text-indigo-600">📢</span>
                   <div>
-                    <strong className="block text-indigo-950">{(teamInfo?.coach || "Coach Sterling")}'s Prep Directives:</strong>
-                    <p className="mt-0.5 leading-relaxed text-slate-650">
+                    <strong className="block text-foreground">{(teamInfo?.coach || "Coach Sterling")}'s prep directives</strong>
+                    <p className="mt-1 leading-relaxed text-muted-foreground">
                       {nextMatch.notes || (
                         nextMatch.type === 'Training' 
                           ? "Focus on high-intensity workloads and technical precision. Ensure all athletic gear is complete."
                           : nextMatch.type === 'Meeting'
                           ? "Reviewing tactical formations, video reels, and assignment coordinates. Bring your playbooks."
-                          : "Review defense lines, lock opponent channels, and coordinate tactical transitions. Stay focus!"
+                          : "Review defense lines, lock opponent channels, and coordinate tactical transitions. Stay focused."
                       )}
                     </p>
                   </div>
                 </div>
               </div>
             ) : (
-              <div className="py-12 text-center text-slate-400 text-xs text-medium flex flex-col items-center justify-center space-y-2">
+              <div className="flex flex-col items-center justify-center space-y-3 py-12 text-center text-sm text-muted-foreground">
                 <span>✨ No upcoming matches scheduled at this time.</span>
-                <span className="text-indigo-600 hover:underline cursor-pointer" onClick={() => onNavigate({ primary: 'home', homeTab: 'game_week' })}>
+                <span className="cursor-pointer text-primary hover:underline" onClick={() => onNavigate({ primary: 'home', homeTab: 'game_week' })}>
                   Add games inside the Schedule builder →
                 </span>
               </div>
             )}
           </div>
 
-          <div className="pt-4 border-t border-slate-50 flex justify-between items-center text-xs mt-4">
-            <span className="text-slate-400 font-medium">Coordinate calendars in real-time</span>
+          <div className="mt-5 flex items-center justify-between border-t border-border pt-4 text-sm">
+            <span className="font-medium text-muted-foreground">Coordinate calendars in real time</span>
             <Button
               id="dash-go-schedule"
               type="button"
               variant="link"
               onClick={() => onNavigate({ primary: 'home', homeTab: 'game_week' })}
-              className="gap-1 text-indigo-600"
+              className="gap-1"
             >
-              Examine Complete Schedule <ArrowRight size={13} />
+              View schedule <ArrowRight size={13} />
             </Button>
           </div>
         </div>
 
         {/* Latest Announcements Bulletin (Right col 5) */}
-        <div className="lg:col-span-5 bg-white p-6 rounded-2xl border border-slate-200/60 shadow-md shadow-slate-100/30 flex flex-col justify-between hover:shadow-lg transition-shadow duration-300">
+        <div className={`lg:col-span-5 flex flex-col justify-between ${dashboardCardClass}`}>
           <div>
-            <div className="flex justify-between items-center pb-4 border-b border-slate-100">
-              <h3 className="text-xs font-display font-black uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
-                <Megaphone size={14} className="text-emerald-500" /> Latest Alerts
-              </h3>
-              <span className="text-[10px] text-slate-400 font-semibold font-mono">Real-time Desk</span>
+            <div className={`${dashboardHeaderClass} flex items-start justify-between gap-3`}>
+              <div>
+                <h3 className={dashboardSectionTitleClass}>
+                  <Megaphone size={18} className="text-primary" aria-hidden="true" /> Latest Alerts
+                </h3>
+                <p className={dashboardSectionDescriptionClass}>
+                  Club bulletins and time-sensitive updates.
+                </p>
+              </div>
+              <Badge variant={announcements.some(ann => ann.category === 'Urgent') ? 'destructive' : 'outline'} className="shrink-0">
+                {announcements.length > 0 ? `${announcements.length} total` : 'Quiet'}
+              </Badge>
             </div>
 
-            <div className="space-y-4 mt-4">
+            <div className="mt-5 space-y-3">
               {announcements.slice(0, 2).map((ann) => (
                 <div 
                   id={`dash-ann-${ann.id}-card`}
                   key={ann.id} 
-                  className={`p-3.5 rounded-xl border line-clamp-3 ${
+                  className={`rounded-xl border p-4 transition-colors ${
                     ann.category === 'Urgent' 
-                      ? 'bg-rose-50/40 border-rose-100 text-rose-955' 
-                      : 'bg-slate-50/55 border-slate-100/80 text-slate-700'
+                      ? 'border-destructive/20 bg-destructive/5'
+                      : 'border-border bg-muted/45'
                   }`}
                 >
-                  <div className="flex items-center justify-between text-[10px] mb-1.5">
-                    <span className={`px-2 py-0.5 rounded-full font-bold uppercase ${
-                      ann.category === 'Urgent' ? 'bg-rose-100 text-rose-800' : 'bg-slate-200 text-slate-650'
-                    }`}>
+                  <div className="mb-2 flex items-center justify-between gap-3">
+                    <Badge variant={ann.category === 'Urgent' ? 'destructive' : ann.category === 'Matchday' ? 'info' : ann.category === 'Training' ? 'success' : 'secondary'}>
                       {ann.category}
-                    </span>
-                    <span className="text-slate-400 font-medium">{ann.date}</span>
+                    </Badge>
+                    <span className="shrink-0 text-xs font-semibold text-muted-foreground">{ann.date}</span>
                   </div>
-                  <h4 className="font-bold text-xs text-slate-800 leading-tight">{ann.title}</h4>
-                  <p className="text-xs text-slate-500 line-clamp-2 mt-1 italic">
+                  <h4 className="line-clamp-1 text-sm font-black leading-tight text-foreground">{ann.title}</h4>
+                  <p className="mt-1 line-clamp-2 text-sm leading-relaxed text-muted-foreground">
                     "{ann.content}"
                   </p>
                 </div>
               ))}
 
               {announcements.length === 0 && (
-                <div className="py-12 text-center text-slate-400 text-xs">
-                  No notifications recorded on the dashboard.
+                <div className="flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-border bg-muted/35 px-4 py-10 text-center text-sm text-muted-foreground">
+                  <Megaphone size={24} className="text-primary/45" aria-hidden="true" />
+                  <span>No alerts recorded on the dashboard.</span>
                 </div>
               )}
             </div>
@@ -819,36 +838,36 @@ export default function DashboardView({
           <Button
             id="dash-go-ann"
             type="button"
-            variant="secondary"
+            variant="outline"
             onClick={() => onNavigate({ primary: 'league_updates', leagueUpdatesTab: 'updates' })}
-            className="mt-4 w-full rounded-xl bg-slate-50 text-slate-600 hover:bg-slate-100"
+            className="mt-5 w-full rounded-xl"
           >
-            Open All Club Bulletin Notices <ArrowRight size={12} />
+            Open bulletin notices <ArrowRight size={12} />
           </Button>
         </div>
 
       </div>
 
       {/* Team Summary Table — full squad at a glance */}
-      <div id="team-summary-table" className="bg-white rounded-2xl border border-slate-200/70 p-6 shadow-md shadow-slate-100/30">
-        <div className="pb-4 border-b border-slate-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+      <div id="team-summary-table" className={dashboardCardClass}>
+        <div className={`${dashboardHeaderClass} flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center`}>
           <div>
-            <h3 className="font-display font-black text-slate-850 uppercase tracking-wide text-base flex items-center gap-2">
-              <Table size={18} className="text-indigo-600" /> Squad Summary
+            <h3 className={dashboardSectionTitleClass}>
+              <Table size={18} className="text-primary" aria-hidden="true" /> Squad Summary
             </h3>
             <p className="text-slate-450 text-xs">All registered players — goals, assists, discipline, status, games played, and MVP awards</p>
           </div>
-          <div className="flex items-center gap-3 text-[10px] font-bold text-slate-400">
-            <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-emerald-500"></span> Active</span>
-            <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-amber-500"></span> Pending</span>
-            <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-rose-500"></span> Suspended</span>
+          <div className="flex flex-wrap items-center gap-2">
+            <Badge variant="success">Active</Badge>
+            <Badge variant="warning">Pending</Badge>
+            <Badge variant="destructive">Suspended</Badge>
           </div>
         </div>
 
         <div className="overflow-x-auto mt-4">
           <table className="w-full text-left text-xs">
             <thead>
-              <tr className="border-b-2 border-slate-100 text-[10px] font-black text-slate-400 uppercase tracking-widest">
+              <tr className="border-b border-border text-[10px] font-black uppercase tracking-widest text-muted-foreground">
                 <th className="pb-2.5 pr-2 w-8">#</th>
                 <th className="pb-2.5 pr-2">Name</th>
                 <th className="pb-2.5 pr-2">Position</th>
@@ -860,7 +879,7 @@ export default function DashboardView({
                 <th className="pb-2.5 text-center">Status</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-50">
+            <tbody className="divide-y divide-border">
               {[...players]
                 .sort((a, b) => {
                   const order = ['Forward', 'Midfielder', 'Defender', 'Goalkeeper'];
@@ -877,8 +896,8 @@ export default function DashboardView({
                     <tr 
                       key={p.id}
                       onClick={() => onSelectPlayer(p)}
-                      className={`hover:bg-indigo-50/50 transition-colors cursor-pointer ${
-                        isSuspended ? 'opacity-50 bg-rose-50/30' : ''
+                      className={`cursor-pointer transition-colors hover:bg-primary/5 ${
+                        isSuspended ? 'bg-destructive/5 opacity-60' : ''
                       }`}
                     >
                       <td className="py-2.5 pr-2 font-mono font-bold text-slate-500">{p.number || '—'}</td>
@@ -887,52 +906,52 @@ export default function DashboardView({
                           <img 
                             src={p.photoUrl} 
                             alt="" 
-                            className="w-6 h-6 rounded-full object-cover shrink-0 border border-slate-200"
+                            className="w-6 h-6 rounded-full object-cover shrink-0 border border-border"
                             referrerPolicy="no-referrer"
                           />
-                          <span className="font-bold text-slate-800 truncate max-w-[120px] text-[11px]">{p.name}</span>
+                          <span className="max-w-[120px] truncate text-[11px] font-bold text-foreground">{p.name}</span>
                         </div>
                       </td>
-                      <td className="py-2.5 pr-2 text-slate-500 font-medium text-[10px] whitespace-nowrap">{p.position}</td>
-                      <td className="py-2.5 pr-2 text-center font-bold text-slate-800">{p.points ?? 0}</td>
-                      <td className="py-2.5 pr-2 text-center font-bold text-slate-800">{p.assists ?? 0}</td>
+                      <td className="py-2.5 pr-2 text-muted-foreground font-medium text-[10px] whitespace-nowrap">{p.position}</td>
+                      <td className="py-2.5 pr-2 text-center font-bold text-foreground">{p.points ?? 0}</td>
+                      <td className="py-2.5 pr-2 text-center font-bold text-foreground">{p.assists ?? 0}</td>
                       <td className="py-2.5 pr-2 text-center">
                         {hasCards ? (
                           <div className="inline-flex items-center gap-1">
                             {(p.yellowCards || 0) > 0 && (
-                              <span className="bg-amber-100 text-amber-800 text-[9px] font-black px-1.5 py-0.5 rounded border border-amber-200">
+                              <Badge variant="warning" className="px-1.5 py-0 text-[9px] normal-case tracking-normal">
                                 {p.yellowCards} 🟨
-                              </span>
+                              </Badge>
                             )}
                             {(p.redCards || 0) > 0 && (
-                              <span className="bg-red-100 text-red-800 text-[9px] font-black px-1.5 py-0.5 rounded border border-red-200">
+                              <Badge variant="destructive" className="px-1.5 py-0 text-[9px] normal-case tracking-normal">
                                 {p.redCards} 🟥
-                              </span>
+                              </Badge>
                             )}
                           </div>
                         ) : (
                           <span className="text-slate-300">—</span>
                         )}
                       </td>
-                      <td className="py-2.5 pr-2 text-center font-bold text-slate-800">{p.gamesPlayed ?? 0}</td>
+                      <td className="py-2.5 pr-2 text-center font-bold text-foreground">{p.gamesPlayed ?? 0}</td>
                       <td className="py-2.5 pr-2 text-center">
                         {(p.mvpAwards || 0) > 0 ? (
-                          <span className="bg-amber-50 text-amber-700 text-[10px] font-black px-2 py-0.5 rounded-full border border-amber-200">
+                          <Badge variant="warning" className="gap-1 px-2 py-0 text-[10px]">
                             ⭐ {p.mvpAwards}
-                          </span>
+                          </Badge>
                         ) : (
                           <span className="text-slate-300">—</span>
                         )}
                       </td>
                       <td className="py-2.5 text-center">
-                        <span className={`inline-flex items-center gap-1 text-[9px] font-black px-2 py-0.5 rounded-full border ${
+                        <Badge className={`px-2 py-0 text-[9px] ${
                           p.registrationStatus === 'Active' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
                           isSuspended ? 'bg-rose-50 text-rose-700 border-rose-200' :
                           'bg-amber-50 text-amber-700 border-amber-200'
                         }`}>
                           {p.registrationStatus === 'Active' ? 'Active' :
                            isSuspended ? 'Suspended' : 'Pending'}
-                        </span>
+                        </Badge>
                       </td>
                     </tr>
                   );
@@ -968,28 +987,28 @@ export default function DashboardView({
       </div>
 
       {/* FPRDS Snapshot */}
-      <div id="fprds-snapshot" className="bg-white rounded-2xl border border-slate-200/70 p-6 shadow-md shadow-slate-100/30">
-        <div className="pb-4 border-b border-slate-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+      <div id="fprds-snapshot" className={dashboardCardClass}>
+        <div className={`${dashboardHeaderClass} flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center`}>
           <div>
-            <h3 className="font-display font-black text-slate-850 uppercase tracking-wide text-base flex items-center gap-2">
-              <ClipboardList className="text-indigo-600" size={18} /> FPRDS Snapshot
+            <h3 className={dashboardSectionTitleClass}>
+              <ClipboardList className="text-primary" size={18} aria-hidden="true" /> FPRDS Snapshot
             </h3>
-            <p className="text-slate-450 text-xs">Top prospects, recent improvements, and latest assessment sessions.</p>
+            <p className={dashboardSectionDescriptionClass}>Top prospects, recent improvements, and latest assessment sessions.</p>
           </div>
           <Button
             id="dash-open-assessments"
             type="button"
             onClick={() => onNavigate({ primary: 'development', developmentTab: 'assessments' })}
-            className="rounded-xl bg-indigo-600 text-xs font-black text-white shadow-md hover:bg-indigo-700"
+            className="rounded-xl text-xs font-black"
           >
             Open Assessments <ArrowRight size={14} />
           </Button>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 lg:gap-6 mt-6">
-          <div className="bg-slate-50/60 border border-slate-100/80 rounded-2xl p-4">
-            <h4 className="font-display font-bold text-xs uppercase text-slate-400 mb-3 flex items-center gap-1">
-              <Star size={14} className="text-amber-500" /> Top Prospects
+          <div className={dashboardPanelClass}>
+            <h4 className="mb-3 flex items-center gap-2 font-display text-sm font-black text-foreground">
+              <Star size={15} className="text-accent" aria-hidden="true" /> Top Prospects
             </h4>
             <div className="space-y-2.5">
               {topProspects.map(({ player, session }, idx) => (
@@ -998,31 +1017,31 @@ export default function DashboardView({
                   type="button"
                   variant="outline"
                   onClick={() => onSelectPlayer(player)}
-                  className="h-auto w-full justify-between rounded-xl border-slate-200/60 bg-white p-3 text-left whitespace-normal hover:border-indigo-300 hover:bg-indigo-50/40"
+                  className={dashboardListButtonClass}
                 >
                   <div className="flex items-center gap-2.5 min-w-0">
-                    <span className="font-display font-black text-slate-300 text-xs w-4 shrink-0">#{idx + 1}</span>
-                    <img src={player.photoUrl} alt="" className="w-7 h-7 rounded-full object-cover border border-slate-200 shrink-0" referrerPolicy="no-referrer" />
+                    <span className="font-display font-black text-muted-foreground/55 text-xs w-4 shrink-0">#{idx + 1}</span>
+                    <img src={player.photoUrl} alt="" className="w-7 h-7 rounded-full object-cover border border-border shrink-0" referrerPolicy="no-referrer" />
                     <div className="min-w-0">
-                      <p className="text-xs font-black text-slate-800 truncate">{player.name}</p>
+                      <p className="text-xs font-black text-foreground truncate">{player.name}</p>
                       <p className="text-[10px] text-slate-500 font-semibold truncate">{player.position} • {session.role}</p>
                     </div>
                   </div>
                   <div className="text-right shrink-0">
-                    <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest">OVR</p>
-                    <p className="text-lg font-display font-black text-slate-900 leading-none">{session.ovr}</p>
+                    <p className="text-[10px] text-muted-foreground font-black uppercase tracking-widest">OVR</p>
+                    <p className="text-lg font-display font-black text-foreground leading-none">{session.ovr}</p>
                   </div>
                 </Button>
               ))}
               {topProspects.length === 0 && (
-                <div className="text-center text-slate-400 text-xs py-10">No assessments recorded yet.</div>
+                <div className="text-center text-muted-foreground text-sm py-10">No assessments recorded yet.</div>
               )}
             </div>
           </div>
 
-          <div className="bg-slate-50/60 border border-slate-100/80 rounded-2xl p-4">
-            <h4 className="font-display font-bold text-xs uppercase text-slate-400 mb-3 flex items-center gap-1">
-              <TrendingUp size={14} className="text-emerald-600" /> Top Improvers
+          <div className={dashboardPanelClass}>
+            <h4 className="mb-3 flex items-center gap-2 font-display text-sm font-black text-foreground">
+              <TrendingUp size={15} className="text-success" aria-hidden="true" /> Top Improvers
             </h4>
             <div className="space-y-2.5">
               {topImprovers.map(({ player, session }, idx) => (
@@ -1031,13 +1050,13 @@ export default function DashboardView({
                   type="button"
                   variant="outline"
                   onClick={() => onSelectPlayer(player)}
-                  className="h-auto w-full justify-between rounded-xl border-slate-200/60 bg-white p-3 text-left whitespace-normal hover:border-emerald-300 hover:bg-emerald-50/40"
+                  className={dashboardListButtonClass}
                 >
                   <div className="flex items-center gap-2.5 min-w-0">
-                    <span className="font-display font-black text-slate-300 text-xs w-4 shrink-0">#{idx + 1}</span>
-                    <img src={player.photoUrl} alt="" className="w-7 h-7 rounded-full object-cover border border-slate-200 shrink-0" referrerPolicy="no-referrer" />
+                    <span className="font-display font-black text-muted-foreground/55 text-xs w-4 shrink-0">#{idx + 1}</span>
+                    <img src={player.photoUrl} alt="" className="w-7 h-7 rounded-full object-cover border border-border shrink-0" referrerPolicy="no-referrer" />
                     <div className="min-w-0">
-                      <p className="text-xs font-black text-slate-800 truncate">{player.name}</p>
+                      <p className="text-xs font-black text-foreground truncate">{player.name}</p>
                       <p className="text-[10px] text-slate-500 font-semibold truncate">{session.assessmentDate} • {session.assessmentType}</p>
                     </div>
                   </div>
@@ -1050,14 +1069,14 @@ export default function DashboardView({
                 </Button>
               ))}
               {topImprovers.length === 0 && (
-                <div className="text-center text-slate-400 text-xs py-10">No improvement data yet.</div>
+                <div className="text-center text-muted-foreground text-sm py-10">No improvement data yet.</div>
               )}
             </div>
           </div>
 
-          <div className="bg-slate-50/60 border border-slate-100/80 rounded-2xl p-4">
-            <h4 className="font-display font-bold text-xs uppercase text-slate-400 mb-3 flex items-center gap-1">
-              <Calendar size={14} className="text-indigo-600" /> Recent Assessments
+          <div className={dashboardPanelClass}>
+            <h4 className="mb-3 flex items-center gap-2 font-display text-sm font-black text-foreground">
+              <Calendar size={15} className="text-primary" aria-hidden="true" /> Recent Assessments
             </h4>
             <div className="space-y-2.5">
               {recentAssessments.map((s) => {
@@ -1069,24 +1088,24 @@ export default function DashboardView({
                     type="button"
                     variant="outline"
                     onClick={() => onSelectPlayer(player)}
-                    className="h-auto w-full justify-between rounded-xl border-slate-200/60 bg-white p-3 text-left whitespace-normal hover:border-indigo-300 hover:bg-indigo-50/40"
+                    className={dashboardListButtonClass}
                   >
                     <div className="flex items-center gap-2.5 min-w-0">
-                      <img src={player.photoUrl} alt="" className="w-7 h-7 rounded-full object-cover border border-slate-200 shrink-0" referrerPolicy="no-referrer" />
+                      <img src={player.photoUrl} alt="" className="w-7 h-7 rounded-full object-cover border border-border shrink-0" referrerPolicy="no-referrer" />
                       <div className="min-w-0">
-                        <p className="text-xs font-black text-slate-800 truncate">{player.name}</p>
+                        <p className="text-xs font-black text-foreground truncate">{player.name}</p>
                         <p className="text-[10px] text-slate-500 font-semibold truncate">{s.assessmentDate} • {s.role} • {s.assessmentType}</p>
                       </div>
                     </div>
                     <div className="text-right shrink-0">
-                      <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest">OVR</p>
-                      <p className="text-lg font-display font-black text-slate-900 leading-none">{s.ovr}</p>
+                      <p className="text-[10px] text-muted-foreground font-black uppercase tracking-widest">OVR</p>
+                      <p className="text-lg font-display font-black text-foreground leading-none">{s.ovr}</p>
                     </div>
                   </Button>
                 );
               })}
               {recentAssessments.length === 0 && (
-                <div className="text-center text-slate-400 text-xs py-10">No recent sessions.</div>
+                <div className="text-center text-muted-foreground text-sm py-10">No recent sessions.</div>
               )}
             </div>
           </div>

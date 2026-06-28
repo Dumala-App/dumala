@@ -9,9 +9,9 @@ const Checkbox = React.forwardRef<HTMLInputElement, CheckboxProps>(
   ({ className, disabled, ...props }, ref) => (
     <span
       className={cn(
-        'relative inline-flex size-4 shrink-0 items-center justify-center rounded border border-slate-300 bg-white transition-colors',
-        'has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-indigo-500/25 has-[:focus-visible]:ring-offset-2',
-        'has-[:checked]:border-indigo-600 has-[:checked]:bg-indigo-600',
+        'relative inline-flex size-4 shrink-0 items-center justify-center rounded border border-border bg-input transition-colors',
+        'has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring/35 has-[:focus-visible]:ring-offset-2 has-[:focus-visible]:ring-offset-background',
+        'has-[:checked]:border-primary has-[:checked]:bg-primary',
         disabled && 'cursor-not-allowed opacity-50',
         className
       )}
@@ -25,7 +25,7 @@ const Checkbox = React.forwardRef<HTMLInputElement, CheckboxProps>(
       />
       <span
         aria-hidden="true"
-        className="pointer-events-none flex size-full items-center justify-center rounded-[3px] text-white transition-colors peer-checked:[&>svg]:opacity-100"
+        className="pointer-events-none flex size-full items-center justify-center rounded-[3px] text-primary-foreground transition-colors peer-checked:[&>svg]:opacity-100"
       >
         <Check className="size-3 opacity-0 transition-opacity" />
       </span>

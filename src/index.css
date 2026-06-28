@@ -19,10 +19,52 @@
 @theme {
   --font-sans: "DM Sans", ui-sans-serif, system-ui, sans-serif;
   --font-display: "Manrope", ui-sans-serif, system-ui, sans-serif;
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
 }
 
 :root {
   color-scheme: light;
+  --background: #f6f8fc;
+  --foreground: #0f172a;
+  --card: #ffffff;
+  --card-foreground: #0f172a;
+  --muted: #eef3fb;
+  --muted-foreground: #64748b;
+  --border: #dbe5f2;
+  --input: #ffffff;
+  --ring: #f09020;
+  --primary: #103080;
+  --primary-foreground: #ffffff;
+  --accent: #f09020;
+  --accent-foreground: #111827;
+  --success: #059669;
+  --success-foreground: #ffffff;
+  --warning: #f09020;
+  --warning-foreground: #172554;
+  --destructive: #dc2626;
+  --destructive-foreground: #ffffff;
+  --shell: #071a44;
+  --shell-foreground: #f8fafc;
+  --shell-muted: #a9b9d4;
+  --surface-subtle: #f0f4fa;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
 }
@@ -42,9 +84,10 @@ body {
   min-height: 100vh;
   font-family: var(--font-sans);
   background:
-    radial-gradient(circle at 8% 0%, rgba(37, 99, 235, 0.08), transparent 28rem),
-    #f6f8fc;
-  color: #0f172a;
+    radial-gradient(circle at 8% 0%, color-mix(in srgb, var(--primary) 12%, transparent), transparent 28rem),
+    var(--background);
+  color: var(--foreground);
+  transition: background-color 180ms ease, color 180ms ease;
 }
 
 button,
@@ -63,20 +106,20 @@ input:focus-visible,
 select:focus-visible,
 textarea:focus-visible,
 a:focus-visible {
-  outline: 3px solid rgba(59, 130, 246, 0.28);
+  outline: 3px solid color-mix(in srgb, var(--ring) 30%, transparent);
   outline-offset: 2px;
 }
 
 ::selection {
-  background: #dbeafe;
-  color: #172554;
+  background: color-mix(in srgb, var(--accent) 28%, transparent);
+  color: var(--foreground);
 }
 
 #stack-app-root {
   background:
-    linear-gradient(rgba(255, 255, 255, 0.5), rgba(255, 255, 255, 0.5)),
-    radial-gradient(circle at 90% 10%, rgba(14, 165, 233, 0.08), transparent 32rem),
-    #f6f8fc;
+    linear-gradient(color-mix(in srgb, var(--card) 50%, transparent), color-mix(in srgb, var(--card) 50%, transparent)),
+    radial-gradient(circle at 90% 10%, color-mix(in srgb, var(--accent) 10%, transparent), transparent 32rem),
+    var(--background);
 }
 
 #app-main-content {
