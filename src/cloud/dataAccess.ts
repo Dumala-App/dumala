@@ -43,6 +43,27 @@ import {
 import { listTeamActivityHistory, type TeamActivityEvent } from './activity';
 import { importCloudPayload, type CloudImportDeviceContext } from './importer';
 import type { CloudImportPayload } from '../migrations/localToCloud';
+import {
+  getAdminConsoleSnapshot,
+  getCurrentAppAdmin,
+  createFeedbackSubmission,
+  createFprdsBetaSubmission,
+  findMyFprdsBetaSubmission,
+  updateFprdsBetaSubmissionReview,
+  recordAppSessionHeartbeat,
+  recordAppUsageEvent,
+  updateFeedbackSubmission,
+  type AdminConsoleSnapshot,
+  type AppAdminProfile,
+  type AppSessionHeartbeatInput,
+  type FeedbackStatus,
+  type FeedbackSubmissionInput,
+  type FeedbackSubmission,
+  type FprdsBetaSubmission,
+  type FprdsBetaSubmissionInput,
+  type FprdsBetaReviewInput,
+  type UsageEventInput
+} from './admin';
 
 export interface CloudBulletinRepository {
   list(clubId: string): Promise<SharedBulletin[]>;
@@ -94,6 +115,18 @@ export interface CloudSyncRepository {
   ): Promise<RecordShape>;
 }
 
+export interface CloudAdminRepository {
+  getCurrentAdmin(): Promise<AppAdminProfile | null>;
+  getSnapshot(): Promise<AdminConsoleSnapshot>;
+  recordUsageEvent(input: UsageEventInput): Promise<void>;
+  recordSessionHeartbeat(input: AppSessionHeartbeatInput): Promise<void>;
+  createFeedback(input: FeedbackSubmissionInput): Promise<FeedbackSubmission>;
+  updateFeedback(feedbackId: string, values: { status?: FeedbackStatus; adminNotes?: string | null }): Promise<FeedbackSubmission>;
+  findMyFprdsSubmission(assessmentId: string): Promise<FprdsBetaSubmission | null>;
+  createFprdsSubmission(input: FprdsBetaSubmissionInput): Promise<FprdsBetaSubmission>;
+  updateFprdsReview(submissionId: string, input: FprdsBetaReviewInput): Promise<FprdsBetaSubmission>;
+}
+
 export interface CloudDataAccess {
   auth: CloudAuthRepository;
   account: CloudAccountRepository;
@@ -102,6 +135,7 @@ export interface CloudDataAccess {
   lifecycle: CloudLifecycleRepository;
   activity: CloudActivityRepository;
   sync: CloudSyncRepository;
+  admin: CloudAdminRepository;
 }
 
 export const createCloudDataAccess = (client: DumalaSupabaseClient): CloudDataAccess => ({
@@ -146,5 +180,16 @@ export const createCloudDataAccess = (client: DumalaSupabaseClient): CloudDataAc
   sync: {
     importPayload: (payload, device) => importCloudPayload(client, payload, device),
     applyControlledUpdate: input => applyControlledRecordUpdate(client, input)
+  },
+  admin: {
+    getCurrentAdmin: () => getCurrentAppAdmin(client),
+    getSnapshot: () => getAdminConsoleSnapshot(client),
+    recordUsageEvent: input => recordAppUsageEvent(client, input),
+    recordSessionHeartbeat: input => recordAppSessionHeartbeat(client, input),
+    createFeedback: input => createFeedbackSubmission(client, input),
+    updateFeedback: (feedbackId, values) => updateFeedbackSubmission(client, feedbackId, values),
+    findMyFprdsSubmission: assessmentId => findMyFprdsBetaSubmission(client, assessmentId),
+    createFprdsSubmission: input => createFprdsBetaSubmission(client, input),
+    updateFprdsReview: (submissionId, input) => updateFprdsBetaSubmissionReview(client, submissionId, input)
   }
 });
