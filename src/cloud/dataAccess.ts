@@ -54,6 +54,7 @@ import { importCloudPayload, type CloudImportDeviceContext } from './importer';
 import type { CloudImportPayload } from '../migrations/localToCloud';
 import {
   getAdminConsoleSnapshot,
+  getAdminGrowthMetrics,
   getAdminSecurityMetrics,
   getCurrentAppAdmin,
   recordAdminAuditEvent,
@@ -65,6 +66,7 @@ import {
   recordAppUsageEvent,
   updateFeedbackSubmission,
   type AdminConsoleSnapshot,
+  type AdminGrowthMetrics,
   type AdminSecurityMetrics,
   type AppAdminProfile,
   type AppSessionHeartbeatInput,
@@ -136,6 +138,7 @@ export interface CloudAdminRepository {
   getCurrentAdmin(): Promise<AppAdminProfile | null>;
   getSnapshot(): Promise<AdminConsoleSnapshot>;
   getSecurityMetrics(days?: number): Promise<AdminSecurityMetrics>;
+  getGrowthMetrics(days?: number): Promise<AdminGrowthMetrics>;
   recordAuditEvent(eventType: string, metadata?: Record<string, unknown>): Promise<void>;
   recordUsageEvent(input: UsageEventInput): Promise<void>;
   recordSessionHeartbeat(input: AppSessionHeartbeatInput): Promise<void>;
@@ -209,6 +212,7 @@ export const createCloudDataAccess = (client: DumalaSupabaseClient): CloudDataAc
     getCurrentAdmin: () => getCurrentAppAdmin(client),
     getSnapshot: () => getAdminConsoleSnapshot(client),
     getSecurityMetrics: days => getAdminSecurityMetrics(client, days),
+    getGrowthMetrics: days => getAdminGrowthMetrics(client, days),
     recordAuditEvent: (eventType, metadata) => recordAdminAuditEvent(client, eventType, metadata),
     recordUsageEvent: input => recordAppUsageEvent(client, input),
     recordSessionHeartbeat: input => recordAppSessionHeartbeat(client, input),
