@@ -43,6 +43,8 @@ import { Textarea } from './ui/textarea';
 
 type AdminTab = 'overview' | 'usage' | 'feedback' | 'fprds' | 'online' | 'billing';
 
+const ADMIN_AUTH_REDIRECT_URL = 'https://dumala.asia/?returnTo=admin';
+
 const adminTabs: Array<{ id: AdminTab; label: string; icon: React.ComponentType<{ size?: number; className?: string }> }> = [
   { id: 'overview', label: 'Overview', icon: Gauge },
   { id: 'usage', label: 'Usage', icon: BarChart3 },
@@ -602,7 +604,7 @@ export default function AdminConsoleView() {
                 Sign in with the Supabase account that has been added to `app_admins`.
               </p>
               <div className="mt-4">
-                <CloudAccountGate />
+                <CloudAccountGate redirectTo={ADMIN_AUTH_REDIRECT_URL} />
               </div>
             </div>
           </div>

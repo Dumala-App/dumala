@@ -44,8 +44,11 @@ Keep the production site URL and redirect allowlist aligned with:
 
 ```text
 https://dumala.asia/
+https://dumala.asia/?returnTo=admin
 https://dumala.vercel.app/
 ```
+
+The Dumala Admin Console requests magic links with `https://dumala.asia/?returnTo=admin` so Supabase can process its auth hash before the app routes the signed-in owner back to `/#admin`.
 
 ## Grant The First Owner
 

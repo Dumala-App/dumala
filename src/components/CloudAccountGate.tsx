@@ -14,6 +14,7 @@ const CLOUD_DEVICE_ID_KEY = 'dumala_cloud_device_id';
 export interface CloudAccountGateProps {
   clubName?: string;
   appVersion?: string;
+  redirectTo?: string;
   runtime?: CloudRuntime;
   authController?: CloudAuthController;
 }
@@ -62,6 +63,7 @@ export const bootstrapSignedInCloudAccount = (
 export const CloudAccountGate = ({
   clubName,
   appVersion,
+  redirectTo,
   runtime: runtimeOverride,
   authController: authControllerOverride
 }: CloudAccountGateProps) => {
@@ -97,7 +99,7 @@ export const CloudAccountGate = ({
     setMessage('');
 
     try {
-      await submitCloudAccountEmail(email, auth.requestOtp);
+      await submitCloudAccountEmail(email, auth.requestOtp, redirectTo);
       setSubmitState('sent');
       setMessage('Check your email for the Dumala sign-in link.');
     } catch (error) {
