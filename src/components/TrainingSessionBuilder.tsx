@@ -76,6 +76,55 @@ const createSessionDrill = (
   };
 };
 
+const stableHash = (value: string): number => (
+  Array.from(value).reduce((total, char) => total + char.charCodeAt(0), 0)
+);
+
+const selectSuggestedDrill = (
+  library: readonly TrainingDrill[],
+  block: SessionBlockId,
+  day: DayName,
+  variant: number,
+  usedDrillIds: ReadonlySet<string>
+): TrainingDrill | null => {
+  const blockCandidates = library.filter(drill => inferDrillSessionBlock(drill) === block);
+  const freshCandidates = blockCandidates.filter(drill => !usedDrillIds.has(drill.id));
+  const candidates = freshCandidates.length > 0 ? freshCandidates : blockCandidates;
+  if (candidates.length === 0) return null;
+
+  const index = (stableHash(`${day}-${block}`) + variant) % candidates.length;
+  return candidates[index];
+};
+
+export const buildSuggestedSessionDrills = ({
+  day,
+  drills,
+  library,
+  onlyMissing,
+  variant,
+  suffixSeed
+}: {
+  day: DayName;
+  drills: readonly ScheduledDrill[];
+  library: readonly TrainingDrill[];
+  onlyMissing: boolean;
+  variant: number;
+  suffixSeed: string;
+}): ScheduledDrill[] => {
+  const usedDrillIds = new Set(drills.map(drill => drill.drillId));
+  return SESSION_BLOCKS.flatMap((block, index) => {
+    const alreadyHasBlock = drills.some(drill => getScheduledDrillBlock(drill) === block.id);
+    if (onlyMissing && alreadyHasBlock) return [];
+
+    const source = selectSuggestedDrill(library, block.id, day, variant + index, usedDrillIds);
+    if (!source) return [];
+
+    usedDrillIds.add(source.id);
+    const order = drills.filter(drill => getScheduledDrillBlock(drill) === block.id).length;
+    return [createSessionDrill(source, day, block.id, order, `${suffixSeed}-${index}`)];
+  });
+};
+
 export default function TrainingSessionBuilder({
   day,
   drills,
@@ -83,6 +132,7 @@ export default function TrainingSessionBuilder({
   onChange,
   onClose
 }: TrainingSessionBuilderProps) {
+  const [suggestionVariant, setSuggestionVariant] = React.useState(0);
   const orderedDrills = getOrderedSessionDrills(drills);
   const duration = getSessionDuration(drills);
   const loadPoints = getSessionLoadPoints(drills);
@@ -117,15 +167,15 @@ export default function TrainingSessionBuilder({
   };
 
   const addSuggestedBlocks = (onlyMissing: boolean) => {
-    const timestamp = Date.now();
-    const additions = SESSION_BLOCKS.flatMap((block, index) => {
-      const alreadyHasBlock = drills.some(drill => getScheduledDrillBlock(drill) === block.id);
-      if (onlyMissing && alreadyHasBlock) return [];
-      const source = library.find(drill => inferDrillSessionBlock(drill) === block.id);
-      if (!source) return [];
-      const order = drills.filter(drill => getScheduledDrillBlock(drill) === block.id).length;
-      return [createSessionDrill(source, day, block.id, order, `${timestamp}-${index}`)];
+    const additions = buildSuggestedSessionDrills({
+      day,
+      drills,
+      library,
+      onlyMissing,
+      variant: suggestionVariant,
+      suffixSeed: String(Date.now())
     });
+    setSuggestionVariant(current => current + 1);
     onChange([...drills, ...additions]);
   };
 
@@ -211,7 +261,7 @@ export default function TrainingSessionBuilder({
             <div className="flex flex-col gap-3 rounded-xl border border-indigo-200 bg-indigo-50/60 p-4 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <h4 className="text-xs font-black text-slate-900">Start with a balanced structure</h4>
-                <p className="mt-1 text-[10px] text-slate-600">Add one suggested drill to each available session block, then adjust the details.</p>
+                <p className="mt-1 text-[10px] text-slate-600">Add a varied drill mix across the session blocks, then adjust the details.</p>
               </div>
               <Button type="button" onClick={() => addSuggestedBlocks(false)} className="h-9 bg-indigo-600 text-white hover:bg-indigo-700">
                 <Sparkles size={14} /> Quick start
