@@ -18,7 +18,7 @@ describe('training drill library', () => {
   it('keeps drill metadata complete enough for filtering and scheduling', () => {
     expect(TRAINING_DRILLS.every(drill => drill.name && drill.category && drill.description)).toBe(true);
     expect(TRAINING_DRILLS.every(drill => drill.targetAttributes.length > 0)).toBe(true);
-    expect(TRAINING_DRILLS.every(drill => Object.keys(drill.statsBumps).length > 0)).toBe(true);
+    expect(TRAINING_DRILLS.every(drill => Object.keys(drill.developmentFocus).length > 0)).toBe(true);
     expect(TRAINING_DRILLS.every(drill => drill.fatigueIncrease > 0)).toBe(true);
   });
 

@@ -1213,7 +1213,6 @@ export default function App() {
                   players={players}
                   games={games}
                   onUpdateGames={setGames}
-                  onUpdatePlayer={handleUpdatePlayer}
                   assessments={assessments}
                   preselectedAssessmentsPlayerId={preselectedAssessmentsPlayerId}
                   onClearPreselectedAssessmentsPlayerId={() => setPreselectedAssessmentsPlayerId(null)}
