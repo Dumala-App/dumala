@@ -3,6 +3,7 @@ import type { AssessmentSession, FprdsAttributeId } from '../types';
 import {
   buildPlayerAssessmentReport,
   buildAssessmentProgressSeries,
+  buildPlayerFeedbackReport,
   buildSessionAssessmentReport,
   calculateProgressDelta,
   filterProgressSeriesByRole,
@@ -147,5 +148,120 @@ describe('FPRDS progress series', () => {
     expect(report?.improved[0].attributeId).toBe('visionPlaymaking');
     expect(report?.declined[0].attributeId).toBe('stamina');
     expect(buildSessionAssessmentReport(target, target)).toBeNull();
+  });
+
+  it('builds a player feedback report from one saved assessment', () => {
+    const latest = session({
+      id: 'latest',
+      role: 'ST',
+      ovr: 72,
+      labels: {
+        weakestAttributeId: 'shotPower',
+        ovrTierLabel: 'Core'
+      },
+      attributeScores: {
+        ...scores(62),
+        finishingBox: 84,
+        pace: 78,
+        shotPower: 45,
+        offensive1v1: 58
+      }
+    });
+
+    const report = buildPlayerFeedbackReport(latest, null);
+
+    expect(report?.ovrDelta).toBeNull();
+    expect(report?.trendLabel).toBe('First saved assessment');
+    expect(report?.latestSession.id).toBe('latest');
+    expect(report?.strengths[0].attributeId).toBe('finishingBox');
+    expect(report?.strengths[0].displayName).toBe('Finishing in the box');
+    expect(report?.priorities[0].attributeId).toBe('shotPower');
+    expect(report?.priorities[0].displayName).toBe('Controlled power');
+    expect(report?.priorities[0].reason).toContain('Controlled power');
+    expect(report?.feedback.headline).not.toContain('profile');
+    expect(report?.feedback.headline).not.toContain('make the next message narrow');
+    expect(report?.feedback.opening).not.toContain('Your role picture is clear');
+    expect(report?.feedback.correction).toContain('Controlled power');
+    expect(report?.feedback.focus.length).toBeGreaterThan(40);
+    expect(JSON.stringify(report?.feedback)).not.toContain('Tell the player:');
+    expect(report?.conversationPrompts).toHaveLength(3);
+    expect(new Set(report?.conversationPrompts).size).toBe(3);
+  });
+
+  it('includes previous-assessment trend in player feedback', () => {
+    const previous = session({ id: 'previous', ovr: 68 });
+    const latest = session({ id: 'latest', ovr: 75 });
+
+    const report = buildPlayerFeedbackReport(latest, previous);
+
+    expect(report?.ovrDelta).toBe(7);
+    expect(report?.trendLabel).toBe('Up 7 OVR since last assessment');
+    expect(report?.trendTone).toBe('positive');
+    expect(JSON.stringify(report?.feedback)).toContain('The progress is real');
+  });
+
+  it('uses coach-friendly language instead of raw FPRDS attribute IDs', () => {
+    const latest = session({
+      id: 'winger',
+      role: 'W',
+      attributeScores: {
+        ...scores(70),
+        pace: 82,
+        offensive1v1: 41,
+        finishingBox: 72
+      }
+    });
+
+    const report = buildPlayerFeedbackReport(latest, null);
+    const priority = report?.priorities.find((item) => item.attributeId === 'offensive1v1');
+
+    expect(priority?.displayName).toBe('Beating a defender');
+    expect(priority?.coachPhrase).toBe('taking on and beating the first defender');
+    expect(priority?.reason).not.toContain('Offensive1v1');
+    expect(JSON.stringify(report)).not.toContain('Offensive1v1');
+  });
+
+  it('selects stable copy variations without banned scaffolding phrases', () => {
+    const first = buildPlayerFeedbackReport(session({ id: 'copy-a', ovr: 71 }), null);
+    const second = buildPlayerFeedbackReport(session({ id: 'copy-b', ovr: 71 }), null);
+
+    expect(first?.feedback.headline).not.toBe(second?.feedback.headline);
+    expect(JSON.stringify(first?.feedback)).not.toContain('Your role picture is clear');
+    expect(JSON.stringify(first?.feedback)).not.toContain('make the next message narrow');
+    expect(JSON.stringify(first?.feedback)).not.toContain('profile:');
+    expect(first?.feedback).toEqual(buildPlayerFeedbackReport(session({ id: 'copy-a', ovr: 71 }), null)?.feedback);
+  });
+
+  it('uses a saved development plan for feedback next steps', () => {
+    const latest = session({
+      id: 'latest',
+      developmentPlan: {
+        focusAttributeId: 'visionPlaymaking',
+        priorityScore: 8,
+        weeks: [
+          { weekNumber: 1, focus: 'Foundation: Vision', drillIds: ['drill-playmaking'], notes: 'Scan early.' },
+          { weekNumber: 2, focus: 'Progression: Vision', drillIds: ['drill-playmaking'], notes: 'Add pressure.' },
+          { weekNumber: 3, focus: 'Decision speed: Vision', drillIds: ['drill-playmaking'], notes: 'Limit touches.' },
+          { weekNumber: 4, focus: 'Retest: Vision', drillIds: [], notes: 'Retest.' }
+        ]
+      }
+    });
+
+    const report = buildPlayerFeedbackReport(latest, null);
+
+    expect(report?.nextStep.title).toBe('Use the saved 4-week plan');
+    expect(report?.nextStep.focusAttributeId).toBe('visionPlaymaking');
+    expect(report?.nextStep.body).toContain('seeing the next pass before pressure closes');
+    expect(report?.nextStep.body).toContain('retest after week 4');
+  });
+
+  it('recommends a Full assessment when feedback has no development plan', () => {
+    const latest = session({ id: 'quick', assessmentType: 'Quick', developmentPlan: undefined });
+
+    const report = buildPlayerFeedbackReport(latest, null);
+
+    expect(report?.nextStep.title).toBe('Run a Full assessment for the plan');
+    expect(report?.nextStep.body).toContain('feedback checkpoint');
+    expect(report?.nextStep.body).toContain('4-week training block');
   });
 });
