@@ -305,7 +305,13 @@ export const scheduledDrillSchema = z.object({
   icon: z.string().optional(),
   fatigueIncrease: finiteNumber,
   playerId: z.string().optional(),
-  playerName: z.string().optional()
+  playerName: z.string().optional(),
+  block: z.enum(['warmup', 'technical', 'tactical', 'conditioning', 'cooldown']).optional(),
+  order: finiteNumber.optional(),
+  durationMinutes: finiteNumber.optional(),
+  intensityRating: finiteNumber.optional(),
+  equipment: z.array(z.string()).optional(),
+  notes: z.string().optional()
 }).passthrough();
 
 export const weeklyScheduleSchema = z.object({

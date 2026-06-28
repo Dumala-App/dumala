@@ -5,21 +5,38 @@ import { weeklyScheduleSchema } from '../persistence/schemas';
 import { readJsonStorage, STORAGE_KEYS, writeJsonStorage } from '../persistence/storage';
 import {
   DAYS_OF_WEEK,
+  SESSION_BLOCKS,
+  SESSION_LOAD_THRESHOLDS,
   getWeekDaysMap,
+  getOrderedSessionDrills,
+  getScheduledDrillBlock,
+  getScheduledDrillDuration,
+  getSessionDuration,
+  getSessionLoadPoints,
   synchronizeTrainingCalendar,
   type DayName,
   type ScheduledDrill,
   type WeeklySchedule
 } from '../training/synchronization';
-import { DRILL_INSTRUCTIONS, TRAINING_DRILLS, type TrainingDrill } from '../training/drillLibrary';
+import {
+  DRILL_INSTRUCTIONS,
+  TRAINING_DRILLS,
+  getDrillEquipment,
+  inferDrillSessionBlock,
+  type TrainingDrill
+} from '../training/drillLibrary';
 import { TrainingDrillCard, getDrillIcon } from './TrainingDrillCard';
+import TrainingSessionBuilder from './TrainingSessionBuilder';
 import { Badge } from '@/src/components/ui/badge';
 import { Button } from '@/src/components/ui/button';
 import { Input } from '@/src/components/ui/input';
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
+  SelectLabel,
+  SelectSeparator,
   SelectTrigger,
   SelectValue
 } from '@/src/components/ui/select';
@@ -58,6 +75,42 @@ const DEFAULT_SCHEDULE: WeeklySchedule = {
 
 const weeklyScheduleWeeksSchema = z.record(z.string(), weeklyScheduleSchema);
 
+const DRILL_FILTER_GROUPS = [
+  {
+    label: 'Training type',
+    options: [
+      { id: 'all', label: 'All drills' },
+      { id: 'technical', label: 'Technical' },
+      { id: 'tactical', label: 'Tactical' },
+      { id: 'conditioning', label: 'Conditioning & recovery' }
+    ]
+  },
+  {
+    label: 'Player role',
+    options: [
+      { id: 'forward', label: 'Forwards' },
+      { id: 'midfielder', label: 'Midfielders' },
+      { id: 'defender', label: 'Defenders' },
+      { id: 'goalkeeper', label: 'Goalkeepers' }
+    ]
+  },
+  {
+    label: 'Attribute',
+    options: [
+      { id: 'speed', label: 'Speed' },
+      { id: 'shooting', label: 'Shooting' },
+      { id: 'passing', label: 'Passing' },
+      { id: 'dribbling', label: 'Dribbling' },
+      { id: 'defending', label: 'Defending' },
+      { id: 'physicalness', label: 'Stamina & physicality' }
+    ]
+  }
+] as const;
+
+const DRILL_FILTER_LABELS = Object.fromEntries(
+  DRILL_FILTER_GROUPS.flatMap(group => group.options.map(option => [option.id, option.label]))
+);
+
 const createEmptyWeeklySchedule = (): WeeklySchedule => ({
   Monday: [],
   Tuesday: [],
@@ -67,6 +120,29 @@ const createEmptyWeeklySchedule = (): WeeklySchedule => ({
   Saturday: [],
   Sunday: []
 });
+
+const normalizeWeeklySchedule = (schedule: WeeklySchedule): WeeklySchedule => {
+  const normalized = createEmptyWeeklySchedule();
+  DAYS_OF_WEEK.forEach(day => {
+    const blockCounts = new Map<string, number>();
+    normalized[day] = (schedule[day] ?? []).map(drill => {
+      const source = TRAINING_DRILLS.find(item => item.id === drill.drillId);
+      const block = drill.block ?? (source ? inferDrillSessionBlock(source) : 'technical');
+      const blockDefinition = SESSION_BLOCKS.find(item => item.id === block);
+      const order = drill.order ?? (blockCounts.get(block) ?? 0);
+      blockCounts.set(block, order + 1);
+      return {
+        ...drill,
+        block,
+        order,
+        durationMinutes: drill.durationMinutes ?? blockDefinition?.defaultDurationMinutes ?? 15,
+        intensityRating: drill.intensityRating ?? drill.fatigueIncrease,
+        equipment: drill.equipment ?? getDrillEquipment(drill.drillId)
+      };
+    });
+  });
+  return normalized;
+};
 
 const toDateKey = (date: Date) => {
   const year = date.getFullYear();
@@ -112,9 +188,9 @@ const readWeeklyScheduleWeeks = () => readJsonStorage(
 
 const readScheduleForWeek = (weekKey: string, currentWeekKey: string) => {
   const scheduleWeeks = readWeeklyScheduleWeeks();
-  if (scheduleWeeks[weekKey]) return scheduleWeeks[weekKey];
+  if (scheduleWeeks[weekKey]) return normalizeWeeklySchedule(scheduleWeeks[weekKey]);
   if (weekKey === currentWeekKey) {
-    return readJsonStorage(STORAGE_KEYS.weeklySchedule, weeklyScheduleSchema, DEFAULT_SCHEDULE, 'Weekly training');
+    return normalizeWeeklySchedule(readJsonStorage(STORAGE_KEYS.weeklySchedule, weeklyScheduleSchema, DEFAULT_SCHEDULE, 'Weekly training'));
   }
   return createEmptyWeeklySchedule();
 };
@@ -127,9 +203,33 @@ const writeScheduleForWeek = (weekKey: string, schedule: WeeklySchedule) => {
   });
 };
 
+const createScheduledDrill = (
+  drill: TrainingDrill,
+  day: DayName,
+  order: number,
+  playerName?: string
+): ScheduledDrill => {
+  const block = inferDrillSessionBlock(drill);
+  const blockDefinition = SESSION_BLOCKS.find(item => item.id === block);
+  return {
+    id: `scheduled-${day}-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+    drillId: drill.id,
+    name: drill.name,
+    icon: drill.icon,
+    fatigueIncrease: drill.fatigueIncrease,
+    playerName,
+    block,
+    order,
+    durationMinutes: blockDefinition?.defaultDurationMinutes ?? 15,
+    intensityRating: drill.fatigueIncrease,
+    equipment: getDrillEquipment(drill.id)
+  };
+};
+
 export default function TrainingView({ players, onUpdatePlayer, games, onUpdateGames }: TrainingViewProps) {
   const [selectedDrillId, setSelectedDrillId] = useState<string>(TRAINING_DRILLS[0].id);
   const [expandedDrills, setExpandedDrills] = useState<Set<string>>(new Set());
+  const [builderDay, setBuilderDay] = useState<DayName | null>(null);
   const currentWeekKey = useMemo(() => toDateKey(getWeekStartDate(new Date())), []);
   const [selectedWeekStart, setSelectedWeekStart] = useState<Date>(() => getWeekStartDate(new Date()));
   const selectedWeekKey = useMemo(() => toDateKey(selectedWeekStart), [selectedWeekStart]);
@@ -165,6 +265,7 @@ export default function TrainingView({ players, onUpdatePlayer, games, onUpdateG
     writeScheduleForWeek(selectedWeekKey, weeklySchedule);
     const nextWeekStart = addWeeks(selectedWeekStart, direction);
     const nextWeekKey = toDateKey(nextWeekStart);
+    setBuilderDay(null);
     setSelectedWeekStart(nextWeekStart);
     setWeeklySchedule(readScheduleForWeek(nextWeekKey, currentWeekKey));
   };
@@ -172,6 +273,7 @@ export default function TrainingView({ players, onUpdatePlayer, games, onUpdateG
   const handleReturnToCurrentWeek = () => {
     writeScheduleForWeek(selectedWeekKey, weeklySchedule);
     const currentStart = getWeekStartDate(new Date());
+    setBuilderDay(null);
     setSelectedWeekStart(currentStart);
     setWeeklySchedule(readScheduleForWeek(currentWeekKey, currentWeekKey));
   };
@@ -193,16 +295,9 @@ export default function TrainingView({ players, onUpdatePlayer, games, onUpdateG
     const drillId = e.dataTransfer.getData('text/plain');
     const drill = TRAINING_DRILLS.find(d => d.id === drillId);
     if (drill) {
-      const newScheduled: ScheduledDrill = {
-        id: `scheduled-${day}-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
-        drillId: drill.id,
-        name: drill.name,
-        icon: drill.icon,
-        fatigueIncrease: drill.fatigueIncrease
-      };
       setWeeklySchedule(prev => ({
         ...prev,
-        [day]: [...prev[day], newScheduled]
+        [day]: [...prev[day], createScheduledDrill(drill, day, prev[day].length)]
       }));
     }
   };
@@ -237,14 +332,14 @@ export default function TrainingView({ players, onUpdatePlayer, games, onUpdateG
           id: `lw-${day}-${Date.now()}-${index}`
         }));
       });
-      setWeeklySchedule(restored);
+      setWeeklySchedule(normalizeWeeklySchedule(restored));
       return;
     }
 
     const fillDays = (template: Partial<Record<DayName, Array<{ id: string; drillId: string; name: string; fatigueIncrease: number }>>>) => {
       const base: WeeklySchedule = { Monday:[], Tuesday:[], Wednesday:[], Thursday:[], Friday:[], Saturday:[], Sunday:[] };
       DAYS_OF_WEEK.forEach(day => { if (template[day]) base[day] = template[day]; });
-      return base;
+      return normalizeWeeklySchedule(base);
     };
 
     if (mode === 'heavy') {
@@ -464,9 +559,18 @@ export default function TrainingView({ players, onUpdatePlayer, games, onUpdateG
     }
     return true;
   });
+  const orderedDevelopmentDrills = [...developmentDrills].sort((first, second) => {
+    if (!growthNeeds) return 0;
+    return Number(growthNeeds.isBeneficial(second)) - Number(growthNeeds.isBeneficial(first));
+  });
 
   const selectedTrainingDrills = TRAINING_DRILLS.filter(drill => selectedTrainingDrillIds.includes(drill.id));
-  const selectedTrainingLoad = selectedTrainingDrills.reduce((sum, drill) => sum + drill.fatigueIncrease, 0);
+  const selectedScheduleDrill = TRAINING_DRILLS.find(drill => drill.id === selectedDrillId) ?? TRAINING_DRILLS[0];
+  const selectedTrainingLoad = selectedTrainingDrills.reduce((sum, drill) => {
+    const block = inferDrillSessionBlock(drill);
+    const duration = SESSION_BLOCKS.find(item => item.id === block)?.defaultDurationMinutes ?? 15;
+    return sum + Math.round(drill.fatigueIncrease * duration / 10);
+  }, 0);
   const projectedTrainingGains = selectedTrainingDrills.reduce<Partial<Record<keyof Player['attributes'], number>>>(
     (totals, drill) => {
       Object.entries(drill.statsBumps).forEach(([attribute, amount]) => {
@@ -480,30 +584,64 @@ export default function TrainingView({ players, onUpdatePlayer, games, onUpdateG
 
   const dailyLoads = DAYS_OF_WEEK.map(day => ({
     day,
-    load: weeklySchedule[day].reduce((sum, item) => sum + item.fatigueIncrease, 0)
+    load: getSessionLoadPoints(weeklySchedule[day])
   }));
   const weeklyLoad = dailyLoads.reduce((sum, item) => sum + item.load, 0);
-  const heavyDays = dailyLoads.filter(item => item.load >= 13).length;
-  const recoveryDays = dailyLoads.filter(item => item.load <= 3).length;
-  const workloadStatus = heavyDays >= 3 || weeklyLoad > 55
-    ? { label: 'High risk', color: 'text-rose-300', note: 'Reduce one high-load day and add mobility work.' }
-    : recoveryDays < 2
-      ? { label: 'Needs recovery', color: 'text-amber-300', note: 'Keep at least two low-load days in the week.' }
-      : { label: 'Balanced', color: 'text-emerald-300', note: 'Work and recovery are distributed well.' };
+  const overloadedDays = dailyLoads.filter(item => item.load >= SESSION_LOAD_THRESHOLDS.high);
+  const recoveryDays = dailyLoads.filter(item => item.load < SESSION_LOAD_THRESHOLDS.optimal).length;
+  const highestLoadDay = dailyLoads.reduce((highest, item) => item.load > highest.load ? item : highest, dailyLoads[0]);
+  const lowestLoadDay = dailyLoads.reduce((lowest, item) => item.load < lowest.load ? item : lowest, dailyLoads[0]);
+  const overloadedDayNames = new Intl.ListFormat('en', { style: 'long', type: 'conjunction' })
+    .format(overloadedDays.map(item => item.day));
+  const weekHealth = overloadedDays.length >= 2 || weeklyLoad > SESSION_LOAD_THRESHOLDS.weeklyHigh
+    ? {
+        label: 'High load',
+        badgeClass: 'border-rose-200 bg-rose-50 text-rose-700',
+        iconClass: 'text-rose-600',
+        actionClass: 'border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100 hover:text-rose-800'
+      }
+    : overloadedDays.length === 1 || recoveryDays < 2
+      ? {
+          label: 'Needs attention',
+          badgeClass: 'border-amber-200 bg-amber-50 text-amber-700',
+          iconClass: 'text-amber-600',
+          actionClass: 'border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100 hover:text-amber-800'
+        }
+      : {
+          label: 'Balanced',
+          badgeClass: 'border-emerald-200 bg-emerald-50 text-emerald-700',
+          iconClass: 'text-emerald-600',
+          actionClass: 'border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 hover:text-emerald-800'
+        };
 
   const addDrillsToDay = (drills: readonly TrainingDrill[], day: DayName, playerName?: string) => {
-    const scheduled = drills.map((drill, index) => ({
-      id: `development-${day}-${Date.now()}-${index}`,
-      drillId: drill.id,
-      name: drill.name,
-      icon: drill.icon,
-      fatigueIncrease: drill.fatigueIncrease,
-      playerName
-    }));
     setWeeklySchedule(prev => ({
       ...prev,
-      [day]: [...prev[day], ...scheduled]
+      [day]: [
+        ...prev[day],
+        ...drills.map((drill, index) => createScheduledDrill(drill, day, prev[day].length + index, playerName))
+      ]
     }));
+  };
+
+  const handleWeekHealthAction = () => {
+    if (overloadedDays.length === 0) {
+      const recoveryDrill = TRAINING_DRILLS.find(drill => drill.id === 'drill-mobility');
+      if (recoveryDrill) addDrillsToDay([recoveryDrill], lowestLoadDay.day);
+      return;
+    }
+
+    setWeeklySchedule(current => {
+      const drills = current[highestLoadDay.day];
+      if (drills.length === 0) return current;
+      const highestLoadDrill = drills.reduce((highest, drill) => (
+        getSessionLoadPoints([drill]) > getSessionLoadPoints([highest]) ? drill : highest
+      ), drills[0]);
+      return {
+        ...current,
+        [highestLoadDay.day]: drills.filter(drill => drill.id !== highestLoadDrill.id)
+      };
+    });
   };
 
   const handleCompleteDevelopmentSession = () => {
@@ -555,6 +693,15 @@ export default function TrainingView({ players, onUpdatePlayer, games, onUpdateG
       selectedAttributeFilter === 'all' ||
       (selectedAttributeFilter === 'conditioning'
         ? drill.category.toLowerCase().includes('conditioning') || drill.category.toLowerCase().includes('recovery')
+        : selectedAttributeFilter === 'tactical'
+          ? drill.category.toLowerCase().includes('tactical') || drill.category.toLowerCase().includes('strategy')
+          : selectedAttributeFilter === 'technical'
+            ? !drill.category.toLowerCase().includes('conditioning') &&
+              !drill.category.toLowerCase().includes('recovery') &&
+              !drill.category.toLowerCase().includes('stamina') &&
+              !drill.category.toLowerCase().includes('physical') &&
+              !drill.category.toLowerCase().includes('tactical') &&
+              !drill.category.toLowerCase().includes('strategy')
         : selectedAttributeFilter === 'forward'
           ? drill.category.toLowerCase().startsWith('forward')
           : selectedAttributeFilter === 'midfielder'
@@ -574,19 +721,19 @@ export default function TrainingView({ players, onUpdatePlayer, games, onUpdateG
     <div id="training-view-container" className="space-y-6">
       
       {/* Standalone Brand Header Section */}
-      <div className="bg-gradient-to-r from-indigo-900 via-indigo-950 to-slate-900 text-white rounded-2xl p-6.5 shadow-lg border border-indigo-950 relative overflow-hidden">
+      <div className="relative overflow-hidden rounded-2xl border border-indigo-950 bg-gradient-to-r from-indigo-900 via-indigo-950 to-slate-900 p-6 text-white shadow-lg sm:p-7">
         <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none">
           <Dumbbell size={200} className="stroke-[3]" />
         </div>
         
         <div className="relative z-10 space-y-2">
           <div className="flex items-center gap-2">
-            <span className="bg-amber-400 text-slate-950 text-[10px] font-black uppercase px-2.5 py-0.5 rounded tracking-widest">ATHLETIC LABS</span>
-            <span className="text-indigo-200 text-xs font-mono">Performance Hub & Drills Engine</span>
+            <span className="rounded bg-amber-400 px-2.5 py-0.5 text-[10px] font-black uppercase tracking-widest text-slate-950">Training hub</span>
+            <span className="text-xs text-indigo-200">Plan · balance · develop</span>
           </div>
           <h2 className="text-2xl md:text-3xl font-display font-black tracking-tight">Interactive Training Grounds</h2>
           <p className="text-slate-300 text-xs md:text-sm max-w-3xl leading-relaxed">
-            Maximize squad tactical capabilities and stamina ratios. Establish full team workouts, select specific training drills, and simulate direct stat boosts to improve your players' technical scores in coordination with state metrics.
+            Build a balanced weekly plan, choose focused drills, and turn player development needs into practical sessions.
           </p>
         </div>
       </div>
@@ -596,12 +743,13 @@ export default function TrainingView({ players, onUpdatePlayer, games, onUpdateG
         {/* Header */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 pb-4 border-b border-slate-100">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-amber-500 text-white flex items-center justify-center font-display shadow-sm font-bold shadow-amber-500/10">
+            <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-amber-500 text-[0px] text-white shadow-sm shadow-amber-500/10">
+              <CalendarPlus size={17} aria-hidden="true" />
               📅
             </div>
             <div>
-              <h3 className="font-display font-black text-slate-800 text-sm uppercase tracking-wider">Weekly Intensity & Strategy Planner</h3>
-              <p className="text-slate-500 text-[11px]">Drag drills from the playbook index and drop onto calendar blocks to design and balance the squad's physical workload.</p>
+              <h3 className="font-display text-sm font-black uppercase tracking-wider text-slate-800">Weekly Training Planner</h3>
+              <p className="text-[11px] text-slate-500">Start from a plan or build the week by adding drills from the library.</p>
             </div>
           </div>
 
@@ -717,25 +865,25 @@ export default function TrainingView({ players, onUpdatePlayer, games, onUpdateG
             <span className="text-[9px] font-black tracking-widest text-indigo-400 uppercase">CALENDAR LABS</span>
             <h4 className="font-display font-black text-white text-sm uppercase">Intensity Distribution</h4>
             <p className="text-[10px] text-slate-400 leading-normal">
-              A real-time aggregate of physical drainage indices across the seven-day cycle. High-intensity spikes should be balanced with tapering periods.
+              Estimated load points across the seven-day cycle, calculated from each drill's duration and intensity.
             </p>
             
             {/* Distribution Index info */}
             <div className="mt-2 text-[10px] font-mono space-y-1 p-2 bg-slate-950/60 rounded-lg">
               <div className="flex justify-between items-center text-rose-400 font-bold">
-                <span>Heavy Load (13+):</span>
-                <span>{DAYS_OF_WEEK.filter(d => weeklySchedule[d].reduce((sum, item) => sum + item.fatigueIncrease, 0) >= 13).length} Days</span>
+                <span>High ({SESSION_LOAD_THRESHOLDS.high}+ pts):</span>
+                <span>{DAYS_OF_WEEK.filter(d => getSessionLoadPoints(weeklySchedule[d]) >= SESSION_LOAD_THRESHOLDS.high).length} Days</span>
               </div>
               <div className="flex justify-between items-center text-amber-300 font-bold">
-                <span>Optimal (6-12):</span>
+                <span>Training ({SESSION_LOAD_THRESHOLDS.optimal}-{SESSION_LOAD_THRESHOLDS.high - 1} pts):</span>
                 <span>{DAYS_OF_WEEK.filter(d => {
-                  const sum = weeklySchedule[d].reduce((sum, item) => sum + item.fatigueIncrease, 0);
-                  return sum >= 6 && sum < 13;
+                  const sum = getSessionLoadPoints(weeklySchedule[d]);
+                  return sum >= SESSION_LOAD_THRESHOLDS.optimal && sum < SESSION_LOAD_THRESHOLDS.high;
                 }).length} Days</span>
               </div>
               <div className="flex justify-between items-center text-emerald-400 font-bold">
-                <span>Recovery (0-5):</span>
-                <span>{DAYS_OF_WEEK.filter(d => weeklySchedule[d].reduce((sum, item) => sum + item.fatigueIncrease, 0) < 6).length} Days</span>
+                <span>Light (0-{SESSION_LOAD_THRESHOLDS.optimal - 1} pts):</span>
+                <span>{DAYS_OF_WEEK.filter(d => getSessionLoadPoints(weeklySchedule[d]) < SESSION_LOAD_THRESHOLDS.optimal).length} Days</span>
               </div>
             </div>
           </div>
@@ -744,13 +892,13 @@ export default function TrainingView({ players, onUpdatePlayer, games, onUpdateG
           <div className="md:col-span-3 flex flex-col justify-end h-36">
             <div className="flex items-end justify-between h-full px-2 mt-4">
               {DAYS_OF_WEEK.map((day) => {
-                const load = weeklySchedule[day].reduce((sum, item) => sum + item.fatigueIncrease, 0);
-                const maxPossibleLoad = 25; // scaling
+                const load = getSessionLoadPoints(weeklySchedule[day]);
+                const maxPossibleLoad = 60;
                 const heightPercent = Math.min(100, Math.max(8, (load / maxPossibleLoad) * 100));
                 let barBg = 'bg-gradient-to-t from-emerald-500 to-emerald-400 shadow-[0_0_8px_rgba(16,185,129,0.3)]';
-                if (load >= 13) {
+                if (load >= SESSION_LOAD_THRESHOLDS.high) {
                   barBg = 'bg-gradient-to-t from-rose-600 to-rose-400 shadow-[0_0_8px_rgba(239,68,68,0.4)]';
-                } else if (load >= 6) {
+                } else if (load >= SESSION_LOAD_THRESHOLDS.optimal) {
                   barBg = 'bg-gradient-to-t from-amber-500 to-amber-400 shadow-[0_0_8px_rgba(245,158,11,0.3)]';
                 }
                 
@@ -758,7 +906,7 @@ export default function TrainingView({ players, onUpdatePlayer, games, onUpdateG
                   <div key={day} className="flex flex-col items-center flex-1 group">
                     {/* Load indicator badge on hover / top */}
                     <span className="text-[10px] font-mono font-black mb-1.5 text-slate-300 group-hover:text-indigo-400 transition-colors">
-                      {load}%
+                      {load} pts
                     </span>
                     
                     {/* Vertical Bar */}
@@ -828,20 +976,21 @@ export default function TrainingView({ players, onUpdatePlayer, games, onUpdateG
         {/* Weekly Drop Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
           {DAYS_OF_WEEK.map((day) => {
-            const scheduledList = weeklySchedule[day];
-            const totalLoad = scheduledList.reduce((sum, item) => sum + item.fatigueIncrease, 0);
+            const scheduledList = getOrderedSessionDrills(weeklySchedule[day]);
+            const totalLoad = getSessionLoadPoints(scheduledList);
+            const totalDuration = getSessionDuration(scheduledList);
             const dateStr = weekDaysMap[day].dateStr;
             const dayMatches = games.filter(g => (g.type === 'League' || g.type === 'Cup' || g.type === 'Friendly') && g.date === dateStr);
             
-            let loadLabel = "RECOVER";
+            let loadLabel = "LIGHT";
             let loadColor = "bg-emerald-50 text-emerald-700 border-emerald-100";
             let loadDot = "bg-emerald-500";
-            if (totalLoad >= 13) {
-              loadLabel = "HEAVY LOAD";
-              loadColor = "bg-rose-50 text-rose-700 border-rose-100 animate-pulse";
+            if (totalLoad >= SESSION_LOAD_THRESHOLDS.high) {
+              loadLabel = "HIGH LOAD";
+              loadColor = "bg-rose-50 text-rose-700 border-rose-100";
               loadDot = "bg-rose-500";
-            } else if (totalLoad >= 6) {
-              loadLabel = "OPTIMAL";
+            } else if (totalLoad >= SESSION_LOAD_THRESHOLDS.optimal) {
+              loadLabel = "TRAINING";
               loadColor = "bg-amber-50 text-amber-700 border-amber-100";
               loadDot = "bg-amber-500";
             }
@@ -876,7 +1025,7 @@ export default function TrainingView({ players, onUpdatePlayer, games, onUpdateG
                   {/* Load indicator tag */}
                   <div className={`p-1 rounded text-[8px] font-mono font-bold border flex items-center justify-center gap-1 leading-none ${loadColor}`}>
                     <span className={`w-1 h-1 rounded-full ${loadDot}`}></span>
-                    <span>{loadLabel} ({totalLoad}%)</span>
+                    <span>{loadLabel} ({totalLoad} pts)</span>
                   </div>
 
                   {/* Match badge if there's a scheduled game */}
@@ -905,10 +1054,15 @@ export default function TrainingView({ players, onUpdatePlayer, games, onUpdateG
                           key={item.id}
                           className="flex justify-between items-center bg-white border border-slate-200 rounded-lg p-1.5 hover:border-slate-300 transition-all text-[10px]"
                         >
-                          <div className="flex items-center gap-1 truncate pr-1">
+                          <div className="flex min-w-0 items-center gap-1 truncate pr-1">
                             <span className="text-slate-400 shrink-0">{getDrillIcon(item.drillId)}</span>
-                            <span className="font-semibold text-slate-800 truncate leading-tight select-none">
-                              {item.name.replace("Challenge", "").replace("Workout", "").replace("Walkthrough", "").replace("Sprints", "")}
+                            <span className="min-w-0 truncate">
+                              <span className="block truncate font-semibold leading-tight text-slate-800">
+                                {item.name.replace("Challenge", "").replace("Workout", "").replace("Walkthrough", "").replace("Sprints", "")}
+                              </span>
+                              <span className="block text-[7px] uppercase tracking-wide text-slate-400">
+                                {getScheduledDrillBlock(item)} · {getScheduledDrillDuration(item)} min
+                              </span>
                             </span>
                           </div>
                           <Button
@@ -928,14 +1082,32 @@ export default function TrainingView({ players, onUpdatePlayer, games, onUpdateG
                 </div>
                 
                 {/* Day footer helper text */}
-                <div className="mt-3 text-[8px] font-mono text-slate-400 border-t border-slate-100 pt-1.5 flex justify-between items-center select-none">
-                  <span>Daily Load</span>
-                  <span className="font-bold text-slate-650">+{totalLoad}%</span>
+                <div className="mt-3 flex items-center justify-between gap-2 border-t border-slate-100 pt-2">
+                  <span className="text-[8px] font-bold text-slate-400">{totalDuration} min</span>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setBuilderDay(day)}
+                    className="h-7 px-2 text-[9px] font-black text-indigo-600 hover:bg-indigo-50 hover:text-indigo-700"
+                  >
+                    Build session
+                  </Button>
                 </div>
               </div>
             );
           })}
         </div>
+
+        {builderDay && (
+          <TrainingSessionBuilder
+            day={builderDay}
+            drills={weeklySchedule[builderDay]}
+            library={TRAINING_DRILLS}
+            onChange={(drills) => setWeeklySchedule(current => ({ ...current, [builderDay]: drills }))}
+            onClose={() => setBuilderDay(null)}
+          />
+        )}
       </div>
 
       {/* Main Grid Layout */}
@@ -945,34 +1117,36 @@ export default function TrainingView({ players, onUpdatePlayer, games, onUpdateG
         <div className="lg:col-span-2 space-y-6">
           
           {/* Drills Catalog */}
-          <div className="bg-white p-6 rounded-2xl shadow-md border border-slate-200/60 space-y-6">
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 pb-4 border-b border-slate-100">
+          <div className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm sm:p-6">
+            <div className="flex flex-col gap-3 border-b border-slate-100 pb-4 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-lg bg-indigo-50 flex items-center justify-center text-indigo-600">
+                <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600">
                   <Dumbbell size={16} />
                 </div>
                 <div>
                   <h3 className="font-display font-black text-slate-800 text-sm uppercase tracking-wider">Tactical & Technical Drill Selector</h3>
-                  <p className="text-slate-400 text-[10px]">Select a specialized drill to check target attribute upgrades and daily load ratios.</p>
+                  <p className="mt-0.5 text-[11px] text-slate-500">Find a drill, review its load, then add it to your training week.</p>
                 </div>
               </div>
-              
-              <span className="text-[10px] font-mono bg-indigo-50 text-indigo-700 font-bold px-2.5 py-0.5 rounded-full border border-indigo-100">
-                Found {filteredDrills.length} Drills
+
+              <span aria-live="polite" className="w-fit rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-[10px] font-bold text-slate-600">
+                {filteredDrills.length} {filteredDrills.length === 1 ? 'drill' : 'drills'}
               </span>
             </div>
 
-            {/* Filter Section (Search & Pill buttons) */}
-            <div className="space-y-4">
-              {/* Search Bar */}
-              <div className="relative">
-                <Search className="absolute left-3 top-2.5 w-4 h-4 text-slate-400" />
+            {/* Compact search and filter controls */}
+            <div className="mt-4 grid gap-3 rounded-xl border border-slate-200 bg-slate-50/80 p-3 md:grid-cols-[minmax(0,1fr)_14rem]">
+              <div>
+                <label htmlFor="training-drill-search" className="mb-1.5 block text-[10px] font-black uppercase tracking-wider text-slate-500">Search drills</label>
+                <div className="relative">
+                  <Search className="absolute left-3 top-2.5 size-4 text-slate-400" aria-hidden="true" />
                 <Input
+                  id="training-drill-search"
                   type="text"
-                  placeholder="Search drills by name, category, or benefit (e.g. speed, physical, shooting)..."
+                  placeholder="Name, category, or benefit"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="h-10 rounded-xl pl-9 pr-14 text-xs font-sans text-slate-700"
+                  className="h-10 rounded-lg border-slate-200 bg-white pl-9 pr-14 text-xs text-slate-700"
                 />
                 {searchQuery && (
                   <Button
@@ -980,54 +1154,77 @@ export default function TrainingView({ players, onUpdatePlayer, games, onUpdateG
                     variant="ghost"
                     size="sm"
                     onClick={() => setSearchQuery('')}
-                    className="absolute right-1.5 top-1.5 h-7 px-2 text-xs text-slate-400 hover:text-slate-600"
+                    className="absolute right-1.5 top-1.5 h-7 px-2 text-[10px] text-slate-500 hover:text-slate-700"
                   >
                     Clear
                   </Button>
                 )}
+                </div>
               </div>
 
-              {/* Skill Filter Pills */}
-              <div className="flex flex-wrap items-center gap-1.5 pt-1">
-                <span className="text-xs font-mono text-slate-400 font-bold uppercase mr-1 flex items-center gap-1">
-                  <Filter size={13} /> Focus Target:
-                </span>
-                {[
-                  { id: 'all', label: 'All Skills' },
-                  { id: 'forward', label: 'Forwards' },
-                  { id: 'midfielder', label: 'Midfielders' },
-                  { id: 'defender', label: 'Defenders' },
-                  { id: 'goalkeeper', label: 'Goalkeepers' },
-                  { id: 'speed', label: 'Speed' },
-                  { id: 'shooting', label: 'Shooting' },
-                  { id: 'passing', label: 'Passing' },
-                  { id: 'dribbling', label: 'Dribbling' },
-                  { id: 'defending', label: 'Defending' },
-                  { id: 'physicalness', label: 'Stamina/Physicality' },
-                  { id: 'conditioning', label: 'Conditioning & Recovery' },
-                ].map((pill) => {
-                  const isActive = selectedAttributeFilter === pill.id;
-                  return (
-                    <Button
-                      key={pill.id}
-                      type="button"
-                      variant={isActive ? 'default' : 'outline'}
-                      size="sm"
-                      onClick={() => setSelectedAttributeFilter(pill.id)}
-                      className={`h-7 px-2.5 py-1 text-xs ${
-                        isActive
-                          ? 'bg-indigo-600 text-white shadow-sm'
-                          : 'bg-slate-50 hover:bg-slate-100 text-slate-600 border border-slate-200'
-                      }`}
-                    >
-                      {pill.label}
-                    </Button>
-                  );
-                })}
+              <div>
+                <label className="mb-1.5 flex items-center gap-1 text-[10px] font-black uppercase tracking-wider text-slate-500">
+                  <Filter size={12} aria-hidden="true" /> Filter by focus
+                </label>
+                <Select value={selectedAttributeFilter} onValueChange={setSelectedAttributeFilter}>
+                  <SelectTrigger aria-label="Filter drills by focus" className="h-10 rounded-lg border-slate-200 bg-white text-xs text-slate-700">
+                    <SelectValue>{DRILL_FILTER_LABELS[selectedAttributeFilter] ?? 'All drills'}</SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    {DRILL_FILTER_GROUPS.map((group, groupIndex) => (
+                      <React.Fragment key={group.label}>
+                        {groupIndex > 0 && <SelectSeparator />}
+                        <SelectGroup>
+                          <SelectLabel>{group.label}</SelectLabel>
+                          {group.options.map(option => (
+                            <SelectItem key={option.id} value={option.id}>{option.label}</SelectItem>
+                          ))}
+                        </SelectGroup>
+                      </React.Fragment>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {/* Selected drill action */}
+            <div className="mt-4 flex flex-col gap-3 rounded-xl border border-indigo-100 bg-indigo-50/60 p-3 sm:flex-row sm:items-center">
+              <div className="flex min-w-0 flex-1 items-center gap-3">
+                <div className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-indigo-100 bg-white text-indigo-600">
+                  {getDrillIcon(selectedScheduleDrill.id)}
+                </div>
+                <div className="min-w-0">
+                  <span className="text-[9px] font-black uppercase tracking-wider text-indigo-500">Selected drill</span>
+                  <p className="truncate text-xs font-black text-slate-900">{selectedScheduleDrill.name}</p>
+                  <p className="mt-0.5 text-[10px] text-slate-500">
+                    {selectedScheduleDrill.category} · Intensity {selectedScheduleDrill.fatigueIncrease}/10 · {selectedScheduleDrill.targetAttributes.join(', ')}
+                  </p>
+                </div>
+              </div>
+              <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-2 sm:w-auto">
+                <Select value={developmentDay} onValueChange={(value) => setDevelopmentDay(value as DayName)}>
+                  <SelectTrigger aria-label="Day to add selected drill" className="h-9 min-w-32 border-indigo-100 bg-white text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {DAYS_OF_WEEK.map(day => <SelectItem key={day} value={day}>{day}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+                <Button
+                  type="button"
+                  onClick={() => addDrillsToDay([selectedScheduleDrill], developmentDay)}
+                  className="h-9 bg-indigo-600 px-3 text-white hover:bg-indigo-700"
+                >
+                  <CalendarPlus size={14} /> Add to day
+                </Button>
               </div>
             </div>
 
             {/* Drills Grid */}
+            <div className="mt-5 flex items-center justify-between">
+              <p className="text-[10px] font-black uppercase tracking-wider text-slate-500">Browse library</p>
+              <p className="hidden text-[10px] text-slate-400 sm:block">Select a card or drag it onto the calendar</p>
+            </div>
             {filteredDrills.length === 0 ? (
               <div className="border border-dashed border-slate-200 rounded-xl p-8 text-center text-slate-400 space-y-1.5">
                 <Search size={24} className="mx-auto text-slate-300" />
@@ -1035,7 +1232,7 @@ export default function TrainingView({ players, onUpdatePlayer, games, onUpdateG
                 <p className="text-xs text-slate-400">Try modifying your search query or picking another focus target filter.</p>
               </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
                 {filteredDrills.map((drill) => (
                   <TrainingDrillCard
                     key={drill.id}
@@ -1064,47 +1261,232 @@ export default function TrainingView({ players, onUpdatePlayer, games, onUpdateG
 
         {/* Player development and workload tools */}
         <div className="space-y-6">
-          <div className="bg-white p-5 rounded-2xl shadow-md border border-slate-200/80 space-y-4">
-            <div className="flex items-center gap-2">
-              <HeartPulse size={17} className="text-rose-500" />
-              <div>
-                <h4 className="font-display font-black text-sm text-slate-900">Weekly Load Check</h4>
-                <p className="text-[10px] text-slate-500">Fast guidance from the current calendar</p>
+          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex items-center gap-2.5">
+                <div className={`flex size-9 shrink-0 items-center justify-center rounded-xl bg-slate-50 ${weekHealth.iconClass}`}>
+                  <HeartPulse size={17} aria-hidden="true" />
+                </div>
+                <div>
+                  <h4 className="font-display text-sm font-black text-slate-900">Week Health</h4>
+                  <p className="mt-0.5 text-[10px] text-slate-500">Planned workload at a glance</p>
+                </div>
+              </div>
+              <span className={`rounded-full border px-2.5 py-1 text-[9px] font-black ${weekHealth.badgeClass}`}>
+                {weekHealth.label}
+              </span>
+            </div>
+
+            <div className="mt-4 grid grid-cols-2 gap-2">
+              <div className="rounded-xl border border-slate-100 bg-slate-50 p-3">
+                <strong className="block text-lg font-black text-slate-900">{weeklyLoad}</strong>
+                <span className="text-[8px] font-bold uppercase tracking-wider text-slate-500">Planned load points</span>
+              </div>
+              <div className="rounded-xl border border-slate-100 bg-slate-50 p-3">
+                <strong className={`block text-lg font-black ${overloadedDays.length > 0 ? 'text-rose-600' : 'text-slate-900'}`}>
+                  {overloadedDays.length}
+                </strong>
+                <span className="text-[8px] font-bold uppercase tracking-wider text-slate-500">Overloaded days</span>
               </div>
             </div>
 
-            <div className="grid grid-cols-3 gap-2">
-              <div className="bg-slate-50 rounded-xl p-2.5 text-center border border-slate-100">
-                <strong className="block text-lg text-slate-900">{weeklyLoad}%</strong>
-                <span className="text-[8px] uppercase font-bold text-slate-400">Total load</span>
-              </div>
-              <div className="bg-rose-50 rounded-xl p-2.5 text-center border border-rose-100">
-                <strong className="block text-lg text-rose-700">{heavyDays}</strong>
-                <span className="text-[8px] uppercase font-bold text-rose-500">Heavy days</span>
-              </div>
-              <div className="bg-emerald-50 rounded-xl p-2.5 text-center border border-emerald-100">
-                <strong className="block text-lg text-emerald-700">{recoveryDays}</strong>
-                <span className="text-[8px] uppercase font-bold text-emerald-600">Recovery days</span>
-              </div>
-            </div>
-
-            <div className="bg-slate-900 rounded-xl p-3.5 flex items-start gap-2.5">
-              <ShieldCheck size={17} className={workloadStatus.color} />
-              <div>
-                <div className={`text-xs font-black ${workloadStatus.color}`}>{workloadStatus.label}</div>
-                <p className="text-[10px] text-slate-400 mt-0.5 leading-relaxed">{workloadStatus.note}</p>
-              </div>
+            <div className="mt-3 flex items-start gap-2 rounded-xl border border-slate-100 bg-slate-50/70 p-3">
+              <ShieldCheck size={15} className={`mt-0.5 shrink-0 ${weekHealth.iconClass}`} aria-hidden="true" />
+              <p className="text-[10px] leading-relaxed text-slate-600" aria-live="polite">
+                {overloadedDays.length === 0
+                  ? 'No days are overloaded. The planned load is spread across the week.'
+                  : `${overloadedDayNames} ${overloadedDays.length === 1 ? 'is' : 'are'} overloaded.`}
+              </p>
             </div>
 
             <Button
               type="button"
               variant="outline"
-              onClick={() => addDrillsToDay([TRAINING_DRILLS.find(drill => drill.id === 'drill-mobility')!], developmentDay)}
-              className="w-full rounded-xl border-emerald-100 bg-emerald-50 py-2 text-[10px] font-black text-emerald-700 hover:bg-emerald-100 hover:text-emerald-800"
+              onClick={handleWeekHealthAction}
+              className={`mt-3 h-9 w-full rounded-xl text-[10px] font-black ${weekHealth.actionClass}`}
             >
-              Add recovery flow to {developmentDay}
+              {overloadedDays.length > 0
+                ? `Reduce ${highestLoadDay.day}`
+                : `Add recovery to ${lowestLoadDay.day}`}
             </Button>
           </div>
+          <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+            <div className="border-b border-slate-100 p-5">
+              <div className="flex items-center gap-3">
+                <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600">
+                  <User size={17} aria-hidden="true" />
+                </div>
+                <div>
+                  <h4 className="font-display text-sm font-black text-slate-900">Player Development Plan</h4>
+                  <p className="mt-0.5 text-[10px] text-slate-500">Build a focused session in three steps</p>
+                </div>
+              </div>
+
+              <label className="mt-4 block text-[9px] font-black uppercase tracking-wider text-slate-500">1. Choose player</label>
+              <Select
+                value={recommendPlayerId || 'none'}
+                onValueChange={(value) => {
+                  setRecommendPlayerId(value === 'none' ? '' : value);
+                  setSelectedTrainingDrillIds([]);
+                }}
+              >
+                <SelectTrigger aria-label="Choose player for development plan" className="mt-1.5 h-10 rounded-lg border-slate-200 bg-white text-xs text-slate-700">
+                  <SelectValue placeholder="Choose a squad member" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Choose a squad member</SelectItem>
+                  {players.map(player => (
+                    <SelectItem key={player.id} value={player.id}>{player.name} ({player.position})</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {recommendedPlayer && growthNeeds ? (
+              <div className="space-y-5 p-5">
+                <div className="flex items-center gap-3">
+                  <div className="relative shrink-0">
+                    <img
+                      src={recommendedPlayer.photoUrl}
+                      alt=""
+                      className="size-12 rounded-xl border border-slate-200 object-cover"
+                      referrerPolicy="no-referrer"
+                    />
+                    {recommendedPlayer.number > 0 && (
+                      <span className="absolute -bottom-1 -right-1 flex size-5 items-center justify-center rounded-md border-2 border-white bg-indigo-600 text-[9px] font-black text-white">
+                        {recommendedPlayer.number}
+                      </span>
+                    )}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <h5 className="truncate text-sm font-black text-slate-900">{recommendedPlayer.name}</h5>
+                    <p className="mt-0.5 text-[10px] font-bold text-indigo-600">{recommendedPlayer.position}</p>
+                  </div>
+                  <div className="text-right">
+                    <strong className="block text-xl font-black text-slate-900">{calculateOVR(recommendedPlayer.baseAttributes, recommendedPlayer.positionAttributes)}</strong>
+                    <span className="text-[8px] font-bold uppercase tracking-wider text-slate-400">Overall</span>
+                  </div>
+                </div>
+
+                <div className="rounded-xl border border-amber-200 bg-amber-50 p-3">
+                  <div className="flex items-start gap-2.5">
+                    <Target size={16} className="mt-0.5 shrink-0 text-amber-600" aria-hidden="true" />
+                    <div className="min-w-0">
+                      <span className="text-[9px] font-black uppercase tracking-wider text-amber-700">Development priority</span>
+                      <p className="mt-0.5 text-xs font-black capitalize text-slate-900">
+                        {growthNeeds.lowestAttr === 'physicalness' ? 'Conditioning' : growthNeeds.lowestAttr} · {growthNeeds.lowestVal}/99
+                      </p>
+                      <p className="mt-1 text-[10px] leading-relaxed text-slate-600">Recommended drills appear first for faster session building.</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <div className="flex items-end justify-between gap-3">
+                    <div>
+                      <span className="text-[9px] font-black uppercase tracking-wider text-slate-500">2. Choose drills</span>
+                      <p className="mt-0.5 text-[10px] text-slate-500">Select one or more.</p>
+                    </div>
+                    <Select value={developmentFocus} onValueChange={(value) => setDevelopmentFocus(value as typeof developmentFocus)}>
+                      <SelectTrigger aria-label="Filter player development drills" className="h-8 w-32 rounded-lg border-slate-200 bg-white text-[10px]">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All drills</SelectItem>
+                        <SelectItem value="technical">Technical</SelectItem>
+                        <SelectItem value="tactical">Tactical</SelectItem>
+                        <SelectItem value="conditioning">Conditioning</SelectItem>
+                        <SelectItem value="recovery">Recovery</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="mt-3 max-h-72 space-y-2 overflow-y-auto pr-1">
+                    {orderedDevelopmentDrills.map(drill => {
+                      const isChosen = selectedTrainingDrillIds.includes(drill.id);
+                      const supportsGap = drill.targetAttributes.includes(growthNeeds.lowestAttr);
+                      return (
+                        <button
+                          key={drill.id}
+                          type="button"
+                          onClick={() => toggleTrainingDrill(drill.id)}
+                          aria-pressed={isChosen}
+                          className={`flex w-full items-center gap-2.5 rounded-xl border p-2.5 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${
+                            isChosen
+                              ? 'border-indigo-300 bg-indigo-50'
+                              : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50'
+                          }`}
+                        >
+                          <span className={`flex size-5 shrink-0 items-center justify-center rounded-md border ${
+                            isChosen ? 'border-indigo-600 bg-indigo-600 text-white' : 'border-slate-300 bg-white text-transparent'
+                          }`}>
+                            <CheckCircle size={12} aria-hidden="true" />
+                          </span>
+                          <span className="min-w-0 flex-1">
+                            <span className="flex items-center gap-1.5">
+                              <span className="truncate text-[11px] font-bold text-slate-900">{drill.name}</span>
+                              {supportsGap && (
+                                <span className="shrink-0 rounded-full bg-amber-100 px-1.5 py-0.5 text-[7px] font-black uppercase text-amber-700">Recommended</span>
+                              )}
+                            </span>
+                            <span className="mt-0.5 block truncate text-[9px] text-slate-500">{drill.category} · Intensity {drill.fatigueIncrease}/10</span>
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <span className="text-[9px] font-black uppercase tracking-wider text-slate-500">3. Review session</span>
+                      <p className="mt-0.5 text-xs font-black text-slate-900">
+                        {selectedTrainingDrills.length} {selectedTrainingDrills.length === 1 ? 'drill' : 'drills'} · {selectedTrainingLoad} load points
+                      </p>
+                    </div>
+                    <Button type="button" variant="ghost" size="sm" onClick={() => setSelectedTrainingDrillIds([])} disabled={selectedTrainingDrillIds.length === 0} className="h-7 px-2 text-[9px] text-slate-500">
+                      Clear
+                    </Button>
+                  </div>
+                  {Object.keys(projectedTrainingGains).length > 0 ? (
+                    <div className="mt-2 flex flex-wrap gap-1">
+                      {Object.entries(projectedTrainingGains).map(([attribute, gain]) => (
+                        <Badge key={attribute} className="border-emerald-200 bg-emerald-50 px-1.5 py-0.5 text-[8px] capitalize text-emerald-700">
+                          {attribute === 'physicalness' ? 'conditioning' : attribute} +{gain}
+                        </Badge>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="mt-1 text-[9px] text-slate-400">Choose drills to see projected gains.</p>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-2">
+                  <Select value={developmentDay} onValueChange={(value) => setDevelopmentDay(value as DayName)}>
+                    <SelectTrigger aria-label="Development plan day" className="h-9 rounded-lg border-slate-200 bg-white text-[11px]"><SelectValue /></SelectTrigger>
+                    <SelectContent>{DAYS_OF_WEEK.map(day => <SelectItem key={day} value={day}>{day}</SelectItem>)}</SelectContent>
+                  </Select>
+                  <Button type="button" variant="outline" onClick={() => addDrillsToDay(selectedTrainingDrills, developmentDay, recommendedPlayer.name)} disabled={selectedTrainingDrills.length === 0} className="h-9 border-slate-200 px-3 text-[10px] text-slate-700">
+                    <CalendarPlus size={13} /> Schedule
+                  </Button>
+                </div>
+                <Button type="button" onClick={handleCompleteDevelopmentSession} disabled={selectedTrainingDrills.length === 0} className="h-10 w-full bg-indigo-600 text-[11px] text-white hover:bg-indigo-700">
+                  <CheckCircle size={14} /> Complete session and apply gains
+                </Button>
+              </div>
+            ) : (
+              <div className="p-5">
+                <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 p-6 text-center">
+                  <User size={22} className="mx-auto text-slate-300" aria-hidden="true" />
+                  <p className="mt-2 text-xs font-bold text-slate-700">Choose a player to get started</p>
+                  <p className="mt-1 text-[10px] leading-relaxed text-slate-500">We’ll identify a development priority and recommend suitable drills.</p>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {false && (
           <div className="bg-slate-900 text-white p-5 rounded-2xl shadow-xl border border-slate-800 space-y-4">
             <div className="flex items-center gap-2.5 pb-3 border-b border-slate-800">
               <div className="w-9 h-9 rounded-xl bg-blue-500/15 text-blue-300 flex items-center justify-center border border-blue-400/20">
@@ -1429,6 +1811,7 @@ export default function TrainingView({ players, onUpdatePlayer, games, onUpdateG
               </div>
             )}
           </div>
+          )}
         </div>
 
       </div>

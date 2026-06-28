@@ -1,4 +1,5 @@
 import type { Player } from '../types';
+import type { SessionBlockId } from './synchronization';
 
 export type TrainingAttributeKey = Extract<keyof Player['attributes'], string>;
 
@@ -909,6 +910,29 @@ export const DRILL_INSTRUCTIONS: Record<string, DrillInstruction> = {
     execution: "On the whistle, pressers charge in at full speed. Passer must shield, turn, or dummy to find the outlet player with a pass within 3s. One‑touch clearance permitted.",
     setsReps: "8 reps × 3 rounds. Rotate passer/pressers each round."
   },
+};
+
+export const inferDrillSessionBlock = (drill: TrainingDrill): SessionBlockId => {
+  const category = drill.category.toLowerCase();
+  const name = drill.name.toLowerCase();
+  if (name.includes('warm-up') || name.includes('warm up')) return 'warmup';
+  if (category.includes('recovery') || category.includes('mobility')) return 'cooldown';
+  if (category.includes('conditioning') || category.includes('stamina') || category.includes('physical')) return 'conditioning';
+  if (category.includes('tactical') || category.includes('strategy')) return 'tactical';
+  return 'technical';
+};
+
+export const getDrillEquipment = (drillId: string): string[] => {
+  const equipment = DRILL_INSTRUCTIONS[drillId]?.equipment;
+  if (!equipment) return [];
+  return equipment
+    .split(',')
+    .map(item => item
+      .replace(/^\s*\d+[\s-]*/, '')
+      .replace(/\s*\([^)]*\)\s*/g, ' ')
+      .trim()
+    )
+    .filter(Boolean);
 };
 
 export type TrainingDrillId = typeof TRAINING_DRILLS[number]['id'];
