@@ -1,33 +1,34 @@
 # Dumala Beta MVP
 
-Updated: 2026-06-26
+Updated: 2026-06-28
 
 ## Objective
 
-The current MVP is a local-first football operations and player-development workspace for one team and one browser. It is intended for real beta testing by coaches while the product remains simple to deploy and easy to reset.
+The current MVP is a local-first football operations and player-development app for managing multiple team workspaces in one browser. It is intended for real beta testing by coaches while the product remains simple to deploy, switch between teams, back up, and reset.
 
 ## Included
 
 1. Team and manager onboarding.
-2. Home Overview with a polished club dashboard hero and Game Week schedule.
-3. Player and staff roster management.
-4. Position-specific cards, placeholders, traits, and measurements.
-5. Player comparison, editing, assessment entry, and removal.
-6. Match scheduling, availability, opponent context, notes, and results.
-7. Automatic league standings and player-stat updates.
-8. Discipline records, MVP awards, and histories.
-9. Position-aware tactics auto-fill and persistent tactical planning.
-10. Weekly training planner with 52 drills, guides, filters, nine presets, and week-by-week schedule navigation.
-11. FPRDS Assessment Center in beta:
+2. Navbar team workspace management for adding, switching, renaming, importing, exporting, and removing local teams.
+3. Home Overview with a polished club dashboard hero and Game Week schedule.
+4. Player and staff roster management.
+5. Position-specific cards, placeholders, traits, and measurements.
+6. Player comparison, editing, assessment entry, and removal.
+7. Match scheduling, availability, opponent context, notes, and results.
+8. Automatic league standings and player-stat updates.
+9. Discipline records, MVP awards, and histories.
+10. Position-aware tactics auto-fill and persistent tactical planning.
+11. Weekly training planner with 52 drills, guides, filters, nine presets, week-by-week schedule navigation, development planning, and reassessment support without automatic official rating growth.
+12. FPRDS Assessment Center in beta:
     - Full and Quick assessments
     - U12, U15, U18, and Adult groups
     - ST, W, CM, CDM, FB, CB, and GK roles
     - Benchmark scoring and weighted OVR
     - Assessment history and deltas
     - Four-week plans for Full assessments
-12. Team bulletins and product updates.
-13. Feedback delivery with email fallback.
-14. Validated Full Workspace V4 export and restore, including separate player/staff records, payment ledger records, feature-local state, and legacy backup migration.
+13. Team bulletins and product updates.
+14. Feedback delivery with email fallback.
+15. Validated Full Workspace V4 export and restore, including separate player/staff records, payment ledger records, feature-local state, and legacy backup migration.
 
 ## Excluded
 
@@ -37,7 +38,7 @@ The current MVP is a local-first football operations and player-development work
 4. Public player, coach, or club profiles.
 5. Draft shortlists or recruiting workflows.
 6. Official PFF/AFC credential verification.
-7. Multi-squad and multi-season club administration.
+7. Multi-squad, multi-season, and shared club administration beyond separate local team workspaces.
 8. Native mobile application.
 
 ## Required user flows
@@ -45,6 +46,10 @@ The current MVP is a local-first football operations and player-development work
 ### Create a workspace
 
 Complete onboarding, create the manager record, start with clean standings, and land on Overview.
+
+### Manage multiple teams
+
+Use the navbar team switcher to add another team, switch active teams, rename teams, export the current team, import a backup as a new team, and remove a team without deleting the other local teams.
 
 ### Build a squad
 
@@ -83,12 +88,14 @@ Export a JSON backup, restore it in a fresh browser, and confirm assessments and
 
 - Data is device- and origin-specific.
 - There is no conflict resolution or audit-grade collaboration history.
+- Multiple teams are local browser workspaces, not cloud clubs or shared accounts yet.
 - Some generated charts are summaries rather than complete event streams.
 - The primary JavaScript bundle remains large and needs later code splitting.
 - FPRDS benchmarks and scoring remain in beta validation.
+- FPRDS benchmarks remain beta, but the separation between training evidence and verified rating updates is a core product rule, not a temporary compromise.
 
 ## Exit criteria
 
-The beta MVP is ready for broader testing when reliability and data-confidence tasks in [TASKS.md](TASKS.md) are complete and repeated assessments produce explainable, comparable records without corrupting roster data.
+The beta MVP is ready for broader testing when reliability and data-confidence tasks in [TASKS.md](TASKS.md) are complete, repeated assessments produce explainable and comparable records without corrupting roster data, and official development progress remains assessment-derived.
 
 Future scope is defined in [ROADMAP.md](ROADMAP.md).

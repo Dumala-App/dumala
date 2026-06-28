@@ -1,6 +1,6 @@
 # Dumala Architecture
 
-Updated: 2026-06-23
+Updated: 2026-06-28
 
 ## 1. System overview
 
@@ -31,11 +31,12 @@ The browser owns application state, business interactions, and persistence. The 
 2. `src/main.tsx` mounts `App` in React Strict Mode.
 3. `App.tsx` validates every supported workspace key before restoring any collection.
 4. Invalid startup data blocks workspace rendering and persistence writes until the user exports a recovery copy, retries, or confirms a reset.
-5. Onboarding renders when no team workspace exists.
-6. The app shell renders one of five primary areas and their nested tabs.
-7. React effects persist core collections through the typed storage service.
-8. Feature modules use the same service for their additional local state.
-9. The Storage API estimate raises an actionable warning when site usage reaches 80% of the reported quota.
+5. Managed-workspace bootstrap migrates any valid legacy single-team records into the first local workspace and loads the active workspace into the compatibility keys.
+6. Onboarding renders when no team workspace exists.
+7. The app shell renders one of five primary areas and their nested tabs.
+8. React effects persist core collections through the typed storage service.
+9. Feature modules use the same service for their additional local state.
+10. The Storage API estimate raises an actionable warning when site usage reaches 80% of the reported quota.
 
 ## 4. Frontend composition
 
@@ -55,6 +56,7 @@ The browser owns application state, business interactions, and persistence. The 
 - match-result cascade
 - backup export/import
 - reset and feedback dialogs
+- managed team workspace creation, switching, renaming, import-as-new, export, and deletion
 
 ### Navigation hubs
 
@@ -96,10 +98,14 @@ The FPRDS implementation is split by responsibility:
 
 Assessment sessions retain raw results and derived scores so calculations remain inspectable.
 
+FPRDS scoring owns verified ratings. Training surfaces may recommend and log development work, but they cannot validate improvement or update official assessment-derived ratings. The evidence-based development doctrine is defined in `docs/FPRDS_EVIDENCE_BASED_DEVELOPMENT_SYSTEM.md`.
+
 ## 6. State and persistence
 
 ### Core keys
 
+- `dumala_workspaces_index`
+- `dumala_active_workspace_id`
 - `stack_team_onboarded`
 - `stack_team_info`
 - `stack_team_players`
@@ -144,6 +150,20 @@ Assessment sessions retain raw results and derived scores so calculations remain
 - `stack_tactics_quick_notes`
 - `stack_tactics_dragged_positions`
 - `stack_tactics_draw_paths`
+
+### Managed workspace storage
+
+Dumala keeps the existing `stack_team_*`, schedule, training, tactics, and feature-local keys as the active workspace compatibility layer. The managed workspace layer adds:
+
+- `dumala_workspaces_index`: stable local workspace summaries with `id`, `name`, timestamps, optional logo, and optional future `cloudClubId`
+- `dumala_active_workspace_id`: the current local team workspace
+- namespaced snapshots using `dumala_workspace__{workspaceId}__{legacyKey}`
+
+Startup calls the workspace bootstrap before normal validation. If no managed index exists but valid legacy team data exists, Dumala creates one workspace summary, copies the legacy keys into that workspace namespace, and marks it active. If a managed index already exists, Dumala copies the active workspace namespace back into the compatibility keys before `App.tsx` reads state.
+
+The typed storage write helpers mirror active compatibility-key writes into the active namespace. Feature modules can continue using existing storage keys while team switching remains isolated. Before switching, the active keys are flushed into the current workspace namespace; then the selected namespace replaces the compatibility keys and React state reloads from storage.
+
+Reset Workspace deletes the active workspace namespace and index entry only. If another team remains, it becomes active; if no teams remain, the app returns to onboarding. The startup recovery reset still clears all known Dumala records because it is used only when stored data is already unsafe to trust.
 
 ## 7. Domain model
 
@@ -192,6 +212,8 @@ Auto-fill keeps valid manual assignments, then fills empty formation slots by ma
 
 Weekly planned training creates or refreshes Training events in the shared games calendar for the currently selected planner week. `squad_weekly_schedule` remains the compatibility/current-view schedule, while `squad_weekly_schedule_weeks` stores per-week Monday-Sunday plans keyed by week start date.
 
+Training synchronization and training completion must not mutate official FPRDS snapshots, official OVR, or assessment-derived attributes. Training may create development evidence and reassessment recommendations. The assessment snapshot flow remains the current authority for official rating changes.
+
 ### Dialog accessibility
 
 Release-critical dialogs use a shared focus-management hook. Opening a dialog moves focus inside it, Tab and Shift+Tab remain contained, Escape closes it, and focus returns to the invoking control. Global `focus-visible` styling and reduced-motion CSS apply across the application.
@@ -208,6 +230,8 @@ Full Workspace V4 uses the `dumala-workspace` format and includes:
 - export timestamp and numeric format version
 
 Import continues to accept legacy versions `1.0.0`, `1.1.0`, Full Workspace V2, and Full Workspace V3. Mixed legacy rosters are separated into V4 players and staff before validation. Restore validates the complete nested workspace before writing, creates an automatic pre-restore backup, and rolls back all writes if storage fails.
+
+The existing Squad restore flow restores into the active team workspace and updates that workspace summary. The team manager can also import a Full Workspace V4 backup as a separate local team; this creates a new workspace namespace without overwriting the active team.
 
 The multi-week training planner stores week-indexed schedules in `squad_weekly_schedule_weeks`. The current Full Workspace backup path still exports the selected/compatibility weekly schedule plus weekly history; extending the backup payload to include the full week index is a follow-up data-portability task.
 

@@ -1,6 +1,6 @@
 # Dumala Delivery Tasks
 
-Updated: 2026-06-26
+Updated: 2026-06-28
 
 Status values: **Done**, **In Progress**, **Next**, **Planned**, **Long Term**.
 
@@ -9,18 +9,18 @@ Status values: **Done**, **In Progress**, **Next**, **Planned**, **Long Term**.
 Progress is calculated from the completed capabilities and open checklist items in this document. The roadmap bars track implementation, while Release Validation tracks the latest verified build checks.
 
 ```text
-Overall roadmap                 [########--]  78%  77 / 99
+Overall roadmap                 [########--]  79%  83 / 105
 
 Shipped beta foundation         [##########] 100%  20 / 20
 Current Beta: Reliability       [##########] 100%  24 / 24
-FPRDS Beta                      [#######---]  73%  11 / 15
+FPRDS Beta                      [########--]  80%  16 / 20
 Phase 1: Offline-ready PWA      [##########] 100%   7 / 7
 Phase 2: Mobile and tablet      [##########] 100%   4 / 4
 Phase 3: Cloud and sync         [##########] 100%   6 / 6
 Phase 4: Team collaboration     [##########] 100%   5 / 5
 Phase 5: Profiles and drafting  [----------]   0%   0 / 6
 Future: Coach education         [----------]   0%   0 / 6
-Future: Club operations         [----------]   0%   0 / 5
+Future: Club operations         [##--------]  17%   1 / 6
 Release: App stores             [----------]   0%   0 / 1
 
 Release validation              [##########] 100%  14 / 14
@@ -30,19 +30,31 @@ Release validation              [##########] 100%  14 / 14
 | --- | ---: | ---: | ---: | --- |
 | Shipped beta foundation | 20 | 20 | 100% | Done |
 | Current Beta: Reliability and data confidence | 24 | 24 | 100% | Done |
-| FPRDS Beta | 11 | 15 | 73% | In Progress |
+| FPRDS Beta | 16 | 20 | 80% | In Progress |
 | Phase 1: Offline-ready web app | 7 | 7 | 100% | Done |
 | Phase 2: Mobile and tablet experience | 4 | 4 | 100% | Done |
 | Phase 3: Cloud accounts and synchronization | 6 | 6 | 100% | Done |
 | Phase 4: Team collaboration | 5 | 5 | 100% | Done |
 | Phase 5: Public profiles and drafting | 0 | 6 | 0% | Long Term |
 | Future Expansion: Philippine coach education | 0 | 6 | 0% | Long Term |
-| Future Expansion: Club operations | 0 | 5 | 0% | Long Term |
+| Future Expansion: Club operations | 1 | 6 | 17% | Long Term |
 | Future Release: App store distribution | 0 | 1 | 0% | Deferred |
 
-The FPRDS total includes eleven completed capabilities: the five shipped assessment features plus interpolation, role-weighting, age-transition, required-field validation coverage, true historical progress charts, and player/session comparison reports. Practitioner benchmark review is deferred until qualified external reviewers are available.
+The FPRDS total includes sixteen completed capabilities: the five shipped assessment features plus interpolation, role-weighting, age-transition, required-field validation coverage, true historical progress charts, player/session comparison reports, the evidence-based development doctrine, training evidence naming, removal of direct training-to-rating mutation, reassessment recommendations, and rating confidence labels. Practitioner benchmark review is deferred until qualified external reviewers are available.
 
 ## Recent changes
+
+### Completed: 2026-06-28
+
+- [x] Added local multi-team workspace management from the navbar with team switching, creation, rename, export, import-as-new, and single-team deletion.
+- [x] Added managed workspace metadata, active workspace IDs, legacy single-team migration, and namespaced local storage snapshots for per-team isolation.
+- [x] Updated reset behavior so Reset Workspace removes only the active team and returns to onboarding only when no local teams remain.
+- [x] Added persistence tests for legacy migration, switching isolation, active deletion, last-team reset, and V4 backup import as a new team.
+- [x] Documented the FPRDS evidence-based development doctrine as the core rule that training creates development evidence while assessments verify official ratings.
+- [x] Renamed training stat bumps to development evidence focus across the drill library and training UI.
+- [x] Removed direct training-to-rating mutation from completed development sessions.
+- [x] Added reassessment recommendation messaging after focused development evidence.
+- [x] Added assessment confidence labels for selected-player training plans.
 
 ### Completed: 2026-06-26
 
@@ -183,6 +195,7 @@ The FPRDS total includes eleven completed capabilities: the five shipped assessm
 
 ## FPRDS Beta
 
+- [x] **Done:** Document and enforce the evidence-based development doctrine across product docs.
 - [ ] **Planned:** Deferred qualified football practitioner review of every benchmark table using `docs/FPRDS_BENCHMARK_REVIEW_PACKAGE.md`.
 - [x] **Done:** Add tests for lower-is-better and higher-is-better interpolation.
 - [x] **Done:** Test OVR weighting for all seven roles.
@@ -190,6 +203,10 @@ The FPRDS total includes eleven completed capabilities: the five shipped assessm
 - [x] **Done:** Verify Quick and Full required-field behavior.
 - [x] **Done:** Add true historical progress charts.
 - [x] **Done:** Add player-to-player and session-to-session reports.
+- [x] **Done:** Rename training stat bumps to development focus or development evidence in the training model and UI.
+- [x] **Done:** Remove direct training-to-rating mutation from completed development sessions.
+- [x] **Done:** Add reassessment recommendation behavior after sustained development evidence.
+- [x] **Done:** Add confidence and freshness labels for assessment-derived ratings.
 - [ ] **Next:** Design and build the FPRDS private beta results database for opt-in submitted assessment sessions, aggregate benchmark analysis, and correction review.
 - [ ] **Next:** Add downloadable assessment and development reports.
 - [ ] **Planned:** Add assessment export suitable for coach review.
@@ -256,6 +273,7 @@ Phase 3 implementation baseline is complete. Local launch-readiness checks now i
 
 ## Future Expansion: Club operations
 
+- [x] **Done:** Add local multi-team workspace management in one browser.
 - [ ] **Long Term:** Add attendance and availability history.
 - [ ] **Long Term:** Add season archives and richer reports.
 - [ ] **Long Term:** Add calendar export and scheduled reminders.

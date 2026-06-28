@@ -22,7 +22,6 @@ interface DevelopmentHubViewProps {
   players: Player[];
   games: Game[];
   onUpdateGames: (games: Game[]) => void;
-  onUpdatePlayer: (player: Player) => void;
 
   assessments: AssessmentSession[];
   preselectedAssessmentsPlayerId: string | null;
@@ -77,7 +76,12 @@ export default function DevelopmentHubView(props: DevelopmentHubViewProps) {
 
         {shouldRenderTab('training') && (
           <section hidden={props.activeTab !== 'training'} aria-hidden={props.activeTab !== 'training'}>
-            <TrainingView players={props.players} onUpdatePlayer={props.onUpdatePlayer} games={props.games} onUpdateGames={props.onUpdateGames} />
+            <TrainingView
+              players={props.players}
+              assessments={props.assessments}
+              games={props.games}
+              onUpdateGames={props.onUpdateGames}
+            />
           </section>
         )}
       </Suspense>

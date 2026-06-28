@@ -63,6 +63,11 @@ export const STORAGE_KEYS = {
   preRestoreBackup: 'stack_pre_restore_backup'
 } as const;
 
+export const MANAGED_WORKSPACE_KEYS = {
+  index: 'dumala_workspaces_index',
+  activeWorkspaceId: 'dumala_active_workspace_id'
+} as const;
+
 export const storageSchemas = {
   [STORAGE_KEYS.teamInfo]: teamInfoSchema.nullable(),
   [STORAGE_KEYS.players]: playersSchema,
@@ -320,18 +325,26 @@ export const readBooleanStorage = (
 };
 
 export const writeJsonStorage = (key: string, value: unknown, storage: StorageLike = browserStorage()) => {
-  storage.setItem(key, JSON.stringify(value));
+  const serialized = JSON.stringify(value);
+  storage.setItem(key, serialized);
+  mirrorActiveWorkspaceWrite(key, serialized, storage);
 };
 
 export const writeStringStorage = (key: string, value: string, storage: StorageLike = browserStorage()) => {
   storage.setItem(key, value);
+  mirrorActiveWorkspaceWrite(key, value, storage);
 };
 
 export const writeBooleanStorage = (key: string, value: boolean, storage: StorageLike = browserStorage()) => {
-  storage.setItem(key, String(value));
+  const serialized = String(value);
+  storage.setItem(key, serialized);
+  mirrorActiveWorkspaceWrite(key, serialized, storage);
 };
 
-export const removeStorage = (key: string, storage: StorageLike = browserStorage()) => storage.removeItem(key);
+export const removeStorage = (key: string, storage: StorageLike = browserStorage()) => {
+  storage.removeItem(key);
+  mirrorActiveWorkspaceRemove(key, storage);
+};
 
 export const CORE_DUMALA_KEYS = [
   STORAGE_KEYS.onboarded,
@@ -339,6 +352,52 @@ export const CORE_DUMALA_KEYS = [
   STORAGE_KEYS.preRestoreBackup
 ];
 
+const WORKSPACE_NAMESPACE_PREFIX = 'dumala_workspace__';
+
+export const getWorkspaceStorageKey = (workspaceId: string, key: string) =>
+  `${WORKSPACE_NAMESPACE_PREFIX}${workspaceId}__${key}`;
+
+const WORKSPACE_SCOPED_KEYS = new Set<string>(CORE_DUMALA_KEYS);
+
+const isWorkspaceScopedKey = (key: string) =>
+  WORKSPACE_SCOPED_KEYS.has(key) && !key.startsWith(WORKSPACE_NAMESPACE_PREFIX);
+
+const getActiveWorkspaceId = (storage: StorageLike) => {
+  const activeId = storage.getItem(MANAGED_WORKSPACE_KEYS.activeWorkspaceId);
+  return activeId?.trim() || null;
+};
+
+const mirrorActiveWorkspaceWrite = (key: string, serialized: string, storage: StorageLike) => {
+  if (!isWorkspaceScopedKey(key)) return;
+  const activeId = getActiveWorkspaceId(storage);
+  if (!activeId) return;
+  storage.setItem(getWorkspaceStorageKey(activeId, key), serialized);
+};
+
+const mirrorActiveWorkspaceRemove = (key: string, storage: StorageLike) => {
+  if (!isWorkspaceScopedKey(key)) return;
+  const activeId = getActiveWorkspaceId(storage);
+  if (!activeId) return;
+  storage.removeItem(getWorkspaceStorageKey(activeId, key));
+};
+
 export const clearDumalaStorage = (storage: StorageLike = browserStorage()) => {
   CORE_DUMALA_KEYS.forEach(key => storage.removeItem(key));
+  const rawIndex = storage.getItem(MANAGED_WORKSPACE_KEYS.index);
+  if (rawIndex) {
+    try {
+      const summaries = JSON.parse(rawIndex);
+      if (Array.isArray(summaries)) {
+        summaries.forEach(summary => {
+          if (summary && typeof summary === 'object' && typeof summary.id === 'string') {
+            CORE_DUMALA_KEYS.forEach(key => storage.removeItem(getWorkspaceStorageKey(summary.id, key)));
+          }
+        });
+      }
+    } catch {
+      // If the index is malformed, the known active compatibility keys are still cleared above.
+    }
+  }
+  storage.removeItem(MANAGED_WORKSPACE_KEYS.index);
+  storage.removeItem(MANAGED_WORKSPACE_KEYS.activeWorkspaceId);
 };

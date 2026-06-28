@@ -1,18 +1,19 @@
 # Dumala
 
-Dumala is a local-first football team management web application for coaches, managers, and grassroots club operators. It combines weekly club operations with structured player assessment in one browser workspace.
+Dumala is a local-first football team management web application for coaches, managers, and grassroots club operators. It combines weekly club operations with structured player assessment across multiple local team workspaces in one browser.
 
 ## Current capabilities
 
 - Team onboarding and club identity
+- Navbar team switcher for adding, switching, renaming, importing, exporting, and removing local team workspaces
 - Player and staff roster management
 - Position-specific player cards, traits, measurements, and placeholders
 - Match scheduling, availability, opponent context, notes, and result logging
 - Automatic standings and player-stat updates
 - Discipline records and Man of the Match history
 - Position-aware tactics board and lineup auto-fill
-- Weekly training planner with a 52-drill library, presets, and week-by-week scheduling
-- FPRDS Assessment Center with Full and Quick assessments
+- Weekly training planner with a 52-drill library, presets, week-by-week scheduling, development evidence, and reassessment planning
+- FPRDS Assessment Center with Full and Quick assessments for verified rating updates
 - Age-group and role-specific benchmarks, OVR scoring, history, and development plans
 - Bulletins, product updates, feedback submission, and validated Full Workspace V4 backup/restore
 
@@ -30,10 +31,11 @@ The application is organized into five primary areas:
 
 The beta stores team information and uploaded photos in browser `localStorage`.
 
-- Each browser and website origin has a separate workspace.
+- Each browser and website origin has its own set of local team workspaces.
+- The top navbar can manage multiple teams in the same browser, but those teams are still local to that browser/origin.
 - Clearing browser storage removes local data.
 - Preview and production URLs do not share data.
-- Testers cannot collaborate in the same workspace yet.
+- Testers cannot collaborate in the same team workspace yet.
 - Export a Full Workspace V4 backup before changing browsers or clearing data.
 
 ## Run locally
@@ -104,6 +106,7 @@ A traditional static host can also serve the application. Upload only the conten
 - [Product Requirements](docs/PRD.md)
 - [MVP Definition](docs/MVP.md)
 - [Architecture](docs/ARCHITECTURE.md)
+- [FPRDS Evidence-Based Development System](docs/FPRDS_EVIDENCE_BASED_DEVELOPMENT_SYSTEM.md)
 - [Product Roadmap](docs/ROADMAP.md)
 - [Codebase Audit](docs/AUDIT.md)
 - [Delivery Tasks](docs/TASKS.md)

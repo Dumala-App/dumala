@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { z } from 'zod';
-import { Player, Game } from '../types';
+import { Player, Game, AssessmentSession } from '../types';
+import { selectLatestAssessmentForPlayer } from '../fprds/assessmentService';
 import { weeklyScheduleSchema } from '../persistence/schemas';
 import { readJsonStorage, STORAGE_KEYS, writeJsonStorage } from '../persistence/storage';
 import {
@@ -25,6 +26,7 @@ import {
   inferDrillSessionBlock,
   type TrainingDrill
 } from '../training/drillLibrary';
+import { formatTrainingFocusList, getAssessmentConfidence, summarizeDevelopmentEvidence } from '../training/developmentEvidence';
 import { TrainingDrillCard, getDrillIcon } from './TrainingDrillCard';
 import TrainingSessionBuilder from './TrainingSessionBuilder';
 import { Badge } from '@/src/components/ui/badge';
@@ -49,7 +51,7 @@ import {
 
 interface TrainingViewProps {
   players: Player[];
-  onUpdatePlayer: (player: Player) => void;
+  assessments: AssessmentSession[];
   games: Game[];
   onUpdateGames: (games: Game[]) => void;
 }
@@ -226,7 +228,7 @@ const createScheduledDrill = (
   };
 };
 
-export default function TrainingView({ players, onUpdatePlayer, games, onUpdateGames }: TrainingViewProps) {
+export default function TrainingView({ players, assessments, games, onUpdateGames }: TrainingViewProps) {
   const [selectedDrillId, setSelectedDrillId] = useState<string>(TRAINING_DRILLS[0].id);
   const [expandedDrills, setExpandedDrills] = useState<Set<string>>(new Set());
   const [builderDay, setBuilderDay] = useState<DayName | null>(null);
@@ -284,6 +286,7 @@ export default function TrainingView({ players, onUpdatePlayer, games, onUpdateG
   const [developmentDay, setDevelopmentDay] = useState<DayName>('Wednesday');
   const [developmentFocus, setDevelopmentFocus] = useState<'all' | 'technical' | 'tactical' | 'conditioning' | 'recovery'>('all');
   const [selectedTrainingDrillIds, setSelectedTrainingDrillIds] = useState<string[]>([]);
+  const [recentEvidenceMessage, setRecentEvidenceMessage] = useState<string>('');
 
   const handleDragStart = (e: React.DragEvent, drillId: string) => {
     e.dataTransfer.setData('text/plain', drillId);
@@ -571,16 +574,13 @@ export default function TrainingView({ players, onUpdatePlayer, games, onUpdateG
     const duration = SESSION_BLOCKS.find(item => item.id === block)?.defaultDurationMinutes ?? 15;
     return sum + Math.round(drill.fatigueIncrease * duration / 10);
   }, 0);
-  const projectedTrainingGains = selectedTrainingDrills.reduce<Partial<Record<keyof Player['attributes'], number>>>(
-    (totals, drill) => {
-      Object.entries(drill.statsBumps).forEach(([attribute, amount]) => {
-        const key = attribute as keyof Player['attributes'];
-        totals[key] = (totals[key] || 0) + amount;
-      });
-      return totals;
-    },
-    {}
-  );
+  const developmentEvidenceSummary = summarizeDevelopmentEvidence(selectedTrainingDrills, selectedTrainingLoad);
+  const developmentEvidenceSignals = developmentEvidenceSummary.focusSignals;
+  const developmentFocusLabel = formatTrainingFocusList(developmentEvidenceSignals);
+  const latestRecommendedPlayerAssessment = recommendedPlayer
+    ? selectLatestAssessmentForPlayer(assessments, recommendedPlayer.id)
+    : null;
+  const ratingConfidence = getAssessmentConfidence(latestRecommendedPlayerAssessment);
 
   const dailyLoads = DAYS_OF_WEEK.map(day => ({
     day,
@@ -646,30 +646,11 @@ export default function TrainingView({ players, onUpdatePlayer, games, onUpdateG
 
   const handleCompleteDevelopmentSession = () => {
     if (!recommendedPlayer || selectedTrainingDrills.length === 0) return;
-    const nextBaseAttrs = { ...(recommendedPlayer.baseAttributes || { pace: 50, stamina: 50, agility: 50, strength: 50, firstTouch: 50, shortPassing: 50 }) };
-    const nextPosAttrs = { ...(recommendedPlayer.positionAttributes || {}) };
-
-    const legacyToBase: Record<string, keyof Player['baseAttributes']> = {
-      speed: 'pace',
-      physicalness: 'strength',
-      stamina: 'stamina',
-      passing: 'shortPassing',
-      dribbling: 'firstTouch'
-    };
-
-    selectedTrainingDrills.forEach(drill => {
-      Object.entries(drill.statsBumps).forEach(([attribute, amount]) => {
-        const baseKey = legacyToBase[attribute];
-        if (baseKey) {
-          nextBaseAttrs[baseKey] = Math.min(99, nextBaseAttrs[baseKey] + amount);
-        } else {
-          const posKey = attribute.charAt(0).toUpperCase() + attribute.slice(1);
-          nextPosAttrs[posKey] = Math.min(99, (nextPosAttrs[posKey] || 50) + amount);
-        }
-      });
-    });
-
-    onUpdatePlayer({ ...recommendedPlayer, baseAttributes: nextBaseAttrs, positionAttributes: nextPosAttrs });
+    const label = developmentEvidenceSummary.reassessmentRecommended
+      ? 'Reassessment recommended to verify whether this work changed ability.'
+      : 'Development evidence logged. Add more focused work before reassessment.';
+    setRecentEvidenceMessage(`${recommendedPlayer.name}: ${selectedTrainingDrills.length} ${selectedTrainingDrills.length === 1 ? 'drill' : 'drills'} completed. ${label}`);
+    setSelectedTrainingDrillIds([]);
   };
 
   const toggleTrainingDrill = (drillId: string) => {
@@ -1328,6 +1309,7 @@ export default function TrainingView({ players, onUpdatePlayer, games, onUpdateG
                 onValueChange={(value) => {
                   setRecommendPlayerId(value === 'none' ? '' : value);
                   setSelectedTrainingDrillIds([]);
+                  setRecentEvidenceMessage('');
                 }}
               >
                 <SelectTrigger aria-label="Choose player for development plan" className="mt-1.5 h-10 rounded-lg border-slate-200 bg-white text-xs text-slate-700">
@@ -1366,6 +1348,25 @@ export default function TrainingView({ players, onUpdatePlayer, games, onUpdateG
                     <strong className="block text-xl font-black text-slate-900">{calculateOVR(recommendedPlayer.baseAttributes, recommendedPlayer.positionAttributes)}</strong>
                     <span className="text-[8px] font-bold uppercase tracking-wider text-slate-400">Overall</span>
                   </div>
+                </div>
+
+                <div className={`rounded-xl border p-3 ${
+                  ratingConfidence.tone === 'strong'
+                    ? 'border-emerald-200 bg-emerald-50'
+                    : ratingConfidence.tone === 'moderate'
+                      ? 'border-amber-200 bg-amber-50'
+                      : 'border-slate-200 bg-slate-50'
+                }`}>
+                  <span className={`text-[9px] font-black uppercase tracking-wider ${
+                    ratingConfidence.tone === 'strong'
+                      ? 'text-emerald-700'
+                      : ratingConfidence.tone === 'moderate'
+                        ? 'text-amber-700'
+                        : 'text-slate-600'
+                  }`}>
+                    {ratingConfidence.label}
+                  </span>
+                  <p className="mt-1 text-[10px] leading-relaxed text-slate-600">{ratingConfidence.description}</p>
                 </div>
 
                 <div className="rounded-xl border border-amber-200 bg-amber-50 p-3">
@@ -1445,20 +1446,29 @@ export default function TrainingView({ players, onUpdatePlayer, games, onUpdateG
                         {selectedTrainingDrills.length} {selectedTrainingDrills.length === 1 ? 'drill' : 'drills'} · {selectedTrainingLoad} load points
                       </p>
                     </div>
-                    <Button type="button" variant="ghost" size="sm" onClick={() => setSelectedTrainingDrillIds([])} disabled={selectedTrainingDrillIds.length === 0} className="h-7 px-2 text-[9px] text-slate-500">
+                    <Button type="button" variant="ghost" size="sm" onClick={() => {
+                      setSelectedTrainingDrillIds([]);
+                      setRecentEvidenceMessage('');
+                    }} disabled={selectedTrainingDrillIds.length === 0} className="h-7 px-2 text-[9px] text-slate-500">
                       Clear
                     </Button>
                   </div>
-                  {Object.keys(projectedTrainingGains).length > 0 ? (
-                    <div className="mt-2 flex flex-wrap gap-1">
-                      {Object.entries(projectedTrainingGains).map(([attribute, gain]) => (
-                        <Badge key={attribute} className="border-emerald-200 bg-emerald-50 px-1.5 py-0.5 text-[8px] capitalize text-emerald-700">
-                          {attribute === 'physicalness' ? 'conditioning' : attribute} +{gain}
-                        </Badge>
-                      ))}
-                    </div>
+                  {Object.keys(developmentEvidenceSignals).length > 0 ? (
+                    <p className="mt-2 text-[10px] font-bold text-emerald-700">
+                      Training focus: {developmentFocusLabel}
+                    </p>
                   ) : (
-                    <p className="mt-1 text-[9px] text-slate-400">Choose drills to see projected gains.</p>
+                    <p className="mt-1 text-[9px] text-slate-400">Choose drills to see the training focus.</p>
+                  )}
+                  {selectedTrainingDrills.length > 0 && (
+                    <p className="mt-2 text-[9px] font-bold text-slate-500">
+                      {developmentEvidenceSummary.recommendationLabel}. FPRDS reassessment is required before any official rating changes.
+                    </p>
+                  )}
+                  {recentEvidenceMessage && (
+                    <p className="mt-2 rounded-lg border border-indigo-100 bg-indigo-50 px-2 py-1.5 text-[9px] font-bold leading-relaxed text-indigo-700" role="status">
+                      {recentEvidenceMessage}
+                    </p>
                   )}
                 </div>
 
@@ -1472,7 +1482,7 @@ export default function TrainingView({ players, onUpdatePlayer, games, onUpdateG
                   </Button>
                 </div>
                 <Button type="button" onClick={handleCompleteDevelopmentSession} disabled={selectedTrainingDrills.length === 0} className="h-10 w-full bg-indigo-600 text-[11px] text-white hover:bg-indigo-700">
-                  <CheckCircle size={14} /> Complete session and apply gains
+                  <CheckCircle size={14} /> Log evidence and recommend reassessment
                 </Button>
               </div>
             ) : (
@@ -1710,7 +1720,7 @@ export default function TrainingView({ players, onUpdatePlayer, games, onUpdateG
                                 )}
                               </div>
                               <div className="text-[8px] text-slate-500 mt-0.5">
-                                {drill.category} · Load {drill.fatigueIncrease}% · {Object.entries(drill.statsBumps).map(([key, value]) => `${key === 'physicalness' ? 'conditioning' : key} +${value}`).join(', ')}
+                                {drill.category} · Load {drill.fatigueIncrease}% · Focus: {formatTrainingFocusList(drill.developmentFocus)}
                               </div>
                             </div>
                           </Button>
@@ -1743,14 +1753,10 @@ export default function TrainingView({ players, onUpdatePlayer, games, onUpdateG
                           <span className="text-[8px] text-slate-500 uppercase">Session load</span>
                         </div>
                       </div>
-                      {Object.keys(projectedTrainingGains).length > 0 ? (
-                        <div className="flex flex-wrap gap-1">
-                          {Object.entries(projectedTrainingGains).map(([attribute, gain]) => (
-                            <Badge key={attribute} className="border-emerald-500/20 bg-emerald-500/10 px-1.5 py-0.5 text-[8px] capitalize text-emerald-300">
-                              {attribute === 'physicalness' ? 'conditioning' : attribute} +{gain}
-                            </Badge>
-                          ))}
-                        </div>
+                      {Object.keys(developmentEvidenceSignals).length > 0 ? (
+                        <p className="text-[9px] font-bold text-emerald-300">
+                          Training focus: {developmentFocusLabel}
+                        </p>
                       ) : (
                         <p className="text-[9px] text-slate-600">Select at least one drill to create a session.</p>
                       )}
@@ -1801,7 +1807,7 @@ export default function TrainingView({ players, onUpdatePlayer, games, onUpdateG
                   disabled={selectedTrainingDrills.length === 0}
                   className="w-full rounded-xl border-emerald-500/30 bg-emerald-500/10 py-2 text-[10px] font-black text-emerald-300 hover:bg-emerald-500/20 hover:text-emerald-200"
                 >
-                  <CheckCircle size={13} /> Complete selected training and apply gains
+                  <CheckCircle size={13} /> Log evidence and recommend reassessment
                 </Button>
               </>
             ) : (

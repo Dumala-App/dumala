@@ -23,6 +23,7 @@ import {
   Zap
 } from 'lucide-react';
 import type { DrillInstruction, TrainingDrill } from '../training/drillLibrary';
+import { formatTrainingFocusList } from '../training/developmentEvidence';
 import { Button } from './ui/button';
 
 export function getDrillIcon(drillId: string): React.ReactNode {
@@ -211,7 +212,7 @@ export const TrainingDrillCard = ({
 
       <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 pt-2.5 text-[10px] font-bold">
         <span className="flex items-center gap-1 text-indigo-600">
-          <Sparkles size={11} /> {Object.entries(drill.statsBumps).map(([key, value]) => `${key} +${value}`).join(', ')}
+          <Sparkles size={11} /> Focus: {formatTrainingFocusList(drill.developmentFocus)}
         </span>
         <span className="text-rose-500 flex items-center gap-1">
           <Flame size={11} /> Intensity {drill.fatigueIncrease}/10

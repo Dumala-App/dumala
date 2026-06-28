@@ -1,10 +1,10 @@
 # Dumala Product Requirements Document
 
-Updated: 2026-06-21
+Updated: 2026-06-28
 
 ## 1. Product summary
 
-Dumala is a Philippines-first football team management platform for coaches, managers, academies, and grassroots clubs. The current beta is a local-first React application that lets one operator manage a single team from one browser workspace.
+Dumala is a Philippines-first football team management platform for coaches, managers, academies, and grassroots clubs. The current beta is a local-first React application that lets one operator manage multiple team workspaces from one browser.
 
 The product combines club operations with player development:
 
@@ -23,7 +23,7 @@ Dumala provides one structured workspace for weekly team administration and repe
 
 | User | Current need | Current fit |
 | --- | --- | --- |
-| Head coach or manager | Operate one team and make weekly decisions | Strong |
+| Head coach or manager | Operate one or more local teams and make weekly decisions | Strong |
 | Assistant coach | Review players, training, tactics, and match context | Moderate; collaboration is not yet available |
 | Team administrator | Maintain records, standings, bulletins, and backups | Strong |
 | Academy evaluator | Run standardized player assessments | Beta |
@@ -39,7 +39,9 @@ Dumala provides one structured workspace for weekly team administration and repe
 4. Update standings and player totals from match results.
 5. Make player assessment repeatable, explainable, and position-aware.
 6. Preserve data through validated export and restore.
-7. Build toward offline use, tablets, shared clubs, public profiles, and Philippine coach education.
+7. Separate development activity from verified ability so FPRDS ratings remain evidence-based.
+8. Let operators manage multiple local teams while preserving a clean path toward cloud clubs.
+9. Build toward offline use, tablets, shared clubs, public profiles, and Philippine coach education.
 
 ## 5. Current non-goals
 
@@ -78,7 +80,7 @@ Dumala provides one structured workspace for weekly team administration and repe
 
 ### Development
 
-- **Training**: 52-drill library, filters, How-To guides, week-by-week planner, nine presets, match badges, and schedule synchronization.
+- **Training**: 52-drill library, filters, How-To guides, week-by-week planner, nine presets, match badges, schedule synchronization, development evidence, and reassessment planning.
 - **Assessments**: Full and Quick FPRDS assessments, seven role profiles, four age groups, benchmark scoring, OVR, deltas, history, drill guides, player-card preview, and four-week plans for Full assessments.
 
 ### League & Updates
@@ -95,6 +97,17 @@ Dumala provides one structured workspace for weekly team administration and repe
 - The manager must be stored as the first staff record.
 - Onboarding must start with an empty standings table.
 - Completion must open the Home Overview tab.
+
+### Team workspace management
+
+- The top navbar must show the active team and expose team workspace management.
+- Users must be able to add a new local team without resetting existing teams.
+- Users must be able to switch active teams, with roster, staff, schedule, standings, bulletins, assessments, payments, tactics, training, availability, and coach notes isolated per team.
+- Users must be able to rename a team from the manager and keep the team metadata aligned with the active workspace.
+- Users must be able to export the current team using the existing Full Workspace V4 format.
+- Users must be able to import a Full Workspace V4 backup as a separate local team without overwriting the active team.
+- Users must be able to delete one team while preserving other local teams.
+- Workspace metadata must include stable local IDs and an optional future cloud club ID.
 
 ### Roster and profiles
 
@@ -124,6 +137,8 @@ Dumala provides one structured workspace for weekly team administration and repe
 - Each drill must provide practical instructions.
 - Users must assign drills to a weekly schedule, navigate to previous or future weeks, and load presets.
 - Training schedule changes must synchronize corresponding calendar events for the selected week.
+- Training must record drill plans, load, focus areas, and development evidence without treating attendance as verified ability.
+- Training must not directly update official FPRDS ratings, OVR, assessment snapshots, or assessment-derived attributes.
 
 ### FPRDS assessments
 
@@ -136,6 +151,8 @@ Dumala provides one structured workspace for weekly team administration and repe
 - Assessment history must show OVR, attributes, tier, and deltas.
 - Full assessments must generate a four-week development plan.
 - Deleting the latest assessment must restore the player's next-latest snapshot when available.
+- FPRDS assessments are the authoritative source for verified rating updates.
+- Official rating deltas must come from saved assessments, not training attendance.
 
 ### League, discipline, and awards
 
@@ -158,13 +175,14 @@ Dumala provides one structured workspace for weekly team administration and repe
 - Legacy versions 1.0, 1.1, Full Workspace V2, and Full Workspace V3 must migrate into the V4 structure.
 - Restore must create a pre-restore backup and reopen the workspace without requiring onboarding.
 - Failed writes must roll back so the current workspace remains unchanged.
-- Reset Workspace must clear all locally stored Dumala data.
+- Reset Workspace must delete the active team workspace; if it is the last local team, the app must return to onboarding.
 
 ## 8. Non-functional requirements
 
 ### Reliability
 
 - Core state must survive refresh and browser restart.
+- Team switching must flush the current active workspace before loading the selected one.
 - Destructive actions must require confirmation where data loss is material.
 - Imported and persisted data should fail safely when malformed.
 
@@ -194,6 +212,7 @@ Dumala provides one structured workspace for weekly team administration and repe
 
 | Entity | Purpose |
 | --- | --- |
+| `WorkspaceSummary` | Local team workspace metadata, active-team switching identity, and future cloud-club link |
 | `TeamInfo` | Club identity and branding |
 | `Player` | Athlete identity, football attributes, status, statistics, traits, and FPRDS snapshot |
 | `StaffMember` | Staff identity, club role, contact details, tenure, biography, and status |
@@ -208,15 +227,20 @@ Dumala provides one structured workspace for weekly team administration and repe
 
 The beta succeeds when a coach can:
 
-1. Create and reopen a team workspace.
+1. Create and reopen multiple local team workspaces.
 2. Maintain players and staff with useful profile data.
 3. Plan a match week and training schedule.
 4. Build a position-appropriate lineup.
 5. Record results and see correct standings and player totals.
 6. Run and review repeatable player assessments.
-7. Export and restore a complete backup.
-8. Use the product on desktop and mobile without blocking defects.
+7. Switch between teams without data leaking between workspaces.
+8. Export and restore a complete backup.
+9. Use the product on desktop and mobile without blocking defects.
 
 ## 11. Roadmap authority
 
 The in-app **Updates > Roadmap Snapshot** is the product-facing roadmap. [ROADMAP.md](ROADMAP.md) mirrors it for engineering and planning. If older documents conflict with those sources, the Roadmap Snapshot and current code take precedence.
+
+## 12. Development doctrine
+
+[FPRDS_EVIDENCE_BASED_DEVELOPMENT_SYSTEM.md](FPRDS_EVIDENCE_BASED_DEVELOPMENT_SYSTEM.md) is the authority for Dumala's player-development model. It defines the core rule that training creates development evidence, while FPRDS assessment verifies current ability and updates official ratings.

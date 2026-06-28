@@ -9,7 +9,7 @@ export type TrainingDrill = {
   category: string;
   description: string;
   targetAttributes: readonly TrainingAttributeKey[];
-  statsBumps: Partial<Record<TrainingAttributeKey, number>>;
+  developmentFocus: Partial<Record<TrainingAttributeKey, number>>;
   fatigueIncrease: number;
   icon: string;
   color: string;
@@ -28,9 +28,9 @@ export const TRAINING_DRILLS = [
     id: "drill-agility",
     name: "Shuttle Run Sprints",
     category: "Physical & Pace",
-    description: "High-intensity shuttle sprints and lateral agility cone-weaving. Boosts athlete speed and physical presence.",
+    description: "High-intensity shuttle sprints and lateral agility cone-weaving. Targets speed and physical presence evidence.",
     targetAttributes: ["speed", "physicalness"],
-    statsBumps: { speed: 2, physicalness: 1 },
+    developmentFocus: { speed: 2, physicalness: 1 },
     fatigueIncrease: 6,
     icon: "",
     color: "from-blue-600 to-indigo-600"
@@ -39,9 +39,9 @@ export const TRAINING_DRILLS = [
     id: "drill-shooting",
     name: "Finesse Target Shooting",
     category: "Clinic Finish",
-    description: "Rapid receiving and precision finishing against simulated goalie pressure. Boosts clinical goal scoring.",
+    description: "Rapid receiving and precision finishing against simulated goalie pressure. Targets clinical goal-scoring evidence.",
     targetAttributes: ["shooting"],
-    statsBumps: { shooting: 3 },
+    developmentFocus: { shooting: 3 },
     fatigueIncrease: 4,
     icon: "",
     color: "from-rose-600 to-amber-600"
@@ -52,7 +52,7 @@ export const TRAINING_DRILLS = [
     category: "Creative Midfield",
     description: "Tight-knit quick passing under heavy tactical counter-pressures. Calibrates overall team coordination.",
     targetAttributes: ["passing", "dribbling"],
-    statsBumps: { passing: 2, dribbling: 1 },
+    developmentFocus: { passing: 2, dribbling: 1 },
     fatigueIncrease: 3,
     icon: "",
     color: "from-emerald-600 to-cyan-600"
@@ -61,9 +61,9 @@ export const TRAINING_DRILLS = [
     id: "drill-dribbling",
     name: "Dribble Maze Challenge",
     category: "Ball Mastery",
-    description: "Dynamic close-quarter dribble track through physical hurdles and obstacles. Boosts tight control.",
+    description: "Dynamic close-quarter dribble track through physical hurdles and obstacles. Targets tight-control evidence.",
     targetAttributes: ["dribbling"],
-    statsBumps: { dribbling: 3 },
+    developmentFocus: { dribbling: 3 },
     fatigueIncrease: 3,
     icon: "",
     color: "from-amber-600 to-yellow-600"
@@ -74,7 +74,7 @@ export const TRAINING_DRILLS = [
     category: "Tactical Guard",
     description: "Defenders coordinate slides, body blocks, and physical clearing tactics to stall target strikers.",
     targetAttributes: ["defending", "passing"],
-    statsBumps: { defending: 3, passing: 1 },
+    developmentFocus: { defending: 3, passing: 1 },
     fatigueIncrease: 5,
     icon: "",
     color: "from-purple-600 to-indigo-600"
@@ -85,7 +85,7 @@ export const TRAINING_DRILLS = [
     category: "Stamina & Cardio",
     description: "High weight sets, deadlifts, and cardio build dynamic physical stamina and stamina longevity.",
     targetAttributes: ["physicalness"],
-    statsBumps: { physicalness: 3 },
+    developmentFocus: { physicalness: 3 },
     fatigueIncrease: 7,
     icon: "",
     color: "from-slate-700 to-zinc-900"
@@ -96,7 +96,7 @@ export const TRAINING_DRILLS = [
     category: "Set Pieces & Air Power",
     description: "Perfect crossing deliveries and timing high headers under defender contact. Elevates overall target presence.",
     targetAttributes: ["shooting", "physicalness"],
-    statsBumps: { shooting: 2, physicalness: 1 },
+    developmentFocus: { shooting: 2, physicalness: 1 },
     fatigueIncrease: 4,
     icon: "",
     color: "from-blue-500 to-amber-500"
@@ -107,7 +107,7 @@ export const TRAINING_DRILLS = [
     category: "Strategy & IQ",
     description: "Off-the-ball runs, defensive spacing, and simulated positional shifting without a game ball. Calibrates mental positioning.",
     targetAttributes: ["defending", "passing"],
-    statsBumps: { defending: 2, passing: 1 },
+    developmentFocus: { defending: 2, passing: 1 },
     fatigueIncrease: 3,
     icon: "",
     color: "from-indigo-600 to-cyan-500"
@@ -118,7 +118,7 @@ export const TRAINING_DRILLS = [
     category: "Goalkeeping & Reflexes",
     description: "Rapid reaction tennis ball machine catching and diving exercises. Essential for deep line guard presence.",
     targetAttributes: ["defending", "speed"],
-    statsBumps: { defending: 2, speed: 1 },
+    developmentFocus: { defending: 2, speed: 1 },
     fatigueIncrease: 5,
     icon: "",
     color: "from-yellow-500 to-emerald-600"
@@ -127,9 +127,9 @@ export const TRAINING_DRILLS = [
     id: "drill-stamina-cardio",
     name: "Interval Cooper Endurance",
     category: "Stamina & Cardio",
-    description: "Classic high-volume wind sprints paired with jog-recovery cycles. Drastically increases long-game lung capacity.",
+    description: "Classic high-volume wind sprints paired with jog-recovery cycles. Targets long-game endurance evidence.",
     targetAttributes: ["physicalness", "speed"],
-    statsBumps: { physicalness: 3, speed: 1 },
+    developmentFocus: { physicalness: 3, speed: 1 },
     fatigueIncrease: 8,
     icon: "",
     color: "from-red-650 to-orange-500"
@@ -140,7 +140,7 @@ export const TRAINING_DRILLS = [
     category: "Creative Midfield",
     description: "Midfield vision grids to identify diagonal half-space runners. Calibrates final third assist accuracy.",
     targetAttributes: ["passing"],
-    statsBumps: { passing: 3 },
+    developmentFocus: { passing: 3 },
     fatigueIncrease: 3,
     icon: "",
     color: "from-violet-600 to-rose-500"
@@ -151,7 +151,7 @@ export const TRAINING_DRILLS = [
     category: "Tactical Guard",
     description: "High intensity 4v2 positional boxes to choke off opponent ball circulation immediately upon possession loss.",
     targetAttributes: ["defending", "physicalness"],
-    statsBumps: { defending: 2, physicalness: 2 },
+    developmentFocus: { defending: 2, physicalness: 2 },
     fatigueIncrease: 6,
     icon: "",
     color: "from-amber-600 to-rose-700"
@@ -162,7 +162,7 @@ export const TRAINING_DRILLS = [
     category: "Conditioning & Endurance",
     description: "Controlled four-minute running blocks with short recovery periods to build match-long aerobic capacity.",
     targetAttributes: ["physicalness"],
-    statsBumps: { physicalness: 2 },
+    developmentFocus: { physicalness: 2 },
     fatigueIncrease: 5,
     icon: "",
     color: "from-cyan-600 to-blue-700"
@@ -173,7 +173,7 @@ export const TRAINING_DRILLS = [
     category: "Conditioning & Speed",
     description: "Short maximal sprints with incomplete recovery to improve repeated high-intensity efforts late in matches.",
     targetAttributes: ["speed", "physicalness"],
-    statsBumps: { speed: 2, physicalness: 2 },
+    developmentFocus: { speed: 2, physicalness: 2 },
     fatigueIncrease: 7,
     icon: "",
     color: "from-orange-500 to-rose-600"
@@ -184,7 +184,7 @@ export const TRAINING_DRILLS = [
     category: "Conditioning & Pace",
     description: "Explosive 5-to-15 meter starts from varied body positions with full recovery and technique coaching.",
     targetAttributes: ["speed"],
-    statsBumps: { speed: 3 },
+    developmentFocus: { speed: 3 },
     fatigueIncrease: 4,
     icon: "",
     color: "from-sky-500 to-indigo-600"
@@ -195,7 +195,7 @@ export const TRAINING_DRILLS = [
     category: "Conditioning & Power",
     description: "Low-volume jumps, bounds, and landing mechanics that develop explosive power while protecting the joints.",
     targetAttributes: ["physicalness", "speed"],
-    statsBumps: { physicalness: 2, speed: 1 },
+    developmentFocus: { physicalness: 2, speed: 1 },
     fatigueIncrease: 6,
     icon: "",
     color: "from-fuchsia-600 to-purple-700"
@@ -206,7 +206,7 @@ export const TRAINING_DRILLS = [
     category: "Recovery & Mobility",
     description: "Guided hip, ankle, hamstring, and upper-back mobility work designed for low-load recovery days.",
     targetAttributes: ["physicalness"],
-    statsBumps: { physicalness: 1 },
+    developmentFocus: { physicalness: 1 },
     fatigueIncrease: 1,
     icon: "",
     color: "from-emerald-500 to-teal-600"
@@ -217,7 +217,7 @@ export const TRAINING_DRILLS = [
     category: "Conditioning & Resilience",
     description: "Anti-rotation, balance, and trunk-control stations that improve contact strength and movement quality.",
     targetAttributes: ["physicalness", "defending"],
-    statsBumps: { physicalness: 2, defending: 1 },
+    developmentFocus: { physicalness: 2, defending: 1 },
     fatigueIncrease: 4,
     icon: "",
     color: "from-slate-600 to-blue-800"
@@ -230,7 +230,7 @@ export const TRAINING_DRILLS = [
     category: "Forward Finishing",
     description: "High-repetition one-touch and two-touch finishing from varied angles with passive and active defensive pressure.",
     targetAttributes: ["shooting", "dribbling"],
-    statsBumps: { shooting: 2, dribbling: 1 },
+    developmentFocus: { shooting: 2, dribbling: 1 },
     fatigueIncrease: 5,
     icon: "",
     color: "from-rose-600 to-red-700"
@@ -241,7 +241,7 @@ export const TRAINING_DRILLS = [
     category: "Forward Movement",
     description: "Timed runs between centre-backs, curved arcs into space, and checking short to receive between midfield lines.",
     targetAttributes: ["shooting", "speed"],
-    statsBumps: { shooting: 1, speed: 2 },
+    developmentFocus: { shooting: 1, speed: 2 },
     fatigueIncrease: 4,
     icon: "",
     color: "from-orange-500 to-amber-600"
@@ -252,7 +252,7 @@ export const TRAINING_DRILLS = [
     category: "Forward Hold-Up",
     description: "Receiving with back to goal, shielding in tight areas, and laying off to advancing midfielders under physical contact.",
     targetAttributes: ["shooting", "physicalness"],
-    statsBumps: { shooting: 1, physicalness: 2 },
+    developmentFocus: { shooting: 1, physicalness: 2 },
     fatigueIncrease: 5,
     icon: "",
     color: "from-amber-600 to-yellow-600"
@@ -263,7 +263,7 @@ export const TRAINING_DRILLS = [
     category: "Forward Air Attack",
     description: "In-swinging and out-swinging crosses met with first-time finishes, diving headers, and controlled volleys from 8-18 yards.",
     targetAttributes: ["shooting", "speed"],
-    statsBumps: { shooting: 2, speed: 1 },
+    developmentFocus: { shooting: 2, speed: 1 },
     fatigueIncrease: 5,
     icon: "",
     color: "from-red-600 to-amber-600"
@@ -276,7 +276,7 @@ export const TRAINING_DRILLS = [
     category: "Midfield Transition",
     description: "Rapid defensive-to-offensive transitions with 3-touch maximum. Midfielders scan and distribute under split-second pressure.",
     targetAttributes: ["passing", "dribbling"],
-    statsBumps: { passing: 2, dribbling: 1 },
+    developmentFocus: { passing: 2, dribbling: 1 },
     fatigueIncrease: 5,
     icon: "",
     color: "from-sky-500 to-cyan-600"
@@ -287,7 +287,7 @@ export const TRAINING_DRILLS = [
     category: "Midfield Vision",
     description: "Weighted through balls between defensive lines into space for runners, practiced with moving targets and mannequin walls.",
     targetAttributes: ["passing"],
-    statsBumps: { passing: 3 },
+    developmentFocus: { passing: 3 },
     fatigueIncrease: 3,
     icon: "",
     color: "from-emerald-500 to-teal-600"
@@ -298,7 +298,7 @@ export const TRAINING_DRILLS = [
     category: "Midfield Control",
     description: "5v2 and 4v2 rondos emphasizing quick decisions, body orientation, and first-touch direction under tight pressure.",
     targetAttributes: ["passing", "dribbling"],
-    statsBumps: { passing: 2, dribbling: 2 },
+    developmentFocus: { passing: 2, dribbling: 2 },
     fatigueIncrease: 3,
     icon: "",
     color: "from-teal-500 to-emerald-600"
@@ -309,7 +309,7 @@ export const TRAINING_DRILLS = [
     category: "Midfield Shooting",
     description: "Controlled power shots from 18-30 yards with placement targets, practicing both driven and curling techniques.",
     targetAttributes: ["shooting", "passing"],
-    statsBumps: { shooting: 2, passing: 1 },
+    developmentFocus: { shooting: 2, passing: 1 },
     fatigueIncrease: 4,
     icon: "",
     color: "from-violet-500 to-purple-600"
@@ -320,7 +320,7 @@ export const TRAINING_DRILLS = [
     category: "Midfield Composure",
     description: "Receiving in central areas with two-man pressure arriving. Escape turns, shielding, and recognition of the free outlet player.",
     targetAttributes: ["dribbling", "physicalness"],
-    statsBumps: { dribbling: 2, physicalness: 1 },
+    developmentFocus: { dribbling: 2, physicalness: 1 },
     fatigueIncrease: 4,
     icon: "",
     color: "from-indigo-500 to-blue-600"
@@ -333,7 +333,7 @@ export const TRAINING_DRILLS = [
     category: "Defender Isolations",
     description: "Sideline containment, jockeying posture, and standing tackle technique in isolated 1v1 attacking scenarios.",
     targetAttributes: ["defending", "speed"],
-    statsBumps: { defending: 2, speed: 1 },
+    developmentFocus: { defending: 2, speed: 1 },
     fatigueIncrease: 5,
     icon: "",
     color: "from-sky-600 to-blue-700"
@@ -344,7 +344,7 @@ export const TRAINING_DRILLS = [
     category: "Defender Organization",
     description: "Coordinated unit movement: stepping up/dropping as one block, maintaining 8-12m inter-player distances, offside trap timing.",
     targetAttributes: ["defending", "passing"],
-    statsBumps: { defending: 2, passing: 1 },
+    developmentFocus: { defending: 2, passing: 1 },
     fatigueIncrease: 4,
     icon: "",
     color: "from-blue-600 to-indigo-700"
@@ -355,7 +355,7 @@ export const TRAINING_DRILLS = [
     category: "Defender Aerial",
     description: "Repeated high-ball challenges with attacking pressure. Focus on first-contact wins, heading distance, and body positioning.",
     targetAttributes: ["defending", "physicalness"],
-    statsBumps: { defending: 1, physicalness: 2 },
+    developmentFocus: { defending: 1, physicalness: 2 },
     fatigueIncrease: 5,
     icon: "",
     color: "from-slate-600 to-zinc-700"
@@ -366,7 +366,7 @@ export const TRAINING_DRILLS = [
     category: "Defender Wide Play",
     description: "Wing overlap sprints with crossing practice followed by immediate sprint-back to defensive 1v1 recovery position.",
     targetAttributes: ["speed", "defending"],
-    statsBumps: { speed: 2, defending: 1 },
+    developmentFocus: { speed: 2, defending: 1 },
     fatigueIncrease: 6,
     icon: "",
     color: "from-cyan-500 to-sky-600"
@@ -379,7 +379,7 @@ export const TRAINING_DRILLS = [
     category: "Goalkeeper Reflexes",
     description: "Progressive low/mid/high dive sequences from static and moving start positions. Second-save reactions off primary parries.",
     targetAttributes: ["defending", "speed"],
-    statsBumps: { defending: 2, speed: 1 },
+    developmentFocus: { defending: 2, speed: 1 },
     fatigueIncrease: 5,
     icon: "",
     color: "from-yellow-500 to-orange-600"
@@ -390,7 +390,7 @@ export const TRAINING_DRILLS = [
     category: "Goalkeeper Build-Up",
     description: "Goal kicks, side-volley distribution to wide targets, and sweeping actions off the line to clear through balls with foot control.",
     targetAttributes: ["passing", "speed"],
-    statsBumps: { passing: 2, speed: 1 },
+    developmentFocus: { passing: 2, speed: 1 },
     fatigueIncrease: 3,
     icon: "",
     color: "from-lime-500 to-emerald-600"
@@ -401,7 +401,7 @@ export const TRAINING_DRILLS = [
     category: "Goalkeeper Air Control",
     description: "High cross claiming with attacking congestion. Punching decisions under aerial challenge and organizing the defensive wall.",
     targetAttributes: ["defending", "physicalness"],
-    statsBumps: { defending: 2, physicalness: 1 },
+    developmentFocus: { defending: 2, physicalness: 1 },
     fatigueIncrease: 4,
     icon: "",
     color: "from-amber-500 to-yellow-600"
@@ -412,7 +412,7 @@ export const TRAINING_DRILLS = [
     category: "Goalkeeper Close-Outs",
     description: "Angle-closing sprints, set-position timing, spread technique, and low smother saves on isolated striker breakaways.",
     targetAttributes: ["speed", "defending"],
-    statsBumps: { speed: 2, defending: 1 },
+    developmentFocus: { speed: 2, defending: 1 },
     fatigueIncrease: 4,
     icon: "",
     color: "from-orange-600 to-red-600"
@@ -423,7 +423,7 @@ export const TRAINING_DRILLS = [
     category: "Goalkeeper Technique",
     description: "Shuttle steps through cones to set position, followed by varied-height catches and immediate redistribution to targets.",
     targetAttributes: ["dribbling", "passing"],
-    statsBumps: { dribbling: 2, passing: 1 },
+    developmentFocus: { dribbling: 2, passing: 1 },
     fatigueIncrease: 3,
     icon: "",
     color: "from-blue-400 to-cyan-500"
@@ -436,7 +436,7 @@ export const TRAINING_DRILLS = [
     category: "Forward Combination",
     description: "Standard one-two wall pass around a mannequin with a first-time finish from 12-16m. Classic striker combination play.",
     targetAttributes: ["shooting", "passing"],
-    statsBumps: { shooting: 2, passing: 1 },
+    developmentFocus: { shooting: 2, passing: 1 },
     fatigueIncrease: 4,
     icon: "",
     color: "from-rose-500 to-pink-600"
@@ -447,7 +447,7 @@ export const TRAINING_DRILLS = [
     category: "Forward Movement",
     description: "Striker drops into the defender's blind spot, then bursts across to receive a slipped through-ball and finish one-on-one.",
     targetAttributes: ["shooting", "speed"],
-    statsBumps: { shooting: 2, speed: 1 },
+    developmentFocus: { shooting: 2, speed: 1 },
     fatigueIncrease: 4,
     icon: "",
     color: "from-orange-600 to-red-600"
@@ -458,7 +458,7 @@ export const TRAINING_DRILLS = [
     category: "Forward Instinct",
     description: "Shots fired from 18m; striker follows in at full speed to pounce on goalkeeper parries, deflections, and loose balls in the box.",
     targetAttributes: ["shooting", "speed"],
-    statsBumps: { shooting: 1, speed: 2 },
+    developmentFocus: { shooting: 1, speed: 2 },
     fatigueIncrease: 5,
     icon: "",
     color: "from-red-500 to-rose-600"
@@ -469,7 +469,7 @@ export const TRAINING_DRILLS = [
     category: "Forward Shooting",
     description: "Receive a square ball at the edge of the area, set with one touch, and fire a driven shot into the bottom corner within two seconds.",
     targetAttributes: ["shooting"],
-    statsBumps: { shooting: 3 },
+    developmentFocus: { shooting: 3 },
     fatigueIncrease: 4,
     icon: "",
     color: "from-fuchsia-500 to-rose-600"
@@ -482,7 +482,7 @@ export const TRAINING_DRILLS = [
     category: "Midfield Distribution",
     description: "Receive centrally, scan for the weak-side winger, and play a 35-50m diagonal switch to isolate the far-side wide player.",
     targetAttributes: ["passing"],
-    statsBumps: { passing: 3 },
+    developmentFocus: { passing: 3 },
     fatigueIncrease: 3,
     icon: "",
     color: "from-blue-500 to-indigo-600"
@@ -493,7 +493,7 @@ export const TRAINING_DRILLS = [
     category: "Midfield Scanning",
     description: "Midfielders receive a pass with their back to goal, scan over the shoulder, and turn into space with their first touch to play forward.",
     targetAttributes: ["passing", "dribbling"],
-    statsBumps: { passing: 2, dribbling: 1 },
+    developmentFocus: { passing: 2, dribbling: 1 },
     fatigueIncrease: 3,
     icon: "",
     color: "from-teal-500 to-emerald-600"
@@ -504,7 +504,7 @@ export const TRAINING_DRILLS = [
     category: "Midfield Penetration",
     description: "Receive from the back line and play a vertical pass that cuts through two lines of pressure into a forward's feet. Two-touch max.",
     targetAttributes: ["passing"],
-    statsBumps: { passing: 3 },
+    developmentFocus: { passing: 3 },
     fatigueIncrease: 4,
     icon: "",
     color: "from-cyan-500 to-blue-600"
@@ -515,7 +515,7 @@ export const TRAINING_DRILLS = [
     category: "Midfield Combination",
     description: "A passes to B, B lays off to C (the third man) who has drifted into space. C plays the final through-ball. Movement off the ball is key.",
     targetAttributes: ["passing", "dribbling"],
-    statsBumps: { passing: 2, dribbling: 2 },
+    developmentFocus: { passing: 2, dribbling: 2 },
     fatigueIncrease: 3,
     icon: "",
     color: "from-purple-500 to-violet-600"
@@ -528,7 +528,7 @@ export const TRAINING_DRILLS = [
     category: "Passing Foundation",
     description: "Three players in a 10m triangle play two-touch passes with emphasis on receiving on the back foot and opening the body to the next target.",
     targetAttributes: ["passing"],
-    statsBumps: { passing: 2 },
+    developmentFocus: { passing: 2 },
     fatigueIncrease: 2,
     icon: "",
     color: "from-emerald-400 to-teal-500"
@@ -539,7 +539,7 @@ export const TRAINING_DRILLS = [
     category: "Passing Combination",
     description: "Players in pairs execute rapid one-two passes around a cone. Receiver checks to the ball, returns it first-time, then spins for the return.",
     targetAttributes: ["passing"],
-    statsBumps: { passing: 3 },
+    developmentFocus: { passing: 3 },
     fatigueIncrease: 3,
     icon: "",
     color: "from-lime-500 to-emerald-500"
@@ -550,7 +550,7 @@ export const TRAINING_DRILLS = [
     category: "Passing Wide Play",
     description: "Winger receives, fullback overlaps at speed, winger feeds the overlapping run, and the fullback crosses. Synchronize timing of run and pass.",
     targetAttributes: ["passing", "speed"],
-    statsBumps: { passing: 2, speed: 1 },
+    developmentFocus: { passing: 2, speed: 1 },
     fatigueIncrease: 4,
     icon: "",
     color: "from-cyan-400 to-sky-500"
@@ -561,7 +561,7 @@ export const TRAINING_DRILLS = [
     category: "Passing Speed",
     description: "6-8 players in a 15×15m grid. One-touch passing only. Players must constantly scan, move into space, and deliver crisp passes under time pressure.",
     targetAttributes: ["passing", "dribbling"],
-    statsBumps: { passing: 2, dribbling: 1 },
+    developmentFocus: { passing: 2, dribbling: 1 },
     fatigueIncrease: 4,
     icon: "",
     color: "from-sky-400 to-blue-500"
@@ -572,7 +572,7 @@ export const TRAINING_DRILLS = [
     category: "Passing Range",
     description: "Players practice 30-50m driven diagonal balls to a moving target on the opposite flank. Focus on weight, trajectory, and leading the receiver.",
     targetAttributes: ["passing"],
-    statsBumps: { passing: 3 },
+    developmentFocus: { passing: 3 },
     fatigueIncrease: 3,
     icon: "",
     color: "from-indigo-400 to-purple-500"
@@ -583,7 +583,7 @@ export const TRAINING_DRILLS = [
     category: "Passing Aerial",
     description: "Receive a lofted ball with the chest or thigh, control into space, then play a driven pass to a teammate. Alternate receiving sides each rep.",
     targetAttributes: ["passing", "physicalness"],
-    statsBumps: { passing: 2, physicalness: 1 },
+    developmentFocus: { passing: 2, physicalness: 1 },
     fatigueIncrease: 3,
     icon: "",
     color: "from-amber-400 to-orange-500"
@@ -594,7 +594,7 @@ export const TRAINING_DRILLS = [
     category: "Passing Composure",
     description: "Two pressers close down a passer inside a 6m box. Passer must find an outlet within 3s under heavy pressure. One-touch clearance allowed.",
     targetAttributes: ["passing", "dribbling"],
-    statsBumps: { passing: 2, dribbling: 1 },
+    developmentFocus: { passing: 2, dribbling: 1 },
     fatigueIncrease: 4,
     icon: "",
     color: "from-rose-400 to-pink-500"
