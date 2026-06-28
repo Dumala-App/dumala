@@ -8,6 +8,7 @@ import WorkspaceIntegrityBanner from './components/WorkspaceIntegrityBanner';
 import StartupRecoveryScreen from './components/StartupRecoveryScreen';
 import { ViewErrorBoundary } from './components/ErrorBoundary';
 import ShellNavItem from './components/ShellNavItem';
+import TeamWorkspaceMenu from './components/TeamWorkspaceMenu';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -45,6 +46,19 @@ import {
   writeBooleanStorage,
   writeJsonStorage
 } from './persistence/storage';
+import {
+  bootstrapManagedWorkspaces,
+  copyActiveKeysToWorkspace,
+  createManagedWorkspace,
+  deleteManagedWorkspace,
+  importBackupAsManagedWorkspace,
+  renameManagedWorkspace,
+  readWorkspaceSummaries,
+  restoreBackupIntoActiveWorkspace,
+  switchManagedWorkspace,
+  touchWorkspaceSummary,
+  type WorkspaceSummary
+} from './persistence/workspaces';
 import {
   estimateStorageHealth,
   formatStorageSize,
@@ -98,6 +112,35 @@ const DevelopmentHubView = lazy(() => import('./components/DevelopmentHubView'))
 const LeagueUpdatesHubView = lazy(() => import('./components/LeagueUpdatesHubView'));
 const CloudAccountGate = lazy(() => import('./components/CloudAccountGate'));
 
+const readPersistedWorkspaceState = () => {
+  const teamInfo = readJsonStorage(STORAGE_KEYS.teamInfo, teamInfoSchema.nullable(), null, 'Team information');
+  const storedRoster = readJsonStorage(STORAGE_KEYS.players, playersSchema, [], 'Roster');
+  const migratedRoster = migrateLegacyRoster(storedRoster);
+  const storedStaff = readJsonStorage(STORAGE_KEYS.staff, staffMembersSchema, [], 'Staff directory');
+  const players = migratedRoster.players;
+  const staff = [...storedStaff, ...migratedRoster.staff.filter(
+    legacyStaff => !storedStaff.some(member => member.id === legacyStaff.id)
+  )];
+  const games = readJsonStorage(STORAGE_KEYS.games, gamesSchema, [], 'Schedule');
+  const standings = readJsonStorage(STORAGE_KEYS.standings, standingsSchema, [], 'League standings');
+  const announcements = readJsonStorage(STORAGE_KEYS.announcements, announcementsSchema, [], 'Bulletins');
+  const assessments = readJsonStorage(STORAGE_KEYS.assessments, assessmentsSchema, [], 'Assessments') as AssessmentSession[];
+  const paymentLedger = readJsonStorage(STORAGE_KEYS.paymentLedger, paymentLedgerSchema, [], 'Payment ledger') as PaymentLedgerEntry[];
+  const onboarded = readBooleanStorage(STORAGE_KEYS.onboarded, false, 'Onboarding');
+
+  return {
+    teamInfo,
+    players,
+    staff,
+    games,
+    standings,
+    announcements,
+    assessments,
+    paymentLedger,
+    isOnboarded: onboarded || teamInfo !== null
+  };
+};
+
 export default function App() {
   type IntegrityFocus = {
     playerId?: string | null;
@@ -105,6 +148,7 @@ export default function App() {
     standingTeamName?: string | null;
   };
   const [initialWorkspace] = useState(() => {
+    const managed = bootstrapManagedWorkspaces();
     const startupIssues = inspectDumalaStorage();
     if (startupIssues.length > 0) {
       return {
@@ -117,36 +161,19 @@ export default function App() {
         assessments: [] as AssessmentSession[],
         paymentLedger: [] as PaymentLedgerEntry[],
         isOnboarded: false,
+        workspaces: managed.workspaces,
+        activeWorkspaceId: managed.activeWorkspaceId,
         warnings: [],
         startupIssues
       };
     }
 
-    const teamInfo = readJsonStorage(STORAGE_KEYS.teamInfo, teamInfoSchema.nullable(), null, 'Team information');
-    const storedRoster = readJsonStorage(STORAGE_KEYS.players, playersSchema, [], 'Roster');
-    const migratedRoster = migrateLegacyRoster(storedRoster);
-    const storedStaff = readJsonStorage(STORAGE_KEYS.staff, staffMembersSchema, [], 'Staff directory');
-    const players = migratedRoster.players;
-    const staff = [...storedStaff, ...migratedRoster.staff.filter(
-      legacyStaff => !storedStaff.some(member => member.id === legacyStaff.id)
-    )];
-    const games = readJsonStorage(STORAGE_KEYS.games, gamesSchema, [], 'Schedule');
-    const standings = readJsonStorage(STORAGE_KEYS.standings, standingsSchema, [], 'League standings');
-    const announcements = readJsonStorage(STORAGE_KEYS.announcements, announcementsSchema, [], 'Bulletins');
-    const assessments = readJsonStorage(STORAGE_KEYS.assessments, assessmentsSchema, [], 'Assessments') as AssessmentSession[];
-    const paymentLedger = readJsonStorage(STORAGE_KEYS.paymentLedger, paymentLedgerSchema, [], 'Payment ledger') as PaymentLedgerEntry[];
-    const onboarded = readBooleanStorage(STORAGE_KEYS.onboarded, false, 'Onboarding');
+    const persisted = readPersistedWorkspaceState();
 
     return {
-      teamInfo,
-      players,
-      staff,
-      games,
-      standings,
-      announcements,
-      assessments,
-      paymentLedger,
-      isOnboarded: onboarded || teamInfo !== null,
+      ...persisted,
+      workspaces: managed.workspaces,
+      activeWorkspaceId: managed.activeWorkspaceId,
       warnings: drainRecoveryWarnings(),
       startupIssues
     };
@@ -178,6 +205,8 @@ export default function App() {
   const [announcements, setAnnouncements] = useState<Announcement[]>(initialWorkspace.announcements);
   const [assessments, setAssessments] = useState<AssessmentSession[]>(initialWorkspace.assessments);
   const [paymentLedger, setPaymentLedger] = useState<PaymentLedgerEntry[]>(initialWorkspace.paymentLedger);
+  const [workspaces, setWorkspaces] = useState<WorkspaceSummary[]>(initialWorkspace.workspaces);
+  const [activeWorkspaceId, setActiveWorkspaceId] = useState<string | null>(initialWorkspace.activeWorkspaceId);
   const [recoveryWarnings, setRecoveryWarnings] = useState(initialWorkspace.warnings);
   const [startupRecoveryIssues, setStartupRecoveryIssues] = useState(initialWorkspace.startupIssues);
   const [storageHealth, setStorageHealth] = useState<StorageHealth | null>(null);
@@ -190,6 +219,29 @@ export default function App() {
   const [selectedStaff, setSelectedStaff] = useState<StaffMember | null>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [preselectedAssessmentsPlayerId, setPreselectedAssessmentsPlayerId] = useState<string | null>(null);
+
+  const loadWorkspaceStateFromStorage = useCallback(() => {
+    const next = readPersistedWorkspaceState();
+    setTeamInfo(next.teamInfo);
+    setPlayers(next.players);
+    setStaff(next.staff);
+    setGames(next.games);
+    setStandings(next.standings);
+    setAnnouncements(next.announcements);
+    setAssessments(next.assessments);
+    setPaymentLedger(next.paymentLedger);
+    setIsOnboarded(next.isOnboarded);
+    setSelectedPlayer(null);
+    setSelectedStaff(null);
+    setPreselectedAssessmentsPlayerId(null);
+    setIntegrityFocus(null);
+    setIntegrityDismissed(false);
+    integritySignatureRef.current = '';
+  }, []);
+
+  const refreshWorkspaceIndex = useCallback(() => {
+    setWorkspaces(readWorkspaceSummaries());
+  }, []);
 
   useEffect(() => {
     const handleRecovery = (event: Event) => {
@@ -423,6 +475,12 @@ export default function App() {
       }
       return updatedInfo;
     });
+    if (activeWorkspaceId) {
+      setWorkspaces(touchWorkspaceSummary(activeWorkspaceId, {
+        name: updatedInfo.name,
+        logoUrl: updatedInfo.logoUrl
+      }));
+    }
   };
 
   const handleUpdateAllStandings = (updatedStandings: Standing[]) => {
@@ -562,7 +620,11 @@ export default function App() {
     const cleanTeamName = teamInfo.name.toLowerCase().replace(/[^a-z0-9]+/g, '_');
     downloadBackup(preRestoreBackup, `${cleanTeamName}_pre_restore_${new Date().toISOString().slice(0, 10)}.json`);
 
-    applyWorkspaceBackup(backup);
+    if (activeWorkspaceId) {
+      setWorkspaces(restoreBackupIntoActiveWorkspace(backup, activeWorkspaceId));
+    } else {
+      applyWorkspaceBackup(backup);
+    }
     setTeamInfo(backup.core.teamInfo);
     setPlayers(backup.core.players);
     setStaff(backup.core.staff);
@@ -580,17 +642,39 @@ export default function App() {
   const [showFeedback, setShowFeedback] = useState(false);
 
   const confirmResetApp = () => {
-    clearDumalaStorage();
-    setIsOnboarded(false);
-    setTeamInfo(null);
-    setPlayers([]);
-    setStaff([]);
-    setGames([]);
-    setStandings([]);
-    setAnnouncements([]);
-    setAssessments([]);
-    setPaymentLedger([]);
-    setPreselectedAssessmentsPlayerId(null);
+    if (activeWorkspaceId) {
+      const next = deleteManagedWorkspace(activeWorkspaceId);
+      setWorkspaces(next.workspaces);
+      setActiveWorkspaceId(next.activeWorkspaceId);
+      if (next.activeWorkspaceId) {
+        loadWorkspaceStateFromStorage();
+        setPrimaryTab('home');
+        setHomeTab('overview');
+      } else {
+        setIsOnboarded(false);
+        setTeamInfo(null);
+        setPlayers([]);
+        setStaff([]);
+        setGames([]);
+        setStandings([]);
+        setAnnouncements([]);
+        setAssessments([]);
+        setPaymentLedger([]);
+        setPreselectedAssessmentsPlayerId(null);
+      }
+    } else {
+      clearDumalaStorage();
+      setIsOnboarded(false);
+      setTeamInfo(null);
+      setPlayers([]);
+      setStaff([]);
+      setGames([]);
+      setStandings([]);
+      setAnnouncements([]);
+      setAssessments([]);
+      setPaymentLedger([]);
+      setPreselectedAssessmentsPlayerId(null);
+    }
     setShowResetConfirm(false);
   };
 
@@ -689,6 +773,85 @@ export default function App() {
     if (tab === 'development') return handleNavigate({ primary: 'development', developmentTab: 'training' });
     if (tab === 'league_updates') return handleNavigate({ primary: 'league_updates', leagueUpdatesTab: 'league' });
     return handleNavigate({ primary: tab });
+  };
+
+  const handleCreateTeamWorkspace = (team: TeamInfo, headCoach: StaffMember) => {
+    if (activeWorkspaceId) copyActiveKeysToWorkspace(activeWorkspaceId);
+    const created = createManagedWorkspace(team, headCoach);
+    setWorkspaces(created.workspaces);
+    setActiveWorkspaceId(created.summary.id);
+    setTeamInfo(team);
+    setPlayers([]);
+    setStaff([headCoach]);
+    setGames([]);
+    setStandings([]);
+    setAnnouncements([]);
+    setAssessments([]);
+    setPaymentLedger([]);
+    setIsOnboarded(true);
+    setSelectedPlayer(null);
+    setSelectedStaff(null);
+    setIntegrityFocus(null);
+    setMobileMenuOpen(false);
+    handleNavigate({ primary: 'home', homeTab: 'overview' });
+  };
+
+  const handleSwitchTeamWorkspace = (workspaceId: string) => {
+    if (workspaceId === activeWorkspaceId) return;
+    switchManagedWorkspace(workspaceId, activeWorkspaceId);
+    setActiveWorkspaceId(workspaceId);
+    refreshWorkspaceIndex();
+    loadWorkspaceStateFromStorage();
+    setMobileMenuOpen(false);
+    handleNavigate({ primary: 'home', homeTab: 'overview' });
+  };
+
+  const handleRenameTeamWorkspace = (workspaceId: string, name: string) => {
+    const nextName = name.trim();
+    setWorkspaces(renameManagedWorkspace(workspaceId, name));
+    if (workspaceId === activeWorkspaceId && teamInfo && nextName) {
+      if (teamInfo.name.trim() !== nextName) {
+        setStandings(rows => renameUserStanding(rows, teamInfo.name, nextName));
+      }
+      setTeamInfo({ ...teamInfo, name: nextName });
+    }
+  };
+
+  const handleDeleteTeamWorkspace = (workspaceId: string) => {
+    const next = deleteManagedWorkspace(workspaceId);
+    setWorkspaces(next.workspaces);
+    if (workspaceId === activeWorkspaceId) {
+      setActiveWorkspaceId(next.activeWorkspaceId);
+      if (next.activeWorkspaceId) {
+        loadWorkspaceStateFromStorage();
+        handleNavigate({ primary: 'home', homeTab: 'overview' });
+      } else {
+        setIsOnboarded(false);
+        setTeamInfo(null);
+        setPlayers([]);
+        setStaff([]);
+        setGames([]);
+        setStandings([]);
+        setAnnouncements([]);
+        setAssessments([]);
+        setPaymentLedger([]);
+      }
+    }
+  };
+
+  const handleImportTeamWorkspace = async (file: File): Promise<BackupRestoreSummary> => {
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(await file.text());
+    } catch {
+      throw new Error('The selected file is not a valid Dumala backup.');
+    }
+
+    if (activeWorkspaceId) copyActiveKeysToWorkspace(activeWorkspaceId);
+    const imported = importBackupAsManagedWorkspace(parsed);
+    setWorkspaces(imported.workspaces);
+    handleSwitchTeamWorkspace(imported.summary.id);
+    return imported.restoreSummary;
   };
 
   const handleReturnHomeFromError = () => {
@@ -798,24 +961,7 @@ export default function App() {
         <Suspense fallback={<div className="mx-auto max-w-3xl p-4"><ViewLoadingFallback label="onboarding" /></div>}>
           <ViewErrorBoundary viewName="Onboarding" resetKeys={['onboarding']}>
             <OnboardingView
-              onComplete={(team: TeamInfo, headCoach: StaffMember) => {
-                setTeamInfo(team);
-                setPlayers([]);
-                setStaff([headCoach]);
-                setStandings([]);
-                setAssessments([]);
-                setPaymentLedger([]);
-                setPrimaryTab('home');
-                setHomeTab('overview');
-                writeJsonStorage(STORAGE_KEYS.standings, []);
-                writeJsonStorage(STORAGE_KEYS.assessments, []);
-                writeJsonStorage(STORAGE_KEYS.paymentLedger, []);
-                setIsOnboarded(true);
-                writeBooleanStorage(STORAGE_KEYS.onboarded, true);
-                writeJsonStorage(STORAGE_KEYS.teamInfo, team);
-                writeJsonStorage(STORAGE_KEYS.players, []);
-                writeJsonStorage(STORAGE_KEYS.staff, [headCoach]);
-              }}
+              onComplete={handleCreateTeamWorkspace}
             />
           </ViewErrorBoundary>
         </Suspense>
@@ -874,6 +1020,17 @@ export default function App() {
 
             {/* Mobile Navigation Sandwich Trigger */}
             <div className="flex items-center gap-2">
+              <TeamWorkspaceMenu
+                workspaces={workspaces}
+                activeWorkspaceId={activeWorkspaceId}
+                activeTeamName={teamInfo?.name || 'Team workspace'}
+                onCreateWorkspace={handleCreateTeamWorkspace}
+                onSwitchWorkspace={handleSwitchTeamWorkspace}
+                onRenameWorkspace={handleRenameTeamWorkspace}
+                onDeleteWorkspace={handleDeleteTeamWorkspace}
+                onExportCurrentWorkspace={handleExportBackup}
+                onImportWorkspace={handleImportTeamWorkspace}
+              />
               <Button
                 id="mobile-menu-hamburger"
                 type="button"

@@ -1,6 +1,6 @@
 # Dumala Product Roadmap
 
-Updated: 2026-06-26
+Updated: 2026-06-28
 
 ## Source of truth
 
@@ -18,6 +18,7 @@ Status: **Complete**
 - Standardize roster, tactics, training, schedule, and assessment data behavior.
 - Polish the Home dashboard hero and remove outdated promotional surfaces from the operational overview.
 - Support week-by-week training planning from the Development planner.
+- Support multiple local team workspaces from the navbar while keeping cloud club switching as a later capability.
 
 ### Completion criteria
 
@@ -32,11 +33,12 @@ Status: **Current**
 - Complete standardized assessments for every supported position and age group.
 - Finalize benchmark tables through qualified practitioner review, scoring validation, and explainable rating calculations.
 - Add historical progress charts, comparison reports, and measurable development plans.
+- Separate training evidence, rating confidence, and verified assessment results.
 - Produce downloadable player assessment and progress reports.
 
 ### Completion criteria
 
-Repeated assessments generate consistent, explainable, and comparable development records.
+Repeated assessments, not training completion alone, generate consistent, explainable, and comparable official development records.
 
 ## Phase 1: Offline-ready web app
 
@@ -141,7 +143,7 @@ Status: **Long Term**
 
 - Add attendance, availability history, season archives, and richer reports.
 - Support calendar export and scheduled reminders.
-- Manage multiple squads or age groups in one club.
+- Manage multiple local teams now; later expand this into multiple squads or age groups inside one shared club.
 - Preserve records and development history across seasons.
 
 ### Completion criteria
@@ -155,4 +157,5 @@ A club can manage multiple squads and seasons from one organized workspace.
 3. Cloud identity before collaboration and public profiles.
 4. Explicit privacy before publishing personal information.
 5. Explainable assessment scoring before wider FPRDS claims.
-6. Official coaching credentials must never be replaced by an internal Dumala score.
+6. Training creates development evidence; FPRDS assessment verifies current ability.
+7. Official coaching credentials must never be replaced by an internal Dumala score.
