@@ -116,6 +116,11 @@ const AdminConsoleView = lazy(() => import('./components/AdminConsoleView'));
 
 const getHashRoute = () => typeof window === 'undefined' ? '' : window.location.hash.replace(/^#\/?/, '');
 
+const shouldReturnToAdminConsole = () => {
+  if (typeof window === 'undefined') return false;
+  return new URLSearchParams(window.location.search).get('returnTo') === 'admin';
+};
+
 const getOrCreateAnalyticsSessionId = () => {
   if (typeof window === 'undefined') return 'server-session';
   const key = 'dumala_admin_analytics_session_id';
@@ -682,6 +687,17 @@ export default function App() {
     const handleHashChange = () => setHashRoute(getHashRoute());
     window.addEventListener('hashchange', handleHashChange);
     return () => window.removeEventListener('hashchange', handleHashChange);
+  }, []);
+
+  useEffect(() => {
+    if (!shouldReturnToAdminConsole()) return;
+
+    const timeoutId = window.setTimeout(() => {
+      window.history.replaceState(null, '', `${window.location.pathname}#admin`);
+      setHashRoute('admin');
+    }, 1200);
+
+    return () => window.clearTimeout(timeoutId);
   }, []);
 
   useEffect(() => {
