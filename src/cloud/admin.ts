@@ -17,6 +17,79 @@ export interface AppAdminProfile {
   revoked_at?: string | null;
 }
 
+export interface AdminMetricCount {
+  key: string;
+  count: number;
+}
+
+export interface AdminRoleCount {
+  role: AppAdminRole;
+  count: number;
+}
+
+export interface AdminAuditEvent {
+  id: string;
+  actorUserId?: string | null;
+  actorRole?: AppAdminRole | null;
+  eventType: string;
+  targetTable?: string | null;
+  targetId?: string | null;
+  metadata: Record<string, unknown>;
+  createdAt: string;
+}
+
+export interface AdminUserSummary {
+  userId: string;
+  role: AppAdminRole;
+  grantedAt: string;
+  revokedAt?: string | null;
+  notes?: string | null;
+}
+
+export interface AdminSecurityMetrics {
+  currentAdmin: {
+    userId: string;
+    role: AppAdminRole;
+    assuranceLevel?: string | null;
+    mfaVerified: boolean;
+    grantedAt: string;
+  };
+  adminCountsByRole: AdminRoleCount[];
+  admins: AdminUserSummary[];
+  deniedAccessCount: number;
+  recentAuditEvents: AdminAuditEvent[];
+  activeSessionsNow: number;
+  lastOwnerLoginAt?: string | null;
+  warnings: string[];
+}
+
+export interface AdminProductMetrics {
+  activeUsersNow: number;
+  eventsLast24h: number;
+  topTabs: AdminMetricCount[];
+  leastUsedTabs: AdminMetricCount[];
+  deviceBreakdown: AdminMetricCount[];
+  browserBreakdown: AdminMetricCount[];
+  feedback: {
+    total: number;
+    open: number;
+    highPriority: number;
+    byArea: AdminMetricCount[];
+  };
+  fprds: {
+    pending: number;
+    accepted: number;
+    excluded: number;
+    byAgeGroup: AdminMetricCount[];
+  };
+  billing: {
+    customers: number;
+    subscriptions: number;
+    activeOrTrial: number;
+    failedWebhookEvents: number;
+  };
+}
+
 export interface AppUsageEvent {
   id: string;
   user_id?: string | null;
@@ -171,6 +244,8 @@ export interface AdminConsoleSnapshot {
   fprdsSubmissions: FprdsBetaSubmission[];
   billingCustomers: BillingCustomer[];
   subscriptions: SubscriptionRecord[];
+  productMetrics?: AdminProductMetrics | null;
+  securityMetrics?: AdminSecurityMetrics | null;
 }
 
 export interface UsageEventInput {
@@ -262,21 +337,34 @@ export const getAdminConsoleSnapshot = async (client: DumalaSupabaseClient): Pro
   }
 
   const supabase = asUntypedClient(client);
-  const [
-    usageEvents,
-    activeSessions,
-    feedback,
-    fprdsSubmissions,
-    billingCustomers,
-    subscriptions
-  ] = await Promise.all([
-    supabase.from('app_usage_events').select('*').order('created_at', { ascending: false }).limit(250),
-    supabase.from('app_sessions').select('*').order('last_seen_at', { ascending: false }).limit(100),
-    supabase.from('feedback_submissions').select('*').order('created_at', { ascending: false }).limit(100),
-    supabase.from('fprds_beta_submissions').select('*').order('submitted_at', { ascending: false }).limit(100),
-    supabase.from('billing_customers').select('*').order('created_at', { ascending: false }).limit(100),
-    supabase.from('subscriptions').select('*').order('created_at', { ascending: false }).limit(100)
-  ]);
+  const canReadProduct = admin.role === 'owner' || admin.role === 'support';
+  const canReadFprds = admin.role === 'owner' || admin.role === 'fprds_reviewer';
+  const canReadBilling = admin.role === 'owner' || admin.role === 'billing';
+  const emptyResult = { data: [], error: null };
+  const emptyMetrics = { data: null, error: null };
+
+  const [usageEvents, activeSessions, feedback] = canReadProduct
+    ? await Promise.all([
+        supabase.from('app_usage_events').select('*').order('created_at', { ascending: false }).limit(250),
+        supabase.from('app_sessions').select('*').order('last_seen_at', { ascending: false }).limit(100),
+        supabase.from('feedback_submissions').select('*').order('created_at', { ascending: false }).limit(100)
+      ])
+    : [emptyResult, emptyResult, emptyResult];
+
+  const fprdsSubmissions = canReadFprds
+    ? await supabase.from('fprds_beta_submissions').select('*').order('submitted_at', { ascending: false }).limit(100)
+    : emptyResult;
+
+  const [billingCustomers, subscriptions] = canReadBilling
+    ? await Promise.all([
+        supabase.from('billing_customers').select('*').order('created_at', { ascending: false }).limit(100),
+        supabase.from('subscriptions').select('*').order('created_at', { ascending: false }).limit(100)
+      ])
+    : [emptyResult, emptyResult];
+
+  const productMetrics = admin.role === 'owner'
+    ? await supabase.rpc('get_admin_product_metrics_v1', { days: 30 })
+    : emptyMetrics;
 
   return {
     admin,
@@ -285,8 +373,39 @@ export const getAdminConsoleSnapshot = async (client: DumalaSupabaseClient): Pro
     feedback: expectNoError(feedback, 'FEEDBACK_READ_FAILED', 'Failed to read feedback') as FeedbackSubmission[],
     fprdsSubmissions: expectNoError(fprdsSubmissions, 'FPRDS_BETA_READ_FAILED', 'Failed to read FPRDS beta submissions') as FprdsBetaSubmission[],
     billingCustomers: expectNoError(billingCustomers, 'BILLING_CUSTOMERS_READ_FAILED', 'Failed to read billing customers') as BillingCustomer[],
-    subscriptions: expectNoError(subscriptions, 'SUBSCRIPTIONS_READ_FAILED', 'Failed to read subscriptions') as SubscriptionRecord[]
+    subscriptions: expectNoError(subscriptions, 'SUBSCRIPTIONS_READ_FAILED', 'Failed to read subscriptions') as SubscriptionRecord[],
+    productMetrics: expectNoError(productMetrics, 'ADMIN_PRODUCT_METRICS_READ_FAILED', 'Failed to read product metrics') as AdminProductMetrics | null
   };
+};
+
+export const getAdminSecurityMetrics = async (
+  client: DumalaSupabaseClient,
+  days = 30
+): Promise<AdminSecurityMetrics> => {
+  const supabase = asUntypedClient(client);
+  return expectNoError(
+    await supabase.rpc('get_admin_security_metrics_v1', { days }),
+    'ADMIN_SECURITY_METRICS_READ_FAILED',
+    'Failed to read admin security metrics'
+  ) as AdminSecurityMetrics;
+};
+
+export const recordAdminAuditEvent = async (
+  client: DumalaSupabaseClient,
+  eventType: string,
+  metadata: Record<string, unknown> = {}
+): Promise<void> => {
+  const supabase = asUntypedClient(client);
+  expectNoError(
+    await supabase.rpc('record_admin_audit', {
+      event_type: eventType,
+      target_table: null,
+      target_id: null,
+      metadata
+    }),
+    'ADMIN_AUDIT_WRITE_FAILED',
+    'Failed to record admin audit event'
+  );
 };
 
 export const recordAppUsageEvent = async (

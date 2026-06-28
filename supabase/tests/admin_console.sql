@@ -2,7 +2,7 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 
-select plan(12);
+select plan(16);
 
 insert into auth.users (id, aud, role, email, email_confirmed_at, created_at, updated_at)
 values
@@ -47,10 +47,35 @@ set local role authenticated;
 select set_config('request.jwt.claim.role', 'authenticated', true);
 
 select set_config('request.jwt.claim.sub', '11111111-eeee-4111-8111-111111111111', true);
+select set_config('request.jwt.claims', '{"sub":"11111111-eeee-4111-8111-111111111111","role":"authenticated","aal":"aal1"}', true);
 
 select ok(
   public.is_app_admin('11111111-eeee-4111-8111-111111111111'),
   'listed user is an app admin'
+);
+
+select ok(
+  public.is_app_admin_role(array['owner']::public.app_admin_role[]),
+  'listed owner has the owner admin role'
+);
+
+select isnt(
+  public.is_admin_mfa_verified(),
+  true,
+  'owner session starts without MFA verification'
+);
+
+select results_eq(
+  $$ select count(*)::int from public.feedback_submissions $$,
+  $$ values (0) $$,
+  'owner without MFA cannot read protected admin feedback'
+);
+
+select set_config('request.jwt.claims', '{"sub":"11111111-eeee-4111-8111-111111111111","role":"authenticated","aal":"aal2"}', true);
+
+select ok(
+  public.is_admin_mfa_verified(),
+  'owner session with aal2 is MFA verified'
 );
 
 select results_eq(
@@ -82,6 +107,7 @@ select results_eq(
 );
 
 select set_config('request.jwt.claim.sub', '22222222-eeee-4222-8222-222222222222', true);
+select set_config('request.jwt.claims', '{"sub":"22222222-eeee-4222-8222-222222222222","role":"authenticated","aal":"aal2"}', true);
 
 select lives_ok(
   $$
