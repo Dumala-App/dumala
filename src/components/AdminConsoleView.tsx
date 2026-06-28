@@ -3,9 +3,13 @@ import {
   Activity,
   AlertCircle,
   BarChart3,
+  Bell,
+  Building2,
   ClipboardList,
   CreditCard,
+  Download,
   Eye,
+  FileText,
   Gauge,
   KeyRound,
   Loader2,
@@ -23,6 +27,8 @@ import { useCloudAuth } from '../hooks/useCloudAuth';
 import { useCloudRuntime } from '../hooks/useCloudRuntime';
 import type {
   AdminConsoleSnapshot,
+  AdminGrowthMetrics,
+  AdminProductMetrics,
   AdminSecurityMetrics,
   AppAdminProfile,
   AppSession,
@@ -48,18 +54,21 @@ import { Label } from './ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Textarea } from './ui/textarea';
 
-type AdminTab = 'overview' | 'security' | 'usage' | 'feedback' | 'fprds' | 'online' | 'billing';
+type AdminTab = 'overview' | 'users' | 'security' | 'usage' | 'feedback' | 'fprds' | 'online' | 'billing' | 'exports' | 'alerts';
 
 const ADMIN_AUTH_REDIRECT_URL = 'https://dumala.asia/?returnTo=admin';
 
 const adminTabs: Array<{ id: AdminTab; label: string; icon: React.ComponentType<{ size?: number; className?: string }> }> = [
   { id: 'overview', label: 'Overview', icon: Gauge },
+  { id: 'users', label: 'Users', icon: UsersRound },
   { id: 'security', label: 'Security', icon: ShieldAlert },
   { id: 'usage', label: 'Usage', icon: BarChart3 },
   { id: 'feedback', label: 'Feedback', icon: MessageSquare },
   { id: 'fprds', label: 'FPRDS Beta', icon: ClipboardList },
   { id: 'online', label: 'Online', icon: Wifi },
-  { id: 'billing', label: 'Billing', icon: CreditCard }
+  { id: 'billing', label: 'Billing', icon: CreditCard },
+  { id: 'exports', label: 'Exports', icon: Download },
+  { id: 'alerts', label: 'Alerts', icon: Bell }
 ];
 
 const highPrivilegeRoles = new Set<AppAdminProfile['role']>(['owner', 'billing']);
@@ -144,6 +153,12 @@ const formatDateTime = (date: string) => new Intl.DateTimeFormat(undefined, {
   timeStyle: 'short'
 }).format(new Date(date));
 
+const formatCurrency = (value: number) => new Intl.NumberFormat(undefined, {
+  style: 'currency',
+  currency: 'PHP',
+  maximumFractionDigits: 0
+}).format(value);
+
 const uniqueCount = (values: Array<string | null | undefined>) => new Set(values.filter(Boolean)).size;
 
 const countBy = <RecordShape,>(items: RecordShape[], getKey: (item: RecordShape) => string | null | undefined) =>
@@ -210,37 +225,93 @@ const TopList = ({ rows }: { rows: Array<{ key: string; count: number }> }) => (
   </div>
 );
 
-const OverviewPanel = ({ snapshot }: { snapshot: AdminConsoleSnapshot }) => {
+const escapeCsvValue = (value: unknown) => {
+  const text = value === null || value === undefined ? '' : String(value);
+  return `"${text.replaceAll('"', '""')}"`;
+};
+
+const downloadCsv = (filename: string, headers: string[], rows: Array<Array<unknown>>) => {
+  const csv = [headers, ...rows].map(row => row.map(escapeCsvValue).join(',')).join('\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  link.click();
+  URL.revokeObjectURL(url);
+};
+
+const OverviewPanel = ({ snapshot, growthMetrics }: { snapshot: AdminConsoleSnapshot; growthMetrics: AdminGrowthMetrics | null }) => {
   const activeNow = snapshot.activeSessions.filter(session => eventAgeMs(session.last_seen_at) < 5 * 60000).length;
   const openFeedback = snapshot.feedback.filter(item => !['resolved', 'closed'].includes(item.status)).length;
   const pendingFprds = snapshot.fprdsSubmissions.filter(item => item.review_status === 'pending').length;
   const activeSubscriptions = snapshot.subscriptions.filter(item => ['trialing', 'active'].includes(item.status)).length;
+  const alerts = growthMetrics?.alerts ?? [];
 
   return (
     <div className="space-y-4">
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <StatTile label="Active now" value={activeNow} detail="Sessions seen in the last five minutes." />
-        <StatTile label="Usage events" value={snapshot.usageEvents.length} detail="Recent privacy-minimized product events." />
+        <StatTile label="Active now" value={growthMetrics?.engagement.activeSessionsNow ?? activeNow} detail="Sessions seen in the last five minutes." />
+        <StatTile label="DAU / WAU" value={`${growthMetrics?.engagement.dau ?? '-'} / ${growthMetrics?.engagement.wau ?? '-'}`} detail="Signed-in active users by day and week." />
         <StatTile label="Open feedback" value={openFeedback} detail="Items not resolved or closed." />
-        <StatTile label="FPRDS pending" value={pendingFprds} detail="Beta submissions waiting for review." />
+        <StatTile label="Health alerts" value={alerts.length} detail={alerts.length ? 'Needs attention.' : 'No active warning rules.'} />
       </div>
       <div className="grid gap-4 lg:grid-cols-2">
         <Section title="Product adoption" icon={Activity}>
           <div className="grid gap-3 sm:grid-cols-3">
-            <StatTile label="Users" value={uniqueCount(snapshot.usageEvents.map(item => item.user_id))} detail="Unique recent signed-in users." />
-            <StatTile label="Clubs" value={uniqueCount(snapshot.usageEvents.map(item => item.club_id))} detail="Unique recent club IDs." />
+            <StatTile label="Users" value={growthMetrics?.users.total ?? uniqueCount(snapshot.usageEvents.map(item => item.user_id))} detail="Known cloud user profiles." />
+            <StatTile label="Workspaces" value={growthMetrics?.workspaces.total ?? uniqueCount(snapshot.usageEvents.map(item => item.club_id))} detail="Team workspaces in cloud." />
             <StatTile label="Paid/trial" value={activeSubscriptions} detail="Future billing status count." />
           </div>
         </Section>
         <Section title="Most used areas" icon={BarChart3}>
-          <TopList rows={countBy(snapshot.usageEvents, item => item.view_name)} />
+          <TopList rows={growthMetrics ? snapshot.productMetrics?.topTabs ?? countBy(snapshot.usageEvents, item => item.view_name) : countBy(snapshot.usageEvents, item => item.view_name)} />
+        </Section>
+      </div>
+      <div className="grid gap-4 xl:grid-cols-[1.25fr_0.75fr]">
+        <Section title="Top workspaces" icon={Building2}>
+          {growthMetrics?.topWorkspaces.length ? (
+            <CompactTable headers={['Workspace', 'Members', 'Events', 'Feedback', 'FPRDS', 'Last active']}>
+              {growthMetrics.topWorkspaces.slice(0, 8).map(workspace => (
+                <tr key={workspace.clubId}>
+                  <td className="px-3 py-2 font-bold text-foreground">{workspace.name}</td>
+                  <td className="px-3 py-2 text-muted-foreground">{workspace.memberCount}</td>
+                  <td className="px-3 py-2 text-muted-foreground">{workspace.eventCount}</td>
+                  <td className="px-3 py-2 text-muted-foreground">{workspace.feedbackCount}</td>
+                  <td className="px-3 py-2 text-muted-foreground">{workspace.fprdsCount}</td>
+                  <td className="px-3 py-2 text-muted-foreground">{workspace.lastActiveAt ? formatRelativeTime(workspace.lastActiveAt) : '-'}</td>
+                </tr>
+              ))}
+            </CompactTable>
+          ) : (
+            <EmptyState title="No workspace insight yet" detail="Workspace activity appears after cloud workspaces generate usage events." />
+          )}
+        </Section>
+        <Section title="Daily health" icon={Bell}>
+          {alerts.length ? (
+            <div className="space-y-2">
+              {alerts.map(alert => <div key={alert} className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-bold text-amber-900">{alert}</div>)}
+            </div>
+          ) : (
+            <EmptyState title="No alerts" detail="Dumala will flag high-priority feedback, stale FPRDS reviews, billing errors, and security issues here." />
+          )}
         </Section>
       </div>
     </div>
   );
 };
 
-const UsagePanel = ({ events, sessions }: { events: AppUsageEvent[]; sessions: AppSession[] }) => {
+const UsagePanel = ({
+  events,
+  sessions,
+  metrics,
+  productMetrics
+}: {
+  events: AppUsageEvent[];
+  sessions: AppSession[];
+  metrics: AdminGrowthMetrics | null;
+  productMetrics: AdminProductMetrics | null | undefined;
+}) => {
   const last24hEvents = events.filter(event => eventAgeMs(event.created_at) < 24 * 60 * 60000);
   const onlineNow = sessions.filter(session => eventAgeMs(session.last_seen_at) < 5 * 60000);
   const knownSessions = uniqueCount([
@@ -256,14 +327,17 @@ const UsagePanel = ({ events, sessions }: { events: AppUsageEvent[]; sessions: A
     <div className="space-y-4">
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
         <StatTile label="Events" value={events.length} detail="Recent product events captured." />
-        <StatTile label="Last 24h" value={last24hEvents.length} detail="Events from the last day." />
+        <StatTile label="DAU / WAU" value={metrics ? `${metrics.engagement.dau} / ${metrics.engagement.wau}` : last24hEvents.length} detail="Signed-in active users." />
         <StatTile label="Sessions" value={knownSessions} detail="Unique analytics sessions." />
-        <StatTile label="Online now" value={onlineNow.length} detail="Heartbeat seen in five minutes." />
+        <StatTile label="Avg session" value={metrics ? `${metrics.engagement.avgSessionMinutes}m` : '-'} detail="Average duration in selected window." />
         <StatTile label="Top view" value={topViews[0]?.key ?? '-'} detail={topViews[0] ? `${topViews[0].count} recent opens.` : 'No view events yet.'} />
       </div>
-      <div className="grid gap-4 lg:grid-cols-4">
+      <div className="grid gap-4 lg:grid-cols-5">
         <Section title="Top views" icon={BarChart3}>
-          <TopList rows={topViews} />
+          <TopList rows={productMetrics?.topTabs ?? topViews} />
+        </Section>
+        <Section title="Least used" icon={Gauge}>
+          <TopList rows={productMetrics?.leastUsedTabs ?? topViews.slice().reverse()} />
         </Section>
         <Section title="Top features" icon={Activity}>
           <TopList rows={topFeatures} />
@@ -314,8 +388,9 @@ const UsagePanel = ({ events, sessions }: { events: AppUsageEvent[]; sessions: A
   );
 };
 
-const FeedbackPanel = ({ feedback, onStatusChange, onOpen }: {
+const FeedbackPanel = ({ feedback, metrics, onStatusChange, onOpen }: {
   feedback: FeedbackSubmission[];
+  metrics?: AdminGrowthMetrics | null;
   onStatusChange: (feedbackId: string, status: FeedbackStatus) => void;
   onOpen: (item: FeedbackSubmission) => void;
 }) => {
@@ -326,6 +401,7 @@ const FeedbackPanel = ({ feedback, onStatusChange, onOpen }: {
   const openItems = feedback.filter(item => openStatuses.includes(item.status));
   const highPriorityItems = feedback.filter(item => item.urgency === 'blocking' || item.urgency === 'high');
   const todayItems = feedback.filter(item => eventAgeMs(item.created_at) < 24 * 60 * 60000);
+  const priorityScore = highPriorityItems.length * 3 + openItems.length;
   const normalizedSearch = search.trim().toLowerCase();
   const filtered = feedback.filter(item => {
     const matchesStatus = statusFilter === 'all'
@@ -350,7 +426,41 @@ const FeedbackPanel = ({ feedback, onStatusChange, onOpen }: {
         <StatTile label="Total feedback" value={feedback.length} detail="Synced from the Share feedback button." />
         <StatTile label="Open" value={openItems.length} detail="New, triaged, planned, or in progress." />
         <StatTile label="High priority" value={highPriorityItems.length} detail="High and blocking submissions." />
-        <StatTile label="Last 24h" value={todayItems.length} detail="Fresh coach and tester signals." />
+        <StatTile label="Priority score" value={priorityScore} detail={`${todayItems.length} items arrived in the last day.`} />
+      </div>
+      <div className="grid gap-4 lg:grid-cols-2">
+        <Section title="Roadmap candidates" icon={FileText}>
+          {metrics?.feedbackIntelligence.roadmapCandidates.length ? (
+            <CompactTable headers={['Area', 'Category', 'Count', 'High', 'Latest']}>
+              {metrics.feedbackIntelligence.roadmapCandidates.map(candidate => (
+                <tr key={`${candidate.area}-${candidate.category}`}>
+                  <td className="px-3 py-2 font-bold text-foreground">{candidate.area}</td>
+                  <td className="px-3 py-2 text-muted-foreground">{candidate.category.replaceAll('_', ' ')}</td>
+                  <td className="px-3 py-2 text-muted-foreground">{candidate.count}</td>
+                  <td className="px-3 py-2 text-muted-foreground">{candidate.highPriorityCount}</td>
+                  <td className="px-3 py-2 text-muted-foreground">{formatRelativeTime(candidate.latestAt)}</td>
+                </tr>
+              ))}
+            </CompactTable>
+          ) : (
+            <EmptyState title="No roadmap candidates yet" detail="Open feedback grouped by area and category will appear here when patterns emerge." />
+          )}
+        </Section>
+        <Section title="Possible duplicates" icon={MessageSquare}>
+          {metrics?.feedbackIntelligence.duplicateGroups.length ? (
+            <CompactTable headers={['Subject fingerprint', 'Count', 'Latest']}>
+              {metrics.feedbackIntelligence.duplicateGroups.map(group => (
+                <tr key={group.fingerprint}>
+                  <td className="px-3 py-2 font-bold text-foreground">{group.sampleSubject}</td>
+                  <td className="px-3 py-2 text-muted-foreground">{group.count}</td>
+                  <td className="px-3 py-2 text-muted-foreground">{formatRelativeTime(group.latestAt)}</td>
+                </tr>
+              ))}
+            </CompactTable>
+          ) : (
+            <EmptyState title="No duplicates detected" detail="Repeated feedback subjects in the selected window will be grouped here." />
+          )}
+        </Section>
       </div>
       <Section title="Feedback inbox" icon={MessageSquare}>
         <div className="mb-4 grid gap-3 lg:grid-cols-[1fr_auto_auto]">
@@ -608,18 +718,39 @@ const FprdsReviewDialog = ({ submission, open, saving, onOpenChange, onSave }: {
   );
 };
 
-const FprdsPanel = ({ submissions, onOpen }: { submissions: FprdsBetaSubmission[]; onOpen: (submission: FprdsBetaSubmission) => void }) => {
+const FprdsPanel = ({
+  submissions,
+  metrics,
+  onOpen
+}: {
+  submissions: FprdsBetaSubmission[];
+  metrics?: AdminGrowthMetrics | null;
+  onOpen: (submission: FprdsBetaSubmission) => void;
+}) => {
   const [filter, setFilter] = useState<'all' | FprdsBetaReviewStatus>('all');
   const filtered = filter === 'all' ? submissions : submissions.filter(item => item.review_status === filter);
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-6">
         {(Object.keys(fprdsStatusLabel) as FprdsBetaReviewStatus[]).map(status => (
           <button key={status} type="button" onClick={() => setFilter(status)} className={`rounded-lg border p-3 text-left transition-colors ${filter === status ? fprdsStatusTone[status] : 'border-border bg-card hover:bg-muted/30'}`}>
             <p className="text-[10px] font-black uppercase">{fprdsStatusLabel[status]}</p>
             <p className="mt-1 text-xl font-black">{submissions.filter(item => item.review_status === status).length}</p>
           </button>
         ))}
+        <StatTile label="Avg OVR" value={metrics?.fprdsAnalytics.averageOvr ?? '-'} detail="Across submitted beta data." />
+        <StatTile label="Stale pending" value={metrics?.fprdsAnalytics.pendingOlderThan7d ?? 0} detail="Pending for more than seven days." />
+      </div>
+      <div className="grid gap-4 lg:grid-cols-3">
+        <Section title="Role coverage" icon={BarChart3}>
+          <TopList rows={metrics?.fprdsAnalytics.byRole ?? countBy(submissions, item => item.role)} />
+        </Section>
+        <Section title="Assessment types" icon={ClipboardList}>
+          <TopList rows={metrics?.fprdsAnalytics.byAssessmentType ?? countBy(submissions, item => item.assessment_type)} />
+        </Section>
+        <Section title="Age groups" icon={UsersRound}>
+          <TopList rows={countBy(submissions, item => item.age_group)} />
+        </Section>
       </div>
       <Section title="FPRDS beta submissions" icon={ClipboardList}>
         <div className="mb-3 flex items-center justify-between gap-3">
@@ -645,6 +776,160 @@ const FprdsPanel = ({ submissions, onOpen }: { submissions: FprdsBetaSubmission[
               </tr>
             ))}
           </CompactTable>
+        )}
+      </Section>
+    </div>
+  );
+};
+
+const UsersPanel = ({ metrics }: { metrics: AdminGrowthMetrics | null }) => (
+  <div className="space-y-4">
+    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+      <StatTile label="Users" value={metrics?.users.total ?? 0} detail="Cloud user profiles." />
+      <StatTile label="New 7d" value={metrics?.users.new7d ?? 0} detail={`${metrics?.users.newToday ?? 0} joined today.`} />
+      <StatTile label="Active 30d" value={metrics?.users.active30d ?? 0} detail={`${metrics?.users.active7d ?? 0} active in seven days.`} />
+      <StatTile label="Workspaces" value={metrics?.workspaces.total ?? 0} detail={`${metrics?.workspaces.active ?? 0} active team spaces.`} />
+      <StatTile label="Deletion risk" value={(metrics?.users.pendingDeletion ?? 0) + (metrics?.workspaces.pendingDeletion ?? 0)} detail="Users or workspaces pending deletion." />
+    </div>
+    <div className="grid gap-4 xl:grid-cols-[1.25fr_0.75fr]">
+      <Section title="Recent users" icon={UsersRound}>
+        {metrics?.recentUsers.length ? (
+          <CompactTable headers={['User', 'Email', 'State', 'Workspaces', 'Devices', 'Signals', 'Last active']}>
+            {metrics.recentUsers.map(user => (
+              <tr key={user.userId}>
+                <td className="px-3 py-2 font-bold text-foreground">{user.displayName || user.userId.slice(0, 12)}</td>
+                <td className="px-3 py-2 text-muted-foreground">{user.email || '-'}</td>
+                <td className="px-3 py-2"><Badge variant={user.accountState === 'active' ? 'secondary' : 'warning'}>{user.accountState}</Badge></td>
+                <td className="px-3 py-2 text-muted-foreground">{user.workspaceCount}</td>
+                <td className="px-3 py-2 text-muted-foreground">{user.deviceCount}</td>
+                <td className="px-3 py-2 text-muted-foreground">{user.feedbackCount} feedback / {user.fprdsCount} FPRDS</td>
+                <td className="px-3 py-2 text-muted-foreground">{user.lastActiveAt ? formatRelativeTime(user.lastActiveAt) : '-'}</td>
+              </tr>
+            ))}
+          </CompactTable>
+        ) : (
+          <EmptyState title="No user data yet" detail="Signed-in cloud users will appear here after account bootstrap and activity events." />
+        )}
+      </Section>
+      <Section title="Top workspaces" icon={Building2}>
+        {metrics?.topWorkspaces.length ? (
+          <div className="space-y-2">
+            {metrics.topWorkspaces.slice(0, 10).map(workspace => (
+              <div key={workspace.clubId} className="rounded-lg border border-border bg-muted/20 px-3 py-2">
+                <div className="flex items-center justify-between gap-3">
+                  <p className="truncate text-xs font-black text-foreground">{workspace.name}</p>
+                  <Badge variant="secondary">{workspace.eventCount}</Badge>
+                </div>
+                <p className="mt-1 text-[11px] font-medium text-muted-foreground">
+                  {workspace.memberCount} members · {workspace.feedbackCount} feedback · {workspace.fprdsCount} FPRDS
+                </p>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <EmptyState title="No workspace activity" detail="Top workspaces are ranked by usage events in the selected window." />
+        )}
+      </Section>
+    </div>
+  </div>
+);
+
+const BillingPanel = ({ snapshot, metrics }: { snapshot: AdminConsoleSnapshot; metrics: AdminGrowthMetrics | null }) => (
+  <div className="space-y-4">
+    <Section title="Payments and ledger readiness" icon={CreditCard}>
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+        <StatTile label="Customers" value={metrics?.billingReadiness.customers ?? snapshot.billingCustomers.length} detail="Provider-linked billing customers." />
+        <StatTile label="Subscriptions" value={metrics?.billingReadiness.subscriptions ?? snapshot.subscriptions.length} detail="Future Stripe/PayPal plan states." />
+        <StatTile label="Active/trial" value={metrics?.billingReadiness.activeOrTrial ?? snapshot.subscriptions.filter(item => ['trialing', 'active'].includes(item.status)).length} detail="Currently billable accounts." />
+        <StatTile label="Past due" value={metrics?.billingReadiness.pastDue ?? 0} detail="Needs payment follow-up." />
+        <StatTile label="Webhook failures" value={metrics?.billingReadiness.failedWebhookEvents ?? 0} detail="Provider events with processing errors." />
+      </div>
+      <div className="mt-4 grid gap-3 sm:grid-cols-3">
+        <StatTile label="Ledger entries" value={metrics?.billingReadiness.ledgerEntries ?? 0} detail="Internal payment ledger rows." />
+        <StatTile label="Ledger balance" value={formatCurrency(metrics?.billingReadiness.ledgerAmountDue ?? 0)} detail="Charges/refunds less payments/waivers." />
+        <StatTile label="Collected" value={formatCurrency(metrics?.billingReadiness.ledgerAmountPaid ?? 0)} detail="Payment entries recorded." />
+      </div>
+      <p className="mt-4 text-xs font-medium leading-relaxed text-muted-foreground">
+        Billing tables are provider-neutral. Stripe, PayPal, or another processor should update them through secure server-side webhooks.
+      </p>
+    </Section>
+  </div>
+);
+
+const ExportsPanel = ({
+  snapshot,
+  metrics,
+  onExport
+}: {
+  snapshot: AdminConsoleSnapshot;
+  metrics: AdminGrowthMetrics | null;
+  onExport: (kind: 'feedback' | 'usage' | 'fprds' | 'users') => void;
+}) => (
+  <div className="space-y-4">
+    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <StatTile label="Recent exports" value={metrics?.exports.recentExportCount ?? 0} detail="Audited export actions in this window." />
+      <StatTile label="Feedback rows" value={snapshot.feedback.length} detail="Ready for CSV export." />
+      <StatTile label="Usage rows" value={snapshot.usageEvents.length} detail="Recent privacy-minimized events." />
+      <StatTile label="FPRDS rows" value={snapshot.fprdsSubmissions.length} detail="Review queue export." />
+    </div>
+    <Section title="Create export" icon={Download}>
+      <div className="flex flex-wrap gap-2">
+        <Button type="button" variant="outline" onClick={() => onExport('feedback')}><Download size={14} /> Feedback CSV</Button>
+        <Button type="button" variant="outline" onClick={() => onExport('usage')}><Download size={14} /> Usage CSV</Button>
+        <Button type="button" variant="outline" onClick={() => onExport('fprds')}><Download size={14} /> FPRDS CSV</Button>
+        <Button type="button" variant="outline" onClick={() => onExport('users')} disabled={!metrics}><Download size={14} /> Users CSV</Button>
+      </div>
+    </Section>
+    <Section title="Recent export audit" icon={FileText}>
+      {metrics?.exports.recentExports.length ? (
+        <CompactTable headers={['Actor', 'Role', 'Metadata', 'When']}>
+          {metrics.exports.recentExports.map(exportEvent => (
+            <tr key={exportEvent.id}>
+              <td className="px-3 py-2 font-bold text-foreground">{exportEvent.actorUserId?.slice(0, 12) ?? '-'}</td>
+              <td className="px-3 py-2 text-muted-foreground">{exportEvent.actorRole ? roleLabel[exportEvent.actorRole] : '-'}</td>
+              <td className="px-3 py-2 text-muted-foreground">{JSON.stringify(exportEvent.metadata)}</td>
+              <td className="px-3 py-2 text-muted-foreground">{formatRelativeTime(exportEvent.createdAt)}</td>
+            </tr>
+          ))}
+        </CompactTable>
+      ) : (
+        <EmptyState title="No exports yet" detail="CSV export actions are recorded in admin audit events." />
+      )}
+    </Section>
+  </div>
+);
+
+const AlertsPanel = ({ snapshot, securityMetrics, growthMetrics }: {
+  snapshot: AdminConsoleSnapshot;
+  securityMetrics: AdminSecurityMetrics | null;
+  growthMetrics: AdminGrowthMetrics | null;
+}) => {
+  const openHighPriority = snapshot.feedback.filter(item => ['high', 'blocking'].includes(item.urgency) && !['resolved', 'closed'].includes(item.status)).length;
+  const derivedAlerts = [
+    ...(growthMetrics?.alerts ?? []),
+    ...(securityMetrics?.warnings ?? []),
+    ...(openHighPriority ? [`${openHighPriority} high-priority feedback items are open.`] : []),
+    ...(growthMetrics?.billingReadiness.failedWebhookEvents ? [`${growthMetrics.billingReadiness.failedWebhookEvents} billing webhook events failed.`] : [])
+  ];
+  const uniqueAlerts = Array.from(new Set(derivedAlerts));
+
+  return (
+    <div className="space-y-4">
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <StatTile label="Alerts" value={uniqueAlerts.length} detail="Current admin attention items." />
+        <StatTile label="Denied access" value={securityMetrics?.deniedAccessCount ?? 0} detail="Security access denials in window." />
+        <StatTile label="Stale FPRDS" value={growthMetrics?.fprdsAnalytics.pendingOlderThan7d ?? 0} detail="Pending more than seven days." />
+        <StatTile label="High feedback" value={openHighPriority} detail="Open high/blocking feedback." />
+      </div>
+      <Section title="Daily health summary" icon={Bell}>
+        {uniqueAlerts.length ? (
+          <div className="space-y-2">
+            {uniqueAlerts.map(alert => (
+              <div key={alert} className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-bold text-amber-900">{alert}</div>
+            ))}
+          </div>
+        ) : (
+          <EmptyState title="No active alerts" detail="Security, product, feedback, FPRDS, and billing warning rules are currently quiet." />
         )}
       </Section>
     </div>
@@ -878,6 +1163,7 @@ export default function AdminConsoleView() {
   const [mfaBusy, setMfaBusy] = useState(false);
   const [snapshot, setSnapshot] = useState<AdminConsoleSnapshot | null>(null);
   const [securityMetrics, setSecurityMetrics] = useState<AdminSecurityMetrics | null>(null);
+  const [growthMetrics, setGrowthMetrics] = useState<AdminGrowthMetrics | null>(null);
   const [loadState, setLoadState] = useState<'idle' | 'loading' | 'ready' | 'error' | 'denied' | 'mfaRequired'>('idle');
   const [message, setMessage] = useState('');
   const [selectedFeedback, setSelectedFeedback] = useState<FeedbackSubmission | null>(null);
@@ -894,6 +1180,7 @@ export default function AdminConsoleView() {
         setAdminProfile(null);
         setSnapshot(null);
         setSecurityMetrics(null);
+        setGrowthMetrics(null);
         setLoadState('denied');
         setMessage('This account is not listed in app_admins.');
         await runtime.dataAccess.admin.recordAuditEvent('admin_access_denied', { surface: 'admin_console' }).catch(() => undefined);
@@ -912,6 +1199,7 @@ export default function AdminConsoleView() {
       if (highPrivilegeRoles.has(admin.role) && assurance.currentLevel !== 'aal2') {
         setSnapshot(null);
         setSecurityMetrics(null);
+        setGrowthMetrics(null);
         setLoadState('mfaRequired');
         setMessage('');
         await runtime.dataAccess.admin.recordAuditEvent('admin_mfa_required', { role: admin.role, surface: 'admin_console' }).catch(() => undefined);
@@ -921,10 +1209,15 @@ export default function AdminConsoleView() {
       const next = await runtime.dataAccess.admin.getSnapshot();
       setSnapshot(next);
       if (admin.role === 'owner') {
-        const security = await runtime.dataAccess.admin.getSecurityMetrics();
+        const [security, growth] = await Promise.all([
+          runtime.dataAccess.admin.getSecurityMetrics(),
+          runtime.dataAccess.admin.getGrowthMetrics()
+        ]);
         setSecurityMetrics(security);
+        setGrowthMetrics(growth);
       } else {
         setSecurityMetrics(null);
+        setGrowthMetrics(null);
       }
       await runtime.dataAccess.admin.recordAuditEvent('admin_console_opened', { role: admin.role }).catch(() => undefined);
       setLoadState('ready');
@@ -1013,7 +1306,77 @@ export default function AdminConsoleView() {
     setAdminProfile(null);
     setSnapshot(null);
     setSecurityMetrics(null);
+    setGrowthMetrics(null);
     setLoadState('idle');
+  };
+
+  const handleExport = async (kind: 'feedback' | 'usage' | 'fprds' | 'users') => {
+    if (!snapshot) return;
+    const stamp = new Date().toISOString().slice(0, 10);
+
+    if (kind === 'feedback') {
+      downloadCsv(`dumala-feedback-${stamp}.csv`, ['id', 'status', 'urgency', 'category', 'area', 'subject', 'workspace', 'created_at'], snapshot.feedback.map(item => [
+        item.id,
+        item.status,
+        item.urgency,
+        item.category,
+        item.affected_area,
+        item.subject,
+        item.team_workspace ?? '',
+        item.created_at
+      ]));
+    }
+
+    if (kind === 'usage') {
+      downloadCsv(`dumala-usage-${stamp}.csv`, ['id', 'event_type', 'view', 'feature', 'device', 'browser', 'created_at'], snapshot.usageEvents.map(item => [
+        item.id,
+        item.event_type,
+        item.view_name ?? '',
+        item.feature_name ?? '',
+        item.device_type ?? '',
+        item.browser_family ?? '',
+        item.created_at
+      ]));
+    }
+
+    if (kind === 'fprds') {
+      downloadCsv(`dumala-fprds-${stamp}.csv`, ['id', 'status', 'age_group', 'role', 'type', 'ovr', 'confidence', 'submitted_at'], snapshot.fprdsSubmissions.map(item => [
+        item.id,
+        item.review_status,
+        item.age_group,
+        item.role,
+        item.assessment_type,
+        item.ovr ?? '',
+        item.coach_confidence ?? '',
+        item.submitted_at
+      ]));
+    }
+
+    if (kind === 'users' && growthMetrics) {
+      downloadCsv(`dumala-users-${stamp}.csv`, ['user_id', 'email', 'display_name', 'state', 'workspaces', 'devices', 'feedback', 'fprds', 'last_active_at'], growthMetrics.recentUsers.map(user => [
+        user.userId,
+        user.email ?? '',
+        user.displayName ?? '',
+        user.accountState,
+        user.workspaceCount,
+        user.deviceCount,
+        user.feedbackCount,
+        user.fprdsCount,
+        user.lastActiveAt ?? ''
+      ]));
+    }
+
+    const rowCount = kind === 'users'
+      ? growthMetrics?.recentUsers.length ?? 0
+      : kind === 'usage'
+        ? snapshot.usageEvents.length
+        : kind === 'fprds'
+          ? snapshot.fprdsSubmissions.length
+          : snapshot.feedback.length;
+
+    if (runtime.enabled) {
+      await runtime.dataAccess.admin.recordAuditEvent('admin_export', { kind, rowCount }).catch(() => undefined);
+    }
   };
 
   const handleFeedbackStatusChange = async (feedbackId: string, status: FeedbackStatus) => {
@@ -1214,7 +1577,8 @@ export default function AdminConsoleView() {
               })}
             </nav>
 
-            {activeTab === 'overview' && <OverviewPanel snapshot={snapshot} />}
+            {activeTab === 'overview' && <OverviewPanel snapshot={snapshot} growthMetrics={growthMetrics} />}
+            {activeTab === 'users' && <UsersPanel metrics={growthMetrics} />}
             {activeTab === 'security' && (
               <SecurityPanel
                 metrics={securityMetrics}
@@ -1224,11 +1588,11 @@ export default function AdminConsoleView() {
                 onSignOut={() => void handleAdminSignOut()}
               />
             )}
-            {activeTab === 'usage' && <UsagePanel events={snapshot.usageEvents} sessions={snapshot.activeSessions} />}
+            {activeTab === 'usage' && <UsagePanel events={snapshot.usageEvents} sessions={snapshot.activeSessions} metrics={growthMetrics} productMetrics={snapshot.productMetrics} />}
             {activeTab === 'feedback' && (
-              <FeedbackPanel feedback={snapshot.feedback} onStatusChange={handleFeedbackStatusChange} onOpen={setSelectedFeedback} />
+              <FeedbackPanel feedback={snapshot.feedback} metrics={growthMetrics} onStatusChange={handleFeedbackStatusChange} onOpen={setSelectedFeedback} />
             )}
-            {activeTab === 'fprds' && <FprdsPanel submissions={snapshot.fprdsSubmissions} onOpen={setSelectedFprdsSubmission} />}
+            {activeTab === 'fprds' && <FprdsPanel submissions={snapshot.fprdsSubmissions} metrics={growthMetrics} onOpen={setSelectedFprdsSubmission} />}
             {activeTab === 'online' && (
               <Section title="Online users" icon={UsersRound}>
                 {onlineSessions.length === 0 ? (
@@ -1248,17 +1612,10 @@ export default function AdminConsoleView() {
               </Section>
             )}
             {activeTab === 'billing' && (
-              <Section title="Payments and ledger readiness" icon={CreditCard}>
-                <div className="grid gap-3 sm:grid-cols-3">
-                  <StatTile label="Customers" value={snapshot.billingCustomers.length} detail="Provider-linked billing customers." />
-                  <StatTile label="Subscriptions" value={snapshot.subscriptions.length} detail="Future Stripe/PayPal plan states." />
-                  <StatTile label="Active/trial" value={snapshot.subscriptions.filter(item => ['trialing', 'active'].includes(item.status)).length} detail="Currently billable accounts." />
-                </div>
-                <p className="mt-4 text-xs font-medium leading-relaxed text-muted-foreground">
-                  Billing tables are provider-neutral. Stripe, PayPal, or another processor should update them through secure server-side webhooks.
-                </p>
-              </Section>
+              <BillingPanel snapshot={snapshot} metrics={growthMetrics} />
             )}
+            {activeTab === 'exports' && <ExportsPanel snapshot={snapshot} metrics={growthMetrics} onExport={handleExport} />}
+            {activeTab === 'alerts' && <AlertsPanel snapshot={snapshot} securityMetrics={securityMetrics} growthMetrics={growthMetrics} />}
           </>
         )}
       </main>

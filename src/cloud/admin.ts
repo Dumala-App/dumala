@@ -90,6 +90,107 @@ export interface AdminProductMetrics {
   };
 }
 
+export interface AdminRecentUserSummary {
+  userId: string;
+  displayName?: string | null;
+  email?: string | null;
+  accountState: string;
+  createdAt: string;
+  lastActiveAt?: string | null;
+  workspaceCount: number;
+  deviceCount: number;
+  feedbackCount: number;
+  fprdsCount: number;
+}
+
+export interface AdminWorkspaceSummary {
+  clubId: string;
+  name: string;
+  ownerUserId: string;
+  memberCount: number;
+  eventCount: number;
+  feedbackCount: number;
+  fprdsCount: number;
+  lastActiveAt?: string | null;
+}
+
+export interface AdminDuplicateFeedbackGroup {
+  fingerprint: string;
+  count: number;
+  latestAt: string;
+  sampleSubject: string;
+}
+
+export interface AdminRoadmapCandidate {
+  area: string;
+  category: string;
+  count: number;
+  highPriorityCount: number;
+  latestAt: string;
+}
+
+export interface AdminGrowthMetrics {
+  windowDays: number;
+  users: {
+    total: number;
+    newToday: number;
+    new7d: number;
+    new30d: number;
+    active7d: number;
+    active30d: number;
+    pendingDeletion: number;
+    deleted: number;
+  };
+  workspaces: {
+    total: number;
+    active: number;
+    pendingDeletion: number;
+    deleted: number;
+    new30d: number;
+  };
+  engagement: {
+    dau: number;
+    wau: number;
+    mau: number;
+    avgSessionMinutes: number;
+    activeSessionsNow: number;
+  };
+  topWorkspaces: AdminWorkspaceSummary[];
+  recentUsers: AdminRecentUserSummary[];
+  feedbackIntelligence: {
+    duplicateGroups: AdminDuplicateFeedbackGroup[];
+    roadmapCandidates: AdminRoadmapCandidate[];
+  };
+  fprdsAnalytics: {
+    averageOvr?: number | null;
+    averageCoachConfidence?: number | null;
+    pendingOlderThan7d: number;
+    byRole: Array<{ key: string; count: number; avgOvr?: number | null }>;
+    byAssessmentType: AdminMetricCount[];
+  };
+  billingReadiness: {
+    customers: number;
+    subscriptions: number;
+    activeOrTrial: number;
+    pastDue: number;
+    failedWebhookEvents: number;
+    ledgerEntries: number;
+    ledgerAmountDue: number;
+    ledgerAmountPaid: number;
+  };
+  exports: {
+    recentExportCount: number;
+    recentExports: Array<{
+      id: string;
+      actorUserId?: string | null;
+      actorRole?: AppAdminRole | null;
+      metadata: Record<string, unknown>;
+      createdAt: string;
+    }>;
+  };
+  alerts: string[];
+}
+
 export interface AppUsageEvent {
   id: string;
   user_id?: string | null;
@@ -246,6 +347,7 @@ export interface AdminConsoleSnapshot {
   subscriptions: SubscriptionRecord[];
   productMetrics?: AdminProductMetrics | null;
   securityMetrics?: AdminSecurityMetrics | null;
+  growthMetrics?: AdminGrowthMetrics | null;
 }
 
 export interface UsageEventInput {
@@ -388,6 +490,18 @@ export const getAdminSecurityMetrics = async (
     'ADMIN_SECURITY_METRICS_READ_FAILED',
     'Failed to read admin security metrics'
   ) as AdminSecurityMetrics;
+};
+
+export const getAdminGrowthMetrics = async (
+  client: DumalaSupabaseClient,
+  days = 30
+): Promise<AdminGrowthMetrics> => {
+  const supabase = asUntypedClient(client);
+  return expectNoError(
+    await supabase.rpc('get_admin_growth_metrics_v1', { days }),
+    'ADMIN_GROWTH_METRICS_READ_FAILED',
+    'Failed to read admin growth metrics'
+  ) as AdminGrowthMetrics;
 };
 
 export const recordAdminAuditEvent = async (

@@ -2,7 +2,7 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 
-select plan(17);
+select plan(18);
 
 insert into auth.users (id, aud, role, email, email_confirmed_at, created_at, updated_at)
 values
@@ -93,6 +93,11 @@ select results_eq(
 select ok(
   public.get_admin_product_metrics_v1(30) ? 'feedback',
   'owner with MFA can read product metrics and write audit role safely'
+);
+
+select ok(
+  public.get_admin_growth_metrics_v1(30) ? 'users',
+  'owner with MFA can read growth metrics for users and workspaces'
 );
 
 select results_eq(
