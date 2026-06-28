@@ -130,7 +130,7 @@ export default function FeedbackModal({teamName, onClose}: FeedbackModalProps) {
 
     try {
       if (cloudRuntime.enabled) {
-        await cloudRuntime.dataAccess.admin.createFeedback({
+        const savedFeedback = await cloudRuntime.dataAccess.admin.createFeedback({
           category: categoryMap[form.category] ?? 'other',
           affectedArea: form.area,
           urgency: urgencyMap[form.urgency] ?? 'normal',
@@ -142,6 +142,18 @@ export default function FeedbackModal({teamName, onClose}: FeedbackModalProps) {
           browser: navigator.userAgent,
           teamWorkspace: teamName
         });
+        void cloudRuntime.dataAccess.admin.recordUsageEvent({
+          eventType: 'feedback_submitted',
+          viewName: form.area,
+          featureName: 'share_feedback',
+          appVersion: '0.0.0',
+          metadata: {
+            feedbackId: savedFeedback.id,
+            category: categoryMap[form.category] ?? 'other',
+            urgency: urgencyMap[form.urgency] ?? 'normal',
+            teamWorkspace: teamName
+          }
+        }).catch(() => undefined);
       } else {
         const response = await fetch(`https://formsubmit.co/ajax/${FEEDBACK_EMAIL}`, {
           method: 'POST',
