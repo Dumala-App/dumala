@@ -367,4 +367,4 @@ export const playerExtrasSchema = z.record(z.string(), z.object({
 export const stringArraySchema = z.array(z.string());
 export const booleanSchema = z.boolean();
 export const stringSchema = z.string();
-export const matchFormatSchema = z.enum(['11-a-side', '7-a-side', '5-a-side']);
+export const matchFormatSchema = z.enum(['11-a-side', '9-a-side', '8-a-side', '7-a-side', '6-a-side', '5-a-side']);

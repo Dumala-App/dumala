@@ -729,8 +729,8 @@ export default function App() {
     <div
       className={`rounded-lg border px-4 py-3 ${
         storageHealth.level === 'critical'
-          ? 'border-rose-200 bg-rose-50 text-rose-950'
-          : 'border-amber-200 bg-amber-50 text-amber-950'
+          ? 'border-destructive/25 bg-destructive/10 text-destructive'
+          : 'border-warning/25 bg-warning/15 text-warning-foreground'
       }`}
       role="status"
     >
@@ -760,7 +760,7 @@ export default function App() {
   ) : null;
 
   const recoveryBanner = recoveryWarnings.length > 0 ? (
-    <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-amber-900" role="status">
+    <div className="rounded-xl border border-warning/25 bg-warning/15 px-4 py-3 text-warning-foreground" role="status">
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="text-xs font-black uppercase tracking-wider">Local data recovery</p>
@@ -773,7 +773,7 @@ export default function App() {
           onClick={() => setRecoveryWarnings([])}
           variant="ghost"
           size="sm"
-          className="-mr-2 -mt-1 text-amber-800 hover:bg-amber-100 hover:text-amber-950"
+          className="-mr-2 -mt-1 text-warning-foreground hover:bg-warning/15 hover:text-warning-foreground"
         >
           Dismiss
         </Button>
@@ -783,7 +783,7 @@ export default function App() {
 
   if (!isOnboarded || !teamInfo) {
     return (
-      <div className="min-h-screen bg-slate-50">
+      <div className="min-h-screen bg-background text-foreground">
         <PwaStatusBanners />
         <div className="fixed right-4 top-4 z-40">
           <PwaInstallControl />
@@ -824,11 +824,11 @@ export default function App() {
   }
 
   return (
-    <div id="stack-app-root" className="min-h-screen flex flex-col font-sans text-slate-900">
+    <div id="stack-app-root" className="min-h-screen flex flex-col font-sans text-foreground">
       <PwaStatusBanners />
       
       {/* Dynamic Navigation Topbar */}
-      <header id="app-topbar" className="bg-[#07111f]/95 backdrop-blur-xl text-white sticky top-0 z-40 border-b border-white/10 shadow-lg shadow-slate-950/10">
+      <header id="app-topbar" className="sticky top-0 z-40 border-b border-white/10 bg-[var(--shell)]/95 text-[var(--shell-foreground)] shadow-lg shadow-slate-950/10 backdrop-blur-xl">
         <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-[72px]">
             
@@ -839,24 +839,24 @@ export default function App() {
                 src="/Dumala_logo.png"
                 alt="Dumala"
                 onClick={() => handleSelectPrimaryTab('home')}
-                className="w-14 h-14 rounded-xl object-contain cursor-pointer transition-all hover:-translate-y-0.5 active:translate-y-0"
+                className="w-14 h-14 rounded-xl object-contain cursor-pointer transition-all hover:-translate-y-0.5 active:translate-y-0 drop-shadow-sm"
               />
               <div>
                 <h1 
                   id="brand-title" 
                   onClick={() => handleSelectPrimaryTab('home')}
-                  className="font-display font-extrabold text-sm sm:text-base tracking-tight cursor-pointer text-white hover:text-blue-100 transition-colors truncate"
+                  className="font-display font-extrabold text-sm sm:text-base tracking-tight cursor-pointer text-white hover:text-orange-100 transition-colors truncate"
                 >
                   Dumala
                 </h1>
-                <span id="brand-tagline" className="text-[10px] text-slate-400 block font-semibold truncate max-w-44">
+                <span id="brand-tagline" className="text-[10px] text-[var(--shell-muted)] block font-semibold truncate max-w-44">
                   {teamInfo?.name || "Team workspace"}
                 </span>
               </div>
             </div>
 
             {/* Desktop Navigation Link Tabs */}
-            <nav id="desktop-nav" aria-label="Primary navigation" className="hidden lg:flex items-center gap-1 bg-white/[0.06] border border-white/[0.08] rounded-2xl p-1.5">
+            <nav id="desktop-nav" aria-label="Primary navigation" className="hidden lg:flex items-center gap-1 rounded-2xl border border-white/[0.08] bg-white/[0.06] p-1.5">
               {primaryTabs.map((tab) => {
                 return (
                   <ShellNavItem
@@ -873,7 +873,7 @@ export default function App() {
             </nav>
 
             {/* Mobile Navigation Sandwich Trigger */}
-            <div className="lg:hidden">
+            <div className="flex items-center gap-2">
               <Button
                 id="mobile-menu-hamburger"
                 type="button"
@@ -882,7 +882,7 @@ export default function App() {
                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
                 aria-label={mobileMenuOpen ? 'Close navigation' : 'Open navigation'}
                 aria-expanded={mobileMenuOpen}
-                className="size-10 rounded-xl bg-white/10 text-white hover:bg-white/15 hover:text-white active:scale-95 [&_svg]:size-5"
+                className="size-10 rounded-xl bg-white/10 text-white hover:bg-white/15 hover:text-white active:scale-95 lg:hidden [&_svg]:size-5"
               >
                 {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
               </Button>
@@ -893,7 +893,7 @@ export default function App() {
 
         {/* Expandable Mobile Dropdown Menu */}
         {mobileMenuOpen && (
-          <div id="mobile-nav-panel" className="lg:hidden bg-[#07111f] border-t border-white/10 p-3 grid grid-cols-2 gap-2">
+          <div id="mobile-nav-panel" className="grid grid-cols-2 gap-2 border-t border-white/10 bg-[var(--shell)] p-3 lg:hidden">
             {primaryTabs.map((tab) => {
               return (
                 <ShellNavItem
@@ -915,14 +915,14 @@ export default function App() {
       <main id="app-main-content" className="flex-1 max-w-[1440px] w-full mx-auto p-4 sm:p-6 lg:p-8 space-y-6">
         
         {/* Real-time State Highlights panel */}
-        <div id="quick-alert-drawer" className="bg-white/90 backdrop-blur border border-slate-200/80 rounded-2xl px-4 py-3.5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-sm">
+        <div id="quick-alert-drawer" className="flex flex-col items-start justify-between gap-3 rounded-2xl border border-border bg-card/90 px-4 py-3.5 text-card-foreground shadow-sm backdrop-blur sm:flex-row sm:items-center">
           <div className="flex items-center gap-3">
             <span className="relative flex h-2.5 w-2.5 shrink-0">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-success opacity-75"></span>
+              <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-success"></span>
             </span>
-            <p className="text-xs text-slate-700 leading-relaxed font-medium">
-              <strong className="text-slate-900 font-bold">Workspace ready.</strong> Results automatically update your league table and player statistics.
+            <p className="text-xs font-medium leading-relaxed text-muted-foreground">
+              <strong className="font-bold text-foreground">Workspace ready.</strong> Results automatically update your league table and player statistics.
             </p>
           </div>
           <div className="flex w-full flex-wrap gap-2 sm:w-auto sm:shrink-0 sm:justify-end">
@@ -936,7 +936,7 @@ export default function App() {
               onClick={() => setShowFeedback(true)}
               variant="outline"
               size="sm"
-              className="h-6 border-indigo-100 bg-indigo-50 px-2.5 text-[10px] text-indigo-700 hover:border-indigo-200 hover:bg-indigo-100 hover:text-indigo-800"
+              className="h-6 px-2.5 text-[10px]"
             >
               <MessageSquare size={10} /> Feedback
             </Button>
@@ -946,7 +946,7 @@ export default function App() {
                   type="button"
                   variant="outline"
                   size="sm"
-                  className="h-6 bg-slate-50 px-2.5 text-[10px] text-slate-600 hover:border-rose-100 hover:bg-rose-50 hover:text-rose-700"
+                  className="h-6 px-2.5 text-[10px] hover:border-destructive/20 hover:bg-destructive/10 hover:text-destructive"
                 >
                   <RotateCcw size={10} /> Reset
                 </Button>
@@ -962,7 +962,7 @@ export default function App() {
                   <AlertDialogCancel>Cancel</AlertDialogCancel>
                   <AlertDialogAction
                     onClick={confirmResetApp}
-                    className="bg-rose-600 text-white hover:bg-rose-700"
+                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                   >
                     Reset everything
                   </AlertDialogAction>
@@ -1127,13 +1127,13 @@ export default function App() {
       </AnimatePresence>
 
       {/* Application Footer */}
-      <footer id="app-footer" className="bg-[#07111f] text-slate-400 border-t border-white/10 py-6 text-center text-xs mt-12 space-y-2">
+      <footer id="app-footer" className="mt-12 space-y-2 border-t border-white/10 bg-[var(--shell)] py-6 text-center text-xs text-[var(--shell-muted)]">
         <div className="flex justify-center gap-4 items-center flex-wrap">
-          <span className="font-display font-semibold text-slate-300">Dumala</span>
-          <span className="text-slate-700 font-sans">|</span>
-          <span className="flex items-center gap-1">Designed with <Heart size={11} className="fill-rose-500 text-rose-500" /> for elite athletic clubs</span>
+          <span className="font-display font-semibold text-white">Dumala</span>
+          <span className="font-sans text-white/20">|</span>
+          <span className="flex items-center gap-1">Designed with <Heart size={11} className="fill-accent text-accent" /> for elite athletic clubs</span>
         </div>
-        <p className="text-slate-500 text-[10px]">
+        <p className="text-[10px] text-[var(--shell-muted)]/80">
           Your team data stays in this browser unless you export a backup.
         </p>
       </footer>

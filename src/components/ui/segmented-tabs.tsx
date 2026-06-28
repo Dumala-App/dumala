@@ -19,7 +19,7 @@ export function SegmentedTabs<TValue extends string>({
   label
 }: SegmentedTabsProps<TValue>) {
   return (
-    <div className="rounded-xl border border-slate-200/70 bg-white p-2 shadow-sm">
+    <div className="rounded-xl border border-border bg-card p-2 shadow-sm">
       <Tabs value={value} onValueChange={(nextValue) => onValueChange(nextValue as TValue)}>
         <TabsList aria-label={label}>
           {options.map((option) => (
