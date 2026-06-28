@@ -20,6 +20,7 @@ import { useCloudAuth } from '../hooks/useCloudAuth';
 import { useCloudRuntime } from '../hooks/useCloudRuntime';
 import type {
   AdminConsoleSnapshot,
+  AppSession,
   AppUsageEvent,
   FeedbackStatus,
   FeedbackSubmission,
@@ -63,6 +64,31 @@ const statusLabel: Record<FeedbackStatus, string> = {
   closed: 'Closed'
 };
 
+const statusTone: Record<FeedbackStatus, string> = {
+  new: 'border-sky-200 bg-sky-50 text-sky-800',
+  triaged: 'border-indigo-200 bg-indigo-50 text-indigo-800',
+  planned: 'border-violet-200 bg-violet-50 text-violet-800',
+  in_progress: 'border-amber-200 bg-amber-50 text-amber-800',
+  resolved: 'border-emerald-200 bg-emerald-50 text-emerald-800',
+  closed: 'border-slate-200 bg-slate-50 text-slate-700'
+};
+
+const urgencyLabel = {
+  low: 'Low',
+  normal: 'Normal',
+  high: 'High',
+  blocking: 'Blocking'
+} as const;
+
+const categoryLabel = {
+  improvement: 'Improvement',
+  suggestion: 'Suggestion',
+  bug: 'Bug',
+  usability_issue: 'Usability issue',
+  feature_request: 'Feature request',
+  other: 'Other'
+} as const;
+
 const fprdsStatusLabel: Record<FprdsBetaReviewStatus, string> = {
   pending: 'Pending',
   accepted: 'Accepted',
@@ -87,6 +113,11 @@ const formatRelativeTime = (date: string) => {
   if (hours < 24) return `${hours}h ago`;
   return `${Math.round(hours / 24)}d ago`;
 };
+
+const formatDateTime = (date: string) => new Intl.DateTimeFormat(undefined, {
+  dateStyle: 'medium',
+  timeStyle: 'short'
+}).format(new Date(date));
 
 const uniqueCount = (values: Array<string | null | undefined>) => new Set(values.filter(Boolean)).size;
 
@@ -184,74 +215,197 @@ const OverviewPanel = ({ snapshot }: { snapshot: AdminConsoleSnapshot }) => {
   );
 };
 
-const UsagePanel = ({ events }: { events: AppUsageEvent[] }) => (
-  <div className="grid gap-4 lg:grid-cols-[0.8fr_1.2fr]">
-    <Section title="Top views" icon={BarChart3}>
-      <TopList rows={countBy(events, item => item.view_name)} />
-    </Section>
-    <Section title="Recent events" icon={Activity}>
-      {events.length === 0 ? (
-        <EmptyState title="No usage events yet" detail="The console is ready. Wire app actions into app_usage_events as beta analytics mature." />
-      ) : (
-        <CompactTable headers={['Event', 'View', 'Feature', 'When']}>
-          {events.slice(0, 30).map(event => (
-            <tr key={event.id}>
-              <td className="px-3 py-2 font-bold text-foreground">{event.event_type}</td>
-              <td className="px-3 py-2 text-muted-foreground">{event.view_name || 'Unknown'}</td>
-              <td className="px-3 py-2 text-muted-foreground">{event.feature_name || '-'}</td>
-              <td className="px-3 py-2 text-muted-foreground">{formatRelativeTime(event.created_at)}</td>
-            </tr>
-          ))}
-        </CompactTable>
-      )}
-    </Section>
-  </div>
-);
+const UsagePanel = ({ events, sessions }: { events: AppUsageEvent[]; sessions: AppSession[] }) => {
+  const last24hEvents = events.filter(event => eventAgeMs(event.created_at) < 24 * 60 * 60000);
+  const onlineNow = sessions.filter(session => eventAgeMs(session.last_seen_at) < 5 * 60000);
+  const knownSessions = uniqueCount([
+    ...events.map(event => event.session_id),
+    ...sessions.map(session => session.session_id)
+  ]);
+  const topViews = countBy(events, item => item.view_name);
+  const topFeatures = countBy(events, item => item.feature_name);
+  const topDevices = countBy([...events, ...sessions], item => item.device_type);
+  const topBrowsers = countBy([...events, ...sessions], item => item.browser_family);
+
+  return (
+    <div className="space-y-4">
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+        <StatTile label="Events" value={events.length} detail="Recent product events captured." />
+        <StatTile label="Last 24h" value={last24hEvents.length} detail="Events from the last day." />
+        <StatTile label="Sessions" value={knownSessions} detail="Unique analytics sessions." />
+        <StatTile label="Online now" value={onlineNow.length} detail="Heartbeat seen in five minutes." />
+        <StatTile label="Top view" value={topViews[0]?.key ?? '-'} detail={topViews[0] ? `${topViews[0].count} recent opens.` : 'No view events yet.'} />
+      </div>
+      <div className="grid gap-4 lg:grid-cols-4">
+        <Section title="Top views" icon={BarChart3}>
+          <TopList rows={topViews} />
+        </Section>
+        <Section title="Top features" icon={Activity}>
+          <TopList rows={topFeatures} />
+        </Section>
+        <Section title="Devices" icon={UsersRound}>
+          <TopList rows={topDevices} />
+        </Section>
+        <Section title="Browsers" icon={Gauge}>
+          <TopList rows={topBrowsers} />
+        </Section>
+      </div>
+      <div className="grid gap-4 xl:grid-cols-[1.25fr_0.75fr]">
+        <Section title="Recent events" icon={Activity}>
+          {events.length === 0 ? (
+            <EmptyState title="No usage events yet" detail="Dumala records privacy-minimized app view events when users open sections of the app." />
+          ) : (
+            <CompactTable headers={['Event', 'View', 'Feature', 'Device', 'When']}>
+              {events.slice(0, 40).map(event => (
+                <tr key={event.id}>
+                  <td className="px-3 py-2 font-bold text-foreground">{event.event_type.replaceAll('_', ' ')}</td>
+                  <td className="px-3 py-2 text-muted-foreground">{event.view_name || 'Unknown'}</td>
+                  <td className="px-3 py-2 text-muted-foreground">{event.feature_name || '-'}</td>
+                  <td className="px-3 py-2 text-muted-foreground">{[event.device_type, event.browser_family].filter(Boolean).join(' / ') || 'Unknown'}</td>
+                  <td className="px-3 py-2 text-muted-foreground" title={formatDateTime(event.created_at)}>{formatRelativeTime(event.created_at)}</td>
+                </tr>
+              ))}
+            </CompactTable>
+          )}
+        </Section>
+        <Section title="Recent sessions" icon={Wifi}>
+          {sessions.length === 0 ? (
+            <EmptyState title="No session heartbeats yet" detail="Session rows appear after app tabs send heartbeat updates." />
+          ) : (
+            <CompactTable headers={['Session', 'View', 'Device', 'Last seen']}>
+              {sessions.slice(0, 12).map(session => (
+                <tr key={session.session_id}>
+                  <td className="px-3 py-2 font-bold text-foreground">{session.session_id.slice(0, 10)}</td>
+                  <td className="px-3 py-2 text-muted-foreground">{session.current_view || 'Unknown'}</td>
+                  <td className="px-3 py-2 text-muted-foreground">{[session.device_type, session.browser_family].filter(Boolean).join(' / ') || 'Unknown'}</td>
+                  <td className="px-3 py-2 text-muted-foreground" title={formatDateTime(session.last_seen_at)}>{formatRelativeTime(session.last_seen_at)}</td>
+                </tr>
+              ))}
+            </CompactTable>
+          )}
+        </Section>
+      </div>
+    </div>
+  );
+};
 
 const FeedbackPanel = ({ feedback, onStatusChange, onOpen }: {
   feedback: FeedbackSubmission[];
   onStatusChange: (feedbackId: string, status: FeedbackStatus) => void;
   onOpen: (item: FeedbackSubmission) => void;
-}) => (
-  <Section title="Feedback inbox" icon={MessageSquare}>
-    {feedback.length === 0 ? (
-      <EmptyState title="No feedback yet" detail="Database-backed feedback will appear here after the feedback form is connected to Supabase." />
-    ) : (
-      <div className="space-y-3">
-        {feedback.map(item => (
-          <article key={item.id} className="rounded-lg border border-border bg-muted/20 p-4">
-            <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-              <div className="min-w-0">
-                <div className="flex flex-wrap items-center gap-2">
-                  <Badge variant={item.urgency === 'blocking' || item.urgency === 'high' ? 'destructive' : 'secondary'}>
-                    {item.urgency}
-                  </Badge>
-                  <span className="text-[11px] font-black uppercase text-muted-foreground">{item.affected_area}</span>
-                  <span className="text-[11px] font-medium text-muted-foreground">{formatRelativeTime(item.created_at)}</span>
-                </div>
-                <h3 className="mt-2 text-sm font-black text-foreground">{item.subject}</h3>
-                <p className="mt-1 line-clamp-3 text-xs font-medium leading-relaxed text-muted-foreground">{item.details}</p>
-              </div>
-              <div className="flex shrink-0 items-center gap-2">
-                <select
-                  aria-label={`Status for ${item.subject}`}
-                  value={item.status}
-                  onChange={event => onStatusChange(item.id, event.target.value as FeedbackStatus)}
-                  className="h-9 rounded-lg border border-border bg-background px-2 text-xs font-bold text-foreground"
-                >
-                  {Object.entries(statusLabel).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
-                </select>
-                <Button type="button" variant="outline" size="sm" onClick={() => onOpen(item)} aria-label={`Open feedback: ${item.subject}`}>
-                  <Eye size={14} aria-hidden="true" /> Review
-                </Button>
-              </div>
-            </div>
-          </article>
-        ))}
+}) => {
+  const [statusFilter, setStatusFilter] = useState<'open' | 'all' | FeedbackStatus>('open');
+  const [urgencyFilter, setUrgencyFilter] = useState<'all' | FeedbackSubmission['urgency']>('all');
+  const [search, setSearch] = useState('');
+  const openStatuses: FeedbackStatus[] = ['new', 'triaged', 'planned', 'in_progress'];
+  const openItems = feedback.filter(item => openStatuses.includes(item.status));
+  const highPriorityItems = feedback.filter(item => item.urgency === 'blocking' || item.urgency === 'high');
+  const todayItems = feedback.filter(item => eventAgeMs(item.created_at) < 24 * 60 * 60000);
+  const normalizedSearch = search.trim().toLowerCase();
+  const filtered = feedback.filter(item => {
+    const matchesStatus = statusFilter === 'all'
+      ? true
+      : statusFilter === 'open'
+        ? openStatuses.includes(item.status)
+        : item.status === statusFilter;
+    const matchesUrgency = urgencyFilter === 'all' || item.urgency === urgencyFilter;
+    const matchesSearch = !normalizedSearch || [
+      item.subject,
+      item.details,
+      item.affected_area,
+      item.team_workspace ?? '',
+      item.contact_email ?? ''
+    ].join(' ').toLowerCase().includes(normalizedSearch);
+    return matchesStatus && matchesUrgency && matchesSearch;
+  });
+
+  return (
+    <div className="space-y-4">
+      <div className="grid gap-3 md:grid-cols-4">
+        <StatTile label="Total feedback" value={feedback.length} detail="Synced from the Share feedback button." />
+        <StatTile label="Open" value={openItems.length} detail="New, triaged, planned, or in progress." />
+        <StatTile label="High priority" value={highPriorityItems.length} detail="High and blocking submissions." />
+        <StatTile label="Last 24h" value={todayItems.length} detail="Fresh coach and tester signals." />
       </div>
-    )}
-  </Section>
-);
+      <Section title="Feedback inbox" icon={MessageSquare}>
+        <div className="mb-4 grid gap-3 lg:grid-cols-[1fr_auto_auto]">
+          <input
+            type="search"
+            value={search}
+            onChange={event => setSearch(event.target.value)}
+            placeholder="Search subject, details, workspace, or email"
+            className="h-9 rounded-lg border border-border bg-background px-3 text-xs font-semibold text-foreground outline-none ring-primary/20 transition focus:ring-2"
+          />
+          <select
+            aria-label="Filter feedback by status"
+            value={statusFilter}
+            onChange={event => setStatusFilter(event.target.value as typeof statusFilter)}
+            className="h-9 rounded-lg border border-border bg-background px-2 text-xs font-bold text-foreground"
+          >
+            <option value="open">Open statuses</option>
+            <option value="all">All statuses</option>
+            {Object.entries(statusLabel).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+          </select>
+          <select
+            aria-label="Filter feedback by urgency"
+            value={urgencyFilter}
+            onChange={event => setUrgencyFilter(event.target.value as typeof urgencyFilter)}
+            className="h-9 rounded-lg border border-border bg-background px-2 text-xs font-bold text-foreground"
+          >
+            <option value="all">All urgency</option>
+            {Object.entries(urgencyLabel).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+          </select>
+        </div>
+        {feedback.length === 0 ? (
+          <EmptyState title="No feedback yet" detail="Feedback submitted from the app's Share feedback button will appear here automatically." />
+        ) : filtered.length === 0 ? (
+          <EmptyState title="No matching feedback" detail="Clear the search or choose another status or urgency filter." />
+        ) : (
+          <div className="space-y-3">
+            {filtered.map(item => (
+              <article key={item.id} className="rounded-lg border border-border bg-muted/20 p-4">
+                <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className={`inline-flex rounded-md border px-2 py-1 text-[10px] font-black ${statusTone[item.status]}`}>
+                        {statusLabel[item.status]}
+                      </span>
+                      <Badge variant={item.urgency === 'blocking' || item.urgency === 'high' ? 'destructive' : 'secondary'}>
+                        {urgencyLabel[item.urgency]}
+                      </Badge>
+                      <span className="text-[11px] font-black uppercase text-muted-foreground">{item.affected_area}</span>
+                      <span className="text-[11px] font-medium text-muted-foreground">{formatRelativeTime(item.created_at)}</span>
+                    </div>
+                    <h3 className="mt-2 text-sm font-black text-foreground">{item.subject}</h3>
+                    <p className="mt-1 line-clamp-3 text-xs font-medium leading-relaxed text-muted-foreground">{item.details}</p>
+                    <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-[11px] font-semibold text-muted-foreground">
+                      <span>{categoryLabel[item.category]}</span>
+                      <span>Workspace: {item.team_workspace || 'Unknown'}</span>
+                      {item.contact_email && <span>Contact: {item.contact_email}</span>}
+                    </div>
+                  </div>
+                  <div className="flex shrink-0 items-center gap-2">
+                    <select
+                      aria-label={`Status for ${item.subject}`}
+                      value={item.status}
+                      onChange={event => onStatusChange(item.id, event.target.value as FeedbackStatus)}
+                      className="h-9 rounded-lg border border-border bg-background px-2 text-xs font-bold text-foreground"
+                    >
+                      {Object.entries(statusLabel).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+                    </select>
+                    <Button type="button" variant="outline" size="sm" onClick={() => onOpen(item)} aria-label={`Open feedback: ${item.subject}`}>
+                      <Eye size={14} aria-hidden="true" /> Review
+                    </Button>
+                  </div>
+                </div>
+              </article>
+            ))}
+          </div>
+        )}
+      </Section>
+    </div>
+  );
+};
 
 const FeedbackReviewDialog = ({ item, open, saving, onOpenChange, onSave }: {
   item: FeedbackSubmission | null;
@@ -275,7 +429,7 @@ const FeedbackReviewDialog = ({ item, open, saving, onOpenChange, onSave }: {
       <DialogContent className="max-h-[92vh] max-w-2xl overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{item.subject}</DialogTitle>
-          <DialogDescription>{item.affected_area} · {item.category.replaceAll('_', ' ')} · {formatRelativeTime(item.created_at)}</DialogDescription>
+          <DialogDescription>{item.affected_area} - {categoryLabel[item.category]} - {formatRelativeTime(item.created_at)}</DialogDescription>
         </DialogHeader>
         <div className="space-y-4">
           <div className="rounded-lg border border-border bg-muted/25 p-4">
@@ -356,7 +510,7 @@ const FprdsReviewDialog = ({ submission, open, saving, onOpenChange, onSave }: {
       <DialogContent className="max-h-[94vh] max-w-4xl overflow-y-auto">
         <DialogHeader>
           <DialogTitle>FPRDS beta review</DialogTitle>
-          <DialogDescription>Anonymous player {submission.player_anonymous_id.slice(0, 10)} · submitted {formatRelativeTime(submission.submitted_at)}</DialogDescription>
+          <DialogDescription>Anonymous player {submission.player_anonymous_id.slice(0, 10)} - submitted {formatRelativeTime(submission.submitted_at)}</DialogDescription>
         </DialogHeader>
 
         <div className="grid grid-cols-2 gap-px overflow-hidden rounded-lg border border-border bg-border sm:grid-cols-5">
@@ -382,7 +536,7 @@ const FprdsReviewDialog = ({ submission, open, saving, onOpenChange, onSave }: {
           <div className="space-y-2">
             <h3 className="text-xs font-black text-foreground">Test context</h3>
             <JsonFieldList value={venue} />
-            <p className="text-[11px] text-muted-foreground">Consent: {submission.consent_version} · {new Date(submission.consented_at).toLocaleString()}</p>
+            <p className="text-[11px] text-muted-foreground">Consent: {submission.consent_version} - {new Date(submission.consented_at).toLocaleString()}</p>
           </div>
         </div>
 
@@ -687,7 +841,7 @@ export default function AdminConsoleView() {
             </nav>
 
             {activeTab === 'overview' && <OverviewPanel snapshot={snapshot} />}
-            {activeTab === 'usage' && <UsagePanel events={snapshot.usageEvents} />}
+            {activeTab === 'usage' && <UsagePanel events={snapshot.usageEvents} sessions={snapshot.activeSessions} />}
             {activeTab === 'feedback' && (
               <FeedbackPanel feedback={snapshot.feedback} onStatusChange={handleFeedbackStatusChange} onOpen={setSelectedFeedback} />
             )}
