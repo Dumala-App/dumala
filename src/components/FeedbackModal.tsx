@@ -43,6 +43,7 @@ const INITIAL_FORM: FeedbackForm = {
 };
 
 const feedbackControlClass = 'rounded-xl text-sm font-medium text-slate-800';
+const feedbackSelectContentClass = 'z-[130]';
 const feedbackLabelClass = 'space-y-1.5 text-xs normal-case tracking-normal text-slate-700';
 
 const categoryMap: Record<string, FeedbackCategory> = {
@@ -169,7 +170,7 @@ export default function FeedbackModal({teamName, onClose}: FeedbackModalProps) {
 
       setStatus('success');
       setStatusMessage(cloudRuntime.enabled
-        ? 'Feedback saved to the Dumala admin inbox. Thank you for helping improve the app.'
+        ? 'Feedback sent to the dev. Thank you for helping me improve this app.'
         : 'Feedback sent. Thank you for helping improve Dumala.'
       );
       setForm(INITIAL_FORM);
@@ -226,7 +227,7 @@ export default function FeedbackModal({teamName, onClose}: FeedbackModalProps) {
                 <SelectTrigger className={feedbackControlClass}>
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className={feedbackSelectContentClass}>
                   <SelectItem value="Improvement">Improvement</SelectItem>
                   <SelectItem value="Suggestion">Suggestion</SelectItem>
                   <SelectItem value="Bug">Bug</SelectItem>
@@ -246,7 +247,7 @@ export default function FeedbackModal({teamName, onClose}: FeedbackModalProps) {
                 <SelectTrigger className={feedbackControlClass}>
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className={feedbackSelectContentClass}>
                   <SelectItem value="Dashboard">Dashboard</SelectItem>
                   <SelectItem value="Roster">Roster</SelectItem>
                   <SelectItem value="Tactics">Tactics</SelectItem>
@@ -308,7 +309,7 @@ export default function FeedbackModal({teamName, onClose}: FeedbackModalProps) {
                 <SelectTrigger className={feedbackControlClass}>
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className={feedbackSelectContentClass}>
                   <SelectItem value="Low">Low</SelectItem>
                   <SelectItem value="Normal">Normal</SelectItem>
                   <SelectItem value="High">High</SelectItem>

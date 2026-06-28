@@ -1,10 +1,19 @@
 import {
   getSession,
+  getAuthenticatorAssuranceLevel,
+  listMfaFactors,
+  enrollTotpFactor,
+  challengeMfaFactor,
+  verifyMfaChallenge,
   requestOtp,
   signOut,
   subscribeToAuthChanges,
   type AuthState,
-  type CloudAuthChangeHandler
+  type CloudAuthChangeHandler,
+  type MfaAssurance,
+  type MfaChallenge,
+  type MfaFactor,
+  type TotpEnrollment
 } from './auth';
 import {
   ensureAccountBootstrap,
@@ -45,7 +54,9 @@ import { importCloudPayload, type CloudImportDeviceContext } from './importer';
 import type { CloudImportPayload } from '../migrations/localToCloud';
 import {
   getAdminConsoleSnapshot,
+  getAdminSecurityMetrics,
   getCurrentAppAdmin,
+  recordAdminAuditEvent,
   createFeedbackSubmission,
   createFprdsBetaSubmission,
   findMyFprdsBetaSubmission,
@@ -54,6 +65,7 @@ import {
   recordAppUsageEvent,
   updateFeedbackSubmission,
   type AdminConsoleSnapshot,
+  type AdminSecurityMetrics,
   type AppAdminProfile,
   type AppSessionHeartbeatInput,
   type FeedbackStatus,
@@ -76,6 +88,11 @@ export interface CloudAuthRepository {
   requestOtp(email: string, redirectTo?: string): Promise<void>;
   signOut(): Promise<void>;
   getSession(): Promise<AuthState>;
+  getAuthenticatorAssuranceLevel(): Promise<MfaAssurance>;
+  listMfaFactors(): Promise<MfaFactor[]>;
+  enrollTotpFactor(friendlyName?: string): Promise<TotpEnrollment>;
+  challengeMfaFactor(factorId: string): Promise<MfaChallenge>;
+  verifyMfaChallenge(factorId: string, challengeId: string, code: string): Promise<void>;
   subscribeToAuthChanges(onChange: CloudAuthChangeHandler): () => void;
 }
 
@@ -118,6 +135,8 @@ export interface CloudSyncRepository {
 export interface CloudAdminRepository {
   getCurrentAdmin(): Promise<AppAdminProfile | null>;
   getSnapshot(): Promise<AdminConsoleSnapshot>;
+  getSecurityMetrics(days?: number): Promise<AdminSecurityMetrics>;
+  recordAuditEvent(eventType: string, metadata?: Record<string, unknown>): Promise<void>;
   recordUsageEvent(input: UsageEventInput): Promise<void>;
   recordSessionHeartbeat(input: AppSessionHeartbeatInput): Promise<void>;
   createFeedback(input: FeedbackSubmissionInput): Promise<FeedbackSubmission>;
@@ -143,6 +162,11 @@ export const createCloudDataAccess = (client: DumalaSupabaseClient): CloudDataAc
     requestOtp: (email, redirectTo) => requestOtp(client, email, redirectTo),
     signOut: () => signOut(client),
     getSession: () => getSession(client),
+    getAuthenticatorAssuranceLevel: () => getAuthenticatorAssuranceLevel(client),
+    listMfaFactors: () => listMfaFactors(client),
+    enrollTotpFactor: friendlyName => enrollTotpFactor(client, friendlyName),
+    challengeMfaFactor: factorId => challengeMfaFactor(client, factorId),
+    verifyMfaChallenge: (factorId, challengeId, code) => verifyMfaChallenge(client, factorId, challengeId, code),
     subscribeToAuthChanges: onChange => subscribeToAuthChanges(client, onChange)
   },
   account: {
@@ -184,6 +208,8 @@ export const createCloudDataAccess = (client: DumalaSupabaseClient): CloudDataAc
   admin: {
     getCurrentAdmin: () => getCurrentAppAdmin(client),
     getSnapshot: () => getAdminConsoleSnapshot(client),
+    getSecurityMetrics: days => getAdminSecurityMetrics(client, days),
+    recordAuditEvent: (eventType, metadata) => recordAdminAuditEvent(client, eventType, metadata),
     recordUsageEvent: input => recordAppUsageEvent(client, input),
     recordSessionHeartbeat: input => recordAppSessionHeartbeat(client, input),
     createFeedback: input => createFeedbackSubmission(client, input),

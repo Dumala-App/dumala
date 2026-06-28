@@ -7,11 +7,14 @@ import {
   CreditCard,
   Eye,
   Gauge,
+  KeyRound,
   Loader2,
   LockKeyhole,
+  LogOut,
   MessageSquare,
   RefreshCcw,
   Save,
+  ShieldAlert,
   ShieldCheck,
   UsersRound,
   Wifi
@@ -20,6 +23,8 @@ import { useCloudAuth } from '../hooks/useCloudAuth';
 import { useCloudRuntime } from '../hooks/useCloudRuntime';
 import type {
   AdminConsoleSnapshot,
+  AdminSecurityMetrics,
+  AppAdminProfile,
   AppSession,
   AppUsageEvent,
   FeedbackStatus,
@@ -27,6 +32,7 @@ import type {
   FprdsBetaReviewStatus,
   FprdsBetaSubmission
 } from '../cloud/admin';
+import type { MfaChallenge, MfaFactor, TotpEnrollment } from '../cloud/auth';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 import CloudAccountGate from './CloudAccountGate';
@@ -42,18 +48,37 @@ import { Label } from './ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Textarea } from './ui/textarea';
 
-type AdminTab = 'overview' | 'usage' | 'feedback' | 'fprds' | 'online' | 'billing';
+type AdminTab = 'overview' | 'security' | 'usage' | 'feedback' | 'fprds' | 'online' | 'billing';
 
 const ADMIN_AUTH_REDIRECT_URL = 'https://dumala.asia/?returnTo=admin';
 
 const adminTabs: Array<{ id: AdminTab; label: string; icon: React.ComponentType<{ size?: number; className?: string }> }> = [
   { id: 'overview', label: 'Overview', icon: Gauge },
+  { id: 'security', label: 'Security', icon: ShieldAlert },
   { id: 'usage', label: 'Usage', icon: BarChart3 },
   { id: 'feedback', label: 'Feedback', icon: MessageSquare },
   { id: 'fprds', label: 'FPRDS Beta', icon: ClipboardList },
   { id: 'online', label: 'Online', icon: Wifi },
   { id: 'billing', label: 'Billing', icon: CreditCard }
 ];
+
+const highPrivilegeRoles = new Set<AppAdminProfile['role']>(['owner', 'billing']);
+
+const canUseTab = (role: AppAdminProfile['role'] | undefined, tab: AdminTab) => {
+  if (!role) return tab === 'overview';
+  if (role === 'owner') return true;
+  if (role === 'support') return ['overview', 'usage', 'feedback', 'online'].includes(tab);
+  if (role === 'fprds_reviewer') return ['overview', 'fprds'].includes(tab);
+  if (role === 'billing') return ['overview', 'billing'].includes(tab);
+  return tab === 'overview';
+};
+
+const roleLabel: Record<AppAdminProfile['role'], string> = {
+  owner: 'Owner',
+  support: 'Support',
+  fprds_reviewer: 'FPRDS reviewer',
+  billing: 'Billing'
+};
 
 const statusLabel: Record<FeedbackStatus, string> = {
   new: 'New',
@@ -626,6 +651,217 @@ const FprdsPanel = ({ submissions, onOpen }: { submissions: FprdsBetaSubmission[
   );
 };
 
+const AdminMfaGate = ({
+  admin,
+  assuranceLevel,
+  factors,
+  enrollment,
+  challenge,
+  code,
+  message,
+  busy,
+  onCodeChange,
+  onEnroll,
+  onChallenge,
+  onVerify,
+  onRefresh,
+  onSignOut
+}: {
+  admin: AppAdminProfile;
+  assuranceLevel: string | null;
+  factors: MfaFactor[];
+  enrollment: TotpEnrollment | null;
+  challenge: MfaChallenge | null;
+  code: string;
+  message: string;
+  busy: boolean;
+  onCodeChange: (value: string) => void;
+  onEnroll: () => void;
+  onChallenge: (factorId: string) => void;
+  onVerify: (factorId: string, challengeId: string) => void;
+  onRefresh: () => void;
+  onSignOut: () => void;
+}) => {
+  const verifiedTotp = factors.filter(factor => factor.factorType === 'totp' && factor.status === 'verified');
+  const activeFactorId = enrollment?.factorId ?? verifiedTotp[0]?.id ?? null;
+  const activeChallengeId = challenge?.challengeId ?? null;
+
+  return (
+    <div className="mx-auto max-w-4xl space-y-4">
+      <Section title="MFA required" icon={KeyRound}>
+        <div className="grid gap-4 lg:grid-cols-[1fr_0.9fr]">
+          <div>
+            <p className="text-sm font-semibold leading-relaxed text-foreground">
+              {roleLabel[admin.role]} access requires a verified authenticator session before admin data loads.
+            </p>
+            <div className="mt-4 grid gap-3 sm:grid-cols-3">
+              <StatTile label="Role" value={roleLabel[admin.role]} detail="Role from public.app_admins." />
+              <StatTile label="Session AAL" value={assuranceLevel ?? 'Unknown'} detail="Supabase assurance claim." />
+              <StatTile label="TOTP factors" value={verifiedTotp.length} detail="Verified authenticator factors." />
+            </div>
+            {message && (
+              <div className="mt-4 rounded-lg border border-destructive/25 bg-destructive/10 p-3 text-xs font-semibold text-destructive">
+                {message}
+              </div>
+            )}
+            <div className="mt-4 flex flex-wrap gap-2">
+              {verifiedTotp.length === 0 ? (
+                <Button type="button" onClick={onEnroll} disabled={busy}>
+                  {busy ? <Loader2 size={14} className="animate-spin" /> : <KeyRound size={14} />} Set up authenticator
+                </Button>
+              ) : (
+                <Button type="button" onClick={() => onChallenge(verifiedTotp[0].id)} disabled={busy}>
+                  {busy ? <Loader2 size={14} className="animate-spin" /> : <KeyRound size={14} />} Verify authenticator
+                </Button>
+              )}
+              <Button type="button" variant="outline" onClick={onRefresh} disabled={busy}>
+                <RefreshCcw size={14} /> Refresh status
+              </Button>
+              <Button type="button" variant="ghost" onClick={onSignOut}>
+                <LogOut size={14} /> Sign out
+              </Button>
+            </div>
+          </div>
+          <div className="rounded-lg border border-border bg-muted/25 p-4">
+            {enrollment ? (
+              <div className="space-y-3">
+                <p className="text-xs font-black uppercase text-muted-foreground">Scan QR code</p>
+                <img src={enrollment.qrCode} alt="Dumala Admin Console authenticator QR code" className="mx-auto aspect-square w-48 rounded-lg border border-border bg-white p-2" />
+                <div>
+                  <Label htmlFor="mfa-secret" className="normal-case tracking-normal">Manual secret</Label>
+                  <input id="mfa-secret" readOnly value={enrollment.secret} className="mt-1 h-9 w-full rounded-lg border border-border bg-background px-3 text-xs font-semibold text-foreground" />
+                </div>
+              </div>
+            ) : verifiedTotp.length > 0 ? (
+              <div className="space-y-2">
+                <p className="text-xs font-black uppercase text-muted-foreground">Verified factors</p>
+                {verifiedTotp.map(factor => (
+                  <div key={factor.id} className="rounded-lg border border-border bg-card px-3 py-2">
+                    <p className="text-sm font-black text-foreground">{factor.friendlyName || 'Authenticator app'}</p>
+                    <p className="text-[11px] font-medium text-muted-foreground">Added {formatDateTime(factor.createdAt)}</p>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <EmptyState title="No authenticator enrolled" detail="Set up TOTP with an authenticator app, then enter the six-digit code to promote this session to aal2." />
+            )}
+          </div>
+        </div>
+        {(enrollment || activeChallengeId) && activeFactorId && (
+          <div className="mt-4 rounded-lg border border-border bg-card p-4">
+            <Label htmlFor="mfa-code" className="normal-case tracking-normal">Six-digit authenticator code</Label>
+            <div className="mt-2 flex flex-col gap-2 sm:flex-row">
+              <input
+                id="mfa-code"
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                value={code}
+                onChange={event => onCodeChange(event.target.value.replace(/\D/g, '').slice(0, 6))}
+                className="h-10 rounded-lg border border-border bg-background px-3 text-sm font-black tracking-widest text-foreground outline-none ring-primary/20 transition focus:ring-2"
+              />
+              <Button
+                type="button"
+                disabled={busy || code.length < 6}
+                onClick={() => {
+                  if (activeChallengeId) {
+                    onVerify(activeFactorId, activeChallengeId);
+                  } else {
+                    onChallenge(activeFactorId);
+                  }
+                }}
+              >
+                {busy ? <Loader2 size={14} className="animate-spin" /> : <ShieldCheck size={14} />}
+                {activeChallengeId ? 'Verify code' : 'Start verification'}
+              </Button>
+            </div>
+          </div>
+        )}
+      </Section>
+    </div>
+  );
+};
+
+const SecurityPanel = ({
+  metrics,
+  assuranceLevel,
+  factors,
+  onRefresh,
+  onSignOut
+}: {
+  metrics: AdminSecurityMetrics | null;
+  assuranceLevel: string | null;
+  factors: MfaFactor[];
+  onRefresh: () => void;
+  onSignOut: () => void;
+}) => {
+  const verifiedFactors = factors.filter(factor => factor.status === 'verified');
+
+  return (
+    <div className="space-y-4">
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+        <StatTile label="AAL" value={assuranceLevel ?? 'Unknown'} detail="Current Supabase session assurance." />
+        <StatTile label="MFA factors" value={verifiedFactors.length} detail="Verified factors on this account." />
+        <StatTile label="Active admins" value={metrics?.admins.filter(admin => !admin.revokedAt).length ?? 0} detail="Admin users not revoked." />
+        <StatTile label="Denied attempts" value={metrics?.deniedAccessCount ?? 0} detail="Denied or MFA-required audit events." />
+        <StatTile label="Active sessions" value={metrics?.activeSessionsNow ?? 0} detail="App sessions seen in five minutes." />
+      </div>
+      {metrics?.warnings.length ? (
+        <Section title="Security warnings" icon={ShieldAlert}>
+          <div className="space-y-2">
+            {metrics.warnings.map(warning => (
+              <div key={warning} className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-bold text-amber-900">{warning}</div>
+            ))}
+          </div>
+        </Section>
+      ) : null}
+      <div className="grid gap-4 xl:grid-cols-[0.75fr_1.25fr]">
+        <Section title="Admin users" icon={UsersRound}>
+          {metrics?.admins.length ? (
+            <CompactTable headers={['User', 'Role', 'Granted', 'Status']}>
+              {metrics.admins.map(admin => (
+                <tr key={admin.userId}>
+                  <td className="px-3 py-2 font-bold text-foreground">{admin.userId.slice(0, 12)}</td>
+                  <td className="px-3 py-2 text-muted-foreground">{roleLabel[admin.role]}</td>
+                  <td className="px-3 py-2 text-muted-foreground">{formatRelativeTime(admin.grantedAt)}</td>
+                  <td className="px-3 py-2"><Badge variant={admin.revokedAt ? 'destructive' : 'secondary'}>{admin.revokedAt ? 'Revoked' : 'Active'}</Badge></td>
+                </tr>
+              ))}
+            </CompactTable>
+          ) : (
+            <EmptyState title="No admin metrics loaded" detail="Refresh security metrics after completing MFA." />
+          )}
+        </Section>
+        <Section title="Recent audit events" icon={ShieldCheck}>
+          {metrics?.recentAuditEvents.length ? (
+            <CompactTable headers={['Event', 'Actor', 'Target', 'When']}>
+              {metrics.recentAuditEvents.slice(0, 25).map(event => (
+                <tr key={event.id}>
+                  <td className="px-3 py-2 font-bold text-foreground">{event.eventType.replaceAll('_', ' ')}</td>
+                  <td className="px-3 py-2 text-muted-foreground">{event.actorRole ? roleLabel[event.actorRole] : 'Unknown'}</td>
+                  <td className="px-3 py-2 text-muted-foreground">{event.targetTable || '-'}</td>
+                  <td className="px-3 py-2 text-muted-foreground">{formatRelativeTime(event.createdAt)}</td>
+                </tr>
+              ))}
+            </CompactTable>
+          ) : (
+            <EmptyState title="No audit events yet" detail="Sensitive reads, denied access, and admin actions will appear here." />
+          )}
+        </Section>
+      </div>
+      <Section title="Session actions" icon={LockKeyhole}>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button type="button" variant="outline" onClick={onRefresh}>
+            <RefreshCcw size={14} /> Refresh security
+          </Button>
+          <Button type="button" variant="destructive" onClick={onSignOut}>
+            <LogOut size={14} /> Sign out
+          </Button>
+        </div>
+      </Section>
+    </div>
+  );
+};
+
 export default function AdminConsoleView() {
   const runtime = useCloudRuntime();
   const auth = useCloudAuth({
@@ -633,8 +869,16 @@ export default function AdminConsoleView() {
     auth: runtime.dataAccess?.auth ?? null
   });
   const [activeTab, setActiveTab] = useState<AdminTab>('overview');
+  const [adminProfile, setAdminProfile] = useState<AppAdminProfile | null>(null);
+  const [assuranceLevel, setAssuranceLevel] = useState<string | null>(null);
+  const [mfaFactors, setMfaFactors] = useState<MfaFactor[]>([]);
+  const [totpEnrollment, setTotpEnrollment] = useState<TotpEnrollment | null>(null);
+  const [mfaChallenge, setMfaChallenge] = useState<MfaChallenge | null>(null);
+  const [mfaCode, setMfaCode] = useState('');
+  const [mfaBusy, setMfaBusy] = useState(false);
   const [snapshot, setSnapshot] = useState<AdminConsoleSnapshot | null>(null);
-  const [loadState, setLoadState] = useState<'idle' | 'loading' | 'ready' | 'error' | 'denied'>('idle');
+  const [securityMetrics, setSecurityMetrics] = useState<AdminSecurityMetrics | null>(null);
+  const [loadState, setLoadState] = useState<'idle' | 'loading' | 'ready' | 'error' | 'denied' | 'mfaRequired'>('idle');
   const [message, setMessage] = useState('');
   const [selectedFeedback, setSelectedFeedback] = useState<FeedbackSubmission | null>(null);
   const [selectedFprdsSubmission, setSelectedFprdsSubmission] = useState<FprdsBetaSubmission | null>(null);
@@ -645,13 +889,49 @@ export default function AdminConsoleView() {
     setLoadState('loading');
     setMessage('');
     try {
+      const admin = await runtime.dataAccess.admin.getCurrentAdmin();
+      if (!admin) {
+        setAdminProfile(null);
+        setSnapshot(null);
+        setSecurityMetrics(null);
+        setLoadState('denied');
+        setMessage('This account is not listed in app_admins.');
+        await runtime.dataAccess.admin.recordAuditEvent('admin_access_denied', { surface: 'admin_console' }).catch(() => undefined);
+        return;
+      }
+
+      setAdminProfile(admin);
+      if (!canUseTab(admin.role, activeTab)) setActiveTab('overview');
+      const [assurance, factors] = await Promise.all([
+        runtime.dataAccess.auth.getAuthenticatorAssuranceLevel(),
+        runtime.dataAccess.auth.listMfaFactors()
+      ]);
+      setAssuranceLevel(assurance.currentLevel);
+      setMfaFactors(factors);
+
+      if (highPrivilegeRoles.has(admin.role) && assurance.currentLevel !== 'aal2') {
+        setSnapshot(null);
+        setSecurityMetrics(null);
+        setLoadState('mfaRequired');
+        setMessage('');
+        await runtime.dataAccess.admin.recordAuditEvent('admin_mfa_required', { role: admin.role, surface: 'admin_console' }).catch(() => undefined);
+        return;
+      }
+
       const next = await runtime.dataAccess.admin.getSnapshot();
       setSnapshot(next);
+      if (admin.role === 'owner') {
+        const security = await runtime.dataAccess.admin.getSecurityMetrics();
+        setSecurityMetrics(security);
+      } else {
+        setSecurityMetrics(null);
+      }
+      await runtime.dataAccess.admin.recordAuditEvent('admin_console_opened', { role: admin.role }).catch(() => undefined);
       setLoadState('ready');
     } catch (error) {
       const text = error instanceof Error ? error.message : 'Admin console could not load.';
       setMessage(text);
-      setLoadState(text.includes('app_admins') || text.includes('not listed') ? 'denied' : 'error');
+      setLoadState(text.includes('ADMIN_MFA_REQUIRED') ? 'mfaRequired' : text.includes('app_admins') || text.includes('not listed') ? 'denied' : 'error');
     }
   };
 
@@ -663,6 +943,78 @@ export default function AdminConsoleView() {
     () => snapshot?.activeSessions.filter(session => eventAgeMs(session.last_seen_at) < 5 * 60000) ?? [],
     [snapshot]
   );
+  const visibleTabs = useMemo(
+    () => adminTabs.filter(tab => canUseTab(adminProfile?.role, tab.id)),
+    [adminProfile]
+  );
+
+  const refreshMfaState = async () => {
+    if (!runtime.enabled) return;
+    const [assurance, factors] = await Promise.all([
+      runtime.dataAccess.auth.getAuthenticatorAssuranceLevel(),
+      runtime.dataAccess.auth.listMfaFactors()
+    ]);
+    setAssuranceLevel(assurance.currentLevel);
+    setMfaFactors(factors);
+  };
+
+  const handleEnrollTotp = async () => {
+    if (!runtime.enabled) return;
+    setMfaBusy(true);
+    setMessage('');
+    try {
+      const enrollment = await runtime.dataAccess.auth.enrollTotpFactor();
+      setTotpEnrollment(enrollment);
+      setMfaChallenge(null);
+      setMfaCode('');
+      await refreshMfaState();
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : 'Authenticator setup could not start.');
+    } finally {
+      setMfaBusy(false);
+    }
+  };
+
+  const handleMfaChallenge = async (factorId: string) => {
+    if (!runtime.enabled) return;
+    setMfaBusy(true);
+    setMessage('');
+    try {
+      const challenge = await runtime.dataAccess.auth.challengeMfaFactor(factorId);
+      setMfaChallenge(challenge);
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : 'MFA verification could not start.');
+    } finally {
+      setMfaBusy(false);
+    }
+  };
+
+  const handleMfaVerify = async (factorId: string, challengeId: string) => {
+    if (!runtime.enabled) return;
+    setMfaBusy(true);
+    setMessage('');
+    try {
+      await runtime.dataAccess.auth.verifyMfaChallenge(factorId, challengeId, mfaCode);
+      setTotpEnrollment(null);
+      setMfaChallenge(null);
+      setMfaCode('');
+      await refreshMfaState();
+      await loadSnapshot();
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : 'MFA code could not be verified.');
+    } finally {
+      setMfaBusy(false);
+    }
+  };
+
+  const handleAdminSignOut = async () => {
+    if (!runtime.enabled) return;
+    await runtime.dataAccess.auth.signOut();
+    setAdminProfile(null);
+    setSnapshot(null);
+    setSecurityMetrics(null);
+    setLoadState('idle');
+  };
 
   const handleFeedbackStatusChange = async (feedbackId: string, status: FeedbackStatus) => {
     if (!runtime.enabled || !snapshot) return;
@@ -781,7 +1133,8 @@ export default function AdminConsoleView() {
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            {snapshot && <Badge variant="secondary">Role: {snapshot.admin.role}</Badge>}
+            {adminProfile && <Badge variant="secondary">Role: {roleLabel[adminProfile.role]}</Badge>}
+            {assuranceLevel && <Badge variant={assuranceLevel === 'aal2' ? 'secondary' : 'outline'}>AAL: {assuranceLevel}</Badge>}
             <Button type="button" onClick={() => void loadSnapshot()} variant="outline" size="sm" disabled={loadState === 'loading'}>
               {loadState === 'loading' ? <Loader2 size={14} className="animate-spin" /> : <RefreshCcw size={14} />}
               Refresh
@@ -819,10 +1172,31 @@ export default function AdminConsoleView() {
           </Section>
         )}
 
+        {loadState === 'mfaRequired' && adminProfile && (
+          <AdminMfaGate
+            admin={adminProfile}
+            assuranceLevel={assuranceLevel}
+            factors={mfaFactors}
+            enrollment={totpEnrollment}
+            challenge={mfaChallenge}
+            code={mfaCode}
+            message={message}
+            busy={mfaBusy}
+            onCodeChange={setMfaCode}
+            onEnroll={handleEnrollTotp}
+            onChallenge={handleMfaChallenge}
+            onVerify={handleMfaVerify}
+            onRefresh={() => {
+              void refreshMfaState().then(() => loadSnapshot());
+            }}
+            onSignOut={() => void handleAdminSignOut()}
+          />
+        )}
+
         {snapshot && (
           <>
             <nav aria-label="Admin console sections" className="flex gap-2 overflow-x-auto rounded-lg border border-border bg-card p-2">
-              {adminTabs.map(tab => {
+              {visibleTabs.map(tab => {
                 const Icon = tab.icon;
                 return (
                   <Button
@@ -841,6 +1215,15 @@ export default function AdminConsoleView() {
             </nav>
 
             {activeTab === 'overview' && <OverviewPanel snapshot={snapshot} />}
+            {activeTab === 'security' && (
+              <SecurityPanel
+                metrics={securityMetrics}
+                assuranceLevel={assuranceLevel}
+                factors={mfaFactors}
+                onRefresh={() => void loadSnapshot()}
+                onSignOut={() => void handleAdminSignOut()}
+              />
+            )}
             {activeTab === 'usage' && <UsagePanel events={snapshot.usageEvents} sessions={snapshot.activeSessions} />}
             {activeTab === 'feedback' && (
               <FeedbackPanel feedback={snapshot.feedback} onStatusChange={handleFeedbackStatusChange} onOpen={setSelectedFeedback} />

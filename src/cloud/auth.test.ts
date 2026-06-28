@@ -1,6 +1,16 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { DumalaSupabaseClient } from './client';
-import { getSession, requestOtp, signOut, subscribeToAuthChanges } from './auth';
+import {
+  challengeMfaFactor,
+  enrollTotpFactor,
+  getAuthenticatorAssuranceLevel,
+  getSession,
+  listMfaFactors,
+  requestOtp,
+  signOut,
+  subscribeToAuthChanges,
+  verifyMfaChallenge
+} from './auth';
 
 describe('cloud auth service', () => {
   it('requests passwordless OTP with normalized email and redirect', async () => {
@@ -23,7 +33,8 @@ describe('cloud auth service', () => {
             id: 'user-1',
             email: 'coach@example.com',
             last_sign_in_at: '2026-06-26T01:00:00.000Z'
-          }
+          },
+          access_token: `header.${Buffer.from(JSON.stringify({ aal: 'aal1' })).toString('base64url')}.signature`
         }
       },
       error: null
@@ -35,9 +46,69 @@ describe('cloud auth service', () => {
       session: {
         userId: 'user-1',
         email: 'coach@example.com',
-        lastSignInAt: '2026-06-26T01:00:00.000Z'
+        lastSignInAt: '2026-06-26T01:00:00.000Z',
+        assuranceLevel: 'aal1'
       }
     });
+  });
+
+  it('wraps Supabase TOTP MFA enrollment and verification helpers', async () => {
+    const enroll = vi.fn().mockResolvedValue({
+      data: {
+        id: 'factor-1',
+        friendly_name: 'Dumala Admin Console',
+        totp: {
+          qr_code: 'data:image/svg+xml;utf-8,<svg />',
+          secret: 'SECRET',
+          uri: 'otpauth://totp/Dumala'
+        }
+      },
+      error: null
+    });
+    const challenge = vi.fn().mockResolvedValue({ data: { id: 'challenge-1', expires_at: 123 }, error: null });
+    const verify = vi.fn().mockResolvedValue({ data: {}, error: null });
+    const getAuthenticatorAssuranceLevelRequest = vi.fn().mockResolvedValue({
+      data: { currentLevel: 'aal1', nextLevel: 'aal2' },
+      error: null
+    });
+    const listFactors = vi.fn().mockResolvedValue({
+      data: {
+        all: [{
+          id: 'factor-1',
+          friendly_name: 'Dumala Admin Console',
+          factor_type: 'totp',
+          status: 'verified',
+          created_at: '2026-06-28T01:00:00.000Z',
+          updated_at: '2026-06-28T01:00:00.000Z'
+        }]
+      },
+      error: null
+    });
+    const client = {
+      auth: {
+        mfa: {
+          enroll,
+          challenge,
+          verify,
+          getAuthenticatorAssuranceLevel: getAuthenticatorAssuranceLevelRequest,
+          listFactors
+        }
+      }
+    } as unknown as DumalaSupabaseClient;
+
+    await expect(enrollTotpFactor(client)).resolves.toMatchObject({ factorId: 'factor-1', secret: 'SECRET' });
+    await expect(challengeMfaFactor(client, 'factor-1')).resolves.toEqual({ challengeId: 'challenge-1', expiresAt: 123 });
+    await expect(verifyMfaChallenge(client, 'factor-1', 'challenge-1', '123456')).resolves.toBeUndefined();
+    await expect(getAuthenticatorAssuranceLevel(client)).resolves.toEqual({ currentLevel: 'aal1', nextLevel: 'aal2' });
+    await expect(listMfaFactors(client)).resolves.toEqual([{
+      id: 'factor-1',
+      friendlyName: 'Dumala Admin Console',
+      factorType: 'totp',
+      status: 'verified',
+      createdAt: '2026-06-28T01:00:00.000Z',
+      updatedAt: '2026-06-28T01:00:00.000Z',
+      lastChallengedAt: undefined
+    }]);
   });
 
   it('signs out through Supabase Auth', async () => {
@@ -62,4 +133,3 @@ describe('cloud auth service', () => {
     expect(unsubscribe).toHaveBeenCalledOnce();
   });
 });
-
