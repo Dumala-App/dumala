@@ -171,16 +171,26 @@ export const TrainingDrillCard = ({
       draggable={true}
       onDragStart={onDragStart}
       onClick={onSelect}
-      className={`p-4 rounded-xl border-2 transition-all cursor-grab active:cursor-grabbing relative overflow-hidden flex flex-col justify-between ${
+      onKeyDown={(event) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          onSelect();
+        }
+      }}
+      role="button"
+      tabIndex={0}
+      aria-pressed={isSelected}
+      aria-label={`Select ${drill.name}`}
+      className={`relative flex cursor-grab flex-col justify-between overflow-hidden rounded-xl border p-3 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 active:cursor-grabbing ${
         isSelected
-          ? 'border-indigo-600 bg-indigo-50/20 shadow-md scale-[1.01]'
+          ? 'border-indigo-500 bg-indigo-50/60 shadow-sm'
           : isRecommended
-            ? 'border-emerald-300 bg-emerald-50/10 hover:border-emerald-400/50 hover:bg-emerald-50/20 shadow-emerald-500/[0.02]'
-            : 'border-slate-100 hover:border-slate-200 hover:bg-slate-50/50'
+            ? 'border-emerald-200 bg-emerald-50/20 hover:border-emerald-300 hover:bg-emerald-50/40'
+            : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50/60'
       }`}
     >
       <div className="flex items-start gap-3">
-        <div className={`w-10 h-10 rounded-lg border flex items-center justify-center shrink-0 ${getDrillIconColor(drill.id)}`}>
+        <div className={`flex size-9 shrink-0 items-center justify-center rounded-lg border ${getDrillIconColor(drill.id)}`}>
           {getDrillIcon(drill.id)}
         </div>
         <div className="space-y-1 w-full">
@@ -195,16 +205,16 @@ export const TrainingDrillCard = ({
             </div>
           )}
 
-          <p className="text-xs text-slate-500 leading-relaxed pt-1">{drill.description}</p>
+          <p className="line-clamp-2 pt-1 text-[11px] leading-relaxed text-slate-500">{drill.description}</p>
         </div>
       </div>
 
-      <div className="mt-4 pt-2.5 border-t border-slate-100 flex items-center justify-between text-[11px] font-mono font-bold">
-        <span className="text-indigo-600 tracking-wider flex items-center gap-1">
-          <Sparkles size={11} /> BUMP: {Object.entries(drill.statsBumps).map(([key, value]) => `${key.toUpperCase()} +${value}`).join(", ")}
+      <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 pt-2.5 text-[10px] font-bold">
+        <span className="flex items-center gap-1 text-indigo-600">
+          <Sparkles size={11} /> {Object.entries(drill.statsBumps).map(([key, value]) => `${key} +${value}`).join(', ')}
         </span>
         <span className="text-rose-500 flex items-center gap-1">
-          <Flame size={11} /> FATIGUE +{drill.fatigueIncrease}%
+          <Flame size={11} /> Intensity {drill.fatigueIncrease}/10
         </span>
       </div>
 

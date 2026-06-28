@@ -12,6 +12,22 @@ export const DAYS_OF_WEEK = [
 
 export type DayName = typeof DAYS_OF_WEEK[number];
 
+export const SESSION_BLOCKS = [
+  { id: 'warmup', label: 'Warm-up', defaultDurationMinutes: 10 },
+  { id: 'technical', label: 'Main technical', defaultDurationMinutes: 15 },
+  { id: 'tactical', label: 'Tactical', defaultDurationMinutes: 20 },
+  { id: 'conditioning', label: 'Conditioning', defaultDurationMinutes: 15 },
+  { id: 'cooldown', label: 'Cooldown', defaultDurationMinutes: 10 }
+] as const;
+
+export type SessionBlockId = typeof SESSION_BLOCKS[number]['id'];
+
+export const SESSION_LOAD_THRESHOLDS = {
+  optimal: 13,
+  high: 36,
+  weeklyHigh: 160
+} as const;
+
 export interface ScheduledDrill {
   id: string;
   drillId: string;
@@ -20,9 +36,44 @@ export interface ScheduledDrill {
   fatigueIncrease: number;
   playerId?: string;
   playerName?: string;
+  block?: SessionBlockId;
+  order?: number;
+  durationMinutes?: number;
+  intensityRating?: number;
+  equipment?: string[];
+  notes?: string;
 }
 
 export type WeeklySchedule = Record<DayName, ScheduledDrill[]>;
+
+export const getScheduledDrillBlock = (drill: ScheduledDrill): SessionBlockId => drill.block ?? 'technical';
+
+export const getScheduledDrillDuration = (drill: ScheduledDrill): number => (
+  Math.max(5, Math.round(drill.durationMinutes ?? 10))
+);
+
+export const getScheduledDrillLoadPoints = (drill: ScheduledDrill): number => {
+  const intensity = Math.max(1, Math.min(10, drill.intensityRating ?? drill.fatigueIncrease));
+  return Math.round(intensity * getScheduledDrillDuration(drill) / 10);
+};
+
+export const getSessionDuration = (drills: readonly ScheduledDrill[]): number => (
+  drills.reduce((total, drill) => total + getScheduledDrillDuration(drill), 0)
+);
+
+export const getSessionLoadPoints = (drills: readonly ScheduledDrill[]): number => (
+  drills.reduce((total, drill) => total + getScheduledDrillLoadPoints(drill), 0)
+);
+
+export const getOrderedSessionDrills = (drills: readonly ScheduledDrill[]): ScheduledDrill[] => {
+  const blockOrder = new Map(SESSION_BLOCKS.map((block, index) => [block.id, index]));
+  return [...drills].sort((first, second) => {
+    const blockDifference = (blockOrder.get(getScheduledDrillBlock(first)) ?? 0)
+      - (blockOrder.get(getScheduledDrillBlock(second)) ?? 0);
+    if (blockDifference !== 0) return blockDifference;
+    return (first.order ?? 0) - (second.order ?? 0);
+  });
+};
 
 export type WeekDaysMap = Record<DayName, {
   dateStr: string;
@@ -63,8 +114,12 @@ export const buildTrainingCalendarGames = (
   if (drills.length === 0) return [];
 
   const dateInfo = weekDaysMap[dayName];
-  const drillText = drills.map(drill => `${drill.icon ?? ''} ${drill.name}`.trim()).join(' & ');
-  const workLoad = drills.reduce((sum, item) => sum + item.fatigueIncrease, 0);
+  const orderedDrills = getOrderedSessionDrills(drills);
+  const drillText = orderedDrills.map(drill => `${drill.icon ?? ''} ${drill.name}`.trim()).join(' & ');
+  const workLoad = getSessionLoadPoints(drills);
+  const duration = getSessionDuration(drills);
+  const equipment = [...new Set(drills.flatMap(drill => drill.equipment ?? []))];
+  const coachCues = orderedDrills.flatMap(drill => drill.notes?.trim() ? [`${drill.name}: ${drill.notes.trim()}`] : []);
   const developmentPlayers = [...new Set(
     drills.flatMap(drill => drill.playerName ? [drill.playerName] : [])
   )];
@@ -74,13 +129,13 @@ export const buildTrainingCalendarGames = (
 
   return [{
     id: `training_sync_${dateInfo.dateStr}`,
-    opponent: `Training: ${drills.map(drill => drill.name).join(' + ')}${playerLabel}`,
+    opponent: `Training: ${orderedDrills.map(drill => drill.name).join(' + ')}${playerLabel}`,
     date: dateInfo.dateStr,
     time: '10:00 AM',
     location: 'Training Ground A',
     status: 'Upcoming',
     type: 'Training',
-    notes: `Squad Workload Target: +${workLoad}% intensity. Drills: ${drillText}.${developmentPlayers.length > 0 ? ` Individual development for: ${developmentPlayers.join(', ')}.` : ''} Prepare lightweight kits.`
+    notes: `Planned session: ${duration} minutes, ${workLoad} load points. Drills: ${drillText}.${equipment.length > 0 ? ` Equipment: ${equipment.join(', ')}.` : ''}${coachCues.length > 0 ? ` Coach cues: ${coachCues.join(' | ')}.` : ''}${developmentPlayers.length > 0 ? ` Individual development for: ${developmentPlayers.join(', ')}.` : ''}`
   }];
 });
 

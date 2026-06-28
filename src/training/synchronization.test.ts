@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import type { Game } from '../types';
 import {
+  getOrderedSessionDrills,
+  getSessionDuration,
+  getSessionLoadPoints,
   getWeekDaysMap,
   synchronizeTrainingCalendar,
   type DayName,
@@ -82,7 +85,7 @@ describe('training calendar synchronization', () => {
     expect(edited.changed).toBe(true);
     expect(edited.games.find(game => game.type === 'Training')).toMatchObject({
       opponent: 'Training: Finishing Circuit',
-      notes: expect.stringContaining('+7% intensity')
+      notes: expect.stringContaining('7 load points')
     });
     expect(edited.games).toContain(match);
     expect(edited.games).toContain(meeting);
@@ -138,5 +141,37 @@ describe('training calendar synchronization', () => {
     expect(second.changed).toBe(false);
     expect(second.games).toBe(first.games);
     expect(second.games).toContain(outsideWeek);
+  });
+
+  it('orders session blocks and calculates duration, load points, and equipment', () => {
+    const tactical = drill({
+      id: 'tactical-1',
+      name: 'Team Shape',
+      block: 'tactical',
+      order: 0,
+      durationMinutes: 20,
+      intensityRating: 5,
+      equipment: ['cones', 'pinnies'],
+      notes: 'Keep the back line compact'
+    });
+    const warmup = drill({
+      id: 'warmup-1',
+      name: 'Dynamic Warm-up',
+      block: 'warmup',
+      order: 0,
+      durationMinutes: 10,
+      intensityRating: 2,
+      equipment: ['cones']
+    });
+    const drills = [tactical, warmup];
+
+    expect(getOrderedSessionDrills(drills).map(item => item.id)).toEqual(['warmup-1', 'tactical-1']);
+    expect(getSessionDuration(drills)).toBe(30);
+    expect(getSessionLoadPoints(drills)).toBe(12);
+
+    const result = sync([], withDrill('Monday', tactical));
+    expect(result.games[0].notes).toContain('20 minutes, 10 load points');
+    expect(result.games[0].notes).toContain('Equipment: cones, pinnies');
+    expect(result.games[0].notes).toContain('Coach cues: Team Shape: Keep the back line compact');
   });
 });
