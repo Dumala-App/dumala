@@ -2,7 +2,6 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import type { AgeGroup, AssessmentRawResults, AssessmentSession, FprdsAttributeId, FprdsRole, Player } from '../types';
 import {
   AlertCircle,
-  ArrowLeftRight,
   Calendar,
   CheckCircle2,
   ChevronLeft,
@@ -10,10 +9,12 @@ import {
   ClipboardList,
   FlaskConical,
   History,
+  MessageSquareText,
   NotebookPen,
   Save,
   Search,
   Sparkles,
+  Target,
   Trash2,
   User
 } from 'lucide-react';
@@ -48,8 +49,7 @@ import {
 import { ROLE_LABELS, ROLE_WEIGHTS } from '../fprds/weights';
 import {
   buildAssessmentProgressSeries,
-  buildPlayerAssessmentReport,
-  buildSessionAssessmentReport,
+  buildPlayerFeedbackReport,
   calculateProgressDelta,
   filterProgressSeriesByRole,
   getLatestRoleFromProgress,
@@ -238,9 +238,8 @@ export default function AssessmentsView({
   const [roleSpecific, setRoleSpecific] = useState<Record<string, string>>({});
   const [saveError, setSaveError] = useState<string | null>(null);
   const [assessmentSubmitErrors, setAssessmentSubmitErrors] = useState<FieldErrors<string>>({});
-  const [comparisonPlayerId, setComparisonPlayerId] = useState('');
-  const [baselineSessionId, setBaselineSessionId] = useState('');
-  const [targetSessionId, setTargetSessionId] = useState('');
+  const [teamHistorySearch, setTeamHistorySearch] = useState('');
+  const [teamHistoryRoleFilter, setTeamHistoryRoleFilter] = useState<FprdsRole | 'all'>('all');
   const [noteDrafts, setNoteDrafts] = useState<Record<string, string>>({});
   const [betaSubmissionSession, setBetaSubmissionSession] = useState<AssessmentSession | null>(null);
   const [submittedBetaAssessmentIds, setSubmittedBetaAssessmentIds] = useState<Set<string>>(() => new Set());
@@ -356,49 +355,47 @@ export default function AssessmentsView({
       })
   ), [assessments, eligiblePlayers, latestAssessmentByPlayerId]);
 
-  const playerComparisonOptions = useMemo(
-    () => eligiblePlayers.filter((player) => player.id !== selectedPlayerId && latestAssessmentByPlayerId.has(player.id)),
-    [eligiblePlayers, latestAssessmentByPlayerId, selectedPlayerId]
-  );
-
-  useEffect(() => {
-    const hasCurrentOption = playerComparisonOptions.some((player) => player.id === comparisonPlayerId);
-    if (hasCurrentOption) return;
-    setComparisonPlayerId(playerComparisonOptions[0]?.id ?? '');
-  }, [comparisonPlayerId, playerComparisonOptions]);
-
-  useEffect(() => {
-    if (assessmentProgressSeries.length === 0) {
-      setBaselineSessionId('');
-      setTargetSessionId('');
-      return;
+  const teamAssessmentStats = useMemo(() => {
+    if (assessedPlayerSummaries.length === 0) {
+      return {
+        assessedPlayers: 0,
+        totalSessions: 0,
+        averageLatestOvr: null as number | null,
+        latestDate: null as string | null
+      };
     }
 
-    const latest = assessmentProgressSeries[assessmentProgressSeries.length - 1];
-    const previous = assessmentProgressSeries[assessmentProgressSeries.length - 2] ?? null;
-    setTargetSessionId((current) => (
-      assessmentProgressSeries.some((point) => point.id === current) ? current : latest.id
-    ));
-    setBaselineSessionId((current) => (
-      current && assessmentProgressSeries.some((point) => point.id === current)
-        ? current
-        : previous?.id ?? ''
-    ));
-  }, [assessmentProgressSeries]);
+    const totalLatestOvr = assessedPlayerSummaries.reduce((sum, summary) => sum + summary.latest.ovr, 0);
+    const totalSessions = assessedPlayerSummaries.reduce((sum, summary) => sum + summary.sessionCount, 0);
 
-  const selectedPlayerLatestAssessment = selectedPlayerId ? latestAssessmentByPlayerId.get(selectedPlayerId) ?? null : null;
-  const comparisonPlayer = playerComparisonOptions.find((player) => player.id === comparisonPlayerId) ?? null;
-  const comparisonPlayerLatestAssessment = comparisonPlayerId ? latestAssessmentByPlayerId.get(comparisonPlayerId) ?? null : null;
-  const playerAssessmentReport = useMemo(
-    () => buildPlayerAssessmentReport(selectedPlayerLatestAssessment, comparisonPlayerLatestAssessment),
-    [comparisonPlayerLatestAssessment, selectedPlayerLatestAssessment]
-  );
+    return {
+      assessedPlayers: assessedPlayerSummaries.length,
+      totalSessions,
+      averageLatestOvr: Math.round(totalLatestOvr / assessedPlayerSummaries.length),
+      latestDate: assessedPlayerSummaries[0]?.latest.assessmentDate ?? null
+    };
+  }, [assessedPlayerSummaries]);
 
-  const baselineSession = baselineSessionId ? playerAssessments.find((session) => session.id === baselineSessionId) ?? null : null;
-  const targetSession = targetSessionId ? playerAssessments.find((session) => session.id === targetSessionId) ?? null : null;
-  const sessionAssessmentReport = useMemo(
-    () => buildSessionAssessmentReport(baselineSession, targetSession),
-    [baselineSession, targetSession]
+  const filteredAssessedPlayerSummaries = useMemo(() => {
+    const query = teamHistorySearch.trim().toLowerCase();
+
+    return assessedPlayerSummaries.filter(({ player, latest }) => {
+      const matchesSearch = !query
+        || player.name.toLowerCase().includes(query)
+        || String(player.number ?? '').includes(query)
+        || player.position.toLowerCase().includes(query)
+        || ROLE_LABELS[latest.role].toLowerCase().includes(query);
+      const matchesRole = teamHistoryRoleFilter === 'all' || latest.role === teamHistoryRoleFilter;
+
+      return matchesSearch && matchesRole;
+    });
+  }, [assessedPlayerSummaries, teamHistoryRoleFilter, teamHistorySearch]);
+
+  const selectedPlayerLatestAssessment = playerAssessments[0] ?? null;
+  const selectedPlayerPreviousAssessment = playerAssessments[1] ?? null;
+  const playerFeedbackReport = useMemo(
+    () => buildPlayerFeedbackReport(selectedPlayerLatestAssessment, selectedPlayerPreviousAssessment),
+    [selectedPlayerLatestAssessment, selectedPlayerPreviousAssessment]
   );
 
   const requiredRoleFields = useMemo(() => {
@@ -895,7 +892,7 @@ export default function AssessmentsView({
             <div>
               <h2 className="font-display font-black tracking-tight text-slate-900 text-lg">Assessment Center</h2>
               <p className="text-xs text-slate-500 font-medium">
-                Run objective drill-based assessments and generate FIFA-style ratings, deltas, and development plans.
+                Run objective drill-based assessments through the FPRDS rating system, with role-weighted scores, progress deltas, coach feedback, and development plans.
               </p>
             </div>
           </div>
@@ -1348,7 +1345,7 @@ export default function AssessmentsView({
                 </div>
               </div>
 
-              <div className="space-y-3">
+              <div className="flex flex-col gap-3">
                   {!selectedPlayer && assessedPlayerSummaries.length === 0 && (
                     <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5 text-sm text-slate-500 font-semibold">
                       No team assessments saved yet. Start a new assessment from the player roster to build history.
@@ -1356,52 +1353,137 @@ export default function AssessmentsView({
                   )}
 
                   {!selectedPlayer && assessedPlayerSummaries.length > 0 && (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      {assessedPlayerSummaries.map(({ player, latest, sessionCount }) => (
-                        <Button
-                          key={player.id}
-                          type="button"
-                          variant="outline"
-                          onClick={() => setSelectedPlayerId(player.id)}
-                          aria-label={`Open assessment history for ${player.name}`}
-                          className="h-auto justify-start whitespace-normal rounded-2xl border-slate-200 bg-white p-4 text-left shadow-sm hover:border-indigo-200 hover:bg-indigo-50/40 focus-visible:ring-indigo-100"
-                        >
-                          <div className="flex items-start justify-between gap-3">
-                            <div className="flex items-center gap-3 min-w-0">
-                              <img
-                                src={player.photoUrl}
-                                alt=""
-                                className="w-12 h-12 rounded-xl object-cover border border-slate-200 shrink-0"
-                                referrerPolicy="no-referrer"
-                              />
-                              <div className="min-w-0">
-                                <p className="font-black text-sm text-slate-900 truncate">{player.name}</p>
-                                <p className="mt-0.5 text-xs font-semibold text-slate-500 truncate">
-                                  #{player.number || '-'} • {player.position}
-                                </p>
-                              </div>
-                            </div>
-                            <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-center">
-                              <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">OVR</p>
-                              <p className="text-lg font-display font-black text-slate-900 leading-none">{latest.ovr}</p>
-                            </div>
+                    <div className="space-y-4">
+                      <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
+                        <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
+                          <div>
+                            <p className="text-[11px] font-black uppercase tracking-wider text-slate-500">Assessment center</p>
+                            <h4 className="mt-1 text-base font-display font-black text-slate-900">Team assessment overview</h4>
+                            <p className="mt-1 max-w-2xl text-xs font-semibold text-slate-500">
+                              Scan latest FPRDS results, filter by role, then open a player for reports, notes, and session history.
+                            </p>
                           </div>
-                          <div className="mt-4 grid grid-cols-3 gap-2 text-center">
-                            <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
+
+                          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 xl:min-w-[520px]">
+                            <div className="rounded-xl border border-slate-200 bg-white px-3 py-3">
+                              <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Players</p>
+                              <p className="mt-1 text-xl font-display font-black leading-none text-slate-900">{teamAssessmentStats.assessedPlayers}</p>
+                            </div>
+                            <div className="rounded-xl border border-slate-200 bg-white px-3 py-3">
                               <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Sessions</p>
-                              <p className="text-sm font-black text-slate-900">{sessionCount}</p>
+                              <p className="mt-1 text-xl font-display font-black leading-none text-slate-900">{teamAssessmentStats.totalSessions}</p>
                             </div>
-                            <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
+                            <div className="rounded-xl border border-slate-200 bg-white px-3 py-3">
+                              <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Avg OVR</p>
+                              <p className="mt-1 text-xl font-display font-black leading-none text-slate-900">{teamAssessmentStats.averageLatestOvr ?? '-'}</p>
+                            </div>
+                            <div className="rounded-xl border border-slate-200 bg-white px-3 py-3">
                               <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Latest</p>
-                              <p className="text-xs font-black text-slate-900">{latest.assessmentDate}</p>
-                            </div>
-                            <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
-                              <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Role</p>
-                              <p className="text-xs font-black text-slate-900">{ROLE_LABELS[latest.role]}</p>
+                              <p className="mt-1 text-sm font-black leading-tight text-slate-900">{teamAssessmentStats.latestDate ?? '-'}</p>
                             </div>
                           </div>
-                        </Button>
-                      ))}
+                        </div>
+                      </div>
+
+                      <div className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-4 md:flex-row md:items-end md:justify-between">
+                        <div className="relative w-full md:max-w-sm">
+                          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                          <Input
+                            value={teamHistorySearch}
+                            onChange={(e) => setTeamHistorySearch(e.target.value)}
+                            placeholder="Search player, number, position, or role"
+                            aria-label="Search assessed players"
+                            className="rounded-xl border-slate-200 bg-white pl-9 pr-3 text-sm font-semibold text-slate-800 focus-visible:ring-indigo-100"
+                          />
+                        </div>
+                        <label className="w-full space-y-1 md:max-w-[220px]">
+                          <span className="block text-[10px] font-black uppercase tracking-wider text-slate-500">Latest role</span>
+                          <Select
+                            value={teamHistoryRoleFilter}
+                            onValueChange={(value) => setTeamHistoryRoleFilter(value as FprdsRole | 'all')}
+                          >
+                            <SelectTrigger
+                              aria-label="Filter assessment history by latest role"
+                              className="h-10 rounded-xl border-slate-200 bg-white text-xs font-bold text-slate-700 focus:ring-indigo-100"
+                            >
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="all">All roles</SelectItem>
+                              {(['ST', 'W', 'CM', 'CDM', 'FB', 'CB', 'GK'] as FprdsRole[]).map((roleOption) => (
+                                <SelectItem key={roleOption} value={roleOption}>{ROLE_LABELS[roleOption]}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </label>
+                      </div>
+
+                      {filteredAssessedPlayerSummaries.length === 0 ? (
+                        <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-5 text-sm font-semibold text-slate-500">
+                          No assessed players match the current search or role filter.
+                        </div>
+                      ) : (
+                        <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
+                          <div className="hidden grid-cols-[minmax(220px,1.6fr)_120px_120px_130px_110px] gap-3 border-b border-slate-200 bg-slate-50 px-4 py-3 text-[10px] font-black uppercase tracking-wider text-slate-500 md:grid">
+                            <span>Player</span>
+                            <span>Latest OVR</span>
+                            <span>Role</span>
+                            <span>Last assessed</span>
+                            <span className="text-right">Sessions</span>
+                          </div>
+
+                          <div className="divide-y divide-slate-200">
+                            {filteredAssessedPlayerSummaries.map(({ player, latest, sessionCount }) => (
+                              <button
+                                key={player.id}
+                                type="button"
+                                onClick={() => setSelectedPlayerId(player.id)}
+                                aria-label={`Open assessment history for ${player.name}`}
+                                className="grid w-full grid-cols-1 gap-3 px-4 py-4 text-left transition hover:bg-indigo-50/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-indigo-200 md:grid-cols-[minmax(220px,1.6fr)_120px_120px_130px_110px] md:items-center"
+                              >
+                                <div className="flex min-w-0 items-center gap-3">
+                                  <img
+                                    src={player.photoUrl}
+                                    alt=""
+                                    className="h-11 w-11 shrink-0 rounded-xl border border-slate-200 object-cover"
+                                    referrerPolicy="no-referrer"
+                                  />
+                                  <div className="min-w-0">
+                                    <p className="truncate text-sm font-black text-slate-900">{player.name}</p>
+                                    <p className="mt-0.5 truncate text-xs font-semibold text-slate-500">
+                                      #{player.number || '-'} - {player.position}
+                                    </p>
+                                  </div>
+                                </div>
+
+                                <div className="flex items-center justify-between gap-3 md:block">
+                                  <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 md:hidden">Latest OVR</span>
+                                  <span className="inline-flex min-w-14 justify-center rounded-xl border border-indigo-100 bg-indigo-50 px-3 py-2 text-lg font-display font-black leading-none text-indigo-700">
+                                    {latest.ovr}
+                                  </span>
+                                </div>
+
+                                <div className="flex items-center justify-between gap-3 md:block">
+                                  <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 md:hidden">Role</span>
+                                  <span className="text-xs font-black text-slate-800">{ROLE_LABELS[latest.role]}</span>
+                                </div>
+
+                                <div className="flex items-center justify-between gap-3 md:block">
+                                  <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 md:hidden">Last assessed</span>
+                                  <span className="text-xs font-black text-slate-800">{latest.assessmentDate}</span>
+                                </div>
+
+                                <div className="flex items-center justify-between gap-3 md:justify-end">
+                                  <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 md:hidden">Sessions</span>
+                                  <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-black text-slate-700">
+                                    {sessionCount}
+                                  </span>
+                                </div>
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )}
 
@@ -1412,7 +1494,7 @@ export default function AssessmentsView({
                   )}
 
                   {selectedPlayer && assessmentProgressSeries.length > 0 && (
-                    <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
+                    <div className="order-3 rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
                       <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                         <div>
                           <p className="text-[11px] font-black uppercase tracking-wider text-slate-500">Historical progress</p>
@@ -1516,225 +1598,120 @@ export default function AssessmentsView({
                     </div>
                   )}
 
-                  {selectedPlayer && assessmentProgressSeries.length > 0 && (
-                    <div className="rounded-2xl border border-slate-200 bg-white p-4">
+                  {selectedPlayer && playerFeedbackReport && (
+                    <div className="order-4 rounded-2xl border border-slate-200 bg-white p-4">
                       <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                         <div>
-                          <p className="text-[11px] font-black uppercase tracking-wider text-slate-500 flex items-center gap-2">
-                            <ArrowLeftRight size={14} className="text-indigo-600" /> FPRDS reports
+                          <p className="flex items-center gap-2 text-[11px] font-black uppercase tracking-wider text-slate-500">
+                            <MessageSquareText size={14} className="text-indigo-600" /> Coach feedback report
                           </p>
-                          <h4 className="mt-1 text-sm font-black text-slate-900">Player and session comparisons</h4>
+                          <h4 className="mt-1 text-sm font-black text-slate-900">What to tell {selectedPlayer.name}</h4>
                           <p className="mt-1 text-xs font-semibold text-slate-500">
-                            Compare latest player assessments or inspect how one saved session changed from another.
+                            A player-facing summary built from the latest assessment, trend, role priorities, and development plan.
                           </p>
                         </div>
                       </div>
 
-                      <div className="mt-4 grid grid-cols-1 xl:grid-cols-2 gap-4">
-                        <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
-                          <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-                            <div>
-                              <p className="text-[10px] font-black uppercase tracking-wider text-slate-500">Player-to-player report</p>
-                              <p className="mt-1 text-xs font-semibold text-slate-500">Latest assessment vs latest assessment.</p>
-                            </div>
-                            <label className="min-w-[220px] space-y-1">
-                              <span className="block text-[10px] font-black uppercase tracking-wider text-slate-500">Compare with</span>
-                              <Select
-                                value={comparisonPlayerId || 'none'}
-                                onValueChange={(value) => setComparisonPlayerId(value === 'none' ? '' : value)}
-                                disabled={playerComparisonOptions.length === 0}
-                              >
-                                <SelectTrigger
-                                  aria-label="Select player for FPRDS comparison report"
-                                  className="h-9 rounded-xl border-slate-200 bg-white text-xs font-bold text-slate-700 focus:ring-indigo-100 disabled:bg-slate-100 disabled:text-slate-400"
-                                >
-                                  <SelectValue placeholder="No assessed players" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  {playerComparisonOptions.length === 0 ? (
-                                    <SelectItem value="none">No assessed players</SelectItem>
-                                  ) : (
-                                    <>
-                                      <SelectItem value="none">Select player</SelectItem>
-                                      {playerComparisonOptions.map((player) => (
-                                        <SelectItem key={player.id} value={player.id}>
-                                          {player.name}
-                                        </SelectItem>
-                                      ))}
-                                    </>
-                                  )}
-                                </SelectContent>
-                              </Select>
-                            </label>
+                      <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-3">
+                        <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-3">
+                          <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Trend</p>
+                          <p className={`mt-1 text-sm font-black leading-tight ${
+                            playerFeedbackReport.trendTone === 'positive'
+                              ? 'text-emerald-600'
+                              : playerFeedbackReport.trendTone === 'negative' ? 'text-rose-600' : 'text-slate-800'
+                          }`}>
+                            {playerFeedbackReport.trendLabel}
+                          </p>
+                        </div>
+                        <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-3">
+                          <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Role</p>
+                          <p className="mt-1 text-sm font-black leading-tight text-slate-900">{ROLE_LABELS[playerFeedbackReport.role]}</p>
+                        </div>
+                        <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-3">
+                          <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Latest date</p>
+                          <p className="mt-1 text-sm font-black leading-tight text-slate-900">{playerFeedbackReport.latestSession.assessmentDate}</p>
+                        </div>
+                      </div>
+
+                      <div className="mt-4">
+                        <div className="rounded-2xl border border-indigo-100 bg-indigo-50/60 p-4">
+                          <p className="flex items-center gap-2 text-[10px] font-black uppercase tracking-wider text-indigo-700">
+                            <MessageSquareText size={14} /> What to tell the player
+                          </p>
+                          <h5 className="mt-2 text-sm font-bold text-slate-900">{playerFeedbackReport.feedback.headline}</h5>
+                          <div className="mt-3 space-y-3 rounded-xl border border-indigo-100 bg-white/75 p-4">
+                            {[
+                              playerFeedbackReport.feedback.opening,
+                              playerFeedbackReport.feedback.praise,
+                              playerFeedbackReport.feedback.correction,
+                              playerFeedbackReport.feedback.focus
+                            ].map((line) => (
+                              <p key={line} className="text-sm font-normal leading-6 text-slate-700">
+                                {line}
+                              </p>
+                            ))}
                           </div>
+                        </div>
+                      </div>
 
-                          {!playerAssessmentReport || !comparisonPlayer ? (
-                            <div className="mt-4 rounded-xl border border-dashed border-slate-200 bg-white p-4 text-xs font-semibold text-slate-500">
-                              Add assessments for another player to generate a side-by-side FPRDS report.
-                            </div>
-                          ) : (
-                            <div className="mt-4 space-y-4">
-                              <div className="grid grid-cols-3 gap-2 text-center">
-                                <div className="rounded-xl border border-slate-200 bg-white px-3 py-2">
-                                  <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">{selectedPlayer.name}</p>
-                                  <p className="text-lg font-display font-black text-slate-900 leading-none">{playerAssessmentReport.primarySession.ovr}</p>
+                      <div className="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-2">
+                        <div className="rounded-2xl border border-slate-200 bg-white p-4">
+                          <p className="text-[10px] font-black uppercase tracking-wider text-slate-500">Keep building</p>
+                          <div className="mt-3 space-y-2">
+                            {playerFeedbackReport.strengths.map((item) => (
+                              <div key={`feedback-strength-${item.attributeId}`} className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
+                                <div className="min-w-0">
+                                  <p className="truncate text-xs font-black text-slate-900">{item.displayName}</p>
+                                  <p className="mt-0.5 text-[11px] font-semibold text-slate-500">{item.coachPhrase}</p>
+                                  <p className={`mt-0.5 text-[10px] font-black ${item.color}`}>{item.label}</p>
                                 </div>
-                                <div className="rounded-xl border border-slate-200 bg-white px-3 py-2">
-                                  <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">OVR Gap</p>
-                                  <p className={`text-lg font-display font-black leading-none ${playerAssessmentReport.ovrDelta >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
-                                    {playerAssessmentReport.ovrDelta >= 0 ? `+${playerAssessmentReport.ovrDelta}` : playerAssessmentReport.ovrDelta}
-                                  </p>
-                                </div>
-                                <div className="rounded-xl border border-slate-200 bg-white px-3 py-2">
-                                  <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">{comparisonPlayer.name}</p>
-                                  <p className="text-lg font-display font-black text-slate-900 leading-none">{playerAssessmentReport.comparisonSession.ovr}</p>
-                                </div>
+                                <span className="shrink-0 text-base font-display font-black text-slate-900">{item.score}</span>
                               </div>
-
-                              <div className="overflow-x-auto">
-                                <table className="w-full min-w-[420px] text-left text-xs">
-                                  <thead>
-                                    <tr className="text-[9px] font-black uppercase tracking-widest text-slate-400">
-                                      <th className="px-2 py-2">Attribute</th>
-                                      <th className="px-2 py-2 text-right">{selectedPlayer.name}</th>
-                                      <th className="px-2 py-2 text-right">{comparisonPlayer.name}</th>
-                                      <th className="px-2 py-2 text-right">Gap</th>
-                                    </tr>
-                                  </thead>
-                                  <tbody className="divide-y divide-slate-200">
-                                    {playerAssessmentReport.rows.map((row) => (
-                                      <tr key={`player-report-${row.attributeId}`}>
-                                        <td className="px-2 py-2 font-bold text-slate-700">{ATTRIBUTE_LABELS[row.attributeId]}</td>
-                                        <td className="px-2 py-2 text-right font-black text-slate-900">{row.primaryScore}</td>
-                                        <td className="px-2 py-2 text-right font-black text-slate-900">{row.comparisonScore}</td>
-                                        <td className={`px-2 py-2 text-right font-black ${row.delta >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
-                                          {row.delta >= 0 ? `+${row.delta}` : row.delta}
-                                        </td>
-                                      </tr>
-                                    ))}
-                                  </tbody>
-                                </table>
-                              </div>
-                            </div>
-                          )}
+                            ))}
+                          </div>
                         </div>
 
-                        <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
-                          <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-                            <div>
-                              <p className="text-[10px] font-black uppercase tracking-wider text-slate-500">Session-to-session report</p>
-                              <p className="mt-1 text-xs font-semibold text-slate-500">Target session compared against a baseline.</p>
-                            </div>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                              <label className="space-y-1">
-                                <span className="block text-[10px] font-black uppercase tracking-wider text-slate-500">Baseline</span>
-                                <Select
-                                  value={baselineSessionId || 'none'}
-                                  onValueChange={(value) => setBaselineSessionId(value === 'none' ? '' : value)}
-                                >
-                                  <SelectTrigger
-                                    aria-label="Select baseline assessment session"
-                                    className="h-9 rounded-xl border-slate-200 bg-white text-xs font-bold text-slate-700 focus:ring-indigo-100"
-                                  >
-                                    <SelectValue placeholder="Select session" />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    <SelectItem value="none">Select session</SelectItem>
-                                    {assessmentProgressSeries.map((point) => (
-                                      <SelectItem key={`baseline-${point.id}`} value={point.id}>
-                                        {point.assessmentDate} - {ROLE_LABELS[point.role]}
-                                      </SelectItem>
-                                    ))}
-                                  </SelectContent>
-                                </Select>
-                              </label>
-                              <label className="space-y-1">
-                                <span className="block text-[10px] font-black uppercase tracking-wider text-slate-500">Target</span>
-                                <Select
-                                  value={targetSessionId || 'none'}
-                                  onValueChange={(value) => setTargetSessionId(value === 'none' ? '' : value)}
-                                >
-                                  <SelectTrigger
-                                    aria-label="Select target assessment session"
-                                    className="h-9 rounded-xl border-slate-200 bg-white text-xs font-bold text-slate-700 focus:ring-indigo-100"
-                                  >
-                                    <SelectValue placeholder="Select session" />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    <SelectItem value="none">Select session</SelectItem>
-                                    {assessmentProgressSeries.map((point) => (
-                                      <SelectItem key={`target-${point.id}`} value={point.id}>
-                                        {point.assessmentDate} - {ROLE_LABELS[point.role]}
-                                      </SelectItem>
-                                    ))}
-                                  </SelectContent>
-                                </Select>
-                              </label>
-                            </div>
+                        <div className="rounded-2xl border border-slate-200 bg-white p-4">
+                          <p className="flex items-center gap-2 text-[10px] font-black uppercase tracking-wider text-slate-500">
+                            <Target size={14} className="text-amber-600" /> Priority focus
+                          </p>
+                          <div className="mt-3 space-y-2">
+                            {playerFeedbackReport.priorities.map((item) => (
+                              <div key={`feedback-priority-${item.attributeId}`} className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2">
+                                <div className="flex items-center justify-between gap-3">
+                                  <div className="min-w-0">
+                                    <p className="truncate text-xs font-black text-slate-900">{item.displayName}</p>
+                                    <p className="mt-0.5 text-[11px] font-semibold text-amber-800">{item.coachPhrase}</p>
+                                    <p className={`mt-0.5 text-[10px] font-black ${item.color}`}>{item.label}</p>
+                                  </div>
+                                  <span className="shrink-0 text-base font-display font-black text-slate-900">{item.score}</span>
+                                </div>
+                                <p className="mt-1 text-[11px] font-semibold leading-relaxed text-amber-800">
+                                  {item.reason}
+                                </p>
+                              </div>
+                            ))}
                           </div>
+                        </div>
+                      </div>
 
-                          {!sessionAssessmentReport ? (
-                            <div className="mt-4 rounded-xl border border-dashed border-slate-200 bg-white p-4 text-xs font-semibold text-slate-500">
-                              Select two different saved sessions to generate a session comparison report.
+                      <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
+                        <p className="text-[10px] font-black uppercase tracking-wider text-slate-500">Next conversation prompts</p>
+                        <div className="mt-3 grid grid-cols-1 gap-2 md:grid-cols-3">
+                          {playerFeedbackReport.conversationPrompts.map((prompt, index) => (
+                            <div key={`feedback-prompt-${prompt}`} className="rounded-xl border border-slate-200 bg-white p-3">
+                              <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Prompt {index + 1}</p>
+                              <p className="mt-1 text-xs font-semibold leading-relaxed text-slate-700">{prompt}</p>
                             </div>
-                          ) : (
-                            <div className="mt-4 space-y-4">
-                              <div className="grid grid-cols-3 gap-2 text-center">
-                                <div className="rounded-xl border border-slate-200 bg-white px-3 py-2">
-                                  <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Baseline</p>
-                                  <p className="text-lg font-display font-black text-slate-900 leading-none">{sessionAssessmentReport.baselineSession.ovr}</p>
-                                </div>
-                                <div className="rounded-xl border border-slate-200 bg-white px-3 py-2">
-                                  <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Change</p>
-                                  <p className={`text-lg font-display font-black leading-none ${sessionAssessmentReport.ovrDelta >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
-                                    {sessionAssessmentReport.ovrDelta >= 0 ? `+${sessionAssessmentReport.ovrDelta}` : sessionAssessmentReport.ovrDelta}
-                                  </p>
-                                </div>
-                                <div className="rounded-xl border border-slate-200 bg-white px-3 py-2">
-                                  <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Target</p>
-                                  <p className="text-lg font-display font-black text-slate-900 leading-none">{sessionAssessmentReport.targetSession.ovr}</p>
-                                </div>
-                              </div>
-
-                              <div className="overflow-x-auto">
-                                <table className="w-full min-w-[420px] text-left text-xs">
-                                  <thead>
-                                    <tr className="text-[9px] font-black uppercase tracking-widest text-slate-400">
-                                      <th className="px-2 py-2">Attribute</th>
-                                      <th className="px-2 py-2 text-right">Baseline</th>
-                                      <th className="px-2 py-2 text-right">Target</th>
-                                      <th className="px-2 py-2 text-right">Change</th>
-                                    </tr>
-                                  </thead>
-                                  <tbody className="divide-y divide-slate-200">
-                                    {sessionAssessmentReport.rows.map((row) => (
-                                      <tr key={`session-report-${row.attributeId}`}>
-                                        <td className="px-2 py-2 font-bold text-slate-700">{ATTRIBUTE_LABELS[row.attributeId]}</td>
-                                        <td className="px-2 py-2 text-right font-black text-slate-900">{row.comparisonScore}</td>
-                                        <td className="px-2 py-2 text-right font-black text-slate-900">{row.primaryScore}</td>
-                                        <td className={`px-2 py-2 text-right font-black ${row.delta >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
-                                          {row.delta >= 0 ? `+${row.delta}` : row.delta}
-                                        </td>
-                                      </tr>
-                                    ))}
-                                  </tbody>
-                                </table>
-                              </div>
-                            </div>
-                          )}
+                          ))}
                         </div>
                       </div>
                     </div>
                   )}
 
                   {selectedPlayer && playerAssessments.map((s) => {
-                    const sessionPlayerName = playerNameById.get(s.playerId) ?? 'Unknown player';
-                    const noteValue = noteDrafts[s.id] ?? s.coachNotes ?? '';
-                    const savedNoteValue = s.coachNotes ?? '';
-                    const noteChanged = noteValue.trim() !== savedNoteValue.trim();
-
                     return (
-                    <div key={s.id} className="rounded-2xl border border-slate-200 bg-white p-4">
+                    <div key={s.id} className="order-2 rounded-2xl border border-slate-200 bg-white p-4">
                       <div className="flex items-start justify-between gap-3">
                         <div>
                           <p className="text-xs font-black text-slate-900">
@@ -1758,10 +1735,6 @@ export default function AssessmentsView({
                             {submittedBetaAssessmentIds.has(s.id) ? <CheckCircle2 size={14} /> : <FlaskConical size={14} />}
                             <span className="hidden sm:inline">{submittedBetaAssessmentIds.has(s.id) ? 'Shared' : 'Beta'}</span>
                           </Button>
-                          <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-center">
-                            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">OVR</p>
-                            <p className="text-lg font-display font-black text-slate-900 leading-none">{s.ovr}</p>
-                          </div>
                           <Button
                             type="button"
                             variant="outline"
@@ -1808,42 +1781,7 @@ export default function AssessmentsView({
                         })}
                       </div>
 
-                      <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
-                        <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-                          <label htmlFor={`assessment-note-${s.id}`} className="text-[11px] font-black uppercase tracking-wider text-slate-500 flex items-center gap-2">
-                            <NotebookPen size={14} className="text-indigo-600" /> Coach notes
-                          </label>
-                          <Button
-                            type="button"
-                            variant={noteChanged ? 'default' : 'outline'}
-                            size="sm"
-                            onClick={() => handleSaveSessionNote(s.id)}
-                            disabled={!noteChanged}
-                            aria-label={`Save coach notes for ${sessionPlayerName} assessment on ${s.assessmentDate}`}
-                            className={`rounded-xl px-3 py-2 text-[10px] font-black uppercase tracking-wider ${
-                              noteChanged
-                                ? 'border-indigo-200 bg-indigo-600 text-white hover:bg-indigo-700'
-                                : 'border-slate-200 bg-white text-slate-300'
-                            }`}
-                          >
-                            <Save size={12} /> Save note
-                          </Button>
-                        </div>
-                        <Textarea
-                          id={`assessment-note-${s.id}`}
-                          value={noteValue}
-                          onChange={(event) => setNoteDrafts(current => ({ ...current, [s.id]: event.target.value }))}
-                          placeholder="Add coaching observations, context, follow-up reminders, or player feedback from this assessment."
-                          aria-label={`Coach notes for ${sessionPlayerName} assessment on ${s.assessmentDate}`}
-                          rows={3}
-                          className="mt-3 resize-y rounded-xl border-slate-200 bg-white text-sm font-medium text-slate-700 focus-visible:ring-indigo-100"
-                        />
-                        <p className="mt-2 text-[11px] font-medium text-slate-400">
-                          Notes are stored with this assessment and included in workspace backups.
-                        </p>
-                      </div>
-
-                      {s.developmentPlan && (
+                      {false && s.developmentPlan && (
                         <div className="mt-4 rounded-2xl border border-indigo-200 bg-indigo-50/60 p-4">
                           <p className="text-[11px] font-black uppercase tracking-wider text-indigo-700 flex items-center gap-2">
                             <Sparkles size={14} /> 4-week development plan
@@ -1902,19 +1840,103 @@ export default function AssessmentsView({
           {selectedPlayer && (
             <div className="bg-white border border-slate-200/70 rounded-2xl shadow-md shadow-slate-100/30 p-5 sm:p-6">
               <h3 className="font-display font-black text-slate-900 text-sm uppercase tracking-wide flex items-center gap-2">
-                <Sparkles size={16} className="text-indigo-600" /> Player context
+                <NotebookPen size={16} className="text-indigo-600" /> Assessment follow-up
               </h3>
-              <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                <p className="text-xs text-slate-600 font-semibold">
-                  Last saved assessment:{' '}
-                  <span className="font-black text-slate-900">
-                    {selectedPlayer.fprdsLastAssessmentId ? 'Available' : 'None'}
-                  </span>
-                </p>
-                <p className="mt-2 text-[11px] text-slate-500 font-medium">
-                  This app is local-first. All assessments are stored in your browser and included in backups.
-                </p>
-              </div>
+              <p className="mt-1 text-xs font-semibold text-slate-500">
+                Latest-session notes and development work for {selectedPlayer.name}.
+              </p>
+
+              {!selectedPlayerLatestAssessment ? (
+                <div className="mt-4 rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-4 text-sm font-semibold text-slate-500">
+                  Save an assessment to unlock coach notes and a development plan here.
+                </div>
+              ) : (
+                <div className="mt-4 space-y-4">
+                  {(() => {
+                    const latestSession = selectedPlayerLatestAssessment;
+                    const noteValue = noteDrafts[latestSession.id] ?? latestSession.coachNotes ?? '';
+                    const savedNoteValue = latestSession.coachNotes ?? '';
+                    const noteChanged = noteValue.trim() !== savedNoteValue.trim();
+                    const sessionPlayerName = playerNameById.get(latestSession.playerId) ?? selectedPlayer.name;
+
+                    return (
+                      <>
+                        <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
+                          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                            <div>
+                              <p className="flex items-center gap-2 text-[11px] font-black uppercase tracking-wider text-slate-500">
+                                <NotebookPen size={14} className="text-indigo-600" /> Coach notes
+                              </p>
+                              <p className="mt-1 text-xs font-semibold text-slate-500">
+                                {latestSession.assessmentDate} - {ROLE_LABELS[latestSession.role]} - {latestSession.assessmentType}
+                              </p>
+                            </div>
+                            <Button
+                              type="button"
+                              variant={noteChanged ? 'default' : 'outline'}
+                              size="sm"
+                              onClick={() => handleSaveSessionNote(latestSession.id)}
+                              disabled={!noteChanged}
+                              aria-label={`Save coach notes for ${sessionPlayerName} assessment on ${latestSession.assessmentDate}`}
+                              className={`rounded-xl px-3 py-2 text-[10px] font-black uppercase tracking-wider ${
+                                noteChanged
+                                  ? 'border-indigo-200 bg-indigo-600 text-white hover:bg-indigo-700'
+                                  : 'border-slate-200 bg-white text-slate-300'
+                              }`}
+                            >
+                              <Save size={12} /> Save note
+                            </Button>
+                          </div>
+                          <Textarea
+                            id={`latest-assessment-note-${latestSession.id}`}
+                            value={noteValue}
+                            onChange={(event) => setNoteDrafts(current => ({ ...current, [latestSession.id]: event.target.value }))}
+                            placeholder="Add the message you want to remember before the next training block or player check-in."
+                            aria-label={`Coach notes for ${sessionPlayerName} latest assessment on ${latestSession.assessmentDate}`}
+                            rows={4}
+                            className="mt-3 resize-y rounded-xl border-slate-200 bg-white text-sm font-medium text-slate-700 focus-visible:ring-indigo-100"
+                          />
+                        </div>
+
+                        {latestSession.developmentPlan ? (
+                          <div className="rounded-2xl border border-indigo-200 bg-indigo-50/60 p-4">
+                            <p className="flex items-center gap-2 text-[11px] font-black uppercase tracking-wider text-indigo-700">
+                              <Sparkles size={14} /> 4-week development plan
+                            </p>
+                            <p className="mt-1 text-xs font-semibold text-slate-600">
+                              Focus: <span className="font-black">{String(latestSession.developmentPlan.focusAttributeId)}</span> - Priority score:{' '}
+                              <span className="font-black">{latestSession.developmentPlan.priorityScore}</span>
+                            </p>
+                            <div className="mt-3 space-y-3">
+                              {latestSession.developmentPlan.weeks.map(w => (
+                                <div key={`latest-${latestSession.id}-wk-${w.weekNumber}`} className="rounded-2xl border border-white/60 bg-white p-4">
+                                  <p className="text-xs font-black text-slate-900">Week {w.weekNumber}</p>
+                                  <p className="mt-1 text-xs font-semibold text-slate-600">{w.focus}</p>
+                                  {w.drillIds.length > 0 && (
+                                    <p className="mt-2 text-[11px] font-semibold text-slate-500">
+                                      Drills: <span className="font-mono">{w.drillIds.join(', ')}</span>
+                                    </p>
+                                  )}
+                                  <p className="mt-2 text-[11px] font-medium leading-relaxed text-slate-500">{w.notes}</p>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="rounded-2xl border border-dashed border-indigo-200 bg-indigo-50/50 p-4">
+                            <p className="flex items-center gap-2 text-[11px] font-black uppercase tracking-wider text-indigo-700">
+                              <Sparkles size={14} /> 4-week development plan
+                            </p>
+                            <p className="mt-2 text-xs font-semibold leading-relaxed text-slate-600">
+                              This latest assessment does not include a generated plan. Run a Full assessment to create weekly focus work here.
+                            </p>
+                          </div>
+                        )}
+                      </>
+                    );
+                  })()}
+                </div>
+              )}
             </div>
           )}
         </div>
