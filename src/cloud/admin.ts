@@ -435,7 +435,7 @@ export const getCurrentAppAdmin = async (client: DumalaSupabaseClient): Promise<
 export const getAdminConsoleSnapshot = async (client: DumalaSupabaseClient): Promise<AdminConsoleSnapshot> => {
   const admin = await getCurrentAppAdmin(client);
   if (!admin) {
-    throw new CloudAdminError('This account is not listed in app_admins.', 'APP_ADMIN_ACCESS_DENIED');
+    throw new CloudAdminError('Account is not authorized.', 'APP_ADMIN_ACCESS_DENIED');
   }
 
   const supabase = asUntypedClient(client);

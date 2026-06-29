@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { type CSSProperties, useEffect, useMemo, useState } from 'react';
 import {
   Activity,
   AlertCircle,
@@ -58,6 +58,23 @@ type AdminTab = 'overview' | 'users' | 'security' | 'usage' | 'feedback' | 'fprd
 
 const ADMIN_AUTH_REDIRECT_URL = 'https://dumala.asia/?returnTo=admin';
 
+const ADMIN_THEME_STYLE = {
+  '--background': '#020713',
+  '--foreground': '#f8fafc',
+  '--card': 'rgba(7, 17, 31, 0.9)',
+  '--card-foreground': '#f8fafc',
+  '--muted': 'rgba(255, 255, 255, 0.06)',
+  '--muted-foreground': '#94a3b8',
+  '--border': 'rgba(255, 255, 255, 0.1)',
+  '--input': 'rgba(255, 255, 255, 0.055)',
+  '--ring': '#f59e0b',
+  '--primary': '#22d3ee',
+  '--primary-foreground': '#020713',
+  '--accent': '#fb923c',
+  '--accent-foreground': '#020713',
+  '--destructive': '#fb7185'
+} as CSSProperties;
+
 const adminTabs: Array<{ id: AdminTab; label: string; icon: React.ComponentType<{ size?: number; className?: string }> }> = [
   { id: 'overview', label: 'Overview', icon: Gauge },
   { id: 'users', label: 'Users', icon: UsersRound },
@@ -88,6 +105,28 @@ const roleLabel: Record<AppAdminProfile['role'], string> = {
   fprds_reviewer: 'FPRDS reviewer',
   billing: 'Billing'
 };
+
+const AdminBackdrop = () => (
+  <div aria-hidden="true" className="fixed inset-0 overflow-hidden">
+    <div className="absolute inset-0 bg-[#020713]" />
+    <div className="absolute inset-0 bg-[radial-gradient(circle_at_58%_42%,rgba(34,211,238,0.22),transparent_26rem),radial-gradient(circle_at_18%_18%,rgba(249,115,22,0.2),transparent_23rem),linear-gradient(135deg,#020713_0%,#051325_48%,#041511_100%)]" />
+    <div className="absolute left-1/2 top-1/2 h-[78vmin] w-[78vmin] -translate-x-1/2 -translate-y-1/2 rounded-full border border-cyan-300/10 bg-[conic-gradient(from_160deg,transparent,rgba(56,189,248,0.18),transparent,rgba(249,115,22,0.18),transparent)] opacity-70 blur-[1px]" />
+    <div className="absolute inset-x-[-10%] bottom-[-28%] h-[58%] rotate-[-4deg] border-t border-emerald-300/20 bg-[linear-gradient(rgba(34,197,94,0.12)_1px,transparent_1px),linear-gradient(90deg,rgba(34,197,94,0.12)_1px,transparent_1px)] bg-[size:4.5rem_4.5rem] [transform-origin:center]" />
+    <div className="absolute right-6 top-8 hidden h-52 w-52 rounded-full border border-orange-300/10 lg:block" />
+    <div className="absolute bottom-8 left-8 hidden h-36 w-36 rounded-full border border-emerald-300/10 lg:block" />
+  </div>
+);
+
+const AdminAccessShell = ({ children }: { children: React.ReactNode }) => (
+  <div className="relative min-h-screen overflow-hidden bg-[#020713] font-sans text-slate-100 selection:bg-orange-400/30" style={ADMIN_THEME_STYLE}>
+    <AdminBackdrop />
+    <main className="relative z-10 flex min-h-screen items-center justify-center p-3 sm:p-4 lg:p-6">
+      <section className="w-full max-w-3xl rounded-[1.85rem] border border-white/10 bg-[#07111f]/90 p-5 shadow-2xl shadow-black/45 backdrop-blur-xl sm:p-6">
+        {children}
+      </section>
+    </main>
+  </div>
+);
 
 const statusLabel: Record<FeedbackStatus, string> = {
   new: 'New',
@@ -1182,7 +1221,7 @@ export default function AdminConsoleView() {
         setSecurityMetrics(null);
         setGrowthMetrics(null);
         setLoadState('denied');
-        setMessage('This account is not listed in app_admins.');
+        setMessage('Account is not authorized.');
         await runtime.dataAccess.admin.recordAuditEvent('admin_access_denied', { surface: 'admin_console' }).catch(() => undefined);
         return;
       }
@@ -1223,8 +1262,9 @@ export default function AdminConsoleView() {
       setLoadState('ready');
     } catch (error) {
       const text = error instanceof Error ? error.message : 'Admin console could not load.';
-      setMessage(text);
-      setLoadState(text.includes('ADMIN_MFA_REQUIRED') ? 'mfaRequired' : text.includes('app_admins') || text.includes('not listed') ? 'denied' : 'error');
+      const isDenied = text.includes('APP_ADMIN_ACCESS_DENIED') || text.includes('app_admins') || text.includes('not listed');
+      setMessage(isDenied ? 'Account is not authorized.' : text);
+      setLoadState(text.includes('ADMIN_MFA_REQUIRED') ? 'mfaRequired' : isDenied ? 'denied' : 'error');
     }
   };
 
@@ -1445,53 +1485,62 @@ export default function AdminConsoleView() {
 
   if (!runtime.enabled) {
     return (
-      <div className="min-h-screen bg-background p-4 text-foreground sm:p-6">
-        <section className="mx-auto max-w-3xl rounded-lg border border-border bg-card p-6 shadow-sm">
-          <div className="flex items-start gap-3">
-            <LockKeyhole className="mt-1 text-primary" size={22} aria-hidden="true" />
-            <div>
-              <h1 className="font-display text-2xl font-black">Dumala Admin Console</h1>
-              <p className="mt-2 text-sm font-medium leading-relaxed text-muted-foreground">
-                Cloud is disabled in this environment. Enable `VITE_DUMALA_CLOUD_ENABLED=true` and configure Supabase to use the private admin console.
+      <AdminAccessShell>
+        <div className="text-center">
+          <img src="/Dumala_logo.png" alt="Dumala" className="mx-auto h-[8.1rem] w-[12.15rem] object-contain sm:h-[9.45rem] sm:w-[14.85rem]" />
+          <p className="mt-[-0.2rem] text-[10px] font-black uppercase tracking-normal text-orange-300">Owner console</p>
+          <h1 className="mt-2 font-display text-2xl font-black leading-[1.06] text-white sm:text-3xl">Dumala Admin Console</h1>
+          <div className="mx-auto mt-5 max-w-xl rounded-2xl border border-amber-300/15 bg-amber-300/[0.055] p-4 text-left">
+            <div className="flex gap-3">
+              <LockKeyhole className="mt-0.5 shrink-0 text-amber-200" size={18} aria-hidden="true" />
+              <p className="text-xs font-semibold leading-5 text-amber-100/85">
+                Admin access is unavailable in this build.
               </p>
             </div>
           </div>
-        </section>
-      </div>
+        </div>
+      </AdminAccessShell>
     );
   }
 
   if (auth.state.status !== 'signedIn') {
     return (
-      <div className="min-h-screen bg-background p-4 text-foreground sm:p-6">
-        <section className="mx-auto max-w-3xl rounded-lg border border-border bg-card p-6 shadow-sm">
-          <div className="flex items-start gap-3">
-            <ShieldCheck className="mt-1 text-primary" size={22} aria-hidden="true" />
-            <div>
-              <h1 className="font-display text-2xl font-black">Dumala Admin Console</h1>
-              <p className="mt-2 text-sm font-medium leading-relaxed text-muted-foreground">
-                Sign in with the Supabase account that has been added to `app_admins`.
-              </p>
-              <div className="mt-4">
-                <CloudAccountGate redirectTo={ADMIN_AUTH_REDIRECT_URL} />
-              </div>
+      <AdminAccessShell>
+        <div className="text-center">
+          <img src="/Dumala_logo.png" alt="Dumala" className="mx-auto h-[8.1rem] w-[12.15rem] object-contain sm:h-[9.45rem] sm:w-[14.85rem]" />
+          <p className="mt-[-0.2rem] text-[10px] font-black uppercase tracking-normal text-orange-300">Owner console</p>
+          <h1 className="mt-2 font-display text-2xl font-black leading-[1.06] text-white sm:text-3xl">Dumala Admin Console</h1>
+          <p className="mx-auto mt-3 max-w-lg text-xs leading-5 text-slate-300 sm:text-sm">
+            Private access for the app owner and developer.
+          </p>
+        </div>
+        <div className="mx-auto mt-5 w-full max-w-[30rem] rounded-2xl border border-cyan-300/10 bg-white/[0.022] p-3 shadow-lg shadow-black/15">
+          <div className="mb-3 flex items-center gap-2">
+            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-cyan-300/15 bg-cyan-300/[0.06] text-cyan-200">
+              <ShieldCheck size={13} aria-hidden="true" />
+            </span>
+            <div className="text-left">
+              <h2 className="text-sm font-black text-slate-100">Admin sign in</h2>
+              <p className="mt-0.5 text-[10px] leading-4 text-slate-500">Owner account only.</p>
             </div>
           </div>
-        </section>
-      </div>
+          <CloudAccountGate redirectTo={ADMIN_AUTH_REDIRECT_URL} tone="dark" audience="admin" bootstrapAccount={false} />
+        </div>
+      </AdminAccessShell>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
-      <header className="border-b border-border bg-card">
+    <div className="relative min-h-screen overflow-x-hidden bg-[#020713] text-foreground" style={ADMIN_THEME_STYLE}>
+      <AdminBackdrop />
+      <header className="relative z-10 border-b border-white/10 bg-[#07111f]/90 shadow-lg shadow-black/20 backdrop-blur-xl">
         <div className="mx-auto flex max-w-[1440px] flex-col gap-4 px-4 py-4 sm:px-6 lg:flex-row lg:items-center lg:justify-between">
           <div>
             <div className="flex items-center gap-2">
-              <ShieldCheck size={20} className="text-primary" aria-hidden="true" />
-              <h1 className="font-display text-xl font-black">Dumala Admin Console</h1>
+              <ShieldCheck size={20} className="text-cyan-200" aria-hidden="true" />
+              <h1 className="font-display text-xl font-black text-white">Dumala Admin Console</h1>
             </div>
-            <p className="mt-1 text-xs font-medium text-muted-foreground">
+            <p className="mt-1 text-xs font-medium text-slate-400">
               Private app-owner console for beta health, FPRDS review, feedback, usage, live sessions, and future billing.
             </p>
           </div>
@@ -1509,7 +1558,7 @@ export default function AdminConsoleView() {
         </div>
       </header>
 
-      <main className="mx-auto max-w-[1440px] space-y-4 p-4 sm:p-6">
+      <main className="relative z-10 mx-auto max-w-[1440px] space-y-4 p-4 sm:p-6">
         {(loadState === 'denied' || loadState === 'error') && (
           <div className="rounded-lg border border-destructive/25 bg-destructive/10 p-4 text-sm font-semibold text-destructive" role="alert">
             <div className="flex gap-2">
@@ -1528,9 +1577,9 @@ export default function AdminConsoleView() {
         )}
 
         {loadState === 'denied' && (
-          <Section title="Access setup required" icon={LockKeyhole}>
+          <Section title="Access denied" icon={LockKeyhole}>
             <p className="text-sm font-medium leading-relaxed text-muted-foreground">
-              Your signed-in account is not an app admin yet. In Supabase Studio, add your auth user ID to `public.app_admins`, then refresh this page.
+              Account is not authorized.
             </p>
           </Section>
         )}
