@@ -18,6 +18,7 @@ export interface CloudAccountGateProps {
   bootstrapAccount?: boolean;
   tone?: 'light' | 'dark';
   layout?: 'default' | 'compact';
+  audience?: 'coach' | 'admin';
   runtime?: CloudRuntime;
   authController?: CloudAuthController;
 }
@@ -94,6 +95,7 @@ export const CloudAccountGate = ({
   bootstrapAccount = true,
   tone = 'light',
   layout = 'default',
+  audience = 'coach',
   runtime: runtimeOverride,
   authController: authControllerOverride
 }: CloudAccountGateProps) => {
@@ -113,6 +115,10 @@ export const CloudAccountGate = ({
   const bootstrappedUsers = useRef(new Set<string>());
   const dark = tone === 'dark';
   const compact = layout === 'compact';
+  const isAdmin = audience === 'admin';
+  const emailPlaceholder = isAdmin ? 'owner@example.com' : 'coach@example.com';
+  const connectedLabel = isAdmin ? 'Admin account connected' : compact ? 'Cloud connected' : 'Cloud account connected';
+  const googleHelper = isAdmin ? 'Owner access only.' : 'Fastest for new and returning coaches.';
 
   useEffect(() => {
     if (!bootstrapAccount) return;
@@ -190,7 +196,7 @@ export const CloudAccountGate = ({
     return (
       <section aria-label="Cloud account" className={`rounded-lg border px-3 py-2 text-xs font-semibold ${dark ? 'border-emerald-400/30 bg-emerald-400/10 text-emerald-200' : compact ? 'border-emerald-200 bg-emerald-50/80 text-emerald-800' : 'border-emerald-200 bg-emerald-50 text-emerald-800 shadow-sm'}`}>
         <div className="flex flex-wrap items-center gap-2">
-          <span className="inline-flex items-center gap-1.5"><CheckCircle2 size={14} /> {compact ? 'Cloud connected' : 'Cloud account connected'}</span>
+          <span className="inline-flex items-center gap-1.5"><CheckCircle2 size={14} /> {connectedLabel}</span>
           <Button type="button" variant="outline" size="sm" onClick={() => void auth.signOut()} className={`h-7 gap-1 rounded-md px-2 text-[11px] [&_svg]:size-3 ${dark ? 'border-emerald-400/30 bg-transparent text-emerald-100 hover:bg-emerald-400/10 hover:text-white' : 'border-emerald-200 text-emerald-800 hover:bg-emerald-100 hover:text-emerald-900'}`}>
             <LogOut size={12} /> Sign out
           </Button>
@@ -212,7 +218,7 @@ export const CloudAccountGate = ({
         Continue with Google
       </Button>
       <p className={`mt-2 text-center text-[10px] leading-4 ${dark ? 'text-slate-500' : 'text-muted-foreground'}`}>
-        Fastest for new and returning coaches.
+        {googleHelper}
       </p>
 
       <button
@@ -231,8 +237,11 @@ export const CloudAccountGate = ({
 
       {emailFallbackOpen && (
         <div className={`mt-2 rounded-lg border p-2 ${dark ? 'border-slate-800 bg-slate-950/70' : 'border-border bg-background/70'}`}>
-          <div className="mb-2 grid grid-cols-3 gap-1 rounded-md bg-slate-900/60 p-1">
-            {([
+          <div className={`mb-2 grid gap-1 rounded-md bg-slate-900/60 p-1 ${isAdmin ? 'grid-cols-2' : 'grid-cols-3'}`}>
+            {(isAdmin ? [
+              ['signIn', 'Sign in', KeyRound],
+              ['magicLink', 'Link', Mail]
+            ] as const : [
               ['signIn', 'Sign in', KeyRound],
               ['register', 'Create', UserPlus],
               ['magicLink', 'Link', Mail]
@@ -263,7 +272,7 @@ export const CloudAccountGate = ({
                 type="email"
                 value={email}
                 onChange={event => setEmail(event.target.value)}
-                placeholder="coach@example.com"
+                placeholder={emailPlaceholder}
                 className={`h-9 min-w-0 rounded-md px-2.5 text-xs ${dark ? 'border-slate-700 bg-[#07111f] text-slate-100 placeholder:text-slate-500 focus-visible:border-cyan-400 focus-visible:ring-cyan-400/20' : 'focus-visible:border-indigo-400 focus-visible:ring-indigo-100'}`}
                 required
               />
@@ -285,7 +294,7 @@ export const CloudAccountGate = ({
                 type="email"
                 value={email}
                 onChange={event => setEmail(event.target.value)}
-                placeholder="coach@example.com"
+                placeholder={emailPlaceholder}
                 className={`h-9 min-w-0 rounded-md px-2.5 text-xs ${dark ? 'border-slate-700 bg-[#07111f] text-slate-100 placeholder:text-slate-500 focus-visible:border-cyan-400 focus-visible:ring-cyan-400/20' : 'focus-visible:border-indigo-400 focus-visible:ring-indigo-100'}`}
                 required
               />
