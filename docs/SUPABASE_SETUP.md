@@ -27,6 +27,8 @@ Copy `.env.example` to `.env.local` and fill in values after `supabase start` pr
 VITE_DUMALA_CLOUD_ENABLED=false
 VITE_SUPABASE_URL=http://127.0.0.1:54321
 VITE_SUPABASE_PUBLISHABLE_KEY=<local publishable key>
+SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_ID=<local Google web OAuth client ID>
+SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_SECRET=<local Google web OAuth client secret>
 ```
 
 Do not commit `.env.local`.
@@ -43,6 +45,36 @@ npm run supabase:stop
 ```
 
 `supabase start` requires Docker Desktop or another compatible Docker runtime.
+
+## Local Google Sign-In Setup
+
+Google sign-in is optional locally. Keep `[auth.external.google].enabled = false` in `supabase/config.toml` until you have a Google OAuth web client.
+
+To test Google locally:
+
+1. Create a Google Cloud project and configure the Google Auth Platform consent screen for Dumala.
+2. Create an OAuth client ID with application type **Web application**.
+3. Add this Authorized JavaScript origin:
+
+```text
+http://localhost:3000
+```
+
+4. Add this Authorized redirect URI:
+
+```text
+http://127.0.0.1:54321/auth/v1/callback
+```
+
+5. Put the local client ID and secret in `.env.local` using:
+
+```text
+SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_ID=<local Google web OAuth client ID>
+SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_SECRET=<local Google web OAuth client secret>
+```
+
+6. Change `[auth.external.google].enabled` to `true` in `supabase/config.toml` for local testing.
+7. Restart Supabase with `npm run supabase:stop` and `npm run supabase:start`.
 
 ## First Local Validation
 
@@ -80,6 +112,8 @@ Before production cloud data:
 
 - confirm Supabase project region and backup tier
 - configure production SMTP for Auth
+- configure Supabase Google Auth provider with the production Google OAuth client ID and secret
+- configure Google OAuth authorized redirect URI to the Supabase callback URL for the target project
 - configure allowed redirect URLs
 - store publishable values in Vercel environment variables
 - never expose service-role or secret keys to the browser

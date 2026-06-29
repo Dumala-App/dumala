@@ -6,6 +6,9 @@ import {
   challengeMfaFactor,
   verifyMfaChallenge,
   requestOtp,
+  signInWithGoogle,
+  signInWithPassword,
+  signUpWithPassword,
   signOut,
   subscribeToAuthChanges,
   type AuthState,
@@ -88,6 +91,9 @@ export interface CloudBulletinRepository {
 
 export interface CloudAuthRepository {
   requestOtp(email: string, redirectTo?: string): Promise<void>;
+  signUpWithPassword(email: string, password: string, redirectTo?: string): Promise<void>;
+  signInWithPassword(email: string, password: string): Promise<void>;
+  signInWithGoogle(redirectTo?: string): Promise<void>;
   signOut(): Promise<void>;
   getSession(): Promise<AuthState>;
   getAuthenticatorAssuranceLevel(): Promise<MfaAssurance>;
@@ -163,6 +169,9 @@ export interface CloudDataAccess {
 export const createCloudDataAccess = (client: DumalaSupabaseClient): CloudDataAccess => ({
   auth: {
     requestOtp: (email, redirectTo) => requestOtp(client, email, redirectTo),
+    signUpWithPassword: (email, password, redirectTo) => signUpWithPassword(client, email, password, redirectTo),
+    signInWithPassword: (email, password) => signInWithPassword(client, email, password),
+    signInWithGoogle: redirectTo => signInWithGoogle(client, redirectTo),
     signOut: () => signOut(client),
     getSession: () => getSession(client),
     getAuthenticatorAssuranceLevel: () => getAuthenticatorAssuranceLevel(client),

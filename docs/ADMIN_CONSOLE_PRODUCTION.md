@@ -50,6 +50,31 @@ https://dumala.vercel.app/
 
 The Dumala Admin Console requests magic links with `https://dumala.asia/?returnTo=admin` so Supabase can process its auth hash before the app routes the signed-in owner back to `/#admin`.
 
+### Supabase Google Auth provider
+
+Enable Google in **Supabase Dashboard > Authentication > Providers > Google** for project `radvesnnkqyqzhakfokd`.
+
+Use a production Google OAuth web client with:
+
+```text
+Authorized JavaScript origins:
+https://dumala.asia
+https://dumala.vercel.app
+
+Authorized redirect URIs:
+https://radvesnnkqyqzhakfokd.supabase.co/auth/v1/callback
+```
+
+Then paste the Google OAuth client ID and client secret into the Supabase Google provider settings. Do not store the Google client secret in Vercel `VITE_` variables or in this repository.
+
+Supabase redirect URLs must continue to include:
+
+```text
+https://dumala.asia/
+https://dumala.asia/?returnTo=admin
+https://dumala.vercel.app/
+```
+
 ## Grant The First Owner
 
 1. Sign in to Dumala once with the owner's email so the Supabase Auth user exists.

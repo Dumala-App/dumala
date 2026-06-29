@@ -8,6 +8,9 @@ import WorkspaceStatusBar from './WorkspaceStatusBar';
 const signedOutAuth: CloudAuthController = {
   state: { status: 'signedOut' },
   requestOtp: vi.fn(),
+  signUpWithPassword: vi.fn(),
+  signInWithPassword: vi.fn(),
+  signInWithGoogle: vi.fn(),
   signOut: vi.fn()
 };
 
@@ -37,7 +40,9 @@ describe('WorkspaceStatusBar', () => {
     expect(html).toContain('Saved locally');
     expect(html).toContain('Cloud account');
     expect(html).toContain('coach@example.com');
-    expect(html).toContain('Send link');
+    expect(html).toContain('Sign in');
+    expect(html).toContain('Create account');
+    expect(html).toContain('Continue with Google');
     expect(html).toContain('Feedback');
     expect(html).toContain('Reset');
   });
