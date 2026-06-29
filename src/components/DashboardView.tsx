@@ -93,6 +93,8 @@ const dashboardSectionTitleClass = 'flex items-center gap-2 font-display text-ba
 const dashboardSectionDescriptionClass = 'mt-1 text-sm font-medium leading-relaxed text-muted-foreground';
 const dashboardPanelClass = 'rounded-2xl border border-border bg-muted/45 p-4';
 const dashboardListButtonClass = 'h-auto w-full justify-between rounded-xl border-border bg-card p-3 text-left whitespace-normal hover:border-primary/30 hover:bg-primary/5';
+const dashboardMetricRowClass = 'flex items-center justify-between rounded-xl border border-border bg-card p-3 shadow-sm transition-colors hover:border-primary/30 hover:bg-primary/5';
+const dashboardMutedTextClass = 'text-xs font-medium leading-relaxed text-muted-foreground';
 
 interface DashboardViewProps {
   teamInfo: TeamInfo;
@@ -736,17 +738,21 @@ export default function DashboardView({
 
                 <div className="grid grid-cols-1 gap-3 rounded-xl border border-border bg-muted/45 p-4 text-sm sm:grid-cols-2">
                   <div>
-                    <span className="text-slate-400 font-semibold block">🏟️ Kickoff Location</span>
+                    <span className="flex items-center gap-1.5 font-semibold text-muted-foreground">
+                      <MapPin size={14} className="text-primary" aria-hidden="true" /> Kickoff Location
+                    </span>
                     <span id="next-match-loc" className="mt-0.5 block font-semibold text-foreground">{nextMatch.location}</span>
                   </div>
                   <div>
-                    <span className="text-slate-400 font-semibold block">🕒 Date & Timing</span>
+                    <span className="flex items-center gap-1.5 font-semibold text-muted-foreground">
+                      <Calendar size={14} className="text-primary" aria-hidden="true" /> Date &amp; Timing
+                    </span>
                     <span id="next-match-datetime" className="mt-0.5 block font-semibold text-foreground">{nextMatch.date} @ {nextMatch.time}</span>
                   </div>
                 </div>
 
                 <div className="flex items-start gap-3 rounded-xl border border-primary/15 bg-primary/5 p-4 text-sm">
-                  <span className="text-base text-indigo-600">📢</span>
+                  <Megaphone size={16} className="mt-0.5 shrink-0 text-primary" aria-hidden="true" />
                   <div>
                     <strong className="block text-foreground">{(teamInfo?.coach || "Coach Sterling")}'s prep directives</strong>
                     <p className="mt-1 leading-relaxed text-muted-foreground">
@@ -855,7 +861,7 @@ export default function DashboardView({
             <h3 className={dashboardSectionTitleClass}>
               <Table size={18} className="text-primary" aria-hidden="true" /> Squad Summary
             </h3>
-            <p className="text-slate-450 text-xs">All registered players — goals, assists, discipline, status, games played, and MVP awards</p>
+            <p className={dashboardSectionDescriptionClass}>All registered players, performance totals, discipline, availability, and MVP awards.</p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <Badge variant="success">Active</Badge>
@@ -900,7 +906,7 @@ export default function DashboardView({
                         isSuspended ? 'bg-destructive/5 opacity-60' : ''
                       }`}
                     >
-                      <td className="py-2.5 pr-2 font-mono font-bold text-slate-500">{p.number || '—'}</td>
+                      <td className="py-2.5 pr-2 font-mono font-bold text-muted-foreground">{p.number || '—'}</td>
                       <td className="py-2.5 pr-2">
                         <div className="flex items-center gap-2">
                           <img 
@@ -920,35 +926,34 @@ export default function DashboardView({
                           <div className="inline-flex items-center gap-1">
                             {(p.yellowCards || 0) > 0 && (
                               <Badge variant="warning" className="px-1.5 py-0 text-[9px] normal-case tracking-normal">
-                                {p.yellowCards} 🟨
+                                YC {p.yellowCards}
                               </Badge>
                             )}
                             {(p.redCards || 0) > 0 && (
                               <Badge variant="destructive" className="px-1.5 py-0 text-[9px] normal-case tracking-normal">
-                                {p.redCards} 🟥
+                                RC {p.redCards}
                               </Badge>
                             )}
                           </div>
                         ) : (
-                          <span className="text-slate-300">—</span>
+                          <span className="text-muted-foreground/45">—</span>
                         )}
                       </td>
                       <td className="py-2.5 pr-2 text-center font-bold text-foreground">{p.gamesPlayed ?? 0}</td>
                       <td className="py-2.5 pr-2 text-center">
                         {(p.mvpAwards || 0) > 0 ? (
                           <Badge variant="warning" className="gap-1 px-2 py-0 text-[10px]">
-                            ⭐ {p.mvpAwards}
+                            <Star size={10} aria-hidden="true" /> {p.mvpAwards}
                           </Badge>
                         ) : (
-                          <span className="text-slate-300">—</span>
+                          <span className="text-muted-foreground/45">—</span>
                         )}
                       </td>
                       <td className="py-2.5 text-center">
-                        <Badge className={`px-2 py-0 text-[9px] ${
-                          p.registrationStatus === 'Active' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
-                          isSuspended ? 'bg-rose-50 text-rose-700 border-rose-200' :
-                          'bg-amber-50 text-amber-700 border-amber-200'
-                        }`}>
+                        <Badge
+                          variant={p.registrationStatus === 'Active' ? 'success' : isSuspended ? 'destructive' : 'warning'}
+                          className="px-2 py-0 text-[9px]"
+                        >
                           {p.registrationStatus === 'Active' ? 'Active' :
                            isSuspended ? 'Suspended' : 'Pending'}
                         </Badge>
@@ -959,8 +964,8 @@ export default function DashboardView({
             </tbody>
           </table>
           {players.length === 0 && (
-            <div className="text-center py-10 text-slate-400 text-xs">
-              <Users size={24} className="mx-auto mb-2 text-slate-300" />
+            <div className="text-center py-10 text-sm text-muted-foreground">
+              <Users size={24} className="mx-auto mb-2 text-muted-foreground/60" />
               No players registered yet. Add players from the Roster tab.
             </div>
           )}
@@ -968,20 +973,14 @@ export default function DashboardView({
 
         {/* Aggregate quick-stats footer */}
         {players.length > 0 && (
-          <div className="mt-4 pt-3 border-t border-slate-100 flex flex-wrap items-center gap-x-5 gap-y-1.5 text-[10px] font-bold text-slate-500">
-            <span>Total Players: <strong className="text-slate-800">{players.length}</strong></span>
-            <span className="text-slate-300">|</span>
-            <span>Goals: <strong className="text-slate-800">{players.reduce((s, p) => s + (p.points || 0), 0)}</strong></span>
-            <span className="text-slate-300">|</span>
-            <span>Assists: <strong className="text-slate-800">{players.reduce((s, p) => s + (p.assists || 0), 0)}</strong></span>
-            <span className="text-slate-300">|</span>
-            <span>🟨: <strong className="text-amber-600">{players.reduce((s, p) => s + (p.yellowCards || 0), 0)}</strong></span>
-            <span className="text-slate-300">|</span>
-            <span>🟥: <strong className="text-red-600">{players.reduce((s, p) => s + (p.redCards || 0), 0)}</strong></span>
-            <span className="text-slate-300">|</span>
-            <span>Active: <strong className="text-emerald-600">{players.filter(p => p.registrationStatus === 'Active').length}</strong></span>
-            <span className="text-slate-300">|</span>
-            <span>Total MVP: <strong className="text-amber-600">⭐ {players.reduce((s, p) => s + (p.mvpAwards || 0), 0)}</strong></span>
+          <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-border pt-3">
+            <Badge variant="outline">Players {players.length}</Badge>
+            <Badge variant="info">Goals {players.reduce((s, p) => s + (p.points || 0), 0)}</Badge>
+            <Badge variant="success">Assists {players.reduce((s, p) => s + (p.assists || 0), 0)}</Badge>
+            <Badge variant="warning">YC {players.reduce((s, p) => s + (p.yellowCards || 0), 0)}</Badge>
+            <Badge variant="destructive">RC {players.reduce((s, p) => s + (p.redCards || 0), 0)}</Badge>
+            <Badge variant="success">Active {players.filter(p => p.registrationStatus === 'Active').length}</Badge>
+            <Badge variant="warning" className="gap-1"><Star size={10} aria-hidden="true" /> MVP {players.reduce((s, p) => s + (p.mvpAwards || 0), 0)}</Badge>
           </div>
         )}
       </div>
@@ -1112,22 +1111,22 @@ export default function DashboardView({
         </div>
       </div>
       {/* Leaderboards Grid (Rich visual player statistics) */}
-      <div id="stat-leaderboards-card" className="bg-white rounded-2xl border border-slate-200/70 p-6 shadow-md shadow-slate-100/30">
-        <div className="pb-4 border-b border-slate-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+      <div id="stat-leaderboards-card" className={dashboardCardClass}>
+        <div className={`${dashboardHeaderClass} flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center`}>
           <div>
-            <h3 className="font-display font-black text-slate-850 uppercase tracking-wide text-base flex items-center gap-2">
-              <Award className="text-amber-500" size={18} /> Player Performance Leaderboards
+            <h3 className={dashboardSectionTitleClass}>
+              <Award className="text-accent" size={18} /> Player Performance Leaderboards
             </h3>
-            <p className="text-slate-450 text-xs">Season standings across main performance metrics. Click an athlete to open full stats.</p>
+            <p className={dashboardSectionDescriptionClass}>Season standings across main performance metrics. Click an athlete to open full stats.</p>
           </div>
-          <span className="text-xs bg-slate-100 text-slate-700 font-bold px-3 py-1 rounded-lg border border-slate-200/40">Seeded Metric Charts</span>
+          <Badge variant="outline">Seeded metrics</Badge>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
           
           {/* Section: Golden Boot */}
-          <div className="bg-slate-50/50 p-4 rounded-2xl border border-slate-100/50">
-            <h4 className="font-display font-bold text-xs uppercase text-slate-400 mb-3 flex items-center gap-1">
+          <div className={dashboardPanelClass}>
+            <h4 className="mb-3 flex items-center gap-2 font-display text-sm font-black text-foreground">
               <Zap size={14} className="text-amber-500 fill-amber-300" /> Golden Boot (Goals)
             </h4>
             <div className="space-y-2.5">
@@ -1136,37 +1135,35 @@ export default function DashboardView({
                   id={`leaderboard-scorer-${player.id}`}
                   key={player.id}
                   onClick={() => onSelectPlayer(player)}
-                  className="bg-white p-3 rounded-xl border border-slate-200/60 flex items-center justify-between hover:border-indigo-300 hover:shadow-md hover:-translate-y-0.5 transition-all cursor-pointer shadow-sm"
+                  className={dashboardMetricRowClass}
                 >
                   <div className="flex items-center gap-2.5">
-                    <span className="font-display font-black text-slate-300 text-xs w-4">#{idx+1}</span>
+                    <span className="font-display font-black text-muted-foreground/55 text-xs w-4">#{idx+1}</span>
                     <img 
                       src={player.photoUrl} 
                       alt={player.name} 
-                      className="w-8 h-8 rounded-full object-cover shadow-inner"
+                      className="w-8 h-8 rounded-full border border-border object-cover shadow-inner"
                       referrerPolicy="no-referrer"
                     />
                     <div>
-                      <div className="font-semibold text-xs text-slate-800">{player.name}</div>
-                      <div className="text-[10px] text-slate-400">Position: {player.position}</div>
+                      <div className="font-semibold text-xs text-foreground">{player.name}</div>
+                      <div className="text-[11px] text-muted-foreground">Position: {player.position}</div>
                     </div>
                   </div>
-                  <span className="bg-indigo-50 text-indigo-700 font-display font-black text-xs px-2.5 py-1 rounded-lg">
-                    {player.points} G
-                  </span>
+                  <Badge variant="info">{player.points} G</Badge>
                 </div>
               ))}
 
               {topScorers.length === 0 && (
-                <div className="text-center py-6 text-xs text-slate-400">No statistics logged yet.</div>
+                <div className="text-center py-6 text-sm text-muted-foreground">No statistics logged yet.</div>
               )}
             </div>
           </div>
 
           {/* Section: Playmaking King */}
-          <div className="bg-slate-50/50 p-4 rounded-2xl border border-slate-100/50">
-            <h4 className="font-display font-bold text-xs uppercase text-slate-400 mb-3 flex items-center gap-1">
-              <Award size={14} className="text-indigo-500" /> Playmaking Kings (Assists)
+          <div className={dashboardPanelClass}>
+            <h4 className="mb-3 flex items-center gap-2 font-display text-sm font-black text-foreground">
+              <Award size={14} className="text-primary" /> Playmaking Kings (Assists)
             </h4>
             <div className="space-y-2.5">
               {topAssists.map((player, idx) => (
@@ -1174,36 +1171,34 @@ export default function DashboardView({
                   id={`leaderboard-assists-${player.id}`}
                   key={player.id}
                   onClick={() => onSelectPlayer(player)}
-                  className="bg-white p-3 rounded-xl border border-slate-200/60 flex items-center justify-between hover:border-indigo-300 hover:shadow-md hover:-translate-y-0.5 transition-all cursor-pointer shadow-sm"
+                  className={dashboardMetricRowClass}
                 >
                   <div className="flex items-center gap-2.5">
-                    <span className="font-display font-black text-slate-300 text-xs w-4">#{idx+1}</span>
+                    <span className="font-display font-black text-muted-foreground/55 text-xs w-4">#{idx+1}</span>
                     <img 
                       src={player.photoUrl} 
                       alt={player.name} 
-                      className="w-8 h-8 rounded-full object-cover shadow-inner"
+                      className="w-8 h-8 rounded-full border border-border object-cover shadow-inner"
                       referrerPolicy="no-referrer"
                     />
                     <div>
-                      <div className="font-semibold text-xs text-slate-800">{player.name}</div>
-                      <div className="text-[10px] text-slate-400">Position: {player.position}</div>
+                      <div className="font-semibold text-xs text-foreground">{player.name}</div>
+                      <div className="text-[11px] text-muted-foreground">Position: {player.position}</div>
                     </div>
                   </div>
-                  <span className="bg-emerald-50 text-emerald-700 font-display font-black text-xs px-2.5 py-1 rounded-lg">
-                    {player.assists} A
-                  </span>
+                  <Badge variant="success">{player.assists} A</Badge>
                 </div>
               ))}
 
               {topAssists.length === 0 && (
-                <div className="text-center py-6 text-xs text-slate-400">No statistics logged yet.</div>
+                <div className="text-center py-6 text-sm text-muted-foreground">No statistics logged yet.</div>
               )}
             </div>
           </div>
 
           {/* Section: Clean Sheet Wall */}
-          <div className="bg-slate-50/50 p-4 rounded-2xl border border-slate-100/50">
-            <h4 className="font-display font-bold text-xs uppercase text-slate-400 mb-3 flex items-center gap-1">
+          <div className={dashboardPanelClass}>
+            <h4 className="mb-3 flex items-center gap-2 font-display text-sm font-black text-foreground">
               <Shield size={14} className="text-emerald-500" /> Goalkeeping Walls
             </h4>
             <div className="space-y-2.5">
@@ -1212,29 +1207,27 @@ export default function DashboardView({
                   id={`leaderboard-wall-${player.id}`}
                   key={player.id}
                   onClick={() => onSelectPlayer(player)}
-                  className="bg-white p-3 rounded-xl border border-slate-200/60 flex items-center justify-between hover:border-indigo-300 hover:shadow-md hover:-translate-y-0.5 transition-all cursor-pointer shadow-sm"
+                  className={dashboardMetricRowClass}
                 >
                   <div className="flex items-center gap-2.5">
-                    <span className="font-display font-black text-slate-300 text-xs w-4">#{idx+1}</span>
+                    <span className="font-display font-black text-muted-foreground/55 text-xs w-4">#{idx+1}</span>
                     <img 
                       src={player.photoUrl} 
                       alt={player.name} 
-                      className="w-8 h-8 rounded-full object-cover shadow-inner"
+                      className="w-8 h-8 rounded-full border border-border object-cover shadow-inner"
                       referrerPolicy="no-referrer"
                     />
                     <div>
-                      <div className="font-semibold text-xs text-slate-800">{player.name}</div>
-                      <div className="text-[10px] text-slate-400">Position: {player.position}</div>
+                      <div className="font-semibold text-xs text-foreground">{player.name}</div>
+                      <div className="text-[11px] text-muted-foreground">Position: {player.position}</div>
                     </div>
                   </div>
-                  <span className="bg-blue-50 text-blue-700 font-display font-black text-xs px-2.5 py-1 rounded-lg">
-                    {player.cleanSheetsOrRebounds} CS
-                  </span>
+                  <Badge variant="info">{player.cleanSheetsOrRebounds} CS</Badge>
                 </div>
               ))}
 
               {topGoalkeepers.length === 0 && (
-                <div className="text-center py-6 text-xs text-slate-400">No statistics logged yet.</div>
+                <div className="text-center py-6 text-sm text-muted-foreground">No statistics logged yet.</div>
               )}
             </div>
           </div>
@@ -1245,24 +1238,18 @@ export default function DashboardView({
       {/* Analytics Row: Trend Chart & Recent Form */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Points Trend Line Chart */}
-        <div id="points-trend-chart-card" className="lg:col-span-8 bg-white rounded-2xl border border-slate-200/70 p-6 shadow-md shadow-slate-100/30">
-          <div className="pb-4 border-b border-slate-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+        <div id="points-trend-chart-card" className={`lg:col-span-8 ${dashboardCardClass}`}>
+          <div className={`${dashboardHeaderClass} flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center`}>
             <div>
-              <h3 className="font-display font-black text-slate-850 uppercase tracking-wide text-base flex items-center gap-2">
-                <TrendingUp className="text-indigo-600" size={18} /> Team Points Progression
+              <h3 className={dashboardSectionTitleClass}>
+                <TrendingUp className="text-primary" size={18} /> Team Points Progression
               </h3>
-              <p className="text-slate-450 text-xs">Cumulative standings trajectory over the last 10 completed matches.</p>
+              <p className={dashboardSectionDescriptionClass}>Cumulative standings trajectory over the last 10 completed matches.</p>
             </div>
-            <div className="flex gap-2 text-xs">
-              <span className="flex items-center gap-1 bg-emerald-50 text-emerald-700 font-bold px-2 py-0.5 rounded border border-emerald-100">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Win (+3)
-              </span>
-              <span className="flex items-center gap-1 bg-amber-50 text-amber-700 font-bold px-2 py-0.5 rounded border border-amber-100">
-                <span className="w-1.5 h-1.5 rounded-full bg-amber-400"></span> Draw (+1)
-              </span>
-              <span className="flex items-center gap-1 bg-rose-50 text-rose-700 font-bold px-2 py-0.5 rounded border border-rose-100">
-                <span className="w-1.5 h-1.5 rounded-full bg-rose-500"></span> Loss (0)
-              </span>
+            <div className="flex flex-wrap gap-2">
+              <Badge variant="success">Win +3</Badge>
+              <Badge variant="warning">Draw +1</Badge>
+              <Badge variant="destructive">Loss 0</Badge>
             </div>
           </div>
 
@@ -1301,7 +1288,7 @@ export default function DashboardView({
                 </LineChart>
               </ResponsiveContainer>
             ) : (
-              <div className="h-full flex items-center justify-center text-slate-400 text-xs">
+              <div className="h-full flex items-center justify-center text-sm text-muted-foreground">
                 No matches played yet to display cumulative trend.
               </div>
             )}
@@ -1309,13 +1296,13 @@ export default function DashboardView({
         </div>
 
         {/* Recent Form Widget */}
-        <div id="recent-form-card" className="lg:col-span-4 bg-white rounded-2xl border border-slate-200/70 p-6 shadow-md shadow-slate-100/30 flex flex-col">
-          <div className="pb-4 border-b border-slate-100 flex flex-col gap-3">
+        <div id="recent-form-card" className={`lg:col-span-4 flex flex-col ${dashboardCardClass}`}>
+          <div className={`${dashboardHeaderClass} flex flex-col gap-3`}>
             <div>
-              <h3 className="font-display font-black text-slate-850 uppercase tracking-wide text-base flex items-center gap-2">
-                <Calendar className="text-indigo-600" size={18} /> Recent Form
+              <h3 className={dashboardSectionTitleClass}>
+                <Calendar className="text-primary" size={18} /> Recent Form
               </h3>
-              <p className="text-slate-450 text-xs">Results from the last 5 games</p>
+              <p className={dashboardSectionDescriptionClass}>Results from the last 5 games</p>
             </div>
             
             <div className="flex gap-2 items-center">
@@ -1331,7 +1318,7 @@ export default function DashboardView({
                 )
               })}
               {userCompletedGames.length === 0 && (
-                <span className="text-slate-400 text-xs italic">No form available</span>
+                <span className={dashboardMutedTextClass}>No form available</span>
               )}
             </div>
           </div>
@@ -1342,21 +1329,21 @@ export default function DashboardView({
               const isWin = our > opp;
               const isDraw = our === opp;
               return (
-                <div key={game.id} className="flex justify-between items-center p-3 rounded-xl border border-slate-100 bg-slate-50/50 hover:bg-slate-50 transition-colors">
+                <div key={game.id} className="flex justify-between items-center p-3 rounded-xl border border-border bg-muted/45 hover:bg-muted transition-colors">
                   <div className="flex items-center gap-3">
                     <span className={`w-6 h-6 flex items-center justify-center rounded font-bold text-[10px] text-white ${isWin ? 'bg-emerald-500' : isDraw ? 'bg-amber-400' : 'bg-rose-500'}`}>
                       {isWin ? 'W' : isDraw ? 'D' : 'L'}
                     </span>
-                    <span className="font-semibold text-slate-700 text-xs truncate max-w-[120px]">{game.opponent}</span>
+                    <span className="font-semibold text-foreground text-xs truncate max-w-[120px]">{game.opponent}</span>
                   </div>
-                  <div className="font-mono text-xs font-black text-slate-800 bg-white px-2 py-1 rounded shadow-sm border border-slate-200">
+                  <div className="font-mono text-xs font-black text-foreground bg-card px-2 py-1 rounded border border-border shadow-sm">
                     {our} - {opp}
                   </div>
                 </div>
               );
             })}
             {userCompletedGames.length === 0 && (
-              <div className="h-full flex items-center justify-center text-slate-400 text-xs mt-8">
+              <div className="h-full flex items-center justify-center text-sm text-muted-foreground mt-8">
                 No recent matches completed.
               </div>
             )}

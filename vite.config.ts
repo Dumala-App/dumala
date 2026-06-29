@@ -104,4 +104,24 @@ export default defineConfig({
     host: '0.0.0.0',
     port: 3000,
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (!id.includes('node_modules')) return undefined;
+
+          if (id.includes('@radix-ui')) return 'vendor-radix';
+          if (id.includes('lucide-react')) return 'vendor-icons';
+          if (id.includes('recharts') || id.includes('d3-') || id.includes('victory-vendor')) return 'vendor-charts';
+          if (id.includes('motion') || id.includes('framer-motion')) return 'vendor-motion';
+          if (id.includes('@supabase')) return 'vendor-supabase';
+          if (id.includes('zod')) return 'vendor-validation';
+          if (id.includes('vite-plugin-pwa') || id.includes('workbox')) return 'vendor-pwa';
+          if (id.includes('@vercel/speed-insights')) return 'vendor-analytics';
+
+          return 'vendor';
+        },
+      },
+    },
+  },
 });

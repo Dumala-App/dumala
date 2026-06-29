@@ -10,6 +10,7 @@ import type {
 import { calculatePaymentLedgerTotals, summarizePaymentLedger } from '../payments/ledger';
 import { formatPeso } from '../payments/formatting';
 import { FieldError, FormErrorSummary } from './FormValidation';
+import { Badge } from './ui/badge';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
@@ -96,16 +97,22 @@ const formatMonthLabel = (monthKey: string): string => {
 
 const roundMoney = (value: number): number => Math.round((value + Number.EPSILON) * 100) / 100;
 
-const statusStyles: Record<string, string> = {
-  paid: 'border-emerald-200 bg-emerald-50 text-emerald-700',
-  partial: 'border-sky-200 bg-sky-50 text-sky-700',
-  due: 'border-amber-200 bg-amber-50 text-amber-700',
-  overdue: 'border-rose-200 bg-rose-50 text-rose-700',
-  no_activity: 'border-slate-200 bg-slate-50 text-slate-500'
+const paymentStatusVariant: Record<string, React.ComponentProps<typeof Badge>['variant']> = {
+  paid: 'success',
+  partial: 'info',
+  due: 'warning',
+  overdue: 'destructive',
+  no_activity: 'secondary'
 };
 
 const paymentInputClass = 'rounded-xl text-xs font-semibold';
 const invalidPaymentClass = 'border-rose-300 focus-visible:ring-rose-500/25 focus:ring-rose-500/25';
+const paymentCardClass = 'rounded-2xl border border-border bg-card p-4 shadow-sm';
+const paymentStatCardClass = 'rounded-xl border border-border bg-card p-4 shadow-sm';
+const paymentSubtleCardClass = 'rounded-xl border border-border bg-muted/45 p-3';
+const paymentLabelClass = 'text-[11px] font-black uppercase tracking-widest text-muted-foreground';
+const paymentTitleClass = 'font-display text-base font-black tracking-tight text-foreground';
+const paymentDescriptionClass = 'mt-1 text-sm font-medium leading-relaxed text-muted-foreground';
 
 export default function SquadPaymentsPanel({
   players,
@@ -296,16 +303,16 @@ export default function SquadPaymentsPanel({
     <div id="squad-payments-panel" className="space-y-5">
       <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
         {[
-          { label: 'Charged', value: totals.charged, icon: ReceiptText, tone: 'text-slate-700' },
-          { label: 'Collected', value: totals.paid, icon: Banknote, tone: 'text-emerald-700' },
-          { label: 'Outstanding', value: totals.outstanding, icon: CircleDollarSign, tone: 'text-amber-700' },
-          { label: 'Overdue', value: totals.overdue, icon: AlertCircle, tone: 'text-rose-700' }
+          { label: 'Charged', value: totals.charged, icon: ReceiptText, tone: 'text-foreground' },
+          { label: 'Collected', value: totals.paid, icon: Banknote, tone: 'text-success' },
+          { label: 'Outstanding', value: totals.outstanding, icon: CircleDollarSign, tone: 'text-warning-foreground' },
+          { label: 'Overdue', value: totals.overdue, icon: AlertCircle, tone: 'text-destructive' }
         ].map(metric => {
           const Icon = metric.icon;
           return (
-            <div key={metric.label} className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+            <div key={metric.label} className={paymentStatCardClass}>
               <div className="flex items-center justify-between gap-3">
-                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">{metric.label}</p>
+                <p className={paymentLabelClass}>{metric.label}</p>
                 <Icon size={16} className={metric.tone} aria-hidden="true" />
               </div>
               <p className={`mt-2 text-xl font-black ${metric.tone}`}>{formatPeso(metric.value)}</p>
@@ -316,28 +323,28 @@ export default function SquadPaymentsPanel({
 
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1.65fr)_minmax(340px,0.6fr)]">
         <div className="space-y-4">
-          <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm ring-1 ring-slate-100">
+          <div className={paymentCardClass}>
             <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
               <div>
-                <p className="text-[10px] font-black uppercase tracking-widest text-indigo-600">Main workspace</p>
-                <h3 className="mt-1 font-display text-lg font-black text-slate-900">Player balances</h3>
-                <p className="mt-1 text-xs font-medium text-slate-500">Review who is paid, partial, overdue, or still missing activity.</p>
+                <p className="text-[11px] font-black uppercase tracking-widest text-primary">Main workspace</p>
+                <h3 className={`mt-1 ${paymentTitleClass}`}>Player balances</h3>
+                <p className={paymentDescriptionClass}>Review who is paid, partial, overdue, or still missing activity.</p>
               </div>
               <div className="flex flex-col gap-2 sm:flex-row">
                 <div className="relative">
-                  <Search className="absolute left-3 top-2.5 text-slate-400" size={14} />
+                  <Search className="absolute left-3 top-2.5 text-muted-foreground" size={14} />
                   <Input
                     value={searchTerm}
                     onChange={event => setSearchTerm(event.target.value)}
                     placeholder="Search player..."
-                    className="h-9 w-full bg-slate-50 pl-9 pr-3 text-xs font-medium text-slate-700 focus-visible:bg-white sm:w-52"
+                    className="h-9 w-full bg-muted/60 pl-9 pr-3 text-xs font-medium focus-visible:bg-card sm:w-52"
                   />
                 </div>
                 <Select
                   value={statusFilter}
                   onValueChange={setStatusFilter}
                 >
-                  <SelectTrigger className="h-9 text-xs font-bold text-slate-600 sm:w-40">
+                  <SelectTrigger className="h-9 text-xs font-bold sm:w-40">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -352,10 +359,10 @@ export default function SquadPaymentsPanel({
               </div>
             </div>
 
-            <div className="overflow-x-auto rounded-xl border border-slate-100">
+            <div className="overflow-x-auto rounded-xl border border-border">
               <table className="min-w-[760px] w-full text-left text-xs">
                 <thead>
-                  <tr className="border-b border-slate-100 bg-slate-50 text-[10px] uppercase tracking-widest text-slate-400">
+                  <tr className="border-b border-border bg-muted/60 text-[11px] uppercase tracking-widest text-muted-foreground">
                     <th className="px-3 py-2 font-black">Player</th>
                     <th className="px-3 py-2 font-black">Charged</th>
                     <th className="px-3 py-2 font-black">Paid</th>
@@ -365,19 +372,19 @@ export default function SquadPaymentsPanel({
                     <th className="px-3 py-2 font-black">Status</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100">
+                <tbody className="divide-y divide-border">
                   {filteredSummaries.map(summary => (
-                    <tr key={summary.playerId} className="text-slate-700">
-                      <td className="px-3 py-3 font-black text-slate-900">{summary.playerName}</td>
+                    <tr key={summary.playerId} className="text-foreground">
+                      <td className="px-3 py-3 font-black">{summary.playerName}</td>
                       <td className="px-3 py-3 font-semibold">{formatPeso(summary.charged)}</td>
-                      <td className="px-3 py-3 font-semibold text-emerald-700">{formatPeso(summary.paid)}</td>
+                      <td className="px-3 py-3 font-semibold text-success">{formatPeso(summary.paid)}</td>
                       <td className="px-3 py-3 font-semibold">{formatPeso(summary.waived)}</td>
                       <td className="px-3 py-3 font-black">{formatPeso(summary.balance)}</td>
-                      <td className="px-3 py-3 font-semibold text-slate-500">{summary.lastPaymentDate ?? '-'}</td>
+                      <td className="px-3 py-3 font-semibold text-muted-foreground">{summary.lastPaymentDate ?? '-'}</td>
                       <td className="px-3 py-3">
-                        <span className={`rounded-md border px-2 py-1 text-[10px] font-black uppercase ${statusStyles[summary.status]}`}>
+                        <Badge variant={paymentStatusVariant[summary.status]}>
                           {summary.status.replace('_', ' ')}
-                        </span>
+                        </Badge>
                       </td>
                     </tr>
                   ))}
@@ -386,11 +393,11 @@ export default function SquadPaymentsPanel({
             </div>
           </div>
 
-          <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+          <div className={paymentCardClass}>
             <div className="mb-3 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
               <div>
-                <h3 className="font-display text-sm font-black uppercase tracking-wider text-slate-800">Ledger history</h3>
-                <p className="mt-1 text-[11px] font-medium text-slate-500">
+                <h3 className={paymentTitleClass}>Ledger history</h3>
+                <p className={paymentDescriptionClass}>
                   {filteredEntries.length} entr{filteredEntries.length === 1 ? 'y' : 'ies'} match the current filters. Voided entries remain visible for review.
                 </p>
               </div>
@@ -399,7 +406,7 @@ export default function SquadPaymentsPanel({
                   value={monthFilter}
                   onValueChange={setMonthFilter}
                 >
-                  <SelectTrigger className="h-9 text-xs font-bold text-slate-600 sm:w-40" aria-label="Filter ledger by month">
+                  <SelectTrigger className="h-9 text-xs font-bold sm:w-40" aria-label="Filter ledger by month">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -411,7 +418,7 @@ export default function SquadPaymentsPanel({
                   value={categoryFilter}
                   onValueChange={value => setCategoryFilter(value as 'all' | PaymentLedgerCategory)}
                 >
-                  <SelectTrigger className="h-9 text-xs font-bold text-slate-600 sm:w-44" aria-label="Filter ledger by category">
+                  <SelectTrigger className="h-9 text-xs font-bold sm:w-44" aria-label="Filter ledger by category">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -441,10 +448,10 @@ export default function SquadPaymentsPanel({
             </div>
 
             {!ledgerExpanded ? (
-              <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 py-5 text-center">
-                <ReceiptText className="mx-auto text-slate-300" size={26} aria-hidden="true" />
-                <p className="mt-2 text-sm font-black text-slate-800">Ledger history is minimized</p>
-                <p className="mt-1 text-xs font-medium text-slate-500">
+              <div className="rounded-xl border border-dashed border-border bg-muted/45 px-4 py-5 text-center">
+                <ReceiptText className="mx-auto text-muted-foreground" size={26} aria-hidden="true" />
+                <p className="mt-2 text-sm font-black text-foreground">Ledger history is minimized</p>
+                <p className="mt-1 text-sm font-medium text-muted-foreground">
                   Expand only when you need to review or void individual payment records.
                 </p>
               </div>
@@ -452,7 +459,7 @@ export default function SquadPaymentsPanel({
               <div className="overflow-x-auto">
                 <table className="min-w-[900px] w-full text-left text-xs">
                   <thead>
-                    <tr className="border-y border-slate-100 bg-slate-50 text-[10px] uppercase tracking-widest text-slate-400">
+                    <tr className="border-y border-border bg-muted/60 text-[11px] uppercase tracking-widest text-muted-foreground">
                       <th className="px-3 py-2 font-black">Date</th>
                       <th className="px-3 py-2 font-black">Player</th>
                       <th className="px-3 py-2 font-black">Type</th>
@@ -463,9 +470,9 @@ export default function SquadPaymentsPanel({
                       <th className="px-3 py-2 font-black">Action</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-100">
+                  <tbody className="divide-y divide-border">
                     {filteredEntries.map(entry => (
-                      <tr key={entry.id} className={entry.voidedAt ? 'text-slate-400 line-through' : 'text-slate-700'}>
+                      <tr key={entry.id} className={entry.voidedAt ? 'text-muted-foreground line-through' : 'text-foreground'}>
                         <td className="px-3 py-3 font-semibold">{entry.date}</td>
                         <td className="px-3 py-3 font-black">{entry.playerNameSnapshot}</td>
                         <td className="px-3 py-3 font-semibold capitalize">{entry.type}</td>
@@ -475,7 +482,7 @@ export default function SquadPaymentsPanel({
                         <td className="px-3 py-3 font-semibold">{entry.reference ?? entry.note ?? '-'}</td>
                         <td className="px-3 py-3">
                           {entry.voidedAt ? (
-                            <span className="text-[10px] font-black uppercase text-slate-400">Voided</span>
+                            <Badge variant="secondary">Voided</Badge>
                           ) : (
                             <div className="flex min-w-56 items-center gap-2">
                               <Input
@@ -503,71 +510,71 @@ export default function SquadPaymentsPanel({
                 </table>
               </div>
             ) : (
-              <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 py-10 text-center">
-                <AlertCircle className="mx-auto text-slate-300" size={28} />
-                <p className="mt-2 text-sm font-black text-slate-700">No payment entries yet</p>
-                <p className="mt-1 text-xs font-medium text-slate-500">Record a fee or payment to begin the ledger.</p>
+              <div className="rounded-xl border border-dashed border-border bg-muted/45 py-10 text-center">
+                <AlertCircle className="mx-auto text-muted-foreground" size={28} />
+                <p className="mt-2 text-sm font-black text-foreground">No payment entries yet</p>
+                <p className="mt-1 text-sm font-medium text-muted-foreground">Record a fee or payment to begin the ledger.</p>
               </div>
             )}
           </div>
         </div>
 
         <aside className="space-y-4">
-          <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+          <div className={paymentCardClass}>
             <div className="flex items-center justify-between gap-3">
               <div>
-                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Current month</p>
-                <h3 className="mt-1 font-display text-sm font-black uppercase tracking-wider text-slate-800">
+                <p className={paymentLabelClass}>Current month</p>
+                <h3 className={`mt-1 ${paymentTitleClass}`}>
                   {formatMonthLabel(currentMonthKey)}
                 </h3>
               </div>
-              <CalendarClock size={18} className="text-indigo-600" aria-hidden="true" />
+              <CalendarClock size={18} className="text-primary" aria-hidden="true" />
             </div>
             <div className="mt-4 grid grid-cols-2 gap-2 text-xs">
-              <div className="rounded-xl border border-slate-100 bg-slate-50 p-3">
-                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Charged</p>
-                <p className="mt-1 font-black text-slate-800">{formatPeso(currentMonthSummary?.charged ?? 0)}</p>
+              <div className={paymentSubtleCardClass}>
+                <p className={paymentLabelClass}>Charged</p>
+                <p className="mt-1 font-black text-foreground">{formatPeso(currentMonthSummary?.charged ?? 0)}</p>
               </div>
-              <div className="rounded-xl border border-emerald-100 bg-emerald-50 p-3">
-                <p className="text-[10px] font-black uppercase tracking-widest text-emerald-600">Collected</p>
-                <p className="mt-1 font-black text-emerald-700">{formatPeso(currentMonthSummary?.paid ?? 0)}</p>
+              <div className="rounded-xl border border-success/20 bg-success/10 p-3">
+                <p className="text-[11px] font-black uppercase tracking-widest text-success">Collected</p>
+                <p className="mt-1 font-black text-success">{formatPeso(currentMonthSummary?.paid ?? 0)}</p>
               </div>
-              <div className="rounded-xl border border-amber-100 bg-amber-50 p-3">
-                <p className="text-[10px] font-black uppercase tracking-widest text-amber-600">Remaining</p>
-                <p className="mt-1 font-black text-amber-700">{formatPeso(Math.max(currentMonthSummary?.balance ?? 0, 0))}</p>
+              <div className="rounded-xl border border-warning/25 bg-warning/15 p-3">
+                <p className="text-[11px] font-black uppercase tracking-widest text-warning-foreground">Remaining</p>
+                <p className="mt-1 font-black text-warning-foreground">{formatPeso(Math.max(currentMonthSummary?.balance ?? 0, 0))}</p>
               </div>
-              <div className="rounded-xl border border-slate-100 bg-slate-50 p-3">
-                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Entries</p>
-                <p className="mt-1 font-black text-slate-800">{currentMonthSummary?.entryCount ?? 0}</p>
+              <div className={paymentSubtleCardClass}>
+                <p className={paymentLabelClass}>Entries</p>
+                <p className="mt-1 font-black text-foreground">{currentMonthSummary?.entryCount ?? 0}</p>
               </div>
             </div>
             <div className="mt-4">
-              <div className="mb-1.5 flex items-center justify-between text-[10px] font-black uppercase tracking-widest text-slate-400">
+              <div className="mb-1.5 flex items-center justify-between text-[11px] font-black uppercase tracking-widest text-muted-foreground">
                 <span>Collection rate</span>
                 <span>{currentMonthRate}%</span>
               </div>
-              <div className="h-2 overflow-hidden rounded-full bg-slate-100">
-                <div className="h-full rounded-full bg-emerald-500 transition-all" style={{ width: `${currentMonthRate}%` }} />
+              <div className="h-2 overflow-hidden rounded-full bg-muted">
+                <div className="h-full rounded-full bg-success transition-all" style={{ width: `${currentMonthRate}%` }} />
               </div>
             </div>
           </div>
 
-          <div className="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
+          <div className="rounded-2xl border border-border bg-card p-3 shadow-sm">
             <div className="mb-3 flex items-start justify-between gap-3">
               <div>
-                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Payment actions</p>
-                <h3 className="mt-1 font-display text-sm font-black uppercase tracking-wider text-slate-800">
+                <p className={paymentLabelClass}>Payment actions</p>
+                <h3 className={`mt-1 ${paymentTitleClass}`}>
                   {activeAction === 'record' ? 'Record entry' : 'Charge roster'}
                 </h3>
               </div>
               {activeAction === 'record' ? (
-                <Plus size={18} className="shrink-0 text-indigo-600" aria-hidden="true" />
+                <Plus size={18} className="shrink-0 text-primary" aria-hidden="true" />
               ) : (
-                <ReceiptText size={18} className="shrink-0 text-slate-700" aria-hidden="true" />
+                <ReceiptText size={18} className="shrink-0 text-foreground" aria-hidden="true" />
               )}
             </div>
 
-            <div className="mb-3 grid grid-cols-2 rounded-xl bg-slate-100 p-1">
+            <div className="mb-3 grid grid-cols-2 rounded-xl bg-muted p-1">
               <Button
                 type="button"
                 variant="ghost"
@@ -575,7 +582,7 @@ export default function SquadPaymentsPanel({
                 onClick={() => setActiveAction('record')}
                 className={cn(
                   'h-8 rounded-lg text-[10px] font-black uppercase tracking-wider',
-                  activeAction === 'record' ? 'bg-white text-indigo-700 shadow-sm hover:bg-white' : 'text-slate-500 hover:bg-white/70'
+                  activeAction === 'record' ? 'bg-card text-primary shadow-sm hover:bg-card' : 'text-muted-foreground hover:bg-card/70'
                 )}
               >
                 Record
@@ -587,7 +594,7 @@ export default function SquadPaymentsPanel({
                 onClick={() => setActiveAction('charge')}
                 className={cn(
                   'h-8 rounded-lg text-[10px] font-black uppercase tracking-wider',
-                  activeAction === 'charge' ? 'bg-white text-slate-900 shadow-sm hover:bg-white' : 'text-slate-500 hover:bg-white/70'
+                  activeAction === 'charge' ? 'bg-card text-foreground shadow-sm hover:bg-card' : 'text-muted-foreground hover:bg-card/70'
                 )}
               >
                 Charge
@@ -723,13 +730,13 @@ export default function SquadPaymentsPanel({
                     <FieldError id="payment-note-error" message={formErrors.note} />
                   </div>
                 </div>
-                <Button type="submit" className="w-full rounded-xl bg-indigo-600 text-xs font-black uppercase tracking-wider hover:bg-indigo-700">
+                <Button type="submit" className="w-full rounded-xl text-xs font-black uppercase tracking-wider">
                   <CheckCircle2 size={14} /> Save entry
                 </Button>
               </form>
             ) : (
               <form ref={bulkFormRef} onSubmit={handleBulkSubmit} className="space-y-2" noValidate>
-                <p className="text-[11px] font-medium text-slate-500">Creates one fee entry per active player.</p>
+                <p className="text-sm font-medium text-muted-foreground">Creates one fee entry per active player.</p>
                 <FormErrorSummary id="bulk-payment-errors" errors={bulkErrors} />
                 <div>
                   <Label className="mb-1.5 block">Category</Label>
@@ -782,19 +789,19 @@ export default function SquadPaymentsPanel({
                   <Label className="mb-1.5 block">Note</Label>
                   <Textarea value={bulkNote} onChange={event => setBulkNote(event.target.value)} rows={2} placeholder="Optional note" className={cn('min-h-14', paymentInputClass)} />
                 </div>
-                <Button type="submit" disabled={players.filter(player => player.registrationStatus === 'Active').length === 0} className="w-full rounded-xl bg-slate-900 text-xs font-black uppercase tracking-wider hover:bg-slate-800">
+                <Button type="submit" disabled={players.filter(player => player.registrationStatus === 'Active').length === 0} className="w-full rounded-xl text-xs font-black uppercase tracking-wider">
                   <ReceiptText size={14} /> Charge active roster
                 </Button>
               </form>
             )}
           </div>
 
-          <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+          <div className={paymentCardClass}>
             <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
               <div>
-                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Previous months</p>
-                <h3 className="mt-1 font-display text-sm font-black uppercase tracking-wider text-slate-800">Monthly payment history</h3>
-                <p className="mt-1 text-[11px] font-medium text-slate-500">
+                <p className={paymentLabelClass}>Previous months</p>
+                <h3 className={`mt-1 ${paymentTitleClass}`}>Monthly payment history</h3>
+                <p className="mt-1 text-sm font-medium text-muted-foreground">
                   Showing {visibleMonthlyHistory.length} of {monthlyHistory.length} month{monthlyHistory.length === 1 ? '' : 's'}.
                 </p>
               </div>
@@ -818,7 +825,7 @@ export default function SquadPaymentsPanel({
                     )}
                   </Button>
                 )}
-                <TrendingUp size={18} className="text-emerald-600" aria-hidden="true" />
+                <TrendingUp size={18} className="text-success" aria-hidden="true" />
               </div>
             </div>
             {visibleMonthlyHistory.length > 0 ? (
@@ -829,35 +836,35 @@ export default function SquadPaymentsPanel({
                     type="button"
                     onClick={() => setMonthFilter(month.monthKey)}
                     variant="ghost"
-                    className={`h-auto min-h-[6.75rem] w-full flex-col items-stretch justify-start gap-0 whitespace-normal rounded-xl border p-2.5 text-left transition-colors hover:border-indigo-200 hover:bg-indigo-50/40 ${
-                      monthFilter === month.monthKey ? 'border-indigo-300 bg-indigo-50' : 'border-slate-100 bg-slate-50'
+                    className={`h-auto min-h-[6.75rem] w-full flex-col items-stretch justify-start gap-0 whitespace-normal rounded-xl border p-2.5 text-left transition-colors hover:border-primary/30 hover:bg-primary/5 ${
+                      monthFilter === month.monthKey ? 'border-primary/30 bg-primary/10' : 'border-border bg-muted/45'
                     }`}
                   >
                     <div className="flex items-center justify-between gap-2">
-                      <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">{month.monthLabel}</p>
-                      <span className="text-[10px] font-black text-slate-400">{month.entryCount} rows</span>
+                      <p className="text-[11px] font-black uppercase tracking-widest text-foreground">{month.monthLabel}</p>
+                      <span className="text-[11px] font-black text-muted-foreground">{month.entryCount} rows</span>
                     </div>
-                    <div className="mt-2 grid grid-cols-3 gap-1.5 text-[9px]">
+                    <div className="mt-2 grid grid-cols-3 gap-1.5 text-[10px]">
                       <div>
-                        <p className="font-black uppercase tracking-widest text-slate-400">Fee</p>
-                        <p className="mt-0.5 font-black text-slate-700">{formatPeso(month.charged)}</p>
+                        <p className="font-black uppercase tracking-widest text-muted-foreground">Fee</p>
+                        <p className="mt-0.5 font-black text-foreground">{formatPeso(month.charged)}</p>
                       </div>
                       <div>
-                        <p className="font-black uppercase tracking-widest text-emerald-600">Paid</p>
-                        <p className="mt-0.5 font-black text-emerald-700">{formatPeso(month.paid)}</p>
+                        <p className="font-black uppercase tracking-widest text-success">Paid</p>
+                        <p className="mt-0.5 font-black text-success">{formatPeso(month.paid)}</p>
                       </div>
                       <div>
-                        <p className="font-black uppercase tracking-widest text-amber-600">Open</p>
-                        <p className="mt-0.5 font-black text-amber-700">{formatPeso(Math.max(month.balance, 0))}</p>
+                        <p className="font-black uppercase tracking-widest text-warning-foreground">Open</p>
+                        <p className="mt-0.5 font-black text-warning-foreground">{formatPeso(Math.max(month.balance, 0))}</p>
                       </div>
                     </div>
                   </Button>
                 ))}
               </div>
             ) : (
-              <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 p-6 text-center">
-                <p className="text-xs font-black text-slate-700">No monthly history yet</p>
-                <p className="mt-1 text-[11px] font-medium text-slate-500">Monthly summaries appear after you record charges or payments.</p>
+              <div className="rounded-xl border border-dashed border-border bg-muted/45 p-6 text-center">
+                <p className="text-sm font-black text-foreground">No monthly history yet</p>
+                <p className="mt-1 text-sm font-medium text-muted-foreground">Monthly summaries appear after you record charges or payments.</p>
               </div>
             )}
           </div>
