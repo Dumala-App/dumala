@@ -43,6 +43,11 @@ const parseAnnouncementCategory = (value: string): AnnouncementCategory => (
 );
 
 const announcementControlClass = 'rounded-xl text-sm';
+const announcementCardClass = 'rounded-2xl border border-border bg-card p-5 shadow-sm';
+const announcementHeaderClass = 'border-b border-border pb-3';
+const announcementTitleClass = 'font-display text-lg font-black tracking-tight text-foreground';
+const announcementDescriptionClass = 'mt-1 text-sm font-medium leading-relaxed text-muted-foreground';
+const announcementLabelClass = 'text-[11px] font-black uppercase tracking-widest text-muted-foreground';
 
 export default function AnnouncementsView({ announcements, onAddAnnouncement, onDeleteAnnouncement }: AnnouncementsViewProps) {
   const [isAdding, setIsAdding] = useState(false);
@@ -76,14 +81,14 @@ export default function AnnouncementsView({ announcements, onAddAnnouncement, on
     <div id="announcements-view-container" className="space-y-6">
       
       {/* Title Header Panel */}
-      <div className="flex justify-between items-center bg-white p-5 rounded-2xl border border-slate-200/60 shadow-md shadow-slate-100/30">
+      <div className={`${announcementCardClass} flex flex-col justify-between gap-4 sm:flex-row sm:items-center`}>
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-indigo-50 text-indigo-700 rounded-xl flex items-center justify-center">
-            <Megaphone size={18} className="animate-bounce" />
+          <div className="flex size-10 items-center justify-center rounded-xl border border-primary/15 bg-primary/10 text-primary">
+            <Megaphone size={18} />
           </div>
           <div>
-            <h3 className="font-display font-semibold text-slate-800 text-lg">Team Bulletin Board</h3>
-            <p className="text-slate-400 text-xs">Official communications and game-day alerts for all squad members.</p>
+            <h3 className={announcementTitleClass}>Team Bulletin Board</h3>
+            <p className={announcementDescriptionClass}>Official communications and game-day alerts for all squad members.</p>
           </div>
         </div>
 
@@ -91,7 +96,7 @@ export default function AnnouncementsView({ announcements, onAddAnnouncement, on
           id="toggle-announcement-form-btn"
           type="button"
           onClick={() => setIsAdding(!isAdding)}
-          className="rounded-xl border border-indigo-650/10 bg-indigo-600 text-xs font-bold text-white shadow-sm hover:bg-indigo-700"
+          className="rounded-xl text-xs font-bold"
         >
           {isAdding ? <Plus size={14} className="rotate-45" /> : <Plus size={14} />}
           {isAdding ? 'Cancel Post' : 'Post Announcement'}
@@ -104,11 +109,14 @@ export default function AnnouncementsView({ announcements, onAddAnnouncement, on
           id="add-announcement-form-container"
           initial={{ opacity: 0, height: 0 }}
           animate={{ opacity: 1, height: "auto" }}
-          className="bg-white p-6 rounded-2xl border border-slate-250 shadow-md shadow-slate-100/35 space-y-4"
+          className={`${announcementCardClass} space-y-4`}
         >
-          <div className="flex items-center gap-2 pb-2 border-b border-slate-100">
-            <Megaphone className="text-indigo-600" size={18} />
-            <h4 className="font-display font-semibold text-slate-800">Draft Bulletin Notice</h4>
+          <div className={`${announcementHeaderClass} flex items-center gap-2`}>
+            <Megaphone className="text-primary" size={18} />
+            <div>
+              <p className={announcementLabelClass}>New bulletin</p>
+              <h4 className="font-display text-base font-black text-foreground">Draft Bulletin Notice</h4>
+            </div>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -171,20 +179,20 @@ export default function AnnouncementsView({ announcements, onAddAnnouncement, on
               </div>
             </div>
 
-            <div className="flex gap-2 justify-end border-t border-slate-50 pt-3">
+            <div className="flex gap-2 justify-end border-t border-border pt-3">
               <Button
                 id="cancel-add-ann-btn"
                 type="button" 
                 onClick={() => setIsAdding(false)}
                 variant="outline"
-                className="rounded-xl text-sm font-medium text-slate-600"
+                className="rounded-xl text-sm font-medium"
               >
                 Cancel
               </Button>
               <Button
                 id="submit-ann-btn"
                 type="submit" 
-                className="rounded-xl bg-indigo-600 px-5 text-sm font-semibold shadow-md hover:bg-indigo-700"
+                className="rounded-xl px-5 text-sm font-semibold"
               >
                 Publish Notice
               </Button>
@@ -196,10 +204,10 @@ export default function AnnouncementsView({ announcements, onAddAnnouncement, on
       {/* Announcements List */}
       <div id="announcement-bulletins-list" className="space-y-4">
         {announcements.length === 0 ? (
-          <div className="bg-white text-center py-12 rounded-2xl border border-slate-100 flex flex-col items-center justify-center space-y-3">
-            <Bell size={32} className="text-slate-300 animate-wiggle" />
-            <h4 className="font-semibold text-slate-700">Notice Bulletin empty</h4>
-            <p className="text-slate-400 text-xs text-center px-6">Any coach updates or schedule changes will highlight here.</p>
+          <div className="flex flex-col items-center justify-center space-y-3 rounded-2xl border border-dashed border-border bg-muted/45 px-6 py-12 text-center">
+            <Bell size={32} className="text-muted-foreground/60" />
+            <h4 className="font-display text-base font-black text-foreground">Notice Bulletin empty</h4>
+            <p className="max-w-sm text-sm font-medium leading-relaxed text-muted-foreground">Any coach updates or schedule changes will highlight here.</p>
           </div>
         ) : (
           announcements.map((ann) => {
@@ -213,16 +221,16 @@ export default function AnnouncementsView({ announcements, onAddAnnouncement, on
                 key={ann.id}
                 initial={{ opacity: 0, y: 5 }}
                 animate={{ opacity: 1, y: 0 }}
-                className={`bg-white rounded-2xl border p-5 shadow-md shadow-slate-100/30 hover:shadow-lg transition-all relative overflow-hidden ${
-                  isUrgent ? 'border-rose-200 bg-rose-50/10' : 'border-slate-200/60'
+                className={`relative overflow-hidden rounded-2xl border bg-card p-5 shadow-sm transition-colors hover:border-primary/25 ${
+                  isUrgent ? 'border-destructive/25 bg-destructive/5' : 'border-border'
                 }`}
               >
                 {/* Left accent bar based on category */}
                 <div className={`absolute top-0 left-0 bottom-0 w-1.5 ${
                   isUrgent ? 'bg-rose-500' :
-                  isMatchday ? 'bg-blue-500' :
-                  isTraining ? 'bg-amber-500' :
-                  'bg-emerald-500'
+                  isMatchday ? 'bg-primary' :
+                  isTraining ? 'bg-warning' :
+                  'bg-success'
                 }`} />
 
                 <div className="flex justify-between items-start pl-2 gap-4">
@@ -235,12 +243,12 @@ export default function AnnouncementsView({ announcements, onAddAnnouncement, on
                       >
                         {ann.category}
                       </Badge>
-                      <span id={`ann-${ann.id}-date`} className="text-slate-400 text-xs">
+                      <span id={`ann-${ann.id}-date`} className="text-xs font-medium text-muted-foreground">
                         Posted: {ann.date}
                       </span>
                     </div>
 
-                    <h4 id={`ann-${ann.id}-title`} className="font-display font-bold text-slate-800 text-base md:text-lg pt-1">
+                    <h4 id={`ann-${ann.id}-title`} className="pt-1 font-display text-base font-black tracking-tight text-foreground md:text-lg">
                       {ann.title}
                     </h4>
                   </div>
@@ -251,7 +259,7 @@ export default function AnnouncementsView({ announcements, onAddAnnouncement, on
                     onClick={() => onDeleteAnnouncement(ann.id)}
                     variant="ghost"
                     size="icon"
-                    className="size-8 text-slate-300 hover:bg-rose-50 hover:text-rose-500"
+                    className="size-8 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
                     title="Remove Bulletin"
                     aria-label={`Remove ${ann.title}`}
                   >
@@ -260,20 +268,20 @@ export default function AnnouncementsView({ announcements, onAddAnnouncement, on
                 </div>
 
                 <div className="mt-3.5 pl-2">
-                  <p id={`ann-${ann.id}-content`} className="text-xs text-slate-600 leading-relaxed whitespace-pre-wrap">
+                  <p id={`ann-${ann.id}-content`} className="whitespace-pre-wrap text-sm font-medium leading-relaxed text-muted-foreground">
                     {ann.content}
                   </p>
                 </div>
 
-                <div className="mt-4 pt-3 pl-2 border-t border-slate-100/50 flex justify-between items-center text-xs text-slate-400">
-                  <span id={`ann-${ann.id}-author`} className="font-semibold text-slate-500 flex items-center gap-1.5">
-                    <span className="w-5 h-5 rounded-full bg-slate-100 flex items-center justify-center text-[10px] font-bold">
+                <div className="mt-4 flex flex-col justify-between gap-3 border-t border-border pt-3 pl-2 text-xs text-muted-foreground sm:flex-row sm:items-center">
+                  <span id={`ann-${ann.id}-author`} className="flex items-center gap-1.5 font-semibold text-foreground">
+                    <span className="flex size-5 items-center justify-center rounded-full bg-muted text-[10px] font-bold text-muted-foreground">
                       {ann.author.charAt(0).toUpperCase()}
                     </span>
                     {ann.author}
                   </span>
                   <div className="flex items-center gap-1.5">
-                    <Info size={12} className="text-slate-400" /> Only Coaches and Admins can delete notices
+                    <Info size={12} className="text-muted-foreground" /> Only Coaches and Admins can delete notices
                   </div>
                 </div>
 
