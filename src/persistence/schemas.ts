@@ -352,6 +352,7 @@ export const tacticsNoteSchema = z.object({
   createdAt: z.string()
 }).passthrough();
 export const tacticsNotesSchema = z.array(tacticsNoteSchema);
+export const matchFormatSchema = z.enum(['11-a-side', '9-a-side', '8-a-side', '7-a-side', '6-a-side', '5-a-side']);
 
 export const draggedPositionsSchema = z.record(
   z.string(),
@@ -361,7 +362,30 @@ export const draggedPositionsSchema = z.record(
 export const drawingPathsSchema = z.array(z.object({
   color: z.string(),
   width: finiteNumber,
+  strokeStyle: z.enum(['Solid', 'Dashed', 'Dotted']).optional(),
+  layer: z.enum(['Runs', 'Passes', 'Pressing', 'Defensive Shape']).optional(),
+  phase: z.enum(['In Possession', 'Out of Possession', 'Transition', 'Set Piece']).optional(),
   points: z.array(z.tuple([finiteNumber, finiteNumber]))
+}));
+
+export const tacticsBoardSnapshotsSchema = z.array(z.object({
+  id: z.string(),
+  name: z.string(),
+  createdAt: z.string(),
+  matchFormat: matchFormatSchema,
+  formation: z.string(),
+  opponentFormation: z.string(),
+  playstyle: z.string(),
+  defensiveStyle: z.string(),
+  phase: z.enum(['In Possession', 'Out of Possession', 'Transition', 'Set Piece']),
+  lineup: tacticsLineupSchema,
+  draggedPositions: draggedPositionsSchema,
+  drawingPaths: drawingPathsSchema,
+  ballPos: z.object({ left: finiteNumber, top: finiteNumber }),
+  wallPos: z.object({ left: finiteNumber, top: finiteNumber }),
+  wallRotation: finiteNumber.default(0),
+  showBall: z.boolean(),
+  showWall: z.boolean()
 }));
 
 export const playerExtrasSchema = z.record(z.string(), z.object({
@@ -373,4 +397,3 @@ export const playerExtrasSchema = z.record(z.string(), z.object({
 export const stringArraySchema = z.array(z.string());
 export const booleanSchema = z.boolean();
 export const stringSchema = z.string();
-export const matchFormatSchema = z.enum(['11-a-side', '9-a-side', '8-a-side', '7-a-side', '6-a-side', '5-a-side']);

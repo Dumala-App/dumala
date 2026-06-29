@@ -17,6 +17,7 @@ import {
   standingsSchema,
   stringArraySchema,
   stringSchema,
+  tacticsBoardSnapshotsSchema,
   tacticsLineupSchema,
   tacticsNotesSchema,
   teamInfoSchema,
@@ -61,6 +62,7 @@ export const STORAGE_KEYS = {
   tacticsNotes: 'stack_tactics_quick_notes',
   draggedPositions: 'stack_tactics_dragged_positions',
   drawingPaths: 'stack_tactics_draw_paths',
+  tacticsBoardSnapshots: 'stack_tactics_board_snapshots',
   preRestoreBackup: 'stack_pre_restore_backup'
 } as const;
 
@@ -104,7 +106,8 @@ export const storageSchemas = {
   [STORAGE_KEYS.lineup]: tacticsLineupSchema,
   [STORAGE_KEYS.tacticsNotes]: tacticsNotesSchema,
   [STORAGE_KEYS.draggedPositions]: draggedPositionsSchema,
-  [STORAGE_KEYS.drawingPaths]: drawingPathsSchema
+  [STORAGE_KEYS.drawingPaths]: drawingPathsSchema,
+  [STORAGE_KEYS.tacticsBoardSnapshots]: tacticsBoardSnapshotsSchema
 } as const;
 
 export type RecoveryWarning = {
@@ -163,7 +166,8 @@ const STORAGE_SECTIONS: Record<string, string> = {
   [STORAGE_KEYS.lineup]: 'Tactics lineup',
   [STORAGE_KEYS.tacticsNotes]: 'Tactics notes',
   [STORAGE_KEYS.draggedPositions]: 'Tactics positions',
-  [STORAGE_KEYS.drawingPaths]: 'Tactics drawings'
+  [STORAGE_KEYS.drawingPaths]: 'Tactics drawings',
+  [STORAGE_KEYS.tacticsBoardSnapshots]: 'Tactics board snapshots'
 };
 
 const BOOLEAN_STORAGE_KEYS = new Set<string>([

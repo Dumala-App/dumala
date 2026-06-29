@@ -19,6 +19,7 @@ import {
   standingsSchema,
   stringArraySchema,
   stringSchema,
+  tacticsBoardSnapshotsSchema,
   tacticsLineupSchema,
   tacticsNotesSchema,
   teamInfoSchema,
@@ -56,7 +57,8 @@ const tacticsSchema = z.object({
   lineup: tacticsLineupSchema,
   notes: tacticsNotesSchema,
   draggedPositions: draggedPositionsSchema,
-  drawings: drawingPathsSchema
+  drawings: drawingPathsSchema,
+  boardSnapshots: tacticsBoardSnapshotsSchema.default([])
 });
 
 const featureStateSchema = z.object({
@@ -164,7 +166,8 @@ const defaultTactics = {
   lineup: {},
   notes: [],
   draggedPositions: {},
-  drawings: []
+  drawings: [],
+  boardSnapshots: []
 };
 
 export const collectFeatureState = (storage: StorageLike = window.localStorage): WorkspaceBackupV4['featureState'] => ({
@@ -199,7 +202,8 @@ export const collectFeatureState = (storage: StorageLike = window.localStorage):
     lineup: readJsonStorage(STORAGE_KEYS.lineup, tacticsLineupSchema, {}, 'Tactics lineup', storage),
     notes: readJsonStorage(STORAGE_KEYS.tacticsNotes, tacticsNotesSchema, [], 'Tactics notes', storage),
     draggedPositions: readJsonStorage(STORAGE_KEYS.draggedPositions, draggedPositionsSchema, {}, 'Tactics positions', storage),
-    drawings: readJsonStorage(STORAGE_KEYS.drawingPaths, drawingPathsSchema, [], 'Tactics drawings', storage)
+    drawings: readJsonStorage(STORAGE_KEYS.drawingPaths, drawingPathsSchema, [], 'Tactics drawings', storage),
+    boardSnapshots: readJsonStorage(STORAGE_KEYS.tacticsBoardSnapshots, tacticsBoardSnapshotsSchema, [], 'Tactics board snapshots', storage)
   }
 });
 
@@ -326,7 +330,8 @@ const writesForBackup = (backup: WorkspaceBackupV4): Array<[string, unknown, 'js
   [STORAGE_KEYS.lineup, backup.featureState.tactics.lineup, 'json'],
   [STORAGE_KEYS.tacticsNotes, backup.featureState.tactics.notes, 'json'],
   [STORAGE_KEYS.draggedPositions, backup.featureState.tactics.draggedPositions, 'json'],
-  [STORAGE_KEYS.drawingPaths, backup.featureState.tactics.drawings, 'json']
+  [STORAGE_KEYS.drawingPaths, backup.featureState.tactics.drawings, 'json'],
+  [STORAGE_KEYS.tacticsBoardSnapshots, backup.featureState.tactics.boardSnapshots, 'json']
 ];
 
 export const applyWorkspaceBackup = (backup: WorkspaceBackupV4, storage: StorageLike = window.localStorage) => {

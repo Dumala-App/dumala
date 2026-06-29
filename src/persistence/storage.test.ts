@@ -150,6 +150,7 @@ describe('startup storage inspection', () => {
     storage.setItem(STORAGE_KEYS.opponentFormation, '3-5-2');
     storage.setItem(STORAGE_KEYS.matchFormat, '9-a-side');
     storage.setItem(STORAGE_KEYS.isCustomStrategy, 'false');
+    storage.setItem(STORAGE_KEYS.tacticsBoardSnapshots, JSON.stringify([]));
 
     expect(inspectDumalaStorage(storage)).toEqual([]);
   });
