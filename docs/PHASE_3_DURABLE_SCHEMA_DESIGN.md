@@ -637,18 +637,24 @@ Key fields:
 - `match_format`
 - `formation`
 - `playstyle`
-- `is_custom_strategy`
-- `custom_playstyle_value`
-- `custom_defensive_value`
-- `custom_mentality_value`
-- `custom_strategy_notes`
+- `opponent_formation`
 - `coach_level`
 - `captain_player_id`
 - `penalty_taker_player_id`
 - `free_kick_taker_player_id`
 - `corner_taker_player_id`
 - `defensive_style`
+
+Legacy compatibility fields:
+
+- `is_custom_strategy`
+- `custom_playstyle_value`
+- `custom_defensive_value`
+- `custom_mentality_value`
+- `custom_strategy_notes`
 - `custom_playstyles` as bounded JSONB
+
+The current Tactics UI no longer exposes the custom strategy editor. These fields remain documented for migration compatibility with earlier browser backups and seeded workspaces. Future strategy content should be represented as curated attack/defense records and ranked by the tactics recommendation service rather than as free-form custom-plan state.
 
 Constraints:
 

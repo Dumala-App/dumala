@@ -1,6 +1,6 @@
 # Dumala Product Requirements Document
 
-Updated: 2026-06-28
+Updated: 2026-06-29
 
 ## 1. Product summary
 
@@ -75,7 +75,10 @@ Dumala provides one structured workspace for weekly team administration and repe
 - Position-aware lineup auto-fill.
 - Manual lineup assignment and board positioning.
 - Captain and set-piece roles.
-- Playstyle, defensive style, custom strategy, drawing paths, and quick notes.
+- Curated attacking and defensive strategy cards.
+- Opponent formation selection, Shape Impact summary, and matchup-based strategy recommendations.
+- In-app fullscreen Match Layout with drawing tools, ball/wall accessories, scenarios, phases, drawing layers, and saved snapshots.
+- Drawing paths and quick notes.
 - Coach identity sourced from the roster when available.
 
 ### Development
@@ -130,6 +133,10 @@ Dumala provides one structured workspace for weekly team administration and repe
 - Empty slots must prefer players matching the slot's position group.
 - Every assigned board card must display a readable player name.
 - Lineup and tactical settings must persist locally.
+- Formation selection must stay compact and not duplicate information already shown in the board HUD or matchup panel.
+- Shape Impact must provide glanceable, data-driven coaching cues from the selected match format, team formation, and opponent formation.
+- Matchup Strategy must recommend attack and defense plans without automatically changing the coach's selected style.
+- The deprecated custom strategy editor must not appear in the current Tactics UI; curated strategy records are the extension point for future coaching content.
 
 ### Training
 

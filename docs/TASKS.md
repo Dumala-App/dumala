@@ -1,6 +1,6 @@
 # Dumala Delivery Tasks
 
-Updated: 2026-06-28
+Updated: 2026-06-29
 
 Status values: **Done**, **In Progress**, **Next**, **Planned**, **Long Term**.
 
@@ -9,7 +9,7 @@ Status values: **Done**, **In Progress**, **Next**, **Planned**, **Long Term**.
 Progress is calculated from the completed capabilities and open checklist items in this document. The roadmap bars track implementation, while Release Validation tracks the latest verified build checks.
 
 ```text
-Overall roadmap                 [########--]  79%  83 / 105
+Overall roadmap                 [########--]  80%  84 / 105
 
 Shipped beta foundation         [##########] 100%  20 / 20
 Current Beta: Reliability       [##########] 100%  24 / 24
@@ -43,6 +43,15 @@ Release validation              [##########] 100%  14 / 14
 The FPRDS total includes sixteen completed capabilities: the five shipped assessment features plus interpolation, role-weighting, age-transition, required-field validation coverage, true historical progress charts, player/session comparison reports, the evidence-based development doctrine, training evidence naming, removal of direct training-to-rating mutation, reassessment recommendations, and rating confidence labels. Practitioner benchmark review is deferred until qualified external reviewers are available.
 
 ## Recent changes
+
+### Completed: 2026-06-29
+
+- [x] Redesigned the Tactics workspace around a compact command flow with pitch-first planning, side panels, and reduced duplicate controls.
+- [x] Added an in-app fullscreen Match Layout with synced players, drawings, ball, defensive wall, scenario presets, phase selector, drawing layers, snapshots, and a hideable coach toolset.
+- [x] Added the updatable tactical strategy engine with curated attack/defense strategy records, opponent formation selection, deterministic matchup recommendations, Shape Impact cards, and explainable Coach Read details.
+- [x] Replaced the oversized Formation Library grid with a compact formation selector and removed the repetitive Current Game Plan summary.
+- [x] Removed the deprecated custom strategy editor, including Custom Playstyle Directive, Custom Defensive Anchor, mentality selector, strategy notes, and the custom/preset toggle from the Tactics UI.
+- [x] Fixed tablet/iPad layout issues in the Attacking Plan and Defensive Plan cards so text wraps without overlap.
 
 ### Completed: 2026-06-28
 

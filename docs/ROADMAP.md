@@ -1,6 +1,6 @@
 # Dumala Product Roadmap
 
-Updated: 2026-06-28
+Updated: 2026-06-29
 
 ## Source of truth
 
@@ -19,6 +19,7 @@ Status: **Complete**
 - Polish the Home dashboard hero and remove outdated promotional surfaces from the operational overview.
 - Support week-by-week training planning from the Development planner.
 - Support multiple local team workspaces from the navbar while keeping cloud club switching as a later capability.
+- Keep the Tactics page focused on pitch planning, curated strategy cards, opponent-shape recommendations, and fullscreen board controls instead of free-form custom-plan editing.
 
 ### Completion criteria
 
