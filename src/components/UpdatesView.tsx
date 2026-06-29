@@ -4,6 +4,8 @@ import { Button } from './ui/button';
 
 export default function UpdatesView() {
   const [openEntries, setOpenEntries] = useState<Record<string, boolean>>({
+    assessment_feedback_reports_and_polish: true,
+    multi_team_supabase_migration_setup: true,
     coaching_library_redesigned: true,
     assessment_team_history_notes: true,
     fprds_comparison_reports: true,
@@ -26,6 +28,99 @@ export default function UpdatesView() {
   };
 
   const changelogEntries = [
+    {
+      id: 'assessment_feedback_reports_and_polish',
+      date: '2026-06-29',
+      title: 'Assessment Feedback Reports and UI Polish',
+      summary: 'Assessment Center feedback is clearer, training quick-starts are more varied, and the main dashboard surfaces now feel more consistent.',
+      accent: 'border-sky-200 bg-sky-50/70',
+      renderContent: () => (
+        <div className="space-y-4">
+          <p className="text-sm text-slate-600 leading-relaxed">
+            Today's update improves the review side of Dumala. Coaches get more useful FPRDS feedback language, clearer assessment reporting, less repetitive training quick-start sessions, and a cleaner visual pass across key dashboard surfaces.
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {[
+              {
+                title: 'Richer FPRDS feedback report',
+                desc: 'Assessment feedback now explains strengths, priority gaps, role context, and next coaching prompts with more practical language.'
+              },
+              {
+                title: 'Progress logic improved',
+                desc: 'New FPRDS progress helpers support better comparison of saved assessment sessions and more reliable report content.'
+              },
+              {
+                title: 'Training quick-start variety',
+                desc: 'Generated training sessions now rotate drill mixes more naturally instead of repeating the same quick-start pattern.'
+              },
+              {
+                title: 'Cleaner app surfaces',
+                desc: 'Dashboard, Payments, and Bulletins were polished with shared card surfaces, standardized badges, and calmer typography.'
+              },
+              {
+                title: 'Build output cleaned up',
+                desc: 'Vendor chunk splitting reduced the main app bundle and removed the large-chunk warning from production builds.'
+              }
+            ].map(item => (
+              <div key={item.title} className="bg-white border border-sky-200 rounded-xl p-4">
+                <h5 className="text-xs font-black text-slate-800 uppercase tracking-wider mb-1.5">{item.title}</h5>
+                <p className="text-xs text-slate-600 leading-relaxed">{item.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )
+    },
+    {
+      id: 'multi_team_supabase_migration_setup',
+      date: '2026-06-28',
+      title: 'Multiple Teams and Supabase Migration Setup',
+      summary: 'Dumala now supports multiple local team workspaces and has clearer Supabase migration foundations for future cloud-backed continuity.',
+      accent: 'border-indigo-200 bg-indigo-50/70',
+      renderContent: () => (
+        <div className="space-y-4">
+          <p className="text-sm text-slate-600 leading-relaxed">
+            Yesterday's update focused on preparing Dumala for coaches who manage more than one team and for a safer future migration path from browser-only workspaces toward Supabase-backed cloud storage.
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {[
+              {
+                title: 'Multiple team workspaces',
+                desc: 'Coaches can create, switch, rename, delete, import, and manage separate team workspaces from the app shell.'
+              },
+              {
+                title: 'Workspace state is isolated',
+                desc: 'Each managed team keeps its own roster, staff, matches, standings, assessments, bulletins, tactics, and payment records.'
+              },
+              {
+                title: 'Safer browser persistence',
+                desc: 'Workspace storage helpers now copy active records into the selected team space before switching, reducing accidental cross-team data mixing.'
+              },
+              {
+                title: 'Supabase migration direction',
+                desc: 'The cloud path remains Supabase-based, with local-first data protected while the app prepares for future durable cloud workspace sync.'
+              },
+              {
+                title: 'Migration-ready boundaries',
+                desc: 'Cloud-facing code stays behind runtime and data-access boundaries so the normal local workflow does not depend on a signed-in cloud account.'
+              },
+              {
+                title: 'Evidence-based development link',
+                desc: 'Training recommendations now connect more directly to assessment evidence, preparing development data for stronger future reporting.'
+              }
+            ].map(item => (
+              <div key={item.title} className="bg-white border border-indigo-200 rounded-xl p-4">
+                <h5 className="text-xs font-black text-slate-800 uppercase tracking-wider mb-1.5">{item.title}</h5>
+                <p className="text-xs text-slate-600 leading-relaxed">{item.desc}</p>
+              </div>
+            ))}
+          </div>
+          <p className="text-xs text-slate-500 leading-relaxed">
+            This is migration setup, not a forced cloud account flow. Existing local team workspaces remain usable without sign-in.
+          </p>
+        </div>
+      )
+    },
     {
       id: 'coaching_library_redesigned',
       date: '2026-06-26',
