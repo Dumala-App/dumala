@@ -241,8 +241,10 @@ describe('workspace backup V4', () => {
       category: 'Strategy',
       createdAt: '2026-06-21T00:00:00.000Z'
     }])); 
+    storage.setItem(STORAGE_KEYS.opponentFormation, '3-5-2');
     const backup = createWorkspaceBackup(core, storage, '2026-06-21T00:00:00.000Z');
     expect(workspaceBackupV4Schema.parse(backup)).toEqual(backup);
+    expect(backup.featureState.tactics.opponentFormation).toBe('3-5-2');
 
     const restored = new MemoryStorage();
     applyWorkspaceBackup(backup, restored);
@@ -254,6 +256,7 @@ describe('workspace backup V4', () => {
     expect(JSON.parse(restored.getItem(STORAGE_KEYS.weeklySchedule)!).Monday).toHaveLength(1);
     expect(JSON.parse(restored.getItem(STORAGE_KEYS.lineup)!).CF.id).toBe('p1');
     expect(JSON.parse(restored.getItem(STORAGE_KEYS.tacticsNotes)!)).toHaveLength(1);
+    expect(restored.getItem(STORAGE_KEYS.opponentFormation)).toBe('3-5-2');
   });
 
   it('parses a current V4 backup without legacy migration and preserves payment ledger records', () => {
