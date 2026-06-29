@@ -34,20 +34,20 @@ export function OnboardingCloudAccountEntry({
   authController?: CloudAuthController;
 }) {
   return (
-    <section aria-labelledby="onboarding-cloud-account-title" className="rounded-lg border border-white/[0.055] bg-white/[0.018] px-3 py-2">
-      <div className="grid gap-2 md:grid-cols-[minmax(0,0.82fr)_minmax(15rem,0.96fr)] md:items-center">
-        <div className="flex items-start gap-2">
-          <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-md border border-cyan-300/12 bg-cyan-300/[0.045] text-cyan-200/70">
-            <Cloud size={12} aria-hidden="true" />
-          </span>
-          <div>
-            <h2 id="onboarding-cloud-account-title" className="text-[11px] font-bold text-slate-200">
-              Register or sign in
+    <section aria-labelledby="onboarding-cloud-account-title" className="rounded-2xl border border-cyan-300/10 bg-white/[0.022] p-3 shadow-lg shadow-black/15">
+      <div className="grid gap-3 md:grid-cols-[minmax(0,0.9fr)_minmax(16rem,0.92fr)] md:items-center">
+        <div>
+          <div className="flex items-center gap-2">
+            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-cyan-300/15 bg-cyan-300/[0.06] text-cyan-200">
+              <Cloud size={13} aria-hidden="true" />
+            </span>
+            <h2 id="onboarding-cloud-account-title" className="text-sm font-black text-slate-100">
+              Start with Dumala Cloud
             </h2>
-            <p className="mt-0.5 text-[9.5px] leading-4 text-slate-500">
-              Use your email for a private cloud account, or continue locally below.
-            </p>
           </div>
+          <p className="mt-2 max-w-sm text-[11px] leading-5 text-slate-400">
+            Google is the fastest way to create or access your private coach account. You can still continue locally below.
+          </p>
         </div>
         {runtime.enabled ? (
           <CloudAccountGate

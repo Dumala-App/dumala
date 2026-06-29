@@ -33,7 +33,7 @@ describe('CloudAccountGate', () => {
     expect(html).toBe('');
   });
 
-  it('renders email/password and Google sign-in options when signed out', () => {
+  it('prioritizes Google sign-in and keeps email options as a fallback', () => {
     const runtime = {
       enabled: true,
       dataAccess: { auth: {}, account: {} }
@@ -46,12 +46,11 @@ describe('CloudAccountGate', () => {
       />
     );
 
-    expect(html).toContain('Cloud account');
-    expect(html).toContain('coach@example.com');
-    expect(html).toContain('Sign in');
-    expect(html).toContain('Create account');
-    expect(html).toContain('Email link');
     expect(html).toContain('Continue with Google');
+    expect(html).toContain('Fastest for new and returning coaches.');
+    expect(html).toContain('Use email instead');
+    expect(html).not.toContain('coach@example.com');
+    expect(html).not.toContain('Create account');
   });
 
   it('submits OTP requests through the auth controller boundary', async () => {

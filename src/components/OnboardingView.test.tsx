@@ -34,12 +34,11 @@ describe('OnboardingView cloud account entry', () => {
 
     const html = renderOnboarding(runtime);
 
-    expect(html).toContain('Register or sign in');
-    expect(html).toContain('coach@example.com');
-    expect(html).toContain('Sign in');
-    expect(html).toContain('Create account');
+    expect(html).toContain('Start with Dumala Cloud');
     expect(html).toContain('Continue with Google');
-    expect(html).toContain('Use your email for a private cloud account');
+    expect(html).toContain('Google is the fastest way');
+    expect(html).toContain('Use email instead');
+    expect(html).not.toContain('coach@example.com');
     expect(html).toContain('Official team name');
     expect(html).toContain('Centermall Grounds');
     expect(html).toContain('Regional Premier');
@@ -49,7 +48,7 @@ describe('OnboardingView cloud account entry', () => {
   it('explains that registration is unavailable while preserving local setup when cloud is disabled', () => {
     const html = renderOnboarding({ enabled: false, dataAccess: null });
 
-    expect(html).toContain('Register or sign in');
+    expect(html).toContain('Start with Dumala Cloud');
     expect(html).toContain('Cloud registration is unavailable in this build');
     expect(html).not.toContain('coach@example.com');
     expect(html).toContain('Official team name');

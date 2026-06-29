@@ -38,11 +38,9 @@ describe('WorkspaceStatusBar', () => {
 
     expect(html).toContain('Workspace ready.');
     expect(html).toContain('Saved locally');
-    expect(html).toContain('Cloud account');
-    expect(html).toContain('coach@example.com');
-    expect(html).toContain('Sign in');
-    expect(html).toContain('Create account');
     expect(html).toContain('Continue with Google');
+    expect(html).toContain('Use email instead');
+    expect(html).not.toContain('coach@example.com');
     expect(html).toContain('Feedback');
     expect(html).toContain('Reset');
   });
