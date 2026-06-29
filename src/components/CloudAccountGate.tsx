@@ -1,5 +1,5 @@
 import React, { FormEvent, useEffect, useRef, useState } from 'react';
-import { CheckCircle2, Chrome, KeyRound, Loader2, LogIn, LogOut, Mail, UserPlus } from 'lucide-react';
+import { CheckCircle2, ChevronDown, Chrome, KeyRound, Loader2, LogOut, Mail, UserPlus } from 'lucide-react';
 import { useCloudAuth, type CloudAuthController } from '../hooks/useCloudAuth';
 import { useCloudRuntime } from '../hooks/useCloudRuntime';
 import type { AccountBootstrapInput } from '../cloud/account';
@@ -107,6 +107,7 @@ export const CloudAccountGate = ({
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [mode, setMode] = useState<'signIn' | 'register' | 'magicLink'>('signIn');
+  const [emailFallbackOpen, setEmailFallbackOpen] = useState(false);
   const [submitState, setSubmitState] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle');
   const [message, setMessage] = useState('');
   const bootstrappedUsers = useRef(new Set<string>());
@@ -200,96 +201,117 @@ export const CloudAccountGate = ({
   }
 
   return (
-    <section aria-label="Cloud account" className={`rounded-lg border px-3 py-2 ${dark ? 'border-slate-700 bg-[#050b14]' : compact ? 'border-border/70 bg-muted/40' : 'border-slate-200 bg-white shadow-sm'}`}>
-      <div className="mb-2 flex flex-wrap gap-1.5">
-        {([
-          ['signIn', 'Sign in', LogIn],
-          ['register', 'Create account', UserPlus],
-          ['magicLink', 'Email link', Mail]
-        ] as const).map(([value, label, Icon]) => (
-          <button
-            key={value}
-            type="button"
-            onClick={() => {
-              setMode(value);
-              setMessage('');
-              setSubmitState('idle');
-            }}
-            className={`inline-flex h-7 items-center gap-1 rounded-md px-2 text-[11px] font-bold transition ${mode === value
-              ? dark ? 'bg-cyan-500 text-slate-950' : 'bg-primary text-primary-foreground'
-              : dark ? 'bg-slate-900 text-slate-300 hover:bg-slate-800' : 'bg-background text-muted-foreground hover:bg-muted'
-            }`}
-          >
-            <Icon size={12} /> {label}
-          </button>
-        ))}
-      </div>
-
-      {mode === 'magicLink' ? (
-        <form onSubmit={handleMagicLinkSubmit} className="flex flex-col gap-2 sm:flex-row sm:items-center">
-          <Label htmlFor="cloud-account-email" className={`shrink-0 text-xs normal-case tracking-normal ${dark ? 'text-slate-300' : 'text-slate-700'}`}>Cloud account</Label>
-          <Input
-            id="cloud-account-email"
-            type="email"
-            value={email}
-            onChange={event => setEmail(event.target.value)}
-            placeholder="coach@example.com"
-            className={`h-9 min-w-0 rounded-md px-2.5 text-xs ${compact ? 'sm:w-44' : ''} ${dark ? 'border-slate-700 bg-[#07111f] text-slate-100 placeholder:text-slate-500 focus-visible:border-cyan-400 focus-visible:ring-cyan-400/20' : 'focus-visible:border-indigo-400 focus-visible:ring-indigo-100'}`}
-            required
-          />
-          <Button
-            type="submit"
-            size="sm"
-            disabled={submitState === 'sending'}
-            className={`h-9 gap-1 rounded-md px-2.5 text-xs text-white disabled:bg-slate-500 [&_svg]:size-3.5 ${dark ? 'bg-cyan-600 hover:bg-cyan-500' : 'bg-indigo-600 hover:bg-indigo-700'}`}
-          >
-            {submitState === 'sending' ? <Loader2 size={13} className="animate-spin" /> : <Mail size={13} />}
-            Send link
-          </Button>
-        </form>
-      ) : (
-        <form onSubmit={handlePasswordSubmit} className="flex flex-col gap-2 lg:flex-row lg:items-center">
-        <Label htmlFor="cloud-account-email" className={`shrink-0 text-xs normal-case tracking-normal ${dark ? 'text-slate-300' : 'text-slate-700'}`}>Cloud account</Label>
-        <Input
-          id="cloud-account-email"
-          type="email"
-          value={email}
-          onChange={event => setEmail(event.target.value)}
-          placeholder="coach@example.com"
-          className={`h-9 min-w-0 rounded-md px-2.5 text-xs ${compact ? 'sm:w-44' : ''} ${dark ? 'border-slate-700 bg-[#07111f] text-slate-100 placeholder:text-slate-500 focus-visible:border-cyan-400 focus-visible:ring-cyan-400/20' : 'focus-visible:border-indigo-400 focus-visible:ring-indigo-100'}`}
-          required
-        />
-        <Input
-          id="cloud-account-password"
-          type="password"
-          value={password}
-          onChange={event => setPassword(event.target.value)}
-          placeholder="Password"
-          minLength={mode === 'register' ? 8 : undefined}
-          className={`h-9 min-w-0 rounded-md px-2.5 text-xs ${compact ? 'sm:w-36' : ''} ${dark ? 'border-slate-700 bg-[#07111f] text-slate-100 placeholder:text-slate-500 focus-visible:border-cyan-400 focus-visible:ring-cyan-400/20' : 'focus-visible:border-indigo-400 focus-visible:ring-indigo-100'}`}
-          required
-        />
-        <Button
-          type="submit"
-          size="sm"
-          disabled={submitState === 'sending'}
-          className={`h-9 gap-1 rounded-md px-2.5 text-xs text-white disabled:bg-slate-500 [&_svg]:size-3.5 ${dark ? 'bg-cyan-600 hover:bg-cyan-500' : 'bg-indigo-600 hover:bg-indigo-700'}`}
-        >
-          {submitState === 'sending' ? <Loader2 size={13} className="animate-spin" /> : mode === 'register' ? <UserPlus size={13} /> : <KeyRound size={13} />}
-          {mode === 'register' ? 'Register' : 'Sign in'}
-        </Button>
-      </form>
-      )}
+    <section aria-label="Cloud account" className={`rounded-xl border px-3 py-3 ${dark ? 'border-cyan-300/15 bg-[#050b14]/90' : compact ? 'border-border/70 bg-muted/40' : 'border-slate-200 bg-white shadow-sm'}`}>
       <Button
         type="button"
-        variant="outline"
-        size="sm"
         onClick={() => void handleGoogleSignIn()}
         disabled={submitState === 'sending'}
-        className={`mt-2 h-8 w-full gap-1.5 rounded-md text-xs ${dark ? 'border-slate-700 bg-transparent text-slate-200 hover:bg-slate-900 hover:text-white' : 'bg-background'}`}
+        className={`h-10 w-full gap-2 rounded-lg text-sm font-black shadow-lg disabled:bg-slate-600 [&_svg]:size-4 ${dark ? 'bg-white text-slate-950 shadow-cyan-950/20 hover:bg-cyan-50' : 'bg-slate-950 text-white hover:bg-slate-800'}`}
       >
-        <Chrome size={13} /> Continue with Google
+        {submitState === 'sending' ? <Loader2 size={15} className="animate-spin" /> : <Chrome size={15} />}
+        Continue with Google
       </Button>
+      <p className={`mt-2 text-center text-[10px] leading-4 ${dark ? 'text-slate-500' : 'text-muted-foreground'}`}>
+        Fastest for new and returning coaches.
+      </p>
+
+      <button
+        type="button"
+        onClick={() => {
+          setEmailFallbackOpen(current => !current);
+          setMessage('');
+          setSubmitState('idle');
+        }}
+        className={`mt-2 flex w-full items-center justify-center gap-1.5 rounded-md px-2 py-1.5 text-[11px] font-bold transition ${dark ? 'text-slate-400 hover:bg-slate-900 hover:text-slate-100' : 'text-muted-foreground hover:bg-muted hover:text-foreground'}`}
+        aria-expanded={emailFallbackOpen}
+      >
+        Use email instead
+        <ChevronDown size={12} className={`transition-transform ${emailFallbackOpen ? 'rotate-180' : ''}`} />
+      </button>
+
+      {emailFallbackOpen && (
+        <div className={`mt-2 rounded-lg border p-2 ${dark ? 'border-slate-800 bg-slate-950/70' : 'border-border bg-background/70'}`}>
+          <div className="mb-2 grid grid-cols-3 gap-1 rounded-md bg-slate-900/60 p-1">
+            {([
+              ['signIn', 'Sign in', KeyRound],
+              ['register', 'Create', UserPlus],
+              ['magicLink', 'Link', Mail]
+            ] as const).map(([value, label, Icon]) => (
+              <button
+                key={value}
+                type="button"
+                onClick={() => {
+                  setMode(value);
+                  setMessage('');
+                  setSubmitState('idle');
+                }}
+                className={`inline-flex h-7 items-center justify-center gap-1 rounded px-1.5 text-[10px] font-bold transition ${mode === value
+                  ? dark ? 'bg-cyan-500 text-slate-950' : 'bg-primary text-primary-foreground'
+                  : dark ? 'text-slate-400 hover:bg-slate-800 hover:text-slate-100' : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                }`}
+              >
+                <Icon size={11} /> {label}
+              </button>
+            ))}
+          </div>
+
+          {mode === 'magicLink' ? (
+            <form onSubmit={handleMagicLinkSubmit} className="grid gap-2">
+              <Label htmlFor="cloud-account-email" className={`text-[11px] normal-case tracking-normal ${dark ? 'text-slate-300' : 'text-slate-700'}`}>Email address</Label>
+              <Input
+                id="cloud-account-email"
+                type="email"
+                value={email}
+                onChange={event => setEmail(event.target.value)}
+                placeholder="coach@example.com"
+                className={`h-9 min-w-0 rounded-md px-2.5 text-xs ${dark ? 'border-slate-700 bg-[#07111f] text-slate-100 placeholder:text-slate-500 focus-visible:border-cyan-400 focus-visible:ring-cyan-400/20' : 'focus-visible:border-indigo-400 focus-visible:ring-indigo-100'}`}
+                required
+              />
+              <Button
+                type="submit"
+                size="sm"
+                disabled={submitState === 'sending'}
+                className={`h-9 gap-1 rounded-md px-2.5 text-xs text-white disabled:bg-slate-500 [&_svg]:size-3.5 ${dark ? 'bg-cyan-600 hover:bg-cyan-500' : 'bg-indigo-600 hover:bg-indigo-700'}`}
+              >
+                {submitState === 'sending' ? <Loader2 size={13} className="animate-spin" /> : <Mail size={13} />}
+                Send link
+              </Button>
+            </form>
+          ) : (
+            <form onSubmit={handlePasswordSubmit} className="grid gap-2">
+              <Label htmlFor="cloud-account-email" className={`text-[11px] normal-case tracking-normal ${dark ? 'text-slate-300' : 'text-slate-700'}`}>Email address</Label>
+              <Input
+                id="cloud-account-email"
+                type="email"
+                value={email}
+                onChange={event => setEmail(event.target.value)}
+                placeholder="coach@example.com"
+                className={`h-9 min-w-0 rounded-md px-2.5 text-xs ${dark ? 'border-slate-700 bg-[#07111f] text-slate-100 placeholder:text-slate-500 focus-visible:border-cyan-400 focus-visible:ring-cyan-400/20' : 'focus-visible:border-indigo-400 focus-visible:ring-indigo-100'}`}
+                required
+              />
+              <Input
+                id="cloud-account-password"
+                type="password"
+                value={password}
+                onChange={event => setPassword(event.target.value)}
+                placeholder="Password"
+                minLength={mode === 'register' ? 8 : undefined}
+                className={`h-9 min-w-0 rounded-md px-2.5 text-xs ${dark ? 'border-slate-700 bg-[#07111f] text-slate-100 placeholder:text-slate-500 focus-visible:border-cyan-400 focus-visible:ring-cyan-400/20' : 'focus-visible:border-indigo-400 focus-visible:ring-indigo-100'}`}
+                required
+              />
+              <Button
+                type="submit"
+                size="sm"
+                disabled={submitState === 'sending'}
+                className={`h-9 gap-1 rounded-md px-2.5 text-xs text-white disabled:bg-slate-500 [&_svg]:size-3.5 ${dark ? 'bg-cyan-600 hover:bg-cyan-500' : 'bg-indigo-600 hover:bg-indigo-700'}`}
+              >
+                {submitState === 'sending' ? <Loader2 size={13} className="animate-spin" /> : mode === 'register' ? <UserPlus size={13} /> : <KeyRound size={13} />}
+                {mode === 'register' ? 'Create account' : 'Sign in with email'}
+              </Button>
+            </form>
+          )}
+        </div>
+      )}
       {message && (
         <p className={`mt-1 text-[11px] font-semibold ${submitState === 'error' || auth.state.status === 'error' ? 'text-rose-700' : 'text-emerald-700'}`}>
           {message}
