@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { Player, StaffMember } from '../types';
 import { STAFF_PLACEHOLDER } from '../playerPlaceholders';
-import { Shield, Crown, Star, Flame, Target, Trophy, Zap, Search, RefreshCw, UserCheck, Play, Save, ChevronRight, HelpCircle, User, Info, BarChart2, Edit, Trash2, Plus, Check, Filter, Tag, BookOpen } from 'lucide-react';
+import { Shield, Crown, Star, Flame, Target, Trophy, Zap, Search, RefreshCw, UserCheck, Play, Save, ChevronRight, HelpCircle, User, Info, BarChart2, Edit, Trash2, Plus, Check, Filter, Tag, BookOpen, Maximize2, Minimize2, ClipboardList, Users, SlidersHorizontal } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   draggedPositionsSchema,
@@ -67,6 +67,7 @@ type DrawingPath = {
   points: DrawingPoint[];
 };
 type TacticsWorkspaceSection = 'board' | 'library';
+type TacticsBoardPanel = 'squad' | 'tactics' | 'tools' | 'notes';
 
 const TACTICS_NOTE_CATEGORIES: readonly TacticsNoteCategory[] = ['Formation', 'Set Pieces', 'Strategy', 'General'];
 const EMPTY_SELECT_VALUE = '__none__';
@@ -133,6 +134,70 @@ type MatchFormat = keyof typeof MATCH_FORMAT_CONFIG;
 
 const PLAYSTYLE_OPTIONS = ['Quick Counter', 'Possession Game', 'Long Ball Counter', 'Out Wide'];
 
+const PLAYSTYLE_GUIDANCE: Record<string, {
+  intent: string;
+  bestFor: string;
+  cues: string[];
+  watchout: string;
+}> = {
+  'Quick Counter': {
+    intent: 'Win the ball, play forward early, and attack before the opponent resets.',
+    bestFor: 'Fast forwards, direct passers, and matches where space appears behind the back line.',
+    cues: ['First pass forward', 'Wide runner goes early', 'CF pins center backs'],
+    watchout: 'Can isolate attackers if midfield support is late.'
+  },
+  'Possession Game': {
+    intent: 'Control tempo with short passing, patient circulation, and overloads around the ball.',
+    bestFor: 'Technically secure midfielders and games where you want to slow transitions.',
+    cues: ['Create triangles', 'Switch after pressure', 'Fullbacks offer width'],
+    watchout: 'Needs quick counter-pressing after turnovers.'
+  },
+  'Long Ball Counter': {
+    intent: 'Bypass pressure quickly and compete for second balls in advanced areas.',
+    bestFor: 'Strong target players, quick wide support, or poor build-up conditions.',
+    cues: ['Target sets', 'Midfield squeezes up', 'Second runner attacks space'],
+    watchout: 'Possession can become rushed if the second-ball line is too deep.'
+  },
+  'Out Wide': {
+    intent: 'Stretch the field, isolate wide players, and create crossing or cutback chances.',
+    bestFor: 'Teams with strong wingers, overlapping fullbacks, and aerial or late-box threats.',
+    cues: ['Hold width', 'Overlap on trigger', 'Far post runner arrives'],
+    watchout: 'Central midfield must protect against counters after wide attacks.'
+  }
+};
+
+const DEFENSIVE_STYLE_GUIDANCE: Record<string, {
+  intent: string;
+  bestFor: string;
+  cues: string[];
+  watchout: string;
+}> = {
+  'High Press': {
+    intent: 'Defend forward, trap build-up, and force rushed clearances near goal.',
+    bestFor: 'Fit teams with coordinated forwards and compact midfield support.',
+    cues: ['Press on back pass', 'Nearest jumps', 'Back line holds high'],
+    watchout: 'Vulnerable to balls behind if pressure is late.'
+  },
+  'Half Press': {
+    intent: 'Protect the middle third, then press once the opponent enters a trap zone.',
+    bestFor: 'Balanced teams that want control without constant sprint pressing.',
+    cues: ['Screen central pass', 'Press wide touch', 'Keep lines compact'],
+    watchout: 'Can become passive if the trigger is unclear.'
+  },
+  'Man to Man': {
+    intent: 'Deny easy receivers by assigning direct pressure across key matchups.',
+    bestFor: 'Games with obvious danger players or teams comfortable defending duels.',
+    cues: ['Stay touch-tight', 'Cover if beaten', 'Communicate switches'],
+    watchout: 'Shape can stretch if players chase too far.'
+  },
+  'Low Block': {
+    intent: 'Protect the penalty area, close central lanes, and counter from a compact shell.',
+    bestFor: 'Protecting a lead, facing superior pace, or managing fatigue late in matches.',
+    cues: ['Narrow first', 'Force outside', 'Counter into channels'],
+    watchout: 'Needs an outlet or pressure will keep returning.'
+  }
+};
+
 export default function TacticsView({ players, staff, teamCoach, teamName, teamLogoUrl, onUpdatePlayer }: TacticsViewProps) {
   const [matchFormat, setMatchFormat] = useState<MatchFormat>(() => {
     return readStringStorage(STORAGE_KEYS.matchFormat, matchFormatSchema, '11-a-side', 'Tactics match format');
@@ -141,6 +206,8 @@ export default function TacticsView({ players, staff, teamCoach, teamName, teamL
   const [playstyle, setPlaystyle] = useState<string>(() => readStringStorage(STORAGE_KEYS.playstyle, stringSchema, 'Quick Counter', 'Tactics playstyle'));
   const [activeTab, setActiveTab] = useState<'Tactics' | 'Team' | 'Substitutes' | 'Reserves'>('Tactics');
   const [activeWorkspaceSection, setActiveWorkspaceSection] = useState<TacticsWorkspaceSection>('board');
+  const [activeBoardPanel, setActiveBoardPanel] = useState<TacticsBoardPanel>('squad');
+  const [isBoardFullscreen, setIsBoardFullscreen] = useState<boolean>(false);
   
   // Custom Strategy Mode States
   const [isCustomMode, setIsCustomMode] = useState<boolean>(() => {
@@ -175,6 +242,26 @@ export default function TacticsView({ players, staff, teamCoach, teamName, teamL
   useEffect(() => {
     setIsTeamLogoBroken(false);
   }, [teamLogoUrl]);
+
+  useEffect(() => {
+    if (!isBoardFullscreen) return;
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setIsBoardFullscreen(false);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isBoardFullscreen]);
 
   const renderTeamLogo = (logoSize: number, className = '') => {
     if (!teamLogoUrl || isTeamLogoBroken) {
@@ -919,47 +1006,92 @@ export default function TacticsView({ players, staff, teamCoach, teamName, teamL
   }, [allEligiblePool, lineup, matchFormat]);
 
   return (
-    <div id="tactics-view-container" className="grid grid-cols-1 xl:grid-cols-12 gap-6 bg-slate-900 p-6 rounded-3xl border border-slate-800 text-slate-100 shadow-2xl relative overflow-hidden">
+    <div id="tactics-view-container" className="grid grid-cols-1 xl:grid-cols-12 gap-4 bg-slate-900 p-4 sm:p-5 rounded-2xl border border-slate-800 text-slate-100 shadow-xl relative overflow-hidden">
       
       {/* Visual background ambient glow elements */}
       <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-indigo-650/10 rounded-full blur-[140px] pointer-events-none" />
       <div className="absolute bottom-0 right-1/4 w-[500px] h-[500px] bg-emerald-600/10 rounded-full blur-[140px] pointer-events-none" />
 
       <div className="xl:col-span-12 relative z-10">
-        <div className="flex flex-col gap-3 rounded-2xl border border-slate-800 bg-[#0f172a]/95 p-3 shadow-md md:flex-row md:items-center md:justify-between">
-          <div>
-            <p className="text-[10px] font-black uppercase tracking-widest text-amber-400">Tactics Workspace</p>
-            <p className="text-xs text-slate-400">Switch between live squad planning and tactical study material.</p>
+        <div className="flex flex-col gap-3 rounded-xl border border-slate-800 bg-[#0f172a]/95 p-3 shadow-md">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-widest text-amber-400">Tactics Workspace</p>
+              <h2 className="font-display text-lg font-black text-white">Match planning desk</h2>
+              <p className="text-xs text-slate-400">Set the match shape, work the board, and manage supporting details without leaving the workspace.</p>
+            </div>
+            <div className="grid grid-cols-2 gap-2 rounded-xl border border-slate-800 bg-slate-950/70 p-1">
+              <Button
+                type="button"
+                onClick={() => setActiveWorkspaceSection('board')}
+                variant="ghost"
+                size="sm"
+                className={`h-9 rounded-lg px-3 text-xs font-black uppercase tracking-wide ${
+                  activeWorkspaceSection === 'board'
+                    ? 'bg-emerald-500 text-slate-950 shadow-sm'
+                    : 'text-slate-400 hover:bg-white/5 hover:text-white'
+                }`}
+              >
+                Tactical Board
+              </Button>
+              <Button
+                type="button"
+                onClick={() => setActiveWorkspaceSection('library')}
+                variant="ghost"
+                size="sm"
+                className={`h-9 rounded-lg px-3 text-xs font-black uppercase tracking-wide ${
+                  activeWorkspaceSection === 'library'
+                    ? 'bg-indigo-500 text-white shadow-sm'
+                    : 'text-slate-400 hover:bg-white/5 hover:text-white'
+                }`}
+              >
+                Coaching Library
+              </Button>
+            </div>
           </div>
-          <div className="grid grid-cols-2 gap-2 rounded-xl border border-slate-800 bg-slate-950/70 p-1">
-            <Button
-              type="button"
-              onClick={() => setActiveWorkspaceSection('board')}
-              variant="ghost"
-              size="sm"
-              className={`h-9 rounded-lg px-3 text-xs font-black uppercase tracking-wide ${
-                activeWorkspaceSection === 'board'
-                  ? 'bg-emerald-500 text-slate-950 shadow-sm'
-                  : 'text-slate-400 hover:bg-white/5 hover:text-white'
-              }`}
-            >
-              Tactical Board
-            </Button>
-            <Button
-              type="button"
-              onClick={() => setActiveWorkspaceSection('library')}
-              variant="ghost"
-              size="sm"
-              className={`h-9 rounded-lg px-3 text-xs font-black uppercase tracking-wide ${
-                activeWorkspaceSection === 'library'
-                  ? 'bg-indigo-500 text-white shadow-sm'
-                  : 'text-slate-400 hover:bg-white/5 hover:text-white'
-              }`}
-            >
-              Coaching Library
-            </Button>
+          {activeWorkspaceSection === 'board' && (
+            <div className="grid grid-cols-1 gap-2 border-t border-slate-800 pt-3 md:grid-cols-4">
+              <Select value={matchFormat} onValueChange={(value) => setMatchFormat(value as MatchFormat)}>
+                <SelectTrigger className="h-10 rounded-lg border-slate-800 bg-slate-950 text-xs font-bold text-slate-100 focus:ring-amber-400/30">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="border-slate-800 bg-slate-950 text-slate-100">
+                  <SelectItem value="11-a-side">11-a-side</SelectItem>
+                  <SelectItem value="9-a-side">9-a-side</SelectItem>
+                  <SelectItem value="8-a-side">8-a-side</SelectItem>
+                  <SelectItem value="7-a-side">7-a-side</SelectItem>
+                  <SelectItem value="6-a-side">6-a-side</SelectItem>
+                  <SelectItem value="5-a-side">5-a-side</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={formation} onValueChange={setFormation}>
+                <SelectTrigger className="h-10 rounded-lg border-slate-800 bg-slate-950 text-xs font-bold text-slate-100 focus:ring-amber-400/30">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="border-slate-800 bg-slate-950 text-slate-100">
+                  {MATCH_FORMAT_CONFIG[matchFormat].formations.map((fmt) => (
+                    <SelectItem key={fmt} value={fmt} className="text-xs font-bold">{fmt}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <div className="rounded-lg border border-slate-800 bg-slate-950 px-3 py-2">
+                <p className="text-[9px] font-black uppercase tracking-widest text-slate-500">Active Style</p>
+                <p className="truncate text-xs font-black text-amber-300">{activePlaystyle}</p>
+              </div>
+              <div className="grid grid-cols-3 gap-2">
+                <Button type="button" onClick={handleAutoFillBoard} className="h-10 rounded-lg bg-emerald-500 px-2 text-[10px] font-black text-slate-950 hover:bg-emerald-400">
+                  Auto Fill
+                </Button>
+                <Button type="button" onClick={handleClearBoard} variant="outline" className="h-10 rounded-lg border-rose-500/30 bg-rose-500/10 px-2 text-[10px] font-black text-rose-300 hover:bg-rose-500 hover:text-white">
+                  Clear
+                </Button>
+                <Button type="button" onClick={() => setIsBoardFullscreen(true)} variant="outline" className="h-10 rounded-lg border-slate-700 bg-slate-950 px-2 text-[10px] font-black text-slate-200 hover:bg-slate-800">
+                  <Maximize2 size={13} /> Fullscreen
+                </Button>
+              </div>
+            </div>
+          )}
           </div>
-        </div>
       </div>
 
       {activeWorkspaceSection === 'board' ? (
@@ -1060,117 +1192,101 @@ export default function TacticsView({ players, staff, teamCoach, teamName, teamL
           <span className="text-xs bg-slate-800 text-slate-300 px-2 py-1 rounded font-bold font-mono">CLUB</span>
         </div>
 
-        {/* Squad Selection Buttons & Modes */}
-        <div className="bg-[#0f172a]/95 p-3.5 rounded-2xl border border-slate-800/80 space-y-1.5 shadow-md">
-          <span className="text-[10px] font-bold text-slate-400 tracking-wider uppercase block px-2 pb-1.5 border-b border-slate-800">Squad Directory</span>
-          
-          <Button
-            id="sidebar-team"
-            type="button"
-            onClick={() => setActiveTab('Team')}
-            variant="ghost"
-            size="sm"
-            className={`h-10 w-full justify-start rounded-xl px-3 text-left text-xs font-bold ${
-              activeTab === 'Team' 
-                ? 'bg-slate-800 text-white border-l-4 border-amber-400 pl-2' 
-                : 'text-slate-300 hover:bg-white/5'
-            }`}
-          >
-            <UserCheck size={14} className="text-amber-400" />
-            <span>Starting {MATCH_FORMAT_CONFIG[matchFormat].size} roster</span>
-          </Button>
-
-          <Button
-            id="sidebar-substitutes"
-            type="button"
-            onClick={() => setActiveTab('Substitutes')}
-            variant="ghost"
-            size="sm"
-            className={`h-10 w-full justify-start rounded-xl px-3 text-left text-xs font-bold ${
-              activeTab === 'Substitutes' 
-                ? 'bg-slate-800 text-white border-l-4 border-amber-400 pl-2' 
-                : 'text-slate-300 hover:bg-white/5'
-            }`}
-          >
-            <Zap size={14} className="text-amber-400 animate-pulse" />
-            <span>Substitutes ({substitutes.length})</span>
-          </Button>
-
-          <Button
-            id="sidebar-reserves"
-            type="button"
-            onClick={() => setActiveTab('Reserves')}
-            variant="ghost"
-            size="sm"
-            className={`h-10 w-full justify-start rounded-xl px-3 text-left text-xs font-bold ${
-              activeTab === 'Reserves' 
-                ? 'bg-slate-800 text-white border-l-4 border-amber-400 pl-2' 
-                : 'text-slate-300 hover:bg-white/5'
-            }`}
-          >
-            <Shield size={14} className="text-indigo-400" />
-            <span>Reserves ({allEligiblePool.length})</span>
-          </Button>
-        </div>
-
-        {/* Dedicated Tactic Configuration & Plays Section Card */}
-        <div className="bg-[#0f172a]/95 p-4 rounded-2xl border border-slate-800/80 shadow-md">
-          <div className="flex justify-between items-center mb-2.5">
-            <span className="text-[10px] text-amber-400 font-extrabold uppercase tracking-widest">TACTICS CONTROL</span>
-            <span className="text-[9px] text-slate-400 font-mono">Formations & Plays</span>
+        <div className="bg-[#0f172a]/95 p-3 rounded-xl border border-slate-800/80 shadow-md">
+          <span className="text-[10px] font-bold text-slate-400 tracking-wider uppercase block px-2 pb-2">Workspace Panels</span>
+          <div className="grid grid-cols-2 gap-2">
+            {[
+              { id: 'squad' as const, label: 'Squad', icon: Users },
+              { id: 'tactics' as const, label: 'Tactics', icon: SlidersHorizontal },
+              { id: 'tools' as const, label: 'Tools', icon: Target },
+              { id: 'notes' as const, label: 'Notes', icon: ClipboardList }
+            ].map((item) => {
+              const Icon = item.icon;
+              return (
+                <Button
+                  key={item.id}
+                  type="button"
+                  onClick={() => {
+                    setActiveBoardPanel(item.id);
+                    if (item.id === 'tactics') setActiveTab('Tactics');
+                    if (item.id === 'squad') setActiveTab('Team');
+                  }}
+                  variant="ghost"
+                  size="sm"
+                  className={`h-16 flex-col gap-1 rounded-lg text-[10px] font-black uppercase tracking-wide ${
+                    activeBoardPanel === item.id
+                      ? 'bg-amber-400 text-slate-950 shadow-sm'
+                      : 'bg-slate-950/60 text-slate-400 hover:bg-slate-800 hover:text-white'
+                  }`}
+                >
+                  <Icon size={15} />
+                  {item.label}
+                </Button>
+              );
+            })}
           </div>
-          <Button
-            id="sidebar-tactics"
-            type="button"
-            onClick={() => setActiveTab(activeTab === 'Tactics' ? 'Team' : 'Tactics')}
-            variant="ghost"
-            size="sm"
-            className={`h-10 w-full justify-between rounded-xl px-3 text-left text-xs font-bold ${
-              activeTab === 'Tactics' 
-                ? 'bg-amber-400 text-slate-950 shadow-sm shadow-amber-400/20' 
-                : 'bg-white/5 text-slate-300 hover:bg-white/10'
-            }`}
-          >
-            <span>Tactic Configuration & Plays</span>
-            <ChevronRight size={13} className={`transition-transform duration-200 ${activeTab === 'Tactics' ? 'rotate-90' : ''}`} />
-          </Button>
-          <div className="mt-3.5 space-y-2 text-[11px] text-slate-400 font-mono border-t border-slate-800/50 pt-2.5">
-            <div className="flex justify-between">
-              <span>Formation:</span>
-              <span id="sidebar-val-formation" className="text-white font-bold">{activeFormation}</span>
+          <div className="mt-3 space-y-2 rounded-lg border border-slate-800 bg-slate-950/70 p-3 text-[11px] text-slate-400">
+            <div className="flex justify-between gap-3">
+              <span>Formation</span>
+              <span id="sidebar-val-formation" className="font-bold text-white">{activeFormation}</span>
             </div>
-            <div className="flex justify-between">
-              <span>Playstyle:</span>
-              <span id="sidebar-val-playstyle" className="text-amber-300 font-bold">{activePlaystyle}</span>
+            <div className="flex justify-between gap-3">
+              <span>Playstyle</span>
+              <span id="sidebar-val-playstyle" className="truncate font-bold text-amber-300">{activePlaystyle}</span>
             </div>
-            <div className="flex justify-between">
-              <span>Defense:</span>
-              <span id="sidebar-val-defense" className="text-emerald-400 font-bold">{activeDefensiveStyle}</span>
+            <div className="flex justify-between gap-3">
+              <span>Defense</span>
+              <span id="sidebar-val-defense" className="truncate font-bold text-emerald-400">{activeDefensiveStyle}</span>
             </div>
-            {isCustomMode && (
-              <>
-                <div className="flex justify-between">
-                  <span>Mentality:</span>
-                  <span id="sidebar-val-mentality" className="text-indigo-400 font-bold">{customMentality}</span>
-                </div>
-                <div className="border-t border-slate-800/30 pt-1.5 mt-1">
-                  <span className="text-[9px] text-slate-500 uppercase tracking-widest block font-bold mb-0.5">Custom Plan Notes:</span>
-                  <p id="sidebar-val-notes" className="text-[10px] text-slate-400 italic font-sans leading-tight leading-relaxed">{customStrategyNotes}</p>
-                </div>
-              </>
-            )}
           </div>
+          {activeBoardPanel === 'squad' && (
+            <div className="mt-3 grid grid-cols-1 gap-2 border-t border-slate-800 pt-3">
+              {[
+                { id: 'Team' as const, label: `Starting ${MATCH_FORMAT_CONFIG[matchFormat].size}`, icon: UserCheck },
+                { id: 'Substitutes' as const, label: `Substitutes (${substitutes.length})`, icon: Zap },
+                { id: 'Reserves' as const, label: `Reserves (${allEligiblePool.length})`, icon: Shield }
+              ].map((item) => {
+                const Icon = item.icon;
+                return (
+                  <Button
+                    id={`sidebar-${item.id.toLowerCase()}`}
+                    key={item.id}
+                    type="button"
+                    onClick={() => setActiveTab(item.id)}
+                    variant="ghost"
+                    size="sm"
+                    className={`h-9 w-full justify-start rounded-lg px-3 text-left text-xs font-bold ${
+                      activeTab === item.id
+                        ? 'bg-slate-800 text-white ring-1 ring-amber-400/50'
+                        : 'text-slate-300 hover:bg-white/5'
+                    }`}
+                  >
+                    <Icon size={14} className="text-amber-400" />
+                    <span>{item.label}</span>
+                  </Button>
+                );
+              })}
+            </div>
+          )}
         </div>
 
       </div>
 
 
       {/* MAIN SOCCER PITCH AREA */}
-      <div className="xl:col-span-6 flex flex-col bg-emerald-950/20 rounded-3xl p-4 border border-slate-800 relative z-10">
+      <div
+        className={cn(
+          'xl:col-span-6 flex flex-col bg-emerald-950/20 rounded-xl p-3 sm:p-4 border border-slate-800 relative z-10',
+          isBoardFullscreen && 'fixed inset-0 z-[70] overflow-y-auto rounded-none border-0 bg-slate-950/98 p-3 sm:p-5'
+        )}
+      >
         
-        <div className="flex justify-between items-center mb-4">
-          <h3 className="font-display font-black text-white text-sm tracking-widest uppercase text-emerald-400">Match Layout</h3>
-          <div className="flex items-center gap-2">
+        <div className="flex flex-col gap-3 mb-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h3 className="font-display font-black text-white text-sm tracking-widest uppercase text-emerald-400">Match Layout</h3>
+            <p className="text-[11px] text-slate-400">{activeFormation} · {activePlaystyle} · {MATCH_FORMAT_CONFIG[matchFormat].size} players</p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
             <Button
               type="button"
               onClick={handleAutoFillBoard}
@@ -1189,6 +1305,17 @@ export default function TacticsView({ players, staff, teamCoach, teamName, teamL
             >
               Clear Board
             </Button>
+            <Button
+              type="button"
+              onClick={() => setIsBoardFullscreen((value) => !value)}
+              variant="outline"
+              size="sm"
+              className="h-8 rounded-lg border-slate-700 bg-slate-950 px-2 text-[10px] font-black uppercase tracking-wider text-slate-200 hover:bg-slate-800"
+              aria-label={isBoardFullscreen ? 'Exit match layout fullscreen' : 'Fullscreen match layout board'}
+            >
+              {isBoardFullscreen ? <Minimize2 size={13} /> : <Maximize2 size={13} />}
+              {isBoardFullscreen ? 'Exit' : 'Fullscreen'}
+            </Button>
           </div>
         </div>
 
@@ -1201,7 +1328,10 @@ export default function TacticsView({ players, staff, teamCoach, teamName, teamL
           onPointerUp={handleFieldPointerUp}
           onPointerCancel={handleFieldPointerUp}
           onLostPointerCapture={finishDrawingInteraction}
-          className="relative w-full max-w-[576px] aspect-[7/10] mx-auto bg-[#132c1b] rounded-2xl overflow-hidden border border-emerald-900/60 shadow-lg select-none touch-none"
+          className={cn(
+            'relative w-full max-w-[576px] aspect-[7/10] mx-auto bg-[#132c1b] rounded-xl overflow-hidden border border-emerald-900/60 shadow-lg select-none touch-none',
+            isBoardFullscreen && 'max-h-[calc(100vh-9rem)] max-w-[min(92vw,780px)]'
+          )}
         >
           
           {/* Soccer pitch physical markings overlay */}
@@ -1527,7 +1657,7 @@ export default function TacticsView({ players, staff, teamCoach, teamName, teamL
       <div className="xl:col-span-3 space-y-5 flex flex-col relative z-10">
 
         {/* Coach's Playbook Toolkit */}
-        <div className="bg-[#0f172a]/95 p-4 rounded-2xl border border-slate-800/80 shadow-lg space-y-4">
+        <div className={cn('bg-[#0f172a]/95 p-4 rounded-xl border border-slate-800/80 shadow-lg space-y-4', activeBoardPanel !== 'tools' && 'hidden')}>
           <div className="flex items-center justify-between pb-2 border-b border-slate-800/60">
             <div className="flex items-center gap-2">
               <BookOpen size={20} className="text-indigo-400" />
@@ -1995,68 +2125,26 @@ export default function TacticsView({ players, staff, teamCoach, teamName, teamL
 
       {/* SQUAD SETTING DIRECTORY CONFIG PANEL */}
       <AnimatePresence>
-        {activeTab === 'Tactics' && (
+        {activeBoardPanel === 'tactics' && activeTab === 'Tactics' && (
           <motion.div 
             id="tactics-panel-modal"
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95 }}
-            className="xl:col-span-12 bg-slate-900/90 border border-slate-800 rounded-2xl p-5 mt-4 text-xs select-none relative"
+            className="xl:col-span-12 bg-[#0f172a]/95 border border-slate-800 rounded-xl p-4 text-xs select-none relative shadow-lg lg:p-5"
           >
-            <div className="flex items-center justify-between pb-3.5 border-b border-slate-800 mb-4">
-              <h4 className="font-display font-black text-white flex items-center gap-2 uppercase tracking-wide">
-                <BarChart2 className="text-amber-400 shrink-0" size={16} /> Playstyle Tactics & Formations
-              </h4>
-              <span className="text-[10px] text-slate-400 font-mono">Control Desk</span>
-            </div>
-
-            {/* Match Format Selection */}
-            <div className="mb-6 bg-slate-800/40 p-4 rounded-xl border border-slate-700/50">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div>
-                  <label className="text-[10px] font-black tracking-widest text-slate-300 uppercase block mb-1">
-                    Match Format
-                  </label>
-                  <p className="text-[10px] text-slate-500 max-w-sm">
-                    Select the game type to automatically adjust squad size and available tactical templates.
-                  </p>
-                </div>
-                <Select
-                  value={matchFormat}
-                  onValueChange={(value) => setMatchFormat(value as MatchFormat)}
-                >
-                  <SelectTrigger className="h-9 w-full min-w-[200px] rounded-lg border-slate-700 bg-slate-900 text-xs font-bold text-slate-100 shadow-inner focus:ring-amber-400/30 sm:w-auto">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className="border-slate-800 bg-slate-950 text-slate-100">
-                    <SelectItem value="11-a-side">11-a-side (Full Squad)</SelectItem>
-                    <SelectItem value="9-a-side">9-a-side (Compact)</SelectItem>
-                    <SelectItem value="8-a-side">8-a-side (Flexible)</SelectItem>
-                    <SelectItem value="7-a-side">7-a-side (Half Pitch)</SelectItem>
-                    <SelectItem value="6-a-side">6-a-side (Small Sided)</SelectItem>
-                    <SelectItem value="5-a-side">5-a-side (Futsal / Cage)</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            {/* Custom Mode Toggle with elegant border glow */}
-            <div className="bg-slate-950/60 p-4 rounded-xl border border-indigo-500/30 flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-5">
-              <div className="space-y-1">
-                <div className="flex items-center gap-2">
-                  <Badge className="rounded bg-indigo-600 px-2 py-0.5 text-[9px] text-white">
-                    COACH ENGINE
-                  </Badge>
-                  <span className="text-slate-300 font-bold text-xs">Custom Strategy Mode</span>
-                </div>
-                <p className="text-slate-400 text-[11px] font-sans">
-                  Bypass default templates and manually construct custom team layouts, playing styles, defensive anchors, and coach manuals.
+            <div className="flex flex-col gap-3 border-b border-slate-800 pb-4 md:flex-row md:items-center md:justify-between">
+              <div>
+                <h4 className="font-display font-black text-white flex items-center gap-2 uppercase tracking-wide">
+                  <BarChart2 className="text-amber-400 shrink-0" size={16} /> Playstyle Tactics & Formations
+                </h4>
+                <p className="mt-1 text-[11px] text-slate-400">
+                  Pick a shape, then choose the game behavior your players should recognize on the field.
                 </p>
               </div>
-
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3 rounded-lg border border-slate-800 bg-slate-950 px-3 py-2">
                 <span className={`text-[10px] font-black tracking-wider leading-none ${isCustomMode ? 'text-amber-400' : 'text-slate-500'}`}>
-                  {isCustomMode ? "CUSTOM STRATEGY ACTIVE" : "DEFAULT TEMPLATES ONLY"}
+                  {isCustomMode ? 'Custom plan' : 'Preset guidance'}
                 </span>
                 <Button
                   id="toggle-custom-strategy-mode"
@@ -2077,28 +2165,52 @@ export default function TacticsView({ players, staff, teamCoach, teamName, teamL
             </div>
 
             {/* Team Formation (shared for both modes) */}
-            <div className="bg-slate-950/40 p-4 rounded-xl border border-slate-800/80 mb-5">
-              <label className="text-[10px] font-black tracking-widest text-slate-400 uppercase block mb-1.5">Team Formation</label>
-              <div className="grid grid-cols-3 gap-2 max-h-[160px] overflow-y-auto pr-1">
-                {MATCH_FORMAT_CONFIG[matchFormat].formations.map((fmt) => (
-                  <Button
-                    id={`btn-formation-${fmt}`}
-                    key={fmt}
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setFormation(fmt)}
-                    className={`h-8 rounded-lg px-2 text-center text-[10px] ${
-                      formation === fmt
-                        ? 'border-amber-400 bg-amber-400 text-slate-950 hover:bg-amber-300'
-                        : 'border-slate-700 bg-slate-800/80 text-slate-300 hover:bg-slate-800 hover:text-white'
-                    }`}
-                  >
-                    {fmt}
-                  </Button>
-                ))}
+            <div className="my-4 grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_18rem]">
+              <div className="bg-slate-950/60 p-4 rounded-xl border border-slate-800/80">
+                <div className="mb-3 flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+                  <label className="text-[10px] font-black tracking-widest text-slate-300 uppercase block">Formation Library</label>
+                  <span className="text-[10px] text-slate-500">{matchFormat} · {MATCH_FORMAT_CONFIG[matchFormat].formations.length} shapes</span>
+                </div>
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-7">
+                  {MATCH_FORMAT_CONFIG[matchFormat].formations.map((fmt) => (
+                    <Button
+                      id={`btn-formation-${fmt}`}
+                      key={fmt}
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setFormation(fmt)}
+                      className={`h-9 rounded-lg px-2 text-center text-[11px] font-black ${
+                        formation === fmt
+                          ? 'border-amber-400 bg-amber-400 text-slate-950 hover:bg-amber-300'
+                          : 'border-slate-700 bg-slate-800/80 text-slate-300 hover:bg-slate-800 hover:text-white'
+                      }`}
+                    >
+                      {fmt}
+                    </Button>
+                  ))}
+                </div>
               </div>
-              <p className="text-[11px] text-slate-500 mt-2">Adjusting the template shifts designated positions dynamically over the digital terrain.</p>
+              <div className="rounded-xl border border-slate-800 bg-slate-950/60 p-4">
+                <span className="text-[10px] font-black uppercase tracking-widest text-slate-300">Current Game Plan</span>
+                <dl className="mt-3 space-y-2 text-[11px]">
+                  <div className="flex justify-between gap-3">
+                    <dt className="text-slate-500">Shape</dt>
+                    <dd className="font-black text-amber-300">{formation}</dd>
+                  </div>
+                  <div className="flex justify-between gap-3">
+                    <dt className="text-slate-500">Attack</dt>
+                    <dd className="truncate font-black text-indigo-300">{activePlaystyle}</dd>
+                  </div>
+                  <div className="flex justify-between gap-3">
+                    <dt className="text-slate-500">Defend</dt>
+                    <dd className="truncate font-black text-emerald-300">{activeDefensiveStyle}</dd>
+                  </div>
+                </dl>
+                <p className="mt-3 border-t border-slate-800 pt-3 text-[11px] leading-relaxed text-slate-400">
+                  Match format stays in the top command bar. This panel focuses on decisions players need to execute.
+                </p>
+              </div>
             </div>
 
             {isCustomMode ? (
@@ -2106,7 +2218,7 @@ export default function TacticsView({ players, staff, teamCoach, teamName, teamL
                 id="custom-strategy-blueprint-editor"
                 initial={{ opacity: 0, y: -10 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="grid grid-cols-1 lg:grid-cols-12 gap-5 bg-slate-950/40 p-4 rounded-xl border border-slate-800/80 mb-5"
+                className="grid grid-cols-1 lg:grid-cols-12 gap-4 bg-slate-950/60 p-4 rounded-xl border border-slate-800/80 mb-4"
               >
                 {/* Custom Tactic Playstyle */}
                 <div className="lg:col-span-6 space-y-2">
@@ -2121,9 +2233,6 @@ export default function TacticsView({ players, staff, teamCoach, teamName, teamL
                     placeholder="Direct Attacking Tiki-Taka"
                     className="h-9 rounded-lg border-slate-800 bg-slate-900 text-xs font-bold text-indigo-300 focus-visible:ring-indigo-400/30"
                   />
-                  <p className="text-[10px] text-slate-500 leading-normal">
-                    Designate custom transitional playstyles for counter attacks or localized retention focus.
-                  </p>
                 </div>
 
                 {/* Custom Defensive Playstyle */}
@@ -2139,9 +2248,6 @@ export default function TacticsView({ players, staff, teamCoach, teamName, teamL
                     placeholder="Aggressive Wing Press"
                     className="h-9 rounded-lg border-slate-800 bg-slate-900 text-xs font-bold text-emerald-400 focus-visible:ring-emerald-500/30"
                   />
-                  <p className="text-[10px] text-slate-500 leading-normal">
-                    Dictate custom pressing models, offside triggers, or backline depth constraints.
-                  </p>
                 </div>
 
                 {/* Strategy Mentalities & Detailed commentary text notes */}
@@ -2172,9 +2278,6 @@ export default function TacticsView({ players, staff, teamCoach, teamName, teamL
                         </SelectContent>
                       </Select>
                     </div>
-                    <p className="text-[10px] text-slate-500 leading-normal">
-                      Adjusts baseline squad aggression indices and transition speeds overall.
-                    </p>
                   </div>
 
                   {/* Tactical notes */}
@@ -2195,61 +2298,99 @@ export default function TacticsView({ players, staff, teamCoach, teamName, teamL
 
               </motion.div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
-                <div>
-                  <label className="text-[10px] font-black tracking-widest text-slate-400 uppercase block mb-1.5">Change Tactic Playstyle</label>
-                  <div className="grid grid-cols-2 gap-2 max-h-[140px] overflow-y-auto pr-1">
-                    {playstyles.map((style) => (
-                      <Button
-                        id={`btn-playstyle-${style.replaceAll(' ', '-')}`}
-                        key={style}
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setPlaystyle(style)}
-                        className={`h-8 rounded-lg px-3 text-center text-xs ${
-                          playstyle === style 
-                            ? 'border-indigo-500 bg-indigo-600 text-white hover:bg-indigo-700' 
-                            : 'border-slate-700 bg-slate-800/80 text-slate-300 hover:bg-slate-800 hover:text-white'
-                        }`}
-                      >
-                        {style}
-                      </Button>
-                    ))}
+              <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+                <section className="rounded-xl border border-slate-800 bg-slate-950/60 p-4">
+                  <div className="mb-3">
+                    <h5 className="text-[10px] font-black tracking-widest text-slate-300 uppercase">Attacking Plan</h5>
+                    <p className="mt-1 text-[11px] text-slate-500">Select how the team should create chances after winning or keeping the ball.</p>
                   </div>
-                  <p className="text-[11px] text-slate-500 mt-2">Select strategy to dictate how players coordinate in transitions on the playing field.</p>
-                </div>
+                  <div className="grid grid-cols-1 gap-3">
+                    {playstyles.map((style) => {
+                      const guidance = PLAYSTYLE_GUIDANCE[style] ?? {
+                        intent: 'Use this custom attacking idea as the team instruction for chance creation.',
+                        bestFor: 'Coach-defined situations.',
+                        cues: ['Clarify trigger', 'Assign support', 'Review after match'],
+                        watchout: 'Custom styles need clear player instructions.'
+                      };
+                      const selected = playstyle === style;
+                      return (
+                        <button
+                          id={`btn-playstyle-${style.replaceAll(' ', '-')}`}
+                          key={style}
+                          type="button"
+                          onClick={() => setPlaystyle(style)}
+                          className={`rounded-xl border p-3 text-left transition ${
+                            selected
+                              ? 'border-indigo-400 bg-indigo-500/15 shadow-sm shadow-indigo-500/10'
+                              : 'border-slate-800 bg-slate-900/60 hover:border-slate-700 hover:bg-slate-900'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between gap-3">
+                            <span className="text-sm font-black text-white">{style}</span>
+                            {selected && <Badge className="rounded bg-indigo-500 px-2 py-0.5 text-[9px] text-white">Active</Badge>}
+                          </div>
+                          <p className="mt-2 text-[11px] leading-relaxed text-slate-300">{guidance.intent}</p>
+                          <p className="mt-2 text-[10px] leading-relaxed text-slate-500"><strong className="text-slate-400">Best for:</strong> {guidance.bestFor}</p>
+                          <div className="mt-3 flex flex-wrap gap-1.5">
+                            {guidance.cues.map((cue) => (
+                              <span key={cue} className="rounded-md border border-indigo-500/20 bg-indigo-500/10 px-2 py-1 text-[9.5px] font-bold text-indigo-200">{cue}</span>
+                            ))}
+                          </div>
+                          <p className="mt-2 text-[10px] text-amber-300/80">Watch: {guidance.watchout}</p>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </section>
 
-                <div>
-                  <label className="text-[10px] font-black tracking-widest text-slate-400 uppercase block mb-1.5">Defensive Play Style</label>
-                  <div className="grid grid-cols-2 gap-2">
-                    {['High Press', 'Half Press', 'Man to Man', 'Low Block'].map((defStyle) => (
-                      <Button
-                        id={`btn-defstyle-${defStyle.replaceAll(' ', '-')}`}
-                        key={defStyle}
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setDefensiveStyle(defStyle)}
-                        className={`h-8 rounded-lg px-3 text-center ${
-                          defensiveStyle === defStyle 
-                            ? 'border-emerald-500 bg-emerald-600 text-white hover:bg-emerald-700' 
-                            : 'border-slate-700 bg-slate-800/80 text-slate-300 hover:bg-slate-800 hover:text-white'
-                        }`}
-                      >
-                        {defStyle}
-                      </Button>
-                    ))}
+                <section className="rounded-xl border border-slate-800 bg-slate-950/60 p-4">
+                  <div className="mb-3">
+                    <h5 className="text-[10px] font-black tracking-widest text-slate-300 uppercase">Defensive Plan</h5>
+                    <p className="mt-1 text-[11px] text-slate-500">Define the team trigger, line height, and first recovery behavior out of possession.</p>
                   </div>
-                  <p className="text-[11px] text-slate-500 mt-2">Dictates how high up the field and in what pattern your squad coordinates when defending.</p>
-                </div>
+                  <div className="grid grid-cols-1 gap-3">
+                    {['High Press', 'Half Press', 'Man to Man', 'Low Block'].map((defStyle) => {
+                      const guidance = DEFENSIVE_STYLE_GUIDANCE[defStyle];
+                      const selected = defensiveStyle === defStyle;
+                      return (
+                        <button
+                          id={`btn-defstyle-${defStyle.replaceAll(' ', '-')}`}
+                          key={defStyle}
+                          type="button"
+                          onClick={() => setDefensiveStyle(defStyle)}
+                          className={`rounded-xl border p-3 text-left transition ${
+                            selected
+                              ? 'border-emerald-400 bg-emerald-500/15 shadow-sm shadow-emerald-500/10'
+                              : 'border-slate-800 bg-slate-900/60 hover:border-slate-700 hover:bg-slate-900'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between gap-3">
+                            <span className="text-sm font-black text-white">{defStyle}</span>
+                            {selected && <Badge className="rounded bg-emerald-500 px-2 py-0.5 text-[9px] text-slate-950">Active</Badge>}
+                          </div>
+                          <p className="mt-2 text-[11px] leading-relaxed text-slate-300">{guidance.intent}</p>
+                          <p className="mt-2 text-[10px] leading-relaxed text-slate-500"><strong className="text-slate-400">Best for:</strong> {guidance.bestFor}</p>
+                          <div className="mt-3 flex flex-wrap gap-1.5">
+                            {guidance.cues.map((cue) => (
+                              <span key={cue} className="rounded-md border border-emerald-500/20 bg-emerald-500/10 px-2 py-1 text-[9.5px] font-bold text-emerald-200">{cue}</span>
+                            ))}
+                          </div>
+                          <p className="mt-2 text-[10px] text-amber-300/80">Watch: {guidance.watchout}</p>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </section>
               </div>
             )}
 
             {/* Set Piece Roles */}
-            <div className="mt-6 border-t border-slate-800/80 pt-5">
-              <label className="text-[10px] font-black tracking-widest text-slate-400 uppercase block mb-3">Set Piece & Leadership Assignments</label>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="mt-4 border-t border-slate-800/80 pt-4">
+              <div className="mb-3 flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+                <label className="text-[10px] font-black tracking-widest text-slate-300 uppercase block">Set Piece & Leadership</label>
+                <span className="text-[10px] text-slate-500">Assign only what you need for the next match.</span>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
                 {/* Captaincy Card */}
                 <div className="bg-slate-950/40 border border-slate-800/80 p-3 rounded-xl flex flex-col justify-between gap-2">
                   <div>
@@ -2331,13 +2472,13 @@ export default function TacticsView({ players, staff, teamCoach, teamName, teamL
         )}
 
         {/* Start list of active players for team tab */}
-        {activeTab === 'Team' && (
+        {activeBoardPanel === 'squad' && activeTab === 'Team' && (
           <motion.div 
             id="team-list-panel"
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 10 }}
-            className="xl:col-span-12 bg-[#0f172a] border border-slate-800 rounded-2xl p-5 mt-4"
+            className="xl:col-span-12 max-h-[48vh] overflow-y-auto bg-[#0f172a] border border-slate-800 rounded-xl p-5"
           >
             <h4 className="font-display font-black text-white mb-3 text-xs uppercase tracking-wider">Current Starting {MATCH_FORMAT_CONFIG[matchFormat].size} List</h4>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
@@ -2367,13 +2508,13 @@ export default function TacticsView({ players, staff, teamCoach, teamName, teamL
         )}
 
         {/* Subscribers / Substitutes menu */}
-        {activeTab === 'Substitutes' && (
+        {activeBoardPanel === 'squad' && activeTab === 'Substitutes' && (
           <motion.div 
             id="substitutes-list-panel"
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 10 }}
-            className="xl:col-span-12 bg-[#0f172a] border border-slate-800 rounded-2xl p-5 mt-4"
+            className="xl:col-span-12 max-h-[48vh] overflow-y-auto bg-[#0f172a] border border-slate-800 rounded-xl p-5"
           >
             <h4 className="font-display font-black text-white mb-3 text-xs uppercase tracking-wider">Available Substitutes (Not in main {MATCH_FORMAT_CONFIG[matchFormat].size})</h4>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
@@ -2403,13 +2544,13 @@ export default function TacticsView({ players, staff, teamCoach, teamName, teamL
         )}
 
         {/* Reserves menu with active selection to put anywhere */}
-        {activeTab === 'Reserves' && (
+        {activeBoardPanel === 'squad' && activeTab === 'Reserves' && (
           <motion.div 
             id="reserves-list-panel"
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 10 }}
-            className="xl:col-span-12 bg-[#0f172a] border border-slate-800 rounded-2xl p-5 mt-4"
+            className="xl:col-span-12 max-h-[48vh] overflow-y-auto bg-[#0f172a] border border-slate-800 rounded-xl p-5"
           >
             <h4 className="font-display font-black text-white mb-3 text-xs uppercase tracking-wider">All Reservable Pool ({allEligiblePool.length} Total Athletes)</h4>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
@@ -2434,7 +2575,7 @@ export default function TacticsView({ players, staff, teamCoach, teamName, teamL
       </AnimatePresence>
 
       {/* PERSISTENT QUICK NOTES PANEL */}
-      <div id="tactics-quick-notes-panel" className="xl:col-span-12 bg-[#0f172a] border border-slate-800 rounded-2xl p-6 mt-6 select-none relative z-10">
+      <div id="tactics-quick-notes-panel" className={cn('xl:col-span-12 max-h-[68vh] overflow-y-auto bg-[#0f172a] border border-slate-800 rounded-xl p-5 select-none relative z-10', activeBoardPanel !== 'notes' && 'hidden')}>
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-slate-800/85 mb-6">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-indigo-600/15 text-indigo-400 rounded-xl border border-indigo-500/20">
