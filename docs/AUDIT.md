@@ -1,6 +1,6 @@
 # Dumala Codebase Audit
 
-Updated: 2026-06-23
+Updated: 2026-06-29
 
 ## Executive summary
 
@@ -16,14 +16,15 @@ The main remaining risks are architecture and regression coverage: state ownersh
 4. League rank is derived from actual sorted standings.
 5. Result logging connects schedule, player totals, and league state.
 6. Tactics auto-fill matches players to broad position groups and preserves valid assignments.
-7. Training includes 52 drills, practical guides, filters, presets, and calendar synchronization.
-8. FPRDS stores raw measurements and derived outputs, enabling explainable assessment history.
-9. Full Workspace V3 validates and restores separate player/staff collections plus feature-local data, with V1/V2 migration and rollback protection.
-10. Match-result reconciliation prevents duplicate saves and reverses edited or deleted match contributions.
-11. Release-critical dialogs trap focus, support Escape, and restore focus to their opener.
-12. The project is a simple static Vite deployment with no environment variables.
-13. Product updates contain a detailed AI-free roadmap.
-14. Favicon, social metadata, feedback, and public beta messaging improve release polish.
+7. Tactics now includes a cleaner board workspace, fullscreen Match Layout controls, curated attack/defense strategy cards, opponent-formation simulation, Shape Impact cues, and explainable matchup recommendations.
+8. Training includes 52 drills, practical guides, filters, presets, and calendar synchronization.
+9. FPRDS stores raw measurements and derived outputs, enabling explainable assessment history.
+10. Full Workspace V4 validates and restores separate player/staff collections plus feature-local data, with V1/V2/V3 migration and rollback protection.
+11. Match-result reconciliation prevents duplicate saves and reverses edited or deleted match contributions.
+12. Release-critical dialogs trap focus, support Escape, and restore focus to their opener.
+13. The project is a simple static Vite deployment with no environment variables.
+14. Product updates contain a detailed AI-free roadmap.
+15. Favicon, social metadata, feedback, and public beta messaging improve release polish.
 
 ## Architecture findings
 
@@ -67,6 +68,10 @@ Tactics currently stores a free-form `squad_coach_level` presentation value.
 
 Impact: this must not be confused with future PFF/AFC qualifications. The roadmap correctly requires official credentials and Dumala progress to remain separate.
 
+### Resolved: obsolete custom strategy editor
+
+The Tactics UI no longer exposes Custom Playstyle Directive, Custom Defensive Anchor, mentality, or free-form strategy-note controls. Attack and defense expansion now flows through curated strategy records and deterministic matchup recommendations. Legacy custom-strategy persistence fields remain only for old backups, cloud migration compatibility, and durable schema continuity.
+
 ## Product findings
 
 ### FPRDS is already beta functionality
@@ -89,6 +94,7 @@ The installable production PWA and automated cold-launch checks are complete. Re
 - Documented Full Workspace V2, legacy migration, validation, and rollback behavior.
 - Aligned roadmap phases with the in-app Roadmap Snapshot.
 - Updated tasks with recent roster, tactics, updates, deployment, and favicon work.
+- Updated current docs for the Tactics workspace redesign, strategy engine, fullscreen board toolset, Shape Impact summary, and removal of the deprecated custom strategy editor.
 
 ## Recommended priorities
 

@@ -31,8 +31,17 @@ export type MatchupRecommendation = {
   opponentThreats: string[];
   exploitableSpaces: string[];
   playerInstructions: string[];
+  shapeImpactSummary: ShapeImpactCard[];
   comparisonInsights: Array<{ label: string; value: string }>;
   explanation: string;
+};
+
+export type ShapeImpactCard = {
+  id: string;
+  label: string;
+  value: string;
+  note: string;
+  tone: 'amber' | 'sky' | 'emerald' | 'rose';
 };
 
 const parseFormationRows = (formation: string): number[] => (
@@ -208,6 +217,104 @@ const buildComparisonInsights = (
   }
 ];
 
+const describeOurStructure = (our: FormationTraits): string => {
+  if (our.hasBackFive) return 'Box protection';
+  if (our.hasBackThree) return 'Wingback release';
+  if (our.hasCentralOverload) return 'Central numbers';
+  if (our.hasFrontThree) return 'Wide front line';
+  if (our.hasFrontTwo) return 'Two-forward outlet';
+  return 'Balanced shape';
+};
+
+const describeFormatLens = (matchFormat: MatchFormat): string => {
+  if (matchFormat === '11-a-side') return 'Full pitch';
+  if (matchFormat === '9-a-side' || matchFormat === '8-a-side') return 'Medium-sided';
+  return 'Small-sided';
+};
+
+const buildFormatNote = (matchFormat: MatchFormat, our: FormationTraits): string => {
+  if (matchFormat === '11-a-side') {
+    return our.hasWingbacks
+      ? 'Keep far-side cover when wingbacks step high.'
+      : 'Manage distances between back line, midfield, and forwards.';
+  }
+
+  if (matchFormat === '9-a-side' || matchFormat === '8-a-side') {
+    return our.hasCentralOverload
+      ? 'Use the extra midfielder to create clean support angles.'
+      : 'Rotations must be quick because lines collapse faster.';
+  }
+
+  return 'Prioritize simple triggers, fast support, and immediate rest-defense.';
+};
+
+const describeOpponentProblem = (opponent: FormationTraits): string => {
+  if (opponent.hasWingbacks) return 'Wingback width';
+  if (opponent.hasCentralOverload) return 'Central crowd';
+  if (opponent.hasFrontThree) return 'Front press';
+  if (opponent.hasFrontTwo) return 'Two-striker pin';
+  if (opponent.hasBackFive) return 'Deep box cover';
+  return 'Balanced block';
+};
+
+const describeOurShapeNote = (our: FormationTraits, opponent: FormationTraits): string => {
+  if (our.hasBackFive) return 'Protect the box first, then release the nearest wide outlet.';
+  if (our.hasBackThree) return 'Wingbacks create width, but recovery runs must be assigned.';
+  if (our.hasCentralOverload && !opponent.hasCentralOverload) return 'Use midfield numbers before switching into the free side.';
+  if (our.hasWideForwards) return 'Pin their fullbacks and attack the weak-side channel early.';
+  if (our.hasFrontTwo) return 'Stagger the forwards so one pins and one receives between lines.';
+  return 'Keep compact distances so the shape can attack and recover together.';
+};
+
+const buildShapeImpactSummary = ({
+  matchFormat,
+  our,
+  opponent,
+  attack,
+  defense,
+  opponentThreats,
+  exploitableSpaces,
+  playerInstructions
+}: {
+  matchFormat: MatchFormat;
+  our: FormationTraits;
+  opponent: FormationTraits;
+  attack: TacticalStrategyCard;
+  defense: TacticalStrategyCard;
+  opponentThreats: string[];
+  exploitableSpaces: string[];
+  playerInstructions: string[];
+}): ShapeImpactCard[] => [
+  {
+    id: 'our-shape',
+    label: 'Our shape',
+    value: describeOurStructure(our),
+    note: describeOurShapeNote(our, opponent),
+    tone: 'amber'
+  },
+  {
+    id: 'format-lens',
+    label: 'Format lens',
+    value: describeFormatLens(matchFormat),
+    note: buildFormatNote(matchFormat, our),
+    tone: 'sky'
+  },
+  {
+    id: 'opponent-problem',
+    label: 'Opponent problem',
+    value: describeOpponentProblem(opponent),
+    note: opponentThreats[0],
+    tone: 'rose'
+  },
+  {
+    id: 'first-action',
+    label: 'First action',
+    value: attack.title,
+    note: `${exploitableSpaces[0]} ${playerInstructions[0] ?? defense.cues[0]}.`,
+    tone: 'emerald'
+  }
+];
+
 export const recommendMatchupStrategy = ({
   ourFormation,
   opponentFormation,
@@ -226,6 +333,16 @@ export const recommendMatchupStrategy = ({
   const opponentThreats = buildOpponentThreats(opponent);
   const exploitableSpaces = buildExploitableSpaces(opponent);
   const playerInstructions = buildPlayerInstructions(recommendedAttack, recommendedDefense, opponent);
+  const shapeImpactSummary = buildShapeImpactSummary({
+    matchFormat,
+    our,
+    opponent,
+    attack: recommendedAttack,
+    defense: recommendedDefense,
+    opponentThreats,
+    exploitableSpaces,
+    playerInstructions
+  });
   const comparisonInsights = buildComparisonInsights(
     ourFormation,
     opponentFormation,
@@ -249,6 +366,7 @@ export const recommendMatchupStrategy = ({
     opponentThreats,
     exploitableSpaces,
     playerInstructions,
+    shapeImpactSummary,
     comparisonInsights,
     explanation: comparisonInsights.map(insight => `${insight.label}: ${insight.value}`).join(' ')
   };

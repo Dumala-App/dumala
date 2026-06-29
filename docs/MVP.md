@@ -1,6 +1,6 @@
 # Dumala Beta MVP
 
-Updated: 2026-06-28
+Updated: 2026-06-29
 
 ## Objective
 
@@ -17,7 +17,7 @@ The current MVP is a local-first football operations and player-development app 
 7. Match scheduling, availability, opponent context, notes, and results.
 8. Automatic league standings and player-stat updates.
 9. Discipline records, MVP awards, and histories.
-10. Position-aware tactics auto-fill and persistent tactical planning.
+10. Position-aware tactics auto-fill, fullscreen match-board planning, curated strategy cards, opponent formation simulation, Shape Impact cues, and persistent tactical planning.
 11. Weekly training planner with 52 drills, guides, filters, nine presets, week-by-week schedule navigation, development planning, and reassessment support without automatic official rating growth.
 12. FPRDS Assessment Center in beta:
     - Full and Quick assessments
@@ -61,7 +61,7 @@ Create events, check availability, review opponent information, write coach note
 
 ### Prepare tactics
 
-Select format and formation, auto-fill by position, preserve manual assignments, assign team roles, and save tactical notes.
+Select format and formation, compare against the opponent shape, review Shape Impact cues, apply recommended attack or defense plans when useful, auto-fill by position, preserve manual assignments, assign team roles, use fullscreen board tools, and save tactical notes.
 
 ### Assess a player
 
@@ -93,6 +93,7 @@ Export a JSON backup, restore it in a fresh browser, and confirm assessments and
 - The primary JavaScript bundle remains large and needs later code splitting.
 - FPRDS benchmarks and scoring remain in beta validation.
 - FPRDS benchmarks remain beta, but the separation between training evidence and verified rating updates is a core product rule, not a temporary compromise.
+- The old custom strategy editor is intentionally removed from the Tactics UI. Future strategy expansion should add curated records to the tactics library instead of free-form custom-plan fields.
 
 ## Exit criteria
 

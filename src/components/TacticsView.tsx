@@ -8,19 +8,16 @@ import {
   drawingPathsSchema,
   matchFormatSchema,
   playerExtrasSchema,
-  stringArraySchema,
   stringSchema,
   tacticsBoardSnapshotsSchema,
   tacticsLineupSchema,
   tacticsNotesSchema
 } from '../persistence/schemas';
 import {
-  readBooleanStorage,
   readJsonStorage,
   readStringStorage,
   removeStorage,
   STORAGE_KEYS,
-  writeBooleanStorage,
   writeJsonStorage,
   writeStringStorage
 } from '../persistence/storage';
@@ -35,8 +32,8 @@ import {
   MATCH_FORMAT_CONFIG,
   type MatchFormat
 } from '../tactics/formations';
-import { recommendMatchupStrategy } from '../tactics/recommendations';
-import { ATTACK_STRATEGY_CARDS, DEFENSE_STRATEGY_CARDS, type TacticalStrategyCard } from '../tactics/strategyLibrary';
+import { recommendMatchupStrategy, type ShapeImpactCard } from '../tactics/recommendations';
+import { ATTACK_STRATEGY_CARDS, DEFENSE_STRATEGY_CARDS } from '../tactics/strategyLibrary';
 import { CoachKnowledgeBase } from './CoachKnowledgeBase';
 import { Badge } from './ui/badge';
 import { Button } from './ui/button';
@@ -116,6 +113,33 @@ const DRAWING_LAYERS: readonly DrawingLayer[] = ['Runs', 'Passes', 'Pressing', '
 const DRAWING_STROKE_STYLES: readonly DrawingStrokeStyle[] = ['Solid', 'Dashed', 'Dotted'];
 const EMPTY_SELECT_VALUE = '__none__';
 
+const SHAPE_IMPACT_TONE_CLASSES: Record<ShapeImpactCard['tone'], {
+  card: string;
+  label: string;
+  value: string;
+}> = {
+  amber: {
+    card: 'border-amber-500/20 bg-amber-500/10',
+    label: 'text-amber-200/80',
+    value: 'text-amber-100'
+  },
+  sky: {
+    card: 'border-sky-500/20 bg-sky-500/10',
+    label: 'text-sky-200/80',
+    value: 'text-sky-100'
+  },
+  emerald: {
+    card: 'border-emerald-500/20 bg-emerald-500/10',
+    label: 'text-emerald-200/80',
+    value: 'text-emerald-100'
+  },
+  rose: {
+    card: 'border-rose-500/20 bg-rose-500/10',
+    label: 'text-rose-200/80',
+    value: 'text-rose-100'
+  }
+};
+
 const getDrawingStrokeDash = (strokeStyle?: DrawingStrokeStyle) => {
   if (strokeStyle === 'Dashed') return '3 2.2';
   if (strokeStyle === 'Dotted') return '0.15 2.1';
@@ -174,24 +198,6 @@ export default function TacticsView({ players, staff, teamCoach, teamName, teamL
   const [activeBoardPanel, setActiveBoardPanel] = useState<TacticsBoardPanel>('squad');
   const [isBoardFullscreen, setIsBoardFullscreen] = useState<boolean>(false);
   const [isFullscreenToolsetVisible, setIsFullscreenToolsetVisible] = useState<boolean>(true);
-  
-  // Custom Strategy Mode States
-  const [isCustomMode, setIsCustomMode] = useState<boolean>(() => {
-    return readBooleanStorage(STORAGE_KEYS.isCustomStrategy, false, 'Tactics strategy');
-  });
-  const [customPlaystyleInput, setCustomPlaystyleInput] = useState<string>(() => {
-    return readStringStorage(STORAGE_KEYS.customPlaystyle, stringSchema, 'Direct Attacking Tiki-Taka', 'Tactics strategy');
-  });
-  const [customDefensiveInput, setCustomDefensiveInput] = useState<string>(() => {
-    return readStringStorage(STORAGE_KEYS.customDefensiveStyle, stringSchema, 'Aggressive Wing Press', 'Tactics strategy');
-  });
-  const [customMentality, setCustomMentality] = useState<string>(() => {
-    return readStringStorage(STORAGE_KEYS.customMentality, stringSchema, 'Balanced', 'Tactics strategy');
-  });
-  const [customStrategyNotes, setCustomStrategyNotes] = useState<string>(() => {
-    return readStringStorage(STORAGE_KEYS.customStrategyNotes, stringSchema, 'Focus on rapid mid-block transitional overload. Fullbacks overlap actively while DMF covers the backline.', 'Tactics strategy');
-  });
-  
   const [isEditingCoach, setIsEditingCoach] = useState<boolean>(false);
   const rosterCoach = useMemo(() => {
     const normalizedTeamCoach = teamCoach.trim().toLowerCase();
@@ -259,18 +265,6 @@ export default function TacticsView({ players, staff, teamCoach, teamName, teamL
     );
   };
 
-  const [playstyles, setPlaystyles] = useState<string[]>(() => {
-    return readJsonStorage(
-      STORAGE_KEYS.customPlaystyles,
-      stringArraySchema,
-      ATTACK_STRATEGY_CARDS.map(card => card.styleValue),
-      'Tactics playstyles'
-    );
-  });
-
-  const [customStyleInput, setCustomStyleInput] = useState<string>('');
-  const [showCustomStyleCreator, setShowCustomStyleCreator] = useState<boolean>(false);
-
   useEffect(() => {
     writeStringStorage(STORAGE_KEYS.matchFormat, matchFormat);
   }, [matchFormat]);
@@ -289,10 +283,6 @@ export default function TacticsView({ players, staff, teamCoach, teamName, teamL
   }, [coachLevel]);
 
   useEffect(() => {
-    writeJsonStorage(STORAGE_KEYS.customPlaystyles, playstyles);
-  }, [playstyles]);
-
-  useEffect(() => {
     writeStringStorage(STORAGE_KEYS.formation, formation);
   }, [formation]);
 
@@ -304,26 +294,6 @@ export default function TacticsView({ players, staff, teamCoach, teamName, teamL
     writeStringStorage(STORAGE_KEYS.playstyle, playstyle);
   }, [playstyle]);
 
-  useEffect(() => {
-    writeBooleanStorage(STORAGE_KEYS.isCustomStrategy, isCustomMode);
-  }, [isCustomMode]);
-
-  useEffect(() => {
-    writeStringStorage(STORAGE_KEYS.customPlaystyle, customPlaystyleInput);
-  }, [customPlaystyleInput]);
-
-  useEffect(() => {
-    writeStringStorage(STORAGE_KEYS.customDefensiveStyle, customDefensiveInput);
-  }, [customDefensiveInput]);
-
-  useEffect(() => {
-    writeStringStorage(STORAGE_KEYS.customMentality, customMentality);
-  }, [customMentality]);
-
-  useEffect(() => {
-    writeStringStorage(STORAGE_KEYS.customStrategyNotes, customStrategyNotes);
-  }, [customStrategyNotes]);
-
   const [captainId, setCaptainId] = useState<string>(() => readStringStorage(STORAGE_KEYS.captainId, stringSchema, '', 'Tactics roles'));
   const [penaltyTakerId, setPenaltyTakerId] = useState<string>(() => readStringStorage(STORAGE_KEYS.penaltyTakerId, stringSchema, '', 'Tactics roles'));
   const [freeKickTakerId, setFreeKickTakerId] = useState<string>(() => readStringStorage(STORAGE_KEYS.freeKickTakerId, stringSchema, '', 'Tactics roles'));
@@ -331,40 +301,14 @@ export default function TacticsView({ players, staff, teamCoach, teamName, teamL
   const [defensiveStyle, setDefensiveStyle] = useState<string>(() => readStringStorage(STORAGE_KEYS.defensiveStyle, stringSchema, 'High Press', 'Tactics defense'));
 
   const activeFormation = formation;
-  const activePlaystyle = isCustomMode ? customPlaystyleInput : playstyle;
-  const activeDefensiveStyle = isCustomMode ? customDefensiveInput : defensiveStyle;
+  const activePlaystyle = playstyle;
   const matchupRecommendation = useMemo(() => recommendMatchupStrategy({
     ourFormation: formation,
     opponentFormation,
     matchFormat
   }), [formation, opponentFormation, matchFormat]);
 
-  const visibleAttackStrategies = useMemo(() => {
-    const byStyle = new Map(ATTACK_STRATEGY_CARDS.map(card => [card.styleValue, card]));
-    const styles = Array.from(new Set([
-      ...playstyles,
-      ...ATTACK_STRATEGY_CARDS.map(card => card.styleValue)
-    ]));
-    return styles.map((style): TacticalStrategyCard => byStyle.get(style) ?? {
-      id: `attack-custom-${style}`,
-      phase: 'attack',
-      title: style,
-      styleValue: style,
-      intent: 'Use this custom attacking idea as the team instruction for chance creation.',
-      bestFor: 'Coach-defined situations where this custom style is already understood by players.',
-      details: [
-        { label: 'Entry', value: 'Coach-defined entry pattern' },
-        { label: 'Target', value: 'Chosen opponent weakness' },
-        { label: 'Support', value: 'Assigned support runners' },
-        { label: 'Finish', value: 'Review outcome after match' }
-      ],
-      cues: ['Clarify trigger', 'Assign support', 'Review after match'],
-      watchout: 'Custom styles need clear player instructions.',
-      formationFit: [],
-      opponentCounters: [],
-      tags: ['custom']
-    });
-  }, [playstyles]);
+  const visibleAttackStrategies = ATTACK_STRATEGY_CARDS;
 
   useEffect(() => {
     writeStringStorage(STORAGE_KEYS.captainId, captainId);
@@ -1832,9 +1776,6 @@ export default function TacticsView({ players, staff, teamCoach, teamName, teamL
           <div className="absolute bottom-4 left-4 rounded-lg border border-slate-800 bg-slate-950/80 p-2">
             <div className="flex items-center gap-1.5">
               <span className="text-[10px] text-slate-400 font-bold tracking-widest uppercase">Formation</span>
-              {isCustomMode && (
-                <span className="text-[8px] bg-indigo-600 text-white font-extrabold px-1 py-0.2 rounded font-mono uppercase tracking-wider scale-90">CUSTOM</span>
-              )}
             </div>
             <p id="pitch-hud-val-formation" className="font-display font-black text-white text-lg leading-tight uppercase">{activeFormation}</p>
           </div>
@@ -1849,9 +1790,6 @@ export default function TacticsView({ players, staff, teamCoach, teamName, teamL
           )}
         >
           <div className="flex flex-wrap items-center justify-center gap-1.5">
-            {isCustomMode && (
-              <span id="pitch-hud-val-mentality" className="text-[8.5px] text-indigo-400 font-bold uppercase tracking-widest">{customMentality}</span>
-            )}
             <span className="text-[10px] text-slate-400 font-bold tracking-widest uppercase">Active Tactic Style</span>
           </div>
           <p id="pitch-hud-val-playstyle" className="font-display font-black text-amber-400 text-sm leading-tight uppercase">{activePlaystyle}</p>
@@ -2641,78 +2579,60 @@ export default function TacticsView({ players, staff, teamCoach, teamName, teamL
                   Pick a shape, then choose the game behavior your players should recognize on the field.
                 </p>
               </div>
-              <div className="flex items-center gap-3 rounded-lg border border-slate-800 bg-slate-950 px-3 py-2">
-                <span className={`text-[10px] font-black tracking-wider leading-none ${isCustomMode ? 'text-amber-400' : 'text-slate-500'}`}>
-                  {isCustomMode ? 'Custom plan' : 'Preset guidance'}
-                </span>
-                <Button
-                  id="toggle-custom-strategy-mode"
-                  type="button"
-                  aria-pressed={isCustomMode}
-                  onClick={() => setIsCustomMode(!isCustomMode)}
-                  variant="ghost"
-                  size="sm"
-                  className={cn(
-                    'h-7 w-12 justify-start rounded-full border border-slate-700 bg-slate-800 p-0.5 hover:bg-slate-700',
-                    isCustomMode && 'justify-end border-indigo-500 bg-indigo-600 hover:bg-indigo-600'
-                  )}
-                  aria-label="Toggle custom strategy mode"
-                >
-                  <span className="size-5 rounded-full border border-slate-300 bg-white shadow-sm" />
-                </Button>
-              </div>
+              <span className="w-fit rounded-lg border border-amber-400/20 bg-amber-400/10 px-3 py-2 text-[10px] font-black uppercase tracking-widest text-amber-200">
+                Strategy engine
+              </span>
             </div>
 
             {/* Team Formation (shared for both modes) */}
-            <div className="my-4 grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_18rem]">
-              <div className="bg-slate-950/60 p-4 rounded-xl border border-slate-800/80">
-                <div className="mb-3 flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
-                  <label className="text-[10px] font-black tracking-widest text-slate-300 uppercase block">Formation Library</label>
-                  <span className="text-[10px] text-slate-500">{matchFormat} · {MATCH_FORMAT_CONFIG[matchFormat].formations.length} shapes</span>
+            <div className="my-4 grid grid-cols-1 gap-3 lg:grid-cols-[18rem_minmax(0,1fr)]">
+              <div className="rounded-xl border border-slate-800/80 bg-slate-950/60 p-3.5">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <label className="block text-[10px] font-black uppercase tracking-widest text-slate-300">Formation</label>
+                    <p className="mt-1 text-[10px] leading-snug text-slate-500">
+                      {matchFormat} - {MATCH_FORMAT_CONFIG[matchFormat].formations.length} available shapes
+                    </p>
+                  </div>
                 </div>
-                <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-7">
-                  {MATCH_FORMAT_CONFIG[matchFormat].formations.map((fmt) => (
-                    <Button
-                      id={`btn-formation-${fmt}`}
-                      key={fmt}
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setFormation(fmt)}
-                      className={`h-9 rounded-lg px-2 text-center text-[11px] font-black ${
-                        formation === fmt
-                          ? 'border-amber-400 bg-amber-400 text-slate-950 hover:bg-amber-300'
-                          : 'border-slate-700 bg-slate-800/80 text-slate-300 hover:bg-slate-800 hover:text-white'
-                      }`}
-                    >
-                      {fmt}
-                    </Button>
-                  ))}
-                </div>
+                <Select value={formation} onValueChange={setFormation}>
+                  <SelectTrigger
+                    id="select-formation-library"
+                    className="mt-3 h-11 rounded-lg border-slate-800 bg-slate-900 px-3 text-sm font-black text-amber-200 focus:ring-amber-400/30"
+                  >
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="border-slate-800 bg-slate-950 text-slate-100">
+                    {MATCH_FORMAT_CONFIG[matchFormat].formations.map((fmt) => (
+                      <SelectItem key={fmt} value={fmt} className="text-xs font-bold">{fmt}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
-              <div className="rounded-xl border border-slate-800 bg-slate-950/60 p-4">
-                <span className="text-[10px] font-black uppercase tracking-widest text-slate-300">Current Game Plan</span>
-                <dl className="mt-3 space-y-2 text-[11px]">
-                  <div className="flex justify-between gap-3">
-                    <dt className="text-slate-500">Shape</dt>
-                    <dd className="font-black text-amber-300">{formation}</dd>
+              <div className="rounded-xl border border-slate-800 bg-slate-950/60 p-3.5">
+                <div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between">
+                  <div>
+                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-300">Shape Impact</span>
+                    <p className="mt-1 text-[11px] leading-relaxed text-slate-500">
+                      Quick matchup cues; detailed reasoning stays in Matchup Strategy.
+                    </p>
                   </div>
-                  <div className="flex justify-between gap-3">
-                    <dt className="text-slate-500">Attack</dt>
-                    <dd className="truncate font-black text-indigo-300">{activePlaystyle}</dd>
-                  </div>
-                  <div className="flex justify-between gap-3">
-                    <dt className="text-slate-500">Defend</dt>
-                    <dd className="truncate font-black text-emerald-300">{activeDefensiveStyle}</dd>
-                  </div>
-                  <div className="flex justify-between gap-3">
-                    <dt className="text-slate-500">Opponent</dt>
-                    <dd className="font-black text-sky-300">{opponentFormation}</dd>
-                  </div>
-                </dl>
-                <p className="mt-3 border-t border-slate-800 pt-3 text-[11px] leading-relaxed text-slate-400">
-                  Match format stays in the top command bar. This panel focuses on decisions players need to execute.
-                </p>
+                  <span className="rounded-md border border-sky-500/20 bg-sky-500/10 px-2 py-1 text-[10px] font-black text-sky-200">
+                    vs {opponentFormation}
+                  </span>
+                </div>
+                <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-4">
+                  {matchupRecommendation.shapeImpactSummary.map((item) => {
+                    const tone = SHAPE_IMPACT_TONE_CLASSES[item.tone];
+                    return (
+                      <div key={item.id} className={cn('min-w-0 rounded-lg border px-3 py-2.5', tone.card)}>
+                        <span className={cn('block text-[8.5px] font-black uppercase tracking-widest', tone.label)}>{item.label}</span>
+                        <span className={cn('mt-1 block truncate text-xs font-black', tone.value)}>{item.value}</span>
+                        <span className="mt-1 block text-[10.5px] leading-snug text-slate-400">{item.note}</span>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
             </div>
 
@@ -2844,98 +2764,13 @@ export default function TacticsView({ players, staff, teamCoach, teamName, teamL
               </div>
             </section>
 
-            {isCustomMode ? (
-              <motion.div 
-                id="custom-strategy-blueprint-editor"
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="grid grid-cols-1 lg:grid-cols-12 gap-4 bg-slate-950/60 p-4 rounded-xl border border-slate-800/80 mb-4"
-              >
-                {/* Custom Tactic Playstyle */}
-                <div className="lg:col-span-6 space-y-2">
-                  <label className="text-[10px] font-black tracking-widest text-slate-300 uppercase block">
-                    Custom Playstyle Directive
-                  </label>
-                  <Input
-                    type="text"
-                    id="input-custom-playstyle"
-                    value={customPlaystyleInput}
-                    onChange={(e) => setCustomPlaystyleInput(e.target.value)}
-                    placeholder="Direct Attacking Tiki-Taka"
-                    className="h-9 rounded-lg border-slate-800 bg-slate-900 text-xs font-bold text-indigo-300 focus-visible:ring-indigo-400/30"
-                  />
-                </div>
-
-                {/* Custom Defensive Playstyle */}
-                <div className="lg:col-span-6 space-y-2">
-                  <label className="text-[10px] font-black tracking-widest text-slate-300 uppercase block">
-                    Custom Defensive Anchor
-                  </label>
-                  <Input
-                    type="text"
-                    id="input-custom-defensive"
-                    value={customDefensiveInput}
-                    onChange={(e) => setCustomDefensiveInput(e.target.value)}
-                    placeholder="Aggressive Wing Press"
-                    className="h-9 rounded-lg border-slate-800 bg-slate-900 text-xs font-bold text-emerald-400 focus-visible:ring-emerald-500/30"
-                  />
-                </div>
-
-                {/* Strategy Mentalities & Detailed commentary text notes */}
-                <div className="lg:col-span-12 grid grid-cols-1 md:grid-cols-12 gap-5 border-t border-slate-800/80 pt-4 mt-1">
-                  
-                  {/* Tactic Mentality */}
-                  <div className="md:col-span-4 space-y-2">
-                    <label className="text-[10px] font-black tracking-widest text-slate-300 uppercase block">
-                      Tactical Mentality Setting
-                    </label>
-                    <div className="grid grid-cols-1 gap-2">
-                      <Select
-                        value={customMentality}
-                        onValueChange={setCustomMentality}
-                      >
-                        <SelectTrigger
-                          id="select-custom-mentality"
-                          className="h-9 rounded-lg border-slate-800 bg-slate-900 text-xs font-bold text-slate-100 focus:ring-indigo-500/30"
-                        >
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent className="border-slate-800 bg-slate-950 text-slate-100">
-                          <SelectItem value="Ultra Defensive">Ultra Defensive (Park the Bus)</SelectItem>
-                          <SelectItem value="Defensive">Defensive (Cautious Build Up)</SelectItem>
-                          <SelectItem value="Balanced">Balanced (Fluid Interchange)</SelectItem>
-                          <SelectItem value="Attacking">Attacking (Overload Flanks)</SelectItem>
-                          <SelectItem value="Ultra Attacking">Ultra Attacking (All Out Rush)</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-
-                  {/* Tactical notes */}
-                  <div className="md:col-span-8 space-y-2">
-                    <label className="text-[10px] font-black tracking-widest text-slate-300 uppercase block">
-                      Coach Directives & Game Plan Commentary
-                    </label>
-                    <Textarea
-                      id="textarea-custom-strategy-notes"
-                      value={customStrategyNotes}
-                      onChange={(e) => setCustomStrategyNotes(e.target.value)}
-                      rows={3}
-                      placeholder="Input comprehensive instructions, marking guides, setup requirements..."
-                      className="min-h-24 rounded-lg border-slate-800 bg-slate-900 text-xs font-medium text-slate-200 focus-visible:ring-indigo-500/30"
-                    />
-                  </div>
-                </div>
-
-              </motion.div>
-            ) : (
-              <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
-                <section className="flex h-[34rem] flex-col rounded-xl border border-slate-800 bg-slate-950/60 p-4">
+            <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+                <section className="flex min-h-0 flex-col rounded-xl border border-slate-800 bg-slate-950/60 p-4 md:p-5 xl:max-h-[42rem]">
                   <div className="mb-3">
                     <h5 className="text-[10px] font-black tracking-widest text-slate-300 uppercase">Attacking Plan</h5>
                     <p className="mt-1 text-[11px] text-slate-500">Select how the team should create chances after winning or keeping the ball.</p>
                   </div>
-                  <div className="grid min-h-0 flex-1 grid-cols-1 gap-3 overflow-y-auto pr-1">
+                  <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto pr-1">
                     {visibleAttackStrategies.map((guidance) => {
                       const selected = playstyle === guidance.styleValue;
                       return (
@@ -2944,36 +2779,36 @@ export default function TacticsView({ players, staff, teamCoach, teamName, teamL
                           key={guidance.id}
                           type="button"
                           onClick={() => setPlaystyle(guidance.styleValue)}
-                          className={`rounded-xl border p-3 text-left transition ${
+                          className={`block w-full min-w-0 whitespace-normal rounded-xl border p-4 text-left align-top transition ${
                             selected
                               ? 'border-indigo-400 bg-indigo-500/15 shadow-sm shadow-indigo-500/10'
                               : 'border-slate-800 bg-slate-900/60 hover:border-slate-700 hover:bg-slate-900'
                           }`}
                         >
-                          <div className="flex items-center justify-between gap-3">
-                            <span className="text-sm font-black text-white">{guidance.title}</span>
-                            {selected && <Badge className="rounded bg-indigo-500 px-2 py-0.5 text-[9px] text-white">Active</Badge>}
+                          <div className="flex min-w-0 items-start justify-between gap-3">
+                            <span className="min-w-0 text-base font-black leading-snug text-white">{guidance.title}</span>
+                            {selected && <Badge className="shrink-0 rounded bg-indigo-500 px-2 py-0.5 text-[9px] text-white">Active</Badge>}
                           </div>
-                          <p className="mt-2 text-[11px] leading-relaxed text-slate-300">{guidance.intent}</p>
-                          <p className="mt-2 text-[10px] leading-relaxed text-slate-500"><strong className="text-slate-400">Best for:</strong> {guidance.bestFor}</p>
+                          <p className="mt-2 text-sm leading-relaxed text-slate-200">{guidance.intent}</p>
+                          <p className="mt-2 text-[11px] leading-relaxed text-slate-500"><strong className="text-slate-400">Best for:</strong> {guidance.bestFor}</p>
                           <div className="mt-3 flex flex-wrap gap-1.5">
                             {guidance.cues.map((cue) => (
-                              <span key={cue} className="rounded-md border border-indigo-500/20 bg-indigo-500/10 px-2 py-1 text-[9.5px] font-bold text-indigo-200">{cue}</span>
+                              <span key={cue} className="rounded-md border border-indigo-500/20 bg-indigo-500/10 px-2 py-1 text-[10px] font-bold leading-tight text-indigo-200">{cue}</span>
                             ))}
                           </div>
-                          <p className="mt-2 text-[10px] text-amber-300/80">Watch: {guidance.watchout}</p>
+                          <p className="mt-3 text-[11px] leading-relaxed text-amber-300/85">Watch: {guidance.watchout}</p>
                         </button>
                       );
                     })}
                   </div>
                 </section>
 
-                <section className="flex h-[34rem] flex-col rounded-xl border border-slate-800 bg-slate-950/60 p-4">
+                <section className="flex min-h-0 flex-col rounded-xl border border-slate-800 bg-slate-950/60 p-4 md:p-5 xl:max-h-[42rem]">
                   <div className="mb-3">
                     <h5 className="text-[10px] font-black tracking-widest text-slate-300 uppercase">Defensive Plan</h5>
                     <p className="mt-1 text-[11px] text-slate-500">Define the team trigger, line height, and first recovery behavior out of possession.</p>
                   </div>
-                  <div className="grid min-h-0 flex-1 grid-cols-1 gap-3 overflow-y-auto pr-1">
+                  <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto pr-1">
                     {DEFENSE_STRATEGY_CARDS.map((guidance) => {
                       const selected = defensiveStyle === guidance.styleValue;
                       return (
@@ -2982,31 +2817,30 @@ export default function TacticsView({ players, staff, teamCoach, teamName, teamL
                           key={guidance.id}
                           type="button"
                           onClick={() => setDefensiveStyle(guidance.styleValue)}
-                          className={`rounded-xl border p-3 text-left transition ${
+                          className={`block w-full min-w-0 whitespace-normal rounded-xl border p-4 text-left align-top transition ${
                             selected
                               ? 'border-emerald-400 bg-emerald-500/15 shadow-sm shadow-emerald-500/10'
                               : 'border-slate-800 bg-slate-900/60 hover:border-slate-700 hover:bg-slate-900'
                           }`}
                         >
-                          <div className="flex items-center justify-between gap-3">
-                            <span className="text-sm font-black text-white">{guidance.title}</span>
-                            {selected && <Badge className="rounded bg-emerald-500 px-2 py-0.5 text-[9px] text-slate-950">Active</Badge>}
+                          <div className="flex min-w-0 items-start justify-between gap-3">
+                            <span className="min-w-0 text-base font-black leading-snug text-white">{guidance.title}</span>
+                            {selected && <Badge className="shrink-0 rounded bg-emerald-500 px-2 py-0.5 text-[9px] text-slate-950">Active</Badge>}
                           </div>
-                          <p className="mt-2 text-[11px] leading-relaxed text-slate-300">{guidance.intent}</p>
-                          <p className="mt-2 text-[10px] leading-relaxed text-slate-500"><strong className="text-slate-400">Best for:</strong> {guidance.bestFor}</p>
+                          <p className="mt-2 text-sm leading-relaxed text-slate-200">{guidance.intent}</p>
+                          <p className="mt-2 text-[11px] leading-relaxed text-slate-500"><strong className="text-slate-400">Best for:</strong> {guidance.bestFor}</p>
                           <div className="mt-3 flex flex-wrap gap-1.5">
                             {guidance.cues.map((cue) => (
-                              <span key={cue} className="rounded-md border border-emerald-500/20 bg-emerald-500/10 px-2 py-1 text-[9.5px] font-bold text-emerald-200">{cue}</span>
+                              <span key={cue} className="rounded-md border border-emerald-500/20 bg-emerald-500/10 px-2 py-1 text-[10px] font-bold leading-tight text-emerald-200">{cue}</span>
                             ))}
                           </div>
-                          <p className="mt-2 text-[10px] text-amber-300/80">Watch: {guidance.watchout}</p>
+                          <p className="mt-3 text-[11px] leading-relaxed text-amber-300/85">Watch: {guidance.watchout}</p>
                         </button>
                       );
                     })}
                   </div>
                 </section>
               </div>
-            )}
           </motion.div>
         )}
 

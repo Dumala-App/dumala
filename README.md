@@ -11,7 +11,7 @@ Dumala is a local-first football team management web application for coaches, ma
 - Match scheduling, availability, opponent context, notes, and result logging
 - Automatic standings and player-stat updates
 - Discipline records and Man of the Match history
-- Position-aware tactics board and lineup auto-fill
+- Position-aware tactics board, lineup auto-fill, fullscreen Match Layout, curated strategy cards, opponent formation simulation, and Shape Impact cues
 - Weekly training planner with a 52-drill library, presets, week-by-week scheduling, development evidence, and reassessment planning
 - FPRDS Assessment Center with Full and Quick assessments for verified rating updates
 - Age-group and role-specific benchmarks, OVR scoring, history, and development plans
@@ -23,7 +23,7 @@ The application is organized into five primary areas:
 
 1. **Home**: Overview and Game Week
 2. **Squad**: Roster and staff
-3. **Tactics**: Formation, lineup, roles, notes, and match board
+3. **Tactics**: Formation, lineup, matchup strategy, roles, notes, and match board
 4. **Development**: Training and Assessments
 5. **League & Updates**: League, Bulletins, and Updates
 

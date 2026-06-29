@@ -1,6 +1,6 @@
 # Dumala Architecture
 
-Updated: 2026-06-28
+Updated: 2026-06-29
 
 ## 1. System overview
 
@@ -76,7 +76,9 @@ Squad and Tactics render directly as primary views.
 | `ScheduleView` | Calendar, events, result logging, availability, opponent context, coach notes |
 | `RosterView` | Player/staff creation, cards, search, comparison, backup entry points |
 | `PlayerProfileModal` | Profile editing, traits, statistics, assessment summary, removal |
-| `TacticsView` | Formation, position-aware lineup, board interaction, roles, notes |
+| `TacticsView` | Formation, position-aware lineup, board interaction, fullscreen toolset, strategy recommendations, roles, notes |
+| `tactics/strategyLibrary.ts` | Curated attacking and defensive strategy cards used by the Tactics panel |
+| `tactics/recommendations.ts` | Formation trait analysis, opponent-shape matchup recommendations, Shape Impact cards, and explainable Coach Read details |
 | `TrainingView` | Drill library, guides, weekly planning, presets, calendar sync |
 | `AssessmentsView` | FPRDS workflow, scoring preview, history, guides, development plans |
 | `StandingsView` | League table, snapshots, discipline, MVP awards |
@@ -133,13 +135,8 @@ FPRDS scoring owns verified ratings. Training surfaces may recommend and log dev
 - `squad_match_format`
 - `squad_formation`
 - `squad_playstyle`
-- `squad_is_custom_strategy`
-- `squad_custom_playstyle_val`
-- `squad_custom_defensive_val`
-- `squad_custom_mentality_val`
-- `squad_custom_strategy_notes`
+- `squad_opponent_formation`
 - `squad_coach_level`
-- `squad_custom_playstyles`
 - `squad_captain_id`
 - `squad_penalty_taker_id`
 - `squad_free_kick_taker_id`
@@ -150,6 +147,8 @@ FPRDS scoring owns verified ratings. Training surfaces may recommend and log dev
 - `stack_tactics_quick_notes`
 - `stack_tactics_dragged_positions`
 - `stack_tactics_draw_paths`
+
+Legacy custom-strategy keys such as `squad_is_custom_strategy`, `squad_custom_playstyle_val`, `squad_custom_defensive_val`, `squad_custom_mentality_val`, `squad_custom_strategy_notes`, and `squad_custom_playstyles` may still appear in old backups, cloud migration payloads, and durable schema records. They are retained as compatibility data, but the current Tactics UI no longer exposes a custom strategy editor. Future coaching content should be added as curated strategy records in `tactics/strategyLibrary.ts` and ranked by `tactics/recommendations.ts`.
 
 ### Managed workspace storage
 
@@ -208,6 +207,17 @@ Saving an assessment:
 
 Auto-fill keeps valid manual assignments, then fills empty formation slots by matching broad position groups before using remaining available players.
 
+### Tactical strategy engine
+
+The Tactics tab uses curated attacking and defensive strategy records from `src/tactics/strategyLibrary.ts`. `src/tactics/recommendations.ts` parses the selected team formation and opponent formation, derives formation traits, ranks attack and defense records, and returns:
+
+- Shape Impact cards for quick at-a-glance coaching cues
+- recommended attacking and defensive plans
+- opponent threats, exploitable spaces, and player instructions
+- explainable Coach Read comparison insights
+
+The UI lets coaches apply recommended plans manually; recommendations never overwrite the selected playstyle or defensive style automatically. The old free-form custom strategy editor has been removed from the current UI so tactical growth flows through maintainable curated records.
+
 ### Training synchronization
 
 Weekly planned training creates or refreshes Training events in the shared games calendar for the currently selected planner week. `squad_weekly_schedule` remains the compatibility/current-view schedule, while `squad_weekly_schedule_weeks` stores per-week Monday-Sunday plans keyed by week start date.
@@ -226,7 +236,7 @@ Full Workspace V4 uses the `dumala-workspace` format and includes:
 - availability and coach notes
 - weekly training schedules and history
 - standings snapshots and preferences
-- tactics formation, lineup, roles, notes, custom positions, drawings, and player extras
+- tactics formation, opponent formation, selected attack/defense styles, lineup, roles, notes, custom positions, drawings, snapshots, ball/wall state, and player extras
 - export timestamp and numeric format version
 
 Import continues to accept legacy versions `1.0.0`, `1.1.0`, Full Workspace V2, and Full Workspace V3. Mixed legacy rosters are separated into V4 players and staff before validation. Restore validates the complete nested workspace before writing, creates an automatic pre-restore backup, and rolls back all writes if storage fails.
