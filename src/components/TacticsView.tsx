@@ -10,6 +10,7 @@ import {
   playerExtrasSchema,
   stringArraySchema,
   stringSchema,
+  tacticsBoardSnapshotsSchema,
   tacticsLineupSchema,
   tacticsNotesSchema
 } from '../persistence/schemas';
@@ -50,6 +51,8 @@ import {
 } from './ui/select';
 import { Textarea } from './ui/textarea';
 import { cn } from '../lib/utils';
+import footballIconUrl from '../assets/tactics/football-icon.png';
+import wallImageUrl from '../assets/tactics/wall.png';
 
 export { CoachKnowledgeBase as TacticsKnowledgeBase } from './CoachKnowledgeBase';
 
@@ -72,17 +75,83 @@ type DrawingPoint = [number, number];
 type DrawingPath = {
   color: string;
   width: number;
+  strokeStyle?: DrawingStrokeStyle;
+  layer?: DrawingLayer;
+  phase?: TacticalPhase;
   points: DrawingPoint[];
+};
+
+type BoardPoint = {
+  left: number;
+  top: number;
+};
+type DrawingLayer = 'Runs' | 'Passes' | 'Pressing' | 'Defensive Shape';
+type DrawingStrokeStyle = 'Solid' | 'Dashed' | 'Dotted';
+type TacticalPhase = 'In Possession' | 'Out of Possession' | 'Transition' | 'Set Piece';
+type TacticsBoardSnapshot = {
+  id: string;
+  name: string;
+  createdAt: string;
+  matchFormat: MatchFormat;
+  formation: string;
+  opponentFormation: string;
+  playstyle: string;
+  defensiveStyle: string;
+  phase: TacticalPhase;
+  lineup: TacticsLineup;
+  draggedPositions: DraggedPositions;
+  drawingPaths: DrawingPath[];
+  ballPos: BoardPoint;
+  wallPos: BoardPoint;
+  wallRotation: number;
+  showBall: boolean;
+  showWall: boolean;
 };
 type TacticsWorkspaceSection = 'board' | 'library';
 type TacticsBoardPanel = 'squad' | 'tactics' | 'tools' | 'notes';
 
 const TACTICS_NOTE_CATEGORIES: readonly TacticsNoteCategory[] = ['Formation', 'Set Pieces', 'Strategy', 'General'];
+const TACTICAL_PHASES: readonly TacticalPhase[] = ['In Possession', 'Out of Possession', 'Transition', 'Set Piece'];
+const DRAWING_LAYERS: readonly DrawingLayer[] = ['Runs', 'Passes', 'Pressing', 'Defensive Shape'];
+const DRAWING_STROKE_STYLES: readonly DrawingStrokeStyle[] = ['Solid', 'Dashed', 'Dotted'];
 const EMPTY_SELECT_VALUE = '__none__';
+
+const getDrawingStrokeDash = (strokeStyle?: DrawingStrokeStyle) => {
+  if (strokeStyle === 'Dashed') return '3 2.2';
+  if (strokeStyle === 'Dotted') return '0.15 2.1';
+  return undefined;
+};
+
+const QUICK_SCENARIO_PRESETS: readonly {
+  id: string;
+  label: string;
+  phase: TacticalPhase;
+  layer: DrawingLayer;
+  ballPos: BoardPoint;
+  wallPos?: BoardPoint;
+  showWall?: boolean;
+  drawingMode?: boolean;
+}[] = [
+  { id: 'build-up', label: 'Build-up', phase: 'In Possession', layer: 'Passes', ballPos: { left: 50, top: 76 }, showWall: false, drawingMode: true },
+  { id: 'high-press', label: 'High Press', phase: 'Out of Possession', layer: 'Pressing', ballPos: { left: 50, top: 28 }, showWall: false, drawingMode: true },
+  { id: 'defend-lead', label: 'Defend Lead', phase: 'Out of Possession', layer: 'Defensive Shape', ballPos: { left: 50, top: 18 }, wallPos: { left: 50, top: 38 }, showWall: true, drawingMode: false },
+  { id: 'counter-attack', label: 'Counter Attack', phase: 'Transition', layer: 'Runs', ballPos: { left: 50, top: 48 }, showWall: false, drawingMode: true },
+  { id: 'set-piece', label: 'Set Piece', phase: 'Set Piece', layer: 'Passes', ballPos: { left: 18, top: 18 }, wallPos: { left: 50, top: 32 }, showWall: true, drawingMode: true }
+];
 
 const parseTacticsNoteCategory = (value: string): TacticsNoteCategory => (
   TACTICS_NOTE_CATEGORIES.includes(value as TacticsNoteCategory) ? value as TacticsNoteCategory : 'General'
 );
+
+const toLandscapePoint = ({ left, top }: BoardPoint): BoardPoint => ({
+  left: 100 - top,
+  top: left
+});
+
+const fromLandscapePoint = ({ left, top }: BoardPoint): BoardPoint => ({
+  left: top,
+  top: 100 - left
+});
 
 interface TacticsViewProps {
   players: Player[];
@@ -104,6 +173,7 @@ export default function TacticsView({ players, staff, teamCoach, teamName, teamL
   const [activeWorkspaceSection, setActiveWorkspaceSection] = useState<TacticsWorkspaceSection>('board');
   const [activeBoardPanel, setActiveBoardPanel] = useState<TacticsBoardPanel>('squad');
   const [isBoardFullscreen, setIsBoardFullscreen] = useState<boolean>(false);
+  const [isFullscreenToolsetVisible, setIsFullscreenToolsetVisible] = useState<boolean>(true);
   
   // Custom Strategy Mode States
   const [isCustomMode, setIsCustomMode] = useState<boolean>(() => {
@@ -559,7 +629,8 @@ export default function TacticsView({ players, staff, teamCoach, teamName, teamL
   // Drawing tools state
   const [isDrawingMode, setIsDrawingMode] = useState<boolean>(false);
   const [brushColor, setBrushColor] = useState<string>('#fbbf24'); // default Amber Yellow
-  const [brushWidth, setBrushWidth] = useState<number>(3); // stroke thickness
+  const brushWidth = 0.72;
+  const [drawingStrokeStyle, setDrawingStrokeStyle] = useState<DrawingStrokeStyle>('Solid');
   const [paths, setPaths] = useState<DrawingPath[]>(() => {
     return readJsonStorage(STORAGE_KEYS.drawingPaths, drawingPathsSchema, [], 'Tactics drawings') as DrawingPath[];
   });
@@ -567,12 +638,34 @@ export default function TacticsView({ players, staff, teamCoach, teamName, teamL
   const currentPathRef = useRef<DrawingPath | null>(null);
   const activeDrawingPointerIdRef = useRef<number | null>(null);
   const lastDrawingPointRef = useRef<DrawingPoint | null>(null);
+  const [activePhase, setActivePhase] = useState<TacticalPhase>('In Possession');
+  const [activeDrawingLayer, setActiveDrawingLayer] = useState<DrawingLayer>('Runs');
+  const [visibleDrawingLayers, setVisibleDrawingLayers] = useState<Record<DrawingLayer, boolean>>({
+    Runs: true,
+    Passes: true,
+    Pressing: true,
+    'Defensive Shape': true
+  });
+  const [snapshotName, setSnapshotName] = useState<string>('');
+  const [boardSnapshots, setBoardSnapshots] = useState<TacticsBoardSnapshot[]>(() => {
+    return readJsonStorage(
+      STORAGE_KEYS.tacticsBoardSnapshots,
+      tacticsBoardSnapshotsSchema,
+      [],
+      'Tactics board snapshots'
+    ) as unknown as TacticsBoardSnapshot[];
+  });
 
   // Tactical Aux elements states
   const [showBall, setShowBall] = useState<boolean>(true);
   const [ballPos, setBallPos] = useState<{ left: number; top: number }>({ left: 50, top: 40 }); // slightly ahead of center
   const [showWall, setShowWall] = useState<boolean>(false);
   const [wallPos, setWallPos] = useState<{ left: number; top: number }>({ left: 50, top: 72 });
+  const [wallRotation, setWallRotation] = useState<number>(0);
+
+  useEffect(() => {
+    writeJsonStorage(STORAGE_KEYS.tacticsBoardSnapshots, boardSnapshots);
+  }, [boardSnapshots]);
 
   // Coordinate positions mapper on soccer field container depending on selected formation
   const fieldPositions = useMemo(() => {
@@ -746,6 +839,7 @@ export default function TacticsView({ players, staff, teamCoach, teamName, teamL
     removeStorage(STORAGE_KEYS.drawingPaths);
     setBallPos({ left: 50, top: 40 });
     setWallPos({ left: 50, top: 72 });
+    setWallRotation(0);
   };
 
   const handleClearDrawings = () => {
@@ -758,6 +852,78 @@ export default function TacticsView({ players, staff, teamCoach, teamName, teamL
     setDraggedPositions({});
     setBallPos({ left: 50, top: 40 });
     setWallPos({ left: 50, top: 72 });
+    setWallRotation(0);
+  };
+
+  const handleApplyScenarioPreset = (preset: typeof QUICK_SCENARIO_PRESETS[number]) => {
+    setActivePhase(preset.phase);
+    setActiveDrawingLayer(preset.layer);
+    setBallPos(preset.ballPos);
+    setShowBall(true);
+    setShowWall(Boolean(preset.showWall));
+    if (preset.wallPos) setWallPos(preset.wallPos);
+    setWallRotation(preset.phase === 'Set Piece' ? 90 : 0);
+    setIsDrawingMode(Boolean(preset.drawingMode));
+  };
+
+  const toggleDrawingLayerVisibility = (layer: DrawingLayer) => {
+    setVisibleDrawingLayers(prev => ({
+      ...prev,
+      [layer]: !prev[layer]
+    }));
+  };
+
+  const handleRotateWall = () => {
+    setShowWall(true);
+    setWallRotation(prev => (prev + 45) % 180);
+  };
+
+  const handleSaveBoardSnapshot = () => {
+    const trimmedName = snapshotName.trim();
+    const createdAt = new Date().toISOString();
+    const snapshot: TacticsBoardSnapshot = {
+      id: `snapshot-${Date.now()}`,
+      name: trimmedName || `${formation} ${activePhase}`,
+      createdAt,
+      matchFormat,
+      formation,
+      opponentFormation,
+      playstyle,
+      defensiveStyle,
+      phase: activePhase,
+      lineup,
+      draggedPositions,
+      drawingPaths: paths,
+      ballPos,
+      wallPos,
+      wallRotation,
+      showBall,
+      showWall
+    };
+
+    setBoardSnapshots(prev => [snapshot, ...prev].slice(0, 12));
+    setSnapshotName('');
+  };
+
+  const handleLoadBoardSnapshot = (snapshotId: string) => {
+    const snapshot = boardSnapshots.find(item => item.id === snapshotId);
+    if (!snapshot) return;
+
+    setMatchFormat(snapshot.matchFormat);
+    setFormation(snapshot.formation);
+    setOpponentFormation(snapshot.opponentFormation);
+    setPlaystyle(snapshot.playstyle);
+    setDefensiveStyle(snapshot.defensiveStyle);
+    setActivePhase(snapshot.phase);
+    setLineup(snapshot.lineup);
+    setDraggedPositions(snapshot.draggedPositions);
+    setPaths(snapshot.drawingPaths);
+    setBallPos(snapshot.ballPos);
+    setWallPos(snapshot.wallPos);
+    setWallRotation(snapshot.wallRotation ?? 0);
+    setShowBall(snapshot.showBall);
+    setShowWall(snapshot.showWall);
+    writeJsonStorage(STORAGE_KEYS.drawingPaths, snapshot.drawingPaths);
   };
 
   const handleUndoDrawing = () => {
@@ -776,10 +942,12 @@ export default function TacticsView({ players, staff, teamCoach, teamName, teamL
     const rect = fieldRef.current.getBoundingClientRect();
     const x = ((clientX - rect.left) / rect.width) * 100;
     const y = ((clientY - rect.top) / rect.height) * 100;
-    return [
-      Math.max(0, Math.min(100, x)),
-      Math.max(0, Math.min(100, y))
-    ];
+    const displayPoint = {
+      left: Math.max(0, Math.min(100, x)),
+      top: Math.max(0, Math.min(100, y))
+    };
+    const storedPoint = isBoardFullscreen ? fromLandscapePoint(displayPoint) : displayPoint;
+    return [storedPoint.left, storedPoint.top];
   };
 
   const finishDragInteraction = (e?: React.PointerEvent) => {
@@ -818,6 +986,9 @@ export default function TacticsView({ players, staff, teamCoach, teamName, teamL
     const nextPath = {
       color: brushColor,
       width: brushWidth,
+      strokeStyle: drawingStrokeStyle,
+      layer: activeDrawingLayer,
+      phase: activePhase,
       points: [point]
     };
 
@@ -895,8 +1066,11 @@ export default function TacticsView({ players, staff, teamCoach, teamName, teamL
     const y = e.clientY - rect.top;
     
     // Clamp to 0-100% margins
-    const leftPercent = Math.max(0, Math.min(100, Math.round((x / rect.width) * 100)));
-    const topPercent = Math.max(0, Math.min(100, Math.round((y / rect.height) * 100)));
+    const displayPosition = {
+      left: Math.max(0, Math.min(100, Math.round((x / rect.width) * 100))),
+      top: Math.max(0, Math.min(100, Math.round((y / rect.height) * 100)))
+    };
+    const storedPosition = isBoardFullscreen ? fromLandscapePoint(displayPosition) : displayPosition;
     
     const startPoint = dragStartPointRef.current;
     if (startPoint && Math.hypot(e.clientX - startPoint.x, e.clientY - startPoint.y) > 4) {
@@ -907,12 +1081,12 @@ export default function TacticsView({ players, staff, teamCoach, teamName, teamL
       const idx = dragItem.index;
       setDraggedPositions(prev => ({
         ...prev,
-        [idx]: { left: leftPercent, top: topPercent }
+        [idx]: storedPosition
       }));
     } else if (dragItem.type === 'ball') {
-      setBallPos({ left: leftPercent, top: topPercent });
+      setBallPos(storedPosition);
     } else if (dragItem.type === 'wall') {
-      setWallPos({ left: leftPercent, top: topPercent });
+      setWallPos(storedPosition);
     }
   };
 
@@ -1040,13 +1214,13 @@ export default function TacticsView({ players, staff, teamCoach, teamName, teamL
               <h2 className="font-display text-lg font-black text-white">Match planning desk</h2>
               <p className="text-xs text-slate-400">Set the match shape, work the board, and manage supporting details without leaving the workspace.</p>
             </div>
-            <div className="grid grid-cols-2 gap-2 rounded-xl border border-slate-800 bg-slate-950/70 p-1">
+            <div className="grid w-full grid-cols-2 gap-1 rounded-xl border border-slate-800 bg-slate-950/70 p-1 sm:w-auto sm:min-w-[24rem]">
               <Button
                 type="button"
                 onClick={() => setActiveWorkspaceSection('board')}
                 variant="ghost"
                 size="sm"
-                className={`h-9 rounded-lg px-3 text-xs font-black uppercase tracking-wide ${
+                className={`h-9 w-full justify-center rounded-lg px-3 text-xs font-black uppercase tracking-wide whitespace-nowrap ${
                   activeWorkspaceSection === 'board'
                     ? 'bg-emerald-500 text-slate-950 shadow-sm'
                     : 'text-slate-400 hover:bg-white/5 hover:text-white'
@@ -1059,7 +1233,7 @@ export default function TacticsView({ players, staff, teamCoach, teamName, teamL
                 onClick={() => setActiveWorkspaceSection('library')}
                 variant="ghost"
                 size="sm"
-                className={`h-9 rounded-lg px-3 text-xs font-black uppercase tracking-wide ${
+                className={`h-9 w-full justify-center rounded-lg px-3 text-xs font-black uppercase tracking-wide whitespace-nowrap ${
                   activeWorkspaceSection === 'library'
                     ? 'bg-indigo-500 text-white shadow-sm'
                     : 'text-slate-400 hover:bg-white/5 hover:text-white'
@@ -1069,48 +1243,6 @@ export default function TacticsView({ players, staff, teamCoach, teamName, teamL
               </Button>
             </div>
           </div>
-          {activeWorkspaceSection === 'board' && (
-            <div className="grid grid-cols-1 gap-2 border-t border-slate-800 pt-3 md:grid-cols-4">
-              <Select value={matchFormat} onValueChange={(value) => setMatchFormat(value as MatchFormat)}>
-                <SelectTrigger className="h-10 rounded-lg border-slate-800 bg-slate-950 text-xs font-bold text-slate-100 focus:ring-amber-400/30">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent className="border-slate-800 bg-slate-950 text-slate-100">
-                  <SelectItem value="11-a-side">11-a-side</SelectItem>
-                  <SelectItem value="9-a-side">9-a-side</SelectItem>
-                  <SelectItem value="8-a-side">8-a-side</SelectItem>
-                  <SelectItem value="7-a-side">7-a-side</SelectItem>
-                  <SelectItem value="6-a-side">6-a-side</SelectItem>
-                  <SelectItem value="5-a-side">5-a-side</SelectItem>
-                </SelectContent>
-              </Select>
-              <Select value={formation} onValueChange={setFormation}>
-                <SelectTrigger className="h-10 rounded-lg border-slate-800 bg-slate-950 text-xs font-bold text-slate-100 focus:ring-amber-400/30">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent className="border-slate-800 bg-slate-950 text-slate-100">
-                  {MATCH_FORMAT_CONFIG[matchFormat].formations.map((fmt) => (
-                    <SelectItem key={fmt} value={fmt} className="text-xs font-bold">{fmt}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <div className="rounded-lg border border-slate-800 bg-slate-950 px-3 py-2">
-                <p className="text-[9px] font-black uppercase tracking-widest text-slate-500">Active Style</p>
-                <p className="truncate text-xs font-black text-amber-300">{activePlaystyle}</p>
-              </div>
-              <div className="grid grid-cols-3 gap-2">
-                <Button type="button" onClick={handleAutoFillBoard} className="h-10 rounded-lg bg-emerald-500 px-2 text-[10px] font-black text-slate-950 hover:bg-emerald-400">
-                  Auto Fill
-                </Button>
-                <Button type="button" onClick={handleClearBoard} variant="outline" className="h-10 rounded-lg border-rose-500/30 bg-rose-500/10 px-2 text-[10px] font-black text-rose-300 hover:bg-rose-500 hover:text-white">
-                  Clear
-                </Button>
-                <Button type="button" onClick={() => setIsBoardFullscreen(true)} variant="outline" className="h-10 rounded-lg border-slate-700 bg-slate-950 px-2 text-[10px] font-black text-slate-200 hover:bg-slate-800">
-                  <Maximize2 size={13} /> Fullscreen
-                </Button>
-              </div>
-            </div>
-          )}
           </div>
       </div>
 
@@ -1245,19 +1377,21 @@ export default function TacticsView({ players, staff, teamCoach, teamName, teamL
               );
             })}
           </div>
-          <div className="mt-3 space-y-2 rounded-lg border border-slate-800 bg-slate-950/70 p-3 text-[11px] text-slate-400">
-            <div className="flex justify-between gap-3">
-              <span>Formation</span>
-              <span id="sidebar-val-formation" className="font-bold text-white">{activeFormation}</span>
-            </div>
-            <div className="flex justify-between gap-3">
-              <span>Playstyle</span>
-              <span id="sidebar-val-playstyle" className="truncate font-bold text-amber-300">{activePlaystyle}</span>
-            </div>
-            <div className="flex justify-between gap-3">
-              <span>Defense</span>
-              <span id="sidebar-val-defense" className="truncate font-bold text-emerald-400">{activeDefensiveStyle}</span>
-            </div>
+          <div className="mt-3 border-t border-slate-800 pt-3">
+            <label className="mb-1.5 block px-1 text-[9px] font-black uppercase tracking-widest text-slate-500">Match Format</label>
+            <Select value={matchFormat} onValueChange={(value) => setMatchFormat(value as MatchFormat)}>
+              <SelectTrigger id="select-match-format-sidebar" className="h-10 rounded-lg border-slate-800 bg-slate-950 text-xs font-bold text-slate-100 focus:ring-amber-400/30">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="border-slate-800 bg-slate-950 text-slate-100">
+                <SelectItem value="11-a-side">11-a-side</SelectItem>
+                <SelectItem value="9-a-side">9-a-side</SelectItem>
+                <SelectItem value="8-a-side">8-a-side</SelectItem>
+                <SelectItem value="7-a-side">7-a-side</SelectItem>
+                <SelectItem value="6-a-side">6-a-side</SelectItem>
+                <SelectItem value="5-a-side">5-a-side</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
           {activeBoardPanel === 'squad' && (
             <div className="mt-3 grid grid-cols-1 gap-2 border-t border-slate-800 pt-3">
@@ -1304,9 +1438,21 @@ export default function TacticsView({ players, staff, teamCoach, teamName, teamL
         <div className="flex flex-col gap-3 mb-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h3 className="font-display font-black text-white text-sm tracking-widest uppercase text-emerald-400">Match Layout</h3>
-            <p className="text-[11px] text-slate-400">{activeFormation} · {activePlaystyle} · {MATCH_FORMAT_CONFIG[matchFormat].size} players</p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
+            {isBoardFullscreen && (
+              <Button
+                type="button"
+                onClick={() => setIsFullscreenToolsetVisible((value) => !value)}
+                variant="outline"
+                size="sm"
+                className="h-8 rounded-lg border-slate-700 bg-slate-950 px-2 text-[10px] font-black uppercase tracking-wider text-slate-200 hover:bg-slate-800"
+                aria-label={isFullscreenToolsetVisible ? 'Hide fullscreen coach toolset' : 'Show fullscreen coach toolset'}
+              >
+                <SlidersHorizontal size={13} />
+                {isFullscreenToolsetVisible ? 'Hide Tools' : 'Show Tools'}
+              </Button>
+            )}
             <Button
               type="button"
               onClick={handleAutoFillBoard}
@@ -1339,6 +1485,13 @@ export default function TacticsView({ players, staff, teamCoach, teamName, teamL
           </div>
         </div>
 
+        <div className={cn(
+          'min-h-0',
+          isBoardFullscreen && 'grid flex-1 grid-cols-1 gap-3',
+          isBoardFullscreen && isFullscreenToolsetVisible && 'lg:grid-cols-[minmax(0,1fr)_24rem]',
+          isBoardFullscreen && !isFullscreenToolsetVisible && 'lg:grid-cols-1'
+        )}>
+          <div className={cn('min-h-0', isBoardFullscreen && 'flex min-h-0 flex-col')}>
         {/* Render interactive Tactical Pitch Board */}
         <div 
           id="tactical-field-card" 
@@ -1349,28 +1502,38 @@ export default function TacticsView({ players, staff, teamCoach, teamName, teamL
           onPointerCancel={handleFieldPointerUp}
           onLostPointerCapture={finishDrawingInteraction}
           className={cn(
-            'relative w-full max-w-[576px] aspect-[7/10] mx-auto bg-[#132c1b] rounded-xl overflow-hidden border border-emerald-900/60 shadow-lg select-none touch-none',
-            isBoardFullscreen && 'max-h-[calc(100vh-9rem)] max-w-[min(92vw,780px)]'
+            'relative w-full mx-auto bg-[#132c1b] rounded-xl overflow-hidden border border-emerald-900/60 shadow-lg select-none touch-none',
+            isBoardFullscreen && isFullscreenToolsetVisible && 'aspect-video max-w-full rounded-lg lg:max-w-[calc((100vh-9rem)*1.777)]',
+            isBoardFullscreen && !isFullscreenToolsetVisible && 'aspect-video max-w-full rounded-lg lg:max-w-[calc((100vh-5.5rem)*1.777)]',
+            !isBoardFullscreen && 'aspect-[7/10] max-w-[576px]'
           )}
         >
           
           {/* Soccer pitch physical markings overlay */}
           <div className="absolute inset-4 border-2 border-slate-100/5 rounded-xl pointer-events-none">
-            {/* Center Line & Circle */}
-            <div className="absolute inset-x-0 top-1/2 h-0.5 bg-slate-100/5" />
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-32 h-32 rounded-full border-2 border-slate-100/5" />
-            
-            {/* Top Penalty Box */}
-            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-64 h-24 border-b-2 border-x-2 border-slate-100/5">
-              {/* Goal area box */}
-              <div className="absolute top-0 left-1/2 -translate-x-1/2 w-36 h-10 border-b-2 border-x-2 border-slate-100/5" />
-            </div>
-            
-            {/* Bottom Penalty Box */}
-            <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-64 h-24 border-t-2 border-x-2 border-slate-100/5">
-              {/* Goal area box */}
-              <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-36 h-10 border-t-2 border-x-2 border-slate-100/5" />
-            </div>
+            {isBoardFullscreen ? (
+              <>
+                <div className="absolute inset-y-0 left-1/2 w-0.5 bg-slate-100/5" />
+                <div className="absolute left-1/2 top-1/2 h-32 w-32 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-slate-100/5" />
+                <div className="absolute left-0 top-1/2 h-64 w-24 -translate-y-1/2 border-y-2 border-r-2 border-slate-100/5">
+                  <div className="absolute left-0 top-1/2 h-36 w-10 -translate-y-1/2 border-y-2 border-r-2 border-slate-100/5" />
+                </div>
+                <div className="absolute right-0 top-1/2 h-64 w-24 -translate-y-1/2 border-y-2 border-l-2 border-slate-100/5">
+                  <div className="absolute right-0 top-1/2 h-36 w-10 -translate-y-1/2 border-y-2 border-l-2 border-slate-100/5" />
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="absolute inset-x-0 top-1/2 h-0.5 bg-slate-100/5" />
+                <div className="absolute top-1/2 left-1/2 h-32 w-32 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-slate-100/5" />
+                <div className="absolute top-0 left-1/2 h-24 w-64 -translate-x-1/2 border-b-2 border-x-2 border-slate-100/5">
+                  <div className="absolute top-0 left-1/2 h-10 w-36 -translate-x-1/2 border-b-2 border-x-2 border-slate-100/5" />
+                </div>
+                <div className="absolute bottom-0 left-1/2 h-24 w-64 -translate-x-1/2 border-t-2 border-x-2 border-slate-100/5">
+                  <div className="absolute bottom-0 left-1/2 h-10 w-36 -translate-x-1/2 border-t-2 border-x-2 border-slate-100/5" />
+                </div>
+              </>
+            )}
           </div>
 
           {/* Grass elegant radial texture */}
@@ -1379,6 +1542,7 @@ export default function TacticsView({ players, staff, teamCoach, teamName, teamL
           {/* COACH DRAWING PATHS SVG LAYER (Absolute Overlay) */}
           <svg 
             viewBox="0 0 100 100" 
+            preserveAspectRatio="none"
             className="absolute inset-0 w-full h-full select-none"
             onPointerDown={handleFieldPointerDown}
             onPointerMove={handleFieldPointerMove}
@@ -1387,27 +1551,37 @@ export default function TacticsView({ players, staff, teamCoach, teamName, teamL
             onLostPointerCapture={finishDrawingInteraction}
             style={{ zIndex: isDrawingMode ? 30 : 10, pointerEvents: isDrawingMode ? 'auto' : 'none', touchAction: 'none' }}
           >
-            {paths.map((p, idx) => (
-              <path
-                key={idx}
-                d={p.points.map((pt, i) => `${i === 0 ? 'M' : 'L'} ${pt[0]} ${pt[1]}`).join(' ')}
-                stroke={p.color}
-                strokeWidth={p.width}
-                fill="none"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            ))}
-            {currentPath && (
-              <path
-                d={currentPath.points.map((pt, i) => `${i === 0 ? 'M' : 'L'} ${pt[0]} ${pt[1]}`).join(' ')}
-                stroke={currentPath.color}
-                strokeWidth={currentPath.width}
-                fill="none"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            )}
+            <g transform={isBoardFullscreen ? 'rotate(90 50 50)' : undefined}>
+              {paths
+                .filter(path => visibleDrawingLayers[path.layer ?? 'Runs'])
+                .map((p, idx) => {
+                  const pathStrokeStyle = p.strokeStyle ?? 'Solid';
+
+                  return (
+                    <path
+                      key={idx}
+                      d={p.points.map((pt, i) => `${i === 0 ? 'M' : 'L'} ${pt[0]} ${pt[1]}`).join(' ')}
+                      stroke={p.color}
+                      strokeWidth={p.width}
+                      strokeDasharray={getDrawingStrokeDash(pathStrokeStyle)}
+                      fill="none"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  );
+                })}
+              {currentPath && visibleDrawingLayers[currentPath.layer ?? 'Runs'] && (
+                <path
+                  d={currentPath.points.map((pt, i) => `${i === 0 ? 'M' : 'L'} ${pt[0]} ${pt[1]}`).join(' ')}
+                  stroke={currentPath.color}
+                  strokeWidth={currentPath.width}
+                  strokeDasharray={getDrawingStrokeDash(currentPath.strokeStyle ?? 'Solid')}
+                  fill="none"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              )}
+            </g>
           </svg>
 
           {/* Rendering the Starting cards at calculated coordinates */}
@@ -1415,13 +1589,14 @@ export default function TacticsView({ players, staff, teamCoach, teamName, teamL
             const player = lineup[idx];
             const isSelected = selectedSlotIndex === idx;
             const currentPos = draggedPositions[idx] || { top: pos.top, left: pos.left };
+            const displayPos = isBoardFullscreen ? toLandscapePoint(currentPos) : currentPos;
             
             if (!player) {
               return (
                 <motion.button
                   id={`field-player-slot-${idx}-empty`}
                   key={idx}
-                  style={{ top: `${currentPos.top}%`, left: `${currentPos.left}%` }}
+                  style={{ top: `${displayPos.top}%`, left: `${displayPos.left}%` }}
                   onClick={(e) => {
                     if (isDragMovingRef.current) {
                       e.preventDefault();
@@ -1459,7 +1634,7 @@ export default function TacticsView({ players, staff, teamCoach, teamName, teamL
               <motion.div
                 id={`field-player-slot-${idx}`}
                 key={idx}
-                style={{ top: `${currentPos.top}%`, left: `${currentPos.left}%` }}
+                style={{ top: `${displayPos.top}%`, left: `${displayPos.left}%` }}
                 onClick={(e) => {
                   if (isDragMovingRef.current) {
                     e.preventDefault();
@@ -1594,18 +1769,22 @@ export default function TacticsView({ players, staff, teamCoach, teamName, teamL
           {showBall && (
             <div
               id="tactics-ball-element"
-              style={{ top: `${ballPos.top}%`, left: `${ballPos.left}%` }}
+              style={{
+                top: `${(isBoardFullscreen ? toLandscapePoint(ballPos) : ballPos).top}%`,
+                left: `${(isBoardFullscreen ? toLandscapePoint(ballPos) : ballPos).left}%`
+              }}
               onPointerDown={(e) => handleElementPointerDown(e, 'ball')}
               onPointerUp={handleElementPointerUp}
               onPointerMove={handleElementPointerMove}
               onPointerCancel={handleElementPointerUp}
               onLostPointerCapture={finishDragInteraction}
-              className="absolute -translate-x-1/2 -translate-y-1/2 w-11 h-11 bg-white border-2 border-slate-900 rounded-full flex items-center justify-center shadow-xl cursor-grab active:cursor-grabbing z-30 transition-shadow hover:scale-110 select-none animate-bounce-short touch-none"
+              className="absolute -translate-x-1/2 -translate-y-1/2 size-10 cursor-grab active:cursor-grabbing z-30 transition-transform hover:scale-110 select-none animate-bounce-short touch-none"
               title="Tactical Match Ball (Drag to plot plays or attacking runs!)"
               role="button"
               aria-label="Drag tactical match ball"
             >
-              <div className="relative w-full h-full rounded-full overflow-hidden bg-slate-100 flex items-center justify-center">
+              <img src={footballIconUrl} alt="" className="block size-full drop-shadow-[0_8px_14px_rgba(0,0,0,0.45)]" draggable={false} />
+              <div className="hidden">
                 <div className="absolute inset-0 grid grid-cols-2 grid-rows-2 opacity-15">
                   <div className="border-r border-b border-black" />
                   <div className="border-l border-b border-black" />
@@ -1621,18 +1800,23 @@ export default function TacticsView({ players, staff, teamCoach, teamName, teamL
           {showWall && (
             <div
               id="tactics-wall-element"
-              style={{ top: `${wallPos.top}%`, left: `${wallPos.left}%` }}
+              style={{
+                top: `${(isBoardFullscreen ? toLandscapePoint(wallPos) : wallPos).top}%`,
+                left: `${(isBoardFullscreen ? toLandscapePoint(wallPos) : wallPos).left}%`,
+                transform: `translate(-50%, -50%) rotate(${wallRotation}deg)`
+              }}
               onPointerDown={(e) => handleElementPointerDown(e, 'wall')}
               onPointerUp={handleElementPointerUp}
               onPointerMove={handleElementPointerMove}
               onPointerCancel={handleElementPointerUp}
               onLostPointerCapture={finishDragInteraction}
-              className="absolute -translate-x-1/2 -translate-y-1/2 min-h-11 px-4 py-2 bg-red-650/95 border border-red-400 text-white rounded-lg flex items-center justify-center gap-1 shadow-2xl cursor-grab active:cursor-grabbing z-30 select-none hover:scale-105 touch-none"
+              className="absolute h-16 w-36 -translate-x-1/2 -translate-y-1/2 cursor-grab active:cursor-grabbing z-30 select-none touch-none transition-transform hover:scale-105"
               title="Defensive Wall (Drag/place on pitch!)"
               role="button"
               aria-label="Drag defensive wall"
             >
-              <div className="flex items-center gap-1 text-[9.5px] font-black tracking-widest font-mono text-white">
+              <img src={wallImageUrl} alt="" className="block size-full object-contain drop-shadow-[0_10px_16px_rgba(0,0,0,0.5)]" draggable={false} />
+              <div className="hidden">
                 <span>🛡️</span>
                 <span>WALL</span>
                 <div className="flex gap-0.5 ml-0.5">
@@ -1645,7 +1829,7 @@ export default function TacticsView({ players, staff, teamCoach, teamName, teamL
           )}
 
           {/* Floating HUD bottom overlay details */}
-          <div className="absolute bottom-4 left-4 p-2 bg-slate-950/80 border border-slate-800 rounded-lg">
+          <div className="absolute bottom-4 left-4 rounded-lg border border-slate-800 bg-slate-950/80 p-2">
             <div className="flex items-center gap-1.5">
               <span className="text-[10px] text-slate-400 font-bold tracking-widest uppercase">Formation</span>
               {isCustomMode && (
@@ -1659,7 +1843,10 @@ export default function TacticsView({ players, staff, teamCoach, teamName, teamL
 
         <div
           id="tactical-field-style-summary"
-          className="mt-3 w-full max-w-[576px] mx-auto rounded-xl border border-slate-800 bg-slate-950/80 px-3 py-2 text-center shadow-sm"
+          className={cn(
+            'mt-3 w-full max-w-[576px] mx-auto rounded-xl border border-slate-800 bg-slate-950/80 px-3 py-2 text-center shadow-sm',
+            isBoardFullscreen && 'hidden'
+          )}
         >
           <div className="flex flex-wrap items-center justify-center gap-1.5">
             {isCustomMode && (
@@ -1668,6 +1855,280 @@ export default function TacticsView({ players, staff, teamCoach, teamName, teamL
             <span className="text-[10px] text-slate-400 font-bold tracking-widest uppercase">Active Tactic Style</span>
           </div>
           <p id="pitch-hud-val-playstyle" className="font-display font-black text-amber-400 text-sm leading-tight uppercase">{activePlaystyle}</p>
+        </div>
+          </div>
+
+          {isBoardFullscreen && isFullscreenToolsetVisible && (
+            <div className="rounded-xl border border-slate-800/80 bg-[#0f172a]/95 p-3 shadow-lg">
+              <div className="flex items-center justify-between border-b border-slate-800/60 pb-2">
+                <div className="flex items-center gap-2">
+                  <BookOpen size={18} className="text-indigo-400" />
+                  <div>
+                    <h4 className="text-[10px] font-black uppercase tracking-widest text-amber-400">Coach's Toolset</h4>
+                    <p className="text-[9px] font-mono text-slate-500">Fullscreen controls</p>
+                  </div>
+                </div>
+                {isDrawingMode && (
+                  <Badge variant="warning" className="rounded px-1.5 py-0 text-[7.5px] font-mono">DRAW</Badge>
+                )}
+              </div>
+
+              <div className="mt-3 space-y-3">
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="mb-1 block text-[8.5px] font-black uppercase tracking-widest text-slate-500">Format</label>
+                    <Select value={matchFormat} onValueChange={(value) => setMatchFormat(value as MatchFormat)}>
+                      <SelectTrigger id="select-fullscreen-match-format" className="h-8 rounded-lg border-slate-800 bg-slate-950 text-[10px] font-bold text-slate-100 focus:ring-amber-400/30">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="z-[90] border-slate-800 bg-slate-950 text-slate-100">
+                        <SelectItem value="11-a-side">11-a-side</SelectItem>
+                        <SelectItem value="9-a-side">9-a-side</SelectItem>
+                        <SelectItem value="8-a-side">8-a-side</SelectItem>
+                        <SelectItem value="7-a-side">7-a-side</SelectItem>
+                        <SelectItem value="6-a-side">6-a-side</SelectItem>
+                        <SelectItem value="5-a-side">5-a-side</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-[8.5px] font-black uppercase tracking-widest text-slate-500">Formation</label>
+                    <Select value={formation} onValueChange={setFormation}>
+                      <SelectTrigger id="select-fullscreen-formation" className="h-8 rounded-lg border-slate-800 bg-slate-950 text-[10px] font-bold text-slate-100 focus:ring-amber-400/30">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="z-[90] border-slate-800 bg-slate-950 text-slate-100">
+                        {MATCH_FORMAT_CONFIG[matchFormat].formations.map((fmt) => (
+                          <SelectItem key={fmt} value={fmt} className="text-xs font-bold">{fmt}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between gap-2">
+                  <span className="flex min-w-0 items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-400"><Edit size={12} className="shrink-0" /> <span className="truncate">Board Markings</span></span>
+                  <Button
+                    type="button"
+                    onClick={() => setIsDrawingMode(!isDrawingMode)}
+                    variant="outline"
+                    size="sm"
+                    className={`h-8 shrink-0 rounded-lg px-3 text-[10px] font-bold uppercase tracking-wide ${
+                      isDrawingMode
+                        ? 'border-amber-400 bg-amber-400 text-slate-950'
+                        : 'border-slate-800/80 bg-white/5 text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    {isDrawingMode ? 'Drawing On' : 'Drawing Off'}
+                  </Button>
+                </div>
+
+                {isDrawingMode && (
+                  <div className="space-y-2 rounded-xl border border-slate-800/80 bg-slate-950/80 p-2.5">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-[9px] font-bold uppercase text-slate-400">Color</span>
+                      <div className="flex gap-1.5">
+                        {[
+                          { hex: '#fbbf24', label: 'Amber' },
+                          { hex: '#ef4444', label: 'Red' },
+                          { hex: '#38bdf8', label: 'Sky' },
+                          { hex: '#ffffff', label: 'White' },
+                          { hex: '#10b981', label: 'Lime' }
+                        ].map((col) => (
+                          <Button
+                            key={col.hex}
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => setBrushColor(col.hex)}
+                            style={{ backgroundColor: col.hex }}
+                            className={`size-4 rounded-full border p-0 hover:bg-transparent ${
+                              brushColor === col.hex ? 'scale-125 border-cyan-400 ring-1 ring-cyan-500/30' : 'border-black/50'
+                            }`}
+                            title={col.label}
+                            aria-label={`Set brush color to ${col.label}`}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-[9px] font-bold uppercase text-slate-400">Line</span>
+                      <span className="rounded-full border border-slate-800 bg-slate-900 px-2 py-0.5 text-[8.5px] font-bold uppercase text-slate-300">Thin 0.7px</span>
+                    </div>
+                    <div className="grid grid-cols-3 gap-1">
+                      {DRAWING_STROKE_STYLES.map((strokeStyle) => (
+                        <Button
+                          key={strokeStyle}
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setDrawingStrokeStyle(strokeStyle)}
+                          className={`h-6 rounded px-2 text-[8.5px] font-bold ${
+                            drawingStrokeStyle === strokeStyle ? 'bg-amber-400 text-slate-950' : 'bg-slate-800 text-slate-400 hover:text-slate-100'
+                          }`}
+                        >
+                          {strokeStyle}
+                        </Button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <div className="grid grid-cols-2 gap-1.5">
+                  <Button type="button" disabled={paths.length === 0} onClick={handleUndoDrawing} variant="outline" size="sm" className="h-8 rounded-lg border-slate-800/80 bg-slate-850 px-2 text-[9.5px] font-bold text-slate-300 hover:bg-slate-805 hover:text-white disabled:opacity-30">
+                    <RefreshCw size={11} /> Undo
+                  </Button>
+                  <Button type="button" disabled={paths.length === 0} onClick={handleClearDrawings} variant="outline" size="sm" className="h-8 rounded-lg border-slate-800/80 bg-rose-500/5 px-2 text-[9.5px] font-bold text-rose-400 hover:bg-rose-500/10 hover:text-rose-300 disabled:opacity-30">
+                    <Trash2 size={11} /> Ink
+                  </Button>
+                </div>
+
+                <div className="rounded-xl border border-slate-800/80 bg-slate-950/70 p-2.5">
+                  <div className="mb-2 flex items-center justify-between gap-2">
+                    <span className="text-[9px] font-black uppercase tracking-widest text-slate-400">Scenario</span>
+                    <span className="text-[8.5px] font-bold text-slate-600">moves ball/tools</span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-1.5">
+                    {QUICK_SCENARIO_PRESETS.map((preset) => (
+                      <Button
+                        key={preset.id}
+                        type="button"
+                        onClick={() => handleApplyScenarioPreset(preset)}
+                        variant="outline"
+                        size="sm"
+                        className={cn(
+                          'h-10 min-w-0 justify-start rounded-lg border-slate-800 bg-slate-900 px-3 text-left text-[11px] font-bold text-slate-300 hover:bg-slate-800 hover:text-white',
+                          activePhase === preset.phase && activeDrawingLayer === preset.layer && 'border-amber-400/40 bg-amber-400/10 text-amber-200'
+                        )}
+                      >
+                        <span className="min-w-0 truncate">{preset.label}</span>
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="mb-1 block text-[8.5px] font-black uppercase tracking-widest text-slate-500">Phase</label>
+                  <Select value={activePhase} onValueChange={(value) => setActivePhase(value as TacticalPhase)}>
+                    <SelectTrigger id="select-fullscreen-phase" className="h-8 rounded-lg border-slate-800 bg-slate-950 text-[10px] font-bold text-slate-100 focus:ring-amber-400/30">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="z-[90] border-slate-800 bg-slate-950 text-slate-100">
+                      {TACTICAL_PHASES.map((phase) => (
+                        <SelectItem key={phase} value={phase} className="text-xs font-bold">{phase}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="rounded-xl border border-slate-800/80 bg-slate-950/70 p-2.5">
+                  <div className="mb-2 flex items-center justify-between gap-2">
+                    <span className="text-[9px] font-black uppercase tracking-widest text-slate-400">Drawing Layers</span>
+                    <span className="text-[8.5px] font-bold text-slate-600">draw / show</span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-1.5">
+                    {DRAWING_LAYERS.map((layer) => (
+                      <div key={layer} className="grid grid-cols-[minmax(0,1fr)_3rem] overflow-hidden rounded-lg border border-slate-800 bg-slate-900">
+                        <button
+                          type="button"
+                          onClick={() => setActiveDrawingLayer(layer)}
+                          className={cn(
+                            'min-w-0 px-3 py-2 text-left text-[10px] font-black uppercase tracking-wide text-slate-400 hover:bg-slate-800 hover:text-white',
+                            activeDrawingLayer === layer && 'bg-indigo-500/20 text-indigo-200'
+                          )}
+                        >
+                          <span className="block truncate">{layer}</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => toggleDrawingLayerVisibility(layer)}
+                          className={cn(
+                            'border-l border-slate-800 text-[9px] font-black uppercase',
+                            visibleDrawingLayers[layer] ? 'text-emerald-300' : 'text-slate-600'
+                          )}
+                          aria-label={`${visibleDrawingLayers[layer] ? 'Hide' : 'Show'} ${layer} layer`}
+                        >
+                          {visibleDrawingLayers[layer] ? 'On' : 'Off'}
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="border-t border-slate-800/60 pt-3 space-y-2.5">
+                  <span className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-400"><Target size={12} /> Accessories</span>
+                  <div className="grid grid-cols-2 gap-1.5">
+                    <Button type="button" onClick={() => setShowBall(!showBall)} variant="outline" size="sm" className={`h-10 min-w-0 justify-between rounded-xl px-3 text-left ${showBall ? 'border-emerald-500/30 bg-emerald-600/10 text-emerald-400' : 'border-slate-805 bg-slate-900/40 text-slate-400 hover:bg-slate-800 hover:text-slate-200'}`}>
+                      <span className="flex min-w-0 items-center gap-1.5 text-[10.5px] font-bold"><img src={footballIconUrl} alt="" className="size-3.5 shrink-0" draggable={false} /> <span className="truncate">Ball</span></span>
+                      <span className="shrink-0 text-[9px] font-bold uppercase">{showBall ? 'On' : 'Off'}</span>
+                    </Button>
+                    <div className="grid grid-cols-[minmax(0,1fr)_2.5rem] gap-1.5">
+                    <Button type="button" onClick={() => setShowWall(!showWall)} variant="outline" size="sm" className={`h-10 min-w-0 justify-between rounded-xl px-3 text-left ${showWall ? 'border-red-500/20 bg-red-650/10 text-red-500' : 'border-slate-805 bg-slate-900/40 text-slate-400 hover:bg-slate-800 hover:text-slate-200'}`}>
+                      <span className="flex min-w-0 items-center gap-1.5 text-[10.5px] font-bold"><Shield size={11} className="shrink-0" /> <span className="truncate">Wall</span></span>
+                      <span className="shrink-0 text-[9px] font-bold uppercase">{showWall ? 'On' : 'Off'}</span>
+                    </Button>
+                    <Button
+                      type="button"
+                      onClick={handleRotateWall}
+                      variant="outline"
+                      size="icon"
+                      className="size-10 rounded-xl border-slate-805 bg-slate-900/40 text-slate-400 hover:bg-slate-800 hover:text-slate-200 [&>span]:sr-only"
+                      title={`Rotate wall (${wallRotation} degrees)`}
+                      aria-label={`Rotate wall, currently ${wallRotation} degrees`}
+                    >
+                      <RefreshCw size={14} />
+                      <span>{wallRotation} degrees</span>
+                    </Button>
+                    </div>
+                    <Button type="button" onClick={handleRotateWall} variant="outline" size="sm" className="hidden h-9 justify-between rounded-xl border-slate-805 bg-slate-900/40 px-3 text-left text-slate-400 hover:bg-slate-800 hover:text-slate-200">
+                      <span className="flex min-w-0 items-center gap-1.5 text-[10.5px] font-bold"><RefreshCw size={11} className="shrink-0" /> <span className="truncate">Rotate Wall</span></span>
+                      <span className="text-[9px] font-bold uppercase">{wallRotation}°</span>
+                    </Button>
+                  </div>
+                  <Button type="button" onClick={handleResetPositions} variant="outline" size="sm" className="h-9 w-full rounded-xl border-slate-800/80 bg-slate-900 px-3 text-[10px] font-bold uppercase tracking-wider text-slate-300 hover:border-slate-700 hover:bg-slate-850 hover:text-white">
+                    <RefreshCw size={12} /> Reset Positions
+                  </Button>
+                </div>
+
+                <div className="rounded-xl border border-slate-800/80 bg-slate-950/70 p-2.5">
+                  <span className="mb-2 block text-[9px] font-black uppercase tracking-widest text-slate-400">Snapshots</span>
+                  <div className="flex gap-1.5">
+                    <Input
+                      id="input-fullscreen-snapshot-name"
+                      value={snapshotName}
+                      onChange={(event) => setSnapshotName(event.target.value)}
+                      placeholder="Press Trap vs 4-4-2"
+                      className="h-8 rounded-lg border-slate-800 bg-slate-900 text-[10px] font-semibold text-slate-100 placeholder:text-slate-600 focus-visible:ring-amber-400/30"
+                    />
+                    <Button
+                      type="button"
+                      onClick={handleSaveBoardSnapshot}
+                      size="sm"
+                      className="h-8 rounded-lg bg-amber-400 px-2 text-[9px] font-black uppercase text-slate-950 hover:bg-amber-300"
+                    >
+                      Save
+                    </Button>
+                  </div>
+                  <div className="mt-2 max-h-28 space-y-1 overflow-y-auto pr-1">
+                    {boardSnapshots.map((snapshot) => (
+                      <button
+                        key={snapshot.id}
+                        type="button"
+                        onClick={() => handleLoadBoardSnapshot(snapshot.id)}
+                        className="w-full rounded-lg border border-slate-800 bg-slate-900/80 px-2 py-1.5 text-left hover:border-amber-400/40 hover:bg-slate-800"
+                      >
+                        <span className="block truncate text-[10px] font-black text-slate-100">{snapshot.name}</span>
+                        <span className="block truncate text-[8.5px] font-bold text-slate-500">{snapshot.formation} · {snapshot.phase}</span>
+                      </button>
+                    ))}
+                    {boardSnapshots.length === 0 && (
+                      <p className="rounded-lg border border-dashed border-slate-800 px-2 py-3 text-center text-[9px] text-slate-600">No saved snapshots yet.</p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
       </div>
@@ -1742,23 +2203,25 @@ export default function TacticsView({ players, staff, teamCoach, teamName, teamL
                 </div>
 
                 <div className="flex items-center justify-between gap-1">
-                  <span className="text-[9px] text-slate-400 font-bold uppercase font-mono">Brush Size</span>
-                  <div className="flex gap-1">
-                    {[2, 3, 5].map((size) => (
+                  <span className="text-[9px] text-slate-400 font-bold uppercase font-mono">Line Style</span>
+                  <span className="rounded-full border border-slate-800 bg-slate-900 px-2 py-0.5 text-[8.5px] font-bold uppercase text-slate-300">Thin 0.7px</span>
+                </div>
+
+                <div className="grid grid-cols-3 gap-1">
+                  {DRAWING_STROKE_STYLES.map((strokeStyle) => (
                       <Button
-                        key={size}
+                        key={strokeStyle}
                         type="button"
                         variant="ghost"
                         size="sm"
-                        onClick={() => setBrushWidth(size)}
+                        onClick={() => setDrawingStrokeStyle(strokeStyle)}
                         className={`h-6 rounded px-2 text-[8.5px] font-mono font-bold ${
-                          brushWidth === size ? 'bg-amber-400 text-slate-950 font-black' : 'bg-slate-800 text-slate-400 hover:text-slate-100'
+                          drawingStrokeStyle === strokeStyle ? 'bg-amber-400 text-slate-950 font-black' : 'bg-slate-800 text-slate-400 hover:text-slate-100'
                         }`}
                       >
-                        {size === 2 ? 'Thin' : size === 3 ? 'Mid' : 'Thick'}
+                        {strokeStyle}
                       </Button>
-                    ))}
-                  </div>
+                  ))}
                 </div>
               </div>
             )}
@@ -1795,37 +2258,52 @@ export default function TacticsView({ players, staff, teamCoach, teamName, teamL
           <div className="border-t border-slate-800/60 pt-3 space-y-2.5">
             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block flex items-center gap-1.5"><Target size={12} /> Accessories & Runs</span>
             
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-1 gap-1.5">
               <Button
                 id="btn-coach-ball-toggle"
                 type="button"
                 onClick={() => setShowBall(!showBall)}
                 variant="outline"
                 size="sm"
-                className={`h-9 justify-between rounded-xl px-2.5 text-left ${
+                className={`h-10 min-w-0 justify-between rounded-xl px-3 text-left ${
                   showBall
                     ? 'bg-emerald-600/10 text-emerald-400 border-emerald-500/30 hover:bg-emerald-600/15 hover:text-emerald-300'
                     : 'bg-slate-900/40 text-slate-400 border-slate-805 hover:bg-slate-800 hover:text-slate-200'
                 }`}
               >
-                <span className="text-[10.5px] font-bold flex items-center gap-1"><Target size={11} /> Ball Icon</span>
-                <span className="text-[9px] font-bold uppercase">{showBall ? 'On' : 'Off'}</span>
+                <span className="flex min-w-0 items-center gap-1.5 text-[10.5px] font-bold"><img src={footballIconUrl} alt="" className="size-3.5 shrink-0" draggable={false} /> <span className="truncate">Ball</span></span>
+                <span className="ml-2 shrink-0 text-[9px] font-bold uppercase">{showBall ? 'On' : 'Off'}</span>
               </Button>
 
+              <div className="grid grid-cols-[minmax(0,1fr)_2.5rem] gap-1.5">
               <Button
                 id="btn-coach-wall-toggle"
                 type="button"
                 onClick={() => setShowWall(!showWall)}
                 variant="outline"
                 size="sm"
-                className={`h-9 justify-between rounded-xl px-2.5 text-left ${
+                className={`h-10 min-w-0 justify-between rounded-xl px-3 text-left ${
                   showWall
                     ? 'bg-red-650/10 text-red-500 border-red-500/20 hover:bg-red-650/15 hover:text-red-400'
                     : 'bg-slate-900/40 text-slate-400 border-slate-805 hover:bg-slate-800 hover:text-slate-200'
                 }`}
               >
-                <span className="text-[10.5px] font-bold flex items-center gap-1"><Shield size={11} /> Def. Wall</span>
-                <span className="text-[9px] font-bold uppercase">{showWall ? 'On' : 'Off'}</span>
+                <span className="flex min-w-0 items-center gap-1.5 text-[10.5px] font-bold"><Shield size={11} className="shrink-0" /> <span className="truncate">Wall</span></span>
+                <span className="ml-2 shrink-0 text-[9px] font-bold uppercase">{showWall ? 'On' : 'Off'}</span>
+              </Button>
+
+              <Button
+                id="btn-coach-wall-rotate"
+                type="button"
+                onClick={handleRotateWall}
+                variant="outline"
+                size="icon"
+                className="size-10 rounded-xl border-slate-805 bg-slate-900/40 text-slate-400 hover:bg-slate-800 hover:text-slate-200 [&>span]:sr-only"
+                title={`Rotate wall (${wallRotation} degrees)`}
+                aria-label={`Rotate wall, currently ${wallRotation} degrees`}
+              >
+                <RefreshCw size={14} />
+                <span className="text-[9px] font-bold uppercase">{wallRotation}°</span>
               </Button>
             </div>
 
@@ -1836,10 +2314,11 @@ export default function TacticsView({ players, staff, teamCoach, teamName, teamL
               onClick={handleResetPositions}
               variant="outline"
               size="sm"
-              className="h-9 w-full rounded-xl border-slate-800/80 bg-slate-900 px-3 text-[10px] font-bold uppercase tracking-wider text-slate-300 hover:border-slate-700 hover:bg-slate-850 hover:text-white"
+              className="h-10 w-full rounded-xl border-slate-800/80 bg-slate-900 px-3 text-[10px] font-bold uppercase tracking-wide text-slate-300 hover:border-slate-700 hover:bg-slate-850 hover:text-white"
             >
-              <RefreshCw size={12} /> Reset Dragged Offsets
+              <RefreshCw size={12} className="shrink-0" /> <span className="truncate">Reset Dragged Offsets</span>
             </Button>
+            </div>
             
             <p className="text-[8.5px] text-slate-500 italic text-center leading-normal">
               <Info size={11} className="inline-block align-[-2px] text-slate-500" /> Toggle <strong>Drawing On</strong> to paint runs, or <strong>Drawing Off</strong> to drag players, the ball & the defensive wall!

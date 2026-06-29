@@ -242,9 +242,28 @@ describe('workspace backup V4', () => {
       createdAt: '2026-06-21T00:00:00.000Z'
     }])); 
     storage.setItem(STORAGE_KEYS.opponentFormation, '3-5-2');
+    storage.setItem(STORAGE_KEYS.tacticsBoardSnapshots, JSON.stringify([{
+      id: 'snapshot-1',
+      name: 'Press Trap vs 4-4-2',
+      createdAt: '2026-06-21T00:00:00.000Z',
+      matchFormat: '11-a-side',
+      formation: '4-3-3',
+      opponentFormation: '4-4-2',
+      playstyle: 'Quick Counter',
+      defensiveStyle: 'High Press',
+      phase: 'Out of Possession',
+      lineup: {},
+      draggedPositions: {},
+      drawingPaths: [],
+      ballPos: { left: 50, top: 30 },
+      wallPos: { left: 50, top: 72 },
+      showBall: true,
+      showWall: false
+    }]));
     const backup = createWorkspaceBackup(core, storage, '2026-06-21T00:00:00.000Z');
     expect(workspaceBackupV4Schema.parse(backup)).toEqual(backup);
     expect(backup.featureState.tactics.opponentFormation).toBe('3-5-2');
+    expect(backup.featureState.tactics.boardSnapshots).toHaveLength(1);
 
     const restored = new MemoryStorage();
     applyWorkspaceBackup(backup, restored);
@@ -257,6 +276,7 @@ describe('workspace backup V4', () => {
     expect(JSON.parse(restored.getItem(STORAGE_KEYS.lineup)!).CF.id).toBe('p1');
     expect(JSON.parse(restored.getItem(STORAGE_KEYS.tacticsNotes)!)).toHaveLength(1);
     expect(restored.getItem(STORAGE_KEYS.opponentFormation)).toBe('3-5-2');
+    expect(JSON.parse(restored.getItem(STORAGE_KEYS.tacticsBoardSnapshots)!)[0].name).toBe('Press Trap vs 4-4-2');
   });
 
   it('parses a current V4 backup without legacy migration and preserves payment ledger records', () => {
