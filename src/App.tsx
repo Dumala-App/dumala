@@ -1062,6 +1062,7 @@ export default function App() {
           <ViewErrorBoundary viewName="Onboarding" resetKeys={['onboarding']}>
             <OnboardingView
               onComplete={handleCreateTeamWorkspace}
+              cloudRuntime={cloudRuntime}
             />
           </ViewErrorBoundary>
         </Suspense>
@@ -1257,6 +1258,7 @@ export default function App() {
                   activeTab={homeTab}
                   onTabChange={setHomeTab}
                   onNavigate={handleNavigate}
+                  cloudRuntime={cloudRuntime}
                   teamInfo={teamInfo}
                   players={players}
                   games={games}
