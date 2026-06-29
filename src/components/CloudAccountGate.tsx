@@ -17,6 +17,7 @@ export interface CloudAccountGateProps {
   redirectTo?: string;
   bootstrapAccount?: boolean;
   tone?: 'light' | 'dark';
+  layout?: 'default' | 'compact';
   runtime?: CloudRuntime;
   authController?: CloudAuthController;
 }
@@ -68,6 +69,7 @@ export const CloudAccountGate = ({
   redirectTo,
   bootstrapAccount = true,
   tone = 'light',
+  layout = 'default',
   runtime: runtimeOverride,
   authController: authControllerOverride
 }: CloudAccountGateProps) => {
@@ -83,6 +85,7 @@ export const CloudAccountGate = ({
   const [message, setMessage] = useState('');
   const bootstrappedUsers = useRef(new Set<string>());
   const dark = tone === 'dark';
+  const compact = layout === 'compact';
 
   useEffect(() => {
     if (!bootstrapAccount) return;
@@ -116,7 +119,7 @@ export const CloudAccountGate = ({
 
   if (auth.state.status === 'loading') {
     return (
-      <section aria-label="Cloud account" className={`rounded-lg border px-3 py-2 text-xs font-semibold ${dark ? 'border-slate-700 bg-[#050b14] text-slate-300' : 'border-slate-200 bg-white text-slate-600 shadow-sm'}`}>
+      <section aria-label="Cloud account" className={`rounded-lg border px-3 py-2 text-xs font-semibold ${dark ? 'border-slate-700 bg-[#050b14] text-slate-300' : compact ? 'border-border/70 bg-muted/40 text-muted-foreground' : 'border-slate-200 bg-white text-slate-600 shadow-sm'}`}>
         <span className="inline-flex items-center gap-2"><Loader2 size={14} className="animate-spin" /> Checking cloud account</span>
       </section>
     );
@@ -124,9 +127,9 @@ export const CloudAccountGate = ({
 
   if (auth.state.status === 'signedIn') {
     return (
-      <section aria-label="Cloud account" className={`rounded-lg border px-3 py-2 text-xs font-semibold ${dark ? 'border-emerald-400/30 bg-emerald-400/10 text-emerald-200' : 'border-emerald-200 bg-emerald-50 text-emerald-800 shadow-sm'}`}>
+      <section aria-label="Cloud account" className={`rounded-lg border px-3 py-2 text-xs font-semibold ${dark ? 'border-emerald-400/30 bg-emerald-400/10 text-emerald-200' : compact ? 'border-emerald-200 bg-emerald-50/80 text-emerald-800' : 'border-emerald-200 bg-emerald-50 text-emerald-800 shadow-sm'}`}>
         <div className="flex flex-wrap items-center gap-2">
-          <span className="inline-flex items-center gap-1.5"><CheckCircle2 size={14} /> Cloud account connected</span>
+          <span className="inline-flex items-center gap-1.5"><CheckCircle2 size={14} /> {compact ? 'Cloud connected' : 'Cloud account connected'}</span>
           <Button type="button" variant="outline" size="sm" onClick={() => void auth.signOut()} className={`h-7 gap-1 rounded-md px-2 text-[11px] [&_svg]:size-3 ${dark ? 'border-emerald-400/30 bg-transparent text-emerald-100 hover:bg-emerald-400/10 hover:text-white' : 'border-emerald-200 text-emerald-800 hover:bg-emerald-100 hover:text-emerald-900'}`}>
             <LogOut size={12} /> Sign out
           </Button>
@@ -137,16 +140,16 @@ export const CloudAccountGate = ({
   }
 
   return (
-    <section aria-label="Cloud account" className={`rounded-lg border px-3 py-2 ${dark ? 'border-slate-700 bg-[#050b14]' : 'border-slate-200 bg-white shadow-sm'}`}>
+    <section aria-label="Cloud account" className={`rounded-lg border px-3 py-2 ${dark ? 'border-slate-700 bg-[#050b14]' : compact ? 'border-border/70 bg-muted/40' : 'border-slate-200 bg-white shadow-sm'}`}>
       <form onSubmit={handleSubmit} className="flex flex-col gap-2 sm:flex-row sm:items-center">
-        <Label htmlFor="cloud-account-email" className={`text-xs normal-case tracking-normal ${dark ? 'text-slate-300' : 'text-slate-700'}`}>Cloud account</Label>
+        <Label htmlFor="cloud-account-email" className={`shrink-0 text-xs normal-case tracking-normal ${dark ? 'text-slate-300' : 'text-slate-700'}`}>Cloud account</Label>
         <Input
           id="cloud-account-email"
           type="email"
           value={email}
           onChange={event => setEmail(event.target.value)}
           placeholder="coach@example.com"
-          className={`h-9 min-w-0 rounded-md px-2.5 text-xs ${dark ? 'border-slate-700 bg-[#07111f] text-slate-100 placeholder:text-slate-500 focus-visible:border-cyan-400 focus-visible:ring-cyan-400/20' : 'focus-visible:border-indigo-400 focus-visible:ring-indigo-100'}`}
+          className={`h-9 min-w-0 rounded-md px-2.5 text-xs ${compact ? 'sm:w-44' : ''} ${dark ? 'border-slate-700 bg-[#07111f] text-slate-100 placeholder:text-slate-500 focus-visible:border-cyan-400 focus-visible:ring-cyan-400/20' : 'focus-visible:border-indigo-400 focus-visible:ring-indigo-100'}`}
           required
         />
         <Button

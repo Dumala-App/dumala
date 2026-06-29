@@ -17,7 +17,8 @@ values
 insert into public.clubs (id, name, owner_user_id)
 values
   ('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', 'Club A', '11111111-1111-4111-8111-111111111111'),
-  ('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', 'Club B', '22222222-2222-4222-8222-222222222222');
+  ('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', 'Club B', '22222222-2222-4222-8222-222222222222'),
+  ('cccccccc-cccc-4ccc-8ccc-cccccccccccc', 'Bootstrap Club', '11111111-1111-4111-8111-111111111111');
 
 insert into public.club_memberships (club_id, user_id, role, membership_state)
 values
@@ -36,8 +37,8 @@ select is(
 
 select is(
   (select count(*)::int from public.clubs),
-  1,
-  'authenticated user sees only their active club'
+  2,
+  'authenticated user sees active memberships and owned bootstrap clubs'
 );
 
 select lives_ok(

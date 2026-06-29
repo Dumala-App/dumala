@@ -5,22 +5,11 @@ import ViewLoadingFallback from './components/ViewLoadingFallback';
 import PwaInstallControl from './components/PwaInstallControl';
 import PwaStatusBanners from './components/PwaStatusBanners';
 import WorkspaceIntegrityBanner from './components/WorkspaceIntegrityBanner';
+import WorkspaceStatusBar from './components/WorkspaceStatusBar';
 import StartupRecoveryScreen from './components/StartupRecoveryScreen';
 import { ViewErrorBoundary } from './components/ErrorBoundary';
 import ShellNavItem from './components/ShellNavItem';
 import TeamWorkspaceMenu from './components/TeamWorkspaceMenu';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger
-} from './components/ui/alert-dialog';
-import { Badge } from './components/ui/badge';
 import { Button } from './components/ui/button';
 import { addAssessmentToWorkspace, deleteAssessmentFromWorkspace } from './fprds/assessmentService';
 import {
@@ -93,8 +82,6 @@ import {
   Menu,
   X,
   Sliders,
-  RotateCcw,
-  MessageSquare,
   ClipboardList,
   AlertTriangle,
   Download,
@@ -1172,60 +1159,14 @@ export default function App() {
       {/* Main Container Stage Body */}
       <main id="app-main-content" className="flex-1 max-w-[1440px] w-full mx-auto p-4 sm:p-6 lg:p-8 space-y-6">
         
-        {/* Real-time State Highlights panel */}
-        <div id="quick-alert-drawer" className="flex flex-col items-start justify-between gap-3 rounded-2xl border border-border bg-card/90 px-4 py-3.5 text-card-foreground shadow-sm backdrop-blur sm:flex-row sm:items-center">
-          <div className="flex items-center gap-3">
-            <span className="relative flex h-2.5 w-2.5 shrink-0">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-success opacity-75"></span>
-              <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-success"></span>
-            </span>
-            <p className="text-xs font-medium leading-relaxed text-muted-foreground">
-              <strong className="font-bold text-foreground">Workspace ready.</strong> Results automatically update your league table and player statistics.
-            </p>
-          </div>
-          <div className="flex w-full flex-wrap gap-2 sm:w-auto sm:shrink-0 sm:justify-end">
-            <Badge variant="success">Saved locally</Badge>
-            <PwaInstallControl />
-            <Button
-              type="button"
-              onClick={() => setShowFeedback(true)}
-              variant="outline"
-              size="sm"
-              className="h-6 px-2.5 text-[10px]"
-            >
-              <MessageSquare size={10} /> Feedback
-            </Button>
-            <AlertDialog open={showResetConfirm} onOpenChange={setShowResetConfirm}>
-              <AlertDialogTrigger asChild>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  className="h-6 px-2.5 text-[10px] hover:border-destructive/20 hover:bg-destructive/10 hover:text-destructive"
-                >
-                  <RotateCcw size={10} /> Reset
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Reset workspace?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    This removes the team, roster, payments, schedule, and statistics saved in this browser.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction
-                    onClick={confirmResetApp}
-                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                  >
-                    Reset everything
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
-          </div>
-        </div>
+        <WorkspaceStatusBar
+          teamName={teamInfo.name}
+          cloudRuntime={cloudRuntime}
+          resetOpen={showResetConfirm}
+          onResetOpenChange={setShowResetConfirm}
+          onFeedback={() => setShowFeedback(true)}
+          onConfirmReset={confirmResetApp}
+        />
 
         {showFeedback && (
           <Suspense fallback={null}>
@@ -1258,7 +1199,6 @@ export default function App() {
                   activeTab={homeTab}
                   onTabChange={setHomeTab}
                   onNavigate={handleNavigate}
-                  cloudRuntime={cloudRuntime}
                   teamInfo={teamInfo}
                   players={players}
                   games={games}

@@ -1,9 +1,5 @@
 import React, { lazy, Suspense } from 'react';
-import { Cloud } from 'lucide-react';
-import type { CloudRuntime } from '../cloud/runtime';
-import type { CloudAuthController } from '../hooks/useCloudAuth';
 import type { AssessmentSession, Announcement, Game, Player, Standing, TeamInfo } from '../types';
-import CloudAccountGate from './CloudAccountGate';
 import ViewLoadingFallback from './ViewLoadingFallback';
 import { SegmentedTabs } from './ui/segmented-tabs';
 
@@ -28,8 +24,6 @@ interface HomeHubViewProps {
   activeTab: HomeTab;
   onTabChange: (tab: HomeTab) => void;
   onNavigate: (target: HubNavigateTarget) => void;
-  cloudRuntime: CloudRuntime;
-  cloudAuthController?: CloudAuthController;
 
   // Overview (Dashboard)
   teamInfo: TeamInfo;
@@ -56,51 +50,9 @@ interface HomeHubViewProps {
   highlightGameId?: string | null;
 }
 
-export function HomeCloudAccountEntry({
-  runtime,
-  teamName,
-  authController
-}: {
-  runtime: CloudRuntime;
-  teamName: string;
-  authController?: CloudAuthController;
-}) {
-  if (!runtime.enabled) return null;
-
-  return (
-    <section aria-labelledby="home-cloud-account-title" className="border-b border-border pb-5">
-      <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(22rem,34rem)] lg:items-center">
-        <div className="flex items-start gap-3">
-          <Cloud size={20} className="mt-0.5 shrink-0 text-primary" aria-hidden="true" />
-          <div>
-            <h2 id="home-cloud-account-title" className="text-sm font-bold text-foreground">
-              Use your Dumala cloud account
-            </h2>
-            <p className="mt-1 max-w-2xl text-xs leading-relaxed text-muted-foreground">
-              Sign in to connect this browser. Your current workspace stays saved locally unless you explicitly migrate it.
-            </p>
-          </div>
-        </div>
-        <CloudAccountGate
-          clubName={teamName}
-          appVersion="0.0.0"
-          runtime={runtime}
-          authController={authController}
-        />
-      </div>
-    </section>
-  );
-}
-
 export default function HomeHubView(props: HomeHubViewProps) {
   return (
     <div className="space-y-6">
-      <HomeCloudAccountEntry
-        runtime={props.cloudRuntime}
-        teamName={props.teamInfo.name}
-        authController={props.cloudAuthController}
-      />
-
       <SegmentedTabs
         value={props.activeTab}
         options={HOME_TAB_OPTIONS}
