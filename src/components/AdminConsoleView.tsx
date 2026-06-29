@@ -7,6 +7,7 @@ import {
   Building2,
   ClipboardList,
   CreditCard,
+  Database,
   Download,
   Eye,
   FileText,
@@ -29,7 +30,9 @@ import type {
   AdminConsoleSnapshot,
   AdminGrowthMetrics,
   AdminProductMetrics,
+  AdminRecoverableWorkspace,
   AdminSecurityMetrics,
+  AdminStorageMetrics,
   AppAdminProfile,
   AppSession,
   AppUsageEvent,
@@ -54,7 +57,7 @@ import { Label } from './ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Textarea } from './ui/textarea';
 
-type AdminTab = 'overview' | 'users' | 'security' | 'usage' | 'feedback' | 'fprds' | 'online' | 'billing' | 'exports' | 'alerts';
+type AdminTab = 'overview' | 'users' | 'recovery' | 'storage' | 'security' | 'usage' | 'feedback' | 'fprds' | 'online' | 'billing' | 'exports' | 'alerts';
 
 const ADMIN_AUTH_REDIRECT_URL = 'https://dumala.asia/?returnTo=admin';
 
@@ -78,6 +81,8 @@ const ADMIN_THEME_STYLE = {
 const adminTabs: Array<{ id: AdminTab; label: string; icon: React.ComponentType<{ size?: number; className?: string }> }> = [
   { id: 'overview', label: 'Overview', icon: Gauge },
   { id: 'users', label: 'Users', icon: UsersRound },
+  { id: 'recovery', label: 'Recovery', icon: RefreshCcw },
+  { id: 'storage', label: 'Storage', icon: Database },
   { id: 'security', label: 'Security', icon: ShieldAlert },
   { id: 'usage', label: 'Usage', icon: BarChart3 },
   { id: 'feedback', label: 'Feedback', icon: MessageSquare },
@@ -105,6 +110,13 @@ const roleLabel: Record<AppAdminProfile['role'], string> = {
   fprds_reviewer: 'FPRDS reviewer',
   billing: 'Billing'
 };
+
+const ADMIN_PANEL_CLASS = 'rounded-2xl border border-cyan-300/10 bg-[#07111f]/88 shadow-lg shadow-black/20 backdrop-blur-xl';
+const ADMIN_PANEL_HEADER_CLASS = 'flex items-center gap-2 border-b border-cyan-300/10 px-4 py-3';
+const ADMIN_SUBTLE_CARD_CLASS = 'rounded-xl border border-cyan-300/10 bg-white/[0.035] shadow-sm shadow-black/10';
+const ADMIN_INPUT_CLASS = 'h-9 rounded-xl border border-cyan-300/10 bg-[#0b1726]/85 px-3 text-xs font-semibold text-slate-100 outline-none ring-orange-300/15 transition placeholder:text-slate-500 focus:border-orange-300/60 focus:ring-2';
+const ADMIN_SELECT_CLASS = 'h-9 rounded-xl border border-cyan-300/10 bg-[#0b1726]/85 px-2 text-xs font-bold text-slate-100 outline-none ring-orange-300/15 transition focus:border-orange-300/60 focus:ring-2';
+const ADMIN_WARNING_CLASS = 'rounded-xl border border-amber-300/20 bg-amber-300/10 px-3 py-2 text-xs font-bold leading-5 text-amber-100';
 
 const AdminBackdrop = () => (
   <div aria-hidden="true" className="fixed inset-0 overflow-hidden">
@@ -138,12 +150,12 @@ const statusLabel: Record<FeedbackStatus, string> = {
 };
 
 const statusTone: Record<FeedbackStatus, string> = {
-  new: 'border-sky-200 bg-sky-50 text-sky-800',
-  triaged: 'border-indigo-200 bg-indigo-50 text-indigo-800',
-  planned: 'border-violet-200 bg-violet-50 text-violet-800',
-  in_progress: 'border-amber-200 bg-amber-50 text-amber-800',
-  resolved: 'border-emerald-200 bg-emerald-50 text-emerald-800',
-  closed: 'border-slate-200 bg-slate-50 text-slate-700'
+  new: 'border-sky-300/25 bg-sky-300/10 text-sky-100',
+  triaged: 'border-indigo-300/25 bg-indigo-300/10 text-indigo-100',
+  planned: 'border-violet-300/25 bg-violet-300/10 text-violet-100',
+  in_progress: 'border-amber-300/25 bg-amber-300/10 text-amber-100',
+  resolved: 'border-emerald-300/25 bg-emerald-300/10 text-emerald-100',
+  closed: 'border-slate-300/20 bg-slate-300/10 text-slate-200'
 };
 
 const urgencyLabel = {
@@ -170,10 +182,10 @@ const fprdsStatusLabel: Record<FprdsBetaReviewStatus, string> = {
 };
 
 const fprdsStatusTone: Record<FprdsBetaReviewStatus, string> = {
-  pending: 'border-amber-200 bg-amber-50 text-amber-800',
-  accepted: 'border-emerald-200 bg-emerald-50 text-emerald-800',
-  excluded: 'border-rose-200 bg-rose-50 text-rose-800',
-  needs_followup: 'border-sky-200 bg-sky-50 text-sky-800'
+  pending: 'border-amber-300/25 bg-amber-300/10 text-amber-100',
+  accepted: 'border-emerald-300/25 bg-emerald-300/10 text-emerald-100',
+  excluded: 'border-rose-300/25 bg-rose-300/10 text-rose-100',
+  needs_followup: 'border-sky-300/25 bg-sky-300/10 text-sky-100'
 };
 
 const eventAgeMs = (date: string) => Date.now() - new Date(date).getTime();
@@ -198,6 +210,14 @@ const formatCurrency = (value: number) => new Intl.NumberFormat(undefined, {
   maximumFractionDigits: 0
 }).format(value);
 
+const formatBytes = (value: number) => {
+  if (!Number.isFinite(value) || value <= 0) return '0 B';
+  const units = ['B', 'KB', 'MB', 'GB', 'TB'];
+  const index = Math.min(Math.floor(Math.log(value) / Math.log(1024)), units.length - 1);
+  const amount = value / 1024 ** index;
+  return `${amount >= 10 || index === 0 ? amount.toFixed(0) : amount.toFixed(1)} ${units[index]}`;
+};
+
 const uniqueCount = (values: Array<string | null | undefined>) => new Set(values.filter(Boolean)).size;
 
 const countBy = <RecordShape,>(items: RecordShape[], getKey: (item: RecordShape) => string | null | undefined) =>
@@ -213,10 +233,10 @@ const countBy = <RecordShape,>(items: RecordShape[], getKey: (item: RecordShape)
   }, []).sort((a, b) => b.count - a.count);
 
 const StatTile = ({ label, value, detail }: { label: string; value: string | number; detail: string }) => (
-  <div className="rounded-lg border border-border bg-card p-4 shadow-sm">
-    <p className="text-[11px] font-black uppercase text-muted-foreground">{label}</p>
-    <p className="mt-2 font-display text-2xl font-black text-foreground">{value}</p>
-    <p className="mt-1 text-xs font-medium leading-relaxed text-muted-foreground">{detail}</p>
+  <div className="rounded-2xl border border-cyan-300/10 bg-white/[0.035] p-4 shadow-lg shadow-black/15 backdrop-blur-sm">
+    <p className="text-[11px] font-black uppercase text-cyan-100/65">{label}</p>
+    <p className="mt-2 font-display text-2xl font-black text-white">{value}</p>
+    <p className="mt-1 text-xs font-medium leading-relaxed text-slate-400">{detail}</p>
   </div>
 );
 
@@ -225,29 +245,29 @@ const Section = ({ title, icon: Icon, children }: {
   icon: React.ComponentType<{ size?: number; className?: string }>;
   children: React.ReactNode;
 }) => (
-  <section className="rounded-lg border border-border bg-card shadow-sm">
-    <div className="flex items-center gap-2 border-b border-border px-4 py-3">
-      <Icon size={17} className="text-primary" aria-hidden="true" />
-      <h2 className="font-display text-sm font-black text-foreground">{title}</h2>
+  <section className={ADMIN_PANEL_CLASS}>
+    <div className={ADMIN_PANEL_HEADER_CLASS}>
+      <Icon size={17} className="text-cyan-200" aria-hidden="true" />
+      <h2 className="font-display text-sm font-black text-white">{title}</h2>
     </div>
     <div className="p-4">{children}</div>
   </section>
 );
 
 const EmptyState = ({ title, detail }: { title: string; detail: string }) => (
-  <div className="rounded-lg border border-dashed border-border bg-muted/30 p-6 text-center">
-    <p className="text-sm font-black text-foreground">{title}</p>
-    <p className="mx-auto mt-1 max-w-xl text-xs font-medium leading-relaxed text-muted-foreground">{detail}</p>
+  <div className="rounded-2xl border border-dashed border-cyan-300/15 bg-cyan-300/[0.035] p-6 text-center">
+    <p className="text-sm font-black text-slate-100">{title}</p>
+    <p className="mx-auto mt-1 max-w-xl text-xs font-medium leading-relaxed text-slate-400">{detail}</p>
   </div>
 );
 
 const CompactTable = ({ children, headers }: { headers: string[]; children: React.ReactNode }) => (
-  <div className="overflow-x-auto rounded-lg border border-border">
-    <table className="min-w-full divide-y divide-border text-left text-xs">
-      <thead className="bg-muted/45 text-[10px] font-black uppercase text-muted-foreground">
+  <div className="overflow-x-auto rounded-2xl border border-cyan-300/10 bg-[#07111f]/70 shadow-sm shadow-black/15">
+    <table className="min-w-full divide-y divide-cyan-300/10 text-left text-xs">
+      <thead className="bg-cyan-300/[0.055] text-[10px] font-black uppercase text-cyan-100/65">
         <tr>{headers.map(header => <th key={header} className="px-3 py-2">{header}</th>)}</tr>
       </thead>
-      <tbody className="divide-y divide-border bg-card">{children}</tbody>
+      <tbody className="divide-y divide-cyan-300/10 bg-[#07111f]/35">{children}</tbody>
     </table>
   </div>
 );
@@ -255,8 +275,8 @@ const CompactTable = ({ children, headers }: { headers: string[]; children: Reac
 const TopList = ({ rows }: { rows: Array<{ key: string; count: number }> }) => (
   <div className="space-y-2">
     {rows.slice(0, 8).map(row => (
-      <div key={row.key} className="flex items-center justify-between gap-3 rounded-lg border border-border bg-muted/25 px-3 py-2">
-        <span className="truncate text-xs font-bold text-foreground">{row.key}</span>
+      <div key={row.key} className="flex items-center justify-between gap-3 rounded-xl border border-cyan-300/10 bg-white/[0.035] px-3 py-2">
+        <span className="truncate text-xs font-bold text-slate-100">{row.key}</span>
         <Badge variant="secondary">{row.count}</Badge>
       </div>
     ))}
@@ -329,7 +349,7 @@ const OverviewPanel = ({ snapshot, growthMetrics }: { snapshot: AdminConsoleSnap
         <Section title="Daily health" icon={Bell}>
           {alerts.length ? (
             <div className="space-y-2">
-              {alerts.map(alert => <div key={alert} className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-bold text-amber-900">{alert}</div>)}
+              {alerts.map(alert => <div key={alert} className={ADMIN_WARNING_CLASS}>{alert}</div>)}
             </div>
           ) : (
             <EmptyState title="No alerts" detail="Dumala will flag high-priority feedback, stale FPRDS reviews, billing errors, and security issues here." />
@@ -427,6 +447,89 @@ const UsagePanel = ({
   );
 };
 
+const StoragePanel = ({ metrics }: { metrics: AdminStorageMetrics | null }) => {
+  const largestTable = metrics?.tables[0] ?? null;
+  const maxTrendBytes = Math.max(...(metrics?.trend.map(point => point.totalBytes) ?? [0]), 1);
+
+  if (!metrics) {
+    return (
+      <Section title="Storage" icon={Database}>
+        <EmptyState title="Storage metrics unavailable" detail="Storage metrics require owner access with MFA verification." />
+      </Section>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <StatTile label="Tracked storage" value={formatBytes(metrics.totalBytes)} detail="Public schema table and index storage." />
+        <StatTile label="Table data" value={formatBytes(metrics.tableBytes)} detail="Heap data across tracked public tables." />
+        <StatTile label="Indexes" value={formatBytes(metrics.indexBytes)} detail={`${metrics.totalBytes > 0 ? Math.round((metrics.indexBytes / metrics.totalBytes) * 100) : 0}% of tracked storage.`} />
+        <StatTile label="Largest table" value={largestTable ? largestTable.tableName : '-'} detail={largestTable ? `${formatBytes(largestTable.totalBytes)} · ${largestTable.totalPercent}%` : 'No table metrics yet.'} />
+      </div>
+
+      {metrics.warnings.length > 0 && (
+        <div className="grid gap-2 md:grid-cols-3">
+          {metrics.warnings.map(warning => (
+            <div key={warning} className={ADMIN_WARNING_CLASS}>
+              {warning}
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div className="grid gap-4 xl:grid-cols-[0.95fr_1.35fr]">
+        <Section title="Daily growth trend" icon={BarChart3}>
+          {metrics.trend.length === 0 ? (
+            <EmptyState title="No snapshots yet" detail="The first storage snapshot is created when this panel loads." />
+          ) : (
+            <div className="space-y-3">
+              {metrics.trend.slice(-14).map(point => {
+                const width = Math.max(4, (point.totalBytes / maxTrendBytes) * 100);
+                return (
+                  <div key={point.date} className="space-y-1">
+                    <div className="flex items-center justify-between gap-3 text-[11px] font-bold">
+                      <span className="text-foreground">{point.date}</span>
+                      <span className="text-muted-foreground">{formatBytes(point.totalBytes)}</span>
+                    </div>
+                    <div className="h-2 overflow-hidden rounded-full bg-white/[0.07]">
+                      <div className="h-full rounded-full bg-gradient-to-r from-cyan-300 to-orange-300" style={{ width: `${width}%` }} />
+                    </div>
+                    <p className="text-[10px] text-muted-foreground">
+                      Data {formatBytes(point.tableBytes)} · Indexes {formatBytes(point.indexBytes)}
+                    </p>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </Section>
+
+        <Section title="Table storage ranking" icon={Database}>
+          {metrics.tables.length === 0 ? (
+            <EmptyState title="No table storage yet" detail="Public schema tables will appear here once the database has relation metrics." />
+          ) : (
+            <CompactTable headers={['Table', 'Rows est.', 'Total', 'Data', 'Indexes', 'Share']}>
+              {metrics.tables.map(table => (
+                <tr key={table.tableName}>
+                  <td className="px-3 py-2 font-bold text-foreground">{table.tableName}</td>
+                  <td className="px-3 py-2 text-muted-foreground">{new Intl.NumberFormat().format(table.rowEstimate)}</td>
+                  <td className="px-3 py-2 text-muted-foreground">{formatBytes(table.totalBytes)}</td>
+                  <td className="px-3 py-2 text-muted-foreground">{formatBytes(table.tableBytes)}</td>
+                  <td className="px-3 py-2 text-muted-foreground">{formatBytes(table.indexBytes)}</td>
+                  <td className="px-3 py-2">
+                    <Badge variant="secondary">{table.totalPercent}%</Badge>
+                  </td>
+                </tr>
+              ))}
+            </CompactTable>
+          )}
+        </Section>
+      </div>
+    </div>
+  );
+};
+
 const FeedbackPanel = ({ feedback, metrics, onStatusChange, onOpen }: {
   feedback: FeedbackSubmission[];
   metrics?: AdminGrowthMetrics | null;
@@ -508,13 +611,13 @@ const FeedbackPanel = ({ feedback, metrics, onStatusChange, onOpen }: {
             value={search}
             onChange={event => setSearch(event.target.value)}
             placeholder="Search subject, details, workspace, or email"
-            className="h-9 rounded-lg border border-border bg-background px-3 text-xs font-semibold text-foreground outline-none ring-primary/20 transition focus:ring-2"
+            className={ADMIN_INPUT_CLASS}
           />
           <select
             aria-label="Filter feedback by status"
             value={statusFilter}
             onChange={event => setStatusFilter(event.target.value as typeof statusFilter)}
-            className="h-9 rounded-lg border border-border bg-background px-2 text-xs font-bold text-foreground"
+            className={ADMIN_SELECT_CLASS}
           >
             <option value="open">Open statuses</option>
             <option value="all">All statuses</option>
@@ -524,7 +627,7 @@ const FeedbackPanel = ({ feedback, metrics, onStatusChange, onOpen }: {
             aria-label="Filter feedback by urgency"
             value={urgencyFilter}
             onChange={event => setUrgencyFilter(event.target.value as typeof urgencyFilter)}
-            className="h-9 rounded-lg border border-border bg-background px-2 text-xs font-bold text-foreground"
+            className={ADMIN_SELECT_CLASS}
           >
             <option value="all">All urgency</option>
             {Object.entries(urgencyLabel).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
@@ -537,7 +640,7 @@ const FeedbackPanel = ({ feedback, metrics, onStatusChange, onOpen }: {
         ) : (
           <div className="space-y-3">
             {filtered.map(item => (
-              <article key={item.id} className="rounded-lg border border-border bg-muted/20 p-4">
+              <article key={item.id} className={`${ADMIN_SUBTLE_CARD_CLASS} p-4`}>
                 <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
@@ -563,7 +666,7 @@ const FeedbackPanel = ({ feedback, metrics, onStatusChange, onOpen }: {
                       aria-label={`Status for ${item.subject}`}
                       value={item.status}
                       onChange={event => onStatusChange(item.id, event.target.value as FeedbackStatus)}
-                      className="h-9 rounded-lg border border-border bg-background px-2 text-xs font-bold text-foreground"
+                      className={ADMIN_SELECT_CLASS}
                     >
                       {Object.entries(statusLabel).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
                     </select>
@@ -600,13 +703,13 @@ const FeedbackReviewDialog = ({ item, open, saving, onOpenChange, onSave }: {
   if (!item) return null;
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[92vh] max-w-2xl overflow-y-auto">
+      <DialogContent className="max-h-[92vh] max-w-2xl overflow-y-auto border-cyan-300/10 bg-[#07111f] shadow-2xl shadow-black/40">
         <DialogHeader>
           <DialogTitle>{item.subject}</DialogTitle>
           <DialogDescription>{item.affected_area} - {categoryLabel[item.category]} - {formatRelativeTime(item.created_at)}</DialogDescription>
         </DialogHeader>
         <div className="space-y-4">
-          <div className="rounded-lg border border-border bg-muted/25 p-4">
+          <div className={`${ADMIN_SUBTLE_CARD_CLASS} p-4`}>
             <p className="text-[10px] font-black uppercase text-muted-foreground">Feedback</p>
             <p className="mt-2 whitespace-pre-wrap text-sm font-medium leading-relaxed text-foreground">{item.details}</p>
           </div>
@@ -624,7 +727,7 @@ const FeedbackReviewDialog = ({ item, open, saving, onOpenChange, onSave }: {
                 <SelectContent>{Object.entries(statusLabel).map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}</SelectContent>
               </Select>
             </div>
-            <div className="rounded-lg border border-border px-3 py-2 text-xs text-muted-foreground">
+            <div className={`${ADMIN_SUBTLE_CARD_CLASS} px-3 py-2 text-xs text-slate-400`}>
               <p><strong className="text-foreground">Urgency:</strong> {item.urgency}</p>
               <p className="mt-1"><strong className="text-foreground">Contact:</strong> {item.contact_email || 'Not provided'}</p>
             </div>
@@ -648,9 +751,9 @@ const FeedbackReviewDialog = ({ item, open, saving, onOpenChange, onSave }: {
 const JsonFieldList = ({ value }: { value: Record<string, unknown> }) => {
   const rows = Object.entries(value);
   return rows.length === 0 ? <p className="text-xs text-muted-foreground">No values recorded.</p> : (
-    <dl className="grid gap-px overflow-hidden rounded-lg border border-border bg-border sm:grid-cols-2">
+    <dl className="grid gap-px overflow-hidden rounded-xl border border-cyan-300/10 bg-cyan-300/10 sm:grid-cols-2">
       {rows.map(([key, rawValue]) => (
-        <div key={key} className="flex items-start justify-between gap-3 bg-card px-3 py-2 text-xs">
+        <div key={key} className="flex items-start justify-between gap-3 bg-[#07111f]/90 px-3 py-2 text-xs">
           <dt className="break-all font-semibold text-muted-foreground">{key.replaceAll('_', ' ')}</dt>
           <dd className="max-w-[55%] break-all text-right font-black text-foreground">{typeof rawValue === 'object' ? JSON.stringify(rawValue) : String(rawValue)}</dd>
         </div>
@@ -681,13 +784,13 @@ const FprdsReviewDialog = ({ submission, open, saving, onOpenChange, onSave }: {
   const venue = submission.venue_context ?? {};
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[94vh] max-w-4xl overflow-y-auto">
+      <DialogContent className="max-h-[94vh] max-w-4xl overflow-y-auto border-cyan-300/10 bg-[#07111f] shadow-2xl shadow-black/40">
         <DialogHeader>
           <DialogTitle>FPRDS beta review</DialogTitle>
           <DialogDescription>Anonymous player {submission.player_anonymous_id.slice(0, 10)} - submitted {formatRelativeTime(submission.submitted_at)}</DialogDescription>
         </DialogHeader>
 
-        <div className="grid grid-cols-2 gap-px overflow-hidden rounded-lg border border-border bg-border sm:grid-cols-5">
+        <div className="grid grid-cols-2 gap-px overflow-hidden rounded-2xl border border-cyan-300/10 bg-cyan-300/10 sm:grid-cols-5">
           {[
             ['Role', submission.role.toUpperCase()],
             ['Age group', submission.age_group.toUpperCase()],
@@ -695,7 +798,7 @@ const FprdsReviewDialog = ({ submission, open, saving, onOpenChange, onSave }: {
             ['OVR', String(submission.ovr ?? '-')],
             ['Confidence', String(submission.coach_confidence ?? '-')]
           ].map(([label, value]) => (
-            <div key={label} className="bg-muted/30 px-3 py-2.5">
+            <div key={label} className="bg-[#07111f]/90 px-3 py-2.5">
               <p className="text-[9px] font-black uppercase text-muted-foreground">{label}</p>
               <p className="mt-1 text-sm font-black text-foreground">{value}</p>
             </div>
@@ -714,13 +817,13 @@ const FprdsReviewDialog = ({ submission, open, saving, onOpenChange, onSave }: {
           </div>
         </div>
 
-        <details className="rounded-lg border border-border bg-muted/20 p-3">
+        <details className={`${ADMIN_SUBTLE_CARD_CLASS} p-3`}>
           <summary className="cursor-pointer text-xs font-black text-foreground">Raw drill results</summary>
           <div className="mt-3"><JsonFieldList value={submission.raw_results} /></div>
         </details>
 
         {submission.coach_notes && (
-          <div className="rounded-lg border border-border p-3">
+          <div className={`${ADMIN_SUBTLE_CARD_CLASS} p-3`}>
             <p className="text-[10px] font-black uppercase text-muted-foreground">Coach context</p>
             <p className="mt-1 whitespace-pre-wrap text-sm text-foreground">{submission.coach_notes}</p>
           </div>
@@ -772,7 +875,7 @@ const FprdsPanel = ({
     <div className="space-y-4">
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-6">
         {(Object.keys(fprdsStatusLabel) as FprdsBetaReviewStatus[]).map(status => (
-          <button key={status} type="button" onClick={() => setFilter(status)} className={`rounded-lg border p-3 text-left transition-colors ${filter === status ? fprdsStatusTone[status] : 'border-border bg-card hover:bg-muted/30'}`}>
+          <button key={status} type="button" onClick={() => setFilter(status)} className={`rounded-2xl border p-3 text-left transition-colors ${filter === status ? fprdsStatusTone[status] : 'border-cyan-300/10 bg-white/[0.035] text-slate-300 hover:border-cyan-300/20 hover:bg-cyan-300/[0.055]'}`}>
             <p className="text-[10px] font-black uppercase">{fprdsStatusLabel[status]}</p>
             <p className="mt-1 text-xl font-black">{submissions.filter(item => item.review_status === status).length}</p>
           </button>
@@ -854,7 +957,7 @@ const UsersPanel = ({ metrics }: { metrics: AdminGrowthMetrics | null }) => (
         {metrics?.topWorkspaces.length ? (
           <div className="space-y-2">
             {metrics.topWorkspaces.slice(0, 10).map(workspace => (
-              <div key={workspace.clubId} className="rounded-lg border border-border bg-muted/20 px-3 py-2">
+              <div key={workspace.clubId} className={`${ADMIN_SUBTLE_CARD_CLASS} px-3 py-2`}>
                 <div className="flex items-center justify-between gap-3">
                   <p className="truncate text-xs font-black text-foreground">{workspace.name}</p>
                   <Badge variant="secondary">{workspace.eventCount}</Badge>
@@ -891,6 +994,66 @@ const BillingPanel = ({ snapshot, metrics }: { snapshot: AdminConsoleSnapshot; m
       <p className="mt-4 text-xs font-medium leading-relaxed text-muted-foreground">
         Billing tables are provider-neutral. Stripe, PayPal, or another processor should update them through secure server-side webhooks.
       </p>
+    </Section>
+  </div>
+);
+
+const RecoveryPanel = ({
+  workspaces,
+  restoringWorkspaceId,
+  onRestore
+}: {
+  workspaces: AdminRecoverableWorkspace[];
+  restoringWorkspaceId: string | null;
+  onRestore: (workspace: AdminRecoverableWorkspace) => void;
+}) => (
+  <div className="space-y-4">
+    <div className="grid gap-3 sm:grid-cols-3">
+      <StatTile label="Recoverable" value={workspaces.length} detail="Soft-deleted or pending-deletion workspaces." />
+      <StatTile label="Pending deletion" value={workspaces.filter(workspace => workspace.state === 'pending_deletion').length} detail="Owner deletion requests that can be cancelled." />
+      <StatTile label="Deleted" value={workspaces.filter(workspace => workspace.state === 'deleted').length} detail="Soft-deleted workspaces still retained in cloud data." />
+    </div>
+
+    <Section title="Workspace recovery" icon={RefreshCcw}>
+      {workspaces.length === 0 ? (
+        <EmptyState title="No recoverable workspaces" detail="Workspaces marked pending deletion or soft deleted will appear here for owner-level recovery." />
+      ) : (
+        <CompactTable headers={['Workspace', 'Owner', 'State', 'Members', 'Last active', 'Updated', 'Action']}>
+          {workspaces.map(workspace => {
+            const restoring = restoringWorkspaceId === workspace.clubId;
+            return (
+              <tr key={workspace.clubId}>
+                <td className="px-3 py-2">
+                  <p className="font-bold text-foreground">{workspace.name}</p>
+                  <p className="mt-0.5 max-w-[14rem] truncate font-mono text-[10px] text-muted-foreground">{workspace.clubId}</p>
+                </td>
+                <td className="px-3 py-2 text-muted-foreground">{workspace.ownerEmail || workspace.ownerUserId.slice(0, 12)}</td>
+                <td className="px-3 py-2">
+                  <Badge variant={workspace.state === 'pending_deletion' ? 'outline' : 'secondary'}>
+                    {workspace.state === 'pending_deletion' ? 'Pending deletion' : 'Deleted'}
+                  </Badge>
+                </td>
+                <td className="px-3 py-2 text-muted-foreground">{workspace.memberCount}</td>
+                <td className="px-3 py-2 text-muted-foreground">{workspace.lastActiveAt ? formatRelativeTime(workspace.lastActiveAt) : '-'}</td>
+                <td className="px-3 py-2 text-muted-foreground" title={formatDateTime(workspace.updatedAt)}>{formatRelativeTime(workspace.updatedAt)}</td>
+                <td className="px-3 py-2">
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => onRestore(workspace)}
+                    disabled={restoring}
+                    className="h-8"
+                  >
+                    {restoring ? <Loader2 size={13} className="animate-spin" /> : <RefreshCcw size={13} />}
+                    Restore
+                  </Button>
+                </td>
+              </tr>
+            );
+          })}
+        </CompactTable>
+      )}
     </Section>
   </div>
 );
@@ -964,7 +1127,7 @@ const AlertsPanel = ({ snapshot, securityMetrics, growthMetrics }: {
         {uniqueAlerts.length ? (
           <div className="space-y-2">
             {uniqueAlerts.map(alert => (
-              <div key={alert} className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-bold text-amber-900">{alert}</div>
+              <div key={alert} className={ADMIN_WARNING_CLASS}>{alert}</div>
             ))}
           </div>
         ) : (
@@ -1046,21 +1209,21 @@ const AdminMfaGate = ({
               </Button>
             </div>
           </div>
-          <div className="rounded-lg border border-border bg-muted/25 p-4">
+          <div className={`${ADMIN_SUBTLE_CARD_CLASS} p-4`}>
             {enrollment ? (
               <div className="space-y-3">
                 <p className="text-xs font-black uppercase text-muted-foreground">Scan QR code</p>
-                <img src={enrollment.qrCode} alt="Dumala Admin Console authenticator QR code" className="mx-auto aspect-square w-48 rounded-lg border border-border bg-white p-2" />
+                <img src={enrollment.qrCode} alt="Dumala Admin Console authenticator QR code" className="mx-auto aspect-square w-48 rounded-xl border border-cyan-300/10 bg-white p-2 shadow-lg shadow-black/20" />
                 <div>
                   <Label htmlFor="mfa-secret" className="normal-case tracking-normal">Manual secret</Label>
-                  <input id="mfa-secret" readOnly value={enrollment.secret} className="mt-1 h-9 w-full rounded-lg border border-border bg-background px-3 text-xs font-semibold text-foreground" />
+                  <input id="mfa-secret" readOnly value={enrollment.secret} className={`mt-1 w-full ${ADMIN_INPUT_CLASS}`} />
                 </div>
               </div>
             ) : verifiedTotp.length > 0 ? (
               <div className="space-y-2">
                 <p className="text-xs font-black uppercase text-muted-foreground">Verified factors</p>
                 {verifiedTotp.map(factor => (
-                  <div key={factor.id} className="rounded-lg border border-border bg-card px-3 py-2">
+                  <div key={factor.id} className={`${ADMIN_SUBTLE_CARD_CLASS} px-3 py-2`}>
                     <p className="text-sm font-black text-foreground">{factor.friendlyName || 'Authenticator app'}</p>
                     <p className="text-[11px] font-medium text-muted-foreground">Added {formatDateTime(factor.createdAt)}</p>
                   </div>
@@ -1072,7 +1235,7 @@ const AdminMfaGate = ({
           </div>
         </div>
         {(enrollment || activeChallengeId) && activeFactorId && (
-          <div className="mt-4 rounded-lg border border-border bg-card p-4">
+          <div className={`${ADMIN_SUBTLE_CARD_CLASS} mt-4 p-4`}>
             <Label htmlFor="mfa-code" className="normal-case tracking-normal">Six-digit authenticator code</Label>
             <div className="mt-2 flex flex-col gap-2 sm:flex-row">
               <input
@@ -1081,7 +1244,7 @@ const AdminMfaGate = ({
                 autoComplete="one-time-code"
                 value={code}
                 onChange={event => onCodeChange(event.target.value.replace(/\D/g, '').slice(0, 6))}
-                className="h-10 rounded-lg border border-border bg-background px-3 text-sm font-black tracking-widest text-foreground outline-none ring-primary/20 transition focus:ring-2"
+                className="h-10 rounded-xl border border-cyan-300/10 bg-[#0b1726]/85 px-3 text-sm font-black tracking-widest text-slate-100 outline-none ring-orange-300/15 transition focus:border-orange-300/60 focus:ring-2"
               />
               <Button
                 type="button"
@@ -1133,7 +1296,7 @@ const SecurityPanel = ({
         <Section title="Security warnings" icon={ShieldAlert}>
           <div className="space-y-2">
             {metrics.warnings.map(warning => (
-              <div key={warning} className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-bold text-amber-900">{warning}</div>
+              <div key={warning} className={ADMIN_WARNING_CLASS}>{warning}</div>
             ))}
           </div>
         </Section>
@@ -1203,11 +1366,14 @@ export default function AdminConsoleView() {
   const [snapshot, setSnapshot] = useState<AdminConsoleSnapshot | null>(null);
   const [securityMetrics, setSecurityMetrics] = useState<AdminSecurityMetrics | null>(null);
   const [growthMetrics, setGrowthMetrics] = useState<AdminGrowthMetrics | null>(null);
+  const [storageMetrics, setStorageMetrics] = useState<AdminStorageMetrics | null>(null);
+  const [recoverableWorkspaces, setRecoverableWorkspaces] = useState<AdminRecoverableWorkspace[]>([]);
   const [loadState, setLoadState] = useState<'idle' | 'loading' | 'ready' | 'error' | 'denied' | 'mfaRequired'>('idle');
   const [message, setMessage] = useState('');
   const [selectedFeedback, setSelectedFeedback] = useState<FeedbackSubmission | null>(null);
   const [selectedFprdsSubmission, setSelectedFprdsSubmission] = useState<FprdsBetaSubmission | null>(null);
   const [isSavingReview, setIsSavingReview] = useState(false);
+  const [restoringWorkspaceId, setRestoringWorkspaceId] = useState<string | null>(null);
 
   const loadSnapshot = async () => {
     if (!runtime.enabled || auth.state.status !== 'signedIn') return;
@@ -1220,6 +1386,8 @@ export default function AdminConsoleView() {
         setSnapshot(null);
         setSecurityMetrics(null);
         setGrowthMetrics(null);
+        setStorageMetrics(null);
+        setRecoverableWorkspaces([]);
         setLoadState('denied');
         setMessage('Account is not authorized.');
         await runtime.dataAccess.admin.recordAuditEvent('admin_access_denied', { surface: 'admin_console' }).catch(() => undefined);
@@ -1239,6 +1407,8 @@ export default function AdminConsoleView() {
         setSnapshot(null);
         setSecurityMetrics(null);
         setGrowthMetrics(null);
+        setStorageMetrics(null);
+        setRecoverableWorkspaces([]);
         setLoadState('mfaRequired');
         setMessage('');
         await runtime.dataAccess.admin.recordAuditEvent('admin_mfa_required', { role: admin.role, surface: 'admin_console' }).catch(() => undefined);
@@ -1248,15 +1418,21 @@ export default function AdminConsoleView() {
       const next = await runtime.dataAccess.admin.getSnapshot();
       setSnapshot(next);
       if (admin.role === 'owner') {
-        const [security, growth] = await Promise.all([
+        const [security, growth, storage, recoverable] = await Promise.all([
           runtime.dataAccess.admin.getSecurityMetrics(),
-          runtime.dataAccess.admin.getGrowthMetrics()
+          runtime.dataAccess.admin.getGrowthMetrics(),
+          runtime.dataAccess.admin.getStorageMetrics(),
+          runtime.dataAccess.admin.listRecoverableWorkspaces()
         ]);
         setSecurityMetrics(security);
         setGrowthMetrics(growth);
+        setStorageMetrics(storage);
+        setRecoverableWorkspaces(recoverable);
       } else {
         setSecurityMetrics(null);
         setGrowthMetrics(null);
+        setStorageMetrics(null);
+        setRecoverableWorkspaces([]);
       }
       await runtime.dataAccess.admin.recordAuditEvent('admin_console_opened', { role: admin.role }).catch(() => undefined);
       setLoadState('ready');
@@ -1347,6 +1523,8 @@ export default function AdminConsoleView() {
     setSnapshot(null);
     setSecurityMetrics(null);
     setGrowthMetrics(null);
+    setStorageMetrics(null);
+    setRecoverableWorkspaces([]);
     setLoadState('idle');
   };
 
@@ -1483,6 +1661,22 @@ export default function AdminConsoleView() {
     }
   };
 
+  const handleRestoreWorkspace = async (workspace: AdminRecoverableWorkspace) => {
+    if (!runtime.enabled) return;
+    setRestoringWorkspaceId(workspace.clubId);
+    setMessage('');
+    try {
+      await runtime.dataAccess.admin.restoreWorkspace(workspace.clubId);
+      setRecoverableWorkspaces(current => current.filter(item => item.clubId !== workspace.clubId));
+      await loadSnapshot();
+      setMessage(`${workspace.name} was restored.`);
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : 'Workspace could not be restored.');
+    } finally {
+      setRestoringWorkspaceId(null);
+    }
+  };
+
   if (!runtime.enabled) {
     return (
       <AdminAccessShell>
@@ -1537,12 +1731,17 @@ export default function AdminConsoleView() {
         <div className="mx-auto flex max-w-[1440px] flex-col gap-4 px-4 py-4 sm:px-6 lg:flex-row lg:items-center lg:justify-between">
           <div>
             <div className="flex items-center gap-2">
-              <ShieldCheck size={20} className="text-cyan-200" aria-hidden="true" />
-              <h1 className="font-display text-xl font-black text-white">Dumala Admin Console</h1>
+              <img src="/Dumala_logo.png" alt="Dumala" className="h-11 w-11 shrink-0 rounded-xl object-contain drop-shadow-sm" />
+              <div>
+                <div className="flex items-center gap-2">
+                  <ShieldCheck size={18} className="text-cyan-200" aria-hidden="true" />
+                  <h1 className="font-display text-xl font-black text-white">Dumala Admin Console</h1>
+                </div>
+                <p className="mt-1 text-xs font-medium text-slate-400">
+                  Private app-owner console for beta health, FPRDS review, feedback, usage, live sessions, and future billing.
+                </p>
+              </div>
             </div>
-            <p className="mt-1 text-xs font-medium text-slate-400">
-              Private app-owner console for beta health, FPRDS review, feedback, usage, live sessions, and future billing.
-            </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
             {adminProfile && <Badge variant="secondary">Role: {roleLabel[adminProfile.role]}</Badge>}
@@ -1568,8 +1767,21 @@ export default function AdminConsoleView() {
           </div>
         )}
 
+        {message && loadState === 'ready' && (
+          <div
+            className={`rounded-lg border p-4 text-sm font-semibold ${
+              message.toLowerCase().includes('failed') || message.toLowerCase().includes('could not')
+                ? 'border-destructive/25 bg-destructive/10 text-destructive'
+                : 'border-emerald-300/20 bg-emerald-300/10 text-emerald-100'
+            }`}
+            role="status"
+          >
+            {message}
+          </div>
+        )}
+
         {loadState === 'loading' && !snapshot && (
-          <div className="flex min-h-96 items-center justify-center rounded-lg border border-border bg-card">
+          <div className={`${ADMIN_PANEL_CLASS} flex min-h-96 items-center justify-center`}>
             <span className="inline-flex items-center gap-2 text-sm font-bold text-muted-foreground">
               <Loader2 size={18} className="animate-spin" /> Loading admin console
             </span>
@@ -1607,7 +1819,7 @@ export default function AdminConsoleView() {
 
         {snapshot && (
           <>
-            <nav aria-label="Admin console sections" className="flex gap-2 overflow-x-auto rounded-lg border border-border bg-card p-2">
+            <nav aria-label="Admin console sections" className="flex gap-2 overflow-x-auto rounded-2xl border border-cyan-300/10 bg-[#07111f]/88 p-2 shadow-lg shadow-black/20 backdrop-blur-xl">
               {visibleTabs.map(tab => {
                 const Icon = tab.icon;
                 return (
@@ -1628,6 +1840,14 @@ export default function AdminConsoleView() {
 
             {activeTab === 'overview' && <OverviewPanel snapshot={snapshot} growthMetrics={growthMetrics} />}
             {activeTab === 'users' && <UsersPanel metrics={growthMetrics} />}
+            {activeTab === 'recovery' && (
+              <RecoveryPanel
+                workspaces={recoverableWorkspaces}
+                restoringWorkspaceId={restoringWorkspaceId}
+                onRestore={handleRestoreWorkspace}
+              />
+            )}
+            {activeTab === 'storage' && <StoragePanel metrics={storageMetrics} />}
             {activeTab === 'security' && (
               <SecurityPanel
                 metrics={securityMetrics}

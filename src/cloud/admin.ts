@@ -114,6 +114,46 @@ export interface AdminWorkspaceSummary {
   lastActiveAt?: string | null;
 }
 
+export interface AdminRecoverableWorkspace {
+  clubId: string;
+  name: string;
+  ownerUserId: string;
+  ownerEmail?: string | null;
+  state: 'active' | 'pending_deletion' | 'deleted';
+  memberCount: number;
+  lastActiveAt?: string | null;
+  pendingDeletionAt?: string | null;
+  deletedAt?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AdminStorageTableMetric {
+  tableName: string;
+  rowEstimate: number;
+  totalBytes: number;
+  tableBytes: number;
+  indexBytes: number;
+  totalPercent: number;
+}
+
+export interface AdminStorageTrendPoint {
+  date: string;
+  totalBytes: number;
+  tableBytes: number;
+  indexBytes: number;
+  topTables: AdminStorageTableMetric[];
+}
+
+export interface AdminStorageMetrics {
+  totalBytes: number;
+  tableBytes: number;
+  indexBytes: number;
+  tables: AdminStorageTableMetric[];
+  trend: AdminStorageTrendPoint[];
+  warnings: string[];
+}
+
 export interface AdminDuplicateFeedbackGroup {
   fingerprint: string;
   count: number;
@@ -502,6 +542,42 @@ export const getAdminGrowthMetrics = async (
     'ADMIN_GROWTH_METRICS_READ_FAILED',
     'Failed to read admin growth metrics'
   ) as AdminGrowthMetrics;
+};
+
+export const listAdminRecoverableWorkspaces = async (
+  client: DumalaSupabaseClient,
+  days = 365
+): Promise<AdminRecoverableWorkspace[]> => {
+  const supabase = asUntypedClient(client);
+  return expectNoError(
+    await supabase.rpc('list_admin_recoverable_workspaces_v1', { days }),
+    'ADMIN_RECOVERABLE_WORKSPACES_READ_FAILED',
+    'Failed to read recoverable workspaces'
+  ) as AdminRecoverableWorkspace[];
+};
+
+export const restoreAdminWorkspace = async (
+  client: DumalaSupabaseClient,
+  clubId: string
+): Promise<AdminRecoverableWorkspace> => {
+  const supabase = asUntypedClient(client);
+  return expectNoError(
+    await supabase.rpc('restore_admin_workspace_v1', { target_club_id: clubId }),
+    'ADMIN_WORKSPACE_RESTORE_FAILED',
+    'Failed to restore workspace'
+  ) as AdminRecoverableWorkspace;
+};
+
+export const getAdminStorageMetrics = async (
+  client: DumalaSupabaseClient,
+  days = 30
+): Promise<AdminStorageMetrics> => {
+  const supabase = asUntypedClient(client);
+  return expectNoError(
+    await supabase.rpc('get_admin_storage_metrics_v1', { days }),
+    'ADMIN_STORAGE_METRICS_READ_FAILED',
+    'Failed to read database storage metrics'
+  ) as AdminStorageMetrics;
 };
 
 export const recordAdminAuditEvent = async (
