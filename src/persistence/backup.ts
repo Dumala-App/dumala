@@ -38,6 +38,7 @@ import {
 const tacticsSchema = z.object({
   matchFormat: matchFormatSchema,
   formation: stringSchema,
+  opponentFormation: stringSchema.default('4-3-3'),
   playstyle: stringSchema,
   isCustomStrategy: booleanSchema,
   customPlaystyle: stringSchema,
@@ -145,6 +146,7 @@ const emptyWeeklySchedule = {
 const defaultTactics = {
   matchFormat: '11-a-side' as const,
   formation: '4-1-2-3',
+  opponentFormation: '4-3-3',
   playstyle: 'Quick Counter',
   isCustomStrategy: false,
   customPlaystyle: 'Direct Attacking Tiki-Taka',
@@ -179,6 +181,7 @@ export const collectFeatureState = (storage: StorageLike = window.localStorage):
   tactics: {
     matchFormat: readStringStorage(STORAGE_KEYS.matchFormat, matchFormatSchema, defaultTactics.matchFormat, 'Tactics match format', storage),
     formation: readStringStorage(STORAGE_KEYS.formation, stringSchema, defaultTactics.formation, 'Tactics formation', storage),
+    opponentFormation: readStringStorage(STORAGE_KEYS.opponentFormation, stringSchema, defaultTactics.opponentFormation, 'Opponent formation', storage),
     playstyle: readStringStorage(STORAGE_KEYS.playstyle, stringSchema, defaultTactics.playstyle, 'Tactics playstyle', storage),
     isCustomStrategy: readBooleanStorage(STORAGE_KEYS.isCustomStrategy, false, 'Tactics strategy', storage),
     customPlaystyle: readStringStorage(STORAGE_KEYS.customPlaystyle, stringSchema, defaultTactics.customPlaystyle, 'Tactics strategy', storage),
@@ -305,6 +308,7 @@ const writesForBackup = (backup: WorkspaceBackupV4): Array<[string, unknown, 'js
   [STORAGE_KEYS.sundayBackupEnabled, backup.featureState.standingsPreferences.sundayBackupEnabled, 'boolean'],
   [STORAGE_KEYS.matchFormat, backup.featureState.tactics.matchFormat, 'string'],
   [STORAGE_KEYS.formation, backup.featureState.tactics.formation, 'string'],
+  [STORAGE_KEYS.opponentFormation, backup.featureState.tactics.opponentFormation, 'string'],
   [STORAGE_KEYS.playstyle, backup.featureState.tactics.playstyle, 'string'],
   [STORAGE_KEYS.isCustomStrategy, backup.featureState.tactics.isCustomStrategy, 'boolean'],
   [STORAGE_KEYS.customPlaystyle, backup.featureState.tactics.customPlaystyle, 'string'],
