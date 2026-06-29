@@ -59,18 +59,23 @@ import {
   getAdminConsoleSnapshot,
   getAdminGrowthMetrics,
   getAdminSecurityMetrics,
+  getAdminStorageMetrics,
   getCurrentAppAdmin,
+  listAdminRecoverableWorkspaces,
   recordAdminAuditEvent,
   createFeedbackSubmission,
   createFprdsBetaSubmission,
   findMyFprdsBetaSubmission,
+  restoreAdminWorkspace,
   updateFprdsBetaSubmissionReview,
   recordAppSessionHeartbeat,
   recordAppUsageEvent,
   updateFeedbackSubmission,
   type AdminConsoleSnapshot,
   type AdminGrowthMetrics,
+  type AdminRecoverableWorkspace,
   type AdminSecurityMetrics,
+  type AdminStorageMetrics,
   type AppAdminProfile,
   type AppSessionHeartbeatInput,
   type FeedbackStatus,
@@ -145,6 +150,9 @@ export interface CloudAdminRepository {
   getSnapshot(): Promise<AdminConsoleSnapshot>;
   getSecurityMetrics(days?: number): Promise<AdminSecurityMetrics>;
   getGrowthMetrics(days?: number): Promise<AdminGrowthMetrics>;
+  getStorageMetrics(days?: number): Promise<AdminStorageMetrics>;
+  listRecoverableWorkspaces(days?: number): Promise<AdminRecoverableWorkspace[]>;
+  restoreWorkspace(clubId: string): Promise<AdminRecoverableWorkspace>;
   recordAuditEvent(eventType: string, metadata?: Record<string, unknown>): Promise<void>;
   recordUsageEvent(input: UsageEventInput): Promise<void>;
   recordSessionHeartbeat(input: AppSessionHeartbeatInput): Promise<void>;
@@ -222,6 +230,9 @@ export const createCloudDataAccess = (client: DumalaSupabaseClient): CloudDataAc
     getSnapshot: () => getAdminConsoleSnapshot(client),
     getSecurityMetrics: days => getAdminSecurityMetrics(client, days),
     getGrowthMetrics: days => getAdminGrowthMetrics(client, days),
+    getStorageMetrics: days => getAdminStorageMetrics(client, days),
+    listRecoverableWorkspaces: days => listAdminRecoverableWorkspaces(client, days),
+    restoreWorkspace: clubId => restoreAdminWorkspace(client, clubId),
     recordAuditEvent: (eventType, metadata) => recordAdminAuditEvent(client, eventType, metadata),
     recordUsageEvent: input => recordAppUsageEvent(client, input),
     recordSessionHeartbeat: input => recordAppSessionHeartbeat(client, input),
