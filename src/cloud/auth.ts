@@ -113,6 +113,60 @@ export const requestOtp = async (
   }
 };
 
+export const signUpWithPassword = async (
+  client: DumalaSupabaseClient,
+  email: string,
+  password: string,
+  redirectTo?: string
+): Promise<void> => {
+  const normalizedEmail = email.trim().toLowerCase();
+  if (!normalizedEmail) throw new CloudAuthError('Email is required to create a cloud account.', 'AUTH_EMAIL_REQUIRED');
+  if (password.length < 8) throw new CloudAuthError('Password must be at least 8 characters.', 'AUTH_PASSWORD_TOO_SHORT');
+
+  const { error } = await client.auth.signUp({
+    email: normalizedEmail,
+    password,
+    options: redirectTo ? { emailRedirectTo: redirectTo } : undefined
+  });
+
+  if (error) {
+    throw new CloudAuthError(`Failed to create cloud account: ${getErrorMessage(error)}`, 'AUTH_PASSWORD_SIGN_UP_FAILED', error);
+  }
+};
+
+export const signInWithPassword = async (
+  client: DumalaSupabaseClient,
+  email: string,
+  password: string
+): Promise<void> => {
+  const normalizedEmail = email.trim().toLowerCase();
+  if (!normalizedEmail) throw new CloudAuthError('Email is required to sign in.', 'AUTH_EMAIL_REQUIRED');
+  if (!password) throw new CloudAuthError('Password is required to sign in.', 'AUTH_PASSWORD_REQUIRED');
+
+  const { error } = await client.auth.signInWithPassword({
+    email: normalizedEmail,
+    password
+  });
+
+  if (error) {
+    throw new CloudAuthError(`Failed to sign in: ${getErrorMessage(error)}`, 'AUTH_PASSWORD_SIGN_IN_FAILED', error);
+  }
+};
+
+export const signInWithGoogle = async (
+  client: DumalaSupabaseClient,
+  redirectTo?: string
+): Promise<void> => {
+  const { error } = await client.auth.signInWithOAuth({
+    provider: 'google',
+    options: redirectTo ? { redirectTo } : undefined
+  });
+
+  if (error) {
+    throw new CloudAuthError(`Failed to start Google sign-in: ${getErrorMessage(error)}`, 'AUTH_GOOGLE_SIGN_IN_FAILED', error);
+  }
+};
+
 export const signOut = async (client: DumalaSupabaseClient): Promise<void> => {
   const { error } = await client.auth.signOut();
   if (error) throw new CloudAuthError(`Failed to sign out: ${getErrorMessage(error)}`, 'AUTH_SIGN_OUT_FAILED', error);

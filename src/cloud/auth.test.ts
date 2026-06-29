@@ -7,6 +7,9 @@ import {
   getSession,
   listMfaFactors,
   requestOtp,
+  signInWithGoogle,
+  signInWithPassword,
+  signUpWithPassword,
   signOut,
   subscribeToAuthChanges,
   verifyMfaChallenge
@@ -22,6 +25,43 @@ describe('cloud auth service', () => {
     expect(signInWithOtp).toHaveBeenCalledWith({
       email: 'coach@example.com',
       options: { emailRedirectTo: 'https://dumala.test/auth' }
+    });
+  });
+
+  it('registers a coach with email and password', async () => {
+    const signUp = vi.fn().mockResolvedValue({ error: null });
+    const client = { auth: { signUp } } as unknown as DumalaSupabaseClient;
+
+    await signUpWithPassword(client, ' Coach@Example.COM ', 'secure-pass-1', 'https://dumala.test/auth');
+
+    expect(signUp).toHaveBeenCalledWith({
+      email: 'coach@example.com',
+      password: 'secure-pass-1',
+      options: { emailRedirectTo: 'https://dumala.test/auth' }
+    });
+  });
+
+  it('signs a returning coach in with email and password', async () => {
+    const signInWithPasswordRequest = vi.fn().mockResolvedValue({ error: null });
+    const client = { auth: { signInWithPassword: signInWithPasswordRequest } } as unknown as DumalaSupabaseClient;
+
+    await signInWithPassword(client, ' Coach@Example.COM ', 'secure-pass-1');
+
+    expect(signInWithPasswordRequest).toHaveBeenCalledWith({
+      email: 'coach@example.com',
+      password: 'secure-pass-1'
+    });
+  });
+
+  it('starts Google OAuth sign-in with the app redirect URL', async () => {
+    const signInWithOAuth = vi.fn().mockResolvedValue({ error: null });
+    const client = { auth: { signInWithOAuth } } as unknown as DumalaSupabaseClient;
+
+    await signInWithGoogle(client, 'https://dumala.test/auth');
+
+    expect(signInWithOAuth).toHaveBeenCalledWith({
+      provider: 'google',
+      options: { redirectTo: 'https://dumala.test/auth' }
     });
   });
 

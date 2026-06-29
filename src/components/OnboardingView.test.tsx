@@ -8,6 +8,9 @@ import OnboardingView from './OnboardingView';
 const signedOutAuth: CloudAuthController = {
   state: { status: 'signedOut' },
   requestOtp: vi.fn(),
+  signUpWithPassword: vi.fn(),
+  signInWithPassword: vi.fn(),
+  signInWithGoogle: vi.fn(),
   signOut: vi.fn()
 };
 
@@ -33,7 +36,9 @@ describe('OnboardingView cloud account entry', () => {
 
     expect(html).toContain('Register or sign in');
     expect(html).toContain('coach@example.com');
-    expect(html).toContain('Send link');
+    expect(html).toContain('Sign in');
+    expect(html).toContain('Create account');
+    expect(html).toContain('Continue with Google');
     expect(html).toContain('Use your email for a private cloud account');
     expect(html).toContain('Official team name');
     expect(html).toContain('Centermall Grounds');

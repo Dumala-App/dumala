@@ -10,6 +10,9 @@ export interface UseCloudAuthInput {
 export interface CloudAuthController {
   state: AuthState;
   requestOtp: (email: string, redirectTo?: string) => Promise<void>;
+  signUpWithPassword: (email: string, password: string, redirectTo?: string) => Promise<void>;
+  signInWithPassword: (email: string, password: string) => Promise<void>;
+  signInWithGoogle: (redirectTo?: string) => Promise<void>;
   signOut: () => Promise<void>;
 }
 
@@ -53,10 +56,21 @@ export const useCloudAuth = ({ enabled, auth }: UseCloudAuthInput): CloudAuthCon
       if (!enabled || !auth) return Promise.resolve();
       return auth.requestOtp(email, redirectTo);
     },
+    signUpWithPassword: (email, password, redirectTo) => {
+      if (!enabled || !auth) return Promise.resolve();
+      return auth.signUpWithPassword(email, password, redirectTo);
+    },
+    signInWithPassword: (email, password) => {
+      if (!enabled || !auth) return Promise.resolve();
+      return auth.signInWithPassword(email, password);
+    },
+    signInWithGoogle: redirectTo => {
+      if (!enabled || !auth) return Promise.resolve();
+      return auth.signInWithGoogle(redirectTo);
+    },
     signOut: () => {
       if (!enabled || !auth) return Promise.resolve();
       return auth.signOut();
     }
   };
 };
-
