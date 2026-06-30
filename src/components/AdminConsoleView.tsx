@@ -61,22 +61,58 @@ type AdminTab = 'overview' | 'users' | 'recovery' | 'storage' | 'security' | 'us
 
 const ADMIN_AUTH_REDIRECT_URL = 'https://dumala.asia/?returnTo=admin';
 
-const ADMIN_THEME_STYLE = {
-  '--background': '#020713',
-  '--foreground': '#f8fafc',
-  '--card': 'rgba(7, 17, 31, 0.9)',
-  '--card-foreground': '#f8fafc',
-  '--muted': 'rgba(255, 255, 255, 0.06)',
-  '--muted-foreground': '#94a3b8',
-  '--border': 'rgba(255, 255, 255, 0.1)',
-  '--input': 'rgba(255, 255, 255, 0.055)',
-  '--ring': '#f59e0b',
-  '--primary': '#22d3ee',
-  '--primary-foreground': '#020713',
-  '--accent': '#fb923c',
-  '--accent-foreground': '#020713',
-  '--destructive': '#fb7185'
-} as CSSProperties;
+type AdminThemeId = 'dark-glass';
+
+const ADMIN_DARK_GLASS_THEME = {
+  id: 'dark-glass',
+  label: 'Dark Glass',
+  style: {
+    '--background': '#020713',
+    '--foreground': '#f8fafc',
+    '--card': 'rgba(7, 17, 31, 0.9)',
+    '--card-foreground': '#f8fafc',
+    '--muted': 'rgba(255, 255, 255, 0.06)',
+    '--muted-foreground': '#94a3b8',
+    '--border': 'rgba(255, 255, 255, 0.1)',
+    '--input': 'rgba(11, 23, 38, 0.95)',
+    '--ring': '#fb923c',
+    '--primary': '#fb923c',
+    '--primary-foreground': '#020713',
+    '--accent': '#fb923c',
+    '--accent-foreground': '#020713',
+    '--destructive': '#fb7185'
+  } as CSSProperties,
+  classes: {
+    shell: 'relative min-h-screen overflow-x-hidden bg-[#020713] text-slate-100',
+    accessShell: 'relative min-h-screen overflow-hidden bg-[#020713] font-sans text-slate-100 selection:bg-orange-400/30',
+    accessPanel: 'w-full max-w-3xl rounded-[1.85rem] border border-white/10 bg-[#07111f]/90 p-5 text-slate-100 shadow-2xl shadow-black/45 backdrop-blur-xl sm:p-6',
+    panel: 'rounded-2xl border border-cyan-300/10 bg-[#07111f]/88 text-slate-100 shadow-lg shadow-black/20 backdrop-blur-xl [&_.text-foreground]:!text-slate-100 [&_.text-muted-foreground]:!text-slate-400',
+    panelHeader: 'flex items-center gap-2 border-b border-cyan-300/10 px-4 py-3',
+    subtleCard: 'rounded-xl border border-cyan-300/10 bg-white/[0.035] text-slate-100 shadow-sm shadow-black/10 [&_.text-foreground]:!text-slate-100 [&_.text-muted-foreground]:!text-slate-400',
+    input: 'h-9 rounded-xl border border-cyan-300/10 bg-[#0b1726]/85 px-3 text-xs font-semibold text-slate-100 outline-none ring-orange-300/15 transition placeholder:text-slate-500 focus:border-orange-300/60 focus:ring-2',
+    select: 'h-9 rounded-xl border border-cyan-300/10 bg-[#0b1726]/85 px-2 text-xs font-bold text-slate-100 outline-none ring-orange-300/15 transition focus:border-orange-300/60 focus:ring-2',
+    warning: 'rounded-xl border border-amber-300/20 bg-amber-300/10 px-3 py-2 text-xs font-bold leading-5 text-amber-100',
+    reviewButton: 'border-orange-300/35 bg-orange-400 text-slate-950 shadow-sm shadow-orange-950/20 hover:border-orange-200 hover:bg-orange-300 hover:text-slate-950',
+    dialogContent: 'border-cyan-300/10 bg-[#07111f] text-slate-100 shadow-2xl shadow-black/40 [&_.text-foreground]:!text-slate-100 [&_.text-muted-foreground]:!text-slate-400',
+    dialogField: 'border-cyan-300/15 bg-[#0b1726]/95 text-slate-100 placeholder:text-slate-500 focus:ring-orange-300/25',
+    dialogSelectContent: 'border-cyan-300/15 bg-[#0b1726] text-slate-100 shadow-2xl shadow-black/35',
+    dialogSelectItem: 'text-slate-100 focus:bg-orange-300/10 focus:text-orange-100',
+    dialogSecondaryButton: 'border-cyan-300/15 bg-[#0b1726]/90 text-slate-100 hover:bg-white/[0.06] hover:text-white',
+    dialogPrimaryButton: 'bg-orange-400 text-slate-950 shadow-sm shadow-orange-950/25 hover:bg-orange-300 hover:text-slate-950',
+    nav: 'flex gap-2 overflow-x-auto rounded-2xl border border-orange-300/10 bg-[#07111f]/88 p-2 shadow-lg shadow-black/20 backdrop-blur-xl',
+    navItem: 'shrink-0 border transition-colors',
+    navItemActive: 'border-orange-300/40 bg-orange-400 text-slate-950 shadow-sm shadow-orange-950/25 hover:bg-orange-300 hover:text-slate-950',
+    navItemIdle: 'border-transparent text-slate-400 hover:border-orange-300/20 hover:bg-orange-300/10 hover:text-orange-100'
+  }
+} as const;
+
+const ADMIN_THEMES: Record<AdminThemeId, typeof ADMIN_DARK_GLASS_THEME> = {
+  'dark-glass': ADMIN_DARK_GLASS_THEME
+};
+
+const ADMIN_ACTIVE_THEME_ID: AdminThemeId = 'dark-glass';
+const ADMIN_THEME = ADMIN_THEMES[ADMIN_ACTIVE_THEME_ID];
+const ADMIN_THEME_STYLE = ADMIN_THEME.style;
 
 const adminTabs: Array<{ id: AdminTab; label: string; icon: React.ComponentType<{ size?: number; className?: string }> }> = [
   { id: 'overview', label: 'Overview', icon: Gauge },
@@ -111,12 +147,19 @@ const roleLabel: Record<AppAdminProfile['role'], string> = {
   billing: 'Billing'
 };
 
-const ADMIN_PANEL_CLASS = 'rounded-2xl border border-cyan-300/10 bg-[#07111f]/88 shadow-lg shadow-black/20 backdrop-blur-xl';
-const ADMIN_PANEL_HEADER_CLASS = 'flex items-center gap-2 border-b border-cyan-300/10 px-4 py-3';
-const ADMIN_SUBTLE_CARD_CLASS = 'rounded-xl border border-cyan-300/10 bg-white/[0.035] shadow-sm shadow-black/10';
-const ADMIN_INPUT_CLASS = 'h-9 rounded-xl border border-cyan-300/10 bg-[#0b1726]/85 px-3 text-xs font-semibold text-slate-100 outline-none ring-orange-300/15 transition placeholder:text-slate-500 focus:border-orange-300/60 focus:ring-2';
-const ADMIN_SELECT_CLASS = 'h-9 rounded-xl border border-cyan-300/10 bg-[#0b1726]/85 px-2 text-xs font-bold text-slate-100 outline-none ring-orange-300/15 transition focus:border-orange-300/60 focus:ring-2';
-const ADMIN_WARNING_CLASS = 'rounded-xl border border-amber-300/20 bg-amber-300/10 px-3 py-2 text-xs font-bold leading-5 text-amber-100';
+const ADMIN_PANEL_CLASS = ADMIN_THEME.classes.panel;
+const ADMIN_PANEL_HEADER_CLASS = ADMIN_THEME.classes.panelHeader;
+const ADMIN_SUBTLE_CARD_CLASS = ADMIN_THEME.classes.subtleCard;
+const ADMIN_INPUT_CLASS = ADMIN_THEME.classes.input;
+const ADMIN_SELECT_CLASS = ADMIN_THEME.classes.select;
+const ADMIN_WARNING_CLASS = ADMIN_THEME.classes.warning;
+const ADMIN_REVIEW_BUTTON_CLASS = ADMIN_THEME.classes.reviewButton;
+const ADMIN_DIALOG_CONTENT_CLASS = ADMIN_THEME.classes.dialogContent;
+const ADMIN_DIALOG_FIELD_CLASS = ADMIN_THEME.classes.dialogField;
+const ADMIN_DIALOG_SELECT_CONTENT_CLASS = ADMIN_THEME.classes.dialogSelectContent;
+const ADMIN_DIALOG_SELECT_ITEM_CLASS = ADMIN_THEME.classes.dialogSelectItem;
+const ADMIN_DIALOG_SECONDARY_BUTTON_CLASS = ADMIN_THEME.classes.dialogSecondaryButton;
+const ADMIN_DIALOG_PRIMARY_BUTTON_CLASS = ADMIN_THEME.classes.dialogPrimaryButton;
 
 const AdminBackdrop = () => (
   <div aria-hidden="true" className="fixed inset-0 overflow-hidden">
@@ -130,10 +173,10 @@ const AdminBackdrop = () => (
 );
 
 const AdminAccessShell = ({ children }: { children: React.ReactNode }) => (
-  <div className="relative min-h-screen overflow-hidden bg-[#020713] font-sans text-slate-100 selection:bg-orange-400/30" style={ADMIN_THEME_STYLE}>
+  <div className={ADMIN_THEME.classes.accessShell} style={ADMIN_THEME_STYLE}>
     <AdminBackdrop />
     <main className="relative z-10 flex min-h-screen items-center justify-center p-3 sm:p-4 lg:p-6">
-      <section className="w-full max-w-3xl rounded-[1.85rem] border border-white/10 bg-[#07111f]/90 p-5 shadow-2xl shadow-black/45 backdrop-blur-xl sm:p-6">
+      <section className={ADMIN_THEME.classes.accessPanel}>
         {children}
       </section>
     </main>
@@ -689,7 +732,7 @@ const FeedbackPanel = ({ feedback, metrics, onStatusChange, onOpen }: {
                     >
                       {Object.entries(statusLabel).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
                     </select>
-                    <Button type="button" variant="outline" size="sm" onClick={() => onOpen(item)} aria-label={`Open feedback: ${item.subject}`}>
+                    <Button type="button" variant="outline" size="sm" onClick={() => onOpen(item)} aria-label={`Open feedback: ${item.subject}`} className={ADMIN_REVIEW_BUTTON_CLASS}>
                       <Eye size={14} aria-hidden="true" /> Review
                     </Button>
                   </div>
@@ -722,10 +765,10 @@ const FeedbackReviewDialog = ({ item, open, saving, onOpenChange, onSave }: {
   if (!item) return null;
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[92vh] max-w-2xl overflow-y-auto border-cyan-300/10 bg-[#07111f] shadow-2xl shadow-black/40">
+      <DialogContent className={`${ADMIN_DIALOG_CONTENT_CLASS} max-h-[92vh] max-w-2xl overflow-y-auto`}>
         <DialogHeader>
-          <DialogTitle>{item.subject}</DialogTitle>
-          <DialogDescription>{item.affected_area} - {categoryLabel[item.category]} - {formatRelativeTime(item.created_at)}</DialogDescription>
+          <DialogTitle className="text-slate-100">{item.subject}</DialogTitle>
+          <DialogDescription className="text-slate-400">{item.affected_area} - {categoryLabel[item.category]} - {formatRelativeTime(item.created_at)}</DialogDescription>
         </DialogHeader>
         <div className="space-y-4">
           <div className={`${ADMIN_SUBTLE_CARD_CLASS} p-4`}>
@@ -740,10 +783,10 @@ const FeedbackReviewDialog = ({ item, open, saving, onOpenChange, onSave }: {
           )}
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-1.5">
-              <Label htmlFor="feedback-review-status" className="normal-case tracking-normal">Status</Label>
+              <Label htmlFor="feedback-review-status" className="normal-case tracking-normal text-slate-300">Status</Label>
               <Select value={status} onValueChange={value => setStatus(value as FeedbackStatus)}>
-                <SelectTrigger id="feedback-review-status"><SelectValue /></SelectTrigger>
-                <SelectContent>{Object.entries(statusLabel).map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}</SelectContent>
+                <SelectTrigger id="feedback-review-status" className={ADMIN_DIALOG_FIELD_CLASS}><SelectValue /></SelectTrigger>
+                <SelectContent className={ADMIN_DIALOG_SELECT_CONTENT_CLASS}>{Object.entries(statusLabel).map(([value, label]) => <SelectItem key={value} value={value} className={ADMIN_DIALOG_SELECT_ITEM_CLASS}>{label}</SelectItem>)}</SelectContent>
               </Select>
             </div>
             <div className={`${ADMIN_SUBTLE_CARD_CLASS} px-3 py-2 text-xs text-slate-400`}>
@@ -752,13 +795,13 @@ const FeedbackReviewDialog = ({ item, open, saving, onOpenChange, onSave }: {
             </div>
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="feedback-admin-notes" className="normal-case tracking-normal">Private admin notes</Label>
-            <Textarea id="feedback-admin-notes" value={adminNotes} onChange={event => setAdminNotes(event.target.value)} rows={4} maxLength={4000} placeholder="Triage decision, reproduction notes, or follow-up action." />
+            <Label htmlFor="feedback-admin-notes" className="normal-case tracking-normal text-slate-300">Private admin notes</Label>
+            <Textarea id="feedback-admin-notes" value={adminNotes} onChange={event => setAdminNotes(event.target.value)} rows={4} maxLength={4000} placeholder="Triage decision, reproduction notes, or follow-up action." className={ADMIN_DIALOG_FIELD_CLASS} />
           </div>
         </div>
         <DialogFooter>
-          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button type="button" disabled={saving} onClick={() => onSave(item, status, adminNotes)}>
+          <Button type="button" variant="outline" onClick={() => onOpenChange(false)} className={ADMIN_DIALOG_SECONDARY_BUTTON_CLASS}>Cancel</Button>
+          <Button type="button" disabled={saving} onClick={() => onSave(item, status, adminNotes)} className={ADMIN_DIALOG_PRIMARY_BUTTON_CLASS}>
             {saving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />} Save review
           </Button>
         </DialogFooter>
@@ -803,10 +846,10 @@ const FprdsReviewDialog = ({ submission, open, saving, onOpenChange, onSave }: {
   const venue = submission.venue_context ?? {};
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[94vh] max-w-4xl overflow-y-auto border-cyan-300/10 bg-[#07111f] shadow-2xl shadow-black/40">
+      <DialogContent className={`${ADMIN_DIALOG_CONTENT_CLASS} max-h-[94vh] max-w-4xl overflow-y-auto`}>
         <DialogHeader>
-          <DialogTitle>FPRDS beta review</DialogTitle>
-          <DialogDescription>Anonymous player {submission.player_anonymous_id.slice(0, 10)} - submitted {formatRelativeTime(submission.submitted_at)}</DialogDescription>
+          <DialogTitle className="text-slate-100">FPRDS beta review</DialogTitle>
+          <DialogDescription className="text-slate-400">Anonymous player {submission.player_anonymous_id.slice(0, 10)} - submitted {formatRelativeTime(submission.submitted_at)}</DialogDescription>
         </DialogHeader>
 
         <div className="grid grid-cols-2 gap-px overflow-hidden rounded-2xl border border-cyan-300/10 bg-cyan-300/10 sm:grid-cols-5">
@@ -850,27 +893,27 @@ const FprdsReviewDialog = ({ submission, open, saving, onOpenChange, onSave }: {
 
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-1.5">
-            <Label htmlFor="fprds-review-status" className="normal-case tracking-normal">Review decision</Label>
+            <Label htmlFor="fprds-review-status" className="normal-case tracking-normal text-slate-300">Review decision</Label>
             <Select value={status} onValueChange={value => setStatus(value as FprdsBetaReviewStatus)}>
-              <SelectTrigger id="fprds-review-status"><SelectValue /></SelectTrigger>
-              <SelectContent>{Object.entries(fprdsStatusLabel).map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}</SelectContent>
+              <SelectTrigger id="fprds-review-status" className={ADMIN_DIALOG_FIELD_CLASS}><SelectValue /></SelectTrigger>
+              <SelectContent className={ADMIN_DIALOG_SELECT_CONTENT_CLASS}>{Object.entries(fprdsStatusLabel).map(([value, label]) => <SelectItem key={value} value={value} className={ADMIN_DIALOG_SELECT_ITEM_CLASS}>{label}</SelectItem>)}</SelectContent>
             </Select>
           </div>
           {status === 'excluded' && (
             <div className="space-y-1.5">
-              <Label htmlFor="fprds-exclusion-reason" className="normal-case tracking-normal">Exclusion reason</Label>
-              <Textarea id="fprds-exclusion-reason" value={exclusionReason} onChange={event => setExclusionReason(event.target.value)} rows={2} maxLength={1000} required />
+              <Label htmlFor="fprds-exclusion-reason" className="normal-case tracking-normal text-slate-300">Exclusion reason</Label>
+              <Textarea id="fprds-exclusion-reason" value={exclusionReason} onChange={event => setExclusionReason(event.target.value)} rows={2} maxLength={1000} required className={ADMIN_DIALOG_FIELD_CLASS} />
             </div>
           )}
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor="fprds-reviewer-notes" className="normal-case tracking-normal">Reviewer notes</Label>
-          <Textarea id="fprds-reviewer-notes" value={reviewerNotes} onChange={event => setReviewerNotes(event.target.value)} rows={3} maxLength={3000} placeholder="Quality observations, benchmark implications, or follow-up questions." />
+          <Label htmlFor="fprds-reviewer-notes" className="normal-case tracking-normal text-slate-300">Reviewer notes</Label>
+          <Textarea id="fprds-reviewer-notes" value={reviewerNotes} onChange={event => setReviewerNotes(event.target.value)} rows={3} maxLength={3000} placeholder="Quality observations, benchmark implications, or follow-up questions." className={ADMIN_DIALOG_FIELD_CLASS} />
         </div>
 
         <DialogFooter>
-          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button type="button" disabled={saving || (status === 'excluded' && !exclusionReason.trim())} onClick={() => onSave(submission, status, reviewerNotes, exclusionReason)}>
+          <Button type="button" variant="outline" onClick={() => onOpenChange(false)} className={ADMIN_DIALOG_SECONDARY_BUTTON_CLASS}>Cancel</Button>
+          <Button type="button" disabled={saving || (status === 'excluded' && !exclusionReason.trim())} onClick={() => onSave(submission, status, reviewerNotes, exclusionReason)} className={ADMIN_DIALOG_PRIMARY_BUTTON_CLASS}>
             {saving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />} Save decision
           </Button>
         </DialogFooter>
@@ -933,7 +976,17 @@ const FprdsPanel = ({
                 <td className="px-3 py-2 font-black text-foreground">{submission.ovr ?? '-'}</td>
                 <td className="px-3 py-2 text-muted-foreground">{submission.coach_confidence ?? '-'}/5</td>
                 <td className="px-3 py-2 text-muted-foreground">{formatRelativeTime(submission.submitted_at)}</td>
-                <td className="px-3 py-2 text-right"><Button type="button" variant="outline" size="sm" onClick={() => onOpen(submission)}><Eye size={14} /> Review</Button></td>
+                <td className="px-3 py-2 text-right">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => onOpen(submission)}
+                    className={ADMIN_REVIEW_BUTTON_CLASS}
+                  >
+                    <Eye size={14} /> Review
+                  </Button>
+                </td>
               </tr>
             ))}
           </CompactTable>
@@ -1749,7 +1802,7 @@ export default function AdminConsoleView() {
   }
 
   return (
-    <div className="relative min-h-screen overflow-x-hidden bg-[#020713] text-foreground" style={ADMIN_THEME_STYLE}>
+    <div className={ADMIN_THEME.classes.shell} style={ADMIN_THEME_STYLE}>
       <AdminBackdrop />
       <header className="relative z-10 border-b border-white/10 bg-[#07111f]/90 shadow-lg shadow-black/20 backdrop-blur-xl">
         <div className="mx-auto flex max-w-[1440px] flex-col gap-4 px-4 py-4 sm:px-6 lg:flex-row lg:items-center lg:justify-between">
@@ -1843,17 +1896,22 @@ export default function AdminConsoleView() {
 
         {snapshot && (
           <>
-            <nav aria-label="Admin console sections" className="flex gap-2 overflow-x-auto rounded-2xl border border-cyan-300/10 bg-[#07111f]/88 p-2 shadow-lg shadow-black/20 backdrop-blur-xl">
+            <nav aria-label="Admin console sections" className={ADMIN_THEME.classes.nav}>
               {visibleTabs.map(tab => {
                 const Icon = tab.icon;
+                const selected = activeTab === tab.id;
                 return (
                   <Button
                     key={tab.id}
                     type="button"
-                    variant={activeTab === tab.id ? 'default' : 'ghost'}
+                    variant="ghost"
                     size="sm"
                     onClick={() => setActiveTab(tab.id)}
-                    className="shrink-0"
+                    className={`${ADMIN_THEME.classes.navItem} ${
+                      selected
+                        ? ADMIN_THEME.classes.navItemActive
+                        : ADMIN_THEME.classes.navItemIdle
+                    }`}
                   >
                     <Icon size={14} aria-hidden="true" />
                     {tab.label}
