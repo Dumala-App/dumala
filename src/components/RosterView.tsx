@@ -28,6 +28,11 @@ import {
   SelectValue
 } from './ui/select';
 import { Textarea } from './ui/textarea';
+import {
+  DARK_GLASS_CLASSES,
+  DARK_GLASS_DASHBOARD_SURFACE_STYLE,
+  DARK_GLASS_THEME_STYLE
+} from '../theme/darkGlassTheme';
 
 interface RosterViewProps {
   players: Player[];
@@ -67,6 +72,12 @@ const STAFF_ROLE_OPTIONS = [
 const integerError = (result: ReturnType<typeof parseIntegerInput>): string | undefined => (
   'errors' in result ? result.errors.value : undefined
 );
+
+const rosterGlassPanelClass = 'rounded-2xl border border-cyan-300/10 bg-[#07111f]/88 text-slate-100 shadow-lg shadow-black/20 backdrop-blur-xl';
+const rosterGlassCardClass = 'rounded-xl border border-cyan-300/10 bg-[#0b1726]/66 text-slate-100 shadow-sm shadow-black/10 backdrop-blur-sm';
+const rosterGlassInsetClass = 'rounded-xl border border-cyan-300/10 bg-[#0b1726]/72 text-slate-100 shadow-inner shadow-black/10 backdrop-blur-sm';
+const rosterGlassFieldClass = 'border-cyan-300/10 bg-[#0b1726]/85 text-slate-100 placeholder:text-slate-500 focus-visible:border-orange-300/60 focus-visible:ring-orange-300/25';
+const rosterGlassFormClass = `${rosterGlassPanelClass} space-y-4 p-6 [&_input]:!border-cyan-300/10 [&_input]:!bg-[#0b1726]/85 [&_input]:!text-slate-100 [&_input]:placeholder:!text-slate-500 [&_textarea]:!border-cyan-300/10 [&_textarea]:!bg-[#0b1726]/85 [&_textarea]:!text-slate-100 [&_textarea]:placeholder:!text-slate-500`;
 
 export default function RosterView({
   players,
@@ -370,11 +381,15 @@ export default function RosterView({
     : undefined;
 
   return (
-    <div id="roster-view-container" className="space-y-6">
+    <div
+      id="roster-view-container"
+      className={DARK_GLASS_CLASSES.dashboardShell}
+      style={{ ...DARK_GLASS_THEME_STYLE, ...DARK_GLASS_DASHBOARD_SURFACE_STYLE }}
+    >
       
       {/* Dynamic Header banner */}
-      <div className="bg-[#0f172a] text-white rounded-2xl p-6 shadow-lg border border-slate-800 relative overflow-hidden">
-        <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none">
+      <div className="relative overflow-hidden rounded-2xl border border-cyan-300/10 bg-[#07111f]/88 p-6 text-white shadow-lg shadow-black/20 backdrop-blur-xl">
+        <div className="pointer-events-none absolute right-0 top-0 p-4 opacity-10">
           <Shield size={180} className="stroke-[3]" />
         </div>
         
@@ -394,7 +409,7 @@ export default function RosterView({
 
       <div className="space-y-6">
         {/* Top Controls: Search and Filters */}
-        <div className="flex flex-wrap gap-2 rounded-2xl border border-slate-200 bg-white p-2 shadow-sm">
+        <div className={DARK_GLASS_CLASSES.nav}>
           {[
             { id: 'players' as const, label: 'Players', icon: UserPlus },
             { id: 'staff' as const, label: 'Staff', icon: Shield },
@@ -406,17 +421,17 @@ export default function RosterView({
               <Button
                 key={item.id}
                 type="button"
-                variant={isActive ? 'default' : 'outline'}
+                variant="ghost"
                 onClick={() => {
                   setActiveSection(item.id);
                   setIsAdding(false);
                   setIsAddingStaff(false);
                 }}
                 aria-pressed={isActive}
-                className={`rounded-xl px-4 text-[11px] font-black uppercase tracking-wider ${
+                className={`h-10 rounded-xl border px-4 text-[11px] font-black uppercase tracking-wider ${
                   isActive
-                    ? 'border-slate-900 bg-slate-900 text-white shadow-sm'
-                    : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+                    ? 'border-orange-300/40 bg-orange-400 text-slate-950 shadow-sm shadow-orange-950/25 hover:bg-orange-300 hover:text-slate-950'
+                    : 'border-cyan-300/10 bg-[#0b1726]/66 text-slate-400 hover:border-orange-300/20 hover:bg-orange-300/10 hover:text-orange-100'
                 }`}
               >
                 <Icon size={14} aria-hidden="true" />
@@ -427,7 +442,7 @@ export default function RosterView({
         </div>
 
         {activeSection === 'players' && (
-        <div className="rounded-xl border border-slate-200/70 bg-white px-3 py-3 shadow-sm font-medium">
+        <div className={`${rosterGlassPanelClass} px-3 py-3 font-medium`}>
           <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
             <div className="relative w-full lg:max-w-sm">
               <Search className="absolute left-3 top-2.5 text-slate-400" size={14} />
@@ -437,13 +452,13 @@ export default function RosterView({
                 placeholder="Search squad..."
                 value={searchTerm}
                 onChange={e => setSearchTerm(e.target.value)}
-                className="h-9 bg-slate-50 pl-9 text-xs font-medium text-slate-800 focus-visible:border-indigo-400 focus-visible:bg-white focus-visible:ring-indigo-500/10"
+                className={`h-9 pl-9 text-xs font-medium ${rosterGlassFieldClass}`}
                 aria-label="Search squad"
               />
             </div>
 
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between lg:justify-end">
-              <div className="flex max-w-full overflow-x-auto rounded-lg border border-slate-200 bg-slate-50 p-0.5" role="group" aria-label="Filter roster by position">
+              <div className="flex max-w-full overflow-x-auto rounded-lg border border-cyan-300/10 bg-[#0b1726]/72 p-0.5 shadow-inner shadow-black/10" role="group" aria-label="Filter roster by position">
                 {["All", "Forward", "Midfielder", "Defender", "Goalkeeper"].map((pos) => (
                   <Button
                     id={`filter-pos-${pos.toLowerCase()}`}
@@ -455,8 +470,8 @@ export default function RosterView({
                     aria-pressed={filterPos === pos}
                     className={`rounded-md px-2.5 text-[10px] ${
                       filterPos === pos
-                        ? 'bg-white text-slate-900 shadow-sm ring-1 ring-slate-200'
-                        : 'text-slate-500 hover:bg-white/70 hover:text-slate-800'
+                        ? 'bg-orange-400 text-slate-950 shadow-sm ring-1 ring-orange-300/30'
+                        : 'text-slate-400 hover:bg-orange-300/10 hover:text-orange-100'
                     }`}
                   >
                     {pos === 'All' ? 'All' : pos}
@@ -474,8 +489,8 @@ export default function RosterView({
                   aria-pressed={showCompareWidget}
                   className={`gap-1.5 px-2.5 text-[10px] ${
                     showCompareWidget
-                      ? 'border-indigo-200 bg-indigo-50 text-indigo-700'
-                      : 'border-slate-200 bg-white text-slate-500 hover:bg-slate-50 hover:text-slate-800'
+                      ? 'border-orange-300/35 bg-orange-300/10 text-orange-100'
+                      : 'border-cyan-300/15 bg-[#0b1726]/85 text-slate-400 hover:border-orange-300/30 hover:bg-orange-300/10 hover:text-orange-100'
                   }`}
                   title="Toggle Athlete Comparison Matchup Board"
                 >
@@ -489,7 +504,7 @@ export default function RosterView({
                   variant="outline"
                   size="sm"
                   onClick={onExportBackup}
-                  className="gap-1.5 px-2.5 text-[10px] text-slate-500 hover:text-slate-800"
+                  className="gap-1.5 border-cyan-300/15 bg-[#0b1726]/85 px-2.5 text-[10px] text-slate-400 hover:border-orange-300/30 hover:bg-orange-300/10 hover:text-orange-100"
                   title="Export roster, assessments, tactics, training, notes, availability, payments, and standings history"
                 >
                   <Download size={12} className="stroke-[2.5]" />
@@ -510,7 +525,7 @@ export default function RosterView({
                   variant="outline"
                   size="sm"
                   onClick={() => importInputRef.current?.click()}
-                  className="gap-1.5 px-2.5 text-[10px] text-slate-500 hover:text-slate-800"
+                  className="gap-1.5 border-cyan-300/15 bg-[#0b1726]/85 px-2.5 text-[10px] text-slate-400 hover:border-orange-300/30 hover:bg-orange-300/10 hover:text-orange-100"
                   title="Restore a Dumala full-workspace or legacy JSON backup"
                 >
                   <Upload size={12} className="stroke-[2.5]" />
@@ -527,7 +542,7 @@ export default function RosterView({
                   ? 'border-rose-200 bg-rose-50 text-rose-700'
                   : backupMessageType === 'success'
                     ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
-                    : 'border-slate-200 bg-slate-50 text-slate-600'
+                    : 'border-cyan-300/10 bg-[#0b1726]/66 text-slate-300'
               }`}
               role={backupMessageType === 'error' ? 'alert' : 'status'}
             >
@@ -543,7 +558,7 @@ export default function RosterView({
         {/* Section Layouts */}
         {activeSection === 'staff' && <div id="management-staff-section" className="space-y-4">
           <div className="flex items-center justify-between">
-            <h3 className="font-display font-black text-slate-800 text-lg uppercase tracking-wider flex items-center gap-2">
+            <h3 className="flex items-center gap-2 font-display text-lg font-black uppercase tracking-wider text-slate-100">
               <Shield className="text-amber-500" size={20} />
               Management & Staff
             </h3>
@@ -568,20 +583,20 @@ export default function RosterView({
               id="add-staff-form-container"
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: "auto" }}
-              className="bg-white p-6 rounded-2xl border border-slate-200/70 shadow-md shadow-slate-100/35 space-y-4"
+              className={rosterGlassFormClass}
             >
-              <div className="flex items-center gap-2 pb-2 border-b border-slate-100">
+              <div className="flex items-center gap-2 border-b border-cyan-300/10 pb-2">
                 <Shield className="text-amber-500" size={18} />
-                <h3 className="font-display font-black text-slate-800 text-sm uppercase tracking-wider">Add Management or Staff Member</h3>
+                <h3 className="font-display text-sm font-black uppercase tracking-wider text-slate-100">Add Management or Staff Member</h3>
               </div>
 
               <form onSubmit={handleAddStaffSubmit} className="grid grid-cols-1 lg:grid-cols-4 gap-4">
-                <div className="lg:col-span-4 flex items-center gap-4 bg-slate-50 p-4 rounded-xl border border-slate-100">
+                <div className={`${rosterGlassInsetClass} flex items-center gap-4 p-4 lg:col-span-4`}>
                   <div className="relative shrink-0">
                     <img 
                       src={newStaffPhoto || STAFF_PLACEHOLDER}
                       alt="Staff Preview" 
-                      className="w-12 h-12 rounded-full object-cover object-top border border-slate-200"
+                      className="h-12 w-12 rounded-full border border-cyan-300/15 object-cover object-top"
                     />
                   </div>
                   <div className="flex-1">
@@ -609,7 +624,7 @@ export default function RosterView({
                       onClick={() => document.getElementById('new-staff-photo')?.click()}
                       variant="outline"
                       size="sm"
-                      className="h-8 text-[11px]"
+                      className="h-8 border-cyan-300/15 bg-[#0b1726]/85 text-[11px] text-slate-100 hover:border-orange-300/30 hover:bg-orange-300/10 hover:text-orange-100"
                     >
                       Upload Custom Photo
                     </Button>
@@ -645,10 +660,10 @@ export default function RosterView({
                     value={newStaffRole}
                     onValueChange={setNewStaffRole}
                   >
-                    <SelectTrigger id="new-staff-role-select" className="h-10 rounded-xl text-xs focus:ring-amber-500/30">
+                    <SelectTrigger id="new-staff-role-select" className="h-10 rounded-xl border-cyan-300/10 bg-[#0b1726]/85 text-xs text-slate-100 focus:ring-amber-500/30">
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="border-cyan-300/15 bg-[#0b1726] text-slate-100">
                       {STAFF_ROLE_OPTIONS.map(role => (
                         <SelectItem key={role} value={role}>
                           {role === 'Other' ? 'Other / Custom Title' : role}
@@ -728,7 +743,7 @@ export default function RosterView({
                     onClick={() => setIsAddingStaff(false)}
                     variant="outline"
                     size="sm"
-                    className="rounded-xl"
+                    className="rounded-xl border-cyan-300/15 bg-[#0b1726]/85 text-slate-100 hover:border-orange-300/30 hover:bg-orange-300/10 hover:text-orange-100"
                   >
                     Cancel
                   </Button>
@@ -752,7 +767,7 @@ export default function RosterView({
                   <motion.div
                     key={staff.id}
                     whileHover={{ y: -4 }}
-                    className="bg-slate-900 rounded-2xl overflow-hidden border border-slate-800 shadow-sm transition-all flex flex-col justify-between group relative"
+                    className="group relative flex flex-col justify-between overflow-hidden rounded-2xl border border-cyan-300/10 bg-[#07111f]/88 shadow-lg shadow-black/20 backdrop-blur-xl transition-all"
                   >
                     <div className="relative h-44 bg-slate-800 overflow-hidden">
                       <img 
@@ -779,7 +794,7 @@ export default function RosterView({
                         </h4>
                       </div>
                     </div>
-                    <div className="p-4 flex flex-col gap-2 bg-slate-950 border-t border-slate-800">
+                    <div className="flex flex-col gap-2 border-t border-cyan-300/10 bg-[#07111f]/92 p-4">
                       <div className="flex items-center justify-between">
                         <span className="text-[10px] uppercase tracking-widest text-slate-400 font-bold">Staff Directory</span>
                         <Button
@@ -817,9 +832,9 @@ export default function RosterView({
               })}
             </div>
           ) : (
-            <div className="bg-slate-100 text-center py-8 rounded-2xl border border-slate-200/60 flex flex-col items-center justify-center space-y-2">
+            <div className={`${rosterGlassPanelClass} flex flex-col items-center justify-center space-y-2 py-8 text-center`}>
               <Shield size={24} className="text-slate-400" />
-              <h4 className="font-semibold text-slate-700 text-xs uppercase tracking-wider">No management or staff listed</h4>
+              <h4 className="text-xs font-semibold uppercase tracking-wider text-slate-200">No management or staff listed</h4>
               <p className="text-slate-400 text-[11px]">Click "Add Staff" above to register founders, directors, coaches, and more!</p>
             </div>
           )}
@@ -828,7 +843,7 @@ export default function RosterView({
         {/* Grid Layout of Upgraded Cards */}
         {activeSection === 'players' && <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <h3 className="font-display font-black text-slate-800 text-lg uppercase tracking-wider flex items-center gap-2">
+            <h3 className="flex items-center gap-2 font-display text-lg font-black uppercase tracking-wider text-slate-100">
               <UserPlus className="text-indigo-500" size={20} />
               Active Roster
             </h3>
@@ -853,23 +868,23 @@ export default function RosterView({
               id="add-player-fom-container"
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: "auto" }}
-              className="bg-white p-6 rounded-2xl border border-slate-200/70 shadow-md shadow-slate-100/35 space-y-4"
+              className={rosterGlassFormClass}
             >
-              <div className="flex items-center gap-2 pb-2 border-b border-slate-100">
+              <div className="flex items-center gap-2 border-b border-cyan-300/10 pb-2">
                 <UserPlus className="text-indigo-600" size={18} />
-                <h3 className="font-display font-black text-slate-800 text-sm uppercase tracking-wider">Register New athlete</h3>
+                <h3 className="font-display text-sm font-black uppercase tracking-wider text-slate-100">Register New athlete</h3>
               </div>
 
               <form ref={addPlayerFormRef} onSubmit={handleAddSubmit} className="grid grid-cols-1 lg:grid-cols-4 gap-4" noValidate>
                 <div className="lg:col-span-4">
                   <FormErrorSummary id="add-player-error-summary" errors={playerFormErrors} />
                 </div>
-                <div className="lg:col-span-4 flex items-center gap-4 bg-slate-50 p-4 rounded-xl border border-slate-100">
+                <div className={`${rosterGlassInsetClass} flex items-center gap-4 p-4 lg:col-span-4`}>
                   <div className="relative shrink-0">
                     <img 
                       src={newPlayerPhoto || getPlayerPlaceholder(newPlayerPos)}
                       alt="Player Preview" 
-                      className="w-12 h-12 rounded-full object-cover object-top border border-slate-200"
+                      className="h-12 w-12 rounded-full border border-cyan-300/15 object-cover object-top"
                     />
                   </div>
                   <div className="flex-1">
@@ -897,7 +912,7 @@ export default function RosterView({
                       onClick={() => document.getElementById('new-player-photo')?.click()}
                       variant="outline"
                       size="sm"
-                      className="h-8 text-[11px]"
+                      className="h-8 border-cyan-300/15 bg-[#0b1726]/85 text-[11px] text-slate-100 hover:border-orange-300/30 hover:bg-orange-300/10 hover:text-orange-100"
                     >
                       Upload Custom Photo
                     </Button>
@@ -931,7 +946,7 @@ export default function RosterView({
                     className={`w-full border rounded-xl p-2.5 text-xs focus:outline-none focus:ring-2 ${
                       playerFormErrors.name
                         ? 'border-rose-300 focus-visible:ring-rose-500/30'
-                        : 'border-slate-200 focus-visible:ring-indigo-500/30'
+                        : 'border-cyan-300/10 focus-visible:ring-orange-300/25'
                     }`}
                   />
                   <FieldError id="new-player-name-error" message={playerFormErrors.name} />
@@ -958,7 +973,7 @@ export default function RosterView({
                     className={`w-full border rounded-xl p-2.5 text-xs focus:outline-none focus:ring-2 ${
                       playerFormErrors.number
                         ? 'border-rose-300 focus-visible:ring-rose-500/30'
-                        : 'border-slate-200 focus-visible:ring-indigo-500/30'
+                        : 'border-cyan-300/10 focus-visible:ring-orange-300/25'
                     }`}
                   />
                   <FieldError id="new-player-jersey-error" message={playerFormErrors.number} />
@@ -986,12 +1001,12 @@ export default function RosterView({
                       className={`h-10 rounded-xl text-xs ${
                         playerFormErrors.position
                           ? 'border-rose-300 focus:ring-rose-500/30'
-                          : 'border-slate-200 focus:ring-indigo-500/30'
+                          : 'border-cyan-300/10 bg-[#0b1726]/85 text-slate-100 focus:ring-indigo-500/30'
                       }`}
                     >
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="border-cyan-300/15 bg-[#0b1726] text-slate-100">
                       {PLAYER_POSITIONS.map(position => (
                         <SelectItem key={position} value={position}>
                           {position}
@@ -1023,7 +1038,7 @@ export default function RosterView({
                     className={`w-full border rounded-xl p-2.5 text-xs focus:outline-none focus:ring-2 ${
                       playerFormErrors.age
                         ? 'border-rose-300 focus-visible:ring-rose-500/30'
-                        : 'border-slate-200 focus-visible:ring-indigo-500/30'
+                        : 'border-cyan-300/10 focus-visible:ring-orange-300/25'
                     }`}
                   />
                   <FieldError id="new-player-age-error" message={playerFormErrors.age} />
@@ -1050,7 +1065,7 @@ export default function RosterView({
                     className={`w-full border rounded-xl p-2.5 text-xs focus:outline-none focus:ring-2 ${
                       playerFormErrors.height
                         ? 'border-rose-300 focus-visible:ring-rose-500/30'
-                        : 'border-slate-200 focus-visible:ring-indigo-500/30'
+                        : 'border-cyan-300/10 focus-visible:ring-orange-300/25'
                     }`}
                   />
                   <FieldError id="new-player-height-error" message={playerFormErrors.height} />
@@ -1077,13 +1092,13 @@ export default function RosterView({
                     className={`w-full border rounded-xl p-2.5 text-xs focus:outline-none focus:ring-2 ${
                       playerFormErrors.weight
                         ? 'border-rose-300 focus-visible:ring-rose-500/30'
-                        : 'border-slate-200 focus-visible:ring-indigo-500/30'
+                        : 'border-cyan-300/10 focus-visible:ring-orange-300/25'
                     }`}
                   />
                   <FieldError id="new-player-weight-error" message={playerFormErrors.weight} />
                 </div>
 
-                <div className="lg:col-span-4 rounded-xl border border-slate-200 bg-slate-50 p-4">
+                <div className={`${rosterGlassInsetClass} p-4 lg:col-span-4`}>
                   <div className="mb-3 flex items-center justify-between gap-3">
                     <div>
                       <Label className="block text-slate-500">
@@ -1091,7 +1106,7 @@ export default function RosterView({
                       </Label>
                       <p className="mt-1 text-[10px] text-slate-400">Choose up to four traits for this player.</p>
                     </div>
-                    <span className="rounded-lg border border-indigo-100 bg-indigo-50 px-2 py-1 text-[10px] font-black text-indigo-600">
+                    <span className="rounded-lg border border-orange-300/20 bg-orange-300/10 px-2 py-1 text-[10px] font-black text-orange-100">
                       {newPlayerTraits.length}/4 selected
                     </span>
                   </div>
@@ -1112,7 +1127,7 @@ export default function RosterView({
                           className={`h-auto rounded-lg px-2.5 py-1.5 text-[10px] ${
                             isSelected
                               ? 'border-indigo-500 bg-indigo-600 text-white shadow-sm'
-                              : 'border-slate-200 bg-white text-slate-600 hover:border-indigo-300 hover:text-indigo-700'
+                              : 'border-cyan-300/15 bg-[#0b1726]/85 text-slate-300 hover:border-orange-300/30 hover:bg-orange-300/10 hover:text-orange-100'
                           }`}
                         >
                           <span className="mr-1">{trait.icon}</span>
@@ -1142,7 +1157,7 @@ export default function RosterView({
                     onClick={() => setIsAdding(false)}
                     variant="outline"
                     size="sm"
-                    className="rounded-xl"
+                    className="rounded-xl border-cyan-300/15 bg-[#0b1726]/85 text-slate-100 hover:border-orange-300/30 hover:bg-orange-300/10 hover:text-orange-100"
                   >
                     Cancel
                   </Button>
@@ -1217,7 +1232,7 @@ export default function RosterView({
                     key={player.id}
                     whileHover={{ y: -6, scale: 1.02 }}
                     className={`h-full rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition-all cursor-pointer group flex flex-col ${
-                      isIntegrityHighlighted ? 'ring-4 ring-amber-300 ring-offset-2 ring-offset-slate-50' : ''
+                      isIntegrityHighlighted ? 'ring-4 ring-amber-300 ring-offset-2 ring-offset-[#020713]' : ''
                     }`}
                     style={{
                       background: '#1a1a2e'
@@ -1345,9 +1360,9 @@ export default function RosterView({
               })}
             </div>
           ) : (
-            <div className="col-span-full bg-white text-center py-12 rounded-2xl border border-slate-200/60 flex flex-col items-center justify-center space-y-3">
+            <div className={`${rosterGlassPanelClass} col-span-full flex flex-col items-center justify-center space-y-3 py-12 text-center`}>
               <AlertCircle size={32} className="text-slate-300 animate-bounce" />
-              <h4 className="font-semibold text-slate-700">No members match criteria</h4>
+              <h4 className="font-semibold text-slate-100">No members match criteria</h4>
               <p className="text-slate-400 text-xs">Try clearing search filters or add a new athlete register!</p>
             </div>
           )}

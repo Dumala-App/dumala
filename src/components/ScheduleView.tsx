@@ -26,6 +26,11 @@ import {
   mergeFieldErrors,
   parseIntegerInput
 } from '../forms/validation';
+import {
+  DARK_GLASS_CLASSES,
+  DARK_GLASS_DASHBOARD_SURFACE_STYLE,
+  DARK_GLASS_THEME_STYLE
+} from '../theme/darkGlassTheme';
 
 interface ScheduleViewProps {
   games: Game[];
@@ -66,10 +71,27 @@ const GAME_TYPE_LABELS: Record<GameType, string> = {
 };
 
 const scheduleInputClass = (hasError?: boolean) => cn(
-  'rounded-xl text-sm focus-visible:ring-2',
+  'rounded-xl border bg-[#07111f]/72 text-sm text-slate-100 shadow-sm shadow-black/10 placeholder:text-slate-500 focus-visible:ring-2',
   hasError
-    ? 'border-rose-300 focus-visible:ring-rose-500/30'
-    : 'border-slate-200 focus-visible:ring-indigo-500/30'
+    ? 'border-rose-300/50 focus-visible:ring-rose-400/30'
+    : 'border-cyan-300/15 focus-visible:ring-cyan-300/25'
+);
+
+const scheduleCardClass = `${DARK_GLASS_CLASSES.panel} p-4 sm:p-5`;
+const scheduleInsetClass = 'rounded-xl border border-cyan-300/10 bg-[#07111f]/72 text-slate-100 shadow-inner shadow-black/10';
+const scheduleDividerClass = 'border-cyan-300/10';
+const scheduleActionButtonClass = 'border-cyan-300/15 bg-[#0b1726]/85 text-slate-100 shadow-sm shadow-black/10 hover:border-orange-300/35 hover:bg-orange-300/10 hover:text-orange-100';
+const schedulePrimaryButtonClass = 'border border-orange-300/25 bg-orange-400 text-slate-950 shadow-sm shadow-black/20 hover:bg-orange-300 hover:text-slate-950';
+const scheduleSuccessButtonClass = 'border border-emerald-300/25 bg-emerald-300/15 text-emerald-100 shadow-sm shadow-black/10 hover:bg-emerald-300/25 hover:text-white';
+const scheduleBadgeBaseClass = 'border shadow-sm shadow-black/10';
+
+const getGameTypeBadgeClass = (gameType: GameType) => cn(
+  scheduleBadgeBaseClass,
+  gameType === 'League' ? 'border-cyan-300/25 bg-cyan-300/10 text-cyan-100' :
+  gameType === 'Cup' ? 'border-amber-300/30 bg-amber-300/15 text-amber-100' :
+  gameType === 'Friendly' ? 'border-slate-300/20 bg-slate-300/10 text-slate-200' :
+  gameType === 'Training' ? 'border-emerald-300/25 bg-emerald-300/10 text-emerald-100' :
+  'border-rose-300/25 bg-rose-300/10 text-rose-100'
 );
 
 const parseGameType = (value: string): GameType => (
@@ -420,11 +442,15 @@ export default function ScheduleView({ games, players, standings, onAddGame, onR
   });
 
   return (
-    <div id="schedule-view-container" className="space-y-6">
+    <div
+      id="schedule-view-container"
+      className={DARK_GLASS_CLASSES.dashboardShell}
+      style={{ ...DARK_GLASS_THEME_STYLE, ...DARK_GLASS_DASHBOARD_SURFACE_STYLE }}
+    >
       
       {/* View Selector Filters */}
-      <div className="flex flex-col sm:flex-row justify-between items-center bg-white p-4 rounded-2xl shadow-md shadow-slate-100/30 border border-slate-200/60 gap-4">
-        <div className="w-full min-w-0 sm:w-auto bg-[#f1f5f9] p-1.5 rounded-xl flex gap-1 border border-slate-200/40">
+      <div className={`${scheduleCardClass} flex flex-col items-center justify-between gap-4 sm:flex-row`}>
+        <div className="flex w-full min-w-0 gap-1 rounded-xl border border-cyan-300/10 bg-[#07111f]/72 p-1.5 shadow-inner shadow-black/10 sm:w-auto">
           <Button
             id="tab-upcoming-games"
             type="button"
@@ -433,8 +459,8 @@ export default function ScheduleView({ games, players, standings, onAddGame, onR
             onClick={() => setFilterTab('Upcoming')}
             className={`min-w-0 flex-1 whitespace-normal text-center leading-tight sm:flex-none sm:whitespace-nowrap rounded-lg px-3 sm:px-5 py-2 text-[11px] sm:text-xs font-bold uppercase tracking-wider ${
               filterTab === 'Upcoming' 
-                ? 'bg-slate-900 text-white shadow-sm' 
-                : 'text-slate-600 hover:text-slate-950'
+                ? 'bg-orange-400 text-slate-950 shadow-sm shadow-black/20 hover:bg-orange-300'
+                : 'text-slate-400 hover:bg-cyan-300/10 hover:text-slate-100'
             }`}
           >
             Upcoming Matches
@@ -447,8 +473,8 @@ export default function ScheduleView({ games, players, standings, onAddGame, onR
             onClick={() => setFilterTab('Completed')}
             className={`min-w-0 flex-1 whitespace-normal text-center leading-tight sm:flex-none sm:whitespace-nowrap rounded-lg px-3 sm:px-5 py-2 text-[11px] sm:text-xs font-bold uppercase tracking-wider ${
               filterTab === 'Completed' 
-                ? 'bg-slate-900 text-white shadow-sm' 
-                : 'text-slate-600 hover:text-slate-950'
+                ? 'bg-orange-400 text-slate-950 shadow-sm shadow-black/20 hover:bg-orange-300'
+                : 'text-slate-400 hover:bg-cyan-300/10 hover:text-slate-100'
             }`}
           >
             Match Results
@@ -459,7 +485,7 @@ export default function ScheduleView({ games, players, standings, onAddGame, onR
           id="toggle-schedule-form-btn"
           type="button"
           onClick={() => setIsAdding(!isAdding)}
-          className="w-full justify-center rounded-xl border border-indigo-650/10 bg-indigo-600 px-4 py-2.5 text-xs font-bold text-white shadow-sm hover:bg-indigo-700 sm:w-auto"
+          className={`w-full justify-center rounded-xl px-4 py-2.5 text-xs font-bold sm:w-auto ${schedulePrimaryButtonClass}`}
         >
           {isAdding ? <Plus size={14} className="rotate-45" /> : <Plus size={14} />}
           {isAdding ? 'Cancel' : 'Schedule Tournament Event'}
@@ -472,16 +498,16 @@ export default function ScheduleView({ games, players, standings, onAddGame, onR
           id="add-game-form-container"
           initial={{ opacity: 0, height: 0 }}
           animate={{ opacity: 1, height: "auto" }}
-          className="bg-white p-4 sm:p-6 rounded-2xl border border-slate-200/70 shadow-md shadow-slate-100/35 space-y-4"
+          className={`${scheduleCardClass} space-y-4`}
         >
-          <div className="flex items-center gap-2 pb-2 border-b border-slate-100">
-            <Calendar className="text-indigo-600 font-bold" size={20} />
-            <h3 className="font-display font-semibold text-slate-800">Add Next Game / Event</h3>
+          <div className={`flex items-center gap-2 border-b pb-2 ${scheduleDividerClass}`}>
+            <Calendar className="font-bold text-orange-300" size={20} />
+            <h3 className="font-display font-semibold text-slate-100">Add Next Game / Event</h3>
           </div>
 
           <form onSubmit={handleAddGameSubmit} className="grid grid-cols-1 lg:grid-cols-3 gap-4">
             <div>
-              <Label className="mb-1 block text-slate-500">
+              <Label className="mb-1 block text-slate-300">
                 {type === 'Training' ? 'Session Title' : type === 'Meeting' ? 'Meeting Subject' : 'Opposing Club Name'} *
               </Label>
               <Input
@@ -495,7 +521,7 @@ export default function ScheduleView({ games, players, standings, onAddGame, onR
             </div>
 
             <div>
-              <Label className="mb-1 block text-slate-500">Event Date *</Label>
+              <Label className="mb-1 block text-slate-300">Event Date *</Label>
               <Input
                 id="new-game-date"
                 type="date" 
@@ -507,7 +533,7 @@ export default function ScheduleView({ games, players, standings, onAddGame, onR
             </div>
 
             <div>
-              <Label className="mb-1 block text-slate-500">Start Time *</Label>
+              <Label className="mb-1 block text-slate-300">Start Time *</Label>
               <Input
                 id="new-game-time"
                 type="time" 
@@ -519,7 +545,7 @@ export default function ScheduleView({ games, players, standings, onAddGame, onR
             </div>
 
             <div className="lg:col-span-2">
-              <Label className="mb-1 block text-slate-500">Venue / Field Location *</Label>
+              <Label className="mb-1 block text-slate-300">Venue / Field Location *</Label>
               <Input
                 id="new-game-location"
                 type="text" 
@@ -532,12 +558,12 @@ export default function ScheduleView({ games, players, standings, onAddGame, onR
             </div>
 
             <div>
-              <Label className="mb-1 block text-slate-500">Event Type *</Label>
+              <Label className="mb-1 block text-slate-300">Event Type *</Label>
               <Select value={type} onValueChange={value => setType(parseGameType(value))}>
                 <SelectTrigger id="new-game-type" className={scheduleInputClass()}>
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="border-cyan-300/10 bg-[#07111f] text-slate-100">
                   {GAME_TYPES.map(gameType => (
                     <SelectItem key={gameType} value={gameType}>
                       {GAME_TYPE_LABELS[gameType]}
@@ -548,14 +574,14 @@ export default function ScheduleView({ games, players, standings, onAddGame, onR
             </div>
 
             <div className="lg:col-span-3">
-              <Label className="mb-1 block text-slate-500">Squad Tactical Instructions / Notes</Label>
+              <Label className="mb-1 block text-slate-300">Squad Tactical Instructions / Notes</Label>
               <Textarea
                 id="new-game-notes"
                 placeholder="Required uniform color, warmup hours, agenda items..."
                 value={notes}
                 onChange={e => setNotes(e.target.value)}
                 rows={2}
-                className="min-h-20 rounded-xl text-sm focus-visible:ring-indigo-500/30"
+                className={cn(scheduleInputClass(), 'min-h-20')}
               />
             </div>
 
@@ -565,14 +591,14 @@ export default function ScheduleView({ games, players, standings, onAddGame, onR
                 type="button" 
                 onClick={() => setIsAdding(false)}
                 variant="outline"
-                className="rounded-xl"
+                className={`rounded-xl ${scheduleActionButtonClass}`}
               >
                 Cancel
               </Button>
               <Button
                 id="submit-add-game-btn"
                 type="submit" 
-                className="rounded-xl bg-indigo-600 text-white hover:bg-indigo-700"
+                className={`rounded-xl ${schedulePrimaryButtonClass}`}
               >
                 Save Event
               </Button>
@@ -583,7 +609,7 @@ export default function ScheduleView({ games, players, standings, onAddGame, onR
 
       {/* Record Score Overlay Card Form */}
       {recordingGameId && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/72 p-4 backdrop-blur-sm">
           <motion.div
             ref={resultDialogRef}
             tabIndex={-1}
@@ -593,10 +619,10 @@ export default function ScheduleView({ games, players, standings, onAddGame, onR
             id="record-results-modal"
             initial={{ scale: 0.95, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
-            className="bg-white rounded-2xl shadow-xl w-full max-w-lg p-6 text-slate-800"
+            className="w-full max-w-lg rounded-2xl border border-cyan-300/10 bg-[#07111f]/95 p-6 text-slate-100 shadow-xl shadow-black/35 backdrop-blur-xl"
           >
-            <div className="flex justify-between items-center pb-3 border-b border-slate-100">
-              <h3 id="record-results-title" className="font-display text-lg font-bold text-slate-900 flex items-center gap-2">
+            <div className={`flex items-center justify-between border-b pb-3 ${scheduleDividerClass}`}>
+              <h3 id="record-results-title" className="flex items-center gap-2 font-display text-lg font-bold text-slate-100">
                 <Trophy size={20} className="text-amber-500" />
                 {games.find(game => game.id === recordingGameId)?.status === 'Completed'
                   ? 'Edit Match Result'
@@ -607,7 +633,7 @@ export default function ScheduleView({ games, players, standings, onAddGame, onR
                 onClick={closeResultDialog}
                 variant="ghost"
                 size="sm"
-                className="text-slate-400 hover:text-slate-600"
+                className="text-slate-400 hover:bg-cyan-300/10 hover:text-slate-100"
               >
                 Cancel
               </Button>
@@ -616,10 +642,10 @@ export default function ScheduleView({ games, players, standings, onAddGame, onR
             <form ref={resultFormRef} onSubmit={handleRecordSubmit} className="mt-4 space-y-4" noValidate>
               <FormErrorSummary id="match-result-error-summary" errors={resultErrors} />
               <div>
-                <Label className="mb-1.5 block text-slate-500">Record Final Score</Label>
+                <Label className="mb-1.5 block text-slate-300">Record Final Score</Label>
                 <div className="grid grid-cols-5 gap-2 items-center text-center">
                   <div className="col-span-2">
-                    <span className="text-[11px] font-bold text-slate-400 uppercase">{teamName ? teamName.substring(0, 10) : 'Us'}</span>
+                    <span className="text-[11px] font-bold uppercase text-slate-400">{teamName ? teamName.substring(0, 10) : 'Us'}</span>
                     <Input
                       id="record-score-rangers"
                       data-validation-field="ourScore"
@@ -640,7 +666,7 @@ export default function ScheduleView({ games, players, standings, onAddGame, onR
                   </div>
                   <div className="text-xl font-bold text-slate-400">:</div>
                   <div className="col-span-2">
-                    <span className="text-[11px] font-bold text-slate-400 uppercase">Opponent</span>
+                    <span className="text-[11px] font-bold uppercase text-slate-400">Opponent</span>
                     <Input
                       id="record-score-opponent"
                       data-validation-field="opponentScore"
@@ -667,20 +693,20 @@ export default function ScheduleView({ games, players, standings, onAddGame, onR
                 <div
                   data-validation-field="scorers"
                   tabIndex={resultErrors.scorers ? -1 : undefined}
-                  className={`bg-slate-50 p-3 rounded-xl border ${
-                    resultErrors.scorers ? 'border-rose-200' : 'border-slate-100'
+                  className={`rounded-xl border bg-[#0b1726]/66 p-3 ${
+                    resultErrors.scorers ? 'border-rose-300/45' : 'border-cyan-300/10'
                   }`}
                 >
-                  <Label className="mb-2 block text-slate-500">Track Team Scorers</Label>
+                  <Label className="mb-2 block text-slate-300">Track Team Scorers</Label>
                   <div className="flex flex-col sm:flex-row gap-2">
                     <Select
                       value={selectedScorer}
                       onValueChange={setSelectedScorer}
                     >
-                      <SelectTrigger id="scorer-player-select" className="h-9 flex-1 rounded-lg text-xs">
+                      <SelectTrigger id="scorer-player-select" className={cn(scheduleInputClass(), 'h-9 flex-1 rounded-lg text-xs')}>
                         <SelectValue placeholder="Choose scorer" />
                       </SelectTrigger>
-                      <SelectContent>
+                      <SelectContent className="border-cyan-300/10 bg-[#07111f] text-slate-100">
                         {activeAthletes.map(p => (
                           <SelectItem key={p.id} value={p.id}>{p.name} (#{p.number})</SelectItem>
                         ))}
@@ -691,7 +717,7 @@ export default function ScheduleView({ games, players, standings, onAddGame, onR
                       type="button"
                       onClick={handleScorerAdd}
                       size="sm"
-                      className="rounded-lg bg-indigo-600 text-white hover:bg-indigo-700"
+                      className={`rounded-lg ${schedulePrimaryButtonClass}`}
                     >
                       Add Scorer
                     </Button>
@@ -700,7 +726,7 @@ export default function ScheduleView({ games, players, standings, onAddGame, onR
                   {currentScorers.length > 0 && (
                     <div className="flex flex-wrap gap-1.5 mt-3">
                       {currentScorers.map(sc => (
-                        <span key={sc.playerName} className="inline-flex items-center gap-1 bg-white border border-indigo-100 rounded-lg px-2 py-1 text-xs font-medium text-slate-700">
+                        <span key={sc.playerName} className="inline-flex items-center gap-1 rounded-lg border border-cyan-300/10 bg-[#07111f]/80 px-2 py-1 text-xs font-medium text-slate-100">
                           {sc.playerName} ({sc.count})
                           <Button
                             id={`remove-scorer-${sc.playerName.replace(/\s+/g, '-')}`}
@@ -708,7 +734,7 @@ export default function ScheduleView({ games, players, standings, onAddGame, onR
                             onClick={() => handleScorerRemove(sc.playerId, sc.playerName)}
                             variant="ghost"
                             size="icon"
-                            className="ml-0.5 size-5 text-rose-500 hover:bg-rose-50 hover:text-rose-700"
+                            className="ml-0.5 size-5 text-rose-300 hover:bg-rose-300/10 hover:text-rose-100"
                             aria-label={`Remove ${sc.playerName} from scorers`}
                           >
                             <XCircle size={12} aria-hidden="true" />
@@ -722,7 +748,7 @@ export default function ScheduleView({ games, players, standings, onAddGame, onR
               )}
 
               <div>
-                <Label className="mb-1 block text-slate-500">Match MVP Award *</Label>
+                <Label className="mb-1 block text-slate-300">Match MVP Award *</Label>
                 <Select
                   value={selectedMvp}
                   onValueChange={value => {
@@ -739,7 +765,7 @@ export default function ScheduleView({ games, players, standings, onAddGame, onR
                   >
                     <SelectValue placeholder="Select Most Valuable Player" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="border-cyan-300/10 bg-[#07111f] text-slate-100">
                     {activeAthletes.map(p => (
                       <SelectItem key={p.id} value={p.id}>{p.name} (#{p.number}) - {p.position}</SelectItem>
                     ))}
@@ -749,20 +775,20 @@ export default function ScheduleView({ games, players, standings, onAddGame, onR
               </div>
 
               {resultError && (
-                <div role="alert" className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-700">
+                <div role="alert" className="rounded-xl border border-rose-300/25 bg-rose-300/10 px-3 py-2 text-xs font-semibold text-rose-100">
                   {resultError}
                 </div>
               )}
 
               <div>
-                <Label className="mb-1 block text-slate-500">Post-Match Coach Analysis</Label>
+                <Label className="mb-1 block text-slate-300">Post-Match Coach Analysis</Label>
                 <Textarea
                   id="game-post-notes"
                   placeholder="Analyze team shape, highlighting tactical setups or standout performers."
                   value={gameNotes}
                   onChange={e => setGameNotes(e.target.value)}
                   rows={2}
-                  className="min-h-20 rounded-xl text-sm focus-visible:ring-indigo-500/30"
+                  className={cn(scheduleInputClass(), 'min-h-20')}
                 />
               </div>
 
@@ -772,7 +798,7 @@ export default function ScheduleView({ games, players, standings, onAddGame, onR
                   type="button"
                   onClick={closeResultDialog}
                   variant="outline"
-                  className="rounded-xl"
+                  className={`rounded-xl ${scheduleActionButtonClass}`}
                 >
                   Cancel
                 </Button>
@@ -780,7 +806,7 @@ export default function ScheduleView({ games, players, standings, onAddGame, onR
                   id="submit-record-result-btn"
                   type="submit"
                   disabled={isRecordingResult}
-                  className="rounded-xl bg-emerald-600 text-white hover:bg-emerald-700 disabled:bg-slate-300 disabled:text-slate-500"
+                  className="rounded-xl border border-emerald-300/25 bg-emerald-400 text-slate-950 hover:bg-emerald-300 disabled:border-slate-700 disabled:bg-slate-800 disabled:text-slate-500"
                 >
                   {isRecordingResult ? 'Publishing...' : 'Publish Scorecard'}
                 </Button>
@@ -797,10 +823,10 @@ export default function ScheduleView({ games, players, standings, onAddGame, onR
         <div className="lg:col-span-5 space-y-6">
           
           {/* Calendar Controller Card */}
-          <div className="bg-white rounded-2xl border border-slate-200/60 p-5 shadow-sm shadow-slate-100/35">
-            <div className="flex items-center justify-between mb-4 pb-2 border-b border-slate-100">
-              <h3 className="font-display font-black text-slate-800 text-xs uppercase tracking-wider flex items-center gap-2">
-                <CalendarDays className="text-indigo-600" size={18} />
+          <div className={scheduleCardClass}>
+            <div className={`mb-4 flex items-center justify-between border-b pb-2 ${scheduleDividerClass}`}>
+              <h3 className="flex items-center gap-2 font-display text-xs font-black uppercase tracking-wider text-slate-100">
+                <CalendarDays className="text-orange-300" size={18} />
                 <span>{monthNames[viewDate.getMonth()]} {viewDate.getFullYear()}</span>
               </h3>
               <div className="flex gap-1">
@@ -809,7 +835,7 @@ export default function ScheduleView({ games, players, standings, onAddGame, onR
                   variant="outline"
                   size="icon"
                   onClick={prevMonth}
-                  className="size-8 rounded-lg border-slate-100 p-1.5 text-slate-500 hover:bg-slate-100"
+                  className={`size-8 rounded-lg p-1.5 ${scheduleActionButtonClass}`}
                   title="Previous Month"
                 >
                   <ChevronLeft size={15} />
@@ -822,7 +848,7 @@ export default function ScheduleView({ games, players, standings, onAddGame, onR
                     setViewDate(new Date());
                     setSelectedDateStr(null);
                   }}
-                  className="h-8 rounded-md border-slate-100 px-2 text-[9px] font-bold uppercase text-slate-500 hover:bg-slate-100 hover:text-slate-800"
+                  className={`h-8 rounded-md px-2 text-[9px] font-bold uppercase ${scheduleActionButtonClass}`}
                   title="Reset to Active Work Month"
                 >
                   Today
@@ -832,7 +858,7 @@ export default function ScheduleView({ games, players, standings, onAddGame, onR
                   variant="outline"
                   size="icon"
                   onClick={nextMonth}
-                  className="size-8 rounded-lg border-slate-100 p-1.5 text-slate-500 hover:bg-slate-100"
+                  className={`size-8 rounded-lg p-1.5 ${scheduleActionButtonClass}`}
                   title="Next Month"
                 >
                   <ChevronRight size={15} />
@@ -843,7 +869,7 @@ export default function ScheduleView({ games, players, standings, onAddGame, onR
             {/* Weekday Titles */}
             <div className="grid grid-cols-7 gap-1 text-center mb-1">
               {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map(day => (
-                <span key={day} className="text-[9px] font-black text-slate-400 uppercase tracking-widest">{day}</span>
+                <span key={day} className="text-[9px] font-black uppercase tracking-widest text-slate-400">{day}</span>
               ))}
             </div>
 
@@ -873,12 +899,12 @@ export default function ScheduleView({ games, players, standings, onAddGame, onR
                     }}
                     className={`relative flex aspect-square h-auto flex-col items-center justify-center whitespace-normal rounded-xl border p-1 text-xs ${
                       isSelected 
-                        ? 'bg-slate-900 border-slate-900 text-white font-bold shadow-md hover:bg-slate-800' 
+                        ? 'border-orange-300 bg-orange-400 text-slate-950 font-bold shadow-md shadow-black/20 hover:bg-orange-300'
                         : isToday
-                          ? 'bg-indigo-500/10 border-indigo-500 text-indigo-700 font-bold hover:bg-indigo-500/20' 
+                          ? 'border-cyan-300/45 bg-cyan-300/12 text-cyan-100 font-bold hover:bg-cyan-300/18'
                           : isCurrentMonth
-                            ? 'bg-slate-50/50 border-slate-100 text-slate-700 hover:bg-zinc-100 hover:border-slate-300'
-                            : 'bg-white border-transparent text-slate-300 hover:bg-slate-50'
+                            ? 'border-cyan-300/10 bg-[#0b1726]/66 text-slate-200 hover:border-cyan-300/25 hover:bg-cyan-300/10'
+                            : 'border-transparent bg-[#07111f]/35 text-slate-600 hover:bg-[#0b1726]/70 hover:text-slate-400'
                     }`}
                   >
                     <span className="text-[11px] font-semibold">{dayNum}</span>
@@ -901,7 +927,7 @@ export default function ScheduleView({ games, players, standings, onAddGame, onR
                           );
                         })}
                         {dayEvents.length > 3 && (
-                          <span className={`text-[7px] leading-none font-bold ${isSelected ? 'text-white' : 'text-slate-400'}`}>+</span>
+                          <span className={`text-[7px] leading-none font-bold ${isSelected ? 'text-slate-950' : 'text-slate-400'}`}>+</span>
                         )}
                       </div>
                     )}
@@ -911,7 +937,7 @@ export default function ScheduleView({ games, players, standings, onAddGame, onR
             </div>
 
             {/* Colored Tag Legends */}
-            <div className="flex flex-wrap gap-x-2.5 gap-y-1.5 mt-4 pt-3 border-t border-slate-100 text-[8px] font-bold text-slate-450 uppercase tracking-wider justify-between font-mono">
+            <div className={`mt-4 flex flex-wrap justify-between gap-x-2.5 gap-y-1.5 border-t pt-3 font-mono text-[8px] font-bold uppercase tracking-wider text-slate-400 ${scheduleDividerClass}`}>
               <div className="flex items-center gap-1">
                 <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
                 <span>League</span>
@@ -945,11 +971,11 @@ export default function ScheduleView({ games, players, standings, onAddGame, onR
             if (nextGames.length === 0) return null;
 
             return (
-              <div className="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-sm space-y-3">
+              <div className={`${scheduleCardClass} space-y-3`}>
                 <div className="flex items-center justify-between">
                   <div>
-                    <h4 className="text-[9px] font-black uppercase text-emerald-600 tracking-wider">Match Availability</h4>
-                    <p className="text-[10px] text-slate-500">Tap to confirm player status for upcoming fixtures</p>
+                    <h4 className="text-[9px] font-black uppercase tracking-wider text-emerald-300">Match Availability</h4>
+                    <p className="text-[10px] text-slate-400">Tap to confirm player status for upcoming fixtures</p>
                   </div>
                   <div className="flex items-center gap-1.5 text-[8px] font-bold text-slate-400">
                     <span className="flex items-center gap-0.5"><span className="w-2 h-2 rounded-sm bg-emerald-500"></span> Yes</span>
@@ -968,22 +994,22 @@ export default function ScheduleView({ games, players, standings, onAddGame, onR
                   const daysUntil = Math.ceil((gameDate.getTime() - Date.now()) / (1000*3600*24));
 
                   return (
-                    <div key={game.id} className="border border-slate-100 rounded-xl p-3 bg-slate-50/60">
+                    <div key={game.id} className={`${scheduleInsetClass} p-3`}>
                       <div className="flex items-center justify-between mb-2">
                         <div className="flex items-center gap-2">
                           <Badge className={`px-1.5 py-0.5 text-[8px] ${
-                            game.type === 'League' ? 'bg-blue-100 text-blue-700 border-blue-200' :
-                            'bg-amber-100 text-amber-700 border-amber-200'
+                            game.type === 'League' ? 'border-cyan-300/25 bg-cyan-300/10 text-cyan-100' :
+                            'border-amber-300/30 bg-amber-300/15 text-amber-100'
                           }`}>{game.type}</Badge>
-                          <span className="text-[10px] font-bold text-slate-800">vs {game.opponent}</span>
+                          <span className="text-[10px] font-bold text-slate-100">vs {game.opponent}</span>
                           <span className="text-[9px] text-slate-400">{game.date} · {daysUntil}d</span>
                         </div>
                         <div className="flex items-center gap-1.5 text-[9px] font-bold">
-                          <span className="text-emerald-600">{yesCount} ✓</span>
-                          <span className="text-slate-300">|</span>
-                          <span className="text-rose-600">{noCount} ✗</span>
-                          <span className="text-slate-300">|</span>
-                          <span className="text-amber-600">{maybeCount} ?</span>
+                          <span className="text-emerald-300">{yesCount} ✓</span>
+                          <span className="text-slate-600">|</span>
+                          <span className="text-rose-300">{noCount} ✗</span>
+                          <span className="text-slate-600">|</span>
+                          <span className="text-amber-300">{maybeCount} ?</span>
                           <span className="text-slate-400 ml-0.5">of {activePlayers.length}</span>
                         </div>
                       </div>
@@ -1003,10 +1029,10 @@ export default function ScheduleView({ games, players, standings, onAddGame, onR
                               }}
                               title={`${p.name}: ${status || 'unset'} (right-click = No)`}
                               className={`h-7 rounded-full px-2 py-1 text-[9px] font-bold ${
-                                status === 'yes' ? 'bg-emerald-100 text-emerald-700 border-emerald-300' :
-                                status === 'no' ? 'bg-rose-100 text-rose-700 border-rose-300 line-through' :
-                                status === 'maybe' ? 'bg-amber-100 text-amber-700 border-amber-300' :
-                                'bg-white text-slate-400 border-slate-200 hover:border-slate-300'
+                                status === 'yes' ? 'border-emerald-300/35 bg-emerald-300/15 text-emerald-100' :
+                                status === 'no' ? 'border-rose-300/35 bg-rose-300/15 text-rose-100 line-through' :
+                                status === 'maybe' ? 'border-amber-300/35 bg-amber-300/15 text-amber-100' :
+                                'border-cyan-300/10 bg-[#07111f]/72 text-slate-400 hover:border-cyan-300/25 hover:text-slate-100'
                               }`}
                             >
                               {p.name.length > 10 ? p.name.substring(0, 10) + '…' : p.name}
@@ -1051,7 +1077,7 @@ export default function ScheduleView({ games, players, standings, onAddGame, onR
             const h2hGoalsAgainst = h2hGames.reduce((s, g) => s + (g.opponentScore || 0), 0);
 
             return (
-              <div className="bg-gradient-to-br from-slate-900 to-slate-800 text-slate-100 rounded-2xl p-4 border border-slate-950 shadow-md space-y-3">
+              <div className={`${scheduleCardClass} space-y-3`}>
                 <div>
                   <h4 className="text-[9px] font-black uppercase text-amber-400 tracking-wider">Next Opponent Intel</h4>
                   <h3 className="font-display font-black text-sm mt-0.5">{nextMatch.opponent}</h3>
@@ -1062,15 +1088,15 @@ export default function ScheduleView({ games, players, standings, onAddGame, onR
 
                 {oppStanding && (
                   <div className="grid grid-cols-3 gap-2 text-center">
-                    <div className="bg-slate-950/60 rounded-lg p-2">
+                    <div className="rounded-lg border border-cyan-300/10 bg-[#07111f]/80 p-2">
                       <div className="text-lg font-black text-white">#{oppStanding.rank}</div>
                       <div className="text-[8px] font-bold text-slate-400 uppercase">Position</div>
                     </div>
-                    <div className="bg-slate-950/60 rounded-lg p-2">
+                    <div className="rounded-lg border border-cyan-300/10 bg-[#07111f]/80 p-2">
                       <div className="text-lg font-black text-white">{oppStanding.points}</div>
                       <div className="text-[8px] font-bold text-slate-400 uppercase">Points</div>
                     </div>
-                    <div className="bg-slate-950/60 rounded-lg p-2">
+                    <div className="rounded-lg border border-cyan-300/10 bg-[#07111f]/80 p-2">
                       <div className="text-lg font-black text-white">{oppStanding.won}W-{oppStanding.drawn}D-{oppStanding.lost}L</div>
                       <div className="text-[8px] font-bold text-slate-400 uppercase">Record</div>
                     </div>
@@ -1078,7 +1104,7 @@ export default function ScheduleView({ games, players, standings, onAddGame, onR
                 )}
 
                 {h2hTotal > 0 && (
-                  <div className="bg-slate-950/60 rounded-lg p-2.5">
+                  <div className="rounded-lg border border-cyan-300/10 bg-[#07111f]/80 p-2.5">
                     <span className="text-[8px] font-bold text-slate-400 uppercase tracking-wider">Head-to-Head</span>
                     <div className="flex items-center gap-3 mt-1 text-[10px] font-bold">
                       <span className="text-emerald-400">{h2hWon}W</span>
@@ -1123,11 +1149,11 @@ export default function ScheduleView({ games, players, standings, onAddGame, onR
             const editing = coachEditGameId === nextMatch.id;
 
             return (
-              <div className="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-sm space-y-2.5">
+              <div className={`${scheduleCardClass} space-y-2.5`}>
                 <div className="flex items-center justify-between">
                   <div>
-                    <h4 className="text-[9px] font-black uppercase text-indigo-600 tracking-wider">Coach's Notes</h4>
-                    <p className="text-[10px] text-slate-500">vs {nextMatch.opponent} · {nextMatch.date}</p>
+                    <h4 className="text-[9px] font-black uppercase tracking-wider text-orange-300">Coach's Notes</h4>
+                    <p className="text-[10px] text-slate-400">vs {nextMatch.opponent} · {nextMatch.date}</p>
                   </div>
                   {!editing && (
                     <Button
@@ -1135,7 +1161,7 @@ export default function ScheduleView({ games, players, standings, onAddGame, onR
                       variant="outline"
                       size="sm"
                       onClick={() => { setCoachDraft(note); setCoachEditGameId(nextMatch.id); }}
-                      className="h-7 rounded-lg border-indigo-100 bg-indigo-50 px-2 py-1 text-[9px] font-bold text-indigo-600 hover:bg-indigo-100 hover:text-indigo-800"
+                      className={`h-7 rounded-lg px-2 py-1 text-[9px] font-bold ${scheduleActionButtonClass}`}
                     >
                       {note ? 'Edit' : '+ Add Notes'}
                     </Button>
@@ -1149,7 +1175,7 @@ export default function ScheduleView({ games, players, standings, onAddGame, onR
                       onChange={e => setCoachDraft(e.target.value)}
                       placeholder="Tactical notes, set-piece instructions, key player matchups, motivational message…"
                       rows={4}
-                      className="resize-none rounded-lg border-slate-200 bg-slate-50 p-2.5 text-[10px] font-medium text-slate-700 placeholder-slate-400 focus-visible:ring-indigo-500/30"
+                      className={cn(scheduleInputClass(), 'resize-none rounded-lg p-2.5 text-[10px] font-medium')}
                       autoFocus
                     />
                     <div className="flex items-center gap-2">
@@ -1160,7 +1186,7 @@ export default function ScheduleView({ games, players, standings, onAddGame, onR
                           setCoachNoteForGame(nextMatch.id, coachDraft);
                           setCoachEditGameId(null);
                         }}
-                        className="h-7 rounded-lg bg-indigo-600 px-3 py-1.5 text-[9px] font-black text-white hover:bg-indigo-700"
+                        className={`h-7 rounded-lg px-3 py-1.5 text-[9px] font-black ${schedulePrimaryButtonClass}`}
                       >
                         Save Notes
                       </Button>
@@ -1169,7 +1195,7 @@ export default function ScheduleView({ games, players, standings, onAddGame, onR
                         variant="ghost"
                         size="sm"
                         onClick={() => { setCoachEditGameId(null); }}
-                        className="h-7 px-2 py-1.5 text-[9px] font-bold text-slate-500 hover:text-slate-700"
+                        className="h-7 px-2 py-1.5 text-[9px] font-bold text-slate-400 hover:bg-cyan-300/10 hover:text-slate-100"
                       >
                         Cancel
                       </Button>
@@ -1182,7 +1208,7 @@ export default function ScheduleView({ games, players, standings, onAddGame, onR
                             setCoachNoteForGame(nextMatch.id, '');
                             setCoachEditGameId(null);
                           }}
-                          className="ml-auto h-7 px-2 text-[9px] font-bold text-rose-500 hover:text-rose-700"
+                          className="ml-auto h-7 px-2 text-[9px] font-bold text-rose-300 hover:bg-rose-300/10 hover:text-rose-100"
                         >
                           Clear
                         </Button>
@@ -1190,11 +1216,11 @@ export default function ScheduleView({ games, players, standings, onAddGame, onR
                     </div>
                   </div>
                 ) : note ? (
-                  <div className="bg-slate-50 rounded-lg p-2.5 border border-slate-100 text-[10px] text-slate-700 leading-relaxed whitespace-pre-wrap max-h-36 overflow-y-auto">
+                  <div className={`${scheduleInsetClass} max-h-36 overflow-y-auto p-2.5 text-[10px] leading-relaxed text-slate-300 whitespace-pre-wrap`}>
                     {note}
                   </div>
                 ) : (
-                  <p className="text-[10px] text-slate-400 italic">No tactical notes yet. Tap "Add Notes" to write pre-match instructions.</p>
+                  <p className="text-[10px] italic text-slate-500">No tactical notes yet. Tap "Add Notes" to write pre-match instructions.</p>
                 )}
               </div>
             );
@@ -1206,16 +1232,16 @@ export default function ScheduleView({ games, players, standings, onAddGame, onR
         <div className="lg:col-span-7 space-y-4">
           
           {selectedDateStr && (
-            <div className="bg-slate-50 border border-slate-200/50 p-4 rounded-2xl flex items-center justify-between text-xs text-slate-600 shadow-sm">
+            <div className={`${scheduleCardClass} flex items-center justify-between p-4 text-xs text-slate-300`}>
               <span className="font-semibold flex items-center gap-1.5">
-                <CalendarDays size={14} className="text-indigo-600 animate-pulse" />
+                <CalendarDays size={14} className="animate-pulse text-orange-300" />
                 <span>Showing events matching date: <strong>{new Date(selectedDateStr).toLocaleDateString(undefined, {month: 'long', day: 'numeric', year: 'numeric', timeZone: 'UTC'})}</strong></span>
               </span>
               <Button
                 type="button"
                 variant="link"
                 onClick={() => setSelectedDateStr(null)}
-                className="text-xs font-bold text-indigo-600"
+                className="text-xs font-bold text-orange-200 hover:text-orange-100"
               >
                 Clear Filter
               </Button>
@@ -1224,10 +1250,10 @@ export default function ScheduleView({ games, players, standings, onAddGame, onR
 
           <div id="games-schedule-list" className="space-y-4">
             {filteredGames.length === 0 ? (
-              <div className="bg-white text-center py-12 rounded-2xl border border-slate-200/60 flex flex-col items-center justify-center space-y-3">
-                <Calendar size={32} className="text-slate-350 animate-bounce" />
-                <h4 className="font-semibold text-slate-700">No {filterTab.toLowerCase()} events found</h4>
-                <p className="text-slate-400 text-xs text-slate-400">Register new events or log completions above.</p>
+              <div className={`${scheduleCardClass} flex flex-col items-center justify-center space-y-3 py-12 text-center`}>
+                <Calendar size={32} className="animate-bounce text-orange-300/70" />
+                <h4 className="font-semibold text-slate-100">No {filterTab.toLowerCase()} events found</h4>
+                <p className="text-xs text-slate-400">Register new events or log completions above.</p>
               </div>
             ) : (
               filteredGames.map((game) => {
@@ -1250,8 +1276,8 @@ export default function ScheduleView({ games, players, standings, onAddGame, onR
                     key={game.id}
                     initial={{ opacity: 0, y: 5 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className={`bg-white rounded-2xl border p-5 shadow-sm shadow-slate-100/35 hover:border-indigo-200 hover:shadow-lg transition-all duration-300 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 ${
-                      isIntegrityHighlighted ? 'border-amber-300 ring-4 ring-amber-200' : 'border-slate-200/60'
+                    className={`flex flex-col items-start justify-between gap-4 rounded-2xl border bg-[#07111f]/88 p-5 text-slate-100 shadow-sm shadow-black/10 backdrop-blur-xl transition-all duration-300 hover:border-orange-300/35 hover:bg-[#0b1726]/92 hover:shadow-lg hover:shadow-black/20 md:flex-row md:items-center ${
+                      isIntegrityHighlighted ? 'border-amber-300/60 ring-4 ring-amber-300/15' : 'border-cyan-300/10'
                     }`}
                   >
                     
@@ -1259,8 +1285,8 @@ export default function ScheduleView({ games, players, standings, onAddGame, onR
                     <div className="flex items-center gap-4 flex-1">
                       <div className={`w-12 h-12 rounded-xl flex items-center justify-center font-display font-black text-lg shrink-0 ${
                         game.status === 'Completed' 
-                          ? (game.ourScore! > game.opponentScore! ? 'bg-emerald-100 text-emerald-800' : game.ourScore! === game.opponentScore! ? 'bg-slate-100 text-slate-600' : 'bg-rose-100 text-rose-800')
-                          : 'bg-indigo-50 text-indigo-700'
+                          ? (game.ourScore! > game.opponentScore! ? 'border border-emerald-300/25 bg-emerald-300/15 text-emerald-100' : game.ourScore! === game.opponentScore! ? 'border border-slate-300/20 bg-slate-300/10 text-slate-200' : 'border border-rose-300/25 bg-rose-300/15 text-rose-100')
+                          : 'border border-orange-300/25 bg-orange-300/15 text-orange-100'
                       }`}>
                         {iconSymbol}
                       </div>
@@ -1268,41 +1294,37 @@ export default function ScheduleView({ games, players, standings, onAddGame, onR
                       <div>
                         <div className="flex items-center gap-2">
                           <Badge id={`game-${game.id}-type-badge`} className={`rounded-full px-2 py-0.5 text-[9px] ${
-                            game.type === 'League' ? 'bg-blue-50 text-blue-700 border-blue-100' :
-                            game.type === 'Cup' ? 'bg-amber-50 text-amber-705 border-amber-100' :
-                            game.type === 'Friendly' ? 'bg-zinc-50 text-zinc-650 border-zinc-150' :
-                            game.type === 'Training' ? 'bg-emerald-50 text-emerald-700 border-emerald-100' :
-                            'bg-rose-50 text-rose-700 border-rose-100'
+                            getGameTypeBadgeClass(game.type)
                           }`}>
                             {game.type}
                           </Badge>
                           {isIntegrityHighlighted && (
-                            <Badge className="rounded-full border-amber-200 bg-amber-100 px-2 py-0.5 text-[9px] text-amber-900">
+                            <Badge className="rounded-full border-amber-300/30 bg-amber-300/15 px-2 py-0.5 text-[9px] text-amber-100">
                               Review
                             </Badge>
                           )}
                           {game.status === 'Upcoming' && daysLeft > 0 && (
-                            <Badge id={`game-${game.id}-countdown-badge`} className="rounded-full border-rose-100 bg-rose-50 px-2 py-0.5 text-[9px] text-rose-700">
+                            <Badge id={`game-${game.id}-countdown-badge`} className="rounded-full border-rose-300/25 bg-rose-300/10 px-2 py-0.5 text-[9px] text-rose-100">
                               In {daysLeft} Days
                             </Badge>
                           )}
                         </div>
                         
-                        <h4 id={`game-${game.id}-title`} className="font-display font-semibold text-slate-800 mt-1 text-[13px] md:text-sm">
+                        <h4 id={`game-${game.id}-title`} className="mt-1 font-display text-[13px] font-semibold text-slate-100 md:text-sm">
                           {game.type === 'Training' || game.type === 'Meeting' ? (
-                            <span className="font-bold text-slate-900">{game.opponent}</span>
+                            <span className="font-bold text-slate-50">{game.opponent}</span>
                           ) : (
-                            <span><span className="font-bold text-slate-900">{teamName || 'Our Team'}</span> <span className="text-slate-400 font-medium font-sans">vs</span> <span className="font-bold text-slate-900">{game.opponent}</span></span>
+                            <span><span className="font-bold text-slate-50">{teamName || 'Our Team'}</span> <span className="font-sans font-medium text-slate-400">vs</span> <span className="font-bold text-slate-50">{game.opponent}</span></span>
                           )}
                         </h4>
 
-                        <div className="flex flex-wrap gap-y-1 gap-x-4 text-xs text-slate-500 mt-2">
+                        <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-400">
                           <span id={`game-${game.id}-dt`} className="flex items-center gap-1.5 mt-0.5 font-medium">
-                            <Clock size={12} className="text-indigo-500" />
+                            <Clock size={12} className="text-orange-300" />
                             {game.date} @ {game.time}
                           </span>
                           <span id={`game-${game.id}-loc`} className="flex items-center gap-1.5 mt-0.5 font-medium">
-                            <MapPin size={12} className="text-rose-500" />
+                            <MapPin size={12} className="text-cyan-200" />
                             {game.location}
                           </span>
                         </div>
@@ -1310,16 +1332,16 @@ export default function ScheduleView({ games, players, standings, onAddGame, onR
                     </div>
 
                     {/* Score display or recording */}
-                    <div className="flex items-center gap-4 text-right w-full md:w-auto self-stretch md:self-auto justify-between md:justify-end border-t border-slate-50 md:border-none pt-3 md:pt-0">
+                    <div className={`flex w-full items-center justify-between gap-4 self-stretch border-t pt-3 text-right md:w-auto md:self-auto md:justify-end md:border-none md:pt-0 ${scheduleDividerClass}`}>
                       
                       {game.status === 'Completed' ? (
                         <div className="flex items-center gap-2">
                           <div className="flex flex-col items-end">
-                            <div id={`game-${game.id}-score`} className="font-display font-black text-xl text-slate-800 tracking-tight">
+                            <div id={`game-${game.id}-score`} className="font-display text-xl font-black tracking-tight text-slate-100">
                               {game.ourScore} - {game.opponentScore}
                             </div>
                             {mvpName && (
-                              <div id={`game-${game.id}-mvp`} className="flex items-center gap-1 text-[10px] text-amber-600 font-bold uppercase tracking-wider">
+                              <div id={`game-${game.id}-mvp`} className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-amber-300">
                                 <Award size={11} className="fill-amber-300 text-amber-500" /> {mvpName}
                               </div>
                             )}
@@ -1329,7 +1351,7 @@ export default function ScheduleView({ games, players, standings, onAddGame, onR
                             variant="outline"
                             size="sm"
                             onClick={() => openResultEditor(game)}
-                            className="h-7 rounded-lg border-slate-200 bg-slate-50 px-2 py-1 text-[10px] font-bold text-slate-600 hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700"
+                            className={`h-7 rounded-lg px-2 py-1 text-[10px] font-bold ${scheduleActionButtonClass}`}
                           >
                             Edit Result
                           </Button>
@@ -1344,7 +1366,7 @@ export default function ScheduleView({ games, players, standings, onAddGame, onR
                               variant="outline"
                               size="sm"
                               onClick={() => openResultEditor(game)}
-                              className="rounded-xl border-emerald-200 bg-emerald-50 px-3.5 py-1.5 text-xs font-semibold text-emerald-700 shadow-sm hover:bg-emerald-100 hover:text-emerald-800"
+                              className={`rounded-xl px-3.5 py-1.5 text-xs font-semibold ${scheduleSuccessButtonClass}`}
                             >
                               <Trophy size={11} />
                               Log Score
@@ -1364,7 +1386,7 @@ export default function ScheduleView({ games, players, standings, onAddGame, onR
                             onDeleteGame(game.id);
                           }
                         }}
-                        className="size-8 rounded-lg p-1.5 text-slate-300 hover:bg-rose-50 hover:text-rose-500"
+                        className="size-8 rounded-lg p-1.5 text-slate-500 hover:bg-rose-300/10 hover:text-rose-200"
                         title="Remove Event"
                       >
                         <Trash2 size={14} />
@@ -1374,17 +1396,17 @@ export default function ScheduleView({ games, players, standings, onAddGame, onR
 
                     {/* Tactical notes drawers */}
                     {game.notes && (
-                      <div className="w-full text-xs text-slate-500 bg-slate-50/70 p-3 rounded-xl mt-3 grid grid-cols-1 md:grid-cols-2 gap-4 border border-slate-100">
+                      <div className={`${scheduleInsetClass} mt-3 grid w-full grid-cols-1 gap-4 p-3 text-xs text-slate-400 md:grid-cols-2`}>
                         <div>
-                          <strong className="text-slate-700 block text-[10px] uppercase font-bold tracking-widest text-slate-400 mb-1">Squad Briefing / Notes</strong>
-                          <p className="leading-relaxed text-slate-600">{game.notes}</p>
+                          <strong className="mb-1 block text-[10px] font-bold uppercase tracking-widest text-slate-400">Squad Briefing / Notes</strong>
+                          <p className="leading-relaxed text-slate-300">{game.notes}</p>
                         </div>
                         {game.scorers && game.scorers.length > 0 && (
                           <div id={`game-${game.id}-scorers-list`}>
-                            <strong className="text-indigo-600 block text-[10px] uppercase font-bold tracking-widest text-indigo-400 mb-1">Goal Scorers</strong>
+                            <strong className="mb-1 block text-[10px] font-bold uppercase tracking-widest text-orange-300">Goal Scorers</strong>
                             <div className="flex flex-wrap gap-1 mt-1">
                               {game.scorers.map(sc => (
-                                <span key={sc.playerName} className="bg-white border rounded px-1.5 py-0.5 text-[10px] font-semibold text-slate-600">
+                                <span key={sc.playerName} className="rounded border border-cyan-300/10 bg-[#07111f]/80 px-1.5 py-0.5 text-[10px] font-semibold text-slate-200">
                                   ⚽ {sc.playerName} ({sc.count})
                                 </span>
                               ))}

@@ -130,6 +130,28 @@ a:focus-visible {
   animation: view-enter 240ms ease-out;
 }
 
+.development-glass-theme :where(.bg-white\/85, .bg-white\/80, .bg-white\/75, .bg-white\/70, .bg-white\/60, .bg-slate-50\/70, .bg-slate-50\/50, .bg-slate-50\/40) {
+  background-color: rgb(11 23 38 / 0.72) !important;
+}
+
+.development-glass-theme :where(.border-slate-200\/80, .border-slate-200\/70, .border-slate-200\/60, .border-white\/60) {
+  border-color: rgb(103 232 249 / 0.1) !important;
+}
+
+.league-updates-glass-theme :where(.bg-white\/85, .bg-white\/80, .bg-white\/75, .bg-white\/70, .bg-white\/60, .bg-slate-50\/70, .bg-slate-50\/60, .bg-slate-50\/50, .bg-slate-50\/45, .bg-sky-50\/70, .bg-indigo-50\/70, .bg-violet-50\/70, .bg-emerald-50\/70) {
+  background-color: rgb(11 23 38 / 0.72) !important;
+}
+
+.league-updates-glass-theme :where(.bg-gradient-to-br, .bg-gradient-to-r) {
+  background-image:
+    radial-gradient(circle at top left, rgb(251 146 60 / 0.16), transparent 20rem),
+    linear-gradient(135deg, rgb(7 17 31 / 0.9), rgb(11 23 38 / 0.72)) !important;
+}
+
+.league-updates-glass-theme :where(.border-slate-200\/80, .border-slate-200\/70, .border-slate-200\/60, .border-white\/70, .border-white\/60) {
+  border-color: rgb(103 232 249 / 0.1) !important;
+}
+
 @keyframes view-enter {
   from { opacity: 0; transform: translateY(6px); }
   to { opacity: 1; transform: translateY(0); }

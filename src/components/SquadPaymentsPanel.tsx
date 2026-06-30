@@ -105,14 +105,17 @@ const paymentStatusVariant: Record<string, React.ComponentProps<typeof Badge>['v
   no_activity: 'secondary'
 };
 
-const paymentInputClass = 'rounded-xl text-xs font-semibold';
+const paymentInputClass = 'rounded-xl border-cyan-300/10 bg-[#0b1726]/85 text-xs font-semibold text-slate-100 placeholder:text-slate-500 focus-visible:border-orange-300/60 focus-visible:ring-orange-300/25';
 const invalidPaymentClass = 'border-rose-300 focus-visible:ring-rose-500/25 focus:ring-rose-500/25';
-const paymentCardClass = 'rounded-2xl border border-border bg-card p-4 shadow-sm';
-const paymentStatCardClass = 'rounded-xl border border-border bg-card p-4 shadow-sm';
-const paymentSubtleCardClass = 'rounded-xl border border-border bg-muted/45 p-3';
-const paymentLabelClass = 'text-[11px] font-black uppercase tracking-widest text-muted-foreground';
-const paymentTitleClass = 'font-display text-base font-black tracking-tight text-foreground';
-const paymentDescriptionClass = 'mt-1 text-sm font-medium leading-relaxed text-muted-foreground';
+const paymentCardClass = 'rounded-2xl border border-cyan-300/10 bg-[#07111f]/88 p-4 text-slate-100 shadow-lg shadow-black/20 backdrop-blur-xl';
+const paymentStatCardClass = 'rounded-xl border border-cyan-300/10 bg-[#0b1726]/66 p-4 text-slate-100 shadow-sm shadow-black/10 backdrop-blur-sm';
+const paymentSubtleCardClass = 'rounded-xl border border-cyan-300/10 bg-[#0b1726]/72 p-3 text-slate-100 shadow-inner shadow-black/10';
+const paymentLabelClass = 'text-[11px] font-black uppercase tracking-widest text-slate-400';
+const paymentTitleClass = 'font-display text-base font-black tracking-tight text-slate-100';
+const paymentDescriptionClass = 'mt-1 text-sm font-medium leading-relaxed text-slate-400';
+const paymentSelectContentClass = 'border-cyan-300/15 bg-[#0b1726] text-slate-100 shadow-2xl shadow-black/35';
+const paymentTableWrapClass = 'overflow-x-auto rounded-xl border border-cyan-300/10 bg-[#0b1726]/42 shadow-inner shadow-black/10';
+const paymentActionButtonClass = 'border-cyan-300/15 bg-[#0b1726]/85 text-slate-100 hover:border-orange-300/30 hover:bg-orange-300/10 hover:text-orange-100';
 
 export default function SquadPaymentsPanel({
   players,
@@ -303,9 +306,9 @@ export default function SquadPaymentsPanel({
     <div id="squad-payments-panel" className="space-y-5">
       <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
         {[
-          { label: 'Charged', value: totals.charged, icon: ReceiptText, tone: 'text-foreground' },
+          { label: 'Charged', value: totals.charged, icon: ReceiptText, tone: 'text-slate-100' },
           { label: 'Collected', value: totals.paid, icon: Banknote, tone: 'text-success' },
-          { label: 'Outstanding', value: totals.outstanding, icon: CircleDollarSign, tone: 'text-warning-foreground' },
+          { label: 'Outstanding', value: totals.outstanding, icon: CircleDollarSign, tone: 'text-orange-200' },
           { label: 'Overdue', value: totals.overdue, icon: AlertCircle, tone: 'text-destructive' }
         ].map(metric => {
           const Icon = metric.icon;
@@ -326,28 +329,28 @@ export default function SquadPaymentsPanel({
           <div className={paymentCardClass}>
             <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
               <div>
-                <p className="text-[11px] font-black uppercase tracking-widest text-primary">Main workspace</p>
+                <p className="text-[11px] font-black uppercase tracking-widest text-orange-300">Main workspace</p>
                 <h3 className={`mt-1 ${paymentTitleClass}`}>Player balances</h3>
                 <p className={paymentDescriptionClass}>Review who is paid, partial, overdue, or still missing activity.</p>
               </div>
               <div className="flex flex-col gap-2 sm:flex-row">
                 <div className="relative">
-                  <Search className="absolute left-3 top-2.5 text-muted-foreground" size={14} />
+                  <Search className="absolute left-3 top-2.5 text-slate-400" size={14} />
                   <Input
                     value={searchTerm}
                     onChange={event => setSearchTerm(event.target.value)}
                     placeholder="Search player..."
-                    className="h-9 w-full bg-muted/60 pl-9 pr-3 text-xs font-medium focus-visible:bg-card sm:w-52"
+                    className="h-9 w-full border-cyan-300/10 bg-[#0b1726]/85 pl-9 pr-3 text-xs font-medium text-slate-100 placeholder:text-slate-500 focus-visible:border-orange-300/60 focus-visible:bg-[#0b1726]/85 focus-visible:ring-orange-300/25 sm:w-52"
                   />
                 </div>
                 <Select
                   value={statusFilter}
                   onValueChange={setStatusFilter}
                 >
-                  <SelectTrigger className="h-9 text-xs font-bold sm:w-40">
+                  <SelectTrigger className={`${paymentInputClass} h-9 sm:w-40`}>
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className={paymentSelectContentClass}>
                     <SelectItem value="all">All statuses</SelectItem>
                     <SelectItem value="paid">Paid</SelectItem>
                     <SelectItem value="partial">Partial</SelectItem>
@@ -359,10 +362,10 @@ export default function SquadPaymentsPanel({
               </div>
             </div>
 
-            <div className="overflow-x-auto rounded-xl border border-border">
+            <div className={paymentTableWrapClass}>
               <table className="min-w-[760px] w-full text-left text-xs">
                 <thead>
-                  <tr className="border-b border-border bg-muted/60 text-[11px] uppercase tracking-widest text-muted-foreground">
+                  <tr className="border-b border-cyan-300/10 bg-[#0b1726]/72 text-[11px] uppercase tracking-widest text-slate-400">
                     <th className="px-3 py-2 font-black">Player</th>
                     <th className="px-3 py-2 font-black">Charged</th>
                     <th className="px-3 py-2 font-black">Paid</th>
@@ -372,15 +375,15 @@ export default function SquadPaymentsPanel({
                     <th className="px-3 py-2 font-black">Status</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-border">
+                <tbody className="divide-y divide-cyan-300/10">
                   {filteredSummaries.map(summary => (
-                    <tr key={summary.playerId} className="text-foreground">
+                    <tr key={summary.playerId} className="text-slate-100">
                       <td className="px-3 py-3 font-black">{summary.playerName}</td>
                       <td className="px-3 py-3 font-semibold">{formatPeso(summary.charged)}</td>
                       <td className="px-3 py-3 font-semibold text-success">{formatPeso(summary.paid)}</td>
                       <td className="px-3 py-3 font-semibold">{formatPeso(summary.waived)}</td>
                       <td className="px-3 py-3 font-black">{formatPeso(summary.balance)}</td>
-                      <td className="px-3 py-3 font-semibold text-muted-foreground">{summary.lastPaymentDate ?? '-'}</td>
+                      <td className="px-3 py-3 font-semibold text-slate-400">{summary.lastPaymentDate ?? '-'}</td>
                       <td className="px-3 py-3">
                         <Badge variant={paymentStatusVariant[summary.status]}>
                           {summary.status.replace('_', ' ')}
@@ -406,10 +409,10 @@ export default function SquadPaymentsPanel({
                   value={monthFilter}
                   onValueChange={setMonthFilter}
                 >
-                  <SelectTrigger className="h-9 text-xs font-bold sm:w-40" aria-label="Filter ledger by month">
+                  <SelectTrigger className={`${paymentInputClass} h-9 sm:w-40`} aria-label="Filter ledger by month">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className={paymentSelectContentClass}>
                     <SelectItem value="all">All months</SelectItem>
                     {monthlyHistory.map(month => <SelectItem key={month.monthKey} value={month.monthKey}>{month.monthLabel}</SelectItem>)}
                   </SelectContent>
@@ -418,10 +421,10 @@ export default function SquadPaymentsPanel({
                   value={categoryFilter}
                   onValueChange={value => setCategoryFilter(value as 'all' | PaymentLedgerCategory)}
                 >
-                  <SelectTrigger className="h-9 text-xs font-bold sm:w-44" aria-label="Filter ledger by category">
+                  <SelectTrigger className={`${paymentInputClass} h-9 sm:w-44`} aria-label="Filter ledger by category">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className={paymentSelectContentClass}>
                     <SelectItem value="all">All categories</SelectItem>
                     {categories.map(item => <SelectItem key={item.value} value={item.value}>{item.label}</SelectItem>)}
                   </SelectContent>
@@ -431,7 +434,7 @@ export default function SquadPaymentsPanel({
                   variant="outline"
                   size="sm"
                   onClick={() => setLedgerExpanded(current => !current)}
-                  className="h-9 gap-1 rounded-lg px-3 text-[10px] font-black uppercase tracking-wider"
+                  className={`h-9 gap-1 rounded-lg px-3 text-[10px] font-black uppercase tracking-wider ${paymentActionButtonClass}`}
                   aria-expanded={ledgerExpanded}
                 >
                   {ledgerExpanded ? (
@@ -448,18 +451,18 @@ export default function SquadPaymentsPanel({
             </div>
 
             {!ledgerExpanded ? (
-              <div className="rounded-xl border border-dashed border-border bg-muted/45 px-4 py-5 text-center">
-                <ReceiptText className="mx-auto text-muted-foreground" size={26} aria-hidden="true" />
-                <p className="mt-2 text-sm font-black text-foreground">Ledger history is minimized</p>
-                <p className="mt-1 text-sm font-medium text-muted-foreground">
+              <div className="rounded-xl border border-dashed border-cyan-300/15 bg-[#0b1726]/42 px-4 py-5 text-center">
+                <ReceiptText className="mx-auto text-slate-400" size={26} aria-hidden="true" />
+                <p className="mt-2 text-sm font-black text-slate-100">Ledger history is minimized</p>
+                <p className="mt-1 text-sm font-medium text-slate-400">
                   Expand only when you need to review or void individual payment records.
                 </p>
               </div>
             ) : filteredEntries.length > 0 ? (
-              <div className="overflow-x-auto">
+              <div className={paymentTableWrapClass}>
                 <table className="min-w-[900px] w-full text-left text-xs">
                   <thead>
-                    <tr className="border-y border-border bg-muted/60 text-[11px] uppercase tracking-widest text-muted-foreground">
+                    <tr className="border-y border-cyan-300/10 bg-[#0b1726]/72 text-[11px] uppercase tracking-widest text-slate-400">
                       <th className="px-3 py-2 font-black">Date</th>
                       <th className="px-3 py-2 font-black">Player</th>
                       <th className="px-3 py-2 font-black">Type</th>
@@ -470,9 +473,9 @@ export default function SquadPaymentsPanel({
                       <th className="px-3 py-2 font-black">Action</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-border">
+                  <tbody className="divide-y divide-cyan-300/10">
                     {filteredEntries.map(entry => (
-                      <tr key={entry.id} className={entry.voidedAt ? 'text-muted-foreground line-through' : 'text-foreground'}>
+                      <tr key={entry.id} className={entry.voidedAt ? 'text-slate-500 line-through' : 'text-slate-100'}>
                         <td className="px-3 py-3 font-semibold">{entry.date}</td>
                         <td className="px-3 py-3 font-black">{entry.playerNameSnapshot}</td>
                         <td className="px-3 py-3 font-semibold capitalize">{entry.type}</td>
@@ -489,7 +492,7 @@ export default function SquadPaymentsPanel({
                                 value={voidReasonById[entry.id] ?? ''}
                                 onChange={event => setVoidReasonById(current => ({ ...current, [entry.id]: event.target.value }))}
                                 placeholder="Void reason"
-                                className="h-8 w-full px-2 text-[11px] no-underline focus-visible:ring-rose-500/20"
+                                className="h-8 w-full border-cyan-300/10 bg-[#0b1726]/85 px-2 text-[11px] text-slate-100 placeholder:text-slate-500 no-underline focus-visible:ring-rose-500/20"
                               />
                               <Button
                                 type="button"
@@ -497,7 +500,7 @@ export default function SquadPaymentsPanel({
                                 disabled={!voidReasonById[entry.id]?.trim()}
                                 variant="outline"
                                 size="sm"
-                                className="h-8 border-rose-200 bg-rose-50 px-2 text-[10px] font-black uppercase text-rose-700 no-underline hover:bg-rose-100 hover:text-rose-800"
+                                className="h-8 border-rose-300/25 bg-rose-400/10 px-2 text-[10px] font-black uppercase text-rose-200 no-underline hover:bg-rose-400/20 hover:text-rose-100"
                               >
                                 <Ban size={12} /> Void
                               </Button>
@@ -510,10 +513,10 @@ export default function SquadPaymentsPanel({
                 </table>
               </div>
             ) : (
-              <div className="rounded-xl border border-dashed border-border bg-muted/45 py-10 text-center">
-                <AlertCircle className="mx-auto text-muted-foreground" size={28} />
-                <p className="mt-2 text-sm font-black text-foreground">No payment entries yet</p>
-                <p className="mt-1 text-sm font-medium text-muted-foreground">Record a fee or payment to begin the ledger.</p>
+              <div className="rounded-xl border border-dashed border-cyan-300/15 bg-[#0b1726]/42 py-10 text-center">
+                <AlertCircle className="mx-auto text-slate-400" size={28} />
+                <p className="mt-2 text-sm font-black text-slate-100">No payment entries yet</p>
+                <p className="mt-1 text-sm font-medium text-slate-400">Record a fee or payment to begin the ledger.</p>
               </div>
             )}
           </div>
@@ -528,38 +531,38 @@ export default function SquadPaymentsPanel({
                   {formatMonthLabel(currentMonthKey)}
                 </h3>
               </div>
-              <CalendarClock size={18} className="text-primary" aria-hidden="true" />
+              <CalendarClock size={18} className="text-orange-300" aria-hidden="true" />
             </div>
             <div className="mt-4 grid grid-cols-2 gap-2 text-xs">
               <div className={paymentSubtleCardClass}>
                 <p className={paymentLabelClass}>Charged</p>
-                <p className="mt-1 font-black text-foreground">{formatPeso(currentMonthSummary?.charged ?? 0)}</p>
+                <p className="mt-1 font-black text-slate-100">{formatPeso(currentMonthSummary?.charged ?? 0)}</p>
               </div>
-              <div className="rounded-xl border border-success/20 bg-success/10 p-3">
+              <div className="rounded-xl border border-emerald-300/20 bg-emerald-300/10 p-3">
                 <p className="text-[11px] font-black uppercase tracking-widest text-success">Collected</p>
                 <p className="mt-1 font-black text-success">{formatPeso(currentMonthSummary?.paid ?? 0)}</p>
               </div>
-              <div className="rounded-xl border border-warning/25 bg-warning/15 p-3">
-                <p className="text-[11px] font-black uppercase tracking-widest text-warning-foreground">Remaining</p>
-                <p className="mt-1 font-black text-warning-foreground">{formatPeso(Math.max(currentMonthSummary?.balance ?? 0, 0))}</p>
+              <div className="rounded-xl border border-orange-300/25 bg-orange-300/10 p-3">
+                <p className="text-[11px] font-black uppercase tracking-widest text-orange-200">Remaining</p>
+                <p className="mt-1 font-black text-orange-200">{formatPeso(Math.max(currentMonthSummary?.balance ?? 0, 0))}</p>
               </div>
               <div className={paymentSubtleCardClass}>
                 <p className={paymentLabelClass}>Entries</p>
-                <p className="mt-1 font-black text-foreground">{currentMonthSummary?.entryCount ?? 0}</p>
+                <p className="mt-1 font-black text-slate-100">{currentMonthSummary?.entryCount ?? 0}</p>
               </div>
             </div>
             <div className="mt-4">
-              <div className="mb-1.5 flex items-center justify-between text-[11px] font-black uppercase tracking-widest text-muted-foreground">
+              <div className="mb-1.5 flex items-center justify-between text-[11px] font-black uppercase tracking-widest text-slate-400">
                 <span>Collection rate</span>
                 <span>{currentMonthRate}%</span>
               </div>
-              <div className="h-2 overflow-hidden rounded-full bg-muted">
+              <div className="h-2 overflow-hidden rounded-full bg-white/10">
                 <div className="h-full rounded-full bg-success transition-all" style={{ width: `${currentMonthRate}%` }} />
               </div>
             </div>
           </div>
 
-          <div className="rounded-2xl border border-border bg-card p-3 shadow-sm">
+          <div className="rounded-2xl border border-cyan-300/10 bg-[#07111f]/88 p-3 text-slate-100 shadow-lg shadow-black/20 backdrop-blur-xl">
             <div className="mb-3 flex items-start justify-between gap-3">
               <div>
                 <p className={paymentLabelClass}>Payment actions</p>
@@ -568,13 +571,13 @@ export default function SquadPaymentsPanel({
                 </h3>
               </div>
               {activeAction === 'record' ? (
-                <Plus size={18} className="shrink-0 text-primary" aria-hidden="true" />
+                <Plus size={18} className="shrink-0 text-orange-300" aria-hidden="true" />
               ) : (
-                <ReceiptText size={18} className="shrink-0 text-foreground" aria-hidden="true" />
+                <ReceiptText size={18} className="shrink-0 text-slate-100" aria-hidden="true" />
               )}
             </div>
 
-            <div className="mb-3 grid grid-cols-2 rounded-xl bg-muted p-1">
+            <div className="mb-3 grid grid-cols-2 rounded-xl border border-cyan-300/10 bg-[#0b1726]/72 p-1 shadow-inner shadow-black/10">
               <Button
                 type="button"
                 variant="ghost"
@@ -582,7 +585,7 @@ export default function SquadPaymentsPanel({
                 onClick={() => setActiveAction('record')}
                 className={cn(
                   'h-8 rounded-lg text-[10px] font-black uppercase tracking-wider',
-                  activeAction === 'record' ? 'bg-card text-primary shadow-sm hover:bg-card' : 'text-muted-foreground hover:bg-card/70'
+                  activeAction === 'record' ? 'bg-orange-400 text-slate-950 shadow-sm hover:bg-orange-300' : 'text-slate-400 hover:bg-orange-300/10 hover:text-orange-100'
                 )}
               >
                 Record
@@ -594,7 +597,7 @@ export default function SquadPaymentsPanel({
                 onClick={() => setActiveAction('charge')}
                 className={cn(
                   'h-8 rounded-lg text-[10px] font-black uppercase tracking-wider',
-                  activeAction === 'charge' ? 'bg-card text-foreground shadow-sm hover:bg-card' : 'text-muted-foreground hover:bg-card/70'
+                  activeAction === 'charge' ? 'bg-orange-400 text-slate-950 shadow-sm hover:bg-orange-300' : 'text-slate-400 hover:bg-orange-300/10 hover:text-orange-100'
                 )}
               >
                 Charge
@@ -612,7 +615,7 @@ export default function SquadPaymentsPanel({
                         <SelectTrigger className={paymentInputClass}>
                           <SelectValue />
                         </SelectTrigger>
-                        <SelectContent>
+                        <SelectContent className={paymentSelectContentClass}>
                           {entryTypes.map(item => <SelectItem key={item.value} value={item.value}>{item.label}</SelectItem>)}
                         </SelectContent>
                       </Select>
@@ -623,7 +626,7 @@ export default function SquadPaymentsPanel({
                         <SelectTrigger className={paymentInputClass}>
                           <SelectValue />
                         </SelectTrigger>
-                        <SelectContent>
+                        <SelectContent className={paymentSelectContentClass}>
                           {categories.map(item => <SelectItem key={item.value} value={item.value}>{item.label}</SelectItem>)}
                         </SelectContent>
                       </Select>
@@ -645,7 +648,7 @@ export default function SquadPaymentsPanel({
                       >
                         <SelectValue placeholder="Choose player" />
                       </SelectTrigger>
-                      <SelectContent>
+                      <SelectContent className={paymentSelectContentClass}>
                         {players.map(player => <SelectItem key={player.id} value={player.id}>{player.name}</SelectItem>)}
                       </SelectContent>
                     </Select>
@@ -697,7 +700,7 @@ export default function SquadPaymentsPanel({
                           <SelectTrigger className={paymentInputClass}>
                             <SelectValue />
                           </SelectTrigger>
-                          <SelectContent>
+                          <SelectContent className={paymentSelectContentClass}>
                             {paymentMethods.map(item => <SelectItem key={item.value} value={item.value}>{item.label}</SelectItem>)}
                           </SelectContent>
                         </Select>
@@ -736,7 +739,7 @@ export default function SquadPaymentsPanel({
               </form>
             ) : (
               <form ref={bulkFormRef} onSubmit={handleBulkSubmit} className="space-y-2" noValidate>
-                <p className="text-sm font-medium text-muted-foreground">Creates one fee entry per active player.</p>
+                <p className="text-sm font-medium text-slate-400">Creates one fee entry per active player.</p>
                 <FormErrorSummary id="bulk-payment-errors" errors={bulkErrors} />
                 <div>
                   <Label className="mb-1.5 block">Category</Label>
@@ -744,7 +747,7 @@ export default function SquadPaymentsPanel({
                     <SelectTrigger className={paymentInputClass}>
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className={paymentSelectContentClass}>
                       {categories.map(item => <SelectItem key={item.value} value={item.value}>{item.label}</SelectItem>)}
                     </SelectContent>
                   </Select>
@@ -801,7 +804,7 @@ export default function SquadPaymentsPanel({
               <div>
                 <p className={paymentLabelClass}>Previous months</p>
                 <h3 className={`mt-1 ${paymentTitleClass}`}>Monthly payment history</h3>
-                <p className="mt-1 text-sm font-medium text-muted-foreground">
+                <p className="mt-1 text-sm font-medium text-slate-400">
                   Showing {visibleMonthlyHistory.length} of {monthlyHistory.length} month{monthlyHistory.length === 1 ? '' : 's'}.
                 </p>
               </div>
@@ -836,35 +839,35 @@ export default function SquadPaymentsPanel({
                     type="button"
                     onClick={() => setMonthFilter(month.monthKey)}
                     variant="ghost"
-                    className={`h-auto min-h-[6.75rem] w-full flex-col items-stretch justify-start gap-0 whitespace-normal rounded-xl border p-2.5 text-left transition-colors hover:border-primary/30 hover:bg-primary/5 ${
-                      monthFilter === month.monthKey ? 'border-primary/30 bg-primary/10' : 'border-border bg-muted/45'
+                    className={`h-auto min-h-[6.75rem] w-full flex-col items-stretch justify-start gap-0 whitespace-normal rounded-xl border p-2.5 text-left transition-colors hover:border-orange-300/30 hover:bg-orange-300/10 ${
+                      monthFilter === month.monthKey ? 'border-orange-300/35 bg-orange-300/10' : 'border-cyan-300/10 bg-[#0b1726]/66'
                     }`}
                   >
                     <div className="flex items-center justify-between gap-2">
-                      <p className="text-[11px] font-black uppercase tracking-widest text-foreground">{month.monthLabel}</p>
-                      <span className="text-[11px] font-black text-muted-foreground">{month.entryCount} rows</span>
+                      <p className="text-[11px] font-black uppercase tracking-widest text-slate-100">{month.monthLabel}</p>
+                      <span className="text-[11px] font-black text-slate-400">{month.entryCount} rows</span>
                     </div>
                     <div className="mt-2 grid grid-cols-3 gap-1.5 text-[10px]">
                       <div>
-                        <p className="font-black uppercase tracking-widest text-muted-foreground">Fee</p>
-                        <p className="mt-0.5 font-black text-foreground">{formatPeso(month.charged)}</p>
+                        <p className="font-black uppercase tracking-widest text-slate-400">Fee</p>
+                        <p className="mt-0.5 font-black text-slate-100">{formatPeso(month.charged)}</p>
                       </div>
                       <div>
                         <p className="font-black uppercase tracking-widest text-success">Paid</p>
                         <p className="mt-0.5 font-black text-success">{formatPeso(month.paid)}</p>
                       </div>
                       <div>
-                        <p className="font-black uppercase tracking-widest text-warning-foreground">Open</p>
-                        <p className="mt-0.5 font-black text-warning-foreground">{formatPeso(Math.max(month.balance, 0))}</p>
+                        <p className="font-black uppercase tracking-widest text-orange-200">Open</p>
+                        <p className="mt-0.5 font-black text-orange-200">{formatPeso(Math.max(month.balance, 0))}</p>
                       </div>
                     </div>
                   </Button>
                 ))}
               </div>
             ) : (
-              <div className="rounded-xl border border-dashed border-border bg-muted/45 p-6 text-center">
-                <p className="text-sm font-black text-foreground">No monthly history yet</p>
-                <p className="mt-1 text-sm font-medium text-muted-foreground">Monthly summaries appear after you record charges or payments.</p>
+              <div className="rounded-xl border border-dashed border-cyan-300/15 bg-[#0b1726]/42 p-6 text-center">
+                <p className="text-sm font-black text-slate-100">No monthly history yet</p>
+                <p className="mt-1 text-sm font-medium text-slate-400">Monthly summaries appear after you record charges or payments.</p>
               </div>
             )}
           </div>

@@ -10,6 +10,7 @@ import { Input } from './ui/input';
 import { Label } from './ui/label';
 import {
   matchFormatSchema,
+  strategyContextSchema,
   stringSchema,
   tacticsLineupSchema
 } from '../persistence/schemas';
@@ -29,6 +30,16 @@ import {
   type TacticsLineup,
   type TacticsPlayer
 } from '../tactics/lineup';
+import {
+  DEFAULT_STRATEGY_CONTEXT,
+  STRATEGY_CONTEXT_LABELS,
+  type StrategyContext
+} from '../tactics/strategyContext';
+import {
+  DARK_GLASS_CLASSES,
+  DARK_GLASS_DASHBOARD_SURFACE_STYLE,
+  DARK_GLASS_THEME_STYLE
+} from '../theme/darkGlassTheme';
 import weatherClearUrl from '../assets/weather/clear.png';
 import weatherCloudyUrl from '../assets/weather/cloudy.png';
 import weatherFogUrl from '../assets/weather/fog.png';
@@ -103,6 +114,7 @@ type StrategySnapshot = {
   formation: string;
   playstyle: string;
   defensiveStyle: string;
+  context: StrategyContext;
   captain?: Player;
   freeKickTaker?: Player;
   cornerTaker?: Player;
@@ -161,24 +173,24 @@ const parseSavedWeatherPlace = (value: string | null): SavedWeatherPlace | null 
 };
 
 const getWeatherAdvisoryTone = (day?: WeatherDay, currentWind = 0) => {
-  if (!day) return { label: 'Monitoring', className: 'border-sky-200 bg-sky-50 text-sky-700', message: 'Weather check is preparing.' };
+  if (!day) return { label: 'Monitoring', className: 'border-sky-300/25 bg-sky-300/10 text-sky-100', message: 'Weather check is preparing.' };
   if (day.code >= 95 || day.rainChance >= 75 || day.wind >= 35 || currentWind >= 35) {
     return {
       label: 'High caution',
-      className: 'border-rose-200 bg-rose-50 text-rose-700',
+      className: 'border-rose-300/25 bg-rose-300/10 text-rose-100',
       message: 'Plan wet-weather footwear, extra warm-up time, hydration, and pitch-safety checks.'
     };
   }
   if (day.rainChance >= 45 || day.wind >= 24 || day.code >= 61) {
     return {
       label: 'Watch conditions',
-      className: 'border-amber-200 bg-amber-50 text-amber-700',
+      className: 'border-amber-300/25 bg-amber-300/10 text-amber-100',
       message: 'Prepare rain cover, towel rotation, and adjust ball-speed expectations.'
     };
   }
   return {
     label: 'Good window',
-    className: 'border-emerald-200 bg-emerald-50 text-emerald-700',
+    className: 'border-emerald-300/25 bg-emerald-300/10 text-emerald-100',
     message: 'Conditions look manageable for normal match or training preparation.'
   };
 };
@@ -311,6 +323,12 @@ const readStrategySnapshot = (players: Player[]): StrategySnapshot => {
   const formation = isFormationValidForFormat(matchFormat, storedFormation) ? storedFormation : getDefaultFormation(matchFormat);
   const playstyle = readStringStorage(STORAGE_KEYS.playstyle, stringSchema, 'Quick Counter', 'Tactics playstyle');
   const defensiveStyle = readStringStorage(STORAGE_KEYS.defensiveStyle, stringSchema, 'High Press', 'Tactics defense');
+  const context = readJsonStorage(
+    STORAGE_KEYS.strategyContext,
+    strategyContextSchema,
+    DEFAULT_STRATEGY_CONTEXT,
+    'Tactics strategy context'
+  );
   const captainId = readStringStorage(STORAGE_KEYS.captainId, stringSchema, '', 'Tactics roles');
   const freeKickTakerId = readStringStorage(STORAGE_KEYS.freeKickTakerId, stringSchema, '', 'Tactics roles');
   const cornerTakerId = readStringStorage(STORAGE_KEYS.cornerTakerId, stringSchema, '', 'Tactics roles');
@@ -331,6 +349,7 @@ const readStrategySnapshot = (players: Player[]): StrategySnapshot => {
     formation,
     playstyle,
     defensiveStyle,
+    context,
     captain: players.find(player => player.id === captainId),
     freeKickTaker: players.find(player => player.id === freeKickTakerId),
     cornerTaker: players.find(player => player.id === cornerTakerId),
@@ -414,32 +433,55 @@ const renderOutcomeDot = ({ cx, cy, payload, index }: DashboardDotProps) => {
 
 const dashboardHeroStyle: React.CSSProperties = {
   background: [
-    'linear-gradient(115deg, #1e5bff 0%, #2854e6 34%, #493ed0 68%, #2f258f 100%)',
-    'linear-gradient(180deg, rgba(255,255,255,0.08) 0%, rgba(15,23,42,0.08) 100%)'
+    'radial-gradient(circle at 78% 20%, rgba(34, 211, 238, 0.22), transparent 20rem)',
+    'radial-gradient(circle at 14% 18%, rgba(251, 146, 60, 0.28), transparent 18rem)',
+    'linear-gradient(135deg, rgba(7,17,31,0.96) 0%, rgba(11,23,38,0.92) 52%, rgba(4,21,17,0.92) 100%)'
   ].join(', '),
-  boxShadow: '0 24px 58px rgba(37, 99, 235, 0.22)'
+  boxShadow: '0 24px 58px rgba(0, 0, 0, 0.28)'
 };
 
 const dashboardLogoTileStyle: React.CSSProperties = {
-  background: 'linear-gradient(150deg, rgba(255,255,255,0.32) 0%, rgba(255,255,255,0.17) 48%, rgba(99,102,241,0.18) 100%)',
-  boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.42), inset 0 -1px 0 rgba(15,23,42,0.16), 0 20px 38px rgba(15,23,42,0.22)'
+  background: 'linear-gradient(150deg, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0.08) 48%, rgba(34,211,238,0.12) 100%)',
+  boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.28), inset 0 -1px 0 rgba(15,23,42,0.24), 0 20px 38px rgba(0,0,0,0.28)'
 };
 
 const dashboardStatTileStyle: React.CSSProperties = {
-  background: 'linear-gradient(145deg, rgba(99,102,241,0.48) 0%, rgba(124,58,237,0.44) 54%, rgba(49,46,129,0.34) 100%)',
-  boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.26), inset 0 -1px 0 rgba(15,23,42,0.18), 0 16px 32px rgba(30,27,75,0.2)'
+  background: 'linear-gradient(145deg, rgba(251,146,60,0.24) 0%, rgba(34,211,238,0.14) 54%, rgba(15,23,42,0.34) 100%)',
+  boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.2), inset 0 -1px 0 rgba(15,23,42,0.24), 0 16px 32px rgba(0,0,0,0.24)'
 };
 
-const dashboardCardClass = 'rounded-2xl border border-border bg-card p-5 shadow-sm sm:p-6';
-const dashboardHeaderClass = 'border-b border-border pb-4';
-const dashboardSectionTitleClass = 'flex items-center gap-2 font-display text-base font-black tracking-tight text-foreground';
-const dashboardSectionDescriptionClass = 'mt-1 text-sm font-medium leading-relaxed text-muted-foreground';
-const dashboardPanelClass = 'rounded-2xl border border-border bg-muted/45 p-4';
-const dashboardListButtonClass = 'h-auto w-full justify-between rounded-xl border-border bg-card p-3 text-left whitespace-normal hover:border-primary/30 hover:bg-primary/5';
-const dashboardMetricRowClass = 'flex items-center justify-between rounded-xl border border-border bg-card p-3 shadow-sm transition-colors hover:border-primary/30 hover:bg-primary/5';
-const dashboardMutedTextClass = 'text-xs font-medium leading-relaxed text-muted-foreground';
+const dashboardCardClass = `${DARK_GLASS_CLASSES.panel} p-5 sm:p-6`;
+const dashboardHeaderClass = DARK_GLASS_CLASSES.sectionDivider;
+const dashboardSectionTitleClass = 'flex items-center gap-2 font-display text-base font-black tracking-tight text-slate-100';
+const dashboardSectionDescriptionClass = 'mt-1 text-sm font-medium leading-relaxed text-slate-400';
+const dashboardPanelClass = 'rounded-xl border border-cyan-300/10 bg-[#0b1726]/66 p-4 text-slate-100 shadow-sm shadow-black/10 backdrop-blur-sm [&_.text-foreground]:!text-slate-100 [&_.text-muted-foreground]:!text-slate-400';
+const dashboardListButtonClass = DARK_GLASS_CLASSES.listButton;
+const dashboardMetricRowClass = `${DARK_GLASS_CLASSES.metricCard} p-3`;
+const dashboardMutedTextClass = 'text-xs font-medium leading-relaxed text-slate-400';
+const dashboardInsetPanelClass = 'rounded-xl border border-cyan-300/10 bg-[#0b1726]/72 text-slate-100 shadow-inner shadow-black/10 backdrop-blur-sm';
+const dashboardSoftPanelClass = 'rounded-xl border border-cyan-300/10 bg-[#0b1726]/66 text-slate-100 shadow-sm shadow-black/10 backdrop-blur-sm';
+const dashboardTileClass = 'rounded-lg border border-cyan-300/10 bg-[#0b1726]/66 text-slate-100 shadow-sm shadow-black/10';
+const dashboardDividerBorderClass = 'border-cyan-300/10';
+const dashboardBadgeClass = 'border-cyan-300/15 bg-[#0b1726]/85 text-slate-100 shadow-sm shadow-black/10';
+const dashboardActionButtonClass = 'border-cyan-300/15 bg-[#0b1726]/85 text-slate-100 shadow-sm shadow-black/10 hover:border-orange-300/35 hover:bg-orange-300/10 hover:text-orange-100';
+const dashboardSuccessBadgeClass = 'border-emerald-300/25 bg-emerald-300/10 text-emerald-100 shadow-sm shadow-black/10';
+const dashboardWarningBadgeClass = 'border-amber-300/30 bg-amber-300/15 text-white shadow-sm shadow-black/10';
+const dashboardDangerBadgeClass = 'border-rose-300/25 bg-rose-300/10 text-rose-100 shadow-sm shadow-black/10';
+const dashboardInfoBadgeClass = 'border-cyan-300/25 bg-cyan-300/10 text-cyan-100 shadow-sm shadow-black/10';
 const WEATHER_LOCATION_STORAGE_KEY = 'dumala_weather_location';
 const WEATHER_PLACE_STORAGE_KEY = 'dumala_weather_place';
+const STRATEGY_SNAPSHOT_STORAGE_KEYS = new Set<string>([
+  STORAGE_KEYS.matchFormat,
+  STORAGE_KEYS.formation,
+  STORAGE_KEYS.playstyle,
+  STORAGE_KEYS.defensiveStyle,
+  STORAGE_KEYS.strategyContext,
+  STORAGE_KEYS.captainId,
+  STORAGE_KEYS.penaltyTakerId,
+  STORAGE_KEYS.freeKickTakerId,
+  STORAGE_KEYS.cornerTakerId,
+  STORAGE_KEYS.lineup
+]);
 
 interface DashboardViewProps {
   teamInfo: TeamInfo;
@@ -1014,18 +1056,56 @@ export default function DashboardView({
     .filter(p => p.position === 'Goalkeeper' || p.position === 'Defender')
     .sort((a,b) => b.cleanSheetsOrRebounds - a.cleanSheetsOrRebounds)
     .slice(0, 3);
+  const [strategySnapshotRefreshKey, setStrategySnapshotRefreshKey] = useState(0);
+  const [strategySnapshotSyncedAt, setStrategySnapshotSyncedAt] = useState(() => Date.now());
   const todayWeather = weatherAdvisory.days[0];
   const weatherTone = getWeatherAdvisoryTone(todayWeather, weatherAdvisory.current?.wind);
-  const strategySnapshot = useMemo(() => readStrategySnapshot(players), [players]);
+  const strategySnapshot = useMemo(() => readStrategySnapshot(players), [players, strategySnapshotRefreshKey]);
   const strategySetPieceSummary = [
     strategySnapshot.cornerTaker ? `CK ${strategySnapshot.cornerTaker.name}` : '',
     strategySnapshot.freeKickTaker ? `FK ${strategySnapshot.freeKickTaker.name}` : '',
     strategySnapshot.penaltyTaker ? `PK ${strategySnapshot.penaltyTaker.name}` : ''
   ].filter(Boolean).join(' / ') || 'Assign roles';
   const strategyLeadershipSummary = strategySnapshot.captain ? `Captain ${strategySnapshot.captain.name}` : 'Select captain';
+  const strategyContextSummary = [
+    STRATEGY_CONTEXT_LABELS.matchState[strategySnapshot.context.matchState],
+    STRATEGY_CONTEXT_LABELS.riskLevel[strategySnapshot.context.riskLevel],
+    STRATEGY_CONTEXT_LABELS.opponentBehavior[strategySnapshot.context.opponentBehavior]
+  ].join(' / ');
+  const strategySyncedLabel = new Intl.DateTimeFormat('en', {
+    hour: 'numeric',
+    minute: '2-digit'
+  }).format(new Date(strategySnapshotSyncedAt));
+
+  useEffect(() => {
+    const refreshStrategySnapshot = () => {
+      setStrategySnapshotRefreshKey(key => key + 1);
+      setStrategySnapshotSyncedAt(Date.now());
+    };
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') refreshStrategySnapshot();
+    };
+    const handleStorageChange = (event: StorageEvent) => {
+      if (event.key && STRATEGY_SNAPSHOT_STORAGE_KEYS.has(event.key)) refreshStrategySnapshot();
+    };
+
+    window.addEventListener('focus', refreshStrategySnapshot);
+    window.addEventListener('storage', handleStorageChange);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      window.removeEventListener('focus', refreshStrategySnapshot);
+      window.removeEventListener('storage', handleStorageChange);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, []);
 
   return (
-    <div id="dashboard-view-container" className="space-y-6">
+    <div
+      id="dashboard-view-container"
+      className={DARK_GLASS_CLASSES.dashboardShell}
+      style={{ ...DARK_GLASS_THEME_STYLE, ...DARK_GLASS_DASHBOARD_SURFACE_STYLE }}
+    >
 
       {/* Hero Header Banner */}
       <div
@@ -1052,7 +1132,7 @@ export default function DashboardView({
               variant="outline"
               size="icon"
               onClick={() => setShowLogoPicker(!showLogoPicker)}
-              className="absolute -bottom-1.5 -right-1.5 size-8 rounded-full bg-white text-slate-900 shadow-md hover:scale-105 hover:bg-indigo-50 hover:text-indigo-600 active:scale-95 [&_svg]:size-3"
+              className="absolute -bottom-1.5 -right-1.5 size-8 rounded-full border border-orange-300/30 bg-orange-400 text-slate-950 shadow-md shadow-black/25 hover:scale-105 hover:bg-orange-300 hover:text-slate-950 active:scale-95 [&_svg]:size-3"
               title="Edit Team Logo"
               aria-label="Edit team logo"
             >
@@ -1112,9 +1192,9 @@ export default function DashboardView({
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
             transition={{ duration: 0.2 }}
-            className="overflow-hidden bg-slate-900 border border-slate-800 rounded-2xl"
+            className="overflow-hidden rounded-2xl border border-cyan-300/10 bg-[#07111f]/92 shadow-lg shadow-black/20 backdrop-blur-xl"
           >
-            <div className="p-5 border-b border-slate-800/80 flex items-center justify-between">
+            <div className="flex items-center justify-between border-b border-cyan-300/10 p-5">
               <div className="flex items-center gap-2.5">
                 <Trophy size={16} className="text-amber-400" />
                 <div>
@@ -1131,14 +1211,14 @@ export default function DashboardView({
                 variant="ghost"
                 size="sm"
                 onClick={() => setShowLogoPicker(false)}
-                className="border border-slate-800 bg-slate-805 text-slate-400 hover:bg-slate-800 hover:text-white"
+                className={DARK_GLASS_CLASSES.secondaryActionButton}
               >
                 Close Editor
               </Button>
             </div>
 
             <div className="p-5 space-y-5">
-              <form onSubmit={handleClubNameSubmit} className="rounded-2xl border border-slate-800 bg-slate-950 p-4">
+              <form onSubmit={handleClubNameSubmit} className={dashboardPanelClass}>
                 <div className="flex flex-col gap-3 lg:flex-row lg:items-end">
                   <div className="min-w-0 flex-1">
                     <Label htmlFor="club-name-editor" className="block text-amber-400">
@@ -1295,13 +1375,13 @@ export default function DashboardView({
             <div className={`${dashboardHeaderClass} flex items-start justify-between gap-3`}>
               <div>
                 <h3 className={dashboardSectionTitleClass}>
-                  <Calendar size={18} className="text-primary" aria-hidden="true" /> Match Day Prep
+                  <Calendar size={18} className="text-orange-300" aria-hidden="true" /> Match Day Prep
                 </h3>
                 <p className={dashboardSectionDescriptionClass}>
                   Next event details, location, and coach directives.
                 </p>
               </div>
-              <Badge variant={nextMatch ? 'info' : 'outline'} className="shrink-0">
+              <Badge variant={nextMatch ? 'info' : 'outline'} className={`shrink-0 ${dashboardBadgeClass}`}>
                 {nextMatch ? (nextMatch.type === 'Training' ? 'Practice' : nextMatch.type === 'Meeting' ? 'Meeting' : 'Matchday') : 'Spotlight'}
               </Badge>
             </div>
@@ -1320,32 +1400,32 @@ export default function DashboardView({
                         <span className="text-xs font-bold text-muted-foreground">Our squad</span>
                         <h4 className="mt-1 max-w-[160px] truncate font-display text-xl font-black text-foreground">{teamInfo?.name || "Apex Rangers"}</h4>
                       </div>
-                      <div className="rounded-full border border-border bg-muted px-3.5 py-1.5 font-display text-sm font-bold text-muted-foreground">VS</div>
+                      <div className="rounded-full border border-cyan-300/10 bg-[#0b1726]/80 px-3.5 py-1.5 font-display text-sm font-bold text-slate-400 shadow-sm shadow-black/10">VS</div>
                       <div className="text-right">
                         <span className="text-xs font-bold text-muted-foreground">Opponent</span>
-                        <h4 id="next-match-opponent-slug" className="mt-1 max-w-[160px] truncate font-display text-xl font-black text-primary">{nextMatch.opponent}</h4>
+                        <h4 id="next-match-opponent-slug" className="mt-1 max-w-[160px] truncate font-display text-xl font-black text-orange-200">{nextMatch.opponent}</h4>
                       </div>
                     </>
                   )}
                 </div>
 
-                <div className="grid grid-cols-1 gap-3 rounded-xl border border-border bg-muted/45 p-4 text-sm sm:grid-cols-2">
+                <div className={`grid grid-cols-1 gap-3 p-4 text-sm sm:grid-cols-2 ${dashboardInsetPanelClass}`}>
                   <div>
                     <span className="flex items-center gap-1.5 font-semibold text-muted-foreground">
-                      <MapPin size={14} className="text-primary" aria-hidden="true" /> Kickoff Location
+                      <MapPin size={14} className="text-cyan-200" aria-hidden="true" /> Kickoff Location
                     </span>
                     <span id="next-match-loc" className="mt-0.5 block font-semibold text-foreground">{nextMatch.location}</span>
                   </div>
                   <div>
                     <span className="flex items-center gap-1.5 font-semibold text-muted-foreground">
-                      <Calendar size={14} className="text-primary" aria-hidden="true" /> Date &amp; Timing
+                      <Calendar size={14} className="text-orange-300" aria-hidden="true" /> Date &amp; Timing
                     </span>
                     <span id="next-match-datetime" className="mt-0.5 block font-semibold text-foreground">{nextMatch.date} @ {nextMatch.time}</span>
                   </div>
                 </div>
 
                 <div className="flex items-start gap-3 rounded-xl border border-primary/15 bg-primary/5 p-4 text-sm">
-                  <Megaphone size={16} className="mt-0.5 shrink-0 text-primary" aria-hidden="true" />
+                  <Megaphone size={16} className="mt-0.5 shrink-0 text-emerald-300" aria-hidden="true" />
                   <div>
                     <strong className="block text-foreground">{(teamInfo?.coach || "Coach Sterling")}'s prep directives</strong>
                     <p className="mt-1 leading-relaxed text-muted-foreground">
@@ -1363,14 +1443,14 @@ export default function DashboardView({
             ) : (
               <div className="flex flex-col items-center justify-center space-y-3 py-12 text-center text-sm text-muted-foreground">
                 <span>✨ No upcoming matches scheduled at this time.</span>
-                <span className="cursor-pointer text-primary hover:underline" onClick={() => onNavigate({ primary: 'home', homeTab: 'game_week' })}>
+                <span className="cursor-pointer text-orange-200 hover:text-orange-100 hover:underline" onClick={() => onNavigate({ primary: 'home', homeTab: 'game_week' })}>
                   Add games inside the Schedule builder →
                 </span>
               </div>
             )}
           </div>
 
-          <div className="mt-5 flex items-center justify-between border-t border-border pt-4 text-sm">
+          <div className={`mt-5 flex items-center justify-between border-t pt-4 text-sm ${dashboardDividerBorderClass}`}>
             <span className="font-medium text-muted-foreground">Coordinate calendars in real time</span>
             <Button
               id="dash-go-schedule"
@@ -1389,7 +1469,7 @@ export default function DashboardView({
           <div className={`${dashboardHeaderClass} flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center`}>
             <div>
               <h3 className={dashboardSectionTitleClass}>
-                <CloudSun size={18} className="text-primary" aria-hidden="true" /> Weather Advisory
+              <CloudSun size={18} className="text-cyan-200" aria-hidden="true" /> Weather Advisory
               </h3>
               <p className={dashboardSectionDescriptionClass}>
                 Today and the next seven days for match and training planning.
@@ -1400,7 +1480,7 @@ export default function DashboardView({
               variant="outline"
               size="sm"
               onClick={() => setShowWeatherSettings(value => !value)}
-              className="h-9 w-9 rounded-full p-0"
+              className={`h-9 w-9 rounded-full p-0 ${dashboardActionButtonClass}`}
               aria-label="Weather location settings"
               title="Weather location settings"
             >
@@ -1409,7 +1489,7 @@ export default function DashboardView({
           </div>
 
           {showWeatherSettings && (
-            <div className="mt-4 rounded-xl border border-border bg-muted/35 p-3">
+            <div className={`mt-4 p-3 ${dashboardInsetPanelClass}`}>
               <form onSubmit={saveWeatherLocation} className="grid grid-cols-1 gap-2 sm:grid-cols-[minmax(0,1fr)_auto_auto]">
                 <div className="relative min-w-0">
                   <Input
@@ -1421,19 +1501,19 @@ export default function DashboardView({
                     aria-expanded={weatherLocationSuggestions.length > 0}
                     aria-controls="weather-location-suggestions"
                     autoComplete="off"
-                    className="h-10 rounded-xl border-border bg-background text-sm"
+                    className={`${DARK_GLASS_CLASSES.input} h-10 text-sm`}
                   />
                   {(weatherLocationSuggestions.length > 0 || weatherLocationSearchStatus === 'loading' || weatherLocationSearchStatus === 'error') && (
                     <div
                       id="weather-location-suggestions"
                       role="listbox"
-                      className="absolute left-0 right-0 top-11 z-30 overflow-hidden rounded-xl border border-border bg-popover text-popover-foreground shadow-lg"
+                      className="absolute left-0 right-0 top-11 z-30 overflow-hidden rounded-xl border border-cyan-300/10 bg-[#07111f] text-slate-100 shadow-2xl shadow-black/35"
                     >
                       {weatherLocationSearchStatus === 'loading' && (
                         <div className="px-3 py-2 text-xs font-semibold text-muted-foreground">Finding cities...</div>
                       )}
                       {weatherLocationSearchStatus === 'error' && (
-                        <div className="px-3 py-2 text-xs font-semibold text-amber-700">City suggestions unavailable.</div>
+                        <div className="px-3 py-2 text-xs font-semibold text-amber-100">City suggestions unavailable.</div>
                       )}
                       {weatherLocationSuggestions.map((suggestion) => (
                         <button
@@ -1441,7 +1521,7 @@ export default function DashboardView({
                           type="button"
                           role="option"
                           onClick={() => applyWeatherLocation(suggestion.label, suggestion)}
-                          className="block w-full px-3 py-2 text-left text-sm font-semibold hover:bg-primary/10 focus:bg-primary/10 focus:outline-none"
+                          className="block w-full px-3 py-2 text-left text-sm font-semibold text-slate-100 hover:bg-orange-300/10 focus:bg-orange-300/10 focus:outline-none"
                         >
                           {suggestion.label}
                         </button>
@@ -1449,7 +1529,7 @@ export default function DashboardView({
                     </div>
                   )}
                 </div>
-                <Button type="submit" size="sm" className="h-10 rounded-xl">
+                <Button type="submit" size="sm" className="h-10 rounded-xl bg-orange-400 text-slate-950 shadow-sm shadow-black/10 hover:bg-orange-300 hover:text-slate-950">
                   Save location
                 </Button>
                 {savedWeatherLocation && (
@@ -1458,7 +1538,7 @@ export default function DashboardView({
                     size="sm"
                     variant="outline"
                     onClick={clearWeatherLocation}
-                    className="h-10 rounded-xl"
+                    className={`h-10 rounded-xl ${dashboardActionButtonClass}`}
                   >
                     Clear
                   </Button>
@@ -1469,17 +1549,17 @@ export default function DashboardView({
 
           {weatherAdvisory.status === 'loading' && (
             <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-[11rem_minmax(0,1fr)]">
-              <div className="h-28 animate-pulse rounded-xl border border-border bg-muted/45" />
+              <div className={`h-28 animate-pulse ${dashboardInsetPanelClass}`} />
               <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
                 {Array.from({ length: 4 }).map((_, index) => (
-                  <div key={index} className="h-28 animate-pulse rounded-xl border border-border bg-muted/45" />
+                  <div key={index} className={`h-28 animate-pulse ${dashboardInsetPanelClass}`} />
                 ))}
               </div>
             </div>
           )}
 
           {weatherAdvisory.status === 'error' && (
-            <div className="mt-5 flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+            <div className="mt-5 flex items-start gap-3 rounded-xl border border-amber-300/20 bg-amber-300/10 p-4 text-sm text-amber-100">
               <AlertCircle size={18} className="mt-0.5 shrink-0" aria-hidden="true" />
               <div>
                 <strong className="block">Weather advisory unavailable</strong>
@@ -1491,9 +1571,9 @@ export default function DashboardView({
           {weatherAdvisory.status === 'ready' && (
             <div className="mt-5 space-y-4">
               <div className="grid grid-cols-1 gap-3 lg:grid-cols-[13rem_minmax(0,1fr)]">
-                <div className="rounded-xl border border-border bg-muted/45 p-4">
+                <div className={`p-4 ${dashboardInsetPanelClass}`}>
                   <span className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-muted-foreground">
-                    <MapPin size={13} aria-hidden="true" /> {weatherAdvisory.locationLabel}
+                    <MapPin size={13} className="text-cyan-200" aria-hidden="true" /> {weatherAdvisory.locationLabel}
                   </span>
                   <div className="mt-3 flex flex-col items-center gap-3 text-center">
                     <WeatherKitIcon code={weatherAdvisory.current?.code ?? todayWeather?.code ?? 0} />
@@ -1507,12 +1587,12 @@ export default function DashboardView({
                     </div>
                   </div>
                   <div className="mt-3 grid grid-cols-2 gap-2 text-[11px] font-semibold text-muted-foreground">
-                    <span className="flex items-center gap-1.5"><CloudRain size={12} aria-hidden="true" /> {todayWeather?.rainChance ?? 0}% rain</span>
-                    <span className="flex items-center gap-1.5"><Wind size={12} aria-hidden="true" /> {weatherAdvisory.current?.wind ?? todayWeather?.wind ?? 0} km/h</span>
+                    <span className="flex items-center gap-1.5"><CloudRain size={12} className="text-cyan-200" aria-hidden="true" /> {todayWeather?.rainChance ?? 0}% rain</span>
+                    <span className="flex items-center gap-1.5"><Wind size={12} className="text-emerald-200" aria-hidden="true" /> {weatherAdvisory.current?.wind ?? todayWeather?.wind ?? 0} km/h</span>
                   </div>
                 </div>
 
-                <div className="rounded-xl border border-border bg-card p-4">
+                <div className={`p-4 ${dashboardSoftPanelClass}`}>
                   <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                     <Badge variant="outline" className={`w-fit ${weatherTone.className}`}>
                       {weatherTone.label}
@@ -1524,7 +1604,7 @@ export default function DashboardView({
                     {weatherAdvisory.days.map((day) => (
                       <div
                         key={day.date}
-                        className="min-w-0 rounded-lg border border-border bg-muted/45 p-2.5 text-center"
+                        className={`min-w-0 p-2.5 text-center ${dashboardTileClass}`}
                         title={getWeatherLabel(day.code)}
                         aria-label={`${getShortWeekday(day.date)} ${getWeatherLabel(day.code)}, high ${day.high} degrees, low ${day.low} degrees, ${day.rainChance}% rain`}
                       >
@@ -1532,7 +1612,7 @@ export default function DashboardView({
                         <div className="mx-auto mt-1 max-w-[58px]">
                           <WeatherKitIcon code={day.code} compact />
                         </div>
-                        <span className="mt-1 block text-xs font-black text-primary">{day.high}&#176;/{day.low}&#176;</span>
+                        <span className="mt-1 block text-xs font-black text-orange-200">{day.high}&#176;/{day.low}&#176;</span>
                         <span className="mt-1 block text-[10px] font-semibold text-muted-foreground">{day.rainChance}% rain</span>
                       </div>
                     ))}
@@ -1549,11 +1629,12 @@ export default function DashboardView({
             <div className="flex items-start justify-between gap-3">
               <div>
                 <h3 className={dashboardSectionTitleClass}>
-                  <ClipboardList size={18} className="text-primary" aria-hidden="true" /> Strategy Snapshot
+                  <ClipboardList size={18} className="text-orange-300" aria-hidden="true" /> Strategy Snapshot
                 </h3>
                 <div className="mt-1 flex flex-wrap items-center gap-1.5">
-                  <Badge variant="outline" className="h-4 px-1.5 text-[9px]">{strategySnapshot.formation}</Badge>
-                  <Badge variant="secondary" className="h-4 px-1.5 text-[9px]">{strategySnapshot.matchFormat}</Badge>
+                  <Badge variant="outline" className={`h-4 px-1.5 text-[9px] ${dashboardBadgeClass}`}>{strategySnapshot.formation}</Badge>
+                  <Badge variant="secondary" className={`h-4 px-1.5 text-[9px] ${dashboardBadgeClass}`}>{strategySnapshot.matchFormat}</Badge>
+                  <span className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground">Synced {strategySyncedLabel}</span>
                 </div>
               </div>
               <Button
@@ -1561,7 +1642,7 @@ export default function DashboardView({
                 variant="outline"
                 size="sm"
                 onClick={() => onNavigate({ primary: 'tactics' })}
-                className="h-7 shrink-0 rounded-lg px-2.5 text-[11px]"
+                className={`h-7 shrink-0 rounded-lg px-2.5 text-[11px] ${dashboardActionButtonClass}`}
               >
                 Open <ArrowRight size={12} />
               </Button>
@@ -1581,7 +1662,7 @@ export default function DashboardView({
             {strategySnapshot.slots.map((slot, index) => (
               <div
                 key={`${slot.role}-${index}`}
-                className="absolute flex h-5 w-5 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-white bg-primary text-[9px] font-black text-primary-foreground shadow-md ring-2 ring-emerald-950/15"
+                className="absolute flex h-5 w-5 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-white bg-orange-300 text-[9px] font-black text-slate-950 shadow-md ring-2 ring-emerald-950/15"
                 style={{ left: `${slot.left}%`, top: `${slot.top}%` }}
                 title={slot.player ? `${slot.player.name} - ${slot.role}` : slot.role}
               >
@@ -1590,22 +1671,26 @@ export default function DashboardView({
             ))}
           </div>
 
-          <div className="mt-2 grid grid-cols-2 overflow-hidden rounded-lg border border-border bg-muted/45">
-            <div className="min-w-0 border-b border-r border-border px-2 py-1">
+          <div className="mt-2 grid grid-cols-2 overflow-hidden rounded-lg border border-cyan-300/10 bg-[#0b1726]/72 shadow-inner shadow-black/10">
+            <div className="min-w-0 border-b border-r border-cyan-300/10 px-2 py-1">
               <span className="text-[8px] font-black uppercase tracking-widest text-muted-foreground">Attack</span>
               <p className="truncate text-[10.5px] font-black leading-tight text-foreground">{strategySnapshot.playstyle}</p>
             </div>
-            <div className="min-w-0 border-b border-border px-2 py-1">
+            <div className="min-w-0 border-b border-cyan-300/10 px-2 py-1">
               <span className="text-[8px] font-black uppercase tracking-widest text-muted-foreground">Defense</span>
               <p className="truncate text-[10.5px] font-black leading-tight text-foreground">{strategySnapshot.defensiveStyle}</p>
             </div>
-            <div className="min-w-0 border-r border-border px-2 py-1">
+            <div className="min-w-0 border-r border-cyan-300/10 px-2 py-1">
               <span className="text-[8px] font-black uppercase tracking-widest text-muted-foreground">Lead</span>
               <p className="truncate text-[10.5px] font-bold leading-tight text-foreground">{strategyLeadershipSummary}</p>
             </div>
             <div className="min-w-0 px-2 py-1">
               <span className="text-[8px] font-black uppercase tracking-widest text-muted-foreground">Set Piece</span>
               <p className="truncate text-[10.5px] font-bold leading-tight text-foreground">{strategySetPieceSummary}</p>
+            </div>
+            <div className="col-span-2 min-w-0 border-t border-cyan-300/10 px-2 py-1">
+              <span className="text-[8px] font-black uppercase tracking-widest text-muted-foreground">Context</span>
+              <p className="truncate text-[10.5px] font-bold leading-tight text-foreground">{strategyContextSummary}</p>
             </div>
           </div>
         </div>
@@ -1616,13 +1701,13 @@ export default function DashboardView({
             <div className={`${dashboardHeaderClass} flex items-start justify-between gap-3`}>
               <div>
                 <h3 className={dashboardSectionTitleClass}>
-                  <Megaphone size={18} className="text-primary" aria-hidden="true" /> Latest Alerts
+                  <Megaphone size={18} className="text-orange-300" aria-hidden="true" /> Latest Alerts
                 </h3>
                 <p className={dashboardSectionDescriptionClass}>
                   Club bulletins and time-sensitive updates.
                 </p>
               </div>
-              <Badge variant={announcements.some(ann => ann.category === 'Urgent') ? 'destructive' : 'outline'} className="shrink-0">
+              <Badge variant={announcements.some(ann => ann.category === 'Urgent') ? 'destructive' : 'outline'} className={`shrink-0 ${dashboardBadgeClass}`}>
                 {announcements.length > 0 ? `${announcements.length} total` : 'Quiet'}
               </Badge>
             </div>
@@ -1634,12 +1719,23 @@ export default function DashboardView({
                   key={ann.id} 
                   className={`rounded-xl border p-4 transition-colors ${
                     ann.category === 'Urgent' 
-                      ? 'border-destructive/20 bg-destructive/5'
-                      : 'border-border bg-muted/45'
+                      ? 'border-rose-300/20 bg-rose-300/10 text-rose-50'
+                      : 'border-cyan-300/10 bg-[#0b1726]/66 text-slate-100'
                   }`}
                 >
                   <div className="mb-2 flex items-center justify-between gap-3">
-                    <Badge variant={ann.category === 'Urgent' ? 'destructive' : ann.category === 'Matchday' ? 'info' : ann.category === 'Training' ? 'success' : 'secondary'}>
+                    <Badge
+                      variant={ann.category === 'Urgent' ? 'destructive' : ann.category === 'Matchday' ? 'info' : ann.category === 'Training' ? 'success' : 'secondary'}
+                      className={
+                        ann.category === 'Urgent'
+                          ? dashboardDangerBadgeClass
+                          : ann.category === 'Matchday'
+                            ? dashboardInfoBadgeClass
+                            : ann.category === 'Training'
+                              ? dashboardSuccessBadgeClass
+                              : dashboardBadgeClass
+                      }
+                    >
                       {ann.category}
                     </Badge>
                     <span className="shrink-0 text-xs font-semibold text-muted-foreground">{ann.date}</span>
@@ -1652,8 +1748,8 @@ export default function DashboardView({
               ))}
 
               {announcements.length === 0 && (
-                <div className="flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-border bg-muted/35 px-4 py-10 text-center text-sm text-muted-foreground">
-                  <Megaphone size={24} className="text-primary/45" aria-hidden="true" />
+                <div className="flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-cyan-300/15 bg-[#0b1726]/50 px-4 py-10 text-center text-sm text-slate-400">
+                  <Megaphone size={24} className="text-orange-300/65" aria-hidden="true" />
                   <span>No alerts recorded on the dashboard.</span>
                 </div>
               )}
@@ -1665,7 +1761,7 @@ export default function DashboardView({
             type="button"
             variant="outline"
             onClick={() => onNavigate({ primary: 'league_updates', leagueUpdatesTab: 'updates' })}
-            className="mt-5 w-full rounded-xl"
+            className={`mt-5 w-full rounded-xl ${dashboardActionButtonClass}`}
           >
             Open bulletin notices <ArrowRight size={12} />
           </Button>
@@ -1678,21 +1774,21 @@ export default function DashboardView({
         <div className={`${dashboardHeaderClass} flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center`}>
           <div>
             <h3 className={dashboardSectionTitleClass}>
-              <Table size={18} className="text-primary" aria-hidden="true" /> Squad Summary
+              <Table size={18} className="text-cyan-200" aria-hidden="true" /> Squad Summary
             </h3>
             <p className={dashboardSectionDescriptionClass}>All registered players, performance totals, discipline, availability, and MVP awards.</p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <Badge variant="success">Active</Badge>
-            <Badge variant="warning">Pending</Badge>
-            <Badge variant="destructive">Suspended</Badge>
+            <Badge variant="success" className={dashboardSuccessBadgeClass}>Active</Badge>
+            <Badge variant="warning" className={dashboardWarningBadgeClass}>Pending</Badge>
+            <Badge variant="destructive" className={dashboardDangerBadgeClass}>Suspended</Badge>
           </div>
         </div>
 
-        <div className="overflow-x-auto mt-4">
-          <table className="w-full text-left text-xs">
-            <thead>
-              <tr className="border-b border-border text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+        <div className="mt-4 max-h-[26rem] overflow-auto rounded-xl border border-cyan-300/10 bg-[#0b1726]/42 shadow-inner shadow-black/10">
+          <table className="min-w-[52rem] w-full text-left text-xs">
+            <thead className="sticky top-0 z-10 bg-[#0b1726] shadow-[0_1px_0_rgba(103,232,249,0.1)]">
+              <tr className="border-b border-cyan-300/10 text-[10px] font-black uppercase tracking-widest text-slate-400">
                 <th className="pb-2.5 pr-2 w-8">#</th>
                 <th className="pb-2.5 pr-2">Name</th>
                 <th className="pb-2.5 pr-2">Position</th>
@@ -1704,7 +1800,7 @@ export default function DashboardView({
                 <th className="pb-2.5 text-center">Status</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-border">
+            <tbody className="divide-y divide-cyan-300/10">
               {[...players]
                 .sort((a, b) => {
                   const order = ['Forward', 'Midfielder', 'Defender', 'Goalkeeper'];
@@ -1721,8 +1817,8 @@ export default function DashboardView({
                     <tr 
                       key={p.id}
                       onClick={() => onSelectPlayer(p)}
-                      className={`cursor-pointer transition-colors hover:bg-primary/5 ${
-                        isSuspended ? 'bg-destructive/5 opacity-60' : ''
+                      className={`cursor-pointer transition-colors hover:bg-orange-300/10 ${
+                        isSuspended ? 'bg-rose-300/10 opacity-70' : ''
                       }`}
                     >
                       <td className="py-2.5 pr-2 font-mono font-bold text-muted-foreground">{p.number || '—'}</td>
@@ -1744,12 +1840,12 @@ export default function DashboardView({
                         {hasCards ? (
                           <div className="inline-flex items-center gap-1">
                             {(p.yellowCards || 0) > 0 && (
-                              <Badge variant="warning" className="px-1.5 py-0 text-[9px] normal-case tracking-normal">
+                              <Badge variant="warning" className={`px-1.5 py-0 text-[9px] normal-case tracking-normal ${dashboardWarningBadgeClass}`}>
                                 YC {p.yellowCards}
                               </Badge>
                             )}
                             {(p.redCards || 0) > 0 && (
-                              <Badge variant="destructive" className="px-1.5 py-0 text-[9px] normal-case tracking-normal">
+                              <Badge variant="destructive" className={`px-1.5 py-0 text-[9px] normal-case tracking-normal ${dashboardDangerBadgeClass}`}>
                                 RC {p.redCards}
                               </Badge>
                             )}
@@ -1761,7 +1857,7 @@ export default function DashboardView({
                       <td className="py-2.5 pr-2 text-center font-bold text-foreground">{p.gamesPlayed ?? 0}</td>
                       <td className="py-2.5 pr-2 text-center">
                         {(p.mvpAwards || 0) > 0 ? (
-                          <Badge variant="warning" className="gap-1 px-2 py-0 text-[10px]">
+                          <Badge variant="warning" className={`gap-1 px-2 py-0 text-[10px] ${dashboardWarningBadgeClass}`}>
                             <Star size={10} aria-hidden="true" /> {p.mvpAwards}
                           </Badge>
                         ) : (
@@ -1771,7 +1867,13 @@ export default function DashboardView({
                       <td className="py-2.5 text-center">
                         <Badge
                           variant={p.registrationStatus === 'Active' ? 'success' : isSuspended ? 'destructive' : 'warning'}
-                          className="px-2 py-0 text-[9px]"
+                          className={`px-2 py-0 text-[9px] ${
+                            p.registrationStatus === 'Active'
+                              ? dashboardSuccessBadgeClass
+                              : isSuspended
+                                ? dashboardDangerBadgeClass
+                                : dashboardWarningBadgeClass
+                          }`}
                         >
                           {p.registrationStatus === 'Active' ? 'Active' :
                            isSuspended ? 'Suspended' : 'Pending'}
@@ -1793,13 +1895,13 @@ export default function DashboardView({
         {/* Aggregate quick-stats footer */}
         {players.length > 0 && (
           <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-border pt-3">
-            <Badge variant="outline">Players {players.length}</Badge>
-            <Badge variant="info">Goals {players.reduce((s, p) => s + (p.points || 0), 0)}</Badge>
-            <Badge variant="success">Assists {players.reduce((s, p) => s + (p.assists || 0), 0)}</Badge>
-            <Badge variant="warning">YC {players.reduce((s, p) => s + (p.yellowCards || 0), 0)}</Badge>
-            <Badge variant="destructive">RC {players.reduce((s, p) => s + (p.redCards || 0), 0)}</Badge>
-            <Badge variant="success">Active {players.filter(p => p.registrationStatus === 'Active').length}</Badge>
-            <Badge variant="warning" className="gap-1"><Star size={10} aria-hidden="true" /> MVP {players.reduce((s, p) => s + (p.mvpAwards || 0), 0)}</Badge>
+            <Badge variant="outline" className={dashboardBadgeClass}>Players {players.length}</Badge>
+            <Badge variant="info" className={dashboardInfoBadgeClass}>Goals {players.reduce((s, p) => s + (p.points || 0), 0)}</Badge>
+            <Badge variant="success" className={dashboardSuccessBadgeClass}>Assists {players.reduce((s, p) => s + (p.assists || 0), 0)}</Badge>
+            <Badge variant="warning" className={dashboardWarningBadgeClass}>YC {players.reduce((s, p) => s + (p.yellowCards || 0), 0)}</Badge>
+            <Badge variant="destructive" className={dashboardDangerBadgeClass}>RC {players.reduce((s, p) => s + (p.redCards || 0), 0)}</Badge>
+            <Badge variant="success" className={dashboardSuccessBadgeClass}>Active {players.filter(p => p.registrationStatus === 'Active').length}</Badge>
+            <Badge variant="warning" className={`gap-1 ${dashboardWarningBadgeClass}`}><Star size={10} aria-hidden="true" /> MVP {players.reduce((s, p) => s + (p.mvpAwards || 0), 0)}</Badge>
           </div>
         )}
       </div>
@@ -1809,7 +1911,7 @@ export default function DashboardView({
         <div className={`${dashboardHeaderClass} flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center`}>
           <div>
             <h3 className={dashboardSectionTitleClass}>
-              <ClipboardList className="text-primary" size={18} aria-hidden="true" /> FPRDS Snapshot
+              <ClipboardList className="text-orange-300" size={18} aria-hidden="true" /> FPRDS Snapshot
             </h3>
             <p className={dashboardSectionDescriptionClass}>Top prospects, recent improvements, and latest assessment sessions.</p>
           </div>
@@ -1826,7 +1928,7 @@ export default function DashboardView({
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 lg:gap-6 mt-6">
           <div className={dashboardPanelClass}>
             <h4 className="mb-3 flex items-center gap-2 font-display text-sm font-black text-foreground">
-              <Star size={15} className="text-accent" aria-hidden="true" /> Top Prospects
+              <Star size={15} className="text-amber-300" aria-hidden="true" /> Top Prospects
             </h4>
             <div className="space-y-2.5">
               {topProspects.map(({ player, session }, idx) => (
@@ -1859,7 +1961,7 @@ export default function DashboardView({
 
           <div className={dashboardPanelClass}>
             <h4 className="mb-3 flex items-center gap-2 font-display text-sm font-black text-foreground">
-              <TrendingUp size={15} className="text-success" aria-hidden="true" /> Top Improvers
+              <TrendingUp size={15} className="text-emerald-300" aria-hidden="true" /> Top Improvers
             </h4>
             <div className="space-y-2.5">
               {topImprovers.map(({ player, session }, idx) => (
@@ -1880,7 +1982,7 @@ export default function DashboardView({
                   </div>
                   <div className="text-right shrink-0">
                     <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest">Δ OVR</p>
-                    <p className={`text-lg font-display font-black leading-none ${(session.deltas.ovrDelta ?? 0) >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+                    <p className={`text-lg font-display font-black leading-none ${(session.deltas.ovrDelta ?? 0) >= 0 ? 'text-emerald-300' : 'text-rose-300'}`}>
                       {(session.deltas.ovrDelta ?? 0) >= 0 ? `+${session.deltas.ovrDelta ?? 0}` : `${session.deltas.ovrDelta ?? 0}`}
                     </p>
                   </div>
@@ -1894,7 +1996,7 @@ export default function DashboardView({
 
           <div className={dashboardPanelClass}>
             <h4 className="mb-3 flex items-center gap-2 font-display text-sm font-black text-foreground">
-              <Calendar size={15} className="text-primary" aria-hidden="true" /> Recent Assessments
+              <Calendar size={15} className="text-orange-300" aria-hidden="true" /> Recent Assessments
             </h4>
             <div className="space-y-2.5">
               {recentAssessments.map((s) => {
@@ -1934,11 +2036,11 @@ export default function DashboardView({
         <div className={`${dashboardHeaderClass} flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center`}>
           <div>
             <h3 className={dashboardSectionTitleClass}>
-              <Award className="text-accent" size={18} /> Player Performance Leaderboards
+              <Award className="text-orange-300" size={18} /> Player Performance Leaderboards
             </h3>
             <p className={dashboardSectionDescriptionClass}>Season standings across main performance metrics. Click an athlete to open full stats.</p>
           </div>
-          <Badge variant="outline">Seeded metrics</Badge>
+          <Badge variant="outline" className={dashboardBadgeClass}>Seeded metrics</Badge>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
@@ -1946,7 +2048,7 @@ export default function DashboardView({
           {/* Section: Golden Boot */}
           <div className={dashboardPanelClass}>
             <h4 className="mb-3 flex items-center gap-2 font-display text-sm font-black text-foreground">
-              <Zap size={14} className="text-amber-500 fill-amber-300" /> Golden Boot (Goals)
+              <Zap size={14} className="text-orange-300 fill-orange-300" /> Golden Boot (Goals)
             </h4>
             <div className="space-y-2.5">
               {topScorers.map((player, idx) => (
@@ -1969,7 +2071,7 @@ export default function DashboardView({
                       <div className="text-[11px] text-muted-foreground">Position: {player.position}</div>
                     </div>
                   </div>
-                  <Badge variant="info">{player.points} G</Badge>
+                  <Badge variant="info" className={dashboardInfoBadgeClass}>{player.points} G</Badge>
                 </div>
               ))}
 
@@ -1982,7 +2084,7 @@ export default function DashboardView({
           {/* Section: Playmaking King */}
           <div className={dashboardPanelClass}>
             <h4 className="mb-3 flex items-center gap-2 font-display text-sm font-black text-foreground">
-              <Award size={14} className="text-primary" /> Playmaking Kings (Assists)
+              <Award size={14} className="text-orange-300" /> Playmaking Kings (Assists)
             </h4>
             <div className="space-y-2.5">
               {topAssists.map((player, idx) => (
@@ -2005,7 +2107,7 @@ export default function DashboardView({
                       <div className="text-[11px] text-muted-foreground">Position: {player.position}</div>
                     </div>
                   </div>
-                  <Badge variant="success">{player.assists} A</Badge>
+                  <Badge variant="success" className={dashboardSuccessBadgeClass}>{player.assists} A</Badge>
                 </div>
               ))}
 
@@ -2018,7 +2120,7 @@ export default function DashboardView({
           {/* Section: Clean Sheet Wall */}
           <div className={dashboardPanelClass}>
             <h4 className="mb-3 flex items-center gap-2 font-display text-sm font-black text-foreground">
-              <Shield size={14} className="text-emerald-500" /> Goalkeeping Walls
+              <Shield size={14} className="text-emerald-300" /> Goalkeeping Walls
             </h4>
             <div className="space-y-2.5">
               {topGoalkeepers.map((player, idx) => (
@@ -2041,7 +2143,7 @@ export default function DashboardView({
                       <div className="text-[11px] text-muted-foreground">Position: {player.position}</div>
                     </div>
                   </div>
-                  <Badge variant="info">{player.cleanSheetsOrRebounds} CS</Badge>
+                  <Badge variant="info" className={dashboardInfoBadgeClass}>{player.cleanSheetsOrRebounds} CS</Badge>
                 </div>
               ))}
 
@@ -2061,14 +2163,14 @@ export default function DashboardView({
           <div className={`${dashboardHeaderClass} flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center`}>
             <div>
               <h3 className={dashboardSectionTitleClass}>
-                <TrendingUp className="text-primary" size={18} /> Team Points Progression
+                <TrendingUp className="text-emerald-300" size={18} /> Team Points Progression
               </h3>
               <p className={dashboardSectionDescriptionClass}>Cumulative standings trajectory over the last 10 completed matches.</p>
             </div>
             <div className="flex flex-wrap gap-2">
-              <Badge variant="success">Win +3</Badge>
-              <Badge variant="warning">Draw +1</Badge>
-              <Badge variant="destructive">Loss 0</Badge>
+              <Badge variant="success" className={dashboardSuccessBadgeClass}>Win +3</Badge>
+              <Badge variant="warning" className={dashboardWarningBadgeClass}>Draw +1</Badge>
+              <Badge variant="destructive" className={dashboardDangerBadgeClass}>Loss 0</Badge>
             </div>
           </div>
 
@@ -2076,7 +2178,7 @@ export default function DashboardView({
             {chartData.length > 0 ? (
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={chartData} margin={{ top: 20, right: 15, left: -25, bottom: 5 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(148, 163, 184, 0.18)" vertical={false} />
                   <XAxis 
                     dataKey="name" 
                     stroke="#94a3b8" 
@@ -2099,9 +2201,9 @@ export default function DashboardView({
                   <Line 
                     type="monotone" 
                     dataKey="points" 
-                    stroke="#4f46e5" 
+                    stroke="#22d3ee"
                     strokeWidth={3.5} 
-                    activeDot={{ r: 7, stroke: '#ffffff', strokeWidth: 2, fill: '#4f46e5' }} 
+                    activeDot={{ r: 7, stroke: '#ffffff', strokeWidth: 2, fill: '#22d3ee' }}
                     dot={renderOutcomeDot}
                   />
                 </LineChart>
@@ -2119,7 +2221,7 @@ export default function DashboardView({
           <div className={`${dashboardHeaderClass} flex flex-col gap-3`}>
             <div>
               <h3 className={dashboardSectionTitleClass}>
-                <Calendar className="text-primary" size={18} /> Recent Form
+                <Calendar className="text-orange-300" size={18} /> Recent Form
               </h3>
               <p className={dashboardSectionDescriptionClass}>Results from the last 5 games</p>
             </div>
@@ -2148,14 +2250,14 @@ export default function DashboardView({
               const isWin = our > opp;
               const isDraw = our === opp;
               return (
-                <div key={game.id} className="flex justify-between items-center p-3 rounded-xl border border-border bg-muted/45 hover:bg-muted transition-colors">
+                <div key={game.id} className="flex items-center justify-between rounded-xl border border-cyan-300/10 bg-[#0b1726]/66 p-3 text-slate-100 shadow-sm shadow-black/10 transition-colors hover:border-orange-300/30 hover:bg-orange-300/10">
                   <div className="flex items-center gap-3">
                     <span className={`w-6 h-6 flex items-center justify-center rounded font-bold text-[10px] text-white ${isWin ? 'bg-emerald-500' : isDraw ? 'bg-amber-400' : 'bg-rose-500'}`}>
                       {isWin ? 'W' : isDraw ? 'D' : 'L'}
                     </span>
-                    <span className="font-semibold text-foreground text-xs truncate max-w-[120px]">{game.opponent}</span>
+                    <span className="max-w-[120px] truncate text-xs font-semibold text-slate-100">{game.opponent}</span>
                   </div>
-                  <div className="font-mono text-xs font-black text-foreground bg-card px-2 py-1 rounded border border-border shadow-sm">
+                  <div className="rounded border border-cyan-300/10 bg-[#0b1726]/80 px-2 py-1 font-mono text-xs font-black text-slate-100 shadow-sm shadow-black/10">
                     {our} - {opp}
                   </div>
                 </div>

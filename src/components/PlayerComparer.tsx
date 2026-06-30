@@ -24,6 +24,11 @@ interface PlayerComparerProps {
 
 type LegacyAttributeKey = keyof NonNullable<Player['attributes']>;
 
+const comparerGlassPanelClass = 'rounded-2xl border border-cyan-300/10 bg-[#07111f]/88 text-slate-100 shadow-lg shadow-black/20 backdrop-blur-xl';
+const comparerGlassCardClass = 'rounded-xl border border-cyan-300/10 bg-[#0b1726]/66 text-slate-100 shadow-sm shadow-black/10 backdrop-blur-sm';
+const comparerGlassInsetClass = 'rounded-xl border border-cyan-300/10 bg-[#0b1726]/72 text-slate-100 shadow-inner shadow-black/10 backdrop-blur-sm';
+const comparerGlassSelectClass = 'border-cyan-300/10 bg-[#0b1726]/85 text-xs font-semibold text-slate-100 focus:ring-orange-300/25';
+
 const getLegacyAttributeValue = (player: Player, key: LegacyAttributeKey): number => {
   const value = player.attributes?.[key];
   return typeof value === 'number' && Number.isFinite(value) ? value : 50;
@@ -189,16 +194,16 @@ export default function PlayerComparer({
   return (
     <div 
       id="player-comparison-section" 
-      className="bg-white rounded-2xl border border-slate-200/60 p-5.5 shadow-sm space-y-6"
+      className={`${comparerGlassPanelClass} space-y-6 p-5.5`}
     >
       {/* Header Panel */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-slate-100 pb-4">
+      <div className="flex flex-col gap-3 border-b border-cyan-300/10 pb-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <div className="flex items-center gap-2">
             <span className="bg-indigo-100 text-indigo-700 text-[9px] font-black uppercase px-2 py-0.5 rounded tracking-widest">TACTICAL MATRIX</span>
             <span className="text-slate-400 text-xs font-mono">Statistical Matchup</span>
           </div>
-          <h3 className="text-base font-display font-black text-slate-800 tracking-tight flex items-center gap-1.5 mt-1">
+          <h3 className="mt-1 flex items-center gap-1.5 font-display text-base font-black tracking-tight text-slate-100">
             <ArrowLeftRight size={16} className="text-indigo-600 shrink-0" />
             <span>Compare Squad Athletes</span>
           </h3>
@@ -214,7 +219,7 @@ export default function PlayerComparer({
             variant="outline"
             size="sm"
             onClick={onClearCompare}
-            className="self-start gap-1 rounded-lg bg-slate-50 text-[10px] uppercase text-slate-500 hover:bg-slate-100 sm:self-center [&_svg]:size-3"
+            className="self-start gap-1 rounded-lg border-cyan-300/15 bg-[#0b1726]/85 text-[10px] uppercase text-slate-300 hover:border-orange-300/30 hover:bg-orange-300/10 hover:text-orange-100 sm:self-center [&_svg]:size-3"
           >
             <X size={12} />
             <span>Reset Matchup</span>
@@ -229,14 +234,14 @@ export default function PlayerComparer({
         <div className="lg:col-span-8 grid grid-cols-1 md:grid-cols-2 gap-4">
           
           {/* Player 1 Selection */}
-          <div className="bg-slate-50/50 rounded-xl p-4 border border-slate-150/60 space-y-3.5">
+          <div className={`${comparerGlassCardClass} space-y-3.5 p-4`}>
             <div className="space-y-1">
               <Label htmlFor="select-player-1-dropdown" className="block font-mono text-slate-400">Primary Athlete</Label>
               <Select value={player1?.id ?? 'none'} onValueChange={handleSelectP1}>
-                <SelectTrigger id="select-player-1-dropdown" className="w-full border-slate-250 text-xs font-semibold text-slate-700 focus:ring-indigo-500/30">
+                <SelectTrigger id="select-player-1-dropdown" className={`w-full ${comparerGlassSelectClass}`}>
                   <SelectValue placeholder="Choose athlete" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="border-cyan-300/15 bg-[#0b1726] text-slate-100">
                   <SelectItem value="none">Choose Athlete</SelectItem>
                   {players
                     .filter(p => p.id !== player2?.id)
@@ -251,11 +256,11 @@ export default function PlayerComparer({
             </div>
 
             {player1 ? (
-              <div id="compare-player-1-card" className="bg-white rounded-xl p-3 border border-slate-100 shadow-sm flex items-start gap-3.5 relative">
+              <div id="compare-player-1-card" className={`${comparerGlassInsetClass} relative flex items-start gap-3.5 p-3`}>
                 <img 
                   src={player1.photoUrl} 
                   alt={player1.name} 
-                  className="w-13 h-13 rounded-full object-cover border border-slate-200 shrink-0 shadow-inner"
+                  className="h-13 w-13 shrink-0 rounded-full border border-cyan-300/15 object-cover shadow-inner"
                   referrerPolicy="no-referrer"
                 />
                 <div className="min-w-0 flex-1 space-y-1.5">
@@ -267,11 +272,11 @@ export default function PlayerComparer({
                       {player1.position}
                     </span>
                   </div>
-                  <h4 className="font-display font-bold text-slate-800 text-sm truncate leading-none">{player1.name}</h4>
-                  <div className="grid grid-cols-3 gap-1 border-t border-slate-100 pt-2 text-[10px] text-slate-400 font-medium">
+                  <h4 className="truncate font-display text-sm font-bold leading-none text-slate-100">{player1.name}</h4>
+                  <div className="grid grid-cols-3 gap-1 border-t border-cyan-300/10 pt-2 text-[10px] font-medium text-slate-400">
                     <div>
                       <span>Games</span>
-                      <strong className="block text-slate-700 font-mono mt-0.5">{player1.gamesPlayed}</strong>
+                      <strong className="mt-0.5 block font-mono text-slate-100">{player1.gamesPlayed}</strong>
                     </div>
                     <div>
                       <span className="text-indigo-500">Goals</span>
@@ -279,17 +284,17 @@ export default function PlayerComparer({
                     </div>
                     <div>
                       <span>Assists</span>
-                      <strong className="block text-slate-700 font-mono mt-0.5">{player1.assists}</strong>
+                      <strong className="mt-0.5 block font-mono text-slate-100">{player1.assists}</strong>
                     </div>
                   </div>
                 </div>
                 {/* Overall Rating Pin */}
-                <div className="absolute top-3 right-3 w-8 h-8 rounded-full bg-slate-900 border border-slate-800 flex items-center justify-center font-mono font-black text-amber-400 text-xs shadow-sm">
+                <div className="absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-full border border-cyan-300/10 bg-[#07111f] font-mono text-xs font-black text-amber-400 shadow-sm">
                   {p1Ovr}
                 </div>
               </div>
             ) : (
-              <div className="bg-white rounded-xl p-6 border border-slate-100/80 shadow-sm text-center text-slate-400 text-xs border-dashed flex flex-col items-center justify-center py-8">
+              <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-cyan-300/15 bg-[#0b1726]/42 p-6 py-8 text-center text-xs text-slate-400 shadow-sm">
                 <Award size={20} className="text-slate-300 stroke-1.5 mb-1.5 animate-pulse" />
                 <span>No selection made</span>
                 <span className="text-[10px] text-slate-300 mt-0.5">Click 'Compare' on a player card or select here</span>
@@ -298,14 +303,14 @@ export default function PlayerComparer({
           </div>
 
           {/* Player 2 Selection */}
-          <div className="bg-slate-50/50 rounded-xl p-4 border border-slate-150/60 space-y-3.5">
+          <div className={`${comparerGlassCardClass} space-y-3.5 p-4`}>
             <div className="space-y-1">
               <Label htmlFor="select-player-2-dropdown" className="block font-mono text-slate-400">Opposing Athlete / Matchup</Label>
               <Select value={player2?.id ?? 'none'} onValueChange={handleSelectP2}>
-                <SelectTrigger id="select-player-2-dropdown" className="w-full border-slate-250 text-xs font-semibold text-slate-700 focus:ring-indigo-500/30">
+                <SelectTrigger id="select-player-2-dropdown" className={`w-full ${comparerGlassSelectClass}`}>
                   <SelectValue placeholder="Choose athlete" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="border-cyan-300/15 bg-[#0b1726] text-slate-100">
                   <SelectItem value="none">Choose Athlete</SelectItem>
                   {players
                     .filter(p => p.id !== player1?.id)
@@ -320,11 +325,11 @@ export default function PlayerComparer({
             </div>
 
             {player2 ? (
-              <div id="compare-player-2-card" className="bg-white rounded-xl p-3 border border-slate-100 shadow-sm flex items-start gap-3.5 relative">
+              <div id="compare-player-2-card" className={`${comparerGlassInsetClass} relative flex items-start gap-3.5 p-3`}>
                 <img 
                   src={player2.photoUrl} 
                   alt={player2.name} 
-                  className="w-13 h-13 rounded-full object-cover border border-slate-200 shrink-0 shadow-inner"
+                  className="h-13 w-13 shrink-0 rounded-full border border-cyan-300/15 object-cover shadow-inner"
                   referrerPolicy="no-referrer"
                 />
                 <div className="min-w-0 flex-1 space-y-1.5">
@@ -336,11 +341,11 @@ export default function PlayerComparer({
                       {player2.position}
                     </span>
                   </div>
-                  <h4 className="font-display font-bold text-slate-800 text-sm truncate leading-none">{player2.name}</h4>
-                  <div className="grid grid-cols-3 gap-1 border-t border-slate-100 pt-2 text-[10px] text-slate-400 font-medium">
+                  <h4 className="truncate font-display text-sm font-bold leading-none text-slate-100">{player2.name}</h4>
+                  <div className="grid grid-cols-3 gap-1 border-t border-cyan-300/10 pt-2 text-[10px] font-medium text-slate-400">
                     <div>
                       <span>Games</span>
-                      <strong className="block text-slate-700 font-mono mt-0.5">{player2.gamesPlayed}</strong>
+                      <strong className="mt-0.5 block font-mono text-slate-100">{player2.gamesPlayed}</strong>
                     </div>
                     <div>
                       <span className="text-indigo-500">Goals</span>
@@ -348,17 +353,17 @@ export default function PlayerComparer({
                     </div>
                     <div>
                       <span>Assists</span>
-                      <strong className="block text-slate-700 font-mono mt-0.5">{player2.assists}</strong>
+                      <strong className="mt-0.5 block font-mono text-slate-100">{player2.assists}</strong>
                     </div>
                   </div>
                 </div>
                 {/* Overall Rating Pin */}
-                <div className="absolute top-3 right-3 w-8 h-8 rounded-full bg-slate-900 border border-slate-800 flex items-center justify-center font-mono font-black text-amber-400 text-xs shadow-sm">
+                <div className="absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-full border border-cyan-300/10 bg-[#07111f] font-mono text-xs font-black text-amber-400 shadow-sm">
                   {p2Ovr}
                 </div>
               </div>
             ) : (
-              <div className="bg-white rounded-xl p-6 border border-slate-100/80 shadow-sm text-center text-slate-400 text-xs border-dashed flex flex-col items-center justify-center py-8">
+              <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-cyan-300/15 bg-[#0b1726]/42 p-6 py-8 text-center text-xs text-slate-400 shadow-sm">
                 <Award size={20} className="text-slate-300 stroke-1.5 mb-1.5 animate-pulse" />
                 <span>No selection made</span>
                 <span className="text-[10px] text-slate-300 mt-0.5">Click 'Compare' on a player card or select here</span>
@@ -368,7 +373,7 @@ export default function PlayerComparer({
 
           {/* Breakdown Stats match-bars */}
           {player1 && player2 && (
-            <div id="comparison-attribute-bars" className="md:col-span-2 space-y-4 pt-1 bg-white p-4.5 rounded-xl border border-slate-200">
+            <div id="comparison-attribute-bars" className={`${comparerGlassCardClass} space-y-4 p-4.5 pt-1 md:col-span-2`}>
               <h4 className="text-[10px] font-mono font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
                 <Flame size={13} className="text-indigo-600 animate-pulse" />
                 <span>Attribute Matchups</span>
@@ -392,20 +397,20 @@ export default function PlayerComparer({
                   return (
                     <div key={item.key} className="space-y-1.5 text-xs">
                       <div className="flex justify-between items-center text-[11px] font-bold">
-                        <span className={`font-semibold  ${p1Higher ? 'text-indigo-650' : 'text-slate-500'}`}>
+                        <span className={`font-semibold ${p1Higher ? 'text-orange-300' : 'text-slate-500'}`}>
                           {p1Higher ? '🏆 ' : ''}{val1}
                         </span>
                         <span className="text-slate-500 flex items-center gap-1 font-semibold">
                           <span>{item.icon}</span>
                           <span className="text-[10px] text-slate-400">{item.label}</span>
                         </span>
-                        <span className={`font-semibold  ${p2Higher ? 'text-indigo-650' : 'text-slate-500'}`}>
+                        <span className={`font-semibold ${p2Higher ? 'text-orange-300' : 'text-slate-500'}`}>
                           {val2}{p2Higher ? ' 🏆' : ''}
                         </span>
                       </div>
 
                       {/* Visual matchup layout bar */}
-                      <div className="h-2.5 bg-slate-100 rounded-full flex overflow-hidden">
+                      <div className="flex h-2.5 overflow-hidden rounded-full bg-white/10">
                         {/* Player 1 Share (left aligned) */}
                         <div 
                           className={`h-full transition-all duration-500 rounded-l-full bg-indigo-500 flex justify-end pr-1 border-r border-white/20`}
@@ -427,7 +432,7 @@ export default function PlayerComparer({
         </div>
 
         {/* Right Side: Recharts Radar Chart */}
-        <div className="lg:col-span-4 flex flex-col justify-between items-center bg-slate-50/50 rounded-xl border border-slate-150 p-4 h-full min-h-[340px]">
+        <div className={`${comparerGlassCardClass} flex h-full min-h-[340px] flex-col items-center justify-between p-4 lg:col-span-4`}>
           <span className="text-[9px] font-mono font-black text-slate-400 uppercase tracking-wider self-start">
             Radar Performance Polygon
           </span>
@@ -484,7 +489,7 @@ export default function PlayerComparer({
             </div>
           )}
 
-          <div className="text-[10px] text-slate-400 text-center leading-relaxed mt-2 p-1 border-t border-slate-100 w-full font-mono">
+          <div className="mt-2 w-full border-t border-cyan-300/10 p-1 text-center font-mono text-[10px] leading-relaxed text-slate-400">
             Radar boundaries configured at max OVR rating of 99 index points.
           </div>
         </div>
@@ -492,11 +497,11 @@ export default function PlayerComparer({
       </div>
 
       {/* Dynamic Summary analysis */}
-      <div id="tactical-teammate-analysis-conclusion" className="bg-gradient-to-r from-slate-50 via-slate-100/40 to-slate-50 rounded-xl p-4 border border-slate-150 text-xs text-slate-700 flex items-start gap-3">
+      <div id="tactical-teammate-analysis-conclusion" className="flex items-start gap-3 rounded-xl border border-cyan-300/10 bg-[#0b1726]/66 p-4 text-xs text-slate-300 shadow-sm shadow-black/10 backdrop-blur-sm">
         <Sparkles size={16} className="text-indigo-600 mt-0.5 shrink-0 animate-pulse" />
         <div className="space-y-1">
-          <div className="font-bold text-slate-800 uppercase tracking-widest text-[9px] font-mono">Coach Matchup Summary</div>
-          <p className="leading-relaxed font-semibold text-slate-650">{getTacticalAnalysis()}</p>
+          <div className="font-mono text-[9px] font-bold uppercase tracking-widest text-slate-100">Coach Matchup Summary</div>
+          <p className="font-semibold leading-relaxed text-slate-300">{getTacticalAnalysis()}</p>
         </div>
       </div>
 

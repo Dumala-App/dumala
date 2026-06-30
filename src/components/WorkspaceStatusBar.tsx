@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useState } from 'react';
 import { ChevronDown, MessageSquare, RotateCcw } from 'lucide-react';
 import type { CloudRuntime } from '../cloud/runtime';
 import type { CloudAuthController } from '../hooks/useCloudAuth';
@@ -18,7 +18,7 @@ import {
 import { Badge } from './ui/badge';
 import { Button } from './ui/button';
 
-const AUTO_HIDE_DELAY_MS = 7000;
+const WORKSPACE_GLASS_ACTION_CLASS = 'border-cyan-300/15 bg-[#0b1726]/85 text-slate-100 shadow-sm shadow-black/10 hover:border-orange-300/35 hover:bg-orange-300/10 hover:text-orange-100';
 
 interface WorkspaceStatusBarProps {
   teamName: string;
@@ -41,84 +41,34 @@ export default function WorkspaceStatusBar({
   onConfirmReset,
   onSignedOut
 }: WorkspaceStatusBarProps) {
-  const [collapsed, setCollapsed] = useState(false);
-  const hideTimeoutRef = useRef<number | null>(null);
-
-  const clearHideTimer = () => {
-    if (hideTimeoutRef.current === null || typeof window === 'undefined') return;
-    window.clearTimeout(hideTimeoutRef.current);
-    hideTimeoutRef.current = null;
-  };
-
-  const scheduleHide = () => {
-    clearHideTimer();
-    if (resetOpen || typeof window === 'undefined') return;
-    hideTimeoutRef.current = window.setTimeout(() => {
-      setCollapsed(true);
-      hideTimeoutRef.current = null;
-    }, AUTO_HIDE_DELAY_MS);
-  };
-
-  const revealStatusBar = () => {
-    setCollapsed(false);
-    clearHideTimer();
-  };
-
-  const revealStatusBarTemporarily = () => {
-    setCollapsed(false);
-    scheduleHide();
-  };
-
-  useEffect(() => {
-    if (resetOpen) {
-      clearHideTimer();
-      setCollapsed(false);
-      return;
-    }
-
-    scheduleHide();
-    return clearHideTimer;
-  }, [resetOpen]);
+  const [panelOpen, setPanelOpen] = useState(false);
+  const shouldShowPanel = panelOpen || resetOpen;
 
   return (
     <div
       id="quick-alert-drawer"
       aria-label="Workspace status"
-      onPointerEnter={revealStatusBar}
-      onPointerLeave={scheduleHide}
-      onFocusCapture={revealStatusBar}
-      onBlurCapture={scheduleHide}
-      onTouchStart={revealStatusBarTemporarily}
-      className="relative"
+      className="relative w-full lg:flex lg:flex-col lg:items-end"
     >
-      {collapsed && (
-        <button
-          type="button"
-          onClick={revealStatusBarTemporarily}
-          className="flex min-h-11 w-full items-center justify-center gap-2 rounded-2xl border border-border bg-card/90 px-3 py-2 text-xs font-bold text-muted-foreground shadow-sm backdrop-blur transition hover:border-primary/25 hover:bg-card hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 sm:w-auto sm:min-w-56 sm:px-4"
-          aria-expanded="false"
-          aria-controls="workspace-status-panel"
-        >
-          <ChevronDown size={14} aria-hidden="true" />
-          Workspace controls
-        </button>
-      )}
-      {!collapsed && (
-        <section
-          id="workspace-status-panel"
-          className="rounded-2xl border border-border bg-card/90 p-3 text-card-foreground shadow-sm backdrop-blur transition-all duration-300 ease-out"
-        >
-        <div className="grid gap-3 xl:grid-cols-[minmax(17rem,1fr)_minmax(19rem,28rem)_auto] xl:items-center">
-        <div className="flex items-center gap-3">
-          <span className="relative flex h-2.5 w-2.5 shrink-0" aria-hidden="true">
-            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-success opacity-75"></span>
-            <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-success"></span>
-          </span>
-          <p className="text-xs font-medium leading-relaxed text-muted-foreground">
-            <strong className="font-bold text-foreground">Workspace ready.</strong> Results update your league table and player statistics.
-          </p>
-        </div>
-
+      <button
+        type="button"
+        onClick={() => setPanelOpen(open => !open)}
+        className="flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl border border-cyan-300/10 bg-[#07111f]/90 px-4 py-2 text-xs font-bold text-slate-100 shadow-lg shadow-black/20 backdrop-blur-xl transition hover:border-orange-300/30 hover:bg-orange-300/10 hover:text-orange-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-300/35 sm:w-auto sm:min-w-56"
+        aria-expanded={shouldShowPanel}
+        aria-controls="workspace-status-panel"
+      >
+        <ChevronDown size={14} className={`transition-transform ${shouldShowPanel ? 'rotate-180' : ''}`} aria-hidden="true" />
+        Workspace controls
+      </button>
+      <section
+        id="workspace-status-panel"
+        hidden={!shouldShowPanel}
+        className="mt-3 w-full rounded-2xl border border-cyan-300/10 bg-[#07111f]/90 p-2.5 text-slate-100 shadow-lg shadow-black/20 backdrop-blur-xl transition-all duration-300 ease-out lg:w-[min(38rem,calc(100vw-3rem))]"
+      >
+        <div className="grid grid-cols-1 gap-2">
+        <p className="rounded-lg border border-emerald-300/15 bg-emerald-300/10 px-3 py-1.5 text-xs font-bold text-emerald-100">
+          Workspace ready.
+        </p>
         {cloudRuntime.enabled ? (
           <CloudAccountGate
             clubName={teamName}
@@ -129,20 +79,20 @@ export default function WorkspaceStatusBar({
             onSignedOut={onSignedOut}
           />
         ) : (
-          <p className="rounded-lg border border-border/70 bg-muted/40 px-3 py-2 text-xs font-medium text-muted-foreground">
+          <p className="rounded-lg border border-cyan-300/10 bg-[#0b1726]/72 px-3 py-1.5 text-xs font-medium text-slate-400">
             Local workspace is active. Cloud account sync is unavailable in this build.
           </p>
         )}
 
-        <div className="flex flex-wrap gap-2 xl:justify-end">
-          <Badge variant="success">Saved locally</Badge>
-          <PwaInstallControl />
+        <div className="flex flex-wrap gap-2">
+          <Badge variant="success" className="border-emerald-300/25 bg-emerald-300/10 text-emerald-100">Saved locally</Badge>
+          <PwaInstallControl tone="darkGlass" />
           <Button
             type="button"
             onClick={onFeedback}
             variant="outline"
             size="sm"
-            className="h-7 px-2.5 text-[10px]"
+            className={`h-7 px-2.5 text-[10px] ${WORKSPACE_GLASS_ACTION_CLASS}`}
           >
             <MessageSquare size={10} /> Feedback
           </Button>
@@ -152,7 +102,7 @@ export default function WorkspaceStatusBar({
                 type="button"
                 variant="outline"
                 size="sm"
-                className="h-7 px-2.5 text-[10px] hover:border-destructive/20 hover:bg-destructive/10 hover:text-destructive"
+                className="h-7 border-cyan-300/15 bg-[#0b1726]/85 px-2.5 text-[10px] text-slate-100 shadow-sm shadow-black/10 hover:border-rose-300/35 hover:bg-rose-300/10 hover:text-rose-100"
               >
                 <RotateCcw size={10} /> Reset
               </Button>
@@ -178,7 +128,6 @@ export default function WorkspaceStatusBar({
         </div>
       </div>
         </section>
-      )}
     </div>
   );
 }
