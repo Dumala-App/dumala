@@ -145,7 +145,13 @@ const openPrimaryArea = async (page, name) => {
 };
 
 const openNestedArea = async (page, name) => {
-  await page.getByRole('button', {name: `Open ${name}`, exact: true}).click();
+  const legacyButton = page.getByRole('button', {name: `Open ${name}`, exact: true});
+  if (await legacyButton.isVisible().catch(() => false)) {
+    await legacyButton.click();
+    return;
+  }
+
+  await page.getByRole('tab', {name, exact: true}).click();
 };
 
 const clickNextAssessmentStep = async page => {

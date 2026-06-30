@@ -58,18 +58,19 @@ interface TrainingViewProps {
 
 const DEFAULT_SCHEDULE: WeeklySchedule = {
   Monday: [
-    { id: 'init-1', drillId: 'drill-gym', name: 'Iron Core Power Workout', fatigueIncrease: 7 },
-    { id: 'init-2', drillId: 'drill-agility', name: 'Shuttle Run Sprints', fatigueIncrease: 6 }
+    { id: 'init-1', drillId: 'drill-warm-rondo-arrival', name: 'Arrival Rondo Warm-Up', fatigueIncrease: 2 },
+    { id: 'init-2', drillId: 'drill-positional-5v5-plus3', name: '5v5+3 Positional Play', fatigueIncrease: 5 }
   ],
   Tuesday: [
-    { id: 'init-3', drillId: 'drill-passing', name: 'Triangular Direct Passing', fatigueIncrease: 3 }
+    { id: 'init-3', drillId: 'drill-cond-tempo-possession', name: 'Tempo Possession Conditioning', fatigueIncrease: 6 }
   ],
   Wednesday: [],
   Thursday: [
-    { id: 'init-4', drillId: 'drill-defending', name: 'Defensive Low Block Walkthrough', fatigueIncrease: 5 }
+    { id: 'init-4', drillId: 'drill-tactical-midblock-trap', name: 'Mid-Block Pressing Trap', fatigueIncrease: 5 },
+    { id: 'init-5', drillId: 'drill-tactical-set-piece-zones', name: 'Set-Piece Zone Assignments', fatigueIncrease: 3 }
   ],
   Friday: [
-    { id: 'init-5', drillId: 'drill-shooting', name: 'Finesse Target Shooting', fatigueIncrease: 4 }
+    { id: 'init-6', drillId: 'drill-recovery-breath-mobility', name: 'Breathing and Mobility Reset', fatigueIncrease: 1 }
   ],
   Saturday: [],
   Sunday: []
@@ -299,7 +300,6 @@ export default function TrainingView({ players, assessments, games, onUpdateGame
 
   const [selectedAttributeFilter, setSelectedAttributeFilter] = useState('all');
   const [activeDrillLibraryTab, setActiveDrillLibraryTab] = useState<DrillLibraryTab>('recommended');
-  const [showSelectedDrillGuide, setShowSelectedDrillGuide] = useState(true);
   const [recommendPlayerId, setRecommendPlayerId] = useState('');
   const [developmentDay, setDevelopmentDay] = useState<DayName>('Wednesday');
   const [developmentFocus, setDevelopmentFocus] = useState<'all' | 'technical' | 'tactical' | 'conditioning' | 'recovery'>('all');
@@ -366,73 +366,88 @@ export default function TrainingView({ players, assessments, games, onUpdateGame
     if (mode === 'heavy') {
       setWeeklySchedule(fillDays({
         Monday: [
-          { id: 'h-1', drillId: 'drill-gym', name: 'Iron Core Power Workout', fatigueIncrease: 7 },
-          { id: 'h-2', drillId: 'drill-agility', name: 'Shuttle Run Sprints', fatigueIncrease: 6 }
+          { id: 'h-1', drillId: 'drill-warm-speed-react', name: 'Reaction Gates Warm-Up', fatigueIncrease: 3 },
+          { id: 'h-2', drillId: 'drill-cond-accel-decel', name: 'Acceleration-Deceleration Grid', fatigueIncrease: 6 },
+          { id: 'h-3', drillId: 'drill-cond-hiit-small-sided', name: 'HIIT Small-Sided Waves', fatigueIncrease: 8 }
         ],
         Tuesday: [
-          { id: 'h-3', drillId: 'drill-dribbling', name: 'Dribble Maze Challenge', fatigueIncrease: 3 },
-          { id: 'h-4', drillId: 'drill-gym', name: 'Iron Core Power Workout', fatigueIncrease: 7 }
+          { id: 'h-4', drillId: 'drill-warm-rondo-arrival', name: 'Arrival Rondo Warm-Up', fatigueIncrease: 2 },
+          { id: 'h-5', drillId: 'drill-cond-tempo-possession', name: 'Tempo Possession Conditioning', fatigueIncrease: 6 },
+          { id: 'h-6', drillId: 'drill-counterpress-6-second', name: 'Six-Second Counter-Press Game', fatigueIncrease: 6 }
         ],
         Wednesday: [
-          { id: 'h-5', drillId: 'drill-passing', name: 'Triangular Direct Passing', fatigueIncrease: 3 }
+          { id: 'h-7', drillId: 'drill-recovery-breath-mobility', name: 'Breathing and Mobility Reset', fatigueIncrease: 1 },
+          { id: 'h-8', drillId: 'drill-recovery-ball-circulation', name: 'Low-Tempo Ball Circulation', fatigueIncrease: 1 }
         ],
         Thursday: [
-          { id: 'h-6', drillId: 'drill-defending', name: 'Defensive Low Block Walkthrough', fatigueIncrease: 5 },
-          { id: 'h-7', drillId: 'drill-agility', name: 'Shuttle Run Sprints', fatigueIncrease: 6 }
+          { id: 'h-9', drillId: 'drill-warm-pass-move', name: 'Pass-and-Move Activation', fatigueIncrease: 2 },
+          { id: 'h-10', drillId: 'drill-transition-wave', name: 'Three-Zone Transition Wave', fatigueIncrease: 6 },
+          { id: 'h-11', drillId: 'drill-cond-speed-endurance', name: 'Speed-Endurance Channels', fatigueIncrease: 7 }
         ],
         Friday: [
-          { id: 'h-8', drillId: 'drill-shooting', name: 'Finesse Target Shooting', fatigueIncrease: 4 }
+          { id: 'h-12', drillId: 'drill-tactical-set-piece-zones', name: 'Set-Piece Zone Assignments', fatigueIncrease: 3 },
+          { id: 'h-13', drillId: 'drill-recovery-foam-band', name: 'Foam Roll and Band Release', fatigueIncrease: 1 }
         ]
       }));
     } else if (mode === 'taper') {
       setWeeklySchedule(fillDays({
         Monday: [
-          { id: 't-1', drillId: 'drill-passing', name: 'Triangular Direct Passing', fatigueIncrease: 3 }
+          { id: 't-1', drillId: 'drill-warm-rondo-arrival', name: 'Arrival Rondo Warm-Up', fatigueIncrease: 2 },
+          { id: 't-2', drillId: 'drill-positional-5v5-plus3', name: '5v5+3 Positional Play', fatigueIncrease: 5 }
         ],
         Tuesday: [
-          { id: 't-2', drillId: 'drill-shooting', name: 'Finesse Target Shooting', fatigueIncrease: 4 }
+          { id: 't-3', drillId: 'drill-warm-pass-move', name: 'Pass-and-Move Activation', fatigueIncrease: 2 },
+          { id: 't-4', drillId: 'drill-tactical-final-third-rotation', name: 'Final-Third Rotation Pattern', fatigueIncrease: 4 }
         ],
         Wednesday: [],
         Thursday: [
-          { id: 't-3', drillId: 'drill-dribbling', name: 'Dribble Maze Challenge', fatigueIncrease: 3 }
+          { id: 't-5', drillId: 'drill-recovery-ball-circulation', name: 'Low-Tempo Ball Circulation', fatigueIncrease: 1 },
+          { id: 't-6', drillId: 'drill-tactical-set-piece-zones', name: 'Set-Piece Zone Assignments', fatigueIncrease: 3 }
         ],
         Friday: [
-          { id: 't-4', drillId: 'drill-passing', name: 'Triangular Direct Passing', fatigueIncrease: 3 }
+          { id: 't-7', drillId: 'drill-recovery-breath-mobility', name: 'Breathing and Mobility Reset', fatigueIncrease: 1 }
         ]
       }));
     } else if (mode === 'tactical') {
       setWeeklySchedule(fillDays({
         Monday: [
-          { id: 'ac-1', drillId: 'drill-passing', name: 'Triangular Direct Passing', fatigueIncrease: 3 }
+          { id: 'ac-1', drillId: 'drill-warm-rondo-arrival', name: 'Arrival Rondo Warm-Up', fatigueIncrease: 2 },
+          { id: 'ac-2', drillId: 'drill-positional-5v5-plus3', name: '5v5+3 Positional Play', fatigueIncrease: 5 }
         ],
         Tuesday: [
-          { id: 'ac-2', drillId: 'drill-defending', name: 'Defensive Low Block Walkthrough', fatigueIncrease: 5 }
+          { id: 'ac-3', drillId: 'drill-tactical-midblock-trap', name: 'Mid-Block Pressing Trap', fatigueIncrease: 5 },
+          { id: 'ac-4', drillId: 'drill-tactical-backline-cover', name: 'Back-Line Cover Rotation', fatigueIncrease: 4 }
         ],
         Wednesday: [],
         Thursday: [
-          { id: 'ac-3', drillId: 'drill-defending', name: 'Defensive Low Block Walkthrough', fatigueIncrease: 5 },
-          { id: 'ac-4', drillId: 'drill-passing', name: 'Triangular Direct Passing', fatigueIncrease: 3 }
+          { id: 'ac-5', drillId: 'drill-tactical-press-resist-build', name: 'Press-Resistant Build-Up', fatigueIncrease: 5 },
+          { id: 'ac-6', drillId: 'drill-tactical-overload-to-isolate', name: 'Overload to Isolate Switch', fatigueIncrease: 4 }
         ],
         Friday: [
-          { id: 'ac-5', drillId: 'drill-shooting', name: 'Finesse Target Shooting', fatigueIncrease: 4 }
+          { id: 'ac-7', drillId: 'drill-tactical-final-third-rotation', name: 'Final-Third Rotation Pattern', fatigueIncrease: 4 },
+          { id: 'ac-8', drillId: 'drill-tactical-set-piece-zones', name: 'Set-Piece Zone Assignments', fatigueIncrease: 3 }
         ]
       }));
     } else if (mode === 'prematch') {
       // Light day before match, match day empty, recovery after
       setWeeklySchedule(fillDays({
         Monday: [
-          { id: 'pm-1', drillId: 'drill-passing', name: 'Triangular Direct Passing', fatigueIncrease: 3 }
+          { id: 'pm-1', drillId: 'drill-warm-rondo-arrival', name: 'Arrival Rondo Warm-Up', fatigueIncrease: 2 },
+          { id: 'pm-2', drillId: 'drill-tactical-overload-to-isolate', name: 'Overload to Isolate Switch', fatigueIncrease: 4 }
         ],
         Tuesday: [
-          { id: 'pm-2', drillId: 'drill-defending', name: 'Defensive Low Block Walkthrough', fatigueIncrease: 5 }
+          { id: 'pm-3', drillId: 'drill-tactical-midblock-trap', name: 'Mid-Block Pressing Trap', fatigueIncrease: 5 },
+          { id: 'pm-4', drillId: 'drill-tactical-set-piece-zones', name: 'Set-Piece Zone Assignments', fatigueIncrease: 3 }
         ],
         Wednesday: [],
         Thursday: [
-          { id: 'pm-3', drillId: 'drill-pass-triangle', name: 'Triangle Passing Warm-Up', fatigueIncrease: 2 },
-          { id: 'pm-4', drillId: 'drill-mobility', name: 'Mobility & Recovery Flow', fatigueIncrease: 1 }
+          { id: 'pm-5', drillId: 'drill-warm-pass-move', name: 'Pass-and-Move Activation', fatigueIncrease: 2 },
+          { id: 'pm-6', drillId: 'drill-tactical-final-third-rotation', name: 'Final-Third Rotation Pattern', fatigueIncrease: 4 },
+          { id: 'pm-7', drillId: 'drill-recovery-breath-mobility', name: 'Breathing and Mobility Reset', fatigueIncrease: 1 }
         ],
         Friday: [
-          { id: 'pm-5', drillId: 'drill-shooting', name: 'Finesse Target Shooting', fatigueIncrease: 4 }
+          { id: 'pm-8', drillId: 'drill-recovery-ball-circulation', name: 'Low-Tempo Ball Circulation', fatigueIncrease: 1 },
+          { id: 'pm-9', drillId: 'drill-recovery-foam-band', name: 'Foam Roll and Band Release', fatigueIncrease: 1 }
         ],
         Saturday: [],  // Match day — kept clear
         Sunday: []      // Rest day
@@ -441,17 +456,20 @@ export default function TrainingView({ players, assessments, games, onUpdateGame
       // Low load, mobility and technique focus
       setWeeklySchedule(fillDays({
         Monday: [
-          { id: 'rc-1', drillId: 'drill-mobility', name: 'Mobility & Recovery Flow', fatigueIncrease: 1 }
+          { id: 'rc-1', drillId: 'drill-recovery-breath-mobility', name: 'Breathing and Mobility Reset', fatigueIncrease: 1 },
+          { id: 'rc-2', drillId: 'drill-recovery-ball-circulation', name: 'Low-Tempo Ball Circulation', fatigueIncrease: 1 }
         ],
         Tuesday: [
-          { id: 'rc-2', drillId: 'drill-pass-triangle', name: 'Triangle Passing Warm-Up', fatigueIncrease: 2 }
+          { id: 'rc-3', drillId: 'drill-recovery-yoga-hips', name: 'Hip and Hamstring Yoga Flow', fatigueIncrease: 1 }
         ],
         Wednesday: [],
         Thursday: [
-          { id: 'rc-3', drillId: 'drill-core-stability', name: 'Core Stability Circuit', fatigueIncrease: 4 }
+          { id: 'rc-4', drillId: 'drill-recovery-regeneration-walk', name: 'Regeneration Walk and Scan', fatigueIncrease: 1 },
+          { id: 'rc-5', drillId: 'drill-recovery-pool-shadow', name: 'Pool or No-Impact Shadow Movements', fatigueIncrease: 1 }
         ],
         Friday: [
-          { id: 'rc-4', drillId: 'drill-mobility', name: 'Mobility & Recovery Flow', fatigueIncrease: 1 }
+          { id: 'rc-6', drillId: 'drill-recovery-foam-band', name: 'Foam Roll and Band Release', fatigueIncrease: 1 },
+          { id: 'rc-7', drillId: 'drill-mobility', name: 'Mobility & Recovery Flow', fatigueIncrease: 1 }
         ],
         Saturday: [],
         Sunday: []
@@ -459,18 +477,21 @@ export default function TrainingView({ players, assessments, games, onUpdateGame
     } else if (mode === 'forward-focus') {
       setWeeklySchedule(fillDays({
         Monday: [
-          { id: 'ff-1', drillId: 'drill-fwd-finishing', name: 'Clinical Finishing Under Pressure', fatigueIncrease: 5 }
+          { id: 'ff-1', drillId: 'drill-warm-pass-move', name: 'Pass-and-Move Activation', fatigueIncrease: 2 },
+          { id: 'ff-2', drillId: 'drill-fwd-pressing-curve', name: 'Striker Curved Press', fatigueIncrease: 5 }
         ],
         Tuesday: [
-          { id: 'ff-2', drillId: 'drill-fwd-positioning', name: 'Off-Ball Striker Movement', fatigueIncrease: 4 }
+          { id: 'ff-3', drillId: 'drill-fwd-positioning', name: 'Off-Ball Striker Movement', fatigueIncrease: 4 },
+          { id: 'ff-4', drillId: 'drill-winger-1v1-cross', name: 'Winger 1v1 to Cutback', fatigueIncrease: 5 }
         ],
         Wednesday: [],
         Thursday: [
-          { id: 'ff-3', drillId: 'drill-fwd-cross-finish', name: 'Crossing & Volley Finish Drill', fatigueIncrease: 5 }
+          { id: 'ff-5', drillId: 'drill-tactical-final-third-rotation', name: 'Final-Third Rotation Pattern', fatigueIncrease: 4 },
+          { id: 'ff-6', drillId: 'drill-fwd-cross-finish', name: 'Crossing & Volley Finish Drill', fatigueIncrease: 5 }
         ],
         Friday: [
-          { id: 'ff-4', drillId: 'drill-fwd-wall-pass', name: 'Wall Pass Give & Go Finish', fatigueIncrease: 4 },
-          { id: 'ff-5', drillId: 'drill-shooting', name: 'Finesse Target Shooting', fatigueIncrease: 4 }
+          { id: 'ff-7', drillId: 'drill-fwd-rebound', name: 'Rebound Anticipation Finishing', fatigueIncrease: 5 },
+          { id: 'ff-8', drillId: 'drill-recovery-breath-mobility', name: 'Breathing and Mobility Reset', fatigueIncrease: 1 }
         ],
         Saturday: [],
         Sunday: []
@@ -478,18 +499,21 @@ export default function TrainingView({ players, assessments, games, onUpdateGame
     } else if (mode === 'midfield-focus') {
       setWeeklySchedule(fillDays({
         Monday: [
-          { id: 'mf-1', drillId: 'drill-mid-possession', name: 'Rondo Possession Circuit', fatigueIncrease: 3 }
+          { id: 'mf-1', drillId: 'drill-rondo-4v2-split', name: '4v2 Split-Pass Rondo', fatigueIncrease: 3 },
+          { id: 'mf-2', drillId: 'drill-mid-pivot-scan', name: 'Pivot Scan and Bounce', fatigueIncrease: 3 }
         ],
         Tuesday: [
-          { id: 'mf-2', drillId: 'drill-mid-transition', name: 'Quick Transition Build-Up', fatigueIncrease: 5 }
+          { id: 'mf-3', drillId: 'drill-positional-5v5-plus3', name: '5v5+3 Positional Play', fatigueIncrease: 5 },
+          { id: 'mf-4', drillId: 'drill-tactical-press-resist-build', name: 'Press-Resistant Build-Up', fatigueIncrease: 5 }
         ],
         Wednesday: [],
         Thursday: [
-          { id: 'mf-3', drillId: 'drill-mid-through-ball', name: 'Through Ball Lane Calibration', fatigueIncrease: 3 },
-          { id: 'mf-4', drillId: 'drill-pass-wall', name: 'Wall Passing One-Twos', fatigueIncrease: 3 }
+          { id: 'mf-5', drillId: 'drill-tactical-overload-to-isolate', name: 'Overload to Isolate Switch', fatigueIncrease: 4 },
+          { id: 'mf-6', drillId: 'drill-mid-box-arrival', name: 'Late Box Arrival Finish', fatigueIncrease: 4 }
         ],
         Friday: [
-          { id: 'mf-5', drillId: 'drill-mid-switch-play', name: 'Switching Play Long Diagonals', fatigueIncrease: 3 }
+          { id: 'mf-7', drillId: 'drill-mid-switch-play', name: 'Switching Play Long Diagonals', fatigueIncrease: 3 },
+          { id: 'mf-8', drillId: 'drill-recovery-ball-circulation', name: 'Low-Tempo Ball Circulation', fatigueIncrease: 1 }
         ],
         Saturday: [],
         Sunday: []
@@ -497,17 +521,21 @@ export default function TrainingView({ players, assessments, games, onUpdateGame
     } else if (mode === 'defender-focus') {
       setWeeklySchedule(fillDays({
         Monday: [
-          { id: 'df-1', drillId: 'drill-def-1v1', name: '1v1 Defensive Duels', fatigueIncrease: 5 }
+          { id: 'df-1', drillId: 'drill-warm-rondo-arrival', name: 'Arrival Rondo Warm-Up', fatigueIncrease: 2 },
+          { id: 'df-2', drillId: 'drill-tactical-backline-cover', name: 'Back-Line Cover Rotation', fatigueIncrease: 4 }
         ],
         Tuesday: [
-          { id: 'df-2', drillId: 'drill-def-line-shift', name: 'Back Four Line Shift Drill', fatigueIncrease: 4 }
+          { id: 'df-3', drillId: 'drill-def-cb-build-out', name: 'Centre-Back Build-Out', fatigueIncrease: 3 },
+          { id: 'df-4', drillId: 'drill-tactical-midblock-trap', name: 'Mid-Block Pressing Trap', fatigueIncrease: 5 }
         ],
         Wednesday: [],
         Thursday: [
-          { id: 'df-3', drillId: 'drill-def-aerial', name: 'Aerial Clearance Domination', fatigueIncrease: 5 }
+          { id: 'df-5', drillId: 'drill-def-rest-defense', name: 'Rest-Defense Counter Cover', fatigueIncrease: 4 },
+          { id: 'df-6', drillId: 'drill-tactical-set-piece-zones', name: 'Set-Piece Zone Assignments', fatigueIncrease: 3 }
         ],
         Friday: [
-          { id: 'df-4', drillId: 'drill-def-overlap', name: 'Fullback Overlap & Recovery', fatigueIncrease: 6 }
+          { id: 'df-7', drillId: 'drill-fullback-underlap', name: 'Fullback Underlap Timing', fatigueIncrease: 5 },
+          { id: 'df-8', drillId: 'drill-recovery-foam-band', name: 'Foam Roll and Band Release', fatigueIncrease: 1 }
         ],
         Saturday: [],
         Sunday: []
@@ -1171,17 +1199,8 @@ export default function TrainingView({ players, assessments, games, onUpdateGame
                   </div>
 
                   <div className="flex flex-wrap items-center gap-2 xl:justify-end">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => setShowSelectedDrillGuide(current => !current)}
-                      className="h-9 border-indigo-100 bg-white px-3 text-[10px] font-black text-indigo-700 hover:bg-indigo-50"
-                      aria-expanded={showSelectedDrillGuide}
-                    >
-                      {showSelectedDrillGuide ? 'Hide guide' : 'Show guide'}
-                    </Button>
                     <Select value={developmentDay} onValueChange={(value) => setDevelopmentDay(value as DayName)}>
-                      <SelectTrigger aria-label="Day to add selected drill" className="h-9 min-w-32 border-indigo-100 bg-white text-xs">
+                      <SelectTrigger aria-label="Day to add selected drill" className="h-9 w-32 flex-none border-indigo-100 bg-white text-xs sm:w-36">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -1199,60 +1218,58 @@ export default function TrainingView({ players, assessments, games, onUpdateGame
                 </div>
               </div>
 
-              {showSelectedDrillGuide && (
-                selectedScheduleDrillInstructions ? (
-                  <div className="grid gap-3 p-3 lg:grid-cols-[0.78fr_1.22fr]">
-                    <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-1">
-                      <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
-                        <div className="flex items-center gap-2">
-                          <span className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-white text-slate-500">
-                            <Dumbbell size={13} aria-hidden="true" />
-                          </span>
-                          <span className="text-[9px] font-black uppercase tracking-wider text-slate-500">Equipment</span>
-                        </div>
-                        <p className="mt-2 text-[11px] leading-relaxed text-slate-700">{selectedScheduleDrillInstructions.equipment}</p>
+              {selectedScheduleDrillInstructions ? (
+                <div className="grid gap-3 p-3 lg:grid-cols-[0.78fr_1.22fr]">
+                  <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-1">
+                    <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+                      <div className="flex items-center gap-2">
+                        <span className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-white text-slate-500">
+                          <Dumbbell size={13} aria-hidden="true" />
+                        </span>
+                        <span className="text-[9px] font-black uppercase tracking-wider text-slate-500">Equipment</span>
                       </div>
-                      <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
-                        <div className="flex items-center gap-2">
-                          <span className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-white text-slate-500">
-                            <Timer size={13} aria-hidden="true" />
-                          </span>
-                          <span className="text-[9px] font-black uppercase tracking-wider text-slate-500">Sets / reps</span>
-                        </div>
-                        <p className="mt-2 text-[11px] leading-relaxed text-slate-700">{selectedScheduleDrillInstructions.setsReps}</p>
-                      </div>
+                      <p className="mt-2 text-[11px] leading-relaxed text-slate-700">{selectedScheduleDrillInstructions.equipment}</p>
                     </div>
+                    <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+                      <div className="flex items-center gap-2">
+                        <span className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-white text-slate-500">
+                          <Timer size={13} aria-hidden="true" />
+                        </span>
+                        <span className="text-[9px] font-black uppercase tracking-wider text-slate-500">Sets / reps</span>
+                      </div>
+                      <p className="mt-2 text-[11px] leading-relaxed text-slate-700">{selectedScheduleDrillInstructions.setsReps}</p>
+                    </div>
+                  </div>
 
-                    <div className="rounded-lg border border-slate-200 bg-white p-3">
-                      <div className="grid gap-3 md:grid-cols-2">
-                        <div className="relative rounded-lg bg-indigo-50/70 p-3">
-                          <span className="absolute right-3 top-3 text-xl font-black leading-none text-indigo-100">01</span>
-                          <div className="flex items-center gap-2">
-                            <span className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-white text-indigo-600">
-                              <Route size={13} aria-hidden="true" />
-                            </span>
-                            <span className="text-[9px] font-black uppercase tracking-wider text-indigo-600">Setup</span>
-                          </div>
-                          <p className="mt-2 text-[11px] leading-relaxed text-slate-700">{selectedScheduleDrillInstructions.setup}</p>
+                  <div className="rounded-lg border border-slate-200 bg-white p-3">
+                    <div className="grid gap-3 md:grid-cols-2">
+                      <div className="relative rounded-lg bg-indigo-50/70 p-3">
+                        <span className="absolute right-3 top-3 text-xl font-black leading-none text-indigo-500/70">01</span>
+                        <div className="flex items-center gap-2">
+                          <span className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-white text-indigo-600">
+                            <Route size={13} aria-hidden="true" />
+                          </span>
+                          <span className="text-[9px] font-black uppercase tracking-wider text-indigo-600">Setup</span>
                         </div>
-                        <div className="relative rounded-lg bg-emerald-50/80 p-3">
-                          <span className="absolute right-3 top-3 text-xl font-black leading-none text-emerald-100">02</span>
-                          <div className="flex items-center gap-2">
-                            <span className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-white text-emerald-700">
-                              <CheckCircle size={13} aria-hidden="true" />
-                            </span>
-                            <span className="text-[9px] font-black uppercase tracking-wider text-emerald-700">Execution</span>
-                          </div>
-                          <p className="mt-2 text-[11px] leading-relaxed text-slate-700">{selectedScheduleDrillInstructions.execution}</p>
+                        <p className="mt-2 text-[11px] leading-relaxed text-slate-700">{selectedScheduleDrillInstructions.setup}</p>
+                      </div>
+                      <div className="relative rounded-lg bg-emerald-50/80 p-3">
+                        <span className="absolute right-3 top-3 text-xl font-black leading-none text-emerald-600/70">02</span>
+                        <div className="flex items-center gap-2">
+                          <span className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-white text-emerald-700">
+                            <CheckCircle size={13} aria-hidden="true" />
+                          </span>
+                          <span className="text-[9px] font-black uppercase tracking-wider text-emerald-700">Execution</span>
                         </div>
+                        <p className="mt-2 text-[11px] leading-relaxed text-slate-700">{selectedScheduleDrillInstructions.execution}</p>
                       </div>
                     </div>
                   </div>
-                ) : (
-                  <p className="m-3 rounded-lg bg-slate-50 p-3 text-[11px] leading-relaxed text-slate-600">
-                    {selectedScheduleDrill.description}
-                  </p>
-                )
+                </div>
+              ) : (
+                <p className="m-3 rounded-lg bg-slate-50 p-3 text-[11px] leading-relaxed text-slate-600">
+                  {selectedScheduleDrill.description}
+                </p>
               )}
             </div>
 
@@ -1335,13 +1352,11 @@ export default function TrainingView({ players, assessments, games, onUpdateGame
                           onDragStart={(event) => handleDragStart(event, drill.id)}
                           onClick={() => {
                             setSelectedDrillId(drill.id);
-                            setShowSelectedDrillGuide(true);
                           }}
                           onKeyDown={(event) => {
                             if (event.key === 'Enter' || event.key === ' ') {
                               event.preventDefault();
                               setSelectedDrillId(drill.id);
-                              setShowSelectedDrillGuide(true);
                             }
                           }}
                           role="button"

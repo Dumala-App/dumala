@@ -42,6 +42,7 @@ import {
   deleteManagedWorkspace,
   importBackupAsManagedWorkspace,
   renameManagedWorkspace,
+  resetManagedWorkspace,
   readWorkspaceSummaries,
   restoreBackupIntoActiveWorkspace,
   switchManagedWorkspace,
@@ -727,25 +728,11 @@ export default function App() {
 
   const confirmResetApp = () => {
     if (activeWorkspaceId) {
-      const next = deleteManagedWorkspace(activeWorkspaceId);
-      setWorkspaces(next.workspaces);
-      setActiveWorkspaceId(next.activeWorkspaceId);
-      if (next.activeWorkspaceId) {
-        loadWorkspaceStateFromStorage();
-        setPrimaryTab('home');
-        setHomeTab('overview');
-      } else {
-        setIsOnboarded(false);
-        setTeamInfo(null);
-        setPlayers([]);
-        setStaff([]);
-        setGames([]);
-        setStandings([]);
-        setAnnouncements([]);
-        setAssessments([]);
-        setPaymentLedger([]);
-        setPreselectedAssessmentsPlayerId(null);
-      }
+      setWorkspaces(resetManagedWorkspace(activeWorkspaceId));
+      setActiveWorkspaceId(activeWorkspaceId);
+      loadWorkspaceStateFromStorage();
+      setPrimaryTab('home');
+      setHomeTab('overview');
     } else {
       clearDumalaStorage();
       setIsOnboarded(false);
@@ -760,6 +747,33 @@ export default function App() {
       setPreselectedAssessmentsPlayerId(null);
     }
     setShowResetConfirm(false);
+  };
+
+  const handleSignedOut = () => {
+    clearDumalaStorage();
+    setWorkspaces([]);
+    setActiveWorkspaceId(null);
+    setIsOnboarded(false);
+    setTeamInfo(null);
+    setPlayers([]);
+    setStaff([]);
+    setGames([]);
+    setStandings([]);
+    setAnnouncements([]);
+    setAssessments([]);
+    setPaymentLedger([]);
+    setSelectedPlayer(null);
+    setSelectedStaff(null);
+    setPreselectedAssessmentsPlayerId(null);
+    setIntegrityFocus(null);
+    setIntegrityReport(null);
+    setIntegrityDismissed(false);
+    integritySignatureRef.current = '';
+    setMobileMenuOpen(false);
+    setShowFeedback(false);
+    setShowResetConfirm(false);
+    setPrimaryTab('home');
+    setHomeTab('overview');
   };
 
   const handleNavigate = (target: {
@@ -1162,14 +1176,17 @@ export default function App() {
       {/* Main Container Stage Body */}
       <main id="app-main-content" className="flex-1 max-w-[1440px] w-full mx-auto p-4 sm:p-6 lg:p-8 space-y-6">
         
-        <WorkspaceStatusBar
-          teamName={teamInfo.name}
-          cloudRuntime={cloudRuntime}
-          resetOpen={showResetConfirm}
-          onResetOpenChange={setShowResetConfirm}
-          onFeedback={() => setShowFeedback(true)}
-          onConfirmReset={confirmResetApp}
-        />
+        {primaryTab === 'home' && (
+          <WorkspaceStatusBar
+            teamName={teamInfo.name}
+            cloudRuntime={cloudRuntime}
+            resetOpen={showResetConfirm}
+            onResetOpenChange={setShowResetConfirm}
+            onFeedback={() => setShowFeedback(true)}
+            onConfirmReset={confirmResetApp}
+            onSignedOut={handleSignedOut}
+          />
+        )}
 
         {showFeedback && (
           <Suspense fallback={null}>

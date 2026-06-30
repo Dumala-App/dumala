@@ -28,7 +28,7 @@ Dumala can serve the Philippine grassroots and academy market first, then expand
 - Automatic standings and player-stat updates
 - Discipline and Man of the Match histories
 - Position-aware tactics and lineup planning
-- Weekly training with 52 drills, guides, filters, and presets
+- Weekly training with 85 drills, guides, filters, and presets
 - FPRDS Full and Quick assessments
 - Role- and age-specific benchmark scoring, OVR, history, and development plans
 - Bulletins, feedback, and JSON backup/restore

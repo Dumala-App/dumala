@@ -8,6 +8,7 @@ import {
   drawingPathsSchema,
   matchFormatSchema,
   playerExtrasSchema,
+  strategyContextSchema,
   stringSchema,
   tacticsBoardSnapshotsSchema,
   tacticsLineupSchema,
@@ -34,6 +35,16 @@ import {
 } from '../tactics/formations';
 import { recommendMatchupStrategy, type ShapeImpactCard } from '../tactics/recommendations';
 import { ATTACK_STRATEGY_CARDS, DEFENSE_STRATEGY_CARDS } from '../tactics/strategyLibrary';
+import {
+  DEFAULT_STRATEGY_CONTEXT,
+  STRATEGY_CONTEXT_LABELS,
+  type StrategyContext,
+  type StrategyMatchPhase,
+  type StrategyMatchState,
+  type StrategyOpponentBehavior,
+  type StrategyRiskLevel,
+  type StrategyTeamCondition
+} from '../tactics/strategyContext';
 import { CoachKnowledgeBase } from './CoachKnowledgeBase';
 import { Badge } from './ui/badge';
 import { Button } from './ui/button';
@@ -112,6 +123,11 @@ const TACTICAL_PHASES: readonly TacticalPhase[] = ['In Possession', 'Out of Poss
 const DRAWING_LAYERS: readonly DrawingLayer[] = ['Runs', 'Passes', 'Pressing', 'Defensive Shape'];
 const DRAWING_STROKE_STYLES: readonly DrawingStrokeStyle[] = ['Solid', 'Dashed', 'Dotted'];
 const EMPTY_SELECT_VALUE = '__none__';
+const STRATEGY_MATCH_STATES: readonly StrategyMatchState[] = ['balanced', 'protect-lead', 'chasing-goal'];
+const STRATEGY_TEAM_CONDITIONS: readonly StrategyTeamCondition[] = ['fresh', 'normal', 'tired'];
+const STRATEGY_MATCH_PHASES: readonly StrategyMatchPhase[] = ['first-half', 'second-half', 'last-15'];
+const STRATEGY_RISK_LEVELS: readonly StrategyRiskLevel[] = ['safe', 'balanced', 'aggressive'];
+const STRATEGY_OPPONENT_BEHAVIORS: readonly StrategyOpponentBehavior[] = ['balanced', 'high-press', 'low-block', 'wide-overload', 'direct-play', 'strong-midfield'];
 
 const SHAPE_IMPACT_TONE_CLASSES: Record<ShapeImpactCard['tone'], {
   card: string;
@@ -299,14 +315,21 @@ export default function TacticsView({ players, staff, teamCoach, teamName, teamL
   const [freeKickTakerId, setFreeKickTakerId] = useState<string>(() => readStringStorage(STORAGE_KEYS.freeKickTakerId, stringSchema, '', 'Tactics roles'));
   const [cornerTakerId, setCornerTakerId] = useState<string>(() => readStringStorage(STORAGE_KEYS.cornerTakerId, stringSchema, '', 'Tactics roles'));
   const [defensiveStyle, setDefensiveStyle] = useState<string>(() => readStringStorage(STORAGE_KEYS.defensiveStyle, stringSchema, 'High Press', 'Tactics defense'));
+  const [strategyContext, setStrategyContext] = useState<StrategyContext>(() => readJsonStorage(
+    STORAGE_KEYS.strategyContext,
+    strategyContextSchema,
+    DEFAULT_STRATEGY_CONTEXT,
+    'Tactics strategy context'
+  ));
 
   const activeFormation = formation;
   const activePlaystyle = playstyle;
   const matchupRecommendation = useMemo(() => recommendMatchupStrategy({
     ourFormation: formation,
     opponentFormation,
-    matchFormat
-  }), [formation, opponentFormation, matchFormat]);
+    matchFormat,
+    context: strategyContext
+  }), [formation, opponentFormation, matchFormat, strategyContext]);
 
   const visibleAttackStrategies = ATTACK_STRATEGY_CARDS;
 
@@ -325,6 +348,9 @@ export default function TacticsView({ players, staff, teamCoach, teamName, teamL
   useEffect(() => {
     writeStringStorage(STORAGE_KEYS.defensiveStyle, defensiveStyle);
   }, [defensiveStyle]);
+  useEffect(() => {
+    writeJsonStorage(STORAGE_KEYS.strategyContext, strategyContext);
+  }, [strategyContext]);
 
   // Highlighting active card index selected (0 to 10 starting slot)
   const [selectedSlotIndex, setSelectedSlotIndex] = useState<number>(6); // Default: Roberto Carlos (LB - index 6 in default list)
@@ -2637,6 +2663,131 @@ export default function TacticsView({ players, staff, teamCoach, teamName, teamL
             </div>
 
             <section className="mb-4 rounded-xl border border-slate-800 bg-slate-950/70 p-3.5">
+              <div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between">
+                <div>
+                  <h5 className="text-[10px] font-black uppercase tracking-widest text-slate-300">Strategy Context</h5>
+                  <p className="mt-1 text-[11px] leading-relaxed text-slate-500">Tune the match situation before applying a plan.</p>
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setStrategyContext(DEFAULT_STRATEGY_CONTEXT)}
+                  className="h-8 w-fit rounded-lg border-slate-700 bg-slate-900 px-2.5 text-[9px] font-black uppercase tracking-widest text-slate-300 hover:bg-slate-800 hover:text-white"
+                >
+                  Reset context
+                </Button>
+              </div>
+              <div className="mt-3 grid grid-cols-1 gap-3 lg:grid-cols-2 xl:grid-cols-5">
+                <div className="space-y-1.5">
+                  <span className="block text-[8.5px] font-black uppercase tracking-widest text-slate-500">Match state</span>
+                  <div className="grid grid-cols-3 overflow-hidden rounded-lg border border-slate-800 bg-slate-900">
+                    {STRATEGY_MATCH_STATES.map((value) => {
+                      const selected = strategyContext.matchState === value;
+                      return (
+                        <button
+                          key={value}
+                          type="button"
+                          onClick={() => setStrategyContext(prev => ({ ...prev, matchState: value }))}
+                          className={cn(
+                            'min-h-9 px-2 text-[9px] font-black leading-tight transition',
+                            selected ? 'bg-amber-400 text-slate-950' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-100'
+                          )}
+                        >
+                          {STRATEGY_CONTEXT_LABELS.matchState[value]}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+                <div className="space-y-1.5">
+                  <span className="block text-[8.5px] font-black uppercase tracking-widest text-slate-500">Condition</span>
+                  <div className="grid grid-cols-3 overflow-hidden rounded-lg border border-slate-800 bg-slate-900">
+                    {STRATEGY_TEAM_CONDITIONS.map((value) => {
+                      const selected = strategyContext.teamCondition === value;
+                      return (
+                        <button
+                          key={value}
+                          type="button"
+                          onClick={() => setStrategyContext(prev => ({ ...prev, teamCondition: value }))}
+                          className={cn(
+                            'min-h-9 px-2 text-[9px] font-black leading-tight transition',
+                            selected ? 'bg-sky-400 text-slate-950' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-100'
+                          )}
+                        >
+                          {STRATEGY_CONTEXT_LABELS.teamCondition[value]}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+                <div className="space-y-1.5">
+                  <span className="block text-[8.5px] font-black uppercase tracking-widest text-slate-500">Phase</span>
+                  <div className="grid grid-cols-3 overflow-hidden rounded-lg border border-slate-800 bg-slate-900">
+                    {STRATEGY_MATCH_PHASES.map((value) => {
+                      const selected = strategyContext.matchPhase === value;
+                      return (
+                        <button
+                          key={value}
+                          type="button"
+                          onClick={() => setStrategyContext(prev => ({ ...prev, matchPhase: value }))}
+                          className={cn(
+                            'min-h-9 px-2 text-[9px] font-black leading-tight transition',
+                            selected ? 'bg-indigo-400 text-slate-950' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-100'
+                          )}
+                        >
+                          {STRATEGY_CONTEXT_LABELS.matchPhase[value]}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+                <div className="space-y-1.5">
+                  <span className="block text-[8.5px] font-black uppercase tracking-widest text-slate-500">Risk</span>
+                  <div className="grid grid-cols-3 overflow-hidden rounded-lg border border-slate-800 bg-slate-900">
+                    {STRATEGY_RISK_LEVELS.map((value) => {
+                      const selected = strategyContext.riskLevel === value;
+                      return (
+                        <button
+                          key={value}
+                          type="button"
+                          onClick={() => setStrategyContext(prev => ({ ...prev, riskLevel: value }))}
+                          className={cn(
+                            'min-h-9 px-2 text-[9px] font-black leading-tight transition',
+                            selected ? 'bg-emerald-400 text-slate-950' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-100'
+                          )}
+                        >
+                          {STRATEGY_CONTEXT_LABELS.riskLevel[value]}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+                <div className="space-y-1.5">
+                  <label className="block text-[8.5px] font-black uppercase tracking-widest text-slate-500">Opponent behavior</label>
+                  <Select
+                    value={strategyContext.opponentBehavior}
+                    onValueChange={(value) => setStrategyContext(prev => ({
+                      ...prev,
+                      opponentBehavior: value as StrategyOpponentBehavior
+                    }))}
+                  >
+                    <SelectTrigger className="h-9 rounded-lg border-slate-800 bg-slate-900 px-3 text-[10px] font-black text-rose-100 focus:ring-rose-400/30">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="border-slate-800 bg-slate-950 text-slate-100">
+                      {STRATEGY_OPPONENT_BEHAVIORS.map((value) => (
+                        <SelectItem key={value} value={value} className="text-xs font-bold">
+                          {STRATEGY_CONTEXT_LABELS.opponentBehavior[value]}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </section>
+
+            <section className="mb-4 rounded-xl border border-slate-800 bg-slate-950/70 p-3.5">
               <div className="grid grid-cols-1 gap-3 border-b border-slate-800 pb-3 lg:grid-cols-[minmax(0,1fr)_22rem] lg:items-end">
                 <div>
                   <h5 className="text-[10px] font-black uppercase tracking-widest text-slate-300">Matchup Strategy</h5>
@@ -2670,19 +2821,11 @@ export default function TacticsView({ players, staff, teamCoach, teamName, teamL
 
               <div className="mt-3 grid grid-cols-1 gap-3 xl:grid-cols-2">
                 <div className="rounded-lg border border-indigo-500/20 bg-indigo-500/10 p-3.5">
-                  <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                  <div>
                     <div>
                       <span className="text-[9px] font-black uppercase tracking-widest text-indigo-200">Recommended attack</span>
                       <h6 className="mt-1 text-base font-black text-white">{matchupRecommendation.recommendedAttack.title}</h6>
                     </div>
-                    <Button
-                      type="button"
-                      size="sm"
-                      onClick={() => setPlaystyle(matchupRecommendation.recommendedAttack.styleValue)}
-                      className="h-9 rounded-lg bg-indigo-500 px-3 text-[10px] font-black text-white hover:bg-indigo-600"
-                    >
-                      Apply attacking plan
-                    </Button>
                   </div>
                   <p className="mt-2 text-[11px] leading-relaxed text-slate-300">{matchupRecommendation.recommendedAttack.intent}</p>
                   <div className="mt-3 grid grid-cols-2 gap-2">
@@ -2702,19 +2845,11 @@ export default function TacticsView({ players, staff, teamCoach, teamName, teamL
                 </div>
 
                 <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/10 p-3.5">
-                  <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                  <div>
                     <div>
                       <span className="text-[9px] font-black uppercase tracking-widest text-emerald-200">Recommended defense</span>
                       <h6 className="mt-1 text-base font-black text-white">{matchupRecommendation.recommendedDefense.title}</h6>
                     </div>
-                    <Button
-                      type="button"
-                      size="sm"
-                      onClick={() => setDefensiveStyle(matchupRecommendation.recommendedDefense.styleValue)}
-                      className="h-9 rounded-lg bg-emerald-500 px-3 text-[10px] font-black text-slate-950 hover:bg-emerald-400"
-                    >
-                      Apply defensive plan
-                    </Button>
                   </div>
                   <p className="mt-2 text-[11px] leading-relaxed text-slate-300">{matchupRecommendation.recommendedDefense.intent}</p>
                   <div className="mt-3 grid grid-cols-2 gap-2">
@@ -2748,6 +2883,28 @@ export default function TacticsView({ players, staff, teamCoach, teamName, teamL
                   <p className="mt-1 text-[10.5px] leading-snug text-slate-400">{matchupRecommendation.playerInstructions[0]}</p>
                 </div>
               </div>
+              {matchupRecommendation.contextReasons.length > 0 && (
+                <div className="mt-3 rounded-lg border border-slate-800 bg-slate-900/40 px-3 py-2">
+                  <span className="block text-[8.5px] font-black uppercase tracking-widest text-slate-500">Recommendation reasons</span>
+                  <div className="mt-2 flex flex-wrap gap-1.5">
+                    {matchupRecommendation.contextReasons.map((reason, index) => (
+                      <span
+                        key={`${reason.label}-${index}`}
+                        className={cn(
+                          'rounded-md border px-2 py-1 text-[9.5px] font-bold leading-tight',
+                          reason.tone === 'warning'
+                            ? 'border-amber-400/30 bg-amber-400/10 text-amber-100'
+                            : reason.tone === 'positive'
+                              ? 'border-emerald-400/20 bg-emerald-400/10 text-emerald-100'
+                              : 'border-slate-700 bg-slate-900 text-slate-300'
+                        )}
+                      >
+                        {reason.label}: {reason.value}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
               <div className="mt-3 rounded-lg border border-sky-500/20 bg-sky-500/10 p-3">
                 <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
                   <span className="text-[9px] font-black uppercase tracking-widest text-sky-200">Coach Read</span>

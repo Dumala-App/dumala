@@ -9,6 +9,7 @@ import {
   deleteManagedWorkspace,
   getActiveWorkspaceId,
   importBackupAsManagedWorkspace,
+  resetManagedWorkspace,
   switchManagedWorkspace
 } from './workspaces';
 
@@ -111,6 +112,30 @@ describe('managed workspaces', () => {
     expect(result.workspaces).toEqual([]);
     expect(storage.getItem(STORAGE_KEYS.teamInfo)).toBeNull();
     expect(storage.getItem(STORAGE_KEYS.onboarded)).toBeNull();
+  });
+
+  it('resetting the active workspace keeps the team shell and onboarding state', () => {
+    const storage = new MemoryStorage();
+    const active = createManagedWorkspace(team('Reset FC'), coach('Reset FC'), storage);
+    storage.setItem(STORAGE_KEYS.players, JSON.stringify([{ id: 'player-1' }]));
+    storage.setItem(STORAGE_KEYS.games, JSON.stringify([{ id: 'game-1' }]));
+    storage.setItem(STORAGE_KEYS.paymentLedger, JSON.stringify([{ id: 'payment-1' }]));
+    copyActiveKeysToWorkspace(active.summary.id, storage);
+
+    const workspaces = resetManagedWorkspace(active.summary.id, storage, '2026-06-30T00:00:00.000Z');
+
+    expect(getActiveWorkspaceId(storage)).toBe(active.summary.id);
+    expect(storage.getItem(STORAGE_KEYS.onboarded)).toBe('true');
+    expect(JSON.parse(storage.getItem(STORAGE_KEYS.teamInfo)!).name).toBe('Reset FC');
+    expect(JSON.parse(storage.getItem(STORAGE_KEYS.players)!)).toEqual([]);
+    expect(JSON.parse(storage.getItem(STORAGE_KEYS.games)!)).toEqual([]);
+    expect(JSON.parse(storage.getItem(STORAGE_KEYS.paymentLedger)!)).toEqual([]);
+    expect(workspaces).toHaveLength(1);
+    expect(workspaces[0]).toMatchObject({
+      id: active.summary.id,
+      name: 'Reset FC',
+      updatedAt: '2026-06-30T00:00:00.000Z'
+    });
   });
 
   it('imports a V4 backup as a new team without overwriting the current active team', () => {

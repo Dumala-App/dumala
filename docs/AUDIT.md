@@ -17,7 +17,7 @@ The main remaining risks are architecture and regression coverage: state ownersh
 5. Result logging connects schedule, player totals, and league state.
 6. Tactics auto-fill matches players to broad position groups and preserves valid assignments.
 7. Tactics now includes a cleaner board workspace, fullscreen Match Layout controls, curated attack/defense strategy cards, opponent-formation simulation, Shape Impact cues, and explainable matchup recommendations.
-8. Training includes 52 drills, practical guides, filters, presets, and calendar synchronization.
+8. Training includes 85 drills, practical guides, filters, presets, and calendar synchronization.
 9. FPRDS stores raw measurements and derived outputs, enabling explainable assessment history.
 10. Full Workspace V4 validates and restores separate player/staff collections plus feature-local data, with V1/V2/V3 migration and rollback protection.
 11. Match-result reconciliation prevents duplicate saves and reverses edited or deleted match contributions.

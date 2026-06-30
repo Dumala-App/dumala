@@ -27,7 +27,7 @@ Dumala is already a serious football operations workspace, not a thin prototype.
 - Result logging that updates standings and player stats.
 - Discipline tracking and Man of the Match history.
 - Tactics board with formation, lineup, roles, notes, and position-aware auto-fill.
-- Training planner with 52 drills, guides, presets, and weekly planning.
+- Training planner with 85 drills, guides, presets, and weekly planning.
 - FPRDS player assessment system with Full and Quick assessments.
 - Role and age-group scoring for ST, W, CM, CDM, FB, CB, and GK.
 - Assessment history, progress charts, comparisons, deltas, and development plans.

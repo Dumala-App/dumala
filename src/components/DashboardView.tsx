@@ -1,13 +1,39 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { AssessmentSession, Game, Player, Standing, Announcement, TeamInfo } from '../types';
 import {findUserStanding, sortStandings} from '../standings';
-import { Calendar, MapPin, Trophy, Shield, Megaphone, Star, Award, Zap, ArrowRight, CornerRightDown, TrendingUp, Edit, Upload, Link, Check, X, Image, Crown, Target, Flame, AlertCircle, Table, Users, ClipboardList } from 'lucide-react';
+import { Calendar, MapPin, Trophy, Shield, Megaphone, Star, Award, Zap, ArrowRight, CornerRightDown, TrendingUp, Edit, Upload, Link, Check, X, Image, Crown, Target, Flame, AlertCircle, Table, Users, ClipboardList, CloudSun, CloudRain, Wind, MoreHorizontal } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
 import { Badge } from './ui/badge';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
+import {
+  matchFormatSchema,
+  stringSchema,
+  tacticsLineupSchema
+} from '../persistence/schemas';
+import {
+  readJsonStorage,
+  readStringStorage,
+  STORAGE_KEYS
+} from '../persistence/storage';
+import {
+  getDefaultFormation,
+  isFormationValidForFormat,
+  MATCH_FORMAT_CONFIG,
+  type MatchFormat
+} from '../tactics/formations';
+import {
+  buildPositionAwareLineup,
+  type TacticsLineup,
+  type TacticsPlayer
+} from '../tactics/lineup';
+import weatherClearUrl from '../assets/weather/clear.png';
+import weatherCloudyUrl from '../assets/weather/cloudy.png';
+import weatherFogUrl from '../assets/weather/fog.png';
+import weatherRainUrl from '../assets/weather/rain.png';
+import weatherStormUrl from '../assets/weather/storm.png';
 
 type MatchOutcome = 'W' | 'D' | 'L';
 type DashboardChartPoint = {
@@ -26,6 +52,323 @@ type DashboardDotProps = {
   cy?: number;
   index?: number;
   payload?: DashboardChartPoint;
+};
+type WeatherDay = {
+  date: string;
+  code: number;
+  high: number;
+  low: number;
+  rainChance: number;
+  wind: number;
+};
+type WeatherLocationResult = {
+  id?: number;
+  latitude: number;
+  longitude: number;
+  name: string;
+  admin1?: string;
+  country?: string;
+};
+type WeatherLocationSuggestion = {
+  id: string;
+  label: string;
+  latitude: number;
+  longitude: number;
+};
+type SavedWeatherPlace = {
+  label: string;
+  latitude: number;
+  longitude: number;
+};
+type WeatherAdvisoryState = {
+  status: 'idle' | 'loading' | 'ready' | 'error';
+  locationLabel: string;
+  current?: {
+    temperature: number;
+    humidity: number;
+    precipitation: number;
+    wind: number;
+    code: number;
+  };
+  days: WeatherDay[];
+  message?: string;
+};
+type MiniFormationSlot = {
+  role: string;
+  top: number;
+  left: number;
+};
+type StrategySnapshot = {
+  matchFormat: MatchFormat;
+  formation: string;
+  playstyle: string;
+  defensiveStyle: string;
+  captain?: Player;
+  freeKickTaker?: Player;
+  cornerTaker?: Player;
+  penaltyTaker?: Player;
+  slots: Array<MiniFormationSlot & { player?: TacticsPlayer }>;
+};
+
+const WEATHER_CODE_LABELS: Record<number, string> = {
+  0: 'Clear',
+  1: 'Mostly clear',
+  2: 'Partly cloudy',
+  3: 'Cloudy',
+  45: 'Fog',
+  48: 'Rime fog',
+  51: 'Light drizzle',
+  53: 'Drizzle',
+  55: 'Heavy drizzle',
+  61: 'Light rain',
+  63: 'Rain',
+  65: 'Heavy rain',
+  80: 'Rain showers',
+  81: 'Showers',
+  82: 'Heavy showers',
+  95: 'Thunderstorm',
+  96: 'Storm with hail',
+  99: 'Storm with hail'
+};
+
+const getWeatherLabel = (code: number) => WEATHER_CODE_LABELS[code] ?? 'Mixed conditions';
+
+const formatWeatherLocation = (place: Pick<WeatherLocationResult, 'name' | 'admin1' | 'country'>) => (
+  [place.name, place.admin1, place.country].filter(Boolean).join(', ')
+);
+
+const parseSavedWeatherPlace = (value: string | null): SavedWeatherPlace | null => {
+  if (!value) return null;
+
+  try {
+    const parsed = JSON.parse(value) as Partial<SavedWeatherPlace>;
+    if (
+      typeof parsed.label === 'string' &&
+      typeof parsed.latitude === 'number' &&
+      typeof parsed.longitude === 'number'
+    ) {
+      return {
+        label: parsed.label,
+        latitude: parsed.latitude,
+        longitude: parsed.longitude
+      };
+    }
+  } catch {
+    return null;
+  }
+
+  return null;
+};
+
+const getWeatherAdvisoryTone = (day?: WeatherDay, currentWind = 0) => {
+  if (!day) return { label: 'Monitoring', className: 'border-sky-200 bg-sky-50 text-sky-700', message: 'Weather check is preparing.' };
+  if (day.code >= 95 || day.rainChance >= 75 || day.wind >= 35 || currentWind >= 35) {
+    return {
+      label: 'High caution',
+      className: 'border-rose-200 bg-rose-50 text-rose-700',
+      message: 'Plan wet-weather footwear, extra warm-up time, hydration, and pitch-safety checks.'
+    };
+  }
+  if (day.rainChance >= 45 || day.wind >= 24 || day.code >= 61) {
+    return {
+      label: 'Watch conditions',
+      className: 'border-amber-200 bg-amber-50 text-amber-700',
+      message: 'Prepare rain cover, towel rotation, and adjust ball-speed expectations.'
+    };
+  }
+  return {
+    label: 'Good window',
+    className: 'border-emerald-200 bg-emerald-50 text-emerald-700',
+    message: 'Conditions look manageable for normal match or training preparation.'
+  };
+};
+
+const getShortWeekday = (date: string) => new Intl.DateTimeFormat('en', { weekday: 'short' }).format(new Date(`${date}T00:00:00`));
+
+const cleanLocationQuery = (value: string) => (
+  value
+    .replace(/\b(stadium|field|pitch|court|gym|clubhouse)\b/gi, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+);
+
+const getWeatherArtType = (code: number) => {
+  if (code >= 95) return 'storm';
+  if (code >= 51 && code <= 82) return 'rain';
+  if (code === 45 || code === 48) return 'fog';
+  if (code >= 1 && code <= 3) return 'cloud';
+  return 'clear';
+};
+
+const getPlayerTacticsAttributes = (player: Player): NonNullable<TacticsPlayer['attributes']> => {
+  const base = player.baseAttributes || {
+    pace: 50,
+    stamina: 50,
+    agility: 50,
+    strength: 50,
+    firstTouch: 50,
+    shortPassing: 50
+  };
+  const positional = player.positionAttributes || {};
+  const average = (...values: number[]) => Math.round(values.reduce((sum, value) => sum + value, 0) / values.length);
+
+  const shooting = player.position === 'Forward'
+    ? average(positional.Finishing || 50, positional['Long Shots'] || 50)
+    : positional['Long Shots'] || 50;
+  const defending = player.position === 'Goalkeeper'
+    ? average(positional.Reflexes || 50, positional.Handling || 50)
+    : average(positional.Tackling || 50, positional.Positioning || 50);
+
+  return {
+    speed: base.pace,
+    shooting,
+    passing: base.shortPassing,
+    dribbling: average(base.agility, base.firstTouch),
+    defending,
+    physicalness: average(base.stamina, base.strength)
+  };
+};
+
+const toTacticsPlayer = (player: Player): TacticsPlayer => {
+  const attributes = getPlayerTacticsAttributes(player);
+  const rating = Math.round(Object.values(attributes).reduce((sum, value) => sum + value, 0) / 6);
+
+  return {
+    id: player.id,
+    name: player.name,
+    rating,
+    position: player.position === 'Forward' ? 'CF' : player.position === 'Midfielder' ? 'AMF' : player.position === 'Defender' ? 'CB' : 'GK',
+    condition: 'B',
+    photoUrl: player.photoUrl,
+    isLegend: false,
+    attributes,
+    number: player.number,
+    bio: player.bio,
+    gamesPlayed: player.gamesPlayed,
+    points: player.points,
+    assists: player.assists,
+    cleanSheetsOrRebounds: player.cleanSheetsOrRebounds,
+    minutesPlayed: player.minutesPlayed,
+    mvpAwards: player.mvpAwards,
+    yellowCards: player.yellowCards,
+    redCards: player.redCards,
+    registrationStatus: player.registrationStatus
+  };
+};
+
+const buildMiniFormationSlots = (matchFormat: MatchFormat, formation: string): MiniFormationSlot[] => {
+  const defaultGK = { role: 'GK', top: 50, left: 12 };
+  const expectedOutfield = MATCH_FORMAT_CONFIG[matchFormat].size - 1;
+  const parts = formation.split('-').map(Number).filter(n => !Number.isNaN(n) && n > 0);
+  let effectiveParts = parts;
+
+  if (parts.length === 0 || parts.reduce((sum, value) => sum + value, 0) !== expectedOutfield) {
+    const fallback = getDefaultFormation(matchFormat);
+    effectiveParts = fallback.split('-').map(Number).filter(n => !Number.isNaN(n) && n > 0);
+  }
+
+  const rowCount = effectiveParts.length;
+  const slots: MiniFormationSlot[] = [];
+
+  for (let row = 0; row < rowCount; row++) {
+    const count = effectiveParts[row];
+    const left = rowCount === 1 ? 58 : Math.round(28 + (row / (rowCount - 1)) * 56);
+
+    for (let index = 0; index < count; index++) {
+      const top = count === 1 ? 50 : Math.round(20 + (index / (count - 1)) * 60);
+      let role = 'MID';
+
+      if (row === 0) {
+        if (count === 1) role = 'CB';
+        else if (count === 2) role = index === 0 ? 'LB' : 'RB';
+        else if (count === 3) role = index === 0 ? 'LCB' : index === 1 ? 'CB' : 'RCB';
+        else if (count === 4) role = index === 0 ? 'LB' : index === 3 ? 'RB' : 'CB';
+        else if (count === 5) role = index === 0 ? 'LWB' : index === 4 ? 'RWB' : 'CB';
+        else role = 'DEF';
+      } else if (row === rowCount - 1) {
+        if (count === 1) role = 'CF';
+        else if (count === 2) role = index === 0 ? 'LWF' : 'RWF';
+        else if (count === 3) role = index === 0 ? 'LWF' : index === 1 ? 'CF' : 'RWF';
+        else role = 'FWD';
+      } else {
+        const isDefensiveMid = row === 1 && rowCount > 3;
+        const isAttackingMid = row === rowCount - 2;
+        if (isDefensiveMid) role = count === 1 ? 'DMF' : index === 0 ? 'LDMF' : 'RDMF';
+        else if (isAttackingMid) role = count === 1 ? 'AMF' : index === 0 ? 'LAMF' : index === count - 1 ? 'RAMF' : 'AMF';
+        else role = count === 1 ? 'CMF' : index === 0 ? 'LMF' : index === count - 1 ? 'RMF' : 'CMF';
+      }
+
+      slots.push({ role, top, left });
+    }
+  }
+
+  return [defaultGK, ...slots];
+};
+
+const readStrategySnapshot = (players: Player[]): StrategySnapshot => {
+  const matchFormat = readStringStorage(STORAGE_KEYS.matchFormat, matchFormatSchema, '11-a-side', 'Tactics match format');
+  const storedFormation = readStringStorage(STORAGE_KEYS.formation, stringSchema, '4-1-2-3', 'Tactics formation');
+  const formation = isFormationValidForFormat(matchFormat, storedFormation) ? storedFormation : getDefaultFormation(matchFormat);
+  const playstyle = readStringStorage(STORAGE_KEYS.playstyle, stringSchema, 'Quick Counter', 'Tactics playstyle');
+  const defensiveStyle = readStringStorage(STORAGE_KEYS.defensiveStyle, stringSchema, 'High Press', 'Tactics defense');
+  const captainId = readStringStorage(STORAGE_KEYS.captainId, stringSchema, '', 'Tactics roles');
+  const freeKickTakerId = readStringStorage(STORAGE_KEYS.freeKickTakerId, stringSchema, '', 'Tactics roles');
+  const cornerTakerId = readStringStorage(STORAGE_KEYS.cornerTakerId, stringSchema, '', 'Tactics roles');
+  const penaltyTakerId = readStringStorage(STORAGE_KEYS.penaltyTakerId, stringSchema, '', 'Tactics roles');
+  const savedLineup = readJsonStorage(STORAGE_KEYS.lineup, tacticsLineupSchema, {}, 'Tactics lineup') as TacticsLineup;
+  const miniSlots = buildMiniFormationSlots(matchFormat, formation);
+  const tacticsPlayers = players.filter(player => player.registrationStatus === 'Active').map(toTacticsPlayer);
+  const lineup = buildPositionAwareLineup({
+    players: tacticsPlayers,
+    slots: miniSlots,
+    size: MATCH_FORMAT_CONFIG[matchFormat].size,
+    currentLineup: savedLineup,
+    preserveAssignments: true
+  });
+
+  return {
+    matchFormat,
+    formation,
+    playstyle,
+    defensiveStyle,
+    captain: players.find(player => player.id === captainId),
+    freeKickTaker: players.find(player => player.id === freeKickTakerId),
+    cornerTaker: players.find(player => player.id === cornerTakerId),
+    penaltyTaker: players.find(player => player.id === penaltyTakerId),
+    slots: miniSlots.slice(0, MATCH_FORMAT_CONFIG[matchFormat].size).map((slot, index) => ({
+      ...slot,
+      player: lineup[index]
+    }))
+  };
+};
+
+const getMiniPlayerNumber = (player: TacticsPlayer | undefined, fallback: number) => (
+  player?.number ? String(player.number) : String(fallback + 1)
+);
+
+const WEATHER_ICON_ASSETS = {
+  clear: weatherClearUrl,
+  cloud: weatherCloudyUrl,
+  fog: weatherFogUrl,
+  rain: weatherRainUrl,
+  storm: weatherStormUrl
+} as const;
+
+const WeatherKitIcon = ({ code, compact = false }: { code: number; compact?: boolean }) => {
+  const type = getWeatherArtType(code);
+  const sizeClass = compact
+    ? 'mx-auto h-10 w-12 object-contain'
+    : 'mx-auto h-32 w-full max-w-[190px] object-contain';
+
+  return (
+    <img
+      src={WEATHER_ICON_ASSETS[type]}
+      alt={`${getWeatherLabel(code)} weather icon`}
+      className={sizeClass}
+      loading="lazy"
+      decoding="async"
+    />
+  );
 };
 
 const CustomTooltip = ({ active, payload }: DashboardTooltipProps) => {
@@ -95,6 +438,8 @@ const dashboardPanelClass = 'rounded-2xl border border-border bg-muted/45 p-4';
 const dashboardListButtonClass = 'h-auto w-full justify-between rounded-xl border-border bg-card p-3 text-left whitespace-normal hover:border-primary/30 hover:bg-primary/5';
 const dashboardMetricRowClass = 'flex items-center justify-between rounded-xl border border-border bg-card p-3 shadow-sm transition-colors hover:border-primary/30 hover:bg-primary/5';
 const dashboardMutedTextClass = 'text-xs font-medium leading-relaxed text-muted-foreground';
+const WEATHER_LOCATION_STORAGE_KEY = 'dumala_weather_location';
+const WEATHER_PLACE_STORAGE_KEY = 'dumala_weather_place';
 
 interface DashboardViewProps {
   teamInfo: TeamInfo;
@@ -132,6 +477,23 @@ export default function DashboardView({
   const [logoInputUrl, setLogoInputUrl] = useState("");
   const [dragOver, setDragOver] = useState(false);
   const [logoStatus, setLogoStatus] = useState<'idle' | 'success' | 'error'>('idle');
+  const [weatherAdvisory, setWeatherAdvisory] = useState<WeatherAdvisoryState>({
+    status: 'idle',
+    locationLabel: '',
+    days: []
+  });
+  const [savedWeatherLocation, setSavedWeatherLocation] = useState<string>(() => {
+    if (typeof window === 'undefined') return '';
+    return window.localStorage.getItem(WEATHER_LOCATION_STORAGE_KEY) ?? '';
+  });
+  const [savedWeatherPlace, setSavedWeatherPlace] = useState<SavedWeatherPlace | null>(() => {
+    if (typeof window === 'undefined') return null;
+    return parseSavedWeatherPlace(window.localStorage.getItem(WEATHER_PLACE_STORAGE_KEY));
+  });
+  const [weatherLocationInput, setWeatherLocationInput] = useState(savedWeatherLocation);
+  const [showWeatherSettings, setShowWeatherSettings] = useState(() => !savedWeatherLocation);
+  const [weatherLocationSuggestions, setWeatherLocationSuggestions] = useState<WeatherLocationSuggestion[]>([]);
+  const [weatherLocationSearchStatus, setWeatherLocationSearchStatus] = useState<'idle' | 'loading' | 'ready' | 'error'>('idle');
 
   const presetLogos = [
     { key: 'shield', label: 'Classic Shield', icon: Shield },
@@ -292,6 +654,228 @@ export default function DashboardView({
     .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
   
   const nextMatch = upcomingGames[0];
+  const weatherLocationQuery = useMemo(() => {
+    const candidates = [
+      savedWeatherPlace?.label ?? savedWeatherLocation,
+      nextMatch?.location,
+      teamInfo.stadium,
+      teamInfo.league
+    ];
+    return candidates.map(value => cleanLocationQuery(value ?? '')).find(Boolean) ?? '';
+  }, [savedWeatherLocation, savedWeatherPlace?.label, nextMatch?.location, teamInfo.stadium, teamInfo.league]);
+
+  const applyWeatherLocation = (location: string, place?: WeatherLocationSuggestion) => {
+    const nextLocation = location.trim();
+    setWeatherLocationInput(nextLocation);
+    setSavedWeatherLocation(nextLocation);
+    setWeatherLocationSuggestions([]);
+    setWeatherLocationSearchStatus('idle');
+    if (nextLocation) {
+      window.localStorage.setItem(WEATHER_LOCATION_STORAGE_KEY, nextLocation);
+      if (place) {
+        const nextPlace: SavedWeatherPlace = {
+          label: place.label,
+          latitude: place.latitude,
+          longitude: place.longitude
+        };
+        setSavedWeatherPlace(nextPlace);
+        window.localStorage.setItem(WEATHER_PLACE_STORAGE_KEY, JSON.stringify(nextPlace));
+      } else {
+        setSavedWeatherPlace(null);
+        window.localStorage.removeItem(WEATHER_PLACE_STORAGE_KEY);
+      }
+      setShowWeatherSettings(false);
+    } else {
+      setSavedWeatherPlace(null);
+      window.localStorage.removeItem(WEATHER_LOCATION_STORAGE_KEY);
+      window.localStorage.removeItem(WEATHER_PLACE_STORAGE_KEY);
+      setShowWeatherSettings(true);
+    }
+  };
+
+  const saveWeatherLocation = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    applyWeatherLocation(weatherLocationInput);
+  };
+
+  const clearWeatherLocation = () => {
+    setWeatherLocationInput('');
+    setSavedWeatherLocation('');
+    setSavedWeatherPlace(null);
+    setWeatherLocationSuggestions([]);
+    setWeatherLocationSearchStatus('idle');
+    setShowWeatherSettings(true);
+    window.localStorage.removeItem(WEATHER_LOCATION_STORAGE_KEY);
+    window.localStorage.removeItem(WEATHER_PLACE_STORAGE_KEY);
+  };
+
+  useEffect(() => {
+    const query = weatherLocationInput.trim();
+    if (!showWeatherSettings || query.length < 2) {
+      setWeatherLocationSuggestions([]);
+      setWeatherLocationSearchStatus('idle');
+      return;
+    }
+
+    const controller = new AbortController();
+    const timeoutId = window.setTimeout(() => {
+      const loadSuggestions = async () => {
+        setWeatherLocationSearchStatus('loading');
+        try {
+          const geocodeUrl = new URL('https://geocoding-api.open-meteo.com/v1/search');
+          geocodeUrl.searchParams.set('name', query);
+          geocodeUrl.searchParams.set('count', '5');
+          geocodeUrl.searchParams.set('language', 'en');
+          geocodeUrl.searchParams.set('format', 'json');
+          const geocodeResponse = await fetch(geocodeUrl, { signal: controller.signal });
+          if (!geocodeResponse.ok) throw new Error('Location suggestions failed.');
+          const geocodeData = await geocodeResponse.json() as { results?: WeatherLocationResult[] };
+          const seen = new Set<string>();
+          const suggestions = (geocodeData.results ?? []).reduce<WeatherLocationSuggestion[]>((items, place) => {
+            const label = formatWeatherLocation(place);
+            if (!label || seen.has(label)) return items;
+            seen.add(label);
+            items.push({
+              id: String(place.id ?? `${place.latitude}-${place.longitude}-${label}`),
+              label,
+              latitude: place.latitude,
+              longitude: place.longitude
+            });
+            return items;
+          }, []);
+          setWeatherLocationSuggestions(suggestions);
+          setWeatherLocationSearchStatus('ready');
+        } catch (error) {
+          if (controller.signal.aborted) return;
+          setWeatherLocationSuggestions([]);
+          setWeatherLocationSearchStatus('error');
+        }
+      };
+
+      void loadSuggestions();
+    }, 250);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+      controller.abort();
+    };
+  }, [showWeatherSettings, weatherLocationInput]);
+
+  useEffect(() => {
+    if (!weatherLocationQuery) {
+      setWeatherAdvisory({
+        status: 'error',
+        locationLabel: '',
+        days: [],
+        message: 'Add an event location or team stadium to show a weekly weather advisory.'
+      });
+      return;
+    }
+
+    const controller = new AbortController();
+    const loadWeather = async () => {
+      const savedPlaceMatchesQuery = savedWeatherPlace && cleanLocationQuery(savedWeatherPlace.label) === weatherLocationQuery;
+      setWeatherAdvisory(prev => ({
+        ...prev,
+        status: 'loading',
+        locationLabel: savedPlaceMatchesQuery ? savedWeatherPlace.label : weatherLocationQuery,
+        message: undefined
+      }));
+
+      try {
+        let place: Pick<WeatherLocationResult, 'latitude' | 'longitude' | 'name' | 'admin1' | 'country'> | undefined = savedPlaceMatchesQuery
+          ? {
+              latitude: savedWeatherPlace.latitude,
+              longitude: savedWeatherPlace.longitude,
+              name: savedWeatherPlace.label
+            }
+          : undefined;
+
+        if (!place) {
+          const lookupLocation = async (query: string) => {
+            const geocodeUrl = new URL('https://geocoding-api.open-meteo.com/v1/search');
+            geocodeUrl.searchParams.set('name', query);
+            geocodeUrl.searchParams.set('count', '1');
+            geocodeUrl.searchParams.set('language', 'en');
+            geocodeUrl.searchParams.set('format', 'json');
+            const geocodeResponse = await fetch(geocodeUrl, { signal: controller.signal });
+            if (!geocodeResponse.ok) throw new Error('Weather location lookup failed.');
+            const geocodeData = await geocodeResponse.json() as { results?: WeatherLocationResult[] };
+            return geocodeData.results?.[0];
+          };
+
+          place = await lookupLocation(weatherLocationQuery);
+          if (!place && weatherLocationQuery.includes(',')) {
+            place = await lookupLocation(weatherLocationQuery.split(',')[0].trim());
+          }
+        }
+
+        if (!place) throw new Error('Weather location was not found.');
+
+        const forecastUrl = new URL('https://api.open-meteo.com/v1/forecast');
+        forecastUrl.searchParams.set('latitude', String(place.latitude));
+        forecastUrl.searchParams.set('longitude', String(place.longitude));
+        forecastUrl.searchParams.set('current', 'temperature_2m,relative_humidity_2m,precipitation,weather_code,wind_speed_10m');
+        forecastUrl.searchParams.set('daily', 'weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,wind_speed_10m_max');
+        forecastUrl.searchParams.set('timezone', 'auto');
+        forecastUrl.searchParams.set('forecast_days', '7');
+
+        const forecastResponse = await fetch(forecastUrl, { signal: controller.signal });
+        if (!forecastResponse.ok) throw new Error('Weather forecast failed.');
+        const forecastData = await forecastResponse.json() as {
+          current?: {
+            temperature_2m?: number;
+            relative_humidity_2m?: number;
+            precipitation?: number;
+            weather_code?: number;
+            wind_speed_10m?: number;
+          };
+          daily?: {
+            time?: string[];
+            weather_code?: number[];
+            temperature_2m_max?: number[];
+            temperature_2m_min?: number[];
+            precipitation_probability_max?: number[];
+            wind_speed_10m_max?: number[];
+          };
+        };
+
+        const days = (forecastData.daily?.time ?? []).map((date, index) => ({
+          date,
+          code: forecastData.daily?.weather_code?.[index] ?? 0,
+          high: Math.round(forecastData.daily?.temperature_2m_max?.[index] ?? 0),
+          low: Math.round(forecastData.daily?.temperature_2m_min?.[index] ?? 0),
+          rainChance: Math.round(forecastData.daily?.precipitation_probability_max?.[index] ?? 0),
+          wind: Math.round(forecastData.daily?.wind_speed_10m_max?.[index] ?? 0)
+        }));
+
+        setWeatherAdvisory({
+          status: 'ready',
+          locationLabel: formatWeatherLocation(place),
+          current: {
+            temperature: Math.round(forecastData.current?.temperature_2m ?? days[0]?.high ?? 0),
+            humidity: Math.round(forecastData.current?.relative_humidity_2m ?? 0),
+            precipitation: forecastData.current?.precipitation ?? 0,
+            wind: Math.round(forecastData.current?.wind_speed_10m ?? days[0]?.wind ?? 0),
+            code: forecastData.current?.weather_code ?? days[0]?.code ?? 0
+          },
+          days
+        });
+      } catch (error) {
+        if (controller.signal.aborted) return;
+        setWeatherAdvisory({
+          status: 'error',
+          locationLabel: weatherLocationQuery,
+          days: [],
+          message: error instanceof Error ? error.message : 'Weather advisory is unavailable right now.'
+        });
+      }
+    };
+
+    void loadWeather();
+
+    return () => controller.abort();
+  }, [savedWeatherPlace, weatherLocationQuery]);
 
   const latestAssessmentByPlayerId = useMemo(() => {
     const sorted = [...assessments].sort((a, b) => {
@@ -430,6 +1014,15 @@ export default function DashboardView({
     .filter(p => p.position === 'Goalkeeper' || p.position === 'Defender')
     .sort((a,b) => b.cleanSheetsOrRebounds - a.cleanSheetsOrRebounds)
     .slice(0, 3);
+  const todayWeather = weatherAdvisory.days[0];
+  const weatherTone = getWeatherAdvisoryTone(todayWeather, weatherAdvisory.current?.wind);
+  const strategySnapshot = useMemo(() => readStrategySnapshot(players), [players]);
+  const strategySetPieceSummary = [
+    strategySnapshot.cornerTaker ? `CK ${strategySnapshot.cornerTaker.name}` : '',
+    strategySnapshot.freeKickTaker ? `FK ${strategySnapshot.freeKickTaker.name}` : '',
+    strategySnapshot.penaltyTaker ? `PK ${strategySnapshot.penaltyTaker.name}` : ''
+  ].filter(Boolean).join(' / ') || 'Assign roles';
+  const strategyLeadershipSummary = strategySnapshot.captain ? `Captain ${strategySnapshot.captain.name}` : 'Select captain';
 
   return (
     <div id="dashboard-view-container" className="space-y-6">
@@ -696,8 +1289,8 @@ export default function DashboardView({
       {/* Grid: Next Clash Spotlight & Latest Announcement notices */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         
-        {/* Next Clash Spotlight (Left col 7) */}
-        <div className={`lg:col-span-7 flex flex-col justify-between ${dashboardCardClass}`}>
+        {/* Match Day Prep (Left col 7) */}
+        <div className={`order-1 lg:col-span-7 flex flex-col justify-between ${dashboardCardClass}`}>
           <div>
             <div className={`${dashboardHeaderClass} flex items-start justify-between gap-3`}>
               <div>
@@ -791,8 +1384,234 @@ export default function DashboardView({
           </div>
         </div>
 
+        {/* Weather Advisory (Left col 7) */}
+        <div id="dashboard-weather-advisory" className={`order-3 lg:col-span-7 ${dashboardCardClass}`}>
+          <div className={`${dashboardHeaderClass} flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center`}>
+            <div>
+              <h3 className={dashboardSectionTitleClass}>
+                <CloudSun size={18} className="text-primary" aria-hidden="true" /> Weather Advisory
+              </h3>
+              <p className={dashboardSectionDescriptionClass}>
+                Today and the next seven days for match and training planning.
+              </p>
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setShowWeatherSettings(value => !value)}
+              className="h-9 w-9 rounded-full p-0"
+              aria-label="Weather location settings"
+              title="Weather location settings"
+            >
+              <MoreHorizontal size={16} />
+            </Button>
+          </div>
+
+          {showWeatherSettings && (
+            <div className="mt-4 rounded-xl border border-border bg-muted/35 p-3">
+              <form onSubmit={saveWeatherLocation} className="grid grid-cols-1 gap-2 sm:grid-cols-[minmax(0,1fr)_auto_auto]">
+                <div className="relative min-w-0">
+                  <Input
+                    value={weatherLocationInput}
+                    onChange={(event) => setWeatherLocationInput(event.target.value)}
+                    placeholder="Search city, e.g. Manila, Philippines"
+                    aria-label="Weather advisory location"
+                    aria-autocomplete="list"
+                    aria-expanded={weatherLocationSuggestions.length > 0}
+                    aria-controls="weather-location-suggestions"
+                    autoComplete="off"
+                    className="h-10 rounded-xl border-border bg-background text-sm"
+                  />
+                  {(weatherLocationSuggestions.length > 0 || weatherLocationSearchStatus === 'loading' || weatherLocationSearchStatus === 'error') && (
+                    <div
+                      id="weather-location-suggestions"
+                      role="listbox"
+                      className="absolute left-0 right-0 top-11 z-30 overflow-hidden rounded-xl border border-border bg-popover text-popover-foreground shadow-lg"
+                    >
+                      {weatherLocationSearchStatus === 'loading' && (
+                        <div className="px-3 py-2 text-xs font-semibold text-muted-foreground">Finding cities...</div>
+                      )}
+                      {weatherLocationSearchStatus === 'error' && (
+                        <div className="px-3 py-2 text-xs font-semibold text-amber-700">City suggestions unavailable.</div>
+                      )}
+                      {weatherLocationSuggestions.map((suggestion) => (
+                        <button
+                          key={suggestion.id}
+                          type="button"
+                          role="option"
+                          onClick={() => applyWeatherLocation(suggestion.label, suggestion)}
+                          className="block w-full px-3 py-2 text-left text-sm font-semibold hover:bg-primary/10 focus:bg-primary/10 focus:outline-none"
+                        >
+                          {suggestion.label}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                <Button type="submit" size="sm" className="h-10 rounded-xl">
+                  Save location
+                </Button>
+                {savedWeatherLocation && (
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={clearWeatherLocation}
+                    className="h-10 rounded-xl"
+                  >
+                    Clear
+                  </Button>
+                )}
+              </form>
+            </div>
+          )}
+
+          {weatherAdvisory.status === 'loading' && (
+            <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-[11rem_minmax(0,1fr)]">
+              <div className="h-28 animate-pulse rounded-xl border border-border bg-muted/45" />
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                {Array.from({ length: 4 }).map((_, index) => (
+                  <div key={index} className="h-28 animate-pulse rounded-xl border border-border bg-muted/45" />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {weatherAdvisory.status === 'error' && (
+            <div className="mt-5 flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+              <AlertCircle size={18} className="mt-0.5 shrink-0" aria-hidden="true" />
+              <div>
+                <strong className="block">Weather advisory unavailable</strong>
+                <p className="mt-1 leading-relaxed">{weatherAdvisory.message || 'Unable to load the weekly forecast right now.'}</p>
+              </div>
+            </div>
+          )}
+
+          {weatherAdvisory.status === 'ready' && (
+            <div className="mt-5 space-y-4">
+              <div className="grid grid-cols-1 gap-3 lg:grid-cols-[13rem_minmax(0,1fr)]">
+                <div className="rounded-xl border border-border bg-muted/45 p-4">
+                  <span className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                    <MapPin size={13} aria-hidden="true" /> {weatherAdvisory.locationLabel}
+                  </span>
+                  <div className="mt-3 flex flex-col items-center gap-3 text-center">
+                    <WeatherKitIcon code={weatherAdvisory.current?.code ?? todayWeather?.code ?? 0} />
+                    <div>
+                      <span className="text-4xl font-black tracking-tight text-foreground">
+                        {weatherAdvisory.current?.temperature ?? todayWeather?.high ?? '--'}&#176;
+                      </span>
+                      <p className="mt-1 text-xs font-semibold text-muted-foreground">
+                        {getWeatherLabel(weatherAdvisory.current?.code ?? todayWeather?.code ?? 0)}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="mt-3 grid grid-cols-2 gap-2 text-[11px] font-semibold text-muted-foreground">
+                    <span className="flex items-center gap-1.5"><CloudRain size={12} aria-hidden="true" /> {todayWeather?.rainChance ?? 0}% rain</span>
+                    <span className="flex items-center gap-1.5"><Wind size={12} aria-hidden="true" /> {weatherAdvisory.current?.wind ?? todayWeather?.wind ?? 0} km/h</span>
+                  </div>
+                </div>
+
+                <div className="rounded-xl border border-border bg-card p-4">
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                    <Badge variant="outline" className={`w-fit ${weatherTone.className}`}>
+                      {weatherTone.label}
+                    </Badge>
+                    <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">7-day outlook</span>
+                  </div>
+                  <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{weatherTone.message}</p>
+                  <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4 xl:grid-cols-7">
+                    {weatherAdvisory.days.map((day) => (
+                      <div
+                        key={day.date}
+                        className="min-w-0 rounded-lg border border-border bg-muted/45 p-2.5 text-center"
+                        title={getWeatherLabel(day.code)}
+                        aria-label={`${getShortWeekday(day.date)} ${getWeatherLabel(day.code)}, high ${day.high} degrees, low ${day.low} degrees, ${day.rainChance}% rain`}
+                      >
+                        <span className="block text-[10px] font-black uppercase tracking-widest text-muted-foreground">{getShortWeekday(day.date)}</span>
+                        <div className="mx-auto mt-1 max-w-[58px]">
+                          <WeatherKitIcon code={day.code} compact />
+                        </div>
+                        <span className="mt-1 block text-xs font-black text-primary">{day.high}&#176;/{day.low}&#176;</span>
+                        <span className="mt-1 block text-[10px] font-semibold text-muted-foreground">{day.rainChance}% rain</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Strategy Snapshot (Right col 5) */}
+        <div id="dashboard-strategy-snapshot" className={`order-2 lg:col-span-5 flex flex-col justify-between ${dashboardCardClass}`}>
+          <div className={dashboardHeaderClass}>
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <h3 className={dashboardSectionTitleClass}>
+                  <ClipboardList size={18} className="text-primary" aria-hidden="true" /> Strategy Snapshot
+                </h3>
+                <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                  <Badge variant="outline" className="h-4 px-1.5 text-[9px]">{strategySnapshot.formation}</Badge>
+                  <Badge variant="secondary" className="h-4 px-1.5 text-[9px]">{strategySnapshot.matchFormat}</Badge>
+                </div>
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => onNavigate({ primary: 'tactics' })}
+                className="h-7 shrink-0 rounded-lg px-2.5 text-[11px]"
+              >
+                Open <ArrowRight size={12} />
+              </Button>
+            </div>
+          </div>
+
+          <div
+            className="relative mx-auto mt-2 aspect-[18/8] w-[84%] overflow-hidden rounded-lg border border-emerald-200 bg-emerald-700 shadow-inner"
+            role="img"
+            aria-label={`Mini pitch showing ${strategySnapshot.formation} formation`}
+          >
+            <div className="absolute inset-2 rounded-lg border border-white/55" />
+            <div className="absolute left-1/2 top-2 h-[calc(100%-1rem)] w-px -translate-x-1/2 bg-white/45" />
+            <div className="absolute left-1/2 top-1/2 h-12 w-12 -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/45" />
+            <div className="absolute left-2 top-1/2 h-14 w-8 -translate-y-1/2 rounded-r-lg border border-l-0 border-white/45" />
+            <div className="absolute right-2 top-1/2 h-14 w-8 -translate-y-1/2 rounded-l-lg border border-r-0 border-white/45" />
+            {strategySnapshot.slots.map((slot, index) => (
+              <div
+                key={`${slot.role}-${index}`}
+                className="absolute flex h-5 w-5 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-white bg-primary text-[9px] font-black text-primary-foreground shadow-md ring-2 ring-emerald-950/15"
+                style={{ left: `${slot.left}%`, top: `${slot.top}%` }}
+                title={slot.player ? `${slot.player.name} - ${slot.role}` : slot.role}
+              >
+                {getMiniPlayerNumber(slot.player, index)}
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-2 grid grid-cols-2 overflow-hidden rounded-lg border border-border bg-muted/45">
+            <div className="min-w-0 border-b border-r border-border px-2 py-1">
+              <span className="text-[8px] font-black uppercase tracking-widest text-muted-foreground">Attack</span>
+              <p className="truncate text-[10.5px] font-black leading-tight text-foreground">{strategySnapshot.playstyle}</p>
+            </div>
+            <div className="min-w-0 border-b border-border px-2 py-1">
+              <span className="text-[8px] font-black uppercase tracking-widest text-muted-foreground">Defense</span>
+              <p className="truncate text-[10.5px] font-black leading-tight text-foreground">{strategySnapshot.defensiveStyle}</p>
+            </div>
+            <div className="min-w-0 border-r border-border px-2 py-1">
+              <span className="text-[8px] font-black uppercase tracking-widest text-muted-foreground">Lead</span>
+              <p className="truncate text-[10.5px] font-bold leading-tight text-foreground">{strategyLeadershipSummary}</p>
+            </div>
+            <div className="min-w-0 px-2 py-1">
+              <span className="text-[8px] font-black uppercase tracking-widest text-muted-foreground">Set Piece</span>
+              <p className="truncate text-[10.5px] font-bold leading-tight text-foreground">{strategySetPieceSummary}</p>
+            </div>
+          </div>
+        </div>
+
         {/* Latest Announcements Bulletin (Right col 5) */}
-        <div className={`lg:col-span-5 flex flex-col justify-between ${dashboardCardClass}`}>
+        <div className={`order-4 lg:col-span-5 flex flex-col justify-between ${dashboardCardClass}`}>
           <div>
             <div className={`${dashboardHeaderClass} flex items-start justify-between gap-3`}>
               <div>
@@ -1354,3 +2173,4 @@ export default function DashboardView({
     </div>
   );
 }
+

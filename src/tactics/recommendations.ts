@@ -1,5 +1,6 @@
 import { ATTACK_STRATEGY_CARDS, DEFENSE_STRATEGY_CARDS, type TacticalStrategyCard } from './strategyLibrary';
 import type { MatchFormat } from './formations';
+import { DEFAULT_STRATEGY_CONTEXT, STRATEGY_CONTEXT_LABELS, type StrategyContext } from './strategyContext';
 
 export type FormationTraits = {
   formation: string;
@@ -26,14 +27,28 @@ export type MatchupRecommendation = {
   opponent: FormationTraits;
   recommendedAttack: TacticalStrategyCard;
   recommendedDefense: TacticalStrategyCard;
-  attackScores: Array<{ card: TacticalStrategyCard; score: number }>;
-  defenseScores: Array<{ card: TacticalStrategyCard; score: number }>;
+  attackScores: RankedStrategyCard[];
+  defenseScores: RankedStrategyCard[];
+  context: StrategyContext;
+  contextReasons: StrategyScoreReason[];
   opponentThreats: string[];
   exploitableSpaces: string[];
   playerInstructions: string[];
   shapeImpactSummary: ShapeImpactCard[];
   comparisonInsights: Array<{ label: string; value: string }>;
   explanation: string;
+};
+
+export type StrategyScoreReason = {
+  label: string;
+  value: string;
+  tone: 'positive' | 'warning' | 'neutral';
+};
+
+export type RankedStrategyCard = {
+  card: TacticalStrategyCard;
+  score: number;
+  reasons: StrategyScoreReason[];
 };
 
 export type ShapeImpactCard = {
@@ -114,10 +129,12 @@ const tagsForOpponentFormation = (traits: FormationTraits): string[] => [
   traits.hasFrontTwo ? 'front-two-screen' : '',
   traits.hasSinglePivot ? 'single-pivot' : '',
   traits.hasCentralOverload ? 'central-overload' : '',
+  traits.hasCentralOverload ? 'playmaker-pocket' : '',
   traits.hasNarrowDiamond ? 'narrow-diamond' : '',
   traits.widthScore >= 4 ? 'wide-overload' : '',
   traits.hasFrontThree || traits.pressureScore >= 5 ? 'high-press' : '',
   !traits.hasWideForwards && traits.midfielders >= 4 ? 'narrow-midfield' : '',
+  traits.hasBackFive && traits.forwards <= 1 ? 'low-block' : '',
   traits.defenders >= 4 && traits.forwards <= 1 ? 'slow-build-up' : '',
   traits.defenders >= 4 ? 'pace-behind' : '',
   traits.midfielders >= 4 ? 'midfield-congestion' : ''
@@ -129,11 +146,120 @@ const scoreCard = (card: TacticalStrategyCard, ourTags: string[], opponentTags: 
   + card.tags.reduce((score, tag) => score + (ourTags.includes(tag) || opponentTags.includes(tag) ? 1 : 0), 0)
 );
 
-const rankCards = (cards: readonly TacticalStrategyCard[], our: FormationTraits, opponent: FormationTraits) => {
+const isDefaultStrategyContext = (context: StrategyContext) => (
+  context.matchState === DEFAULT_STRATEGY_CONTEXT.matchState
+  && context.matchPhase === DEFAULT_STRATEGY_CONTEXT.matchPhase
+  && context.teamCondition === DEFAULT_STRATEGY_CONTEXT.teamCondition
+  && context.opponentBehavior === DEFAULT_STRATEGY_CONTEXT.opponentBehavior
+  && context.riskLevel === DEFAULT_STRATEGY_CONTEXT.riskLevel
+);
+
+const contextPartMatches = <K extends keyof StrategyContext>(
+  context: StrategyContext,
+  key: K,
+  expected: StrategyContext[K] | undefined
+) => expected === undefined || context[key] === expected;
+
+const contextAvoidMatches = (context: StrategyContext, avoidWhen: Partial<StrategyContext>) => (
+  contextPartMatches(context, 'matchState', avoidWhen.matchState)
+  && contextPartMatches(context, 'matchPhase', avoidWhen.matchPhase)
+  && contextPartMatches(context, 'teamCondition', avoidWhen.teamCondition)
+  && contextPartMatches(context, 'opponentBehavior', avoidWhen.opponentBehavior)
+  && contextPartMatches(context, 'riskLevel', avoidWhen.riskLevel)
+);
+
+const makeContextReason = (
+  label: string,
+  value: string,
+  tone: StrategyScoreReason['tone'] = 'positive'
+): StrategyScoreReason => ({ label, value, tone });
+
+const scoreContextFit = (
+  card: TacticalStrategyCard,
+  context: StrategyContext,
+  enabled: boolean
+): { score: number; reasons: StrategyScoreReason[] } => {
+  if (!enabled || !card.contextFit) return { score: 0, reasons: [] };
+
+  let score = 0;
+  const reasons: StrategyScoreReason[] = [];
+  const fit = card.contextFit;
+
+  if (fit.matchState?.includes(context.matchState)) {
+    score += 5;
+    reasons.push(makeContextReason('Match state', `Fits ${STRATEGY_CONTEXT_LABELS.matchState[context.matchState].toLowerCase()}.`));
+  }
+  if (fit.opponentBehavior?.includes(context.opponentBehavior)) {
+    score += 5;
+    reasons.push(makeContextReason('Opponent behavior', `Answers ${STRATEGY_CONTEXT_LABELS.opponentBehavior[context.opponentBehavior].toLowerCase()}.`));
+  }
+  if (fit.teamCondition?.includes(context.teamCondition)) {
+    score += 3;
+    reasons.push(makeContextReason('Team condition', `Suitable for a ${STRATEGY_CONTEXT_LABELS.teamCondition[context.teamCondition].toLowerCase()} team.`));
+  }
+  if (fit.riskLevel?.includes(context.riskLevel)) {
+    score += 3;
+    reasons.push(makeContextReason('Risk', `Matches ${STRATEGY_CONTEXT_LABELS.riskLevel[context.riskLevel].toLowerCase()} risk.`));
+  }
+  if (fit.matchPhase?.includes(context.matchPhase)) {
+    score += 2;
+    reasons.push(makeContextReason('Phase', `Useful in the ${STRATEGY_CONTEXT_LABELS.matchPhase[context.matchPhase].toLowerCase()}.`));
+  }
+
+  const avoidMatch = fit.avoidWhen?.find(item => contextAvoidMatches(context, item));
+  if (avoidMatch) {
+    score -= 6;
+    reasons.push(makeContextReason('Warning', 'Context makes this plan riskier than usual.', 'warning'));
+  }
+
+  return { score, reasons };
+};
+
+const getTopContextReasons = (
+  attack: RankedStrategyCard | undefined,
+  defense: RankedStrategyCard | undefined
+): StrategyScoreReason[] => {
+  const reasons = [
+    ...(attack?.reasons ?? []),
+    ...(defense?.reasons ?? [])
+  ];
+  const ordered = [
+    ...reasons.filter(reason => reason.tone === 'warning'),
+    ...reasons.filter(reason => reason.tone !== 'warning')
+  ];
+  const seen = new Set<string>();
+  const unique: StrategyScoreReason[] = [];
+
+  for (const reason of ordered) {
+    const key = reason.label;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    unique.push(reason);
+    if (unique.length >= 3) break;
+  }
+
+  return unique;
+};
+
+const rankCards = (
+  cards: readonly TacticalStrategyCard[],
+  our: FormationTraits,
+  opponent: FormationTraits,
+  context: StrategyContext,
+  useContext: boolean
+): RankedStrategyCard[] => {
   const ourTags = tagsForOurFormation(our);
   const opponentTags = tagsForOpponentFormation(opponent);
   return cards
-    .map(card => ({ card, score: scoreCard(card, ourTags, opponentTags) }))
+    .filter(card => card.status !== 'draft')
+    .map(card => {
+      const contextScore = scoreContextFit(card, context, useContext);
+      return {
+        card,
+        score: scoreCard(card, ourTags, opponentTags) + contextScore.score,
+        reasons: contextScore.reasons
+      };
+    })
     .sort((a, b) => b.score - a.score || a.card.title.localeCompare(b.card.title));
 };
 
@@ -318,18 +444,22 @@ const buildShapeImpactSummary = ({
 export const recommendMatchupStrategy = ({
   ourFormation,
   opponentFormation,
-  matchFormat
+  matchFormat,
+  context = DEFAULT_STRATEGY_CONTEXT
 }: {
   ourFormation: string;
   opponentFormation: string;
   matchFormat: MatchFormat;
+  context?: StrategyContext;
 }): MatchupRecommendation => {
   const our = analyzeFormation(ourFormation);
   const opponent = analyzeFormation(opponentFormation);
-  const attackScores = rankCards(ATTACK_STRATEGY_CARDS, our, opponent);
-  const defenseScores = rankCards(DEFENSE_STRATEGY_CARDS, our, opponent);
+  const useContext = !isDefaultStrategyContext(context);
+  const attackScores = rankCards(ATTACK_STRATEGY_CARDS, our, opponent, context, useContext);
+  const defenseScores = rankCards(DEFENSE_STRATEGY_CARDS, our, opponent, context, useContext);
   const recommendedAttack = attackScores[0]?.card ?? ATTACK_STRATEGY_CARDS[0];
   const recommendedDefense = defenseScores[0]?.card ?? DEFENSE_STRATEGY_CARDS[0];
+  const contextReasons = getTopContextReasons(attackScores[0], defenseScores[0]);
   const opponentThreats = buildOpponentThreats(opponent);
   const exploitableSpaces = buildExploitableSpaces(opponent);
   const playerInstructions = buildPlayerInstructions(recommendedAttack, recommendedDefense, opponent);
@@ -363,6 +493,8 @@ export const recommendMatchupStrategy = ({
     recommendedDefense,
     attackScores,
     defenseScores,
+    context,
+    contextReasons,
     opponentThreats,
     exploitableSpaces,
     playerInstructions,

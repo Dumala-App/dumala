@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { DEFAULT_STRATEGY_CONTEXT } from './strategyContext';
 import { analyzeFormation, recommendMatchupStrategy } from './recommendations';
 
 describe('formation analysis', () => {
@@ -74,5 +75,78 @@ describe('matchup recommendations', () => {
     expect(recommendation.recommendedDefense.title).toBe('Low Block');
     expect(recommendation.opponentThreats.join(' ')).toContain('front three');
     expect(recommendation.shapeImpactSummary.find(card => card.id === 'our-shape')?.value).toBe('Box protection');
+  });
+
+  it('uses context to protect a lead with a tired team', () => {
+    const recommendation = recommendMatchupStrategy({
+      ourFormation: '4-2-3-1',
+      opponentFormation: '4-4-2',
+      matchFormat: '11-a-side',
+      context: {
+        ...DEFAULT_STRATEGY_CONTEXT,
+        matchState: 'protect-lead',
+        matchPhase: 'last-15',
+        teamCondition: 'tired',
+        opponentBehavior: 'direct-play',
+        riskLevel: 'safe'
+      }
+    });
+
+    expect(['Low Block', 'Compact 4-5-1 Block', 'Rest-Defense Net', 'Half Press']).toContain(recommendation.recommendedDefense.title);
+    expect(recommendation.recommendedDefense.title).not.toBe('High Press');
+    expect(recommendation.contextReasons.length).toBeGreaterThan(0);
+    expect(recommendation.contextReasons.length).toBeLessThanOrEqual(3);
+    expect(recommendation.contextReasons.map(reason => reason.label)).toContain('Match state');
+    expect(new Set(recommendation.contextReasons.map(reason => reason.label)).size).toBe(recommendation.contextReasons.length);
+  });
+
+  it('uses context to chase a goal against a low block', () => {
+    const recommendation = recommendMatchupStrategy({
+      ourFormation: '4-3-3',
+      opponentFormation: '5-4-1',
+      matchFormat: '11-a-side',
+      context: {
+        ...DEFAULT_STRATEGY_CONTEXT,
+        matchState: 'chasing-goal',
+        matchPhase: 'last-15',
+        teamCondition: 'fresh',
+        opponentBehavior: 'low-block',
+        riskLevel: 'aggressive'
+      }
+    });
+
+    expect(['Cutback Patterns', 'Blind-Side Runners', 'Half-Space Overload', 'Set-Piece Pressure']).toContain(recommendation.recommendedAttack.title);
+    expect(recommendation.contextReasons.some(reason => reason.label === 'Opponent behavior')).toBe(true);
+  });
+
+  it('uses context to answer a high press', () => {
+    const recommendation = recommendMatchupStrategy({
+      ourFormation: '4-2-3-1',
+      opponentFormation: '4-3-3',
+      matchFormat: '11-a-side',
+      context: {
+        ...DEFAULT_STRATEGY_CONTEXT,
+        opponentBehavior: 'high-press',
+        riskLevel: 'safe'
+      }
+    });
+
+    expect(['Press-Resistant Build', 'Long Ball Counter']).toContain(recommendation.recommendedAttack.title);
+  });
+
+  it('uses context to handle wide overloads', () => {
+    const recommendation = recommendMatchupStrategy({
+      ourFormation: '4-4-2',
+      opponentFormation: '3-5-2',
+      matchFormat: '11-a-side',
+      context: {
+        ...DEFAULT_STRATEGY_CONTEXT,
+        opponentBehavior: 'wide-overload',
+        matchState: 'protect-lead',
+        riskLevel: 'safe'
+      }
+    });
+
+    expect(['Anti-Overload Slide', 'Back-Five Shift', 'Wide Trap']).toContain(recommendation.recommendedDefense.title);
   });
 });
