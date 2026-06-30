@@ -99,8 +99,9 @@ const ADMIN_DARK_GLASS_THEME = {
     dialogSelectItem: 'text-slate-100 focus:bg-orange-300/10 focus:text-orange-100',
     dialogSecondaryButton: 'border-cyan-300/15 bg-[#0b1726]/90 text-slate-100 hover:bg-white/[0.06] hover:text-white',
     dialogPrimaryButton: 'bg-orange-400 text-slate-950 shadow-sm shadow-orange-950/25 hover:bg-orange-300 hover:text-slate-950',
-    nav: 'flex gap-2 overflow-x-auto rounded-2xl border border-orange-300/10 bg-[#07111f]/88 p-2 shadow-lg shadow-black/20 backdrop-blur-xl',
-    navItem: 'shrink-0 border transition-colors',
+    secondaryActionButton: 'border-cyan-300/15 bg-[#0b1726]/90 text-slate-100 shadow-sm shadow-black/15 hover:border-orange-300/30 hover:bg-orange-300/10 hover:text-orange-100',
+    nav: 'flex flex-wrap gap-2 rounded-2xl border border-orange-300/10 bg-[#07111f]/88 p-2 shadow-lg shadow-black/20 backdrop-blur-xl',
+    navItem: 'shrink-0 border transition-colors sm:flex-1 lg:flex-none',
     navItemActive: 'border-orange-300/40 bg-orange-400 text-slate-950 shadow-sm shadow-orange-950/25 hover:bg-orange-300 hover:text-slate-950',
     navItemIdle: 'border-transparent text-slate-400 hover:border-orange-300/20 hover:bg-orange-300/10 hover:text-orange-100'
   }
@@ -160,6 +161,7 @@ const ADMIN_DIALOG_SELECT_CONTENT_CLASS = ADMIN_THEME.classes.dialogSelectConten
 const ADMIN_DIALOG_SELECT_ITEM_CLASS = ADMIN_THEME.classes.dialogSelectItem;
 const ADMIN_DIALOG_SECONDARY_BUTTON_CLASS = ADMIN_THEME.classes.dialogSecondaryButton;
 const ADMIN_DIALOG_PRIMARY_BUTTON_CLASS = ADMIN_THEME.classes.dialogPrimaryButton;
+const ADMIN_SECONDARY_ACTION_BUTTON_CLASS = ADMIN_THEME.classes.secondaryActionButton;
 
 const AdminBackdrop = () => (
   <div aria-hidden="true" className="fixed inset-0 overflow-hidden">
@@ -1148,10 +1150,10 @@ const ExportsPanel = ({
     </div>
     <Section title="Create export" icon={Download}>
       <div className="flex flex-wrap gap-2">
-        <Button type="button" variant="outline" onClick={() => onExport('feedback')}><Download size={14} /> Feedback CSV</Button>
-        <Button type="button" variant="outline" onClick={() => onExport('usage')}><Download size={14} /> Usage CSV</Button>
-        <Button type="button" variant="outline" onClick={() => onExport('fprds')}><Download size={14} /> FPRDS CSV</Button>
-        <Button type="button" variant="outline" onClick={() => onExport('users')} disabled={!metrics}><Download size={14} /> Users CSV</Button>
+        <Button type="button" variant="outline" onClick={() => onExport('feedback')} className={ADMIN_SECONDARY_ACTION_BUTTON_CLASS}><Download size={14} /> Feedback CSV</Button>
+        <Button type="button" variant="outline" onClick={() => onExport('usage')} className={ADMIN_SECONDARY_ACTION_BUTTON_CLASS}><Download size={14} /> Usage CSV</Button>
+        <Button type="button" variant="outline" onClick={() => onExport('fprds')} className={ADMIN_SECONDARY_ACTION_BUTTON_CLASS}><Download size={14} /> FPRDS CSV</Button>
+        <Button type="button" variant="outline" onClick={() => onExport('users')} disabled={!metrics} className={ADMIN_SECONDARY_ACTION_BUTTON_CLASS}><Download size={14} /> Users CSV</Button>
       </div>
     </Section>
     <Section title="Recent export audit" icon={FileText}>
@@ -1409,7 +1411,7 @@ const SecurityPanel = ({
       </div>
       <Section title="Session actions" icon={LockKeyhole}>
         <div className="flex flex-wrap items-center gap-2">
-          <Button type="button" variant="outline" onClick={onRefresh}>
+          <Button type="button" variant="outline" onClick={onRefresh} className={ADMIN_SECONDARY_ACTION_BUTTON_CLASS}>
             <RefreshCcw size={14} /> Refresh security
           </Button>
           <Button type="button" variant="destructive" onClick={onSignOut}>
