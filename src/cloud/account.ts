@@ -124,6 +124,46 @@ const createOwnerClub = async (
     'Failed to create owner club'
   );
 
+const readOwnerMembership = async (
+  client: DumalaSupabaseClient,
+  clubId: string,
+  userId: string
+): Promise<CloudClubMembership | null> =>
+  expectNoError(
+    await client
+      .from('club_memberships')
+      .select('*')
+      .eq('club_id', clubId)
+      .eq('user_id', userId)
+      .eq('role', 'owner')
+      .eq('membership_state', 'active')
+      .maybeSingle(),
+    'OWNER_MEMBERSHIP_READ_FAILED',
+    'Failed to read owner membership'
+  );
+
+const createOwnerMembership = async (
+  client: DumalaSupabaseClient,
+  clubId: string,
+  userId: string,
+  acceptedAt: string
+): Promise<CloudClubMembership> =>
+  expectNoError(
+    await client
+      .from('club_memberships')
+      .insert({
+        club_id: clubId,
+        user_id: userId,
+        role: 'owner',
+        membership_state: 'active',
+        accepted_at: acceptedAt
+      })
+      .select('*')
+      .single(),
+    'OWNER_MEMBERSHIP_BOOTSTRAP_FAILED',
+    'Failed to ensure owner membership'
+  );
+
 export const ensureAccountBootstrap = async (
   client: DumalaSupabaseClient,
   input: AccountBootstrapInput
@@ -135,21 +175,9 @@ export const ensureAccountBootstrap = async (
 
   const club = await readOwnedClub(client, user.id) ?? await createOwnerClub(client, user.id, input);
 
-  const membership = expectNoError(
-    await client
-      .from('club_memberships')
-      .upsert({
-        club_id: club.id,
-        user_id: user.id,
-        role: 'owner',
-        membership_state: 'active',
-        accepted_at: now.toISOString()
-      }, { onConflict: 'club_id,user_id' })
-      .select('*')
-      .single(),
-    'OWNER_MEMBERSHIP_BOOTSTRAP_FAILED',
-    'Failed to ensure owner membership'
-  );
+  const acceptedAt = now.toISOString();
+  const membership = await readOwnerMembership(client, club.id, user.id)
+    ?? await createOwnerMembership(client, club.id, user.id, acceptedAt);
 
   const device = expectNoError(
     await client
