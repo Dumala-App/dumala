@@ -963,9 +963,12 @@ export default function App() {
 
   if (hashRoute === 'admin') {
     return (
-      <Suspense fallback={<ViewLoadingFallback label="admin console" />}>
-        <AdminConsoleView />
-      </Suspense>
+      <>
+        <PwaStatusBanners />
+        <Suspense fallback={<ViewLoadingFallback label="admin console" />}>
+          <AdminConsoleView />
+        </Suspense>
+      </>
     );
   }
 
