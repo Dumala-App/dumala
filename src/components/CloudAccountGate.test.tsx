@@ -7,7 +7,8 @@ import {
   submitCloudAccountEmail,
   submitCloudGoogleSignIn,
   submitCloudPasswordRegistration,
-  submitCloudPasswordSignIn
+  submitCloudPasswordSignIn,
+  submitCloudSignOut
 } from './CloudAccountGate';
 import type { CloudAuthController } from '../hooks/useCloudAuth';
 import type { CloudRuntime } from '../cloud/runtime';
@@ -83,6 +84,16 @@ describe('CloudAccountGate', () => {
     await submitCloudGoogleSignIn(signInWithGoogle, 'https://dumala.test/auth');
 
     expect(signInWithGoogle).toHaveBeenCalledWith('https://dumala.test/auth');
+  });
+
+  it('signs out before handing control back to the app shell', async () => {
+    const signOut = vi.fn().mockResolvedValue(undefined);
+    const onSignedOut = vi.fn();
+
+    await submitCloudSignOut(signOut, onSignedOut);
+
+    expect(signOut).toHaveBeenCalledOnce();
+    expect(onSignedOut).toHaveBeenCalledOnce();
   });
 
   it('bootstraps account records after sign-in through the account repository', async () => {

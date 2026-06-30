@@ -353,6 +353,13 @@ export const tacticsNoteSchema = z.object({
 }).passthrough();
 export const tacticsNotesSchema = z.array(tacticsNoteSchema);
 export const matchFormatSchema = z.enum(['11-a-side', '9-a-side', '8-a-side', '7-a-side', '6-a-side', '5-a-side']);
+export const strategyContextSchema = z.object({
+  matchState: z.enum(['balanced', 'protect-lead', 'chasing-goal']),
+  matchPhase: z.enum(['first-half', 'second-half', 'last-15']),
+  teamCondition: z.enum(['fresh', 'normal', 'tired']),
+  opponentBehavior: z.enum(['balanced', 'high-press', 'low-block', 'wide-overload', 'direct-play', 'strong-midfield']),
+  riskLevel: z.enum(['safe', 'balanced', 'aggressive'])
+});
 
 export const draggedPositionsSchema = z.record(
   z.string(),

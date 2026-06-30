@@ -424,14 +424,14 @@ export default function ScheduleView({ games, players, standings, onAddGame, onR
       
       {/* View Selector Filters */}
       <div className="flex flex-col sm:flex-row justify-between items-center bg-white p-4 rounded-2xl shadow-md shadow-slate-100/30 border border-slate-200/60 gap-4">
-        <div className="bg-[#f1f5f9] p-1.5 rounded-xl flex gap-1 border border-slate-200/40">
+        <div className="w-full min-w-0 sm:w-auto bg-[#f1f5f9] p-1.5 rounded-xl flex gap-1 border border-slate-200/40">
           <Button
             id="tab-upcoming-games"
             type="button"
             variant={filterTab === 'Upcoming' ? 'default' : 'ghost'}
             size="sm"
             onClick={() => setFilterTab('Upcoming')}
-            className={`rounded-lg px-5 py-2 text-xs font-bold uppercase tracking-wider ${
+            className={`min-w-0 flex-1 whitespace-normal text-center leading-tight sm:flex-none sm:whitespace-nowrap rounded-lg px-3 sm:px-5 py-2 text-[11px] sm:text-xs font-bold uppercase tracking-wider ${
               filterTab === 'Upcoming' 
                 ? 'bg-slate-900 text-white shadow-sm' 
                 : 'text-slate-600 hover:text-slate-950'
@@ -445,7 +445,7 @@ export default function ScheduleView({ games, players, standings, onAddGame, onR
             variant={filterTab === 'Completed' ? 'default' : 'ghost'}
             size="sm"
             onClick={() => setFilterTab('Completed')}
-            className={`rounded-lg px-5 py-2 text-xs font-bold uppercase tracking-wider ${
+            className={`min-w-0 flex-1 whitespace-normal text-center leading-tight sm:flex-none sm:whitespace-nowrap rounded-lg px-3 sm:px-5 py-2 text-[11px] sm:text-xs font-bold uppercase tracking-wider ${
               filterTab === 'Completed' 
                 ? 'bg-slate-900 text-white shadow-sm' 
                 : 'text-slate-600 hover:text-slate-950'
@@ -459,7 +459,7 @@ export default function ScheduleView({ games, players, standings, onAddGame, onR
           id="toggle-schedule-form-btn"
           type="button"
           onClick={() => setIsAdding(!isAdding)}
-          className="rounded-xl border border-indigo-650/10 bg-indigo-600 px-4 py-2.5 text-xs font-bold text-white shadow-sm hover:bg-indigo-700"
+          className="w-full justify-center rounded-xl border border-indigo-650/10 bg-indigo-600 px-4 py-2.5 text-xs font-bold text-white shadow-sm hover:bg-indigo-700 sm:w-auto"
         >
           {isAdding ? <Plus size={14} className="rotate-45" /> : <Plus size={14} />}
           {isAdding ? 'Cancel' : 'Schedule Tournament Event'}
@@ -472,7 +472,7 @@ export default function ScheduleView({ games, players, standings, onAddGame, onR
           id="add-game-form-container"
           initial={{ opacity: 0, height: 0 }}
           animate={{ opacity: 1, height: "auto" }}
-          className="bg-white p-6 rounded-2xl border border-slate-200/70 shadow-md shadow-slate-100/35 space-y-4"
+          className="bg-white p-4 sm:p-6 rounded-2xl border border-slate-200/70 shadow-md shadow-slate-100/35 space-y-4"
         >
           <div className="flex items-center gap-2 pb-2 border-b border-slate-100">
             <Calendar className="text-indigo-600 font-bold" size={20} />

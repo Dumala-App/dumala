@@ -83,7 +83,7 @@ Dumala provides one structured workspace for weekly team administration and repe
 
 ### Development
 
-- **Training**: 52-drill library, filters, How-To guides, week-by-week planner, nine presets, match badges, schedule synchronization, development evidence, and reassessment planning.
+- **Training**: 85-drill library, filters, How-To guides, week-by-week planner, nine presets, match badges, schedule synchronization, development evidence, and reassessment planning.
 - **Assessments**: Full and Quick FPRDS assessments, seven role profiles, four age groups, benchmark scoring, OVR, deltas, history, drill guides, player-card preview, and four-week plans for Full assessments.
 
 ### League & Updates

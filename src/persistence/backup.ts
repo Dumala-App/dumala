@@ -17,6 +17,7 @@ import {
   staffMembersSchema,
   standingsBackupsSchema,
   standingsSchema,
+  strategyContextSchema,
   stringArraySchema,
   stringSchema,
   tacticsBoardSnapshotsSchema,
@@ -35,6 +36,7 @@ import {
   writeJsonStorage,
   writeStringStorage
 } from './storage';
+import { DEFAULT_STRATEGY_CONTEXT } from '../tactics/strategyContext';
 
 const tacticsSchema = z.object({
   matchFormat: matchFormatSchema,
@@ -53,6 +55,7 @@ const tacticsSchema = z.object({
   freeKickTakerId: stringSchema,
   cornerTakerId: stringSchema,
   defensiveStyle: stringSchema,
+  strategyContext: strategyContextSchema.default(DEFAULT_STRATEGY_CONTEXT),
   playerExtras: playerExtrasSchema,
   lineup: tacticsLineupSchema,
   notes: tacticsNotesSchema,
@@ -162,6 +165,7 @@ const defaultTactics = {
   freeKickTakerId: '',
   cornerTakerId: '',
   defensiveStyle: 'High Press',
+  strategyContext: DEFAULT_STRATEGY_CONTEXT,
   playerExtras: {},
   lineup: {},
   notes: [],
@@ -198,6 +202,7 @@ export const collectFeatureState = (storage: StorageLike = window.localStorage):
     freeKickTakerId: readStringStorage(STORAGE_KEYS.freeKickTakerId, stringSchema, '', 'Tactics roles', storage),
     cornerTakerId: readStringStorage(STORAGE_KEYS.cornerTakerId, stringSchema, '', 'Tactics roles', storage),
     defensiveStyle: readStringStorage(STORAGE_KEYS.defensiveStyle, stringSchema, defaultTactics.defensiveStyle, 'Tactics defense', storage),
+    strategyContext: readJsonStorage(STORAGE_KEYS.strategyContext, strategyContextSchema, defaultTactics.strategyContext, 'Tactics strategy context', storage),
     playerExtras: readJsonStorage(STORAGE_KEYS.playerExtras, playerExtrasSchema, {}, 'Tactics player status', storage),
     lineup: readJsonStorage(STORAGE_KEYS.lineup, tacticsLineupSchema, {}, 'Tactics lineup', storage),
     notes: readJsonStorage(STORAGE_KEYS.tacticsNotes, tacticsNotesSchema, [], 'Tactics notes', storage),
@@ -326,6 +331,7 @@ const writesForBackup = (backup: WorkspaceBackupV4): Array<[string, unknown, 'js
   [STORAGE_KEYS.freeKickTakerId, backup.featureState.tactics.freeKickTakerId, 'string'],
   [STORAGE_KEYS.cornerTakerId, backup.featureState.tactics.cornerTakerId, 'string'],
   [STORAGE_KEYS.defensiveStyle, backup.featureState.tactics.defensiveStyle, 'string'],
+  [STORAGE_KEYS.strategyContext, backup.featureState.tactics.strategyContext, 'json'],
   [STORAGE_KEYS.playerExtras, backup.featureState.tactics.playerExtras, 'json'],
   [STORAGE_KEYS.lineup, backup.featureState.tactics.lineup, 'json'],
   [STORAGE_KEYS.tacticsNotes, backup.featureState.tactics.notes, 'json'],

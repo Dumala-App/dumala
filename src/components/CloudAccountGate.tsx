@@ -21,6 +21,7 @@ export interface CloudAccountGateProps {
   audience?: 'coach' | 'admin';
   runtime?: CloudRuntime;
   authController?: CloudAuthController;
+  onSignedOut?: () => void;
 }
 
 export const getOrCreateCloudDeviceId = (): string => {
@@ -68,6 +69,14 @@ export const submitCloudGoogleSignIn = async (
   await signInWithGoogle(redirectTo);
 };
 
+export const submitCloudSignOut = async (
+  signOut: CloudAuthController['signOut'],
+  onSignedOut?: () => void
+): Promise<void> => {
+  await signOut();
+  onSignedOut?.();
+};
+
 export const buildAccountBootstrapInput = (
   state: Extract<AuthState, { status: 'signedIn' }>,
   clubName = 'Dumala Club',
@@ -97,7 +106,8 @@ export const CloudAccountGate = ({
   layout = 'default',
   audience = 'coach',
   runtime: runtimeOverride,
-  authController: authControllerOverride
+  authController: authControllerOverride,
+  onSignedOut
 }: CloudAccountGateProps) => {
   const liveRuntime = useCloudRuntime();
   const runtime = runtimeOverride ?? liveRuntime;
@@ -184,6 +194,18 @@ export const CloudAccountGate = ({
     }
   };
 
+  const handleSignOut = async () => {
+    setSubmitState('sending');
+    setMessage('');
+
+    try {
+      await submitCloudSignOut(auth.signOut, onSignedOut);
+    } catch (error) {
+      setSubmitState('error');
+      setMessage(error instanceof Error ? error.message : 'Could not sign out.');
+    }
+  };
+
   if (auth.state.status === 'loading') {
     return (
       <section aria-label="Cloud account" className={`rounded-lg border px-3 py-2 text-xs font-semibold ${dark ? 'border-slate-700 bg-[#050b14] text-slate-300' : compact ? 'border-border/70 bg-muted/40 text-muted-foreground' : 'border-slate-200 bg-white text-slate-600 shadow-sm'}`}>
@@ -197,8 +219,8 @@ export const CloudAccountGate = ({
       <section aria-label="Cloud account" className={`rounded-lg border px-3 py-2 text-xs font-semibold ${dark ? 'border-emerald-400/30 bg-emerald-400/10 text-emerald-200' : compact ? 'border-emerald-200 bg-emerald-50/80 text-emerald-800' : 'border-emerald-200 bg-emerald-50 text-emerald-800 shadow-sm'}`}>
         <div className="flex flex-wrap items-center gap-2">
           <span className="inline-flex items-center gap-1.5"><CheckCircle2 size={14} /> {connectedLabel}</span>
-          <Button type="button" variant="outline" size="sm" onClick={() => void auth.signOut()} className={`h-7 gap-1 rounded-md px-2 text-[11px] [&_svg]:size-3 ${dark ? 'border-emerald-400/30 bg-transparent text-emerald-100 hover:bg-emerald-400/10 hover:text-white' : 'border-emerald-200 text-emerald-800 hover:bg-emerald-100 hover:text-emerald-900'}`}>
-            <LogOut size={12} /> Sign out
+          <Button type="button" variant="outline" size="sm" onClick={() => void handleSignOut()} disabled={submitState === 'sending'} className={`h-7 gap-1 rounded-md px-2 text-[11px] [&_svg]:size-3 ${dark ? 'border-emerald-400/30 bg-transparent text-emerald-100 hover:bg-emerald-400/10 hover:text-white' : 'border-emerald-200 text-emerald-800 hover:bg-emerald-100 hover:text-emerald-900'}`}>
+            {submitState === 'sending' ? <Loader2 size={12} className="animate-spin" /> : <LogOut size={12} />} Sign out
           </Button>
         </div>
         {message && <p className="mt-1 text-[11px] text-amber-700">{message}</p>}

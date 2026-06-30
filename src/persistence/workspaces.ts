@@ -90,6 +90,20 @@ const readStoredTeamInfo = (storage: StorageLike): TeamInfo | null => {
   }
 };
 
+const readStoredWorkspaceTeamInfo = (
+  workspaceId: string,
+  storage: StorageLike
+): TeamInfo | null => {
+  const raw = storage.getItem(getWorkspaceStorageKey(workspaceId, STORAGE_KEYS.teamInfo));
+  if (!raw) return null;
+  try {
+    const parsed = teamInfoSchema.safeParse(JSON.parse(raw));
+    return parsed.success ? parsed.data : null;
+  } catch {
+    return null;
+  }
+};
+
 const hasLegacyWorkspaceData = (storage: StorageLike) =>
   Boolean(
     storage.getItem(STORAGE_KEYS.onboarded) === 'true' ||
@@ -283,6 +297,45 @@ export const deleteManagedWorkspace = (
   else CORE_DUMALA_KEYS.forEach(key => storage.removeItem(key));
 
   return { workspaces: next, activeWorkspaceId: nextActiveId };
+};
+
+export const resetManagedWorkspace = (
+  workspaceId: string,
+  storage: StorageLike = browserStorage(),
+  now = new Date().toISOString()
+) => {
+  const workspace = readWorkspaceSummaries(storage).find(summary => summary.id === workspaceId);
+  if (!workspace) throw new Error('The selected team workspace could not be found.');
+
+  const activeTeamInfo = getActiveWorkspaceId(storage) === workspaceId
+    ? readStoredTeamInfo(storage)
+    : null;
+  const workspaceTeamInfo = readStoredWorkspaceTeamInfo(workspaceId, storage);
+  const teamInfo = activeTeamInfo ?? workspaceTeamInfo;
+  if (!teamInfo) throw new Error('Team information is required before resetting the workspace.');
+
+  CORE_DUMALA_KEYS.forEach(key => {
+    storage.removeItem(key);
+    storage.removeItem(getWorkspaceStorageKey(workspaceId, key));
+  });
+
+  setActiveWorkspaceId(workspaceId, storage);
+  storage.setItem(STORAGE_KEYS.onboarded, 'true');
+  storage.setItem(STORAGE_KEYS.teamInfo, JSON.stringify(teamInfo));
+  storage.setItem(STORAGE_KEYS.players, JSON.stringify([]));
+  storage.setItem(STORAGE_KEYS.staff, JSON.stringify([]));
+  storage.setItem(STORAGE_KEYS.games, JSON.stringify([]));
+  storage.setItem(STORAGE_KEYS.standings, JSON.stringify([]));
+  storage.setItem(STORAGE_KEYS.announcements, JSON.stringify([]));
+  storage.setItem(STORAGE_KEYS.assessments, JSON.stringify([]));
+  storage.setItem(STORAGE_KEYS.paymentLedger, JSON.stringify([]));
+  copyActiveKeysToWorkspace(workspaceId, storage);
+
+  return touchWorkspaceSummary(workspaceId, {
+    name: teamInfo.name,
+    logoUrl: teamInfo.logoUrl,
+    cloudClubId: workspace.cloudClubId
+  }, storage, now);
 };
 
 export const createBackupFromActiveWorkspace = (

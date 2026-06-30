@@ -18,7 +18,7 @@ The current MVP is a local-first football operations and player-development app 
 8. Automatic league standings and player-stat updates.
 9. Discipline records, MVP awards, and histories.
 10. Position-aware tactics auto-fill, fullscreen match-board planning, curated strategy cards, opponent formation simulation, Shape Impact cues, and persistent tactical planning.
-11. Weekly training planner with 52 drills, guides, filters, nine presets, week-by-week schedule navigation, development planning, and reassessment support without automatic official rating growth.
+11. Weekly training planner with 85 drills, guides, filters, nine presets, week-by-week schedule navigation, development planning, and reassessment support without automatic official rating growth.
 12. FPRDS Assessment Center in beta:
     - Full and Quick assessments
     - U12, U15, U18, and Adult groups

@@ -1103,7 +1103,7 @@ export default function UpdatesView() {
         <ul className="list-disc pl-5 text-sm text-slate-600 space-y-1">
           <li>Replace fragmented spreadsheets and chat threads with a unified team dashboard</li>
           <li>Automate standings updates and player stat tracking from match results</li>
-          <li>Plan training weeks with a 52-drill library and preset templates</li>
+          <li>Plan training weeks with an 85-drill library and preset templates</li>
           <li>Track player availability, opponent intel, and tactical notes before fixtures</li>
           <li>Build a foundation for objective, data-driven player assessment and development</li>
         </ul>

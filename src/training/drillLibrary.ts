@@ -598,6 +598,392 @@ export const TRAINING_DRILLS = [
     fatigueIncrease: 4,
     icon: "",
     color: "from-rose-400 to-pink-500"
+  },
+
+  // ===== WARM-UP AND ACTIVATION DRILLS =====
+  {
+    id: "drill-warm-dynamic-ball",
+    name: "Dynamic Ball-Mastery Warm-Up",
+    category: "Warm-Up Activation",
+    description: "Players move through dynamic mobility actions while keeping a ball close. Builds readiness, touches, coordination, and ankle/hip prep.",
+    targetAttributes: ["dribbling", "physicalness"],
+    developmentFocus: { dribbling: 1, physicalness: 1 },
+    fatigueIncrease: 2,
+    icon: "",
+    color: "from-teal-400 to-emerald-500"
+  },
+  {
+    id: "drill-warm-rondo-arrival",
+    name: "Arrival Rondo Warm-Up",
+    category: "Warm-Up Possession",
+    description: "Low-load 4v1 and 5v2 rondos that warm the group while reinforcing scanning, body shape, and quick supporting angles.",
+    targetAttributes: ["passing", "dribbling"],
+    developmentFocus: { passing: 2, dribbling: 1 },
+    fatigueIncrease: 2,
+    icon: "",
+    color: "from-emerald-400 to-cyan-500"
+  },
+  {
+    id: "drill-warm-speed-react",
+    name: "Reaction Gates Warm-Up",
+    category: "Warm-Up Speed",
+    description: "Short acceleration reactions through colored gates after movement-prep cues. Useful before speed, pressing, or transition sessions.",
+    targetAttributes: ["speed", "physicalness"],
+    developmentFocus: { speed: 2, physicalness: 1 },
+    fatigueIncrease: 3,
+    icon: "",
+    color: "from-sky-400 to-blue-500"
+  },
+  {
+    id: "drill-warm-pass-move",
+    name: "Pass-and-Move Activation",
+    category: "Warm-Up Passing",
+    description: "Two-touch pass-and-follow patterns through a small grid. Players scan before receiving and move immediately after release.",
+    targetAttributes: ["passing", "speed"],
+    developmentFocus: { passing: 2, speed: 1 },
+    fatigueIncrease: 2,
+    icon: "",
+    color: "from-lime-400 to-emerald-500"
+  },
+
+  // ===== CLUB-STYLE POSSESSION AND TRANSITION DRILLS =====
+  {
+    id: "drill-rondo-4v2-split",
+    name: "4v2 Split-Pass Rondo",
+    category: "Possession Standard",
+    description: "A compact rondo where the outside players score extra points for splitting the two defenders with a clean central pass.",
+    targetAttributes: ["passing", "dribbling"],
+    developmentFocus: { passing: 3, dribbling: 1 },
+    fatigueIncrease: 3,
+    icon: "",
+    color: "from-teal-500 to-green-600"
+  },
+  {
+    id: "drill-positional-5v5-plus3",
+    name: "5v5+3 Positional Play",
+    category: "Tactical Positional Play",
+    description: "Possession game with neutral players creating overloads. Trains spacing, third-man support, and switching through central pivots.",
+    targetAttributes: ["passing", "dribbling"],
+    developmentFocus: { passing: 3, dribbling: 1 },
+    fatigueIncrease: 5,
+    icon: "",
+    color: "from-indigo-500 to-cyan-600"
+  },
+  {
+    id: "drill-counterpress-6-second",
+    name: "Six-Second Counter-Press Game",
+    category: "Tactical Pressing",
+    description: "Small-sided possession game where the team that loses the ball has six seconds to win it back before retreating into shape.",
+    targetAttributes: ["defending", "physicalness"],
+    developmentFocus: { defending: 2, physicalness: 2 },
+    fatigueIncrease: 6,
+    icon: "",
+    color: "from-amber-500 to-red-600"
+  },
+  {
+    id: "drill-transition-wave",
+    name: "Three-Zone Transition Wave",
+    category: "Tactical Transition",
+    description: "Teams attack from one zone into the next after winning possession. Builds fast support runs, counter-attacks, and recovery reactions.",
+    targetAttributes: ["passing", "speed"],
+    developmentFocus: { passing: 2, speed: 2 },
+    fatigueIncrease: 6,
+    icon: "",
+    color: "from-orange-500 to-sky-600"
+  },
+
+  // ===== MORE POSITION-SPECIFIC DRILLS =====
+  {
+    id: "drill-winger-1v1-cross",
+    name: "Winger 1v1 to Cutback",
+    category: "Winger Isolation",
+    description: "Wide player attacks a fullback in a channel, beats them either side, and delivers a cutback or driven cross to a target zone.",
+    targetAttributes: ["dribbling", "passing"],
+    developmentFocus: { dribbling: 2, passing: 1 },
+    fatigueIncrease: 5,
+    icon: "",
+    color: "from-cyan-400 to-blue-500"
+  },
+  {
+    id: "drill-fwd-pressing-curve",
+    name: "Striker Curved Press",
+    category: "Forward Pressing",
+    description: "Striker curves the press to block the centre-back's inside pass, forces play wide, then attacks the first bad touch.",
+    targetAttributes: ["defending", "speed"],
+    developmentFocus: { defending: 2, speed: 1 },
+    fatigueIncrease: 5,
+    icon: "",
+    color: "from-rose-500 to-orange-600"
+  },
+  {
+    id: "drill-mid-pivot-scan",
+    name: "Pivot Scan and Bounce",
+    category: "Midfield Pivot",
+    description: "Defensive midfielder checks shoulders, receives from centre-back, bounces first-time or turns away from pressure to switch play.",
+    targetAttributes: ["passing", "dribbling"],
+    developmentFocus: { passing: 2, dribbling: 1 },
+    fatigueIncrease: 3,
+    icon: "",
+    color: "from-emerald-500 to-blue-600"
+  },
+  {
+    id: "drill-mid-box-arrival",
+    name: "Late Box Arrival Finish",
+    category: "Midfield Arrival",
+    description: "Midfielder starts outside the box, times a delayed run, receives a cutback, and finishes first-time from the penalty spot area.",
+    targetAttributes: ["shooting", "speed"],
+    developmentFocus: { shooting: 2, speed: 1 },
+    fatigueIncrease: 4,
+    icon: "",
+    color: "from-violet-500 to-rose-600"
+  },
+  {
+    id: "drill-def-cb-build-out",
+    name: "Centre-Back Build-Out",
+    category: "Defender Build-Up",
+    description: "Centre-backs split wide, receive from the goalkeeper, draw pressure, and play into pivot, fullback, or diagonal switch targets.",
+    targetAttributes: ["passing", "defending"],
+    developmentFocus: { passing: 2, defending: 1 },
+    fatigueIncrease: 3,
+    icon: "",
+    color: "from-blue-500 to-slate-600"
+  },
+  {
+    id: "drill-def-rest-defense",
+    name: "Rest-Defense Counter Cover",
+    category: "Defender Transition",
+    description: "Back line and holding midfielder hold compact counter-cover positions while attackers circulate the ball in the final third.",
+    targetAttributes: ["defending", "speed"],
+    developmentFocus: { defending: 2, speed: 1 },
+    fatigueIncrease: 4,
+    icon: "",
+    color: "from-slate-500 to-indigo-600"
+  },
+  {
+    id: "drill-fullback-underlap",
+    name: "Fullback Underlap Timing",
+    category: "Defender Wide Play",
+    description: "Fullback starts deep, underlaps inside the winger, receives a slipped pass, and chooses cutback, shot, or recovery run.",
+    targetAttributes: ["speed", "passing"],
+    developmentFocus: { speed: 1, passing: 2 },
+    fatigueIncrease: 5,
+    icon: "",
+    color: "from-sky-500 to-teal-600"
+  },
+  {
+    id: "drill-gk-build-third-man",
+    name: "Goalkeeper Third-Man Build-Up",
+    category: "Goalkeeper Build-Up",
+    description: "Goalkeeper plays through pressure using centre-back, pivot, and fullback bounce patterns instead of clearing long by default.",
+    targetAttributes: ["passing", "defending"],
+    developmentFocus: { passing: 2, defending: 1 },
+    fatigueIncrease: 3,
+    icon: "",
+    color: "from-lime-500 to-cyan-600"
+  },
+
+  // ===== ADDITIONAL TACTICAL DRILLS =====
+  {
+    id: "drill-tactical-overload-to-isolate",
+    name: "Overload to Isolate Switch",
+    category: "Tactical Positional Play",
+    description: "Team overloads one side to draw pressure, then switches quickly to isolate the weak-side winger or fullback in space.",
+    targetAttributes: ["passing", "dribbling"],
+    developmentFocus: { passing: 3, dribbling: 1 },
+    fatigueIncrease: 4,
+    icon: "",
+    color: "from-indigo-500 to-sky-600"
+  },
+  {
+    id: "drill-tactical-midblock-trap",
+    name: "Mid-Block Pressing Trap",
+    category: "Tactical Pressing",
+    description: "Unit holds a compact mid-block, shows play into a chosen channel, then jumps together once the trigger pass is played.",
+    targetAttributes: ["defending", "physicalness"],
+    developmentFocus: { defending: 3, physicalness: 1 },
+    fatigueIncrease: 5,
+    icon: "",
+    color: "from-amber-500 to-slate-600"
+  },
+  {
+    id: "drill-tactical-backline-cover",
+    name: "Back-Line Cover Rotation",
+    category: "Tactical Defending",
+    description: "Back four rehearses press-cover-balance rotations when a fullback steps out, centre-back covers, and far-side defender tucks in.",
+    targetAttributes: ["defending", "speed"],
+    developmentFocus: { defending: 3, speed: 1 },
+    fatigueIncrease: 4,
+    icon: "",
+    color: "from-blue-600 to-indigo-700"
+  },
+  {
+    id: "drill-tactical-final-third-rotation",
+    name: "Final-Third Rotation Pattern",
+    category: "Tactical Attack",
+    description: "Winger, fullback, striker, and attacking midfielder rotate lanes to create a crossing, cutback, or through-ball option.",
+    targetAttributes: ["passing", "shooting"],
+    developmentFocus: { passing: 2, shooting: 1 },
+    fatigueIncrease: 4,
+    icon: "",
+    color: "from-violet-500 to-rose-600"
+  },
+  {
+    id: "drill-tactical-set-piece-zones",
+    name: "Set-Piece Zone Assignments",
+    category: "Tactical Set Pieces",
+    description: "Defending team rehearses zonal and player-marking responsibilities for corners, second balls, and counter-attack outlets.",
+    targetAttributes: ["defending", "physicalness"],
+    developmentFocus: { defending: 2, physicalness: 1 },
+    fatigueIncrease: 3,
+    icon: "",
+    color: "from-slate-500 to-blue-700"
+  },
+  {
+    id: "drill-tactical-press-resist-build",
+    name: "Press-Resistant Build-Up",
+    category: "Tactical Build-Up",
+    description: "Back line and midfield build through an active first press using bounce passes, third-man runs, and planned escape outlets.",
+    targetAttributes: ["passing", "dribbling"],
+    developmentFocus: { passing: 2, dribbling: 2 },
+    fatigueIncrease: 5,
+    icon: "",
+    color: "from-cyan-500 to-indigo-600"
+  },
+
+  // ===== ADDITIONAL CONDITIONING DRILLS =====
+  {
+    id: "drill-cond-tempo-possession",
+    name: "Tempo Possession Conditioning",
+    category: "Conditioning & Possession",
+    description: "Possession game with timed tempo changes: calm circulation, fast two-touch phase, then immediate recovery movement.",
+    targetAttributes: ["physicalness", "passing"],
+    developmentFocus: { physicalness: 2, passing: 1 },
+    fatigueIncrease: 6,
+    icon: "",
+    color: "from-cyan-500 to-blue-700"
+  },
+  {
+    id: "drill-cond-hiit-small-sided",
+    name: "HIIT Small-Sided Waves",
+    category: "Conditioning & Intensity",
+    description: "Short, high-intensity small-sided games with incomplete rest to build repeated match-action capacity under pressure.",
+    targetAttributes: ["physicalness", "speed"],
+    developmentFocus: { physicalness: 3, speed: 1 },
+    fatigueIncrease: 8,
+    icon: "",
+    color: "from-red-500 to-orange-600"
+  },
+  {
+    id: "drill-cond-accel-decel",
+    name: "Acceleration-Deceleration Grid",
+    category: "Conditioning & Pace",
+    description: "Players accelerate, brake, turn, and re-accelerate through short gates, training safe deceleration and first-step repeatability.",
+    targetAttributes: ["speed", "physicalness"],
+    developmentFocus: { speed: 2, physicalness: 2 },
+    fatigueIncrease: 6,
+    icon: "",
+    color: "from-sky-500 to-indigo-600"
+  },
+  {
+    id: "drill-cond-strength-carry",
+    name: "Contact Strength Carry Circuit",
+    category: "Conditioning & Strength",
+    description: "Partner-resisted carries, shield holds, medicine-ball drives, and short sprints to build football-specific contact resilience.",
+    targetAttributes: ["physicalness", "defending"],
+    developmentFocus: { physicalness: 3, defending: 1 },
+    fatigueIncrease: 7,
+    icon: "",
+    color: "from-slate-600 to-zinc-800"
+  },
+  {
+    id: "drill-cond-endurance-ladders",
+    name: "Aerobic Ladder Runs",
+    category: "Conditioning & Endurance",
+    description: "Progressive run blocks at controlled effort with short recoveries, useful for building volume without turning every day into sprints.",
+    targetAttributes: ["physicalness"],
+    developmentFocus: { physicalness: 3 },
+    fatigueIncrease: 6,
+    icon: "",
+    color: "from-emerald-500 to-cyan-600"
+  },
+  {
+    id: "drill-cond-speed-endurance",
+    name: "Speed-Endurance Channels",
+    category: "Conditioning & Speed",
+    description: "Repeated 30-40m channel runs with a ball action at the end, combining sprint endurance with passing or shooting execution.",
+    targetAttributes: ["speed", "physicalness"],
+    developmentFocus: { speed: 2, physicalness: 2 },
+    fatigueIncrease: 7,
+    icon: "",
+    color: "from-orange-500 to-rose-600"
+  },
+
+  // ===== ADDITIONAL RECOVERY DRILLS =====
+  {
+    id: "drill-recovery-breath-mobility",
+    name: "Breathing and Mobility Reset",
+    category: "Recovery & Mobility",
+    description: "Low-load breathing, hip mobility, thoracic rotations, and hamstring flow to downshift after heavy training or match play.",
+    targetAttributes: ["physicalness"],
+    developmentFocus: { physicalness: 1 },
+    fatigueIncrease: 1,
+    icon: "",
+    color: "from-emerald-400 to-teal-500"
+  },
+  {
+    id: "drill-recovery-ball-circulation",
+    name: "Low-Tempo Ball Circulation",
+    category: "Recovery & Technical",
+    description: "Gentle passing carousel focused on rhythm, light movement, communication, and restoring touch without loading the legs heavily.",
+    targetAttributes: ["passing", "physicalness"],
+    developmentFocus: { passing: 1, physicalness: 1 },
+    fatigueIncrease: 1,
+    icon: "",
+    color: "from-lime-400 to-emerald-500"
+  },
+  {
+    id: "drill-recovery-pool-shadow",
+    name: "Pool or No-Impact Shadow Movements",
+    category: "Recovery & Mobility",
+    description: "Low-impact movement rehearsal for running patterns, hip openers, and gentle jumps using pool work or slow shadow actions.",
+    targetAttributes: ["physicalness", "speed"],
+    developmentFocus: { physicalness: 1, speed: 1 },
+    fatigueIncrease: 1,
+    icon: "",
+    color: "from-cyan-400 to-sky-500"
+  },
+  {
+    id: "drill-recovery-yoga-hips",
+    name: "Hip and Hamstring Yoga Flow",
+    category: "Recovery & Mobility",
+    description: "Guided yoga-style sequence for hip flexors, adductors, hamstrings, calves, and lower back after high-speed sessions.",
+    targetAttributes: ["physicalness"],
+    developmentFocus: { physicalness: 1 },
+    fatigueIncrease: 1,
+    icon: "",
+    color: "from-teal-400 to-green-500"
+  },
+  {
+    id: "drill-recovery-regeneration-walk",
+    name: "Regeneration Walk and Scan",
+    category: "Recovery & Mobility",
+    description: "Players walk through tactical positions, scanning and talking through decisions while keeping the physical load very low.",
+    targetAttributes: ["passing", "defending"],
+    developmentFocus: { passing: 1, defending: 1 },
+    fatigueIncrease: 1,
+    icon: "",
+    color: "from-slate-400 to-emerald-500"
+  },
+  {
+    id: "drill-recovery-foam-band",
+    name: "Foam Roll and Band Release",
+    category: "Recovery & Mobility",
+    description: "Foam rolling, banded ankle work, glute activation, and light stretching designed as a post-match recovery station circuit.",
+    targetAttributes: ["physicalness"],
+    developmentFocus: { physicalness: 1 },
+    fatigueIncrease: 1,
+    icon: "",
+    color: "from-green-400 to-teal-500"
   }
 ] satisfies readonly TrainingDrill[];
 
@@ -909,6 +1295,210 @@ export const DRILL_INSTRUCTIONS: Record<string, DrillInstruction> = {
     setup: "Passer inside a 6×6m box. Two pressers enter on coach's signal. Outlet player stands 8m outside the box.",
     execution: "On the whistle, pressers charge in at full speed. Passer must shield, turn, or dummy to find the outlet player with a pass within 3s. One‑touch clearance permitted.",
     setsReps: "8 reps × 3 rounds. Rotate passer/pressers each round."
+  },
+  "drill-warm-dynamic-ball": {
+    equipment: "1 ball per player, 8 cones",
+    setup: "Mark a 20x20m box. Players spread inside the area with one ball each.",
+    execution: "Dribble freely while coach calls mobility actions: open gate, close gate, lunge, side shuffle, toe taps, sole rolls, then 5m burst.",
+    setsReps: "8 min continuous. Change action every 30s."
+  },
+  "drill-warm-rondo-arrival": {
+    equipment: "4 cones, 2 balls, pinnies",
+    setup: "Mark two 8x8m rondo boxes. Start with 4v1, progress to 5v2 as more players arrive.",
+    execution: "Outside players keep the ball with two touches max. Defenders swap after winning the ball or forcing three errors.",
+    setsReps: "3 min x 3 rounds. 45s reset between rounds."
+  },
+  "drill-warm-speed-react": {
+    equipment: "6 colored cones, stopwatch, whistle",
+    setup: "Create three colored gate pairs 5m from the start line. Players begin with light movement prep at the start.",
+    execution: "Coach calls a color. Player reacts, accelerates through that gate, decelerates safely, then jogs back.",
+    setsReps: "6 reactions x 3 sets. 30s between reps."
+  },
+  "drill-warm-pass-move": {
+    equipment: "6 cones, 3 balls",
+    setup: "Set a 15x15m passing grid with players at each corner and two central support cones.",
+    execution: "Pass, follow the pass, check shoulder before receiving, and play to the next cone in two touches. Reverse direction on whistle.",
+    setsReps: "4 min x 3 rounds. 60s between rounds."
+  },
+  "drill-rondo-4v2-split": {
+    equipment: "4 cones, 2 balls, pinnies",
+    setup: "Mark a 10x10m square. Four possession players outside, two defenders inside.",
+    execution: "Outside team keeps possession. A pass that splits both defenders scores 2 points. Defenders swap with the player who loses possession.",
+    setsReps: "3 min x 4 rounds. Rotate defenders every round."
+  },
+  "drill-positional-5v5-plus3": {
+    equipment: "8 cones, 1 ball, 3 neutral bibs, pinnies",
+    setup: "Mark a 35x25m grid split into three lanes. Two teams of five plus three neutral players.",
+    execution: "Team in possession uses neutrals to keep the ball and switch lanes. Score by connecting from one wide lane to the other through a central player.",
+    setsReps: "5 min x 4 games. 2 min coaching break between games."
+  },
+  "drill-counterpress-6-second": {
+    equipment: "6 cones, 1 ball, pinnies, stopwatch",
+    setup: "Mark a 25x20m pitch with two mini-goals. Play 4v4 or 5v5.",
+    execution: "When a team loses possession, they have six seconds to press and regain it. If they fail, they drop behind the ball before pressing again.",
+    setsReps: "4 min x 4 games. 90s rest."
+  },
+  "drill-transition-wave": {
+    equipment: "8 cones, 4 balls, two mini-goals",
+    setup: "Split a 45x25m pitch into three zones. Two teams start in opposite end zones with a neutral middle player.",
+    execution: "When defenders win the ball, they attack into the next zone with support runners. Previous attackers recover to defend the counter.",
+    setsReps: "6 waves x 4 rounds. 90s between rounds."
+  },
+  "drill-winger-1v1-cross": {
+    equipment: "6 cones, 6 balls, full-size goal, wide channel markers",
+    setup: "Mark a 20m wide channel near the touchline. Winger starts with the ball, defender starts 3m away, target players wait in the box.",
+    execution: "Winger attacks the defender, beats them outside or inside, then delivers a cutback or driven cross to the penalty spot zone.",
+    setsReps: "6 attacks each side x 3 sets. Rotate defender every set."
+  },
+  "drill-fwd-pressing-curve": {
+    equipment: "4 cones, 3 balls, 2 mannequin gates",
+    setup: "Centre-back starts with the ball. Place one inside passing gate and one wide passing gate.",
+    execution: "Striker curves run to block the inside gate, presses on the defender's touch, and forces play toward the wide gate.",
+    setsReps: "8 presses x 3 sets. 30s between reps."
+  },
+  "drill-mid-pivot-scan": {
+    equipment: "5 cones, 4 balls, 2 passive pressers",
+    setup: "Pivot starts central with centre-back server behind and fullback/wing targets wide.",
+    execution: "Pivot checks shoulder twice, receives, then either bounces first-time, turns out, or switches play depending on coach's cue.",
+    setsReps: "10 receives x 3 sets. Rotate cue after every rep."
+  },
+  "drill-mid-box-arrival": {
+    equipment: "8 balls, full-size goal, 2 wide servers",
+    setup: "Midfielder starts 5m outside the box. Server starts wide near the byline with balls.",
+    execution: "Midfielder holds run, arrives late onto a cutback, and finishes first-time. Reset quickly for the next side.",
+    setsReps: "8 finishes x 3 sets. Alternate left/right server."
+  },
+  "drill-def-cb-build-out": {
+    equipment: "8 cones, 5 balls, goalkeeper, 2 passive pressers",
+    setup: "GK, two centre-backs, pivot, and fullbacks set up in build-out shape across the defensive third.",
+    execution: "GK starts play. Centre-back receives under passive pressure and chooses pivot, fullback, or diagonal switch. Add active pressure after success.",
+    setsReps: "8 build-outs x 4 rounds. Rotate starting side."
+  },
+  "drill-def-rest-defense": {
+    equipment: "8 cones, 2 balls, pinnies",
+    setup: "Attackers circulate in final third. Back two plus holding midfielder hold counter-cover positions outside the attack.",
+    execution: "On turnover cue, defending cover unit must delay the counter, protect the centre, and force the ball wide until teammates recover.",
+    setsReps: "5 min x 3 rounds. 2 min coaching reset."
+  },
+  "drill-fullback-underlap": {
+    equipment: "6 cones, 5 balls, wide channel markers",
+    setup: "Winger starts wide with ball. Fullback starts deeper and inside. Mark underlap lane toward the edge of the box.",
+    execution: "Winger dribbles inside, fullback underlaps into the lane, receives slipped pass, then chooses cutback, shot, or recovery sprint.",
+    setsReps: "6 underlaps each side x 3 sets."
+  },
+  "drill-gk-build-third-man": {
+    equipment: "6 cones, 5 balls, GK gloves, 2 passive pressers",
+    setup: "GK, centre-back, pivot, and fullback form a diamond inside the defensive third.",
+    execution: "GK plays to centre-back, receives a bounce option, then finds the third-man fullback or pivot. Progress from passive to active press.",
+    setsReps: "8 build-up patterns x 3 rounds. Switch sides each round."
+  },
+  "drill-tactical-overload-to-isolate": {
+    equipment: "8 cones, 4 balls, pinnies",
+    setup: "Mark a 45x35m area with wide channels. Place six attackers against four defenders plus a weak-side target player.",
+    execution: "Attackers combine on one side until defenders shift across, then switch quickly to the isolated target for a 1v1 or cross.",
+    setsReps: "5 min x 4 rounds. Switch overload side each round."
+  },
+  "drill-tactical-midblock-trap": {
+    equipment: "10 cones, 1 ball, pinnies",
+    setup: "Set two compact team lines in a 40x35m area. Mark a trap channel near one touchline.",
+    execution: "Defending team screens central passes, invites the pass wide, then nearest three players jump together to trap and win possession.",
+    setsReps: "6 trap actions x 4 rounds. 90s between rounds."
+  },
+  "drill-tactical-backline-cover": {
+    equipment: "8 cones, 4 balls, mannequins optional",
+    setup: "Back four starts across a 36m width. Place wide attacker, central striker, and far-side winger as reference points.",
+    execution: "Coach serves wide or central. Nearest defender steps, next defender covers, far side tucks in, then the unit recovers to line height.",
+    setsReps: "10 actions x 3 rounds. Rotate side every two reps."
+  },
+  "drill-tactical-final-third-rotation": {
+    equipment: "8 cones, 8 balls, full-size goal",
+    setup: "Set winger, fullback, striker, and attacking midfielder around the final third with cone lanes for each run.",
+    execution: "Players rotate positions on cue, combine through the lane, and finish with cutback, cross, or slipped pass into goal.",
+    setsReps: "8 patterns x 3 sets. Alternate left and right sides."
+  },
+  "drill-tactical-set-piece-zones": {
+    equipment: "10 balls, full-size goal, corner flags, pinnies",
+    setup: "Defending team sets corner zones: near-post, central, far-post, blocker, and outlet. Attackers load the box.",
+    execution: "Server delivers corners. Defenders attack assigned zones, clear first contact, then react to the second ball and outlet run.",
+    setsReps: "8 corners x 3 sets. Change delivery type each set."
+  },
+  "drill-tactical-press-resist-build": {
+    equipment: "8 cones, 5 balls, pinnies",
+    setup: "Use defensive third shape: GK, back four, pivot, and two pressers. Mark escape lanes to fullback and pivot.",
+    execution: "Build from the GK under active pressure. Team scores by finding pivot or fullback cleanly after a bounce or third-man pass.",
+    setsReps: "6 build-outs x 4 rounds. Add one presser after each successful round."
+  },
+  "drill-cond-tempo-possession": {
+    equipment: "8 cones, 2 balls, pinnies, stopwatch",
+    setup: "Mark a 30x25m pitch. Play 5v5 with two neutral support players on the outside.",
+    execution: "Coach calls tempo: 60s calm possession, 30s fast two-touch, 30s active recovery movement. Keep the ball moving throughout.",
+    setsReps: "4 tempo cycles x 3 sets. 2 min rest between sets."
+  },
+  "drill-cond-hiit-small-sided": {
+    equipment: "4 cones, 2 mini-goals, 2 balls, pinnies",
+    setup: "Mark a 25x20m pitch. Teams play 3v3 or 4v4 with spare balls beside each goal.",
+    execution: "Play high intensity for 45s, rest 30s, then restart immediately. Coach feeds a new ball as soon as one exits.",
+    setsReps: "45s work + 30s rest x 8 reps. 4 min between blocks."
+  },
+  "drill-cond-accel-decel": {
+    equipment: "10 cones, stopwatch",
+    setup: "Create a 15m grid with gates at 5m, 10m, and 15m plus side gates left and right.",
+    execution: "Accelerate through first gate, decelerate under control, cut to side gate, then re-accelerate to finish.",
+    setsReps: "6 runs x 4 sets. 45s between reps."
+  },
+  "drill-cond-strength-carry": {
+    equipment: "medicine balls, resistance bands, 4 cones, mats",
+    setup: "Build four stations: resisted carry, shield hold, medicine-ball drive, and 10m sprint finish.",
+    execution: "Complete each station with strong posture and controlled contact. Sprint only after the strength action is clean.",
+    setsReps: "30s per station x 4 rounds. 90s rest between rounds."
+  },
+  "drill-cond-endurance-ladders": {
+    equipment: "cones, stopwatch, whistle",
+    setup: "Mark a 100m running lane or pitch loop. Players work in ability groups.",
+    execution: "Run 1 min, 2 min, 3 min, 2 min, 1 min at controlled tempo with 60s walk/jog recovery between blocks.",
+    setsReps: "One full ladder x 2 sets. 4 min rest between sets."
+  },
+  "drill-cond-speed-endurance": {
+    equipment: "6 cones, 6 balls, mini-goal or passing target",
+    setup: "Mark a 35m channel with ball action station at the end. Players queue in pairs.",
+    execution: "Sprint the channel, receive or collect a ball, complete pass or shot target, jog back in 30s and repeat.",
+    setsReps: "6 runs x 3 sets. 3 min rest between sets."
+  },
+  "drill-recovery-breath-mobility": {
+    equipment: "mats, light bands, stopwatch",
+    setup: "Players spaced on mats with bands nearby. Coach leads from the front.",
+    execution: "Box breathing, hip openers, thoracic rotations, hamstring flossing, and slow ankle rocks in a controlled sequence.",
+    setsReps: "40s per action x 2 circuits. Keep effort very low."
+  },
+  "drill-recovery-ball-circulation": {
+    equipment: "6 cones, 3 balls",
+    setup: "Create a 20x20m circle or square. Players spread evenly with two or three balls active.",
+    execution: "Pass, move lightly, communicate, and scan. No sprints, tackles, or pressure; focus on rhythm and clean touch.",
+    setsReps: "8 min continuous x 2 rounds. 2 min hydration reset."
+  },
+  "drill-recovery-pool-shadow": {
+    equipment: "pool access or open space, stopwatch",
+    setup: "Use shallow pool lane if available. If not, mark a low-impact movement lane on grass.",
+    execution: "Walk through running mechanics, skips, lateral steps, and gentle jumps without impact. Keep conversation pace.",
+    setsReps: "12-15 min continuous. Stop if soreness increases."
+  },
+  "drill-recovery-yoga-hips": {
+    equipment: "mats, yoga blocks optional",
+    setup: "Players on mats with enough space for lunges and rotations.",
+    execution: "Move through low lunge, hamstring fold, pigeon variation, calf stretch, and relaxed spinal twist.",
+    setsReps: "45s per pose each side x 2 rounds."
+  },
+  "drill-recovery-regeneration-walk": {
+    equipment: "cones for team shape, 1 ball optional",
+    setup: "Place cones in match formation across half a pitch. Players walk into their positional references.",
+    execution: "Walk through ball locations and decisions. Players scan, communicate, and point out passing or covering options.",
+    setsReps: "12 scenarios x 2 rounds. Keep all movement walking pace."
+  },
+  "drill-recovery-foam-band": {
+    equipment: "foam rollers, mini-bands, mats",
+    setup: "Set recovery stations for calves, quads, glutes, hip flexors, ankles, and banded glute activation.",
+    execution: "Players rotate stations slowly, breathing through each release and finishing with light activation work.",
+    setsReps: "60s per station x 2 circuits. No maximal stretching."
   },
 };
 
