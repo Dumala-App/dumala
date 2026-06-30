@@ -232,6 +232,13 @@ const countBy = <RecordShape,>(items: RecordShape[], getKey: (item: RecordShape)
     return summary;
   }, []).sort((a, b) => b.count - a.count);
 
+const getSettledErrorMessage = (result: PromiseSettledResult<unknown>) =>
+  result.status === 'rejected'
+    ? result.reason instanceof Error
+      ? result.reason.message
+      : String(result.reason)
+    : '';
+
 const StatTile = ({ label, value, detail }: { label: string; value: string | number; detail: string }) => (
   <div className="rounded-2xl border border-cyan-300/10 bg-white/[0.035] p-4 shadow-lg shadow-black/15 backdrop-blur-sm">
     <p className="text-[11px] font-black uppercase text-cyan-100/65">{label}</p>
@@ -1418,16 +1425,21 @@ export default function AdminConsoleView() {
       const next = await runtime.dataAccess.admin.getSnapshot();
       setSnapshot(next);
       if (admin.role === 'owner') {
-        const [security, growth, storage, recoverable] = await Promise.all([
+        const [security, growth, storage, recoverable] = await Promise.allSettled([
           runtime.dataAccess.admin.getSecurityMetrics(),
           runtime.dataAccess.admin.getGrowthMetrics(),
           runtime.dataAccess.admin.getStorageMetrics(),
           runtime.dataAccess.admin.listRecoverableWorkspaces()
         ]);
-        setSecurityMetrics(security);
-        setGrowthMetrics(growth);
-        setStorageMetrics(storage);
-        setRecoverableWorkspaces(recoverable);
+        setSecurityMetrics(security.status === 'fulfilled' ? security.value : null);
+        setGrowthMetrics(growth.status === 'fulfilled' ? growth.value : null);
+        setStorageMetrics(storage.status === 'fulfilled' ? storage.value : null);
+        setRecoverableWorkspaces(recoverable.status === 'fulfilled' ? recoverable.value : []);
+
+        const ownerMetricErrors = [security, growth, storage, recoverable]
+          .map(getSettledErrorMessage)
+          .filter(Boolean);
+        if (ownerMetricErrors.length > 0) setMessage(ownerMetricErrors[0]);
       } else {
         setSecurityMetrics(null);
         setGrowthMetrics(null);
