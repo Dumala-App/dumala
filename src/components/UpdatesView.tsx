@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { Megaphone, FlaskConical, Calculator, Target, TrendingUp, Hash, ChevronDown, ChevronRight } from 'lucide-react';
+import { Award, Brain, Calculator, ChevronDown, ChevronRight, Cloud, Download, FlaskConical, Hash, Megaphone, Target, TrendingUp, Users } from 'lucide-react';
 import { Button } from './ui/button';
 
 export default function UpdatesView() {
   const [openEntries, setOpenEntries] = useState<Record<string, boolean>>({
+    major_cloud_and_product_milestone: true,
     assessment_feedback_reports_and_polish: true,
     multi_team_supabase_migration_setup: true,
     coaching_library_redesigned: true,
@@ -28,6 +29,66 @@ export default function UpdatesView() {
   };
 
   const changelogEntries = [
+    {
+      id: 'major_cloud_and_product_milestone',
+      date: '2026-06-30',
+      title: 'Cloud Signup, Migration, and Core Product Milestones',
+      badge: 'Major Milestone',
+      summary: 'Dumala now has Google-first cloud account entry, cloud migration foundations, multiple team support, an installable offline app shell, and a stronger tactics strategy engine.',
+      accent: 'border-amber-200 bg-gradient-to-br from-amber-50 via-orange-50 to-sky-50',
+      renderContent: () => (
+        <div className="space-y-4">
+          <div className="inline-flex items-center gap-2 rounded-full border border-amber-300 bg-amber-100 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-amber-800">
+            <Award size={14} aria-hidden="true" />
+            Major Milestone
+          </div>
+          <p className="text-sm text-slate-700 leading-relaxed">
+            Today's update marks a larger product step: Dumala is moving from a strong local-first coaching tool into a cloud-ready, multi-workspace platform with Google signup, migration paths, offline install support, and a more strategic tactics experience.
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {[
+              {
+                icon: Users,
+                title: 'Multiple team support',
+                desc: 'Coaches can manage separate team workspaces, switch between clubs, and keep each team’s roster, matches, assessments, tactics, and records isolated.'
+              },
+              {
+                icon: Cloud,
+                title: 'Cloud migration and Google signup',
+                desc: 'Supabase-backed account foundations, Google sign-in entry, migration helpers, and cloud-safe boundaries now prepare Dumala for durable workspace continuity.'
+              },
+              {
+                icon: Download,
+                title: 'Installable offline app shell',
+                desc: 'The PWA shell can be installed and opened like an app, with offline-ready assets and local-first workflows kept available while cloud features mature.'
+              },
+              {
+                icon: Brain,
+                title: 'Playstyle tactics strategy engine',
+                desc: 'Tactics now supports richer playstyle, formation, matchup, and strategy recommendations so planning feels more like a coaching decision engine.'
+              }
+            ].map(item => {
+              const Icon = item.icon;
+
+              return (
+                <div key={item.title} className="rounded-xl border border-white/70 bg-white/80 p-4 shadow-sm shadow-amber-900/5">
+                  <div className="mb-2 flex items-center gap-2">
+                    <span className="flex h-8 w-8 items-center justify-center rounded-lg border border-amber-200 bg-amber-100 text-amber-700">
+                      <Icon size={16} aria-hidden="true" />
+                    </span>
+                    <h5 className="text-xs font-black uppercase tracking-wider text-slate-900">{item.title}</h5>
+                  </div>
+                  <p className="text-xs text-slate-600 leading-relaxed">{item.desc}</p>
+                </div>
+              );
+            })}
+          </div>
+          <p className="rounded-xl border border-sky-200 bg-sky-50 p-3 text-xs font-semibold leading-relaxed text-sky-900">
+            Cloud remains designed as a careful migration path, not a forced lock-in. Existing local workspaces stay usable while Google signup and Supabase-backed continuity continue to mature.
+          </p>
+        </div>
+      )
+    },
     {
       id: 'assessment_feedback_reports_and_polish',
       date: '2026-06-29',
@@ -1103,6 +1164,12 @@ export default function UpdatesView() {
                       <span className={`text-[10px] font-black uppercase px-2 py-1 rounded tracking-widest ${isDarkEntry ? 'bg-emerald-400 text-slate-950' : 'bg-slate-900 text-white'}`}>
                         {entry.date}
                       </span>
+                      {'badge' in entry && entry.badge ? (
+                        <span className="inline-flex items-center gap-1 rounded-full border border-amber-300 bg-amber-100 px-2.5 py-1 text-[10px] font-black uppercase tracking-widest text-amber-800">
+                          <Award size={12} aria-hidden="true" />
+                          {entry.badge}
+                        </span>
+                      ) : null}
                     </div>
                     <div>
                       <h4 className={`text-base font-black leading-tight ${isDarkEntry ? 'text-white' : 'text-slate-900'}`}>

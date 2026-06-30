@@ -41,7 +41,9 @@ describe('OnboardingView cloud account entry', () => {
     expect(html).not.toContain('coach@example.com');
     expect(html).toContain('Official team name');
     expect(html).toContain('Centermall Grounds');
-    expect(html).toContain('Regional Premier');
+    expect(html).toContain('Portuseros FC');
+    expect(html).toContain('2012');
+    expect(html).toContain('League 1');
     expect(html).toContain('Confirm Identity');
   });
 

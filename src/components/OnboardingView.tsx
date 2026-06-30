@@ -92,10 +92,10 @@ export default function OnboardingView({ onComplete, cloudRuntime, cloudAuthCont
   const [step, setStep] = useState<1 | 2>(1);
   const [pointer, setPointer] = useState({ x: 58, y: 42 });
 
-  const [teamName, setTeamName] = useState('');
+  const [teamName, setTeamName] = useState('Portuseros FC');
   const [stadium, setStadium] = useState('');
-  const [league, setLeague] = useState('');
-  const [founded, setFounded] = useState(new Date().getFullYear().toString());
+  const [league, setLeague] = useState('League 1');
+  const [founded, setFounded] = useState('2012');
 
   const [mgrName, setMgrName] = useState('');
   const [mgrPosition, setMgrPosition] = useState('Manager / Coach');
@@ -201,7 +201,7 @@ export default function OnboardingView({ onComplete, cloudRuntime, cloudAuthCont
                         type="text"
                         value={teamName}
                         onChange={(e) => setTeamName(e.target.value)}
-                        placeholder="e.g. Barbados FC"
+                        placeholder="Portuseros FC"
                         className={`${ONBOARDING_INPUT_CLASS} font-semibold placeholder:font-normal`}
                       />
                     </div>
@@ -232,7 +232,7 @@ export default function OnboardingView({ onComplete, cloudRuntime, cloudAuthCont
                           type="text"
                           value={league}
                           onChange={(e) => setLeague(e.target.value)}
-                          placeholder="Regional Premier"
+                          placeholder="League 1"
                           className={`${ONBOARDING_INPUT_CLASS} text-xs sm:text-sm`}
                         />
                     </div>
