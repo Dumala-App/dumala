@@ -27,11 +27,11 @@ import {
   type TrainingDrill
 } from '../training/drillLibrary';
 import { formatTrainingFocusList, getAssessmentConfidence, summarizeDevelopmentEvidence } from '../training/developmentEvidence';
-import { TrainingDrillCard, getDrillIcon } from './TrainingDrillCard';
+import { getDrillIcon, getDrillIconColor } from './TrainingDrillCard';
 import TrainingSessionBuilder from './TrainingSessionBuilder';
 import { Badge } from '@/src/components/ui/badge';
 import { Button } from '@/src/components/ui/button';
-import { Input } from '@/src/components/ui/input';
+import { Tabs, TabsList, TabsTrigger } from '@/src/components/ui/tabs';
 import {
   Select,
   SelectContent,
@@ -43,7 +43,7 @@ import {
   SelectValue
 } from '@/src/components/ui/select';
 import { 
-  Dumbbell, Sparkles, RotateCcw, TrendingUp, Search, Filter,
+  Dumbbell, Sparkles, RotateCcw, TrendingUp, Filter,
   User, CheckCircle, CalendarPlus, HeartPulse, ShieldCheck, Target, Footprints,
   Shield, Timer, Gauge, ArrowUpRight, Crosshair, Waves, Goal, Hand, Route,
   ChevronLeft, ChevronRight, Trophy, X
@@ -112,6 +112,24 @@ const DRILL_FILTER_GROUPS = [
 const DRILL_FILTER_LABELS = Object.fromEntries(
   DRILL_FILTER_GROUPS.flatMap(group => group.options.map(option => [option.id, option.label]))
 );
+
+type DrillLibraryTab = 'recommended' | 'technical' | 'tactical' | 'conditioning' | 'recovery';
+
+const DRILL_LIBRARY_TABS: Array<{ id: DrillLibraryTab; label: string }> = [
+  { id: 'recommended', label: 'Recommended' },
+  { id: 'technical', label: 'Technical' },
+  { id: 'tactical', label: 'Tactical' },
+  { id: 'conditioning', label: 'Conditioning' },
+  { id: 'recovery', label: 'Recovery' }
+];
+
+const getDrillLibraryTab = (drill: TrainingDrill): Exclude<DrillLibraryTab, 'recommended'> => {
+  const category = drill.category.toLowerCase();
+  if (category.includes('recovery')) return 'recovery';
+  if (category.includes('conditioning') || category.includes('stamina') || category.includes('physical')) return 'conditioning';
+  if (category.includes('tactical') || category.includes('strategy') || category.includes('creative midfield')) return 'tactical';
+  return 'technical';
+};
 
 const createEmptyWeeklySchedule = (): WeeklySchedule => ({
   Monday: [],
@@ -230,7 +248,6 @@ const createScheduledDrill = (
 
 export default function TrainingView({ players, assessments, games, onUpdateGames }: TrainingViewProps) {
   const [selectedDrillId, setSelectedDrillId] = useState<string>(TRAINING_DRILLS[0].id);
-  const [expandedDrills, setExpandedDrills] = useState<Set<string>>(new Set());
   const [builderDay, setBuilderDay] = useState<DayName | null>(null);
   const currentWeekKey = useMemo(() => toDateKey(getWeekStartDate(new Date())), []);
   const [selectedWeekStart, setSelectedWeekStart] = useState<Date>(() => getWeekStartDate(new Date()));
@@ -280,8 +297,9 @@ export default function TrainingView({ players, assessments, games, onUpdateGame
     setWeeklySchedule(readScheduleForWeek(currentWeekKey, currentWeekKey));
   };
 
-  const [searchQuery, setSearchQuery] = useState('');
   const [selectedAttributeFilter, setSelectedAttributeFilter] = useState('all');
+  const [activeDrillLibraryTab, setActiveDrillLibraryTab] = useState<DrillLibraryTab>('recommended');
+  const [showSelectedDrillGuide, setShowSelectedDrillGuide] = useState(true);
   const [recommendPlayerId, setRecommendPlayerId] = useState('');
   const [developmentDay, setDevelopmentDay] = useState<DayName>('Wednesday');
   const [developmentFocus, setDevelopmentFocus] = useState<'all' | 'technical' | 'tactical' | 'conditioning' | 'recovery'>('all');
@@ -569,6 +587,7 @@ export default function TrainingView({ players, assessments, games, onUpdateGame
 
   const selectedTrainingDrills = TRAINING_DRILLS.filter(drill => selectedTrainingDrillIds.includes(drill.id));
   const selectedScheduleDrill = TRAINING_DRILLS.find(drill => drill.id === selectedDrillId) ?? TRAINING_DRILLS[0];
+  const selectedScheduleDrillInstructions = DRILL_INSTRUCTIONS[selectedScheduleDrill.id];
   const selectedTrainingLoad = selectedTrainingDrills.reduce((sum, drill) => {
     const block = inferDrillSessionBlock(drill);
     const duration = SESSION_BLOCKS.find(item => item.id === block)?.defaultDurationMinutes ?? 15;
@@ -661,15 +680,8 @@ export default function TrainingView({ players, assessments, games, onUpdateGame
     );
   };
 
-  // Filter Drills by text and category/focus filters
+  // Filter drills by category/focus filters
   const filteredDrills = TRAINING_DRILLS.filter(drill => {
-    const query = searchQuery.toLowerCase();
-    const matchesText = 
-      drill.name.toLowerCase().includes(query) ||
-      drill.category.toLowerCase().includes(query) ||
-      drill.description.toLowerCase().includes(query) ||
-      drill.targetAttributes.some(attr => attr.toLowerCase().includes(query));
-
     const matchesAttribute =
       selectedAttributeFilter === 'all' ||
       (selectedAttributeFilter === 'conditioning'
@@ -695,7 +707,25 @@ export default function TrainingView({ players, assessments, games, onUpdateGame
                   ? drill.category.toLowerCase().includes('passing') || drill.targetAttributes.includes('passing')
                   : drill.targetAttributes.includes(selectedAttributeFilter));
 
-    return matchesText && matchesAttribute;
+    return matchesAttribute;
+  });
+  const recommendedDrills = growthNeeds
+    ? filteredDrills.filter(drill => growthNeeds.isBeneficial(drill))
+    : filteredDrills.slice(0, 8);
+  const visibleLibraryDrills = activeDrillLibraryTab === 'recommended'
+    ? recommendedDrills
+    : filteredDrills.filter(drill => getDrillLibraryTab(drill) === activeDrillLibraryTab);
+  const drillLibraryTabCounts = DRILL_LIBRARY_TABS.reduce<Record<DrillLibraryTab, number>>((counts, tab) => {
+    counts[tab.id] = tab.id === 'recommended'
+      ? recommendedDrills.length
+      : filteredDrills.filter(drill => getDrillLibraryTab(drill) === tab.id).length;
+    return counts;
+  }, {
+    recommended: 0,
+    technical: 0,
+    tactical: 0,
+    conditioning: 0,
+    recovery: 0
   });
 
   return (
@@ -1115,127 +1145,243 @@ export default function TrainingView({ players, assessments, games, onUpdateGame
               </span>
             </div>
 
-            {/* Compact search and filter controls */}
-            <div className="mt-4 grid gap-3 rounded-xl border border-slate-200 bg-slate-50/80 p-3 md:grid-cols-[minmax(0,1fr)_14rem]">
-              <div>
-                <label htmlFor="training-drill-search" className="mb-1.5 block text-[10px] font-black uppercase tracking-wider text-slate-500">Search drills</label>
-                <div className="relative">
-                  <Search className="absolute left-3 top-2.5 size-4 text-slate-400" aria-hidden="true" />
-                <Input
-                  id="training-drill-search"
-                  type="text"
-                  placeholder="Name, category, or benefit"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="h-10 rounded-lg border-slate-200 bg-white pl-9 pr-14 text-xs text-slate-700"
-                />
-                {searchQuery && (
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setSearchQuery('')}
-                    className="absolute right-1.5 top-1.5 h-7 px-2 text-[10px] text-slate-500 hover:text-slate-700"
-                  >
-                    Clear
-                  </Button>
-                )}
+            <div className="mt-4 overflow-hidden rounded-xl border border-indigo-100 bg-white shadow-sm">
+              <div className="border-b border-indigo-100 bg-gradient-to-r from-indigo-50 via-white to-emerald-50 p-3">
+                <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
+                  <div className="flex min-w-0 gap-3">
+                    <div className={`flex size-11 shrink-0 items-center justify-center rounded-xl border bg-white shadow-sm ${getDrillIconColor(selectedScheduleDrill.id)}`}>
+                      {getDrillIcon(selectedScheduleDrill.id)}
+                    </div>
+                    <div className="min-w-0">
+                      <span className="text-[9px] font-black uppercase tracking-wider text-indigo-500">Selected drill</span>
+                      <h4 className="mt-0.5 truncate text-sm font-black text-slate-950">{selectedScheduleDrill.name}</h4>
+                      <p className="mt-1 line-clamp-2 text-[11px] leading-relaxed text-slate-600">{selectedScheduleDrill.description}</p>
+                      <div className="mt-2 flex flex-wrap gap-1.5">
+                        <span className="rounded-full border border-white bg-white/85 px-2 py-1 text-[9px] font-black uppercase text-slate-600 shadow-sm">
+                          {selectedScheduleDrill.category}
+                        </span>
+                        <span className="inline-flex items-center gap-1 rounded-full border border-rose-100 bg-white/85 px-2 py-1 text-[9px] font-black uppercase text-rose-600 shadow-sm">
+                          <Gauge size={10} aria-hidden="true" /> Intensity {selectedScheduleDrill.fatigueIncrease}/10
+                        </span>
+                        <span className="inline-flex items-center gap-1 rounded-full border border-emerald-100 bg-white/85 px-2 py-1 text-[9px] font-black uppercase text-emerald-700 shadow-sm">
+                          <Target size={10} aria-hidden="true" /> {formatTrainingFocusList(selectedScheduleDrill.developmentFocus)}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-2 xl:justify-end">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setShowSelectedDrillGuide(current => !current)}
+                      className="h-9 border-indigo-100 bg-white px-3 text-[10px] font-black text-indigo-700 hover:bg-indigo-50"
+                      aria-expanded={showSelectedDrillGuide}
+                    >
+                      {showSelectedDrillGuide ? 'Hide guide' : 'Show guide'}
+                    </Button>
+                    <Select value={developmentDay} onValueChange={(value) => setDevelopmentDay(value as DayName)}>
+                      <SelectTrigger aria-label="Day to add selected drill" className="h-9 min-w-32 border-indigo-100 bg-white text-xs">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {DAYS_OF_WEEK.map(day => <SelectItem key={day} value={day}>{day}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                    <Button
+                      type="button"
+                      onClick={() => addDrillsToDay([selectedScheduleDrill], developmentDay)}
+                      className="h-9 bg-indigo-600 px-3 text-white hover:bg-indigo-700"
+                    >
+                      <CalendarPlus size={14} /> Add to day
+                    </Button>
+                  </div>
                 </div>
               </div>
 
-              <div>
-                <label className="mb-1.5 flex items-center gap-1 text-[10px] font-black uppercase tracking-wider text-slate-500">
-                  <Filter size={12} aria-hidden="true" /> Filter by focus
-                </label>
-                <Select value={selectedAttributeFilter} onValueChange={setSelectedAttributeFilter}>
-                  <SelectTrigger aria-label="Filter drills by focus" className="h-10 rounded-lg border-slate-200 bg-white text-xs text-slate-700">
-                    <SelectValue>{DRILL_FILTER_LABELS[selectedAttributeFilter] ?? 'All drills'}</SelectValue>
-                  </SelectTrigger>
-                  <SelectContent>
-                    {DRILL_FILTER_GROUPS.map((group, groupIndex) => (
-                      <React.Fragment key={group.label}>
-                        {groupIndex > 0 && <SelectSeparator />}
-                        <SelectGroup>
-                          <SelectLabel>{group.label}</SelectLabel>
-                          {group.options.map(option => (
-                            <SelectItem key={option.id} value={option.id}>{option.label}</SelectItem>
-                          ))}
-                        </SelectGroup>
-                      </React.Fragment>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+              {showSelectedDrillGuide && (
+                selectedScheduleDrillInstructions ? (
+                  <div className="grid gap-3 p-3 lg:grid-cols-[0.78fr_1.22fr]">
+                    <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-1">
+                      <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+                        <div className="flex items-center gap-2">
+                          <span className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-white text-slate-500">
+                            <Dumbbell size={13} aria-hidden="true" />
+                          </span>
+                          <span className="text-[9px] font-black uppercase tracking-wider text-slate-500">Equipment</span>
+                        </div>
+                        <p className="mt-2 text-[11px] leading-relaxed text-slate-700">{selectedScheduleDrillInstructions.equipment}</p>
+                      </div>
+                      <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+                        <div className="flex items-center gap-2">
+                          <span className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-white text-slate-500">
+                            <Timer size={13} aria-hidden="true" />
+                          </span>
+                          <span className="text-[9px] font-black uppercase tracking-wider text-slate-500">Sets / reps</span>
+                        </div>
+                        <p className="mt-2 text-[11px] leading-relaxed text-slate-700">{selectedScheduleDrillInstructions.setsReps}</p>
+                      </div>
+                    </div>
+
+                    <div className="rounded-lg border border-slate-200 bg-white p-3">
+                      <div className="grid gap-3 md:grid-cols-2">
+                        <div className="relative rounded-lg bg-indigo-50/70 p-3">
+                          <span className="absolute right-3 top-3 text-xl font-black leading-none text-indigo-100">01</span>
+                          <div className="flex items-center gap-2">
+                            <span className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-white text-indigo-600">
+                              <Route size={13} aria-hidden="true" />
+                            </span>
+                            <span className="text-[9px] font-black uppercase tracking-wider text-indigo-600">Setup</span>
+                          </div>
+                          <p className="mt-2 text-[11px] leading-relaxed text-slate-700">{selectedScheduleDrillInstructions.setup}</p>
+                        </div>
+                        <div className="relative rounded-lg bg-emerald-50/80 p-3">
+                          <span className="absolute right-3 top-3 text-xl font-black leading-none text-emerald-100">02</span>
+                          <div className="flex items-center gap-2">
+                            <span className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-white text-emerald-700">
+                              <CheckCircle size={13} aria-hidden="true" />
+                            </span>
+                            <span className="text-[9px] font-black uppercase tracking-wider text-emerald-700">Execution</span>
+                          </div>
+                          <p className="mt-2 text-[11px] leading-relaxed text-slate-700">{selectedScheduleDrillInstructions.execution}</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="m-3 rounded-lg bg-slate-50 p-3 text-[11px] leading-relaxed text-slate-600">
+                    {selectedScheduleDrill.description}
+                  </p>
+                )
+              )}
             </div>
 
-            {/* Selected drill action */}
-            <div className="mt-4 flex flex-col gap-3 rounded-xl border border-indigo-100 bg-indigo-50/60 p-3 sm:flex-row sm:items-center">
-              <div className="flex min-w-0 flex-1 items-center gap-3">
-                <div className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-indigo-100 bg-white text-indigo-600">
-                  {getDrillIcon(selectedScheduleDrill.id)}
-                </div>
-                <div className="min-w-0">
-                  <span className="text-[9px] font-black uppercase tracking-wider text-indigo-500">Selected drill</span>
-                  <p className="truncate text-xs font-black text-slate-900">{selectedScheduleDrill.name}</p>
-                  <p className="mt-0.5 text-[10px] text-slate-500">
-                    {selectedScheduleDrill.category} · Intensity {selectedScheduleDrill.fatigueIncrease}/10 · {selectedScheduleDrill.targetAttributes.join(', ')}
+            {/* Compact drill browser */}
+            <div className="mt-5">
+              <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+                <div>
+                  <p className="text-[10px] font-black uppercase tracking-wider text-slate-500">Browse library</p>
+                  <p className="mt-0.5 text-[10px] text-slate-400">
+                    {activeDrillLibraryTab === 'recommended' && growthNeeds
+                      ? 'Recommended drills match the selected player development need.'
+                      : activeDrillLibraryTab === 'recommended'
+                        ? 'Quick picks are shown until a player need is selected.'
+                        : 'Select a drill row or drag it onto the calendar.'}
                   </p>
                 </div>
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-end">
+                  <div className="sm:w-56">
+                    <label className="mb-1.5 flex items-center gap-1 text-[10px] font-black uppercase tracking-wider text-slate-500">
+                      <Filter size={12} aria-hidden="true" /> Filter by focus
+                    </label>
+                    <Select value={selectedAttributeFilter} onValueChange={setSelectedAttributeFilter}>
+                      <SelectTrigger aria-label="Filter drills by focus" className="h-9 rounded-lg border-slate-200 bg-white text-xs text-slate-700">
+                        <SelectValue>{DRILL_FILTER_LABELS[selectedAttributeFilter] ?? 'All drills'}</SelectValue>
+                      </SelectTrigger>
+                      <SelectContent>
+                        {DRILL_FILTER_GROUPS.map((group, groupIndex) => (
+                          <React.Fragment key={group.label}>
+                            {groupIndex > 0 && <SelectSeparator />}
+                            <SelectGroup>
+                              <SelectLabel>{group.label}</SelectLabel>
+                              {group.options.map(option => (
+                                <SelectItem key={option.id} value={option.id}>{option.label}</SelectItem>
+                              ))}
+                            </SelectGroup>
+                          </React.Fragment>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <Badge variant="outline" className="h-9 w-fit border-slate-200 bg-white px-3 text-[10px] font-black text-slate-500 sm:mb-0">
+                    {visibleLibraryDrills.length} shown
+                  </Badge>
+                </div>
               </div>
-              <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-2 sm:w-auto">
-                <Select value={developmentDay} onValueChange={(value) => setDevelopmentDay(value as DayName)}>
-                  <SelectTrigger aria-label="Day to add selected drill" className="h-9 min-w-32 border-indigo-100 bg-white text-xs">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {DAYS_OF_WEEK.map(day => <SelectItem key={day} value={day}>{day}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-                <Button
-                  type="button"
-                  onClick={() => addDrillsToDay([selectedScheduleDrill], developmentDay)}
-                  className="h-9 bg-indigo-600 px-3 text-white hover:bg-indigo-700"
-                >
-                  <CalendarPlus size={14} /> Add to day
-                </Button>
-              </div>
-            </div>
 
-            {/* Drills Grid */}
-            <div className="mt-5 flex items-center justify-between">
-              <p className="text-[10px] font-black uppercase tracking-wider text-slate-500">Browse library</p>
-              <p className="hidden text-[10px] text-slate-400 sm:block">Select a card or drag it onto the calendar</p>
+              <Tabs value={activeDrillLibraryTab} onValueChange={(value) => setActiveDrillLibraryTab(value as DrillLibraryTab)} className="mt-3">
+                <TabsList aria-label="Drill library categories" className="w-full justify-start overflow-x-auto rounded-xl border-slate-200 bg-slate-50 p-1">
+                  {DRILL_LIBRARY_TABS.map(tab => (
+                    <TabsTrigger
+                      key={tab.id}
+                      value={tab.id}
+                      className="min-h-8 shrink-0 gap-1.5 rounded-lg px-2.5 text-[10px] data-[state=active]:bg-slate-900 data-[state=active]:text-white"
+                    >
+                      {tab.label}
+                      <span className="rounded-full bg-white/70 px-1.5 py-0.5 text-[9px] text-slate-500 data-[state=active]:text-slate-500">
+                        {drillLibraryTabCounts[tab.id]}
+                      </span>
+                    </TabsTrigger>
+                  ))}
+                </TabsList>
+              </Tabs>
+
+              {visibleLibraryDrills.length === 0 ? (
+                <div className="mt-3 rounded-xl border border-dashed border-slate-200 p-8 text-center text-slate-400">
+                  <Filter size={24} className="mx-auto text-slate-300" />
+                  <p className="mt-2 text-sm font-semibold">No drills in this view</p>
+                  <p className="mt-1 text-xs text-slate-400">Try another tab or focus filter.</p>
+                </div>
+              ) : (
+                <div className="mt-3 max-h-[28rem] overflow-y-auto rounded-xl border border-slate-200 bg-slate-50/70 p-2">
+                  <div className="grid grid-cols-1 gap-2 xl:grid-cols-2">
+                    {visibleLibraryDrills.map((drill) => {
+                      const isSelected = selectedDrillId === drill.id;
+                      const isRecommended = growthNeeds?.isBeneficial(drill);
+                      return (
+                        <div
+                          key={drill.id}
+                          draggable={true}
+                          onDragStart={(event) => handleDragStart(event, drill.id)}
+                          onClick={() => {
+                            setSelectedDrillId(drill.id);
+                            setShowSelectedDrillGuide(true);
+                          }}
+                          onKeyDown={(event) => {
+                            if (event.key === 'Enter' || event.key === ' ') {
+                              event.preventDefault();
+                              setSelectedDrillId(drill.id);
+                              setShowSelectedDrillGuide(true);
+                            }
+                          }}
+                          role="button"
+                          tabIndex={0}
+                          aria-pressed={isSelected}
+                          aria-label={`Select ${drill.name}`}
+                          className={`group flex cursor-grab items-start gap-3 rounded-lg border bg-white p-2.5 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 active:cursor-grabbing ${
+                            isSelected
+                              ? 'border-indigo-400 ring-1 ring-indigo-100'
+                              : isRecommended
+                                ? 'border-emerald-200 hover:border-emerald-300'
+                                : 'border-slate-200 hover:border-slate-300'
+                          }`}
+                        >
+                          <span className={`flex size-9 shrink-0 items-center justify-center rounded-lg border ${getDrillIconColor(drill.id)}`}>
+                            {getDrillIcon(drill.id)}
+                          </span>
+                          <span className="min-w-0 flex-1">
+                            <span className="flex items-center gap-1.5">
+                              <span className="truncate text-xs font-black text-slate-900">{drill.name}</span>
+                              {isRecommended && (
+                                <span className="shrink-0 rounded-full bg-emerald-100 px-1.5 py-0.5 text-[7px] font-black uppercase text-emerald-700">
+                                  Recommended
+                                </span>
+                              )}
+                            </span>
+                            <span className="mt-1 line-clamp-1 text-[10px] leading-relaxed text-slate-500">{drill.description}</span>
+                            <span className="mt-1.5 flex flex-wrap items-center gap-1.5 text-[9px] font-bold text-slate-400">
+                              <span className="rounded-md bg-slate-100 px-1.5 py-0.5 uppercase text-slate-500">{drill.category}</span>
+                              <span>Intensity {drill.fatigueIncrease}/10</span>
+                              <span className="hidden sm:inline">Focus: {formatTrainingFocusList(drill.developmentFocus)}</span>
+                            </span>
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
             </div>
-            {filteredDrills.length === 0 ? (
-              <div className="border border-dashed border-slate-200 rounded-xl p-8 text-center text-slate-400 space-y-1.5">
-                <Search size={24} className="mx-auto text-slate-300" />
-                <p className="text-sm font-semibold">No matches found for "{searchQuery}"</p>
-                <p className="text-xs text-slate-400">Try modifying your search query or picking another focus target filter.</p>
-              </div>
-            ) : (
-              <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
-                {filteredDrills.map((drill) => (
-                  <TrainingDrillCard
-                    key={drill.id}
-                    drill={drill}
-                    instructions={DRILL_INSTRUCTIONS[drill.id]}
-                    isSelected={selectedDrillId === drill.id}
-                    isRecommended={growthNeeds?.isBeneficial(drill)}
-                    isExpanded={expandedDrills.has(drill.id)}
-                    onDragStart={(event) => handleDragStart(event, drill.id)}
-                    onSelect={() => setSelectedDrillId(drill.id)}
-                    onToggleExpanded={() => {
-                      setExpandedDrills(prev => {
-                        const next = new Set(prev);
-                        if (next.has(drill.id)) next.delete(drill.id);
-                        else next.add(drill.id);
-                        return next;
-                      });
-                    }}
-                  />
-                ))}
-              </div>
-            )}
           </div>
 
         </div>
