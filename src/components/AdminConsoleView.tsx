@@ -269,7 +269,7 @@ const EmptyState = ({ title, detail }: { title: string; detail: string }) => (
 );
 
 const CompactTable = ({ children, headers }: { headers: string[]; children: React.ReactNode }) => (
-  <div className="overflow-x-auto rounded-2xl border border-cyan-300/10 bg-[#07111f]/70 shadow-sm shadow-black/15">
+  <div className="overflow-x-auto rounded-2xl border border-cyan-300/10 bg-[#07111f]/70 text-slate-300 shadow-sm shadow-black/15 [&_td.font-black]:!text-white [&_td.font-bold]:!text-slate-100 [&_td]:!text-slate-300 [&_td_.text-foreground]:!text-slate-100 [&_td_.text-muted-foreground]:!text-slate-400">
     <table className="min-w-full divide-y divide-cyan-300/10 text-left text-xs">
       <thead className="bg-cyan-300/[0.055] text-[10px] font-black uppercase text-cyan-100/65">
         <tr>{headers.map(header => <th key={header} className="px-3 py-2">{header}</th>)}</tr>
@@ -496,13 +496,13 @@ const StoragePanel = ({ metrics }: { metrics: AdminStorageMetrics | null }) => {
                 return (
                   <div key={point.date} className="space-y-1">
                     <div className="flex items-center justify-between gap-3 text-[11px] font-bold">
-                      <span className="text-foreground">{point.date}</span>
-                      <span className="text-muted-foreground">{formatBytes(point.totalBytes)}</span>
+                      <span className="text-slate-100">{point.date}</span>
+                      <span className="text-slate-300">{formatBytes(point.totalBytes)}</span>
                     </div>
                     <div className="h-2 overflow-hidden rounded-full bg-white/[0.07]">
                       <div className="h-full rounded-full bg-gradient-to-r from-cyan-300 to-orange-300" style={{ width: `${width}%` }} />
                     </div>
-                    <p className="text-[10px] text-muted-foreground">
+                    <p className="text-[10px] font-medium text-slate-400">
                       Data {formatBytes(point.tableBytes)} · Indexes {formatBytes(point.indexBytes)}
                     </p>
                   </div>
