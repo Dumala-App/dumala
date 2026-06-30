@@ -268,10 +268,22 @@ const EmptyState = ({ title, detail }: { title: string; detail: string }) => (
   </div>
 );
 
-const CompactTable = ({ children, headers }: { headers: string[]; children: React.ReactNode }) => (
-  <div className="overflow-x-auto rounded-2xl border border-cyan-300/10 bg-[#07111f]/70 text-slate-300 shadow-sm shadow-black/15 [&_td.font-black]:!text-white [&_td.font-bold]:!text-slate-100 [&_td]:!text-slate-300 [&_td_.text-foreground]:!text-slate-100 [&_td_.text-muted-foreground]:!text-slate-400">
+const CompactTable = ({
+  children,
+  headers,
+  scrollHeightClassName,
+}: {
+  headers: string[];
+  children: React.ReactNode;
+  scrollHeightClassName?: string;
+}) => (
+  <div
+    className={`overflow-x-auto rounded-2xl border border-cyan-300/10 bg-[#07111f]/70 text-slate-300 shadow-sm shadow-black/15 [&_td.font-black]:!text-white [&_td.font-bold]:!text-slate-100 [&_td]:!text-slate-300 [&_td_.text-foreground]:!text-slate-100 [&_td_.text-muted-foreground]:!text-slate-400 ${
+      scrollHeightClassName ? `${scrollHeightClassName} overflow-y-auto` : ''
+    }`}
+  >
     <table className="min-w-full divide-y divide-cyan-300/10 text-left text-xs">
-      <thead className="bg-cyan-300/[0.055] text-[10px] font-black uppercase text-cyan-100/65">
+      <thead className="sticky top-0 z-10 bg-[#0b1828] text-[10px] font-black uppercase text-cyan-100/65 shadow-[0_1px_0_rgba(103,232,249,0.1)]">
         <tr>{headers.map(header => <th key={header} className="px-3 py-2">{header}</th>)}</tr>
       </thead>
       <tbody className="divide-y divide-cyan-300/10 bg-[#07111f]/35">{children}</tbody>
@@ -420,7 +432,7 @@ const UsagePanel = ({
           {events.length === 0 ? (
             <EmptyState title="No usage events yet" detail="Dumala records privacy-minimized app view events when users open sections of the app." />
           ) : (
-            <CompactTable headers={['Event', 'View', 'Feature', 'Device', 'When']}>
+            <CompactTable headers={['Event', 'View', 'Feature', 'Device', 'When']} scrollHeightClassName="max-h-[22rem]">
               {events.slice(0, 40).map(event => (
                 <tr key={event.id}>
                   <td className="px-3 py-2 font-bold text-foreground">{event.event_type.replaceAll('_', ' ')}</td>
@@ -516,7 +528,7 @@ const StoragePanel = ({ metrics }: { metrics: AdminStorageMetrics | null }) => {
           {metrics.tables.length === 0 ? (
             <EmptyState title="No table storage yet" detail="Public schema tables will appear here once the database has relation metrics." />
           ) : (
-            <CompactTable headers={['Table', 'Rows est.', 'Total', 'Data', 'Indexes', 'Share']}>
+            <CompactTable headers={['Table', 'Rows est.', 'Total', 'Data', 'Indexes', 'Share']} scrollHeightClassName="max-h-[22rem]">
               {metrics.tables.map(table => (
                 <tr key={table.tableName}>
                   <td className="px-3 py-2 font-bold text-foreground">{table.tableName}</td>
@@ -1327,7 +1339,7 @@ const SecurityPanel = ({
         </Section>
         <Section title="Recent audit events" icon={ShieldCheck}>
           {metrics?.recentAuditEvents.length ? (
-            <CompactTable headers={['Event', 'Actor', 'Target', 'When']}>
+            <CompactTable headers={['Event', 'Actor', 'Target', 'When']} scrollHeightClassName="max-h-[22rem]">
               {metrics.recentAuditEvents.slice(0, 25).map(event => (
                 <tr key={event.id}>
                   <td className="px-3 py-2 font-bold text-foreground">{event.eventType.replaceAll('_', ' ')}</td>
