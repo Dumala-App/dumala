@@ -1,8 +1,8 @@
 import React, { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Game, Player, Standing } from '../types';
-import { Calendar, MapPin, Award, Plus, Edit, RefreshCw, Trophy, Clock, Trash2, ChevronLeft, ChevronRight, CalendarDays, Users, Dumbbell, Sparkles, CheckCircle2, XCircle, HelpCircle, BarChart3, TrendingUp, AlertTriangle } from 'lucide-react';
+import { Calendar, MapPin, Award, Plus, Trophy, Clock, Trash2, ChevronLeft, ChevronRight, CalendarDays, Users, XCircle } from 'lucide-react';
 import { motion } from 'motion/react';
-import { availabilitySchema, coachNotesSchema } from '../persistence/schemas';
+import { availabilitySchema } from '../persistence/schemas';
 import { readJsonStorage, STORAGE_KEYS, writeJsonStorage } from '../persistence/storage';
 import { useDialogAccessibility } from '../hooks/useDialogAccessibility';
 import { FieldError, FormErrorSummary } from './FormValidation';
@@ -31,7 +31,6 @@ import {
   DARK_GLASS_DASHBOARD_SURFACE_STYLE,
   DARK_GLASS_THEME_STYLE
 } from '../theme/darkGlassTheme';
-import { SegmentedTabs, type SegmentedTabOption } from './ui/segmented-tabs';
 
 interface ScheduleViewProps {
   homeWorkspaceHeader?: ReactNode;
@@ -54,7 +53,7 @@ interface ScheduleViewProps {
 
 type GameType = Game['type'];
 type MatchResultField = 'ourScore' | 'opponentScore' | 'mvpId' | 'scorers';
-type GameWeekFilterTab = 'Upcoming' | 'Completed';
+type GameWeekInspectorTab = 'selected' | 'upcoming' | 'results' | 'availability';
 
 interface ValidMatchResultForm {
   ourScore: number;
@@ -65,9 +64,11 @@ interface ValidMatchResultForm {
 }
 
 const GAME_TYPES: readonly GameType[] = ['League', 'Cup', 'Friendly', 'Training', 'Meeting'];
-const GAME_WEEK_FILTER_OPTIONS: Array<SegmentedTabOption<GameWeekFilterTab>> = [
-  { value: 'Upcoming', label: 'Upcoming Matches' },
-  { value: 'Completed', label: 'Match Results' }
+const GAME_WEEK_INSPECTOR_TABS: Array<{ value: GameWeekInspectorTab; label: string }> = [
+  { value: 'selected', label: 'Selected Day' },
+  { value: 'upcoming', label: 'Upcoming Matches' },
+  { value: 'results', label: 'Match Results' },
+  { value: 'availability', label: 'Availability' }
 ];
 
 const GAME_TYPE_LABELS: Record<GameType, string> = {
@@ -107,10 +108,491 @@ const parseGameType = (value: string): GameType => (
   GAME_TYPES.includes(value as GameType) ? value as GameType : 'League'
 );
 
-export default function ScheduleView({ homeWorkspaceHeader, games, players, standings, onAddGame, onRecordResult, onDeleteGame, teamName, highlightGameId }: ScheduleViewProps) {
+type CalendarDayItem = {
+  dayNum: number;
+  date: Date;
+  isCurrentMonth: boolean;
+  dateStr: string;
+};
+
+type AvailabilityMap = Record<string, Record<string, 'yes' | 'no' | 'maybe'>>;
+
+const getGameStartMs = (game: Game) => {
+  const timestamp = new Date(`${game.date}T${game.time || '00:00'}`).getTime();
+  return Number.isNaN(timestamp) ? Number.POSITIVE_INFINITY : timestamp;
+};
+
+const getGameTitle = (game: Game, teamName?: string) => (
+  game.type === 'Training' || game.type === 'Meeting'
+    ? game.opponent
+    : `${teamName || 'Our Team'} vs ${game.opponent}`
+);
+
+function GameWeekSummaryBar({
+  nextFixture,
+  latestResult,
+  eventsThisMonth,
+  upcomingCount,
+  completedCount,
+  selectedDateLabel,
+  selectedCount,
+  teamName
+}: {
+  nextFixture?: Game;
+  latestResult?: Game;
+  eventsThisMonth: number;
+  upcomingCount: number;
+  completedCount: number;
+  selectedDateLabel: string | null;
+  selectedCount: number;
+  teamName?: string;
+}) {
+  const summaryItems = [
+    {
+      label: 'Next fixture',
+      value: nextFixture ? nextFixture.opponent : 'No upcoming event',
+      meta: nextFixture ? `${nextFixture.date} @ ${nextFixture.time}` : 'Add a match or session'
+    },
+    {
+      label: 'Latest result',
+      value: latestResult ? `${teamName || 'Us'} ${latestResult.ourScore ?? 0}-${latestResult.opponentScore ?? 0} ${latestResult.opponent}` : 'No result logged',
+      meta: latestResult ? latestResult.date : 'Completed matches appear here'
+    },
+    {
+      label: 'Month load',
+      value: `${eventsThisMonth} events`,
+      meta: `${upcomingCount} upcoming / ${completedCount} results`
+    },
+    {
+      label: 'Date focus',
+      value: selectedDateLabel || 'Full month',
+      meta: selectedDateLabel ? `${selectedCount} events on selected day` : 'Select a day to inspect'
+    }
+  ];
+
+  return (
+    <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
+      {summaryItems.map(item => (
+        <div key={item.label} className={`${scheduleInsetClass} p-3`}>
+          <span className="text-[10px] font-black uppercase tracking-wider text-slate-500">{item.label}</span>
+          <p className="mt-1 truncate text-sm font-black text-slate-100">{item.value}</p>
+          <p className="mt-0.5 truncate text-xs font-medium text-slate-400">{item.meta}</p>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function GameWeekCalendar({
+  calendarDays,
+  games,
+  viewDate,
+  selectedDateStr,
+  todayStr,
+  monthNames,
+  onSelectDate,
+  onPrevMonth,
+  onNextMonth,
+  onToday
+}: {
+  calendarDays: CalendarDayItem[];
+  games: Game[];
+  viewDate: Date;
+  selectedDateStr: string | null;
+  todayStr: string;
+  monthNames: string[];
+  onSelectDate: (dateStr: string, date: Date) => void;
+  onPrevMonth: () => void;
+  onNextMonth: () => void;
+  onToday: () => void;
+}) {
+  return (
+    <div className={`${scheduleCardClass} space-y-4 xl:min-h-[42rem]`}>
+      <div className={`flex flex-col gap-4 border-b pb-4 lg:flex-row lg:items-center lg:justify-between ${scheduleDividerClass}`}>
+        <div>
+          <h3 className="flex items-center gap-2 font-display text-xl font-black tracking-tight text-slate-100">
+            <CalendarDays className="text-orange-300" size={22} />
+            <span>{monthNames[viewDate.getMonth()]} {viewDate.getFullYear()}</span>
+          </h3>
+          <p className="mt-1 text-xs font-medium text-slate-400">Select a day to inspect fixtures, results, and attendance.</p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <Button type="button" variant="outline" size="icon" onClick={onPrevMonth} className={`size-9 rounded-lg p-1.5 ${scheduleActionButtonClass}`} title="Previous Month">
+            <ChevronLeft size={16} />
+          </Button>
+          <Button type="button" variant="outline" size="sm" onClick={onToday} className={`h-9 rounded-lg px-3 text-[10px] font-black uppercase ${scheduleActionButtonClass}`}>
+            Today
+          </Button>
+          <Button type="button" variant="outline" size="icon" onClick={onNextMonth} className={`size-9 rounded-lg p-1.5 ${scheduleActionButtonClass}`} title="Next Month">
+            <ChevronRight size={16} />
+          </Button>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-7 gap-1 text-center">
+        {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
+          <span key={day} className="py-1 text-[10px] font-black uppercase tracking-widest text-slate-500">{day}</span>
+        ))}
+      </div>
+
+      <div className="grid grid-cols-7 gap-1.5">
+        {calendarDays.map(({ dayNum, date, isCurrentMonth, dateStr }, idx) => {
+          const isSelected = dateStr === selectedDateStr;
+          const isToday = dateStr === todayStr;
+          const dayEvents = games.filter(game => game.date === dateStr).sort((a, b) => a.time.localeCompare(b.time));
+          const hasEvents = dayEvents.length > 0;
+
+          return (
+            <Button
+              key={`${dateStr}-${idx}`}
+              type="button"
+              variant="outline"
+              onClick={() => onSelectDate(dateStr, date)}
+              aria-pressed={isSelected}
+              className={`group flex min-h-24 flex-col items-stretch justify-start whitespace-normal rounded-xl border p-2 text-left transition-colors sm:min-h-28 xl:min-h-[6.6rem] ${
+                isSelected
+                  ? 'border-orange-300 bg-orange-400 text-slate-950 shadow-md shadow-black/20 hover:bg-orange-300'
+                  : isToday
+                    ? 'border-cyan-300/45 bg-cyan-300/12 text-cyan-100 hover:bg-cyan-300/18'
+                    : isCurrentMonth
+                      ? 'border-cyan-300/10 bg-[#0b1726]/66 text-slate-200 hover:border-cyan-300/25 hover:bg-cyan-300/10'
+                      : 'border-transparent bg-[#07111f]/35 text-slate-600 hover:bg-[#0b1726]/70 hover:text-slate-400'
+              }`}
+            >
+              <span className="flex items-center justify-between gap-1 text-[11px] font-black">
+                <span>{dayNum}</span>
+                {hasEvents && (
+                  <span className={`rounded-full px-1.5 py-0.5 text-[8px] ${isSelected ? 'bg-slate-950/15 text-slate-950' : 'bg-white/[0.06] text-slate-300'}`}>
+                    {dayEvents.length}
+                  </span>
+                )}
+              </span>
+              {hasEvents && (
+                <span className="mt-2 flex flex-col gap-1 overflow-hidden">
+                  {dayEvents.slice(0, 3).map(event => (
+                    <span key={event.id} className={`truncate rounded-md px-1.5 py-1 text-[9px] font-bold leading-none ${isSelected ? 'bg-slate-950/15 text-slate-950' : getGameTypeBadgeClass(event.type)}`}>
+                      {event.time} - {event.type === 'Training' || event.type === 'Meeting' ? event.opponent : `vs ${event.opponent}`}
+                    </span>
+                  ))}
+                  {dayEvents.length > 3 && (
+                    <span className={`text-[9px] font-black ${isSelected ? 'text-slate-950' : 'text-slate-500'}`}>+{dayEvents.length - 3} more</span>
+                  )}
+                </span>
+              )}
+            </Button>
+          );
+        })}
+      </div>
+
+      <div className={`flex flex-wrap gap-x-4 gap-y-2 border-t pt-3 text-[10px] font-black uppercase tracking-wider text-slate-400 ${scheduleDividerClass}`}>
+        <span className="flex items-center gap-1.5"><span className="size-2 rounded-full bg-cyan-400" />League</span>
+        <span className="flex items-center gap-1.5"><span className="size-2 rounded-full bg-amber-300" />Cup</span>
+        <span className="flex items-center gap-1.5"><span className="size-2 rounded-full bg-slate-400" />Friendly</span>
+        <span className="flex items-center gap-1.5"><span className="size-2 rounded-full bg-emerald-300" />Training</span>
+        <span className="flex items-center gap-1.5"><span className="size-2 rounded-full bg-rose-300" />Meeting</span>
+      </div>
+    </div>
+  );
+}
+
+function GameWeekEventRow({
+  game,
+  teamName,
+  players,
+  isHighlighted,
+  onRecordResult,
+  onDeleteGame
+}: {
+  game: Game;
+  teamName?: string;
+  players: Player[];
+  isHighlighted: boolean;
+  onRecordResult: (game: Game) => void;
+  onDeleteGame: (gameId: string) => void;
+}) {
+  const daysLeft = Math.ceil((new Date(game.date).getTime() - Date.now()) / (1000 * 3600 * 24));
+  const mvpName = players.find(player => player.id === game.mvpId)?.name;
+  const resultMarker = game.status === 'Completed'
+    ? game.ourScore! > game.opponentScore! ? 'W' : game.ourScore! === game.opponentScore! ? 'D' : 'L'
+    : game.type === 'Training' ? 'TRN' : game.type === 'Meeting' ? 'MTG' : 'VS';
+
+  return (
+    <motion.div
+      id={`game-item-${game.id}`}
+      initial={{ opacity: 0, y: 5 }}
+      animate={{ opacity: 1, y: 0 }}
+      className={`rounded-xl border bg-[#07111f]/88 p-3 text-slate-100 shadow-sm shadow-black/10 backdrop-blur-xl transition-colors hover:border-orange-300/35 hover:bg-[#0b1726]/92 ${
+        isHighlighted ? 'border-amber-300/60 ring-4 ring-amber-300/15' : 'border-cyan-300/10'
+      }`}
+    >
+      <div className="flex items-start gap-3">
+        <div className={`flex size-10 shrink-0 items-center justify-center rounded-xl font-display text-xs font-black ${
+          game.status === 'Completed'
+            ? (game.ourScore! > game.opponentScore! ? 'border border-emerald-300/25 bg-emerald-300/15 text-emerald-100' : game.ourScore! === game.opponentScore! ? 'border border-slate-300/20 bg-slate-300/10 text-slate-200' : 'border border-rose-300/25 bg-rose-300/15 text-rose-100')
+            : 'border border-orange-300/25 bg-orange-300/15 text-orange-100'
+        }`}>
+          {resultMarker}
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <Badge id={`game-${game.id}-type-badge`} className={`rounded-full px-2 py-0.5 text-[9px] ${getGameTypeBadgeClass(game.type)}`}>
+              {game.type}
+            </Badge>
+            {isHighlighted && <Badge className="rounded-full border-amber-300/30 bg-amber-300/15 px-2 py-0.5 text-[9px] text-amber-100">Review</Badge>}
+            {game.status === 'Upcoming' && daysLeft > 0 && (
+              <Badge id={`game-${game.id}-countdown-badge`} className="rounded-full border-rose-300/25 bg-rose-300/10 px-2 py-0.5 text-[9px] text-rose-100">
+                In {daysLeft} Days
+              </Badge>
+            )}
+          </div>
+          <h4 id={`game-${game.id}-title`} className="mt-1 truncate font-display text-sm font-black text-slate-100">
+            {getGameTitle(game, teamName)}
+          </h4>
+          <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-[11px] font-medium text-slate-400">
+            <span id={`game-${game.id}-dt`} className="flex items-center gap-1.5"><Clock size={12} className="text-orange-300" />{game.date} @ {game.time}</span>
+            <span id={`game-${game.id}-loc`} className="flex items-center gap-1.5"><MapPin size={12} className="text-cyan-200" />{game.location}</span>
+          </div>
+        </div>
+        <div className="flex shrink-0 items-start gap-1">
+          {game.status === 'Completed' ? (
+            <Button type="button" variant="outline" size="sm" onClick={() => onRecordResult(game)} className={`h-8 rounded-lg px-2 text-[10px] font-bold ${scheduleActionButtonClass}`}>
+              {game.ourScore} - {game.opponentScore}
+            </Button>
+          ) : game.type !== 'Training' && game.type !== 'Meeting' ? (
+            <Button type="button" id={`record-score-btn-${game.id}`} variant="outline" size="sm" onClick={() => onRecordResult(game)} className={`h-8 rounded-lg px-2 text-[10px] font-bold ${scheduleSuccessButtonClass}`}>
+              <Trophy size={11} /> Log
+            </Button>
+          ) : null}
+          <Button
+            id={`delete-game-btn-${game.id}`}
+            type="button"
+            variant="ghost"
+            size="icon"
+            onClick={() => {
+              if (window.confirm(`Remove the ${game.opponent} event? Completed match statistics will be reversed.`)) {
+                onDeleteGame(game.id);
+              }
+            }}
+            className="size-8 rounded-lg text-slate-500 hover:bg-rose-300/10 hover:text-rose-200"
+            title="Remove Event"
+          >
+            <Trash2 size={14} />
+          </Button>
+        </div>
+      </div>
+
+      {(game.notes || mvpName || (game.scorers && game.scorers.length > 0)) && (
+        <div className={`${scheduleInsetClass} mt-3 flex flex-col gap-2 p-3 text-xs text-slate-400`}>
+          {mvpName && <span id={`game-${game.id}-mvp`} className="font-bold uppercase tracking-wider text-amber-300"><Award size={11} className="mr-1 inline fill-amber-300 text-amber-500" />{mvpName}</span>}
+          {game.notes && <p className="line-clamp-2 text-[11px] font-medium leading-relaxed text-slate-300">{game.notes}</p>}
+          {game.scorers && game.scorers.length > 0 && (
+            <div id={`game-${game.id}-scorers-list`} className="flex flex-wrap gap-1">
+              {game.scorers.map(scorer => (
+                <span key={scorer.playerName} className="rounded border border-cyan-300/10 bg-[#07111f]/80 px-1.5 py-0.5 text-[10px] font-semibold text-slate-200">
+                  Goal {scorer.playerName} ({scorer.count})
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </motion.div>
+  );
+}
+
+function AvailabilityMiniPanel({
+  games,
+  players,
+  availability,
+  onSetPlayerAvailability
+}: {
+  games: Game[];
+  players: Player[];
+  availability: AvailabilityMap;
+  onSetPlayerAvailability: (gameId: string, playerId: string, value: 'yes' | 'no' | 'maybe') => void;
+}) {
+  const upcomingMatchEvents = games
+    .filter(game => ['League', 'Cup', 'Friendly'].includes(game.type) && game.status === 'Upcoming')
+    .sort((a, b) => getGameStartMs(a) - getGameStartMs(b))
+    .slice(0, 2);
+  const activePlayers = players.filter(player => player.registrationStatus === 'Active');
+
+  return (
+    <div className="space-y-3">
+      {upcomingMatchEvents.map(game => {
+        const gameAvailability = availability[game.id] || {};
+        const yesCount = Object.values(gameAvailability).filter(value => value === 'yes').length;
+        const noCount = Object.values(gameAvailability).filter(value => value === 'no').length;
+        const maybeCount = Object.values(gameAvailability).filter(value => value === 'maybe').length;
+
+        return (
+          <div key={game.id} className={`${scheduleInsetClass} p-3`}>
+            <div className="flex items-start justify-between gap-2">
+              <div className="min-w-0">
+                <Badge className={`rounded-full px-2 py-0.5 text-[8px] ${getGameTypeBadgeClass(game.type)}`}>{game.type}</Badge>
+                <p className="mt-1 truncate text-xs font-black text-slate-100">vs {game.opponent}</p>
+                <p className="text-[10px] font-medium text-slate-500">{game.date} @ {game.time}</p>
+              </div>
+              <div className="shrink-0 text-right text-[10px] font-black">
+                <span className="text-emerald-300">{yesCount}</span>
+                <span className="px-1 text-slate-600">/</span>
+                <span className="text-rose-300">{noCount}</span>
+                <span className="px-1 text-slate-600">/</span>
+                <span className="text-amber-300">{maybeCount}</span>
+              </div>
+            </div>
+
+            <div className="mt-3 flex max-h-36 flex-wrap gap-1 overflow-y-auto pr-1">
+              {activePlayers.map(player => {
+                const status = gameAvailability[player.id] || '';
+                return (
+                  <Button
+                    key={player.id}
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => onSetPlayerAvailability(game.id, player.id, status === 'yes' ? 'no' : status === 'no' ? 'maybe' : 'yes')}
+                    title={`${player.name}: ${status || 'unset'}`}
+                    className={`h-7 max-w-full rounded-full px-2 py-1 text-[9px] font-bold ${
+                      status === 'yes' ? 'border-emerald-300/35 bg-emerald-300/15 text-emerald-100' :
+                      status === 'no' ? 'border-rose-300/35 bg-rose-300/15 text-rose-100 line-through' :
+                      status === 'maybe' ? 'border-amber-300/35 bg-amber-300/15 text-amber-100' :
+                      'border-cyan-300/10 bg-[#07111f]/72 text-slate-400 hover:border-cyan-300/25 hover:text-slate-100'
+                    }`}
+                  >
+                    <span className="truncate">{player.name}</span>
+                  </Button>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })}
+
+      {upcomingMatchEvents.length === 0 && (
+        <div className={`${scheduleInsetClass} p-4 text-center text-xs font-medium text-slate-400`}>
+          No upcoming match availability to track.
+        </div>
+      )}
+    </div>
+  );
+}
+
+function GameWeekInspector({
+  activeTab,
+  onTabChange,
+  selectedDateLabel,
+  selectedGames,
+  upcomingGames,
+  completedGames,
+  teamName,
+  players,
+  highlightGameId,
+  onRecordResult,
+  onDeleteGame,
+  availability,
+  onSetPlayerAvailability
+}: {
+  activeTab: GameWeekInspectorTab;
+  onTabChange: (tab: GameWeekInspectorTab) => void;
+  selectedDateLabel: string | null;
+  selectedGames: Game[];
+  upcomingGames: Game[];
+  completedGames: Game[];
+  teamName?: string;
+  players: Player[];
+  highlightGameId?: string | null;
+  onRecordResult: (game: Game) => void;
+  onDeleteGame: (gameId: string) => void;
+  availability: AvailabilityMap;
+  onSetPlayerAvailability: (gameId: string, playerId: string, value: 'yes' | 'no' | 'maybe') => void;
+}) {
+  const eventGroups: Record<Exclude<GameWeekInspectorTab, 'availability'>, { title: string; empty: string; games: Game[] }> = {
+    selected: {
+      title: selectedDateLabel ? selectedDateLabel : 'Selected Day',
+      empty: selectedDateLabel ? 'No events on this day.' : 'Select a calendar day to inspect events.',
+      games: selectedGames
+    },
+    upcoming: {
+      title: 'Upcoming Matches',
+      empty: 'No upcoming fixtures or sessions.',
+      games: upcomingGames
+    },
+    results: {
+      title: 'Match Results',
+      empty: 'No match results logged yet.',
+      games: completedGames
+    }
+  };
+
+  return (
+    <aside className={`${scheduleCardClass} flex max-h-[48rem] flex-col gap-4 xl:sticky xl:top-24`}>
+      <div>
+        <h3 className="flex items-center gap-2 font-display text-base font-black text-slate-100">
+          <CalendarDays size={18} className="text-orange-300" /> Game Week Desk
+        </h3>
+        <p className="mt-1 text-xs font-medium text-slate-400">Inspect the calendar without leaving the main surface.</p>
+      </div>
+
+      <div className="grid grid-cols-2 gap-1 rounded-xl border border-cyan-300/10 bg-[#07111f]/72 p-1">
+        {GAME_WEEK_INSPECTOR_TABS.map(tab => (
+          <button
+            key={tab.value}
+            type="button"
+            onClick={() => onTabChange(tab.value)}
+            className={`rounded-lg px-2 py-2 text-[10px] font-black uppercase tracking-wider transition-colors ${
+              activeTab === tab.value
+                ? 'bg-orange-400 text-slate-950 shadow-sm shadow-black/20'
+                : 'text-slate-400 hover:bg-cyan-300/10 hover:text-slate-100'
+            }`}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      <div className="min-h-0 flex-1 overflow-y-auto pr-1">
+        {activeTab === 'availability' ? (
+          <AvailabilityMiniPanel
+            games={upcomingGames}
+            players={players}
+            availability={availability}
+            onSetPlayerAvailability={onSetPlayerAvailability}
+          />
+        ) : (
+          <div className="space-y-3">
+            <div className={`flex items-center justify-between border-b pb-2 ${scheduleDividerClass}`}>
+              <h4 className="text-[11px] font-black uppercase tracking-wider text-slate-300">{eventGroups[activeTab].title}</h4>
+              <span className="text-[10px] font-black text-slate-500">{eventGroups[activeTab].games.length}</span>
+            </div>
+            {eventGroups[activeTab].games.length > 0 ? (
+              eventGroups[activeTab].games.map(game => (
+                <GameWeekEventRow
+                  key={game.id}
+                  game={game}
+                  teamName={teamName}
+                  players={players}
+                  isHighlighted={highlightGameId === game.id}
+                  onRecordResult={onRecordResult}
+                  onDeleteGame={onDeleteGame}
+                />
+              ))
+            ) : (
+              <div className={`${scheduleInsetClass} flex min-h-32 items-center justify-center p-4 text-center text-xs font-medium text-slate-400`}>
+                {eventGroups[activeTab].empty}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </aside>
+  );
+}
+
+export default function ScheduleView({ homeWorkspaceHeader, games, players, onAddGame, onRecordResult, onDeleteGame, teamName, highlightGameId }: ScheduleViewProps) {
   const resultDialogRef = useRef<HTMLDivElement | null>(null);
   const resultFormRef = useRef<HTMLFormElement | null>(null);
-  const [filterTab, setFilterTab] = useState<GameWeekFilterTab>('Upcoming');
+  const [activeInspectorTab, setActiveInspectorTab] = useState<GameWeekInspectorTab>('selected');
   
   // Calendar View & Filter State
   const [viewDate, setViewDate] = useState<Date>(new Date());
@@ -157,7 +639,7 @@ export default function ScheduleView({ homeWorkspaceHeader, games, players, stan
     setResultError('');
   };
 
-  // Match Availability Tracker state — per gameId, per playerId → yes/no/maybe
+  // Match Availability Tracker state: per gameId, per playerId to yes/no/maybe
   const [availability, setAvailability] = useState<Record<string, Record<string, 'yes' | 'no' | 'maybe'>>>(() => {
     return readJsonStorage(STORAGE_KEYS.availability, availabilitySchema, {}, 'Match availability');
   });
@@ -176,29 +658,12 @@ export default function ScheduleView({ homeWorkspaceHeader, games, players, stan
     });
   };
 
-  // Coach Notes per upcoming match
-  const [coachNotes, setCoachNotes] = useState<Record<string, string>>(() => {
-    return readJsonStorage(STORAGE_KEYS.coachNotes, coachNotesSchema, {}, 'Coach notes');
-  });
-
-  const setCoachNoteForGame = (gameId: string, note: string) => {
-    setCoachNotes(prev => {
-      const next = { ...prev, [gameId]: note };
-      writeJsonStorage(STORAGE_KEYS.coachNotes, next);
-      return next;
-    });
-  };
-
-  // Coach note editor state
-  const [coachEditGameId, setCoachEditGameId] = useState<string | null>(null);
-  const [coachDraft, setCoachDraft] = useState('');
-
   useEffect(() => {
     if (!highlightGameId) return;
     const highlightedGame = games.find(game => game.id === highlightGameId);
     if (!highlightedGame) return;
-    setFilterTab(highlightedGame.status === 'Completed' ? 'Completed' : 'Upcoming');
-    setSelectedDateStr(null);
+    setActiveInspectorTab(highlightedGame.status === 'Completed' ? 'results' : 'upcoming');
+    setSelectedDateStr(highlightedGame.date);
   }, [games, highlightGameId]);
 
   useEffect(() => {
@@ -206,7 +671,7 @@ export default function ScheduleView({ homeWorkspaceHeader, games, players, stan
     const card = document.getElementById(`game-item-${highlightGameId}`);
     if (!card) return;
     card.scrollIntoView({ behavior: 'smooth', block: 'center' });
-  }, [games, filterTab, highlightGameId, selectedDateStr]);
+  }, [activeInspectorTab, games, highlightGameId, selectedDateStr]);
 
   // Date helper functions
   const formatDateString = (d: Date) => {
@@ -440,15 +905,28 @@ export default function ScheduleView({ homeWorkspaceHeader, games, players, stan
     setIsRecordingResult(false);
   };
 
-  const filteredGames = games.filter(g => {
-    const statusMatch = g.status === filterTab;
-    const dateMatch = selectedDateStr ? g.date === selectedDateStr : true;
-    return statusMatch && dateMatch;
-  }).sort((a,b) => {
-    return filterTab === 'Upcoming' 
-      ? new Date(a.date).getTime() - new Date(b.date).getTime()
-      : new Date(b.date).getTime() - new Date(a.date).getTime();
+  const calendarDays = getCalendarDays();
+  const selectedGames = games
+    .filter(game => selectedDateStr ? game.date === selectedDateStr : false)
+    .sort((a, b) => getGameStartMs(a) - getGameStartMs(b));
+  const upcomingGames = games
+    .filter(game => game.status === 'Upcoming')
+    .sort((a, b) => getGameStartMs(a) - getGameStartMs(b));
+  const completedGames = games
+    .filter(game => game.status === 'Completed')
+    .sort((a, b) => getGameStartMs(b) - getGameStartMs(a));
+
+  const visibleMonthGames = games.filter(game => {
+    const gameDate = new Date(`${game.date}T00:00:00`);
+    return gameDate.getFullYear() === viewDate.getFullYear() && gameDate.getMonth() === viewDate.getMonth();
   });
+  const upcomingMatchesCount = games.filter(game => game.status === 'Upcoming').length;
+  const completedMatchesCount = games.filter(game => game.status === 'Completed').length;
+  const selectedDateLabel = selectedDateStr
+    ? new Date(`${selectedDateStr}T00:00:00`).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
+    : null;
+  const nextFixture = upcomingGames[0];
+  const latestResult = completedGames[0];
 
   return (
     <div
@@ -459,15 +937,11 @@ export default function ScheduleView({ homeWorkspaceHeader, games, players, stan
 
       {homeWorkspaceHeader}
       
-      {/* View Selector Filters */}
-      <div className={`${scheduleCardClass} flex flex-col items-center justify-between gap-4 sm:flex-row`}>
-        <SegmentedTabs
-          value={filterTab}
-          options={GAME_WEEK_FILTER_OPTIONS}
-          onValueChange={(tab) => setFilterTab(tab)}
-          label="Game week match filters"
-        />
-
+      <div className={`${scheduleCardClass} flex flex-col justify-between gap-3 sm:flex-row sm:items-center`}>
+        <div>
+          <h2 className="font-display text-lg font-black tracking-tight text-slate-100">Game Week</h2>
+          <p className="mt-1 text-xs font-medium text-slate-400">Calendar-first match planning, results, and availability.</p>
+        </div>
         <Button
           id="toggle-schedule-form-btn"
           type="button"
@@ -479,20 +953,28 @@ export default function ScheduleView({ homeWorkspaceHeader, games, players, stan
         </Button>
       </div>
 
-      {/* Slide down Schedule Form */}
       {isAdding && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/72 p-4 backdrop-blur-sm">
         <motion.div 
           id="add-game-form-container"
-          initial={{ opacity: 0, height: 0 }}
-          animate={{ opacity: 1, height: "auto" }}
-          className={`${scheduleCardClass} space-y-4`}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="add-game-title"
+          initial={{ opacity: 0, scale: 0.96 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="max-h-[90vh] w-full max-w-4xl overflow-y-auto rounded-2xl border border-cyan-300/10 bg-[#07111f]/95 p-5 text-slate-100 shadow-xl shadow-black/35 backdrop-blur-xl"
         >
-          <div className={`flex items-center gap-2 border-b pb-2 ${scheduleDividerClass}`}>
-            <Calendar className="font-bold text-orange-300" size={20} />
-            <h3 className="font-display font-semibold text-slate-100">Add Next Game / Event</h3>
+          <div className={`flex items-center justify-between gap-3 border-b pb-3 ${scheduleDividerClass}`}>
+            <h3 id="add-game-title" className="flex items-center gap-2 font-display text-lg font-black text-slate-100">
+              <Calendar className="text-orange-300" size={20} />
+              Add Next Game / Event
+            </h3>
+            <Button type="button" variant="ghost" size="sm" onClick={() => setIsAdding(false)} className="text-slate-400 hover:bg-cyan-300/10 hover:text-slate-100">
+              Cancel
+            </Button>
           </div>
 
-          <form onSubmit={handleAddGameSubmit} className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          <form onSubmit={handleAddGameSubmit} className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-3">
             <div>
               <Label className="mb-1 block text-slate-300">
                 {type === 'Training' ? 'Session Title' : type === 'Meeting' ? 'Meeting Subject' : 'Opposing Club Name'} *
@@ -592,6 +1074,7 @@ export default function ScheduleView({ homeWorkspaceHeader, games, players, stan
             </div>
           </form>
         </motion.div>
+        </div>
       )}
 
       {/* Record Score Overlay Card Form */}
@@ -803,611 +1286,58 @@ export default function ScheduleView({ homeWorkspaceHeader, games, players, stan
         </div>
       )}
 
-      {/* Main Dual-Column Layout: Left dynamic calendar, Right list registry */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        
-        {/* COLUMN 1: Dynamic Interactive Calendar widget */}
-        <div className="lg:col-span-5 space-y-6">
-          
-          {/* Calendar Controller Card */}
-          <div className={scheduleCardClass}>
-            <div className={`mb-4 flex items-center justify-between border-b pb-2 ${scheduleDividerClass}`}>
-              <h3 className="flex items-center gap-2 font-display text-xs font-black uppercase tracking-wider text-slate-100">
-                <CalendarDays className="text-orange-300" size={18} />
-                <span>{monthNames[viewDate.getMonth()]} {viewDate.getFullYear()}</span>
-              </h3>
-              <div className="flex gap-1">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="icon"
-                  onClick={prevMonth}
-                  className={`size-8 rounded-lg p-1.5 ${scheduleActionButtonClass}`}
-                  title="Previous Month"
-                >
-                  <ChevronLeft size={15} />
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    setViewDate(new Date());
-                    setSelectedDateStr(null);
-                  }}
-                  className={`h-8 rounded-md px-2 text-[9px] font-bold uppercase ${scheduleActionButtonClass}`}
-                  title="Reset to Active Work Month"
-                >
-                  Today
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="icon"
-                  onClick={nextMonth}
-                  className={`size-8 rounded-lg p-1.5 ${scheduleActionButtonClass}`}
-                  title="Next Month"
-                >
-                  <ChevronRight size={15} />
-                </Button>
-              </div>
-            </div>
 
-            {/* Weekday Titles */}
-            <div className="grid grid-cols-7 gap-1 text-center mb-1">
-              {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map(day => (
-                <span key={day} className="text-[9px] font-black uppercase tracking-widest text-slate-400">{day}</span>
-              ))}
-            </div>
+      <div className="space-y-5">
+        <GameWeekSummaryBar
+          nextFixture={nextFixture}
+          latestResult={latestResult}
+          eventsThisMonth={visibleMonthGames.length}
+          upcomingCount={upcomingMatchesCount}
+          completedCount={completedMatchesCount}
+          selectedDateLabel={selectedDateLabel}
+          selectedCount={selectedGames.length}
+          teamName={teamName}
+        />
 
-            {/* Calendar grid cells */}
-            <div className="grid grid-cols-7 gap-1">
-              {getCalendarDays().map(({ dayNum, date, isCurrentMonth, dateStr }, idx) => {
-                const isSelected = dateStr === selectedDateStr;
-                const isToday = dateStr === todayStr;
-                const dayEvents = games.filter(g => g.date === dateStr);
-                const hasEvents = dayEvents.length > 0;
+        <div className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1fr)_24rem]">
+          <GameWeekCalendar
+            calendarDays={calendarDays}
+            games={games}
+            viewDate={viewDate}
+            selectedDateStr={selectedDateStr}
+            todayStr={todayStr}
+            monthNames={monthNames}
+            onSelectDate={(dateStr, date) => {
+              setSelectedDateStr(current => current === dateStr ? null : dateStr);
+              setActiveInspectorTab('selected');
+              if (date.getMonth() !== viewDate.getMonth()) {
+                setViewDate(new Date(date.getFullYear(), date.getMonth(), 1));
+              }
+            }}
+            onPrevMonth={prevMonth}
+            onNextMonth={nextMonth}
+            onToday={() => {
+              setViewDate(new Date());
+              setSelectedDateStr(null);
+              setActiveInspectorTab('selected');
+            }}
+          />
 
-                return (
-                  <Button
-                    key={idx}
-                    type="button"
-                    variant="outline"
-                    onClick={() => {
-                      if (selectedDateStr === dateStr) {
-                        setSelectedDateStr(null);
-                      } else {
-                        setSelectedDateStr(dateStr);
-                      }
-                      // Switch month viewing viewDate if clicking external days
-                      if (date.getMonth() !== viewDate.getMonth()) {
-                        setViewDate(new Date(date.getFullYear(), date.getMonth(), 1));
-                      }
-                    }}
-                    className={`relative flex aspect-square h-auto flex-col items-center justify-center whitespace-normal rounded-xl border p-1 text-xs ${
-                      isSelected 
-                        ? 'border-orange-300 bg-orange-400 text-slate-950 font-bold shadow-md shadow-black/20 hover:bg-orange-300'
-                        : isToday
-                          ? 'border-cyan-300/45 bg-cyan-300/12 text-cyan-100 font-bold hover:bg-cyan-300/18'
-                          : isCurrentMonth
-                            ? 'border-cyan-300/10 bg-[#0b1726]/66 text-slate-200 hover:border-cyan-300/25 hover:bg-cyan-300/10'
-                            : 'border-transparent bg-[#07111f]/35 text-slate-600 hover:bg-[#0b1726]/70 hover:text-slate-400'
-                    }`}
-                  >
-                    <span className="text-[11px] font-semibold">{dayNum}</span>
-
-                    {/* Event indicators */}
-                    {hasEvents && (
-                      <div className="absolute bottom-1.5 flex justify-center gap-0.5 max-w-[85%]">
-                        {dayEvents.slice(0, 3).map((ev, eidx) => {
-                          let dotColor = 'bg-blue-500';
-                          if (ev.type === 'Cup') dotColor = 'bg-amber-500';
-                          else if (ev.type === 'Friendly') dotColor = 'bg-slate-400';
-                          else if (ev.type === 'Training') dotColor = 'bg-emerald-500';
-                          else if (ev.type === 'Meeting') dotColor = 'bg-rose-500';
-
-                          return (
-                            <span 
-                              key={eidx} 
-                              className={`w-1 h-1 rounded-full shrink-0 ${isSelected ? 'bg-white' : dotColor}`} 
-                            />
-                          );
-                        })}
-                        {dayEvents.length > 3 && (
-                          <span className={`text-[7px] leading-none font-bold ${isSelected ? 'text-slate-950' : 'text-slate-400'}`}>+</span>
-                        )}
-                      </div>
-                    )}
-                  </Button>
-                );
-              })}
-            </div>
-
-            {/* Colored Tag Legends */}
-            <div className={`mt-4 flex flex-wrap justify-between gap-x-2.5 gap-y-1.5 border-t pt-3 font-mono text-[8px] font-bold uppercase tracking-wider text-slate-400 ${scheduleDividerClass}`}>
-              <div className="flex items-center gap-1">
-                <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
-                <span>League</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
-                <span>Cup</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <span className="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
-                <span>Friendly</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                <span>Training</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <span className="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
-                <span>Meeting</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Match Availability Tracker — next upcoming League/Cup/Friendly */}
-          {(() => {
-            const nextGames = games
-              .filter(g => (g.type === 'League' || g.type === 'Cup' || g.type === 'Friendly') && g.status === 'Upcoming')
-              .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
-              .slice(0, 2);
-
-            if (nextGames.length === 0) return null;
-
-            return (
-              <div className={`${scheduleCardClass} space-y-3`}>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h4 className="text-[9px] font-black uppercase tracking-wider text-emerald-300">Match Availability</h4>
-                    <p className="text-[10px] text-slate-400">Tap to confirm player status for upcoming fixtures</p>
-                  </div>
-                  <div className="flex items-center gap-1.5 text-[8px] font-bold text-slate-400">
-                    <span className="flex items-center gap-0.5"><span className="w-2 h-2 rounded-sm bg-emerald-500"></span> Yes</span>
-                    <span className="flex items-center gap-0.5"><span className="w-2 h-2 rounded-sm bg-rose-500"></span> No</span>
-                    <span className="flex items-center gap-0.5"><span className="w-2 h-2 rounded-sm bg-amber-500"></span> Maybe</span>
-                  </div>
-                </div>
-
-                {nextGames.map(game => {
-                  const activePlayers = players.filter(p => p.registrationStatus === 'Active');
-                  const av = availability[game.id] || {};
-                  const yesCount = Object.values(av).filter(v => v === 'yes').length;
-                  const noCount = Object.values(av).filter(v => v === 'no').length;
-                  const maybeCount = Object.values(av).filter(v => v === 'maybe').length;
-                  const gameDate = new Date(game.date);
-                  const daysUntil = Math.ceil((gameDate.getTime() - Date.now()) / (1000*3600*24));
-
-                  return (
-                    <div key={game.id} className={`${scheduleInsetClass} p-3`}>
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="flex items-center gap-2">
-                          <Badge className={`px-1.5 py-0.5 text-[8px] ${
-                            game.type === 'League' ? 'border-cyan-300/25 bg-cyan-300/10 text-cyan-100' :
-                            'border-amber-300/30 bg-amber-300/15 text-amber-100'
-                          }`}>{game.type}</Badge>
-                          <span className="text-[10px] font-bold text-slate-100">vs {game.opponent}</span>
-                          <span className="text-[9px] text-slate-400">{game.date} · {daysUntil}d</span>
-                        </div>
-                        <div className="flex items-center gap-1.5 text-[9px] font-bold">
-                          <span className="text-emerald-300">{yesCount} ✓</span>
-                          <span className="text-slate-600">|</span>
-                          <span className="text-rose-300">{noCount} ✗</span>
-                          <span className="text-slate-600">|</span>
-                          <span className="text-amber-300">{maybeCount} ?</span>
-                          <span className="text-slate-400 ml-0.5">of {activePlayers.length}</span>
-                        </div>
-                      </div>
-                      <div className="flex flex-wrap gap-1">
-                        {activePlayers.map(p => {
-                          const status = av[p.id] || '';
-                          return (
-                            <Button
-                              key={p.id}
-                              type="button"
-                              variant="outline"
-                              size="sm"
-                              onClick={() => setPlayerAvail(game.id, p.id, status === 'yes' ? 'yes' : status === 'no' ? 'no' : status === 'maybe' ? 'maybe' : 'yes')}
-                              onContextMenu={(e) => {
-                                e.preventDefault();
-                                setPlayerAvail(game.id, p.id, 'no');
-                              }}
-                              title={`${p.name}: ${status || 'unset'} (right-click = No)`}
-                              className={`h-7 rounded-full px-2 py-1 text-[9px] font-bold ${
-                                status === 'yes' ? 'border-emerald-300/35 bg-emerald-300/15 text-emerald-100' :
-                                status === 'no' ? 'border-rose-300/35 bg-rose-300/15 text-rose-100 line-through' :
-                                status === 'maybe' ? 'border-amber-300/35 bg-amber-300/15 text-amber-100' :
-                                'border-cyan-300/10 bg-[#07111f]/72 text-slate-400 hover:border-cyan-300/25 hover:text-slate-100'
-                              }`}
-                            >
-                              {p.name.length > 10 ? p.name.substring(0, 10) + '…' : p.name}
-                            </Button>
-                          );
-                        })}
-                      </div>
-                      {!Object.keys(av).length && (
-                        <p className="text-[9px] text-slate-400 italic mt-1">No responses yet — tap a player name to mark them as available.</p>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            );
-          })()}
-
-          {/* Upcoming Opponent Quick Intel */}
-          {(() => {
-            const nextMatch = games
-              .filter(g => (g.type === 'League' || g.type === 'Cup' || g.type === 'Friendly') && g.status === 'Upcoming')
-              .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())[0];
-
-            if (!nextMatch) return null;
-
-            // Find opponent in standings
-            const oppStanding = standings.find(s => 
-              s.teamName.toLowerCase() === nextMatch.opponent.toLowerCase()
-            );
-
-            // Compute head-to-head from completed games
-            const h2hGames = games.filter(g => 
-              g.type === nextMatch.type && 
-              g.status === 'Completed' && 
-              g.opponent.toLowerCase() === nextMatch.opponent.toLowerCase()
-            );
-            const h2hWon = h2hGames.filter(g => (g.ourScore || 0) > (g.opponentScore || 0)).length;
-            const h2hDrawn = h2hGames.filter(g => g.ourScore === g.opponentScore).length;
-            const h2hLost = h2hGames.filter(g => (g.ourScore || 0) < (g.opponentScore || 0)).length;
-            const h2hTotal = h2hWon + h2hDrawn + h2hLost;
-            const h2hGoalsFor = h2hGames.reduce((s, g) => s + (g.ourScore || 0), 0);
-            const h2hGoalsAgainst = h2hGames.reduce((s, g) => s + (g.opponentScore || 0), 0);
-
-            return (
-              <div className={`${scheduleCardClass} space-y-3`}>
-                <div>
-                  <h4 className="text-[9px] font-black uppercase text-amber-400 tracking-wider">Next Opponent Intel</h4>
-                  <h3 className="font-display font-black text-sm mt-0.5">{nextMatch.opponent}</h3>
-                  <p className="text-[10px] text-slate-400">
-                    {nextMatch.type} · {nextMatch.date} · {nextMatch.time} · {nextMatch.location}
-                  </p>
-                </div>
-
-                {oppStanding && (
-                  <div className="grid grid-cols-3 gap-2 text-center">
-                    <div className="rounded-lg border border-cyan-300/10 bg-[#07111f]/80 p-2">
-                      <div className="text-lg font-black text-white">#{oppStanding.rank}</div>
-                      <div className="text-[8px] font-bold text-slate-400 uppercase">Position</div>
-                    </div>
-                    <div className="rounded-lg border border-cyan-300/10 bg-[#07111f]/80 p-2">
-                      <div className="text-lg font-black text-white">{oppStanding.points}</div>
-                      <div className="text-[8px] font-bold text-slate-400 uppercase">Points</div>
-                    </div>
-                    <div className="rounded-lg border border-cyan-300/10 bg-[#07111f]/80 p-2">
-                      <div className="text-lg font-black text-white">{oppStanding.won}W-{oppStanding.drawn}D-{oppStanding.lost}L</div>
-                      <div className="text-[8px] font-bold text-slate-400 uppercase">Record</div>
-                    </div>
-                  </div>
-                )}
-
-                {h2hTotal > 0 && (
-                  <div className="rounded-lg border border-cyan-300/10 bg-[#07111f]/80 p-2.5">
-                    <span className="text-[8px] font-bold text-slate-400 uppercase tracking-wider">Head-to-Head</span>
-                    <div className="flex items-center gap-3 mt-1 text-[10px] font-bold">
-                      <span className="text-emerald-400">{h2hWon}W</span>
-                      <span className="text-slate-400">{h2hDrawn}D</span>
-                      <span className="text-rose-400">{h2hLost}L</span>
-                      <span className="text-slate-500">·</span>
-                      <span className="text-white">GF {h2hGoalsFor}</span>
-                      <span className="text-slate-500">·</span>
-                      <span className="text-white">GA {h2hGoalsAgainst}</span>
-                      {h2hTotal > 0 && (
-                        <span className="text-[9px] text-slate-500 ml-auto">
-                          {h2hWon > h2hLost ? '⬆️ Edge' : h2hLost > h2hWon ? '⬇️ Underdog' : '↔️ Even'}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                )}
-
-                {nextMatch.notes && (
-                  <div className="bg-amber-400/10 border border-amber-400/20 rounded-lg p-2.5 flex items-start gap-2">
-                    <AlertTriangle size={12} className="text-amber-400 mt-0.5 shrink-0" />
-                    <p className="text-[10px] text-amber-200/80 leading-relaxed">{nextMatch.notes}</p>
-                  </div>
-                )}
-
-                {!oppStanding && !h2hTotal && !nextMatch.notes && (
-                  <p className="text-[10px] text-slate-500 italic">No intel available yet — add this opponent to the standings table for position data.</p>
-                )}
-              </div>
-            );
-          })()}
-
-          {/* Coach's Notes for Next Match */}
-          {(() => {
-            const nextMatch = games
-              .filter(g => (g.type === 'League' || g.type === 'Cup' || g.type === 'Friendly') && g.status === 'Upcoming')
-              .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())[0];
-
-            if (!nextMatch) return null;
-
-            const note = coachNotes[nextMatch.id] || '';
-            const editing = coachEditGameId === nextMatch.id;
-
-            return (
-              <div className={`${scheduleCardClass} space-y-2.5`}>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h4 className="text-[9px] font-black uppercase tracking-wider text-orange-300">Coach's Notes</h4>
-                    <p className="text-[10px] text-slate-400">vs {nextMatch.opponent} · {nextMatch.date}</p>
-                  </div>
-                  {!editing && (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => { setCoachDraft(note); setCoachEditGameId(nextMatch.id); }}
-                      className={`h-7 rounded-lg px-2 py-1 text-[9px] font-bold ${scheduleActionButtonClass}`}
-                    >
-                      {note ? 'Edit' : '+ Add Notes'}
-                    </Button>
-                  )}
-                </div>
-
-                {editing ? (
-                  <div className="space-y-2">
-                    <Textarea
-                      value={coachDraft}
-                      onChange={e => setCoachDraft(e.target.value)}
-                      placeholder="Tactical notes, set-piece instructions, key player matchups, motivational message…"
-                      rows={4}
-                      className={cn(scheduleInputClass(), 'resize-none rounded-lg p-2.5 text-[10px] font-medium')}
-                      autoFocus
-                    />
-                    <div className="flex items-center gap-2">
-                      <Button
-                        type="button"
-                        size="sm"
-                        onClick={() => {
-                          setCoachNoteForGame(nextMatch.id, coachDraft);
-                          setCoachEditGameId(null);
-                        }}
-                        className={`h-7 rounded-lg px-3 py-1.5 text-[9px] font-black ${schedulePrimaryButtonClass}`}
-                      >
-                        Save Notes
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => { setCoachEditGameId(null); }}
-                        className="h-7 px-2 py-1.5 text-[9px] font-bold text-slate-400 hover:bg-cyan-300/10 hover:text-slate-100"
-                      >
-                        Cancel
-                      </Button>
-                      {note && (
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => {
-                            setCoachNoteForGame(nextMatch.id, '');
-                            setCoachEditGameId(null);
-                          }}
-                          className="ml-auto h-7 px-2 text-[9px] font-bold text-rose-300 hover:bg-rose-300/10 hover:text-rose-100"
-                        >
-                          Clear
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                ) : note ? (
-                  <div className={`${scheduleInsetClass} max-h-36 overflow-y-auto p-2.5 text-[10px] leading-relaxed text-slate-300 whitespace-pre-wrap`}>
-                    {note}
-                  </div>
-                ) : (
-                  <p className="text-[10px] italic text-slate-500">No tactical notes yet. Tap "Add Notes" to write pre-match instructions.</p>
-                )}
-              </div>
-            );
-          })()}
-
-        </div>
-
-        {/* COLUMN 2: Full Chronological List of Game Events (with dynamic calendar filter apply) */}
-        <div className="lg:col-span-7 space-y-4">
-          
-          {selectedDateStr && (
-            <div className={`${scheduleCardClass} flex items-center justify-between p-4 text-xs text-slate-300`}>
-              <span className="font-semibold flex items-center gap-1.5">
-                <CalendarDays size={14} className="animate-pulse text-orange-300" />
-                <span>Showing events matching date: <strong>{new Date(selectedDateStr).toLocaleDateString(undefined, {month: 'long', day: 'numeric', year: 'numeric', timeZone: 'UTC'})}</strong></span>
-              </span>
-              <Button
-                type="button"
-                variant="link"
-                onClick={() => setSelectedDateStr(null)}
-                className="text-xs font-bold text-orange-200 hover:text-orange-100"
-              >
-                Clear Filter
-              </Button>
-            </div>
-          )}
-
-          <div id="games-schedule-list" className="space-y-4">
-            {filteredGames.length === 0 ? (
-              <div className={`${scheduleCardClass} flex flex-col items-center justify-center space-y-3 py-12 text-center`}>
-                <Calendar size={32} className="animate-bounce text-orange-300/70" />
-                <h4 className="font-semibold text-slate-100">No {filterTab.toLowerCase()} events found</h4>
-                <p className="text-xs text-slate-400">Register new events or log completions above.</p>
-              </div>
-            ) : (
-              filteredGames.map((game) => {
-                const isIntegrityHighlighted = highlightGameId === game.id;
-                const daysLeft = Math.ceil((new Date(game.date).getTime() - Date.now()) / (1000 * 3600 * 24));
-                const mvpName = players.find(p => p.id === game.mvpId)?.name;
-
-                let iconSymbol = 'VS';
-                if (game.status === 'Completed') {
-                  iconSymbol = game.ourScore! > game.opponentScore! ? 'W' : game.ourScore! === game.opponentScore! ? 'D' : 'L';
-                } else if (game.type === 'Training') {
-                  iconSymbol = '💪';
-                } else if (game.type === 'Meeting') {
-                  iconSymbol = '📋';
-                }
-
-                return (
-                  <motion.div
-                    id={`game-item-${game.id}`}
-                    key={game.id}
-                    initial={{ opacity: 0, y: 5 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className={`flex flex-col items-start justify-between gap-4 rounded-2xl border bg-[#07111f]/88 p-5 text-slate-100 shadow-sm shadow-black/10 backdrop-blur-xl transition-all duration-300 hover:border-orange-300/35 hover:bg-[#0b1726]/92 hover:shadow-lg hover:shadow-black/20 md:flex-row md:items-center ${
-                      isIntegrityHighlighted ? 'border-amber-300/60 ring-4 ring-amber-300/15' : 'border-cyan-300/10'
-                    }`}
-                  >
-                    
-                    {/* Left side details */}
-                    <div className="flex items-center gap-4 flex-1">
-                      <div className={`w-12 h-12 rounded-xl flex items-center justify-center font-display font-black text-lg shrink-0 ${
-                        game.status === 'Completed' 
-                          ? (game.ourScore! > game.opponentScore! ? 'border border-emerald-300/25 bg-emerald-300/15 text-emerald-100' : game.ourScore! === game.opponentScore! ? 'border border-slate-300/20 bg-slate-300/10 text-slate-200' : 'border border-rose-300/25 bg-rose-300/15 text-rose-100')
-                          : 'border border-orange-300/25 bg-orange-300/15 text-orange-100'
-                      }`}>
-                        {iconSymbol}
-                      </div>
-
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <Badge id={`game-${game.id}-type-badge`} className={`rounded-full px-2 py-0.5 text-[9px] ${
-                            getGameTypeBadgeClass(game.type)
-                          }`}>
-                            {game.type}
-                          </Badge>
-                          {isIntegrityHighlighted && (
-                            <Badge className="rounded-full border-amber-300/30 bg-amber-300/15 px-2 py-0.5 text-[9px] text-amber-100">
-                              Review
-                            </Badge>
-                          )}
-                          {game.status === 'Upcoming' && daysLeft > 0 && (
-                            <Badge id={`game-${game.id}-countdown-badge`} className="rounded-full border-rose-300/25 bg-rose-300/10 px-2 py-0.5 text-[9px] text-rose-100">
-                              In {daysLeft} Days
-                            </Badge>
-                          )}
-                        </div>
-                        
-                        <h4 id={`game-${game.id}-title`} className="mt-1 font-display text-[13px] font-semibold text-slate-100 md:text-sm">
-                          {game.type === 'Training' || game.type === 'Meeting' ? (
-                            <span className="font-bold text-slate-50">{game.opponent}</span>
-                          ) : (
-                            <span><span className="font-bold text-slate-50">{teamName || 'Our Team'}</span> <span className="font-sans font-medium text-slate-400">vs</span> <span className="font-bold text-slate-50">{game.opponent}</span></span>
-                          )}
-                        </h4>
-
-                        <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-400">
-                          <span id={`game-${game.id}-dt`} className="flex items-center gap-1.5 mt-0.5 font-medium">
-                            <Clock size={12} className="text-orange-300" />
-                            {game.date} @ {game.time}
-                          </span>
-                          <span id={`game-${game.id}-loc`} className="flex items-center gap-1.5 mt-0.5 font-medium">
-                            <MapPin size={12} className="text-cyan-200" />
-                            {game.location}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Score display or recording */}
-                    <div className={`flex w-full items-center justify-between gap-4 self-stretch border-t pt-3 text-right md:w-auto md:self-auto md:justify-end md:border-none md:pt-0 ${scheduleDividerClass}`}>
-                      
-                      {game.status === 'Completed' ? (
-                        <div className="flex items-center gap-2">
-                          <div className="flex flex-col items-end">
-                            <div id={`game-${game.id}-score`} className="font-display text-xl font-black tracking-tight text-slate-100">
-                              {game.ourScore} - {game.opponentScore}
-                            </div>
-                            {mvpName && (
-                              <div id={`game-${game.id}-mvp`} className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-amber-300">
-                                <Award size={11} className="fill-amber-300 text-amber-500" /> {mvpName}
-                              </div>
-                            )}
-                          </div>
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            onClick={() => openResultEditor(game)}
-                            className={`h-7 rounded-lg px-2 py-1 text-[10px] font-bold ${scheduleActionButtonClass}`}
-                          >
-                            Edit Result
-                          </Button>
-                        </div>
-                      ) : (
-                        <div className="flex gap-2">
-                          {/* Only show Log scorecard for non-training / non-meeting events */}
-                          {game.type !== 'Training' && game.type !== 'Meeting' && (
-                            <Button
-                              type="button"
-                              id={`record-score-btn-${game.id}`}
-                              variant="outline"
-                              size="sm"
-                              onClick={() => openResultEditor(game)}
-                              className={`rounded-xl px-3.5 py-1.5 text-xs font-semibold ${scheduleSuccessButtonClass}`}
-                            >
-                              <Trophy size={11} />
-                              Log Score
-                            </Button>
-                          )}
-                        </div>
-                      )}
-
-                      {/* Options: Delete Match Event */}
-                      <Button
-                        id={`delete-game-btn-${game.id}`}
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => {
-                          if (window.confirm(`Remove the ${game.opponent} event? Completed match statistics will be reversed.`)) {
-                            onDeleteGame(game.id);
-                          }
-                        }}
-                        className="size-8 rounded-lg p-1.5 text-slate-500 hover:bg-rose-300/10 hover:text-rose-200"
-                        title="Remove Event"
-                      >
-                        <Trash2 size={14} />
-                      </Button>
-
-                    </div>
-
-                    {/* Tactical notes drawers */}
-                    {game.notes && (
-                      <div className={`${scheduleInsetClass} mt-3 grid w-full grid-cols-1 gap-4 p-3 text-xs text-slate-400 md:grid-cols-2`}>
-                        <div>
-                          <strong className="mb-1 block text-[10px] font-bold uppercase tracking-widest text-slate-400">Squad Briefing / Notes</strong>
-                          <p className="leading-relaxed text-slate-300">{game.notes}</p>
-                        </div>
-                        {game.scorers && game.scorers.length > 0 && (
-                          <div id={`game-${game.id}-scorers-list`}>
-                            <strong className="mb-1 block text-[10px] font-bold uppercase tracking-widest text-orange-300">Goal Scorers</strong>
-                            <div className="flex flex-wrap gap-1 mt-1">
-                              {game.scorers.map(sc => (
-                                <span key={sc.playerName} className="rounded border border-cyan-300/10 bg-[#07111f]/80 px-1.5 py-0.5 text-[10px] font-semibold text-slate-200">
-                                  ⚽ {sc.playerName} ({sc.count})
-                                </span>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    )}
-
-                  </motion.div>
-                );
-              })
-            )}
-          </div>
+          <GameWeekInspector
+            activeTab={activeInspectorTab}
+            onTabChange={setActiveInspectorTab}
+            selectedDateLabel={selectedDateLabel}
+            selectedGames={selectedGames}
+            upcomingGames={upcomingGames}
+            completedGames={completedGames}
+            teamName={teamName}
+            players={players}
+            highlightGameId={highlightGameId}
+            onRecordResult={openResultEditor}
+            onDeleteGame={onDeleteGame}
+            availability={availability}
+            onSetPlayerAvailability={setPlayerAvail}
+          />
         </div>
       </div>
     </div>
