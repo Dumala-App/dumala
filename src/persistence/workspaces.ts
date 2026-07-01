@@ -262,6 +262,49 @@ export const createManagedWorkspace = (
   };
 };
 
+export const activateCloudWorkspace = (
+  teamInfo: TeamInfo,
+  cloudClubId: string,
+  storage: StorageLike = browserStorage(),
+  now = new Date().toISOString()
+) => {
+  const trimmedCloudClubId = cloudClubId.trim();
+  if (!trimmedCloudClubId) throw new Error('Cloud club ID is required.');
+
+  const existing = readWorkspaceSummaries(storage).find(workspace => workspace.cloudClubId === trimmedCloudClubId);
+  const summary = existing
+    ? existing
+    : {
+        ...createWorkspaceSummary(teamInfo, now),
+        cloudClubId: trimmedCloudClubId
+      };
+
+  if (!existing) {
+    writeWorkspaceSummaries([...readWorkspaceSummaries(storage), summary], storage);
+    CORE_DUMALA_KEYS.forEach(key => storage.removeItem(key));
+    storage.setItem(STORAGE_KEYS.onboarded, 'true');
+    storage.setItem(STORAGE_KEYS.teamInfo, JSON.stringify(teamInfo));
+    storage.setItem(STORAGE_KEYS.players, JSON.stringify([]));
+    storage.setItem(STORAGE_KEYS.staff, JSON.stringify([]));
+    storage.setItem(STORAGE_KEYS.games, JSON.stringify([]));
+    storage.setItem(STORAGE_KEYS.standings, JSON.stringify([]));
+    storage.setItem(STORAGE_KEYS.announcements, JSON.stringify([]));
+    storage.setItem(STORAGE_KEYS.assessments, JSON.stringify([]));
+    storage.setItem(STORAGE_KEYS.paymentLedger, JSON.stringify([]));
+    copyActiveKeysToWorkspace(summary.id, storage);
+  }
+
+  switchManagedWorkspace(summary.id, getActiveWorkspaceId(storage), storage);
+  return {
+    summary,
+    workspaces: touchWorkspaceSummary(summary.id, {
+      name: teamInfo.name,
+      logoUrl: teamInfo.logoUrl,
+      cloudClubId: trimmedCloudClubId
+    }, storage, now)
+  };
+};
+
 export const switchManagedWorkspace = (
   nextWorkspaceId: string,
   currentWorkspaceId: string | null = getActiveWorkspaceId(),

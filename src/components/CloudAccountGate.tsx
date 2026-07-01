@@ -2,7 +2,7 @@ import React, { FormEvent, useEffect, useRef, useState } from 'react';
 import { CheckCircle2, ChevronDown, Chrome, KeyRound, Loader2, LogOut, Mail, UserPlus } from 'lucide-react';
 import { useCloudAuth, type CloudAuthController } from '../hooks/useCloudAuth';
 import { useCloudRuntime } from '../hooks/useCloudRuntime';
-import type { AccountBootstrapInput } from '../cloud/account';
+import type { AccountBootstrapInput, AccountBootstrapResult } from '../cloud/account';
 import type { AuthState } from '../cloud/auth';
 import type { CloudRuntime } from '../cloud/runtime';
 import { Button } from './ui/button';
@@ -22,6 +22,7 @@ export interface CloudAccountGateProps {
   runtime?: CloudRuntime;
   authController?: CloudAuthController;
   onSignedOut?: () => void;
+  onBootstrapComplete?: (result: AccountBootstrapResult) => void;
 }
 
 export const getOrCreateCloudDeviceId = (): string => {
@@ -107,7 +108,8 @@ export const CloudAccountGate = ({
   audience = 'coach',
   runtime: runtimeOverride,
   authController: authControllerOverride,
-  onSignedOut
+  onSignedOut,
+  onBootstrapComplete
 }: CloudAccountGateProps) => {
   const liveRuntime = useCloudRuntime();
   const runtime = runtimeOverride ?? liveRuntime;
@@ -137,11 +139,12 @@ export const CloudAccountGate = ({
     bootstrappedUsers.current.add(auth.state.session.userId);
 
     bootstrapSignedInCloudAccount(runtime, auth.state, clubName, appVersion)
+      .then(result => onBootstrapComplete?.(result))
       .catch(error => {
         bootstrappedUsers.current.delete(auth.state.status === 'signedIn' ? auth.state.session.userId : '');
         setMessage(error instanceof Error ? error.message : 'Cloud account setup could not finish.');
       });
-  }, [appVersion, auth.state, bootstrapAccount, clubName, runtime]);
+  }, [appVersion, auth.state, bootstrapAccount, clubName, onBootstrapComplete, runtime]);
 
   if (!runtime.enabled) return null;
 

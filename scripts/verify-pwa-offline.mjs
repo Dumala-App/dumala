@@ -150,6 +150,14 @@ const openNestedArea = async (page, name) => {
 const verifyOfflineWorkflows = async page => {
   await expectVisibleText(page, 'Offline Validation FC', 'Overview');
 
+  await openNestedArea(page, 'Bulletins');
+  await expectVisibleText(page, 'Team Bulletin Board', 'Bulletins');
+  await page.getByRole('button', {name: 'Post Announcement', exact: true}).click();
+  await page.locator('#ann-title-input').fill('Offline persistence check');
+  await page.locator('#ann-content-input').fill('Created while the validation browser was offline.');
+  await page.getByRole('button', {name: 'Publish Notice', exact: true}).click();
+  await expectVisibleText(page, 'Offline persistence check', 'Offline bulletin edit');
+
   await openNestedArea(page, 'Game Week');
   await expectVisibleText(page, 'Upcoming Matches', 'Game Week');
 
@@ -169,13 +177,6 @@ const verifyOfflineWorkflows = async page => {
 
   await openPrimaryArea(page, 'League & Updates');
   await expectVisibleText(page, 'Manual Tools', 'League');
-  await openNestedArea(page, 'Bulletins');
-  await expectVisibleText(page, 'Team Bulletin Board', 'Bulletins');
-  await page.getByRole('button', {name: 'Post Announcement', exact: true}).click();
-  await page.locator('#ann-title-input').fill('Offline persistence check');
-  await page.locator('#ann-content-input').fill('Created while the validation browser was offline.');
-  await page.getByRole('button', {name: 'Publish Notice', exact: true}).click();
-  await expectVisibleText(page, 'Offline persistence check', 'Offline bulletin edit');
   await openNestedArea(page, 'Updates');
   await expectVisibleText(page, 'Developer Updates & Product Roadmap', 'Updates');
 
@@ -236,7 +237,7 @@ try {
     await coldLaunchPage.reload({waitUntil: 'domcontentloaded'});
     await expectAppShell(coldLaunchPage, 'offline refresh');
     await expectVisibleText(coldLaunchPage, 'Offline Validation FC', 'offline refresh persistence');
-    await openPrimaryArea(coldLaunchPage, 'League & Updates');
+    await openPrimaryArea(coldLaunchPage, 'Home');
     await openNestedArea(coldLaunchPage, 'Bulletins');
     await expectVisibleText(coldLaunchPage, 'Offline persistence check', 'offline edit persistence');
     await coldLaunchPage.close();

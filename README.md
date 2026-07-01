@@ -21,11 +21,11 @@ Dumala is a local-first football team management web application for coaches, ma
 
 The application is organized into five primary areas:
 
-1. **Home**: Overview and Game Week
+1. **Home**: Overview, Bulletins, and Game Week
 2. **Squad**: Roster and staff
 3. **Tactics**: Formation, lineup, matchup strategy, roles, notes, and match board
 4. **Development**: Training and Assessments
-5. **League & Updates**: League, Bulletins, and Updates
+5. **League & Updates**: League and Updates
 
 ## Local-first limitations
 

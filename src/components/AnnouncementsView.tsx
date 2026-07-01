@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, type ReactNode } from 'react';
 import { Announcement } from '../types';
 import { Megaphone, Plus, Bell, Info, Trash2 } from 'lucide-react';
 import { motion } from 'motion/react';
@@ -15,8 +15,14 @@ import {
 } from './ui/select';
 import { Textarea } from './ui/textarea';
 import { cn } from '../lib/utils';
+import {
+  DARK_GLASS_CLASSES,
+  DARK_GLASS_DASHBOARD_SURFACE_STYLE,
+  DARK_GLASS_THEME_STYLE
+} from '../theme/darkGlassTheme';
 
 interface AnnouncementsViewProps {
+  homeWorkspaceHeader?: ReactNode;
   announcements: Announcement[];
   onAddAnnouncement: (newAnn: Announcement) => void;
   onDeleteAnnouncement: (id: string) => void;
@@ -49,7 +55,7 @@ const announcementTitleClass = 'font-display text-lg font-black tracking-tight t
 const announcementDescriptionClass = 'mt-1 text-sm font-medium leading-relaxed text-muted-foreground';
 const announcementLabelClass = 'text-[11px] font-black uppercase tracking-widest text-muted-foreground';
 
-export default function AnnouncementsView({ announcements, onAddAnnouncement, onDeleteAnnouncement }: AnnouncementsViewProps) {
+export default function AnnouncementsView({ homeWorkspaceHeader, announcements, onAddAnnouncement, onDeleteAnnouncement }: AnnouncementsViewProps) {
   const [isAdding, setIsAdding] = useState(false);
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
@@ -78,7 +84,12 @@ export default function AnnouncementsView({ announcements, onAddAnnouncement, on
   };
 
   return (
-    <div id="announcements-view-container" className="space-y-6">
+    <div
+      id="announcements-view-container"
+      className={DARK_GLASS_CLASSES.dashboardShell}
+      style={{ ...DARK_GLASS_THEME_STYLE, ...DARK_GLASS_DASHBOARD_SURFACE_STYLE }}
+    >
+      {homeWorkspaceHeader}
       
       {/* Title Header Panel */}
       <div className={`${announcementCardClass} flex flex-col justify-between gap-4 sm:flex-row sm:items-center`}>

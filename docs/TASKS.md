@@ -131,7 +131,7 @@ The FPRDS total includes sixteen completed capabilities: the five shipped assess
 - [x] Added weighted OVR, assessment deltas, history, player-card preview, and four-week development plans.
 - [x] Included assessments in backup version 1.1.
 - [x] Reorganized navigation into Home, Squad, Tactics, Development, and League & Updates hubs.
-- [x] Added Overview/Game Week, Training/Assessments, and League/Bulletins/Updates sub-tabs.
+- [x] Added Overview/Bulletins/Game Week, Training/Assessments, and League/Updates sub-tabs.
 - [x] Fixed League rank to use the actual sorted standings.
 - [x] Reset standings and assessments during onboarding and workspace reset.
 - [x] Made onboarding land on Overview.
@@ -307,5 +307,5 @@ Phase 3 implementation baseline is complete. Local launch-readiness checks now i
 - [x] Training schedule persists and syncs calendar events.
 - [x] Training planner supports week navigation and separate locally persisted schedules by week.
 - [x] Full and Quick assessment save/restore and assessment deletion logic are validated.
-- [x] League, Bulletins, and Updates all render.
+- [x] Home Bulletins plus League and Updates all render.
 - [x] Desktop, mobile, and tablet smoke tests pass.

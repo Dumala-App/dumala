@@ -68,6 +68,7 @@ describe('account bootstrap repository', () => {
       ]],
       ['club_memberships', [
         { data: null, error: null },
+        { data: null, error: null },
         { data: { id: 'membership-1', club_id: 'club-1', user_id: 'user-1', role: 'owner' }, error: null }
       ]],
       ['devices', [{ data: { id: 'device-1', user_id: 'user-1', app_version: '0.0.0' }, error: null }]]
@@ -118,12 +119,21 @@ describe('account bootstrap repository', () => {
     }));
   });
 
-  it('reuses an existing owner membership without updating the protected owner row', async () => {
+  it('reuses an existing active workspace membership without creating a new team', async () => {
     const calls: Array<{ table: string; method: string; value?: unknown }> = [];
     const responses = new Map<string, unknown[]>([
       ['user_profiles', [{ data: { user_id: 'user-1', display_name: 'Coach' }, error: null }]],
-      ['clubs', [{ data: { id: 'club-1', name: 'Dumala FC', owner_user_id: 'user-1' }, error: null }]],
-      ['club_memberships', [{ data: { id: 'membership-1', club_id: 'club-1', user_id: 'user-1', role: 'owner', membership_state: 'active' }, error: null }]],
+      ['club_memberships', [{
+        data: {
+          id: 'membership-1',
+          club_id: 'club-1',
+          user_id: 'user-1',
+          role: 'coach',
+          membership_state: 'active',
+          clubs: { id: 'club-1', name: 'Dumala FC', owner_user_id: 'owner-1' }
+        },
+        error: null
+      }]],
       ['devices', [{ data: { id: 'device-1', user_id: 'user-1', app_version: '0.0.0' }, error: null }]]
     ]);
     const from = vi.fn((table: string) => {
@@ -149,6 +159,8 @@ describe('account bootstrap repository', () => {
     });
 
     expect(result.membership.id).toBe('membership-1');
+    expect(result.club.id).toBe('club-1');
+    expect(from).not.toHaveBeenCalledWith('clubs');
     expect(calls).not.toContainEqual(expect.objectContaining({
       table: 'club_memberships',
       method: 'insert'

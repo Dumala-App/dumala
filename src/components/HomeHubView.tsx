@@ -9,12 +9,14 @@ import {
 } from './ui/segmented-tabs';
 
 const DashboardView = lazy(() => import('./DashboardView'));
+const AnnouncementsView = lazy(() => import('./AnnouncementsView'));
 const ScheduleView = lazy(() => import('./ScheduleView'));
 
-export type HomeTab = 'overview' | 'game_week';
+export type HomeTab = 'overview' | 'bulletins' | 'game_week';
 
 const HOME_TAB_OPTIONS: Array<SegmentedTabOption<HomeTab>> = [
   { value: 'overview', label: 'Overview' },
+  { value: 'bulletins', label: 'Bulletins' },
   { value: 'game_week', label: 'Game Week' }
 ];
 
@@ -23,7 +25,7 @@ export type HubNavigateTarget =
   | { primary: 'squad' }
   | { primary: 'tactics' }
   | { primary: 'development'; developmentTab: 'assessments' | 'training' | 'assessment_guide' }
-  | { primary: 'league_updates'; leagueUpdatesTab: 'league' | 'updates' | 'bulletins' };
+  | { primary: 'league_updates'; leagueUpdatesTab: 'league' | 'updates' };
 
 interface HomeHubViewProps {
   activeTab: HomeTab;
@@ -40,6 +42,8 @@ interface HomeHubViewProps {
   assessments: AssessmentSession[];
   onSelectPlayer: (player: Player) => void;
   onUpdateTeamInfo: (updated: TeamInfo) => void;
+  onAddAnnouncement: (announcement: Announcement) => void;
+  onDeleteAnnouncement: (id: string) => void;
 
   // Game Week (Schedule)
   onAddGame: (game: Game) => void;
@@ -85,8 +89,8 @@ export default function HomeHubView(props: HomeHubViewProps) {
 
   return (
     <div className="space-y-6">
-      <Suspense fallback={<ViewLoadingFallback label={props.activeTab === 'overview' ? 'overview' : 'game week'} />}>
-        {props.activeTab === 'overview' ? (
+      <Suspense fallback={<ViewLoadingFallback label={props.activeTab === 'game_week' ? 'game week' : props.activeTab} />}>
+        {props.activeTab === 'overview' && (
           <DashboardView
             homeWorkspaceHeader={homeWorkspaceHeader}
             teamInfo={props.teamInfo}
@@ -99,7 +103,18 @@ export default function HomeHubView(props: HomeHubViewProps) {
             onSelectPlayer={props.onSelectPlayer}
             onUpdateTeamInfo={props.onUpdateTeamInfo}
           />
-        ) : (
+        )}
+
+        {props.activeTab === 'bulletins' && (
+          <AnnouncementsView
+            homeWorkspaceHeader={homeWorkspaceHeader}
+            announcements={props.announcements}
+            onAddAnnouncement={props.onAddAnnouncement}
+            onDeleteAnnouncement={props.onDeleteAnnouncement}
+          />
+        )}
+
+        {props.activeTab === 'game_week' && (
           <ScheduleView
             homeWorkspaceHeader={homeWorkspaceHeader}
             games={props.games}

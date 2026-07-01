@@ -1,6 +1,7 @@
 import React, { type CSSProperties, useState } from 'react';
 import { ArrowRight, CheckCircle, Cloud, Flag, MapPin, User } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
+import type { AccountBootstrapResult } from '../cloud/account';
 import type { CloudRuntime } from '../cloud/runtime';
 import type { CloudAuthController } from '../hooks/useCloudAuth';
 import { StaffMember, TeamInfo } from '../types';
@@ -24,14 +25,17 @@ interface OnboardingViewProps {
   onComplete: (team: TeamInfo, headCoach: StaffMember) => void;
   cloudRuntime: CloudRuntime;
   cloudAuthController?: CloudAuthController;
+  onCloudWorkspaceReady?: (result: AccountBootstrapResult) => void;
 }
 
 export function OnboardingCloudAccountEntry({
   runtime,
-  authController
+  authController,
+  onCloudWorkspaceReady
 }: {
   runtime: CloudRuntime;
   authController?: CloudAuthController;
+  onCloudWorkspaceReady?: (result: AccountBootstrapResult) => void;
 }) {
   return (
     <section aria-labelledby="onboarding-cloud-account-title" className="rounded-2xl border border-cyan-300/10 bg-white/[0.022] p-3 shadow-lg shadow-black/15">
@@ -52,10 +56,11 @@ export function OnboardingCloudAccountEntry({
         {runtime.enabled ? (
           <CloudAccountGate
             appVersion="0.0.0"
-            bootstrapAccount={false}
+            bootstrapAccount
             tone="dark"
             runtime={runtime}
             authController={authController}
+            onBootstrapComplete={onCloudWorkspaceReady}
           />
         ) : (
           <div role="status" className="rounded-md border border-amber-300/15 bg-amber-300/[0.055] px-2.5 py-1.5 text-[9.5px] font-semibold leading-4 text-amber-100/80">
@@ -88,7 +93,7 @@ function InteractiveOnboardingBackdrop({ pointer }: { pointer: { x: number; y: n
   );
 }
 
-export default function OnboardingView({ onComplete, cloudRuntime, cloudAuthController }: OnboardingViewProps) {
+export default function OnboardingView({ onComplete, cloudRuntime, cloudAuthController, onCloudWorkspaceReady }: OnboardingViewProps) {
   const [step, setStep] = useState<1 | 2>(1);
   const [pointer, setPointer] = useState({ x: 58, y: 42 });
 
@@ -162,7 +167,11 @@ export default function OnboardingView({ onComplete, cloudRuntime, cloudAuthCont
             </div>
 
             <div className="mx-auto w-full max-w-[40rem]">
-              <OnboardingCloudAccountEntry runtime={cloudRuntime} authController={cloudAuthController} />
+              <OnboardingCloudAccountEntry
+                runtime={cloudRuntime}
+                authController={cloudAuthController}
+                onCloudWorkspaceReady={onCloudWorkspaceReady}
+              />
             </div>
 
             <ol className="mt-4 flex items-center justify-center gap-2 text-[11px]" aria-label="Onboarding progress">

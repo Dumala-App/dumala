@@ -3,6 +3,7 @@ import type { StaffMember, TeamInfo } from '../types';
 import { createWorkspaceBackup } from './backup';
 import { STORAGE_KEYS, type StorageLike } from './storage';
 import {
+  activateCloudWorkspace,
   bootstrapManagedWorkspaces,
   copyActiveKeysToWorkspace,
   createManagedWorkspace,
@@ -10,6 +11,7 @@ import {
   getActiveWorkspaceId,
   importBackupAsManagedWorkspace,
   resetManagedWorkspace,
+  readWorkspaceSummaries,
   switchManagedWorkspace
 } from './workspaces';
 
@@ -149,5 +151,41 @@ describe('managed workspaces', () => {
     expect(getActiveWorkspaceId(storage)).toBe(active.summary.id);
     expect(JSON.parse(storage.getItem(STORAGE_KEYS.teamInfo)!).name).toBe('Active FC');
     expect(imported.workspaces.map(workspace => workspace.name)).toEqual(['Active FC', 'Imported FC']);
+  });
+
+  it('activates an existing cloud-linked workspace after sign-in', () => {
+    const storage = new MemoryStorage();
+    const first = activateCloudWorkspace(team('Cloud FC'), 'cloud-club-1', storage, '2026-06-30T00:00:00.000Z');
+    storage.setItem(STORAGE_KEYS.players, JSON.stringify([{ id: 'cloud-player' }]));
+    copyActiveKeysToWorkspace(first.summary.id, storage);
+
+    const second = createManagedWorkspace(team('Local FC'), coach('Local FC'), storage);
+    activateCloudWorkspace({ ...team('Cloud FC Updated'), logoUrl: '/logo.png' }, 'cloud-club-1', storage, '2026-07-01T00:00:00.000Z');
+
+    expect(getActiveWorkspaceId(storage)).toBe(first.summary.id);
+    expect(JSON.parse(storage.getItem(STORAGE_KEYS.teamInfo)!).name).toBe('Cloud FC');
+    expect(JSON.parse(storage.getItem(STORAGE_KEYS.players)!)).toEqual([{ id: 'cloud-player' }]);
+    expect(readWorkspaceSummaries(storage)).toHaveLength(2);
+    expect(readWorkspaceSummaries(storage).find(workspace => workspace.id === first.summary.id)).toMatchObject({
+      name: 'Cloud FC Updated',
+      cloudClubId: 'cloud-club-1',
+      logoUrl: '/logo.png'
+    });
+    expect(readWorkspaceSummaries(storage).find(workspace => workspace.id === second.summary.id)?.name).toBe('Local FC');
+  });
+
+  it('creates a local shell for a signed-in cloud workspace when the browser has no matching local workspace', () => {
+    const storage = new MemoryStorage();
+
+    const result = activateCloudWorkspace(team('Remote FC'), 'cloud-club-1', storage, '2026-07-01T00:00:00.000Z');
+
+    expect(result.summary).toMatchObject({
+      name: 'Remote FC',
+      cloudClubId: 'cloud-club-1'
+    });
+    expect(getActiveWorkspaceId(storage)).toBe(result.summary.id);
+    expect(storage.getItem(STORAGE_KEYS.onboarded)).toBe('true');
+    expect(JSON.parse(storage.getItem(STORAGE_KEYS.teamInfo)!).name).toBe('Remote FC');
+    expect(JSON.parse(storage.getItem(STORAGE_KEYS.staff)!)).toEqual([]);
   });
 });

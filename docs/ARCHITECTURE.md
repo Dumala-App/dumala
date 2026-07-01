@@ -62,9 +62,9 @@ The browser owns application state, business interactions, and persistence. The 
 
 | Hub | Nested views |
 | --- | --- |
-| `HomeHubView` | Overview, Game Week |
+| `HomeHubView` | Overview, Bulletins, Game Week |
 | `DevelopmentHubView` | Training, Assessments |
-| `LeagueUpdatesHubView` | League, Bulletins, Updates |
+| `LeagueUpdatesHubView` | League, Updates |
 
 Squad and Tactics render directly as primary views.
 
