@@ -4,9 +4,11 @@ import {
   ChevronsUpDown,
   Download,
   FolderPlus,
+  Loader2,
   Pencil,
   Plus,
   RefreshCw,
+  Sparkles,
   Trash2,
   Upload,
   Users
@@ -25,6 +27,7 @@ import {
 } from './ui/dialog';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
+import { MOCK_WORKSPACE_CHOICES } from '../mockWorkspaces';
 import {
   Select,
   SelectContent,
@@ -47,6 +50,12 @@ interface TeamWorkspaceMenuProps {
 }
 
 const defaultCoachPhoto = 'https://images.unsplash.com/photo-1544717297-ea0e52a269c7?w=150&auto=format&fit=crop&q=80';
+const fieldClass = 'border-cyan-300/15 bg-[#0b1726] text-slate-100 placeholder:text-slate-500 focus-visible:ring-orange-300/35';
+const selectTriggerClass = 'border-cyan-300/15 bg-[#0b1726] text-slate-100 focus:ring-orange-300/35';
+const selectContentClass = 'border-cyan-300/15 bg-[#07111f] text-slate-100 shadow-2xl shadow-black/50';
+const selectItemClass = 'text-slate-100 focus:bg-orange-300/10 focus:text-orange-100';
+const secondaryButtonClass = 'border-cyan-300/15 bg-[#0b1726] text-slate-100 hover:border-orange-300/30 hover:bg-orange-300/10 hover:text-orange-100';
+const primaryButtonClass = 'bg-orange-400 text-slate-950 shadow-sm shadow-orange-950/25 hover:bg-orange-300 hover:text-slate-950 disabled:bg-slate-700 disabled:text-slate-400';
 
 export default function TeamWorkspaceMenu({
   workspaces,
@@ -65,10 +74,13 @@ export default function TeamWorkspaceMenu({
   const [teamName, setTeamName] = useState('');
   const [stadium, setStadium] = useState('');
   const [league, setLeague] = useState('');
-  const [founded, setFounded] = useState(new Date().getFullYear().toString());
+  const [founded, setFounded] = useState('');
   const [coachName, setCoachName] = useState('');
   const [coachRole, setCoachRole] = useState('Manager / Coach');
   const [coachBio, setCoachBio] = useState('');
+  const [selectedMockId, setSelectedMockId] = useState(MOCK_WORKSPACE_CHOICES[0]?.id ?? '');
+  const [mockImportStatus, setMockImportStatus] = useState('');
+  const [isImportingMock, setIsImportingMock] = useState(false);
   const [renameValues, setRenameValues] = useState<Record<string, string>>({});
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
   const [importStatus, setImportStatus] = useState('');
@@ -78,20 +90,21 @@ export default function TeamWorkspaceMenu({
     setTeamName('');
     setStadium('');
     setLeague('');
-    setFounded(new Date().getFullYear().toString());
+    setFounded('');
     setCoachName('');
     setCoachRole('Manager / Coach');
     setCoachBio('');
+    setMockImportStatus('');
   };
 
   const handleCreate = () => {
     if (!teamName.trim() || !coachName.trim()) return;
     onCreateWorkspace({
       name: teamName.trim(),
-      founded: founded.trim() || new Date().getFullYear().toString(),
-      stadium: stadium.trim() || 'Home Ground',
+      founded: founded.trim() || '2012',
+      stadium: stadium.trim() || 'Centermall',
       coach: coachName.trim(),
-      league: league.trim() || 'Friendly Division',
+      league: league.trim() || 'League 1',
       logoColor: 'from-blue-600 to-indigo-800'
     }, {
       id: crypto.randomUUID(),
@@ -121,6 +134,30 @@ export default function TeamWorkspaceMenu({
     }
   };
 
+  const handleImportMockWorkspace = async () => {
+    const choice = MOCK_WORKSPACE_CHOICES.find(item => item.id === selectedMockId);
+    if (!choice || isImportingMock) return;
+
+    setIsImportingMock(true);
+    setMockImportStatus(`Importing ${choice.label}...`);
+    try {
+      const file = new File(
+        [JSON.stringify(choice.backup)],
+        choice.fileName,
+        { type: 'application/json' }
+      );
+      const summary = await onImportWorkspace(file);
+      setMockImportStatus(`Added ${choice.label}: ${summary.players} players, ${summary.staff} staff, ${summary.games} games.`);
+      resetAddForm();
+      setAddOpen(false);
+      setMenuOpen(false);
+    } catch (error) {
+      setMockImportStatus(error instanceof Error ? error.message : `Could not add ${choice.label}.`);
+    } finally {
+      setIsImportingMock(false);
+    }
+  };
+
   return (
     <>
       <div className="relative">
@@ -130,7 +167,7 @@ export default function TeamWorkspaceMenu({
           onClick={() => setMenuOpen(open => !open)}
           aria-haspopup="menu"
           aria-expanded={menuOpen}
-          className="h-10 max-w-[13rem] rounded-xl bg-white/10 px-3 text-left text-white hover:bg-white/15 hover:text-white"
+          className="h-10 max-w-[13rem] rounded-xl border border-cyan-300/15 bg-[#0b1726] px-3 text-left text-slate-100 shadow-sm shadow-black/20 hover:border-orange-300/30 hover:bg-[#132238] hover:text-orange-100"
         >
           <Users size={15} aria-hidden="true" />
           <span className="min-w-0 flex-1 truncate text-xs font-bold">{activeTeamName || 'Team workspace'}</span>
@@ -140,11 +177,11 @@ export default function TeamWorkspaceMenu({
         {menuOpen && (
           <div
             role="menu"
-            className="absolute right-0 top-12 z-50 w-[19rem] overflow-hidden rounded-xl border border-border bg-card text-card-foreground shadow-2xl"
+            className="absolute right-0 top-12 z-50 w-[19rem] overflow-hidden rounded-xl border border-cyan-300/15 bg-[#07111f] text-slate-100 shadow-2xl shadow-black/50"
           >
-            <div className="border-b border-border px-3 py-2">
-              <p className="text-[10px] font-black uppercase text-muted-foreground">Team workspaces</p>
-              <p className="truncate text-sm font-extrabold">{activeTeamName || 'No active team'}</p>
+            <div className="border-b border-cyan-300/10 px-3 py-2">
+              <p className="text-[10px] font-black uppercase text-slate-400">Team workspaces</p>
+              <p className="truncate text-sm font-extrabold text-slate-100">{activeTeamName || 'No active team'}</p>
             </div>
             <div className="max-h-56 overflow-y-auto p-1">
               {workspaces.map(workspace => (
@@ -156,19 +193,19 @@ export default function TeamWorkspaceMenu({
                     onSwitchWorkspace(workspace.id);
                     setMenuOpen(false);
                   }}
-                  className="flex min-h-10 w-full items-center gap-2 rounded-lg px-2.5 text-left text-sm font-semibold hover:bg-muted"
+                  className="flex min-h-10 w-full items-center gap-2 rounded-lg px-2.5 text-left text-sm font-semibold text-slate-200 hover:bg-orange-300/10 hover:text-orange-100 focus:outline-none focus:ring-2 focus:ring-orange-300/30"
                 >
                   <span className="min-w-0 flex-1 truncate">{workspace.name}</span>
-                  {workspace.id === activeWorkspaceId && <Check size={15} className="text-success" aria-hidden="true" />}
+                  {workspace.id === activeWorkspaceId && <Check size={15} className="text-emerald-300" aria-hidden="true" />}
                 </button>
               ))}
             </div>
-            <div className="grid gap-1 border-t border-border p-1.5">
+            <div className="grid gap-1 border-t border-cyan-300/10 p-1.5">
               <Button
                 type="button"
                 variant="ghost"
                 size="sm"
-                className="justify-start"
+                className="justify-start text-slate-200 hover:bg-orange-300/10 hover:text-orange-100"
                 onClick={() => {
                   setMenuOpen(false);
                   setAddOpen(true);
@@ -180,7 +217,7 @@ export default function TeamWorkspaceMenu({
                 type="button"
                 variant="ghost"
                 size="sm"
-                className="justify-start"
+                className="justify-start text-slate-200 hover:bg-orange-300/10 hover:text-orange-100"
                 onClick={() => {
                   setMenuOpen(false);
                   setManageOpen(true);
@@ -192,7 +229,7 @@ export default function TeamWorkspaceMenu({
                 type="button"
                 variant="ghost"
                 size="sm"
-                className="justify-start"
+                className="justify-start text-slate-200 hover:bg-orange-300/10 hover:text-orange-100"
                 onClick={() => {
                   setMenuOpen(false);
                   onExportCurrentWorkspace();
@@ -206,52 +243,85 @@ export default function TeamWorkspaceMenu({
       </div>
 
       <Dialog open={addOpen} onOpenChange={setAddOpen}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-h-[calc(100vh-3rem)] max-w-2xl overflow-y-auto border-cyan-300/15 bg-[#07111f] text-slate-100 shadow-2xl shadow-black/60 [&_.text-muted-foreground]:text-slate-400">
           <DialogHeader>
-            <DialogTitle>Add team</DialogTitle>
+            <DialogTitle className="text-slate-100">Add team</DialogTitle>
             <DialogDescription>Create a separate local workspace for another team.</DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="new-team-name">Team name</Label>
-              <Input id="new-team-name" value={teamName} onChange={event => setTeamName(event.target.value)} placeholder="Apex Rangers FC" />
+              <Label htmlFor="new-team-name" className="text-slate-300">Team name</Label>
+              <Input id="new-team-name" value={teamName} onChange={event => setTeamName(event.target.value)} placeholder="Portuseros FC" className={fieldClass} />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="new-team-founded">Founded year</Label>
-              <Input id="new-team-founded" value={founded} onChange={event => setFounded(event.target.value)} />
+              <Label htmlFor="new-team-founded" className="text-slate-300">Founded year</Label>
+              <Input id="new-team-founded" value={founded} onChange={event => setFounded(event.target.value)} placeholder="2012" className={fieldClass} />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="new-team-ground">Home ground</Label>
-              <Input id="new-team-ground" value={stadium} onChange={event => setStadium(event.target.value)} placeholder="Home Ground" />
+              <Label htmlFor="new-team-ground" className="text-slate-300">Home ground</Label>
+              <Input id="new-team-ground" value={stadium} onChange={event => setStadium(event.target.value)} placeholder="Centermall" className={fieldClass} />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="new-team-league">League / division</Label>
-              <Input id="new-team-league" value={league} onChange={event => setLeague(event.target.value)} placeholder="Friendly Division" />
+              <Label htmlFor="new-team-league" className="text-slate-300">League / division</Label>
+              <Input id="new-team-league" value={league} onChange={event => setLeague(event.target.value)} placeholder="League 1" className={fieldClass} />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="new-team-coach">Manager name</Label>
-              <Input id="new-team-coach" value={coachName} onChange={event => setCoachName(event.target.value)} placeholder="Alex Sterling" />
+              <Label htmlFor="new-team-coach" className="text-slate-300">Manager name</Label>
+              <Input id="new-team-coach" value={coachName} onChange={event => setCoachName(event.target.value)} placeholder="Alex Sterling" className={fieldClass} />
             </div>
             <div className="space-y-2">
-              <Label>Manager role</Label>
+              <Label className="text-slate-300">Manager role</Label>
               <Select value={coachRole} onValueChange={setCoachRole}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Manager / Coach">Manager / Coach</SelectItem>
-                  <SelectItem value="Head Coach">Head Coach</SelectItem>
-                  <SelectItem value="Assistant Coach">Assistant Coach</SelectItem>
-                  <SelectItem value="Manager">Manager</SelectItem>
+                <SelectTrigger className={selectTriggerClass}><SelectValue /></SelectTrigger>
+                <SelectContent className={selectContentClass}>
+                  <SelectItem className={selectItemClass} value="Manager / Coach">Manager / Coach</SelectItem>
+                  <SelectItem className={selectItemClass} value="Head Coach">Head Coach</SelectItem>
+                  <SelectItem className={selectItemClass} value="Assistant Coach">Assistant Coach</SelectItem>
+                  <SelectItem className={selectItemClass} value="Manager">Manager</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <div className="space-y-2 md:col-span-2">
-              <Label htmlFor="new-team-coach-bio">Manager bio</Label>
-              <Textarea id="new-team-coach-bio" value={coachBio} onChange={event => setCoachBio(event.target.value)} rows={3} />
+              <Label htmlFor="new-team-coach-bio" className="text-slate-300">Manager bio</Label>
+              <Textarea id="new-team-coach-bio" value={coachBio} onChange={event => setCoachBio(event.target.value)} rows={3} className={fieldClass} />
+            </div>
+            <div className="space-y-3 rounded-xl border border-cyan-300/15 bg-[#0b1726] p-3 md:col-span-2">
+              <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <p className="text-xs font-black uppercase tracking-wide text-orange-200">Try a sample team</p>
+                  <p className="text-xs text-slate-400">Choose a bundled workspace from the mock folder and add it as a separate team.</p>
+                </div>
+                <Sparkles size={18} className="hidden text-orange-300 sm:block" aria-hidden="true" />
+              </div>
+              <div className="grid gap-2 sm:grid-cols-[1fr_auto]">
+                <Select value={selectedMockId} onValueChange={setSelectedMockId} disabled={MOCK_WORKSPACE_CHOICES.length === 0}>
+                  <SelectTrigger className={selectTriggerClass} aria-label="Sample team">
+                    <SelectValue placeholder="Select a sample team" />
+                  </SelectTrigger>
+                  <SelectContent className={selectContentClass}>
+                    {MOCK_WORKSPACE_CHOICES.map(choice => (
+                      <SelectItem key={choice.id} className={selectItemClass} value={choice.id}>
+                        {choice.label} · {choice.detail}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Button
+                  type="button"
+                  onClick={() => void handleImportMockWorkspace()}
+                  disabled={!selectedMockId || isImportingMock}
+                  className={primaryButtonClass}
+                >
+                  {isImportingMock ? <Loader2 size={15} className="animate-spin" aria-hidden="true" /> : <Upload size={15} aria-hidden="true" />}
+                  Add sample
+                </Button>
+              </div>
+              {mockImportStatus && <p className="text-xs font-semibold text-slate-300">{mockImportStatus}</p>}
             </div>
           </div>
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setAddOpen(false)}>Cancel</Button>
-            <Button type="button" onClick={handleCreate} disabled={!teamName.trim() || !coachName.trim()}>
+            <Button type="button" variant="outline" className={secondaryButtonClass} onClick={() => setAddOpen(false)}>Cancel</Button>
+            <Button type="button" onClick={handleCreate} disabled={!teamName.trim() || !coachName.trim()} className={primaryButtonClass}>
               <FolderPlus size={15} aria-hidden="true" /> Create team
             </Button>
           </DialogFooter>
@@ -259,9 +329,9 @@ export default function TeamWorkspaceMenu({
       </Dialog>
 
       <Dialog open={manageOpen} onOpenChange={setManageOpen}>
-        <DialogContent className="max-w-3xl">
+        <DialogContent className="max-w-3xl border-cyan-300/15 bg-[#07111f] text-slate-100 shadow-2xl shadow-black/60 [&_.text-muted-foreground]:text-slate-400">
           <DialogHeader>
-            <DialogTitle>Manage teams</DialogTitle>
+            <DialogTitle className="text-slate-100">Manage teams</DialogTitle>
             <DialogDescription>Switch, rename, import, export, or remove local team workspaces.</DialogDescription>
           </DialogHeader>
           <div className="max-h-[60vh] space-y-3 overflow-y-auto pr-1">
@@ -270,24 +340,25 @@ export default function TeamWorkspaceMenu({
               const isActive = workspace.id === activeWorkspaceId;
               const isConfirmingDelete = pendingDeleteId === workspace.id;
               return (
-                <div key={workspace.id} className="rounded-lg border border-border bg-background p-3">
+                <div key={workspace.id} className="rounded-lg border border-cyan-300/15 bg-[#0b1726] p-3 text-slate-100">
                   <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
                     <div className="min-w-0 flex-1">
                       <div className="mb-1 flex items-center gap-2">
-                        <p className="truncate text-sm font-extrabold">{workspace.name}</p>
-                        {isActive && <span className="rounded-full bg-success/10 px-2 py-0.5 text-[10px] font-black uppercase text-success">Active</span>}
+                        <p className="truncate text-sm font-extrabold text-slate-100">{workspace.name}</p>
+                        {isActive && <span className="rounded-full bg-emerald-300/10 px-2 py-0.5 text-[10px] font-black uppercase text-emerald-200">Active</span>}
                       </div>
                       <Input
                         value={renameValue}
                         onChange={event => setRenameValues(current => ({ ...current, [workspace.id]: event.target.value }))}
                         aria-label={`Rename ${workspace.name}`}
+                        className={fieldClass}
                       />
                     </div>
                     <div className="flex flex-wrap gap-2 lg:justify-end">
-                      <Button type="button" variant="outline" size="sm" onClick={() => onSwitchWorkspace(workspace.id)} disabled={isActive}>
+                      <Button type="button" variant="outline" size="sm" className={secondaryButtonClass} onClick={() => onSwitchWorkspace(workspace.id)} disabled={isActive}>
                         <RefreshCw size={14} aria-hidden="true" /> Switch
                       </Button>
-                      <Button type="button" variant="outline" size="sm" onClick={() => onRenameWorkspace(workspace.id, renameValue)} disabled={!renameValue.trim()}>
+                      <Button type="button" variant="outline" size="sm" className={secondaryButtonClass} onClick={() => onRenameWorkspace(workspace.id, renameValue)} disabled={!renameValue.trim()}>
                         <Pencil size={14} aria-hidden="true" /> Rename
                       </Button>
                       <Button
@@ -302,7 +373,7 @@ export default function TeamWorkspaceMenu({
                             setPendingDeleteId(workspace.id);
                           }
                         }}
-                        className="hover:border-destructive/30 hover:bg-destructive/10 hover:text-destructive"
+                        className="border-cyan-300/15 bg-[#0b1726] text-slate-100 hover:border-rose-300/30 hover:bg-rose-400/10 hover:text-rose-100"
                       >
                         <Trash2 size={14} aria-hidden="true" /> {isConfirmingDelete ? 'Confirm delete' : 'Delete'}
                       </Button>
@@ -321,10 +392,10 @@ export default function TeamWorkspaceMenu({
               className="hidden"
               onChange={event => void handleImport(event.target.files?.[0])}
             />
-            <Button type="button" variant="outline" onClick={() => importInputRef.current?.click()}>
+            <Button type="button" variant="outline" className={secondaryButtonClass} onClick={() => importInputRef.current?.click()}>
               <Upload size={15} aria-hidden="true" /> Import as new team
             </Button>
-            <Button type="button" onClick={() => setManageOpen(false)}>Done</Button>
+            <Button type="button" className={primaryButtonClass} onClick={() => setManageOpen(false)}>Done</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

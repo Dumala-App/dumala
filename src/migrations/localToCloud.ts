@@ -512,7 +512,7 @@ export const createCloudImportPayload = (
       ovr: assessment.ovr,
       weakest_attribute_id: assessment.labels.weakestAttributeId,
       ovr_tier_label: assessment.labels.ovrTierLabel,
-      previous_session_id: assessment.deltas.previousSessionId,
+      previous_session_id: mapId('assessment_sessions', assessment.deltas.previousSessionId),
       benchmark_version: CLOUD_MIGRATION_SCHEMA_VERSION,
       weighting_version: CLOUD_MIGRATION_SCHEMA_VERSION,
       scoring_algorithm_version: CLOUD_MIGRATION_SCHEMA_VERSION,
