@@ -4,6 +4,7 @@ import { Button } from './ui/button';
 
 export default function UpdatesView() {
   const [openEntries, setOpenEntries] = useState<Record<string, boolean>>({
+    july_product_coaching_overhaul: true,
     major_cloud_and_product_milestone: true,
     assessment_feedback_reports_and_polish: true,
     multi_team_supabase_migration_setup: true,
@@ -30,27 +31,99 @@ export default function UpdatesView() {
 
   const changelogEntries = [
     {
+      id: 'july_product_coaching_overhaul',
+      date: '2026-07-01',
+      title: 'Match Day Prep, Tactics Tools, Weather Advisory, and UI Overhaul',
+      badge: 'Product Changelog',
+      summary: 'Dumala now has a stronger match-prep workspace with cleaner fullscreen tactics controls, opponent-shape scouting, richer strategy snapshots, weather advisory support, more training drill variety, and broad UI polish.',
+      accent: 'border-emerald-400/20 bg-slate-950/90 text-slate-100',
+      renderContent: () => (
+        <div className="space-y-4">
+          <p className="text-sm text-slate-300 leading-relaxed">
+            This changelog captures the latest product pass across the coaching workflow: match-day planning, fullscreen tactics, opponent preparation, training variety, cloud backup reliability, and visual consistency across darker app surfaces.
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {[
+              {
+                icon: Target,
+                title: 'Tactics fullscreen overhaul',
+                desc: 'The Match Layout fullscreen experience now has safer exit controls, compact bottom-left board actions, centered field behavior, corrected goalkeeper placement, and less clutter around the pitch.'
+              },
+              {
+                icon: Brain,
+                title: 'Strategy snapshot and opponent shape',
+                desc: 'Coaches can select an opponent formation, toggle faded opponent dots on the board, and use matchup strategy cues without repeating the same controls across multiple panels.'
+              },
+              {
+                icon: Cloud,
+                title: 'Weather advisory support',
+                desc: 'Match preparation now has clearer room for weather-aware planning, helping coaches treat weather, venue conditions, and training-day readiness as part of the weekly decision cycle.'
+              },
+              {
+                icon: FlaskConical,
+                title: 'More drills and training variety',
+                desc: 'Training planning received broader drill variety and less repetitive quick-start behavior so coaches have more useful options when preparing sessions.'
+              },
+              {
+                icon: Award,
+                title: 'Improved match day prep',
+                desc: 'Tactics, formation, opponent context, ball/wall tools, scenario presets, snapshots, and board controls now work together as a clearer match-prep surface.'
+              },
+              {
+                icon: Cloud,
+                title: 'Cloud backup reliability',
+                desc: 'Cloud Backup now handles repeated uploads more safely by avoiding natural-key duplicate failures and preserving the local workspace copy.'
+              },
+              {
+                icon: Download,
+                title: 'Installed app polish',
+                desc: 'Fullscreen controls were adjusted for the downloadable app so they remain reachable around the shell navigation and tablet-style layouts.'
+              },
+              {
+                icon: Hash,
+                title: 'Major UI consistency pass',
+                desc: 'Changelog surfaces, tactics controls, badges, overlays, and compact button states were polished to better match Dumala\'s dark product shell.'
+              }
+            ].map(item => {
+              const Icon = item.icon;
+
+              return (
+                <div key={item.title} className="rounded-xl border border-slate-800 bg-slate-900/80 p-4 shadow-sm shadow-black/20">
+                  <div className="mb-2 flex items-center gap-2">
+                    <span className="flex h-8 w-8 items-center justify-center rounded-lg border border-emerald-400/20 bg-emerald-400/10 text-emerald-300">
+                      <Icon size={16} aria-hidden="true" />
+                    </span>
+                    <h5 className="text-xs font-black uppercase tracking-wider text-slate-100">{item.title}</h5>
+                  </div>
+                  <p className="text-xs text-slate-400 leading-relaxed">{item.desc}</p>
+                </div>
+              );
+            })}
+          </div>
+          <p className="rounded-xl border border-emerald-400/20 bg-emerald-400/10 p-3 text-xs font-semibold leading-relaxed text-emerald-100">
+            The goal of this pass is practical: make Dumala feel more match-ready for coaches using it before training, before kickoff, and during weekly squad review.
+          </p>
+        </div>
+      )
+    },
+    {
       id: 'major_cloud_and_product_milestone',
       date: '2026-06-30',
       title: 'Cloud Signup, Migration, and Core Product Milestones',
       badge: 'Major Milestone',
       summary: 'Dumala now has Google-first cloud account entry, cloud migration foundations, multiple team support, an installable offline app shell, and a stronger tactics strategy engine.',
-      accent: 'border-amber-200 bg-gradient-to-br from-amber-50 via-orange-50 to-sky-50',
+      accent: 'border-amber-400/20 bg-slate-950/90 text-slate-100',
       renderContent: () => (
         <div className="space-y-4">
-          <div className="inline-flex items-center gap-2 rounded-full border border-amber-300 bg-amber-100 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-amber-800">
-            <Award size={14} aria-hidden="true" />
-            Major Milestone
-          </div>
-          <p className="text-sm text-slate-700 leading-relaxed">
-            Today's update marks a larger product step: Dumala is moving from a strong local-first coaching tool into a cloud-ready, multi-workspace platform with Google signup, migration paths, offline install support, and a more strategic tactics experience.
+          <p className="text-sm text-slate-300 leading-relaxed">
+            Dumala is moving from a strong local-first coaching tool into a cloud-ready, multi-workspace platform with Google signup, migration paths, offline install support, and a more strategic tactics experience.
           </p>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {[
               {
                 icon: Users,
                 title: 'Multiple team support',
-                desc: 'Coaches can manage separate team workspaces, switch between clubs, and keep each team’s roster, matches, assessments, tactics, and records isolated.'
+                desc: "Coaches can manage separate team workspaces, switch between clubs, and keep each team's roster, matches, assessments, tactics, and records isolated."
               },
               {
                 icon: Cloud,
@@ -71,19 +144,19 @@ export default function UpdatesView() {
               const Icon = item.icon;
 
               return (
-                <div key={item.title} className="rounded-xl border border-white/70 bg-white/80 p-4 shadow-sm shadow-amber-900/5">
+                <div key={item.title} className="rounded-xl border border-amber-400/20 bg-slate-900/80 p-4 shadow-sm shadow-black/20">
                   <div className="mb-2 flex items-center gap-2">
-                    <span className="flex h-8 w-8 items-center justify-center rounded-lg border border-amber-200 bg-amber-100 text-amber-700">
+                    <span className="flex h-8 w-8 items-center justify-center rounded-lg border border-amber-400/30 bg-amber-400/10 text-amber-200">
                       <Icon size={16} aria-hidden="true" />
                     </span>
-                    <h5 className="text-xs font-black uppercase tracking-wider text-slate-900">{item.title}</h5>
+                    <h5 className="text-xs font-black uppercase tracking-wider text-amber-100">{item.title}</h5>
                   </div>
-                  <p className="text-xs text-slate-600 leading-relaxed">{item.desc}</p>
+                  <p className="text-xs text-slate-400 leading-relaxed">{item.desc}</p>
                 </div>
               );
             })}
           </div>
-          <p className="rounded-xl border border-sky-200 bg-sky-50 p-3 text-xs font-semibold leading-relaxed text-sky-900">
+          <p className="rounded-xl border border-sky-400/20 bg-sky-400/10 p-3 text-xs font-semibold leading-relaxed text-sky-100">
             Cloud remains designed as a careful migration path, not a forced lock-in. Existing local workspaces stay usable while Google signup and Supabase-backed continuity continue to mature.
           </p>
         </div>
@@ -501,10 +574,10 @@ export default function UpdatesView() {
       date: '2026-06-23',
       title: 'Reliability and Recovery Foundation Upgraded',
       summary: 'Dumala now protects unreadable saved data, warns before browser storage fills, guides coaches to affected records, and automatically verifies offline production behavior.',
-      accent: 'border-amber-200 bg-amber-50/70',
+      accent: 'border-amber-400/20 bg-slate-950/90 text-slate-100',
       renderContent: () => (
         <div className="space-y-4">
-          <p className="text-sm text-slate-600 leading-relaxed">
+          <p className="text-sm text-slate-300 leading-relaxed">
             This update focused on trust. Across the recent reliability tranches, Dumala strengthened how assessment data is handled, how broken or mismatched workspace records are detected, and how coaches are guided back to the exact players, matches, or standings entries that need review.
           </p>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -538,13 +611,13 @@ export default function UpdatesView() {
                 desc: 'Production builds now run an automated cold-launch and refresh check while offline, and GitHub Actions installs Chromium so the same verification happens in CI.'
               }
             ].map(item => (
-              <div key={item.title} className="bg-white border border-amber-200 rounded-xl p-4">
-                <h5 className="text-xs font-black text-slate-800 uppercase tracking-wider mb-1.5">{item.title}</h5>
-                <p className="text-xs text-slate-600 leading-relaxed">{item.desc}</p>
+              <div key={item.title} className="rounded-xl border border-amber-400/20 bg-slate-900/80 p-4 shadow-sm shadow-black/20">
+                <h5 className="text-xs font-black text-amber-100 uppercase tracking-wider mb-1.5">{item.title}</h5>
+                <p className="text-xs text-slate-400 leading-relaxed">{item.desc}</p>
               </div>
             ))}
           </div>
-          <p className="text-xs text-slate-500 leading-relaxed">
+          <p className="text-xs text-slate-400 leading-relaxed">
             The result is a steadier beta: coaches get clearer feedback when something is inconsistent, faster paths to fix it, and stronger confidence that key workflows and offline access will hold up in real weekly use.
           </p>
         </div>
@@ -555,10 +628,10 @@ export default function UpdatesView() {
       date: '2026-06-21',
       title: 'Installable Offline App Shell Released',
       summary: 'Dumala can now install its application interface, reopen without internet, and apply new releases through a controlled update prompt.',
-      accent: 'border-blue-200 bg-blue-50/70',
+      accent: 'border-sky-400/20 bg-slate-950/90 text-slate-100',
       renderContent: () => (
         <div className="space-y-4">
-          <p className="text-sm text-slate-600 leading-relaxed">
+          <p className="text-sm text-slate-300 leading-relaxed">
             Dumala now includes a production service worker that saves the application shell, generated interface files, logos, icons, and local player placeholder artwork on the device. After a successful online load, an installed copy can reopen and refresh even when the connection is unavailable.
           </p>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -580,13 +653,13 @@ export default function UpdatesView() {
                 desc: 'Team records, uploaded workspace data, backup files, and future authentication tokens are never stored in the service-worker cache.'
               }
             ].map(item => (
-              <div key={item.title} className="bg-white border border-blue-200 rounded-xl p-4">
-                <h5 className="text-xs font-black text-slate-800 uppercase tracking-wider mb-1.5">{item.title}</h5>
-                <p className="text-xs text-slate-600 leading-relaxed">{item.desc}</p>
+              <div key={item.title} className="rounded-xl border border-sky-400/20 bg-slate-900/80 p-4 shadow-sm shadow-black/20">
+                <h5 className="text-xs font-black text-sky-100 uppercase tracking-wider mb-1.5">{item.title}</h5>
+                <p className="text-xs text-slate-400 leading-relaxed">{item.desc}</p>
               </div>
             ))}
           </div>
-          <p className="text-xs text-slate-500 leading-relaxed">
+          <p className="text-xs text-slate-400 leading-relaxed">
             Feedback delivery and external resources still require internet. Physical-device cold-launch testing continues across supported desktop, Android, iPhone, and iPad browsers.
           </p>
         </div>
@@ -877,11 +950,11 @@ export default function UpdatesView() {
       date: '2026-05-04',
       title: 'Roadmap Snapshot',
       summary: 'A practical development sequence covering reliability, offline access, tablets, collaboration, public profiles, drafting, objective player development, and Philippine coach education.',
-      accent: 'border-slate-200 bg-slate-50/70',
+      accent: 'border-slate-700/70 bg-slate-950/90 text-slate-100',
       renderContent: () => (
         <div className="space-y-5">
-          <div className="bg-white border border-slate-200 rounded-xl p-4">
-            <p className="text-xs text-slate-600 leading-relaxed">
+          <div className="rounded-xl border border-slate-800 bg-slate-900/80 p-4 shadow-sm shadow-black/20">
+            <p className="text-xs text-slate-300 leading-relaxed">
               This roadmap shows the intended order of development rather than fixed release dates. Priorities may change as beta testers identify more urgent coaching and club-management needs.
             </p>
           </div>
@@ -898,8 +971,8 @@ export default function UpdatesView() {
               ],
               benefit: 'Coaches can trust the app during normal weekly use and recover their workspace when something goes wrong.',
               completion: 'Core workflows pass desktop and mobile testing without unexpected data loss.',
-              color: 'border-amber-400 bg-amber-50',
-              badge: 'bg-amber-200 text-amber-900'
+              color: 'border-l-amber-400 bg-amber-400/10',
+              badge: 'border-amber-400/30 bg-amber-400/15 text-amber-100'
             },
             {
               phase: 'FPRDS Beta',
@@ -913,8 +986,8 @@ export default function UpdatesView() {
               ],
               benefit: 'Coaches gain consistent evidence for player evaluation, training priorities, and development conversations.',
               completion: 'Repeated assessments produce consistent, explainable, and comparable development records.',
-              color: 'border-emerald-400 bg-emerald-50',
-              badge: 'bg-emerald-200 text-emerald-900'
+              color: 'border-l-emerald-400 bg-emerald-400/10',
+              badge: 'border-emerald-400/30 bg-emerald-400/15 text-emerald-100'
             },
             {
               phase: 'Phase 1',
@@ -928,8 +1001,8 @@ export default function UpdatesView() {
               ],
               benefit: 'Teams can continue working at pitches and venues with unreliable or unavailable internet access.',
               completion: 'An installed device can reopen Dumala and use all local features while offline.',
-              color: 'border-blue-400 bg-blue-50',
-              badge: 'bg-blue-200 text-blue-900'
+              color: 'border-l-blue-400 bg-blue-400/10',
+              badge: 'border-blue-400/30 bg-blue-400/15 text-blue-100'
             },
             {
               phase: 'Phase 2',
@@ -943,8 +1016,8 @@ export default function UpdatesView() {
               ],
               benefit: 'Coaches can comfortably manage the team from the sideline, training ground, or match venue.',
               completion: 'Primary coaching workflows work comfortably on supported mobile and tablet viewports. Google Play packaging is deferred until core cloud, collaboration, and public-release capabilities stabilize.',
-              color: 'border-cyan-400 bg-cyan-50',
-              badge: 'bg-cyan-200 text-cyan-900'
+              color: 'border-l-cyan-400 bg-cyan-400/10',
+              badge: 'border-cyan-400/30 bg-cyan-400/15 text-cyan-100'
             },
             {
               phase: 'Phase 3',
@@ -958,8 +1031,8 @@ export default function UpdatesView() {
               ],
               benefit: 'Users can move between devices without manually transferring backups or losing their club workspace.',
               completion: 'A user can sign in on another device and safely access the same club data.',
-              color: 'border-indigo-400 bg-indigo-50',
-              badge: 'bg-indigo-200 text-indigo-900'
+              color: 'border-l-indigo-400 bg-indigo-400/10',
+              badge: 'border-indigo-400/30 bg-indigo-400/15 text-indigo-100'
             },
             {
               phase: 'Phase 4',
@@ -973,8 +1046,8 @@ export default function UpdatesView() {
               ],
               benefit: 'Club staff can work from one shared source of truth while retaining clear responsibilities.',
               completion: 'Authorized staff can safely manage one shared team according to their assigned role.',
-              color: 'border-violet-400 bg-violet-50',
-              badge: 'bg-violet-200 text-violet-900'
+              color: 'border-l-violet-400 bg-violet-400/10',
+              badge: 'border-violet-400/30 bg-violet-400/15 text-violet-100'
             },
             {
               phase: 'Phase 5',
@@ -989,8 +1062,8 @@ export default function UpdatesView() {
               ],
               benefit: 'Players can present a credible football profile while teams can showcase their identity and evaluate prospective athletes through a structured drafting workflow.',
               completion: 'Authorized users can publish controlled player and team profiles through unique links, and coaches can reliably shortlist and compare draft candidates.',
-              color: 'border-fuchsia-400 bg-fuchsia-50',
-              badge: 'bg-fuchsia-200 text-fuchsia-900'
+              color: 'border-l-fuchsia-400 bg-fuchsia-400/10',
+              badge: 'border-fuchsia-400/30 bg-fuchsia-400/15 text-fuchsia-100'
             },
             {
               phase: 'Future Expansion: Coaching',
@@ -1008,8 +1081,8 @@ export default function UpdatesView() {
               ],
               benefit: 'Philippine coaches can understand recognized development pathways, organize their credentials, and build practical coaching knowledge without confusing app progress with an official licence.',
               completion: 'Coaches can find official Philippine guidance, record qualifications and development activity, control what appears publicly, and clearly distinguish verified credentials from Dumala progress.',
-              color: 'border-sky-400 bg-sky-50',
-              badge: 'bg-sky-200 text-sky-900'
+              color: 'border-l-sky-400 bg-sky-400/10',
+              badge: 'border-sky-400/30 bg-sky-400/15 text-sky-100'
             },
             {
               phase: 'Future Expansion: Clubs',
@@ -1023,24 +1096,24 @@ export default function UpdatesView() {
               ],
               benefit: 'Growing clubs can manage more of their football operations without splitting data across separate tools.',
               completion: 'A club can manage multiple squads and seasons from one organized workspace.',
-              color: 'border-rose-400 bg-rose-50',
-              badge: 'bg-rose-200 text-rose-900'
+              color: 'border-l-rose-400 bg-rose-400/10',
+              badge: 'border-rose-400/30 bg-rose-400/15 text-rose-100'
             }
           ].map((item) => (
-            <div key={item.phase} className={`border-l-4 ${item.color} rounded-r-xl p-4 md:p-5 space-y-4`}>
+            <div key={item.phase} className={`rounded-r-xl border border-l-4 border-slate-800 ${item.color} p-4 shadow-sm shadow-black/20 md:p-5 space-y-4`}>
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
-                  <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">{item.phase}</span>
-                  <h5 className="text-sm font-black text-slate-900 mt-1">{item.objective}</h5>
+                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{item.phase}</span>
+                  <h5 className="text-sm font-black text-slate-100 mt-1">{item.objective}</h5>
                 </div>
-                <span className={`text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full ${item.badge}`}>
+                <span className={`rounded-full border px-2.5 py-1 text-[9px] font-black uppercase tracking-widest ${item.badge}`}>
                   {item.status}
                 </span>
               </div>
 
               <div>
-                <p className="text-[10px] font-black text-slate-500 uppercase tracking-wider mb-2">Planned deliverables</p>
-                <ul className="list-disc pl-5 text-xs text-slate-600 leading-relaxed space-y-1.5">
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-2">Planned deliverables</p>
+                <ul className="list-disc pl-5 text-xs text-slate-300 leading-relaxed space-y-1.5">
                   {item.deliverables.map((deliverable) => (
                     <li key={deliverable}>{deliverable}</li>
                   ))}
@@ -1048,13 +1121,13 @@ export default function UpdatesView() {
               </div>
 
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-                <div className="bg-white/70 border border-slate-200/80 rounded-lg p-3">
-                  <p className="text-[9px] font-black text-slate-500 uppercase tracking-wider mb-1">User benefit</p>
-                  <p className="text-xs text-slate-600 leading-relaxed">{item.benefit}</p>
+                <div className="rounded-lg border border-slate-700/80 bg-slate-950/50 p-3">
+                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-wider mb-1">User benefit</p>
+                  <p className="text-xs text-slate-300 leading-relaxed">{item.benefit}</p>
                 </div>
-                <div className="bg-white/70 border border-slate-200/80 rounded-lg p-3">
-                  <p className="text-[9px] font-black text-slate-500 uppercase tracking-wider mb-1">Completion criteria</p>
-                  <p className="text-xs text-slate-600 leading-relaxed">{item.completion}</p>
+                <div className="rounded-lg border border-slate-700/80 bg-slate-950/50 p-3">
+                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-wider mb-1">Completion criteria</p>
+                  <p className="text-xs text-slate-300 leading-relaxed">{item.completion}</p>
                 </div>
               </div>
             </div>
