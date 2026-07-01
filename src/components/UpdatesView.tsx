@@ -29,12 +29,34 @@ export default function UpdatesView() {
     }));
   };
 
+  const changelogBadgeStyles: Record<string, string> = {
+    'New Features Added': 'border-emerald-400/40 bg-emerald-400/15 text-emerald-100',
+    'Major Milestone': 'border-amber-400/50 bg-amber-400/15 text-amber-100',
+    'UX Polish': 'border-sky-400/40 bg-sky-400/15 text-sky-100',
+    'Cloud Prep': 'border-indigo-400/40 bg-indigo-400/15 text-indigo-100',
+    'Coaching Library': 'border-lime-400/40 bg-lime-400/15 text-lime-100',
+    'Assessment Tools': 'border-violet-400/40 bg-violet-400/15 text-violet-100',
+    'Reports Added': 'border-fuchsia-400/40 bg-fuchsia-400/15 text-fuchsia-100',
+    'Progress Tracking': 'border-cyan-400/40 bg-cyan-400/15 text-cyan-100',
+    'Review Package': 'border-orange-400/40 bg-orange-400/15 text-orange-100',
+    'Cloud Foundation': 'border-blue-400/40 bg-blue-400/15 text-blue-100',
+    Payments: 'border-rose-400/40 bg-rose-400/15 text-rose-100',
+    Reliability: 'border-teal-400/40 bg-teal-400/15 text-teal-100',
+    'Offline Ready': 'border-purple-400/40 bg-purple-400/15 text-purple-100',
+    'Core Workflow': 'border-green-400/40 bg-green-400/15 text-green-100',
+    'FPRDS Vision': 'border-yellow-400/40 bg-yellow-400/15 text-yellow-100',
+    Roadmap: 'border-slate-400/40 bg-slate-400/15 text-slate-100'
+  };
+
+  const getChangelogBadgeClass = (badge: string) =>
+    changelogBadgeStyles[badge] ?? 'border-slate-400/40 bg-slate-400/15 text-slate-100';
+
   const changelogEntries = [
     {
       id: 'july_product_coaching_overhaul',
       date: '2026-07-01',
       title: 'Match Day Prep, Tactics Tools, Weather Advisory, and UI Overhaul',
-      badge: 'Product Changelog',
+      badge: 'New Features Added',
       summary: 'Dumala now has a stronger match-prep workspace with cleaner fullscreen tactics controls, opponent-shape scouting, richer strategy snapshots, weather advisory support, more training drill variety, and broad UI polish.',
       accent: 'border-emerald-400/20 bg-slate-950/90 text-slate-100',
       renderContent: () => (
@@ -166,6 +188,7 @@ export default function UpdatesView() {
       id: 'assessment_feedback_reports_and_polish',
       date: '2026-06-29',
       title: 'Assessment Feedback Reports and UI Polish',
+      badge: 'UX Polish',
       summary: 'Assessment Center feedback is clearer, training quick-starts are more varied, and the main dashboard surfaces now feel more consistent.',
       accent: 'border-sky-200 bg-sky-50/70',
       renderContent: () => (
@@ -209,6 +232,7 @@ export default function UpdatesView() {
       id: 'multi_team_supabase_migration_setup',
       date: '2026-06-28',
       title: 'Multiple Teams and Supabase Migration Setup',
+      badge: 'Cloud Prep',
       summary: 'Dumala now supports multiple local team workspaces and has clearer Supabase migration foundations for future cloud-backed continuity.',
       accent: 'border-indigo-200 bg-indigo-50/70',
       renderContent: () => (
@@ -259,6 +283,7 @@ export default function UpdatesView() {
       id: 'coaching_library_redesigned',
       date: '2026-06-26',
       title: 'Coaching Library Redesigned and Expanded',
+      badge: 'Coaching Library',
       summary: 'Tactics now includes a cleaner Coaching Library with data-driven articles, SVG tactical diagrams, and more formation references for future expansion.',
       accent: 'border-violet-200 bg-violet-50/70',
       renderContent: () => (
@@ -306,6 +331,7 @@ export default function UpdatesView() {
       id: 'assessment_team_history_notes',
       date: '2026-06-25',
       title: 'Assessment Team History and Notes Added',
+      badge: 'Assessment Tools',
       summary: 'Assessment Center now has direct team history access and coach notes on saved assessment sessions.',
       accent: 'border-sky-200 bg-sky-50/70',
       renderContent: () => (
@@ -345,6 +371,7 @@ export default function UpdatesView() {
       id: 'fprds_comparison_reports',
       date: '2026-06-22',
       title: 'FPRDS Player and Session Reports Added',
+      badge: 'Reports Added',
       summary: 'Assessment History now includes player-to-player and session-to-session reports for comparing OVR and weighted attribute gaps.',
       accent: 'border-indigo-200 bg-indigo-50/70',
       renderContent: () => (
@@ -384,6 +411,7 @@ export default function UpdatesView() {
       id: 'fprds_historical_progress_charts',
       date: '2026-06-20',
       title: 'FPRDS Historical Progress Charts Added',
+      badge: 'Progress Tracking',
       summary: 'Assessment History now charts real saved FPRDS sessions so coaches can see OVR movement and same-role attribute trends over time.',
       accent: 'border-emerald-200 bg-emerald-50/70',
       renderContent: () => (
@@ -423,6 +451,7 @@ export default function UpdatesView() {
       id: 'fprds_benchmark_review_package',
       date: '2026-06-18',
       title: 'FPRDS Benchmark Review Package Prepared',
+      badge: 'Review Package',
       summary: 'The next FPRDS beta gate is now organized around a practitioner review packet for benchmark tables, assumptions, role weights, signoff, and corrections.',
       accent: 'border-sky-200 bg-sky-50/70',
       renderContent: () => (
@@ -465,6 +494,7 @@ export default function UpdatesView() {
       id: 'cloud_collaboration_foundation_completed',
       date: '2026-06-25',
       title: 'Cloud and Team Collaboration Foundation Completed',
+      badge: 'Cloud Foundation',
       summary: 'Dumala now has the cloud platform foundation, production approval controls, club roles, invitations, activity history, shared bulletins, and overwrite-safe editing needed for a private beta collaboration workflow.',
       accent: 'border-indigo-200 bg-indigo-50/70',
       renderContent: () => (
@@ -523,6 +553,7 @@ export default function UpdatesView() {
       id: 'squad_payments_ledger_added',
       date: '2026-06-24',
       title: 'Squad Payments / Ledger Tab Added',
+      badge: 'Payments',
       summary: 'Squad now includes a Payments tab for tracking player fees, payments, balances, overdue amounts, and payment history inside the team workspace.',
       accent: 'border-emerald-200 bg-emerald-50/70',
       renderContent: () => (
@@ -573,6 +604,7 @@ export default function UpdatesView() {
       id: 'reliability_foundation_upgraded',
       date: '2026-06-23',
       title: 'Reliability and Recovery Foundation Upgraded',
+      badge: 'Reliability',
       summary: 'Dumala now protects unreadable saved data, warns before browser storage fills, guides coaches to affected records, and automatically verifies offline production behavior.',
       accent: 'border-amber-400/20 bg-slate-950/90 text-slate-100',
       renderContent: () => (
@@ -627,6 +659,7 @@ export default function UpdatesView() {
       id: 'offline_app_shell_released',
       date: '2026-06-21',
       title: 'Installable Offline App Shell Released',
+      badge: 'Offline Ready',
       summary: 'Dumala can now install its application interface, reopen without internet, and apply new releases through a controlled update prompt.',
       accent: 'border-sky-400/20 bg-slate-950/90 text-slate-100',
       renderContent: () => (
@@ -669,6 +702,7 @@ export default function UpdatesView() {
       id: 'assessment_center_implemented',
       date: '2026-06-15',
       title: 'Assessment Center and Core Workflow Expansion',
+      badge: 'Core Workflow',
       summary: 'Dumala now supports structured assessments alongside stronger day-to-day team management workflows.',
       accent: 'border-emerald-200 bg-emerald-50/70',
       renderContent: () => (
@@ -725,6 +759,7 @@ export default function UpdatesView() {
       id: 'fprds_vision_announced',
       date: '2026-06-01',
       title: 'Coming Soon: FPRDS Vision Announced',
+      badge: 'FPRDS Vision',
       summary: 'Objective player rating and development framework planned as the next major evolution of Dumala.',
       accent: 'border-slate-700 bg-slate-950',
       renderContent: () => (
@@ -949,6 +984,7 @@ export default function UpdatesView() {
       id: 'roadmap_snapshot',
       date: '2026-05-04',
       title: 'Roadmap Snapshot',
+      badge: 'Roadmap',
       summary: 'A practical development sequence covering reliability, offline access, tablets, collaboration, public profiles, drafting, objective player development, and Philippine coach education.',
       accent: 'border-slate-700/70 bg-slate-950/90 text-slate-100',
       renderContent: () => (
@@ -1234,11 +1270,11 @@ export default function UpdatesView() {
                 >
                   <div className="space-y-2">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span className={`text-[10px] font-black uppercase px-2 py-1 rounded tracking-widest ${isDarkEntry ? 'bg-emerald-400 text-slate-950' : 'bg-slate-900 text-white'}`}>
+                      <span className="rounded border border-cyan-300/25 bg-slate-950/70 px-2 py-1 text-[10px] font-black uppercase tracking-widest text-slate-100 shadow-sm shadow-black/30 backdrop-blur">
                         {entry.date}
                       </span>
                       {'badge' in entry && entry.badge ? (
-                        <span className="inline-flex items-center gap-1 rounded-full border border-amber-300 bg-amber-100 px-2.5 py-1 text-[10px] font-black uppercase tracking-widest text-amber-800">
+                        <span className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[10px] font-black uppercase tracking-widest ${getChangelogBadgeClass(entry.badge)}`}>
                           <Award size={12} aria-hidden="true" />
                           {entry.badge}
                         </span>
