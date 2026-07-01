@@ -1,11 +1,11 @@
-import React, { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react';
+import React, { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Player, Game, Standing, Announcement, TeamInfo, AssessmentSession, StaffMember, PaymentLedgerEntry } from './types';
 
 import ViewLoadingFallback from './components/ViewLoadingFallback';
 import PwaInstallControl from './components/PwaInstallControl';
 import PwaStatusBanners from './components/PwaStatusBanners';
 import WorkspaceIntegrityBanner from './components/WorkspaceIntegrityBanner';
-import WorkspaceStatusBar from './components/WorkspaceStatusBar';
+import WorkspaceStatusBar, { type CloudBackupStatus } from './components/WorkspaceStatusBar';
 import StartupRecoveryScreen from './components/StartupRecoveryScreen';
 import { ViewErrorBoundary } from './components/ErrorBoundary';
 import ShellNavItem from './components/ShellNavItem';
@@ -65,6 +65,7 @@ import {
   parseWorkspaceBackup,
   summarizeBackup,
   type BackupRestoreSummary,
+  type CoreWorkspace,
   type WorkspaceBackupV4
 } from './persistence/backup';
 import { deleteGameAndReconcile, recordMatchResult } from './matches/results';
@@ -80,6 +81,9 @@ import { findUserStanding } from './standings';
 import { useCloudRuntime } from './hooks/useCloudRuntime';
 import { useCloudAuth } from './hooks/useCloudAuth';
 import { shouldResetHomeTabAfterCloudWorkspaceReady } from './navigation/cloudWorkspaceNavigation';
+import { getOrCreateCloudDeviceId } from './components/CloudAccountGate';
+import { runCloudBackupFlow } from './cloud/workspaceBackupFlow';
+import { createContentFingerprint } from './migrations/localToCloud';
 
 import { 
   Shield, 
@@ -107,6 +111,57 @@ const LeagueUpdatesHubView = lazy(() => import('./components/LeagueUpdatesHubVie
 const AdminConsoleView = lazy(() => import('./components/AdminConsoleView'));
 
 const getHashRoute = () => typeof window === 'undefined' ? '' : window.location.hash.replace(/^#\/?/, '');
+
+const CLOUD_BACKUP_METADATA_PREFIX = 'dumala_cloud_backup__';
+
+interface LocalCloudBackupMetadata {
+  workspaceId: string;
+  cloudClubId: string;
+  importId: string;
+  contentFingerprint: string;
+  backedUpAt: string;
+  backupExportedAt: string;
+}
+
+const createClientId = (prefix: string) => {
+  if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) return crypto.randomUUID();
+  return `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+};
+
+const cloudBackupMetadataKey = (workspaceId: string) => `${CLOUD_BACKUP_METADATA_PREFIX}${workspaceId}`;
+
+const readCloudBackupMetadata = (workspaceId: string): LocalCloudBackupMetadata | null => {
+  if (typeof window === 'undefined') return null;
+  const raw = window.localStorage.getItem(cloudBackupMetadataKey(workspaceId));
+  if (!raw) return null;
+
+  try {
+    const parsed = JSON.parse(raw) as Partial<LocalCloudBackupMetadata>;
+    if (
+      parsed.workspaceId === workspaceId
+      && typeof parsed.cloudClubId === 'string'
+      && typeof parsed.importId === 'string'
+      && typeof parsed.contentFingerprint === 'string'
+      && typeof parsed.backedUpAt === 'string'
+      && typeof parsed.backupExportedAt === 'string'
+    ) {
+      return parsed as LocalCloudBackupMetadata;
+    }
+  } catch {
+    return null;
+  }
+  return null;
+};
+
+const writeCloudBackupMetadata = (metadata: LocalCloudBackupMetadata) => {
+  window.localStorage.setItem(cloudBackupMetadataKey(metadata.workspaceId), JSON.stringify(metadata));
+};
+
+const getCloudBackupFingerprint = (backup: WorkspaceBackupV4) =>
+  createContentFingerprint({
+    core: backup.core,
+    featureState: backup.featureState
+  });
 
 const shouldReturnToAdminConsole = () => {
   if (typeof window === 'undefined') return false;
@@ -251,6 +306,7 @@ export default function App() {
   const [integrityReport, setIntegrityReport] = useState<WorkspaceIntegrityReport | null>(null);
   const [integrityDismissed, setIntegrityDismissed] = useState(false);
   const [integrityFocus, setIntegrityFocus] = useState<IntegrityFocus | null>(null);
+  const [cloudBackupRun, setCloudBackupRun] = useState<{ state: 'idle' | 'running' | 'error'; message?: string }>({ state: 'idle' });
   const integritySignatureRef = useRef('');
 
   const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
@@ -634,6 +690,79 @@ export default function App() {
     });
   };
 
+  const activeWorkspace = useMemo(
+    () => activeWorkspaceId ? workspaces.find(workspace => workspace.id === activeWorkspaceId) ?? null : null,
+    [activeWorkspaceId, workspaces]
+  );
+
+  const cloudBackupStatus = useMemo<CloudBackupStatus>(() => {
+    if (!cloudRuntime.enabled) return { state: 'hidden' };
+    if (cloudAuthController.state.status !== 'signedIn') {
+      return {
+        state: 'needs_sign_in',
+        message: 'Sign in first, then back up this local workspace to your cloud account.'
+      };
+    }
+    if (!activeWorkspace?.cloudClubId || !activeWorkspaceId) {
+      return {
+        state: 'needs_link',
+        message: 'Dumala is linking this workspace to your cloud account.'
+      };
+    }
+    if (cloudBackupRun.state === 'running') {
+      return {
+        state: 'running',
+        message: 'Creating a local rollback backup and uploading the workspace.'
+      };
+    }
+    if (cloudBackupRun.state === 'error') {
+      return {
+        state: 'error',
+        message: cloudBackupRun.message ?? 'Cloud backup failed. Your local workspace was left unchanged.'
+      };
+    }
+
+    try {
+      const backup = getCurrentBackup();
+      const metadata = readCloudBackupMetadata(activeWorkspaceId);
+      const fingerprint = getCloudBackupFingerprint(backup);
+      if (
+        metadata
+        && metadata.cloudClubId === activeWorkspace.cloudClubId
+        && metadata.contentFingerprint === fingerprint
+      ) {
+        return {
+          state: 'current',
+          backedUpAt: metadata.backedUpAt
+        };
+      }
+    } catch {
+      return {
+        state: 'needed',
+        message: 'Create a valid local workspace before backing it up to cloud.'
+      };
+    }
+
+    return {
+      state: 'needed',
+      message: 'Your local copy stays on this browser. Cloud backup starts only after you confirm.'
+    };
+  }, [
+    activeWorkspace,
+    activeWorkspaceId,
+    announcements,
+    assessments,
+    cloudAuthController.state.status,
+    cloudBackupRun,
+    cloudRuntime.enabled,
+    games,
+    paymentLedger,
+    players,
+    staff,
+    standings,
+    teamInfo
+  ]);
+
   const handleExportBackup = () => {
     try {
       const backup = getCurrentBackup();
@@ -641,6 +770,63 @@ export default function App() {
       downloadBackup(backup, `${cleanTeamName}_full_workspace_${new Date().toISOString().slice(0, 10)}.json`);
     } catch (error) {
       console.error('Error generating full workspace backup:', error);
+    }
+  };
+
+  const handleCloudBackup = async () => {
+    if (!cloudRuntime.enabled) return;
+    if (cloudAuthController.state.status !== 'signedIn') {
+      setCloudBackupRun({ state: 'error', message: 'Sign in before starting Cloud backup.' });
+      return;
+    }
+    if (!activeWorkspaceId || !activeWorkspace?.cloudClubId) {
+      setCloudBackupRun({ state: 'error', message: 'This workspace is still linking to your cloud account. Try again in a moment.' });
+      return;
+    }
+
+    setCloudBackupRun({ state: 'running' });
+
+    try {
+      const rollbackBackup = getCurrentBackup();
+      const cleanTeamName = rollbackBackup.core.teamInfo.name.toLowerCase().replace(/[^a-z0-9]+/g, '_');
+      downloadBackup(rollbackBackup, `${cleanTeamName}_pre_cloud_backup_${new Date().toISOString().slice(0, 10)}.json`);
+
+      const importId = createClientId('cloud-backup');
+      const sourceDeviceId = getOrCreateCloudDeviceId();
+      const result = await runCloudBackupFlow({
+        core: rollbackBackup.core as unknown as CoreWorkspace,
+        storage: window.localStorage,
+        sync: cloudRuntime.dataAccess.sync,
+        importId,
+        sourceDeviceId,
+        targetClubId: activeWorkspace.cloudClubId,
+        appVersion: '0.0.0',
+        device: {
+          appVersion: '0.0.0',
+          label: typeof navigator === 'undefined' ? 'Dumala web session' : navigator.userAgent.slice(0, 120)
+        },
+        exportedAt: rollbackBackup.exportedAt
+      });
+
+      if (activeWorkspaceId) copyActiveKeysToWorkspace(activeWorkspaceId);
+      writeCloudBackupMetadata({
+        workspaceId: activeWorkspaceId,
+        cloudClubId: activeWorkspace.cloudClubId,
+        importId: result.importResult.importId,
+        contentFingerprint: getCloudBackupFingerprint(result.backup),
+        backedUpAt: result.backedUpAt,
+        backupExportedAt: result.backup.exportedAt
+      });
+      setCloudBackupRun({ state: 'idle' });
+    } catch (error) {
+      if (activeWorkspaceId) {
+        copyActiveKeysToWorkspace(activeWorkspaceId);
+        loadWorkspaceStateFromStorage();
+      }
+      setCloudBackupRun({
+        state: 'error',
+        message: error instanceof Error ? error.message : 'Cloud backup failed. Your local workspace was left unchanged.'
+      });
     }
   };
 
@@ -941,7 +1127,20 @@ export default function App() {
   };
 
   const handleWorkspaceCloudReady = (result: AccountBootstrapResult) => {
-    applyCloudWorkspace(result);
+    if (activeWorkspaceId && teamInfo) {
+      copyActiveKeysToWorkspace(activeWorkspaceId);
+      setWorkspaces(touchWorkspaceSummary(activeWorkspaceId, {
+        cloudClubId: result.club.id,
+        logoUrl: teamInfo.logoUrl
+      }));
+      setIsOnboarded(true);
+      setSelectedPlayer(null);
+      setSelectedStaff(null);
+      setIntegrityFocus(null);
+      setMobileMenuOpen(false);
+    } else {
+      applyCloudWorkspace(result);
+    }
     if (shouldResetHomeTabAfterCloudWorkspaceReady('workspace_controls')) {
       handleNavigate({ primary: 'home', homeTab: 'overview' });
     }
@@ -1282,6 +1481,8 @@ export default function App() {
                       onConfirmReset={confirmResetApp}
                       onSignedOut={handleSignedOut}
                       onCloudWorkspaceReady={handleWorkspaceCloudReady}
+                      cloudBackupStatus={cloudBackupStatus}
+                      onCloudBackup={handleCloudBackup}
                     />
                   }
                   teamInfo={teamInfo}
