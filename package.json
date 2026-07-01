@@ -11,6 +11,8 @@
     "clean": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true})\"",
     "lint": "tsc --noEmit",
     "test": "vitest run",
+    "ship": "node scripts/ship.mjs",
+    "verify:quality": "npm run lint && npm test && npm run build && npm run verify:pwa && npm run verify:cloud-launch",
     "verify:pwa": "node scripts/verify-pwa.mjs && node scripts/verify-pwa-offline.mjs",
     "verify:cloud-launch": "node scripts/verify-cloud-launch-readiness.mjs",
     "verify:production-approval": "node scripts/verify-production-approval.mjs",
