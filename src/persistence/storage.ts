@@ -70,7 +70,8 @@ export const STORAGE_KEYS = {
 
 export const MANAGED_WORKSPACE_KEYS = {
   index: 'dumala_workspaces_index',
-  activeWorkspaceId: 'dumala_active_workspace_id'
+  activeWorkspaceId: 'dumala_active_workspace_id',
+  cloudSignedOut: 'dumala_cloud_signed_out'
 } as const;
 
 export const storageSchemas = {
@@ -412,4 +413,5 @@ export const clearDumalaStorage = (storage: StorageLike = browserStorage()) => {
   }
   storage.removeItem(MANAGED_WORKSPACE_KEYS.index);
   storage.removeItem(MANAGED_WORKSPACE_KEYS.activeWorkspaceId);
+  storage.removeItem(MANAGED_WORKSPACE_KEYS.cloudSignedOut);
 };

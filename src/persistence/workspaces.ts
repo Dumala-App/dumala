@@ -79,6 +79,17 @@ export const setActiveWorkspaceId = (
   else storage.removeItem(MANAGED_WORKSPACE_KEYS.activeWorkspaceId);
 };
 
+export const markCloudWorkspaceSignedOut = (storage: StorageLike = browserStorage()) => {
+  storage.setItem(MANAGED_WORKSPACE_KEYS.cloudSignedOut, 'true');
+};
+
+export const clearCloudWorkspaceSignedOut = (storage: StorageLike = browserStorage()) => {
+  storage.removeItem(MANAGED_WORKSPACE_KEYS.cloudSignedOut);
+};
+
+const isCloudWorkspaceSignedOut = (storage: StorageLike) =>
+  storage.getItem(MANAGED_WORKSPACE_KEYS.cloudSignedOut) === 'true';
+
 const readStoredTeamInfo = (storage: StorageLike): TeamInfo | null => {
   const raw = storage.getItem(STORAGE_KEYS.teamInfo);
   if (!raw) return null;
@@ -168,6 +179,13 @@ export const bootstrapManagedWorkspaces = (
   }
 
   if (workspaces.length > 0) {
+    if (isCloudWorkspaceSignedOut(storage)) {
+      activeWorkspaceId = null;
+      setActiveWorkspaceId(null, storage);
+      CORE_DUMALA_KEYS.forEach(key => storage.removeItem(key));
+      return { workspaces, activeWorkspaceId };
+    }
+
     if (!activeWorkspaceId || !workspaces.some(workspace => workspace.id === activeWorkspaceId)) {
       activeWorkspaceId = workspaces[0].id;
       setActiveWorkspaceId(activeWorkspaceId, storage);
@@ -241,6 +259,7 @@ export const createManagedWorkspace = (
 ) => {
   const summary = createWorkspaceSummary(teamInfo, now);
   const current = readWorkspaceSummaries(storage);
+  clearCloudWorkspaceSignedOut(storage);
   writeWorkspaceSummaries([...current, summary], storage);
   setActiveWorkspaceId(summary.id, storage);
 
@@ -271,6 +290,7 @@ export const activateCloudWorkspace = (
   const trimmedCloudClubId = cloudClubId.trim();
   if (!trimmedCloudClubId) throw new Error('Cloud club ID is required.');
 
+  clearCloudWorkspaceSignedOut(storage);
   const existing = readWorkspaceSummaries(storage).find(workspace => workspace.cloudClubId === trimmedCloudClubId);
   const summary = existing
     ? existing

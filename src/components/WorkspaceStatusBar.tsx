@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { ChevronDown, MessageSquare, RotateCcw } from 'lucide-react';
+import type { AccountBootstrapResult } from '../cloud/account';
 import type { CloudRuntime } from '../cloud/runtime';
 import type { CloudAuthController } from '../hooks/useCloudAuth';
 import CloudAccountGate from './CloudAccountGate';
@@ -28,6 +29,7 @@ interface WorkspaceStatusBarProps {
   onFeedback: () => void;
   onConfirmReset: () => void;
   onSignedOut?: () => void;
+  onCloudWorkspaceReady?: (result: AccountBootstrapResult) => void;
 }
 
 export default function WorkspaceStatusBar({
@@ -38,7 +40,8 @@ export default function WorkspaceStatusBar({
   onResetOpenChange,
   onFeedback,
   onConfirmReset,
-  onSignedOut
+  onSignedOut,
+  onCloudWorkspaceReady
 }: WorkspaceStatusBarProps) {
   const [panelOpen, setPanelOpen] = useState(false);
   const shouldShowPanel = panelOpen || resetOpen;
@@ -74,6 +77,7 @@ export default function WorkspaceStatusBar({
               tone="dark"
               layout="compact"
               onSignedOut={onSignedOut}
+              onBootstrapComplete={onCloudWorkspaceReady}
             />
           ) : (
             <p className="rounded-lg border border-emerald-300/15 bg-emerald-300/10 px-2.5 py-1.5 text-[11px] font-bold text-emerald-100">

@@ -114,8 +114,8 @@ export const CloudAccountGate = ({
   const liveRuntime = useCloudRuntime();
   const runtime = runtimeOverride ?? liveRuntime;
   const liveAuth = useCloudAuth({
-    enabled: runtime.enabled,
-    auth: runtime.dataAccess?.auth ?? null
+    enabled: !authControllerOverride && runtime.enabled,
+    auth: !authControllerOverride ? runtime.dataAccess?.auth ?? null : null
   });
   const auth = authControllerOverride ?? liveAuth;
   const [email, setEmail] = useState('');
