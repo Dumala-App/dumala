@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Game, Player, Standing } from '../types';
 import { Calendar, MapPin, Award, Plus, Edit, RefreshCw, Trophy, Clock, Trash2, ChevronLeft, ChevronRight, CalendarDays, Users, Dumbbell, Sparkles, CheckCircle2, XCircle, HelpCircle, BarChart3, TrendingUp, AlertTriangle } from 'lucide-react';
 import { motion } from 'motion/react';
@@ -31,8 +31,10 @@ import {
   DARK_GLASS_DASHBOARD_SURFACE_STYLE,
   DARK_GLASS_THEME_STYLE
 } from '../theme/darkGlassTheme';
+import { SegmentedTabs, type SegmentedTabOption } from './ui/segmented-tabs';
 
 interface ScheduleViewProps {
+  homeWorkspaceHeader?: ReactNode;
   games: Game[];
   players: Player[];
   standings: Standing[];
@@ -52,6 +54,7 @@ interface ScheduleViewProps {
 
 type GameType = Game['type'];
 type MatchResultField = 'ourScore' | 'opponentScore' | 'mvpId' | 'scorers';
+type GameWeekFilterTab = 'Upcoming' | 'Completed';
 
 interface ValidMatchResultForm {
   ourScore: number;
@@ -62,6 +65,11 @@ interface ValidMatchResultForm {
 }
 
 const GAME_TYPES: readonly GameType[] = ['League', 'Cup', 'Friendly', 'Training', 'Meeting'];
+const GAME_WEEK_FILTER_OPTIONS: Array<SegmentedTabOption<GameWeekFilterTab>> = [
+  { value: 'Upcoming', label: 'Upcoming Matches' },
+  { value: 'Completed', label: 'Match Results' }
+];
+
 const GAME_TYPE_LABELS: Record<GameType, string> = {
   League: 'League Match',
   Cup: 'Cup Tournament',
@@ -82,6 +90,7 @@ const scheduleInsetClass = 'rounded-xl border border-cyan-300/10 bg-[#07111f]/72
 const scheduleDividerClass = 'border-cyan-300/10';
 const scheduleActionButtonClass = 'border-cyan-300/15 bg-[#0b1726]/85 text-slate-100 shadow-sm shadow-black/10 hover:border-orange-300/35 hover:bg-orange-300/10 hover:text-orange-100';
 const schedulePrimaryButtonClass = 'border border-orange-300/25 bg-orange-400 text-slate-950 shadow-sm shadow-black/20 hover:bg-orange-300 hover:text-slate-950';
+const scheduleQuietToggleButtonClass = 'border border-cyan-300/15 bg-white/[0.045] text-slate-200 shadow-sm shadow-black/10 backdrop-blur-sm transition-colors hover:border-cyan-300/25 hover:bg-white/[0.075] hover:text-white focus-visible:ring-cyan-300/25';
 const scheduleSuccessButtonClass = 'border border-emerald-300/25 bg-emerald-300/15 text-emerald-100 shadow-sm shadow-black/10 hover:bg-emerald-300/25 hover:text-white';
 const scheduleBadgeBaseClass = 'border shadow-sm shadow-black/10';
 
@@ -98,10 +107,10 @@ const parseGameType = (value: string): GameType => (
   GAME_TYPES.includes(value as GameType) ? value as GameType : 'League'
 );
 
-export default function ScheduleView({ games, players, standings, onAddGame, onRecordResult, onDeleteGame, teamName, highlightGameId }: ScheduleViewProps) {
+export default function ScheduleView({ homeWorkspaceHeader, games, players, standings, onAddGame, onRecordResult, onDeleteGame, teamName, highlightGameId }: ScheduleViewProps) {
   const resultDialogRef = useRef<HTMLDivElement | null>(null);
   const resultFormRef = useRef<HTMLFormElement | null>(null);
-  const [filterTab, setFilterTab] = useState<'Upcoming' | 'Completed'>('Upcoming');
+  const [filterTab, setFilterTab] = useState<GameWeekFilterTab>('Upcoming');
   
   // Calendar View & Filter State
   const [viewDate, setViewDate] = useState<Date>(new Date());
@@ -447,47 +456,25 @@ export default function ScheduleView({ games, players, standings, onAddGame, onR
       className={DARK_GLASS_CLASSES.dashboardShell}
       style={{ ...DARK_GLASS_THEME_STYLE, ...DARK_GLASS_DASHBOARD_SURFACE_STYLE }}
     >
+
+      {homeWorkspaceHeader}
       
       {/* View Selector Filters */}
       <div className={`${scheduleCardClass} flex flex-col items-center justify-between gap-4 sm:flex-row`}>
-        <div className="flex w-full min-w-0 gap-1 rounded-xl border border-cyan-300/10 bg-[#07111f]/72 p-1.5 shadow-inner shadow-black/10 sm:w-auto">
-          <Button
-            id="tab-upcoming-games"
-            type="button"
-            variant={filterTab === 'Upcoming' ? 'default' : 'ghost'}
-            size="sm"
-            onClick={() => setFilterTab('Upcoming')}
-            className={`min-w-0 flex-1 whitespace-normal text-center leading-tight sm:flex-none sm:whitespace-nowrap rounded-lg px-3 sm:px-5 py-2 text-[11px] sm:text-xs font-bold uppercase tracking-wider ${
-              filterTab === 'Upcoming' 
-                ? 'bg-orange-400 text-slate-950 shadow-sm shadow-black/20 hover:bg-orange-300'
-                : 'text-slate-400 hover:bg-cyan-300/10 hover:text-slate-100'
-            }`}
-          >
-            Upcoming Matches
-          </Button>
-          <Button
-            id="tab-completed-games"
-            type="button"
-            variant={filterTab === 'Completed' ? 'default' : 'ghost'}
-            size="sm"
-            onClick={() => setFilterTab('Completed')}
-            className={`min-w-0 flex-1 whitespace-normal text-center leading-tight sm:flex-none sm:whitespace-nowrap rounded-lg px-3 sm:px-5 py-2 text-[11px] sm:text-xs font-bold uppercase tracking-wider ${
-              filterTab === 'Completed' 
-                ? 'bg-orange-400 text-slate-950 shadow-sm shadow-black/20 hover:bg-orange-300'
-                : 'text-slate-400 hover:bg-cyan-300/10 hover:text-slate-100'
-            }`}
-          >
-            Match Results
-          </Button>
-        </div>
+        <SegmentedTabs
+          value={filterTab}
+          options={GAME_WEEK_FILTER_OPTIONS}
+          onValueChange={(tab) => setFilterTab(tab)}
+          label="Game week match filters"
+        />
 
         <Button
           id="toggle-schedule-form-btn"
           type="button"
           onClick={() => setIsAdding(!isAdding)}
-          className={`w-full justify-center rounded-xl px-4 py-2.5 text-xs font-bold sm:w-auto ${schedulePrimaryButtonClass}`}
+          className={`w-full justify-center gap-2 rounded-xl px-4 py-2.5 text-xs font-semibold sm:w-auto ${scheduleQuietToggleButtonClass}`}
         >
-          {isAdding ? <Plus size={14} className="rotate-45" /> : <Plus size={14} />}
+          {isAdding ? <Plus size={14} className="rotate-45 text-slate-300" /> : <Plus size={14} className="text-slate-300" />}
           {isAdding ? 'Cancel' : 'Schedule Tournament Event'}
         </Button>
       </div>

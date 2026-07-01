@@ -6,7 +6,7 @@ import {
   DARK_GLASS_THEME_STYLE
 } from '../theme/darkGlassTheme';
 import ViewLoadingFallback from './ViewLoadingFallback';
-import { SegmentedTabs } from './ui/segmented-tabs';
+import { SegmentedTabs, type SegmentedTabOption } from './ui/segmented-tabs';
 
 const AnnouncementsView = lazy(() => import('./AnnouncementsView'));
 const StandingsView = lazy(() => import('./StandingsView'));
@@ -14,7 +14,7 @@ const UpdatesView = lazy(() => import('./UpdatesView'));
 
 export type LeagueUpdatesTab = 'league' | 'updates' | 'bulletins';
 
-const LEAGUE_UPDATES_TAB_OPTIONS: Array<{ value: LeagueUpdatesTab; label: string }> = [
+const LEAGUE_UPDATES_TAB_OPTIONS: Array<SegmentedTabOption<LeagueUpdatesTab>> = [
   { value: 'league', label: 'League' },
   { value: 'bulletins', label: 'Bulletins' },
   { value: 'updates', label: 'Updates' }
@@ -87,12 +87,6 @@ const LEAGUE_UPDATES_GLASS_CLASS = [
   '[&_td]:!border-cyan-300/10'
 ].join(' ');
 
-const LEAGUE_UPDATES_TAB_TRIGGER_CLASS = [
-  'h-9 rounded-xl border border-transparent px-4 text-xs font-black uppercase tracking-wide text-slate-400 transition',
-  'hover:border-orange-300/20 hover:bg-orange-300/10 hover:text-orange-100',
-  'data-[state=active]:border-orange-300/40 data-[state=active]:bg-orange-400 data-[state=active]:text-slate-950 data-[state=active]:shadow-sm data-[state=active]:shadow-orange-950/25'
-].join(' ');
-
 interface LeagueUpdatesHubViewProps {
   activeTab: LeagueUpdatesTab;
   onTabChange: (tab: LeagueUpdatesTab) => void;
@@ -126,9 +120,6 @@ export default function LeagueUpdatesHubView(props: LeagueUpdatesHubViewProps) {
         options={LEAGUE_UPDATES_TAB_OPTIONS}
         onValueChange={props.onTabChange}
         label="League and updates workspace sections"
-        className={DARK_GLASS_CLASSES.nav}
-        listClassName="h-auto w-full flex-wrap justify-start gap-1 bg-transparent p-0"
-        triggerClassName={LEAGUE_UPDATES_TAB_TRIGGER_CLASS}
       />
 
       <Suspense fallback={<ViewLoadingFallback label={props.activeTab} />}>

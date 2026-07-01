@@ -57,13 +57,13 @@ export default function WorkspaceStatusBar({
         aria-expanded={shouldShowPanel}
         aria-controls="workspace-status-panel"
       >
-        <ChevronDown size={14} className={`transition-transform ${shouldShowPanel ? 'rotate-180' : ''}`} aria-hidden="true" />
+        <ChevronDown size={14} className={`transition-transform ${shouldShowPanel ? '' : 'rotate-180'}`} aria-hidden="true" />
         Workspace controls
       </button>
       <section
         id="workspace-status-panel"
         hidden={!shouldShowPanel}
-        className="mt-3 w-full rounded-2xl border border-cyan-300/10 bg-[#07111f]/90 p-2.5 text-slate-100 shadow-lg shadow-black/20 backdrop-blur-xl transition-all duration-300 ease-out lg:w-[min(38rem,calc(100vw-3rem))]"
+        className="absolute bottom-full left-0 z-30 mb-3 w-full rounded-2xl border border-cyan-300/10 bg-[#07111f]/95 p-2.5 text-slate-100 shadow-2xl shadow-black/35 backdrop-blur-xl transition-all duration-300 ease-out lg:left-auto lg:right-0 lg:w-[min(38rem,calc(100vw-3rem))]"
       >
         <div className="grid grid-cols-1 gap-2">
         <p className="rounded-lg border border-emerald-300/15 bg-emerald-300/10 px-3 py-1.5 text-xs font-bold text-emerald-100">
