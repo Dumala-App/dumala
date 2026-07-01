@@ -53,7 +53,7 @@ interface ScheduleViewProps {
 
 type GameType = Game['type'];
 type MatchResultField = 'ourScore' | 'opponentScore' | 'mvpId' | 'scorers';
-type GameWeekInspectorTab = 'selected' | 'upcoming' | 'results' | 'availability';
+type GameWeekInspectorTab = 'upcoming' | 'results';
 
 interface ValidMatchResultForm {
   ourScore: number;
@@ -65,10 +65,8 @@ interface ValidMatchResultForm {
 
 const GAME_TYPES: readonly GameType[] = ['League', 'Cup', 'Friendly', 'Training', 'Meeting'];
 const GAME_WEEK_INSPECTOR_TABS: Array<{ value: GameWeekInspectorTab; label: string }> = [
-  { value: 'selected', label: 'Selected Day' },
-  { value: 'upcoming', label: 'Upcoming Matches' },
-  { value: 'results', label: 'Match Results' },
-  { value: 'availability', label: 'Availability' }
+  { value: 'upcoming', label: 'Upcoming' },
+  { value: 'results', label: 'Results' }
 ];
 
 const GAME_TYPE_LABELS: Record<GameType, string> = {
@@ -102,6 +100,13 @@ const getGameTypeBadgeClass = (gameType: GameType) => cn(
   gameType === 'Friendly' ? 'border-slate-300/20 bg-slate-300/10 text-slate-200' :
   gameType === 'Training' ? 'border-emerald-300/25 bg-emerald-300/10 text-emerald-100' :
   'border-rose-300/25 bg-rose-300/10 text-rose-100'
+);
+
+const getCalendarEventClass = (gameType: GameType) => cn(
+  scheduleBadgeBaseClass,
+  gameType === 'Training' ? 'border-emerald-300/30 bg-emerald-300/15 text-emerald-100' :
+  gameType === 'Meeting' ? 'border-rose-300/30 bg-rose-300/15 text-rose-100' :
+  'border-orange-300/35 bg-orange-300/15 text-orange-100'
 );
 
 const parseGameType = (value: string): GameType => (
@@ -251,7 +256,7 @@ function GameWeekCalendar({
               aria-pressed={isSelected}
               className={`group flex min-h-24 flex-col items-stretch justify-start whitespace-normal rounded-xl border p-2 text-left transition-colors sm:min-h-28 xl:min-h-[6.6rem] ${
                 isSelected
-                  ? 'border-orange-300 bg-orange-400 text-slate-950 shadow-md shadow-black/20 hover:bg-orange-300'
+                  ? 'border-cyan-300/35 bg-cyan-300/[0.08] text-slate-100 shadow-sm shadow-black/15 ring-2 ring-cyan-300/15 hover:bg-cyan-300/[0.12]'
                   : isToday
                     ? 'border-cyan-300/45 bg-cyan-300/12 text-cyan-100 hover:bg-cyan-300/18'
                     : isCurrentMonth
@@ -262,7 +267,7 @@ function GameWeekCalendar({
               <span className="flex items-center justify-between gap-1 text-[11px] font-black">
                 <span>{dayNum}</span>
                 {hasEvents && (
-                  <span className={`rounded-full px-1.5 py-0.5 text-[8px] ${isSelected ? 'bg-slate-950/15 text-slate-950' : 'bg-white/[0.06] text-slate-300'}`}>
+                  <span className={`rounded-full px-1.5 py-0.5 text-[8px] ${isSelected ? 'bg-cyan-300/12 text-cyan-100' : 'bg-white/[0.06] text-slate-300'}`}>
                     {dayEvents.length}
                   </span>
                 )}
@@ -270,12 +275,12 @@ function GameWeekCalendar({
               {hasEvents && (
                 <span className="mt-2 flex flex-col gap-1 overflow-hidden">
                   {dayEvents.slice(0, 3).map(event => (
-                    <span key={event.id} className={`truncate rounded-md px-1.5 py-1 text-[9px] font-bold leading-none ${isSelected ? 'bg-slate-950/15 text-slate-950' : getGameTypeBadgeClass(event.type)}`}>
+                    <span key={event.id} className={`truncate rounded-md px-1.5 py-1 text-[9px] font-bold leading-none ${getCalendarEventClass(event.type)}`}>
                       {event.time} - {event.type === 'Training' || event.type === 'Meeting' ? event.opponent : `vs ${event.opponent}`}
                     </span>
                   ))}
                   {dayEvents.length > 3 && (
-                    <span className={`text-[9px] font-black ${isSelected ? 'text-slate-950' : 'text-slate-500'}`}>+{dayEvents.length - 3} more</span>
+                    <span className={`text-[9px] font-black ${isSelected ? 'text-slate-300' : 'text-slate-500'}`}>+{dayEvents.length - 3} more</span>
                   )}
                 </span>
               )}
@@ -285,10 +290,8 @@ function GameWeekCalendar({
       </div>
 
       <div className={`flex flex-wrap gap-x-4 gap-y-2 border-t pt-3 text-[10px] font-black uppercase tracking-wider text-slate-400 ${scheduleDividerClass}`}>
-        <span className="flex items-center gap-1.5"><span className="size-2 rounded-full bg-cyan-400" />League</span>
-        <span className="flex items-center gap-1.5"><span className="size-2 rounded-full bg-amber-300" />Cup</span>
-        <span className="flex items-center gap-1.5"><span className="size-2 rounded-full bg-slate-400" />Friendly</span>
-        <span className="flex items-center gap-1.5"><span className="size-2 rounded-full bg-emerald-300" />Training</span>
+        <span className="flex items-center gap-1.5"><span className="size-2 rounded-full bg-orange-300 shadow-[0_0_8px_rgba(253,186,116,0.55)]" />Scheduled match day</span>
+        <span className="flex items-center gap-1.5"><span className="size-2 rounded-full bg-emerald-300 shadow-[0_0_8px_rgba(52,211,153,0.55)]" />Training</span>
         <span className="flex items-center gap-1.5"><span className="size-2 rounded-full bg-rose-300" />Meeting</span>
       </div>
     </div>
@@ -413,8 +416,7 @@ function AvailabilityMiniPanel({
 }) {
   const upcomingMatchEvents = games
     .filter(game => ['League', 'Cup', 'Friendly'].includes(game.type) && game.status === 'Upcoming')
-    .sort((a, b) => getGameStartMs(a) - getGameStartMs(b))
-    .slice(0, 2);
+    .sort((a, b) => getGameStartMs(a) - getGameStartMs(b));
   const activePlayers = players.filter(player => player.registrationStatus === 'Active');
 
   return (
@@ -442,7 +444,7 @@ function AvailabilityMiniPanel({
               </div>
             </div>
 
-            <div className="mt-3 flex max-h-36 flex-wrap gap-1 overflow-y-auto pr-1">
+            <div className="mt-3 flex max-h-56 flex-wrap gap-1 overflow-y-auto pr-1">
               {activePlayers.map(player => {
                 const status = gameAvailability[player.id] || '';
                 return (
@@ -469,11 +471,7 @@ function AvailabilityMiniPanel({
         );
       })}
 
-      {upcomingMatchEvents.length === 0 && (
-        <div className={`${scheduleInsetClass} p-4 text-center text-xs font-medium text-slate-400`}>
-          No upcoming match availability to track.
-        </div>
-      )}
+      {upcomingMatchEvents.length === 0 && null}
     </div>
   );
 }
@@ -482,7 +480,7 @@ function GameWeekInspector({
   activeTab,
   onTabChange,
   selectedDateLabel,
-  selectedGames,
+  selectedMatchGames,
   upcomingGames,
   completedGames,
   teamName,
@@ -496,7 +494,7 @@ function GameWeekInspector({
   activeTab: GameWeekInspectorTab;
   onTabChange: (tab: GameWeekInspectorTab) => void;
   selectedDateLabel: string | null;
-  selectedGames: Game[];
+  selectedMatchGames: Game[];
   upcomingGames: Game[];
   completedGames: Game[];
   teamName?: string;
@@ -507,12 +505,8 @@ function GameWeekInspector({
   availability: AvailabilityMap;
   onSetPlayerAvailability: (gameId: string, playerId: string, value: 'yes' | 'no' | 'maybe') => void;
 }) {
-  const eventGroups: Record<Exclude<GameWeekInspectorTab, 'availability'>, { title: string; empty: string; games: Game[] }> = {
-    selected: {
-      title: selectedDateLabel ? selectedDateLabel : 'Selected Day',
-      empty: selectedDateLabel ? 'No events on this day.' : 'Select a calendar day to inspect events.',
-      games: selectedGames
-    },
+  const isSelectedMatchMode = selectedMatchGames.length > 0;
+  const eventGroups: Record<GameWeekInspectorTab, { title: string; empty: string; games: Game[] }> = {
     upcoming: {
       title: 'Upcoming Matches',
       empty: 'No upcoming fixtures or sessions.',
@@ -535,30 +529,60 @@ function GameWeekInspector({
       </div>
 
       <div className="grid grid-cols-2 gap-1 rounded-xl border border-cyan-300/10 bg-[#07111f]/72 p-1">
-        {GAME_WEEK_INSPECTOR_TABS.map(tab => (
-          <button
-            key={tab.value}
-            type="button"
-            onClick={() => onTabChange(tab.value)}
-            className={`rounded-lg px-2 py-2 text-[10px] font-black uppercase tracking-wider transition-colors ${
-              activeTab === tab.value
-                ? 'bg-orange-400 text-slate-950 shadow-sm shadow-black/20'
-                : 'text-slate-400 hover:bg-cyan-300/10 hover:text-slate-100'
-            }`}
-          >
-            {tab.label}
-          </button>
-        ))}
+        {GAME_WEEK_INSPECTOR_TABS.map(tab => {
+          const isActiveTab = !isSelectedMatchMode && activeTab === tab.value;
+          return (
+            <button
+              key={tab.value}
+              type="button"
+              onClick={() => onTabChange(tab.value)}
+              aria-pressed={isActiveTab}
+              className={`rounded-lg px-2 py-2 text-[10px] font-black uppercase tracking-wider transition-colors ${
+                isActiveTab
+                  ? 'border border-cyan-300/20 bg-cyan-300/[0.12] text-cyan-50 shadow-sm shadow-black/10'
+                  : 'text-slate-400 hover:bg-cyan-300/10 hover:text-slate-100'
+              }`}
+            >
+              {tab.label}
+            </button>
+          );
+        })}
       </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto pr-1">
-        {activeTab === 'availability' ? (
-          <AvailabilityMiniPanel
-            games={upcomingGames}
-            players={players}
-            availability={availability}
-            onSetPlayerAvailability={onSetPlayerAvailability}
-          />
+        {isSelectedMatchMode ? (
+          <div className="space-y-4">
+            <section className="space-y-3">
+              <div className={`flex items-center justify-between border-b pb-2 ${scheduleDividerClass}`}>
+                <h4 className="text-[11px] font-black uppercase tracking-wider text-slate-300">Match Details</h4>
+                <span className="text-[10px] font-black text-slate-500">{selectedDateLabel}</span>
+              </div>
+              {selectedMatchGames.map(game => (
+                <GameWeekEventRow
+                  key={game.id}
+                  game={game}
+                  teamName={teamName}
+                  players={players}
+                  isHighlighted={highlightGameId === game.id}
+                  onRecordResult={onRecordResult}
+                  onDeleteGame={onDeleteGame}
+                />
+              ))}
+            </section>
+
+            <section className="space-y-3">
+              <div className={`flex items-center justify-between border-b pb-2 ${scheduleDividerClass}`}>
+                <h4 className="text-[11px] font-black uppercase tracking-wider text-slate-300">Player Availability</h4>
+                <span className="text-[10px] font-black text-slate-500">{selectedDateLabel}</span>
+              </div>
+              <AvailabilityMiniPanel
+                games={selectedMatchGames}
+                players={players}
+                availability={availability}
+                onSetPlayerAvailability={onSetPlayerAvailability}
+              />
+            </section>
+          </div>
         ) : (
           <div className="space-y-3">
             <div className={`flex items-center justify-between border-b pb-2 ${scheduleDividerClass}`}>
@@ -592,7 +616,7 @@ function GameWeekInspector({
 export default function ScheduleView({ homeWorkspaceHeader, games, players, onAddGame, onRecordResult, onDeleteGame, teamName, highlightGameId }: ScheduleViewProps) {
   const resultDialogRef = useRef<HTMLDivElement | null>(null);
   const resultFormRef = useRef<HTMLFormElement | null>(null);
-  const [activeInspectorTab, setActiveInspectorTab] = useState<GameWeekInspectorTab>('selected');
+  const [activeInspectorTab, setActiveInspectorTab] = useState<GameWeekInspectorTab>('upcoming');
   
   // Calendar View & Filter State
   const [viewDate, setViewDate] = useState<Date>(new Date());
@@ -908,6 +932,9 @@ export default function ScheduleView({ homeWorkspaceHeader, games, players, onAd
   const calendarDays = getCalendarDays();
   const selectedGames = games
     .filter(game => selectedDateStr ? game.date === selectedDateStr : false)
+    .sort((a, b) => getGameStartMs(a) - getGameStartMs(b));
+  const selectedMatchGames = selectedGames
+    .filter(game => ['League', 'Cup', 'Friendly'].includes(game.type) && game.status === 'Upcoming')
     .sort((a, b) => getGameStartMs(a) - getGameStartMs(b));
   const upcomingGames = games
     .filter(game => game.status === 'Upcoming')
@@ -1309,7 +1336,6 @@ export default function ScheduleView({ homeWorkspaceHeader, games, players, onAd
             monthNames={monthNames}
             onSelectDate={(dateStr, date) => {
               setSelectedDateStr(current => current === dateStr ? null : dateStr);
-              setActiveInspectorTab('selected');
               if (date.getMonth() !== viewDate.getMonth()) {
                 setViewDate(new Date(date.getFullYear(), date.getMonth(), 1));
               }
@@ -1319,7 +1345,6 @@ export default function ScheduleView({ homeWorkspaceHeader, games, players, onAd
             onToday={() => {
               setViewDate(new Date());
               setSelectedDateStr(null);
-              setActiveInspectorTab('selected');
             }}
           />
 
@@ -1327,7 +1352,7 @@ export default function ScheduleView({ homeWorkspaceHeader, games, players, onAd
             activeTab={activeInspectorTab}
             onTabChange={setActiveInspectorTab}
             selectedDateLabel={selectedDateLabel}
-            selectedGames={selectedGames}
+            selectedMatchGames={selectedMatchGames}
             upcomingGames={upcomingGames}
             completedGames={completedGames}
             teamName={teamName}
