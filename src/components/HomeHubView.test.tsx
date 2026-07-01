@@ -34,10 +34,10 @@ const renderHome = () => renderToStaticMarkup(
 );
 
 describe('HomeHubView', () => {
-  it('keeps the local Home workspace focused on its sections', () => {
+  it('keeps the local Home workspace focused while lazy loading', () => {
     const html = renderHome();
 
-    expect(html).toContain('Home workspace sections');
+    expect(html).toContain('Loading overview');
     expect(html).not.toContain('Use your Dumala cloud account');
   });
 });

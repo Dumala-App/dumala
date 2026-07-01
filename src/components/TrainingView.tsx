@@ -27,7 +27,7 @@ import {
   type TrainingDrill
 } from '../training/drillLibrary';
 import { formatTrainingFocusList, getAssessmentConfidence, summarizeDevelopmentEvidence } from '../training/developmentEvidence';
-import { getDrillIcon, getDrillIconColor } from './TrainingDrillCard';
+import { getDrillIcon } from './TrainingDrillCard';
 import TrainingSessionBuilder from './TrainingSessionBuilder';
 import { Badge } from '@/src/components/ui/badge';
 import { Button } from '@/src/components/ui/button';
@@ -55,6 +55,35 @@ interface TrainingViewProps {
   games: Game[];
   onUpdateGames: (games: Game[]) => void;
 }
+
+type WeeklyTemplateMode =
+  | 'heavy'
+  | 'taper'
+  | 'tactical'
+  | 'prematch'
+  | 'recovery'
+  | 'forward-focus'
+  | 'midfield-focus'
+  | 'defender-focus'
+  | 'last-week';
+
+const WEEKLY_TEMPLATE_OPTIONS: Array<{ mode: WeeklyTemplateMode; label: string }> = [
+  { mode: 'tactical', label: 'Tactical' },
+  { mode: 'prematch', label: 'Pre-match' },
+  { mode: 'recovery', label: 'Recovery' },
+  { mode: 'heavy', label: 'Fitness' },
+  { mode: 'taper', label: 'Taper' },
+  { mode: 'forward-focus', label: 'Forwards' },
+  { mode: 'midfield-focus', label: 'Midfield' },
+  { mode: 'defender-focus', label: 'Defenders' },
+  { mode: 'last-week', label: 'Last week' }
+];
+
+const TRAINING_SELECT_CONTENT_CLASS = 'z-[90] border-cyan-300/15 bg-[#07111f] text-slate-100 shadow-2xl shadow-black/35';
+const TRAINING_SELECT_ITEM_CLASS = 'text-slate-200 focus:bg-cyan-300/12 focus:text-cyan-50 data-[state=checked]:bg-cyan-300/10 data-[state=checked]:text-cyan-50';
+const TRAINING_SELECT_LABEL_CLASS = 'text-[10px] font-black uppercase tracking-[0.14em] text-slate-500';
+const TRAINING_SELECT_SEPARATOR_CLASS = 'bg-cyan-300/10';
+const TRAINING_DRILL_ICON_CLASS = 'border-cyan-300/12 bg-white/[0.045] text-slate-300 group-hover:border-cyan-300/20 group-hover:bg-cyan-300/8 group-hover:text-cyan-100';
 
 const DEFAULT_SCHEDULE: WeeklySchedule = {
   Monday: [
@@ -342,7 +371,7 @@ export default function TrainingView({ players, assessments, games, onUpdateGame
     });
   };
 
-  const handleLoadTemplate = (mode: 'heavy' | 'taper' | 'tactical' | 'prematch' | 'recovery' | 'forward-focus' | 'midfield-focus' | 'defender-focus' | 'last-week') => {
+  const handleLoadTemplate = (mode: WeeklyTemplateMode) => {
     if (mode === 'last-week') {
       const prev = readJsonStorage(STORAGE_KEYS.weeklyScheduleHistory, weeklyScheduleSchema.nullable(), null, 'Training history');
       if (!prev) return;
@@ -643,22 +672,22 @@ export default function TrainingView({ players, assessments, games, onUpdateGame
   const weekHealth = overloadedDays.length >= 2 || weeklyLoad > SESSION_LOAD_THRESHOLDS.weeklyHigh
     ? {
         label: 'High load',
-        badgeClass: 'border-rose-200 bg-rose-50 text-rose-700',
-        iconClass: 'text-rose-600',
-        actionClass: 'border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100 hover:text-rose-800'
+        badgeClass: 'border-cyan-300/15 bg-cyan-300/10 text-cyan-100',
+        iconClass: 'text-cyan-200',
+        actionClass: 'border-cyan-300/15 bg-white/[0.04] text-slate-200 hover:bg-cyan-300/10 hover:text-cyan-50'
       }
     : overloadedDays.length === 1 || recoveryDays < 2
       ? {
           label: 'Needs attention',
-          badgeClass: 'border-amber-200 bg-amber-50 text-amber-700',
-          iconClass: 'text-amber-600',
-          actionClass: 'border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100 hover:text-amber-800'
+          badgeClass: 'border-cyan-300/15 bg-cyan-300/10 text-cyan-100',
+          iconClass: 'text-cyan-200',
+          actionClass: 'border-cyan-300/15 bg-white/[0.04] text-slate-200 hover:bg-cyan-300/10 hover:text-cyan-50'
         }
       : {
           label: 'Balanced',
-          badgeClass: 'border-emerald-200 bg-emerald-50 text-emerald-700',
-          iconClass: 'text-emerald-600',
-          actionClass: 'border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 hover:text-emerald-800'
+          badgeClass: 'border-cyan-300/15 bg-cyan-300/10 text-cyan-100',
+          iconClass: 'text-cyan-200',
+          actionClass: 'border-cyan-300/15 bg-white/[0.04] text-slate-200 hover:bg-cyan-300/10 hover:text-cyan-50'
         };
 
   const addDrillsToDay = (drills: readonly TrainingDrill[], day: DayName, playerName?: string) => {
@@ -757,175 +786,89 @@ export default function TrainingView({ players, assessments, games, onUpdateGame
   });
 
   return (
-    <div id="training-view-container" className="space-y-6">
-      <p className="h-px overflow-hidden text-[1px] leading-none text-[#020713]" aria-hidden="true">
+    <div id="training-view-container" className="relative space-y-6">
+      <p className="pointer-events-none absolute left-0 top-0 h-px overflow-hidden text-[1px] leading-none text-[#020713]" aria-hidden="true">
         Interactive Training Grounds
       </p>
 
-      {/* Standalone Brand Header Section */}
-      <div className="hidden">
-        <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none">
-          <Dumbbell size={200} className="stroke-[3]" />
-        </div>
-        
-        <div className="relative z-10 space-y-2">
-          <div className="flex items-center gap-2">
-            <span className="rounded bg-amber-400 px-2.5 py-0.5 text-[10px] font-black uppercase tracking-widest text-slate-950">Training hub</span>
-            <span className="text-xs text-indigo-200">Plan · balance · develop</span>
-          </div>
-          <h2 className="text-2xl md:text-3xl font-display font-black tracking-tight" />
-          <p className="text-slate-300 text-xs md:text-sm max-w-3xl leading-relaxed">
-            Build a balanced weekly plan, choose focused drills, and turn player development needs into practical sessions.
-          </p>
-        </div>
-      </div>
-
       {/* WEEKLY DRAG-AND-DROP TRAINING PLANNER */}
-      <div id="weekly-training-planner-card" className="bg-white p-6 rounded-2xl shadow-md border border-slate-200/60 space-y-6">
+      <div id="weekly-training-planner-card" className="space-y-6 rounded-2xl border border-cyan-300/10 bg-[#07111f]/88 p-4 text-slate-100 shadow-lg shadow-black/20 backdrop-blur-xl sm:p-5 lg:p-6">
         {/* Header */}
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 pb-4 border-b border-slate-100">
-          <div className="flex items-center gap-3">
-            <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-amber-500 text-[0px] text-white shadow-sm shadow-amber-500/10">
+        <div className="grid gap-4 border-b border-cyan-300/10 pb-5 xl:grid-cols-[minmax(18rem,1fr)_minmax(34rem,auto)] xl:items-start">
+          <div className="flex items-start gap-3">
+            <div className="flex size-10 shrink-0 items-center justify-center rounded-xl border border-cyan-300/10 bg-cyan-300/10 text-[0px] text-cyan-100 shadow-sm shadow-black/10">
               <CalendarPlus size={17} aria-hidden="true" />
-              📅
             </div>
-            <div>
-              <h3 className="font-display text-sm font-black uppercase tracking-wider text-slate-800">Weekly Training Planner</h3>
-              <p className="text-[11px] text-slate-500">Start from a plan or build the week by adding drills from the library.</p>
+            <div className="min-w-0">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-500">Training cycle</p>
+              <h3 className="mt-1 font-display text-lg font-black tracking-tight text-slate-50">Weekly Training Planner</h3>
+              <p className="mt-1 max-w-2xl text-xs leading-relaxed text-slate-400">Shape the week with a preset, then fine tune each day by adding drills from the library.</p>
             </div>
           </div>
 
           {/* Controls */}
-          <div className="flex items-center gap-2 flex-wrap text-xs font-bold text-slate-700">
-            <span className="text-slate-400 text-[10px] tracking-wider uppercase mr-1">Load Preset Mode:</span>
-            <Button
-              id="btn-pres-heavy"
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => handleLoadTemplate('heavy')} 
-              className="h-7 border-rose-100 bg-rose-50 px-2.5 py-1.5 text-rose-700 hover:bg-rose-100 hover:text-rose-800"
-            >
-              <Dumbbell size={11} /> Heavy Fitness
-            </Button>
-            <Button
-              id="btn-pres-tactical"
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => handleLoadTemplate('tactical')} 
-              className="h-7 border-indigo-100 bg-indigo-50 px-2.5 py-1.5 text-indigo-700 hover:bg-indigo-100 hover:text-indigo-800"
-            >
-              <Shield size={11} /> Tactical Focus
-            </Button>
-            <Button
-              id="btn-pres-taper"
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => handleLoadTemplate('taper')} 
-              className="h-7 border-emerald-100 bg-emerald-50 px-2.5 py-1.5 text-emerald-700 hover:bg-emerald-100 hover:text-emerald-800"
-            >
-              <Sparkles size={11} /> Match Taper
-            </Button>
-            <Button
-              id="btn-pres-prematch"
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => handleLoadTemplate('prematch')} 
-              className="h-7 border-amber-100 bg-amber-50 px-2.5 py-1.5 text-amber-700 hover:bg-amber-100 hover:text-amber-800"
-            >
-              <Target size={11} /> Pre-Match Week
-            </Button>
-            <Button
-              id="btn-pres-recovery"
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => handleLoadTemplate('recovery')} 
-              className="h-7 border-teal-100 bg-teal-50 px-2.5 py-1.5 text-teal-700 hover:bg-teal-100 hover:text-teal-800"
-            >
-              <HeartPulse size={11} /> Recovery Week
-            </Button>
-            <Button
-              id="btn-pres-forward"
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => handleLoadTemplate('forward-focus')} 
-              className="h-7 border-red-100 bg-red-50 px-2.5 py-1.5 text-red-700 hover:bg-red-100 hover:text-red-800"
-            >
-              <Crosshair size={11} /> Forward Focus
-            </Button>
-            <Button
-              id="btn-pres-midfield"
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => handleLoadTemplate('midfield-focus')} 
-              className="h-7 border-sky-100 bg-sky-50 px-2.5 py-1.5 text-sky-700 hover:bg-sky-100 hover:text-sky-800"
-            >
-              <Route size={11} /> Midfield Focus
-            </Button>
-            <Button
-              id="btn-pres-defender"
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => handleLoadTemplate('defender-focus')} 
-              className="h-7 border-blue-100 bg-blue-50 px-2.5 py-1.5 text-blue-700 hover:bg-blue-100 hover:text-blue-800"
-            >
-              <Shield size={11} /> Defender Focus
-            </Button>
-            <Button
-              id="btn-pres-last-week"
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => handleLoadTemplate('last-week')} 
-              className="h-7 border-purple-100 bg-purple-50 px-2.5 py-1.5 text-purple-700 hover:bg-purple-100 hover:text-purple-800"
-            >
-              <RotateCcw size={11} /> Last Week
-            </Button>
-            <Button
-              id="btn-pres-reset"
-              type="button"
-              variant="secondary"
-              size="sm"
-              onClick={handleClearAllWeekly} 
-              className="h-7 px-2.5 py-1.5 text-slate-600"
-            >
-              Reset Week
-            </Button>
+          <div className="rounded-xl border border-cyan-300/10 bg-[#0b1726]/72 px-3 py-2 shadow-inner shadow-black/10">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="mr-1 shrink-0 text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-500">Presets</span>
+              <div className="flex min-w-0 flex-1 flex-wrap gap-1.5">
+                {WEEKLY_TEMPLATE_OPTIONS.map((option) => (
+                  <Button
+                    key={option.mode}
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleLoadTemplate(option.mode)}
+                    className="h-7 rounded-lg border-cyan-300/10 bg-white/[0.035] px-2.5 text-[10px] font-semibold text-slate-300 shadow-sm shadow-black/10 hover:border-cyan-300/25 hover:bg-cyan-300/10 hover:text-cyan-50"
+                  >
+                    {option.label}
+                  </Button>
+                ))}
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handleClearAllWeekly}
+                className="ml-auto h-7 shrink-0 rounded-lg border-slate-500/20 bg-white/[0.035] px-3 text-[10px] font-semibold text-slate-300 hover:border-slate-300/25 hover:bg-white/[0.07] hover:text-white"
+              >
+                Reset
+              </Button>
+            </div>
           </div>
         </div>
 
         {/* Intensity Distribution Trend Graph */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 bg-slate-900 text-white p-4.5 rounded-xl border border-slate-800">
+        <div className="grid grid-cols-1 gap-5 rounded-xl border border-cyan-300/10 bg-[#0b1726]/72 p-4 text-slate-100 shadow-inner shadow-black/10 md:grid-cols-4">
           <div className="md:col-span-1 space-y-2 flex flex-col justify-center">
-            <span className="text-[9px] font-black tracking-widest text-indigo-400 uppercase">CALENDAR LABS</span>
-            <h4 className="font-display font-black text-white text-sm uppercase">Intensity Distribution</h4>
+            <span className="text-[9px] font-semibold tracking-widest text-slate-500 uppercase">Load overview</span>
+            <h4 className="font-display text-sm font-black text-slate-50">Intensity Distribution</h4>
             <p className="text-[10px] text-slate-400 leading-normal">
               Estimated load points across the seven-day cycle, calculated from each drill's duration and intensity.
             </p>
             
             {/* Distribution Index info */}
-            <div className="mt-2 text-[10px] font-mono space-y-1 p-2 bg-slate-950/60 rounded-lg">
-              <div className="flex justify-between items-center text-rose-400 font-bold">
-                <span>High ({SESSION_LOAD_THRESHOLDS.high}+ pts):</span>
-                <span>{DAYS_OF_WEEK.filter(d => getSessionLoadPoints(weeklySchedule[d]) >= SESSION_LOAD_THRESHOLDS.high).length} Days</span>
-              </div>
-              <div className="flex justify-between items-center text-amber-300 font-bold">
-                <span>Training ({SESSION_LOAD_THRESHOLDS.optimal}-{SESSION_LOAD_THRESHOLDS.high - 1} pts):</span>
-                <span>{DAYS_OF_WEEK.filter(d => {
-                  const sum = getSessionLoadPoints(weeklySchedule[d]);
-                  return sum >= SESSION_LOAD_THRESHOLDS.optimal && sum < SESSION_LOAD_THRESHOLDS.high;
-                }).length} Days</span>
-              </div>
-              <div className="flex justify-between items-center text-emerald-400 font-bold">
+            <div className="mt-2 space-y-1 rounded-lg border border-cyan-300/10 bg-[#07111f]/80 p-2 text-[10px] font-mono">
+              <div className="flex justify-between items-center text-emerald-200/80 font-semibold">
                 <span>Light (0-{SESSION_LOAD_THRESHOLDS.optimal - 1} pts):</span>
                 <span>{DAYS_OF_WEEK.filter(d => getSessionLoadPoints(weeklySchedule[d]) < SESSION_LOAD_THRESHOLDS.optimal).length} Days</span>
+              </div>
+              <div className="flex justify-between items-center text-amber-200/80 font-semibold">
+                <span>Training ({SESSION_LOAD_THRESHOLDS.optimal}-{SESSION_LOAD_THRESHOLDS.high - 8} pts):</span>
+                <span>{DAYS_OF_WEEK.filter(d => {
+                  const sum = getSessionLoadPoints(weeklySchedule[d]);
+                  return sum >= SESSION_LOAD_THRESHOLDS.optimal && sum < SESSION_LOAD_THRESHOLDS.high - 7;
+                }).length} Days</span>
+              </div>
+              <div className="flex justify-between items-center text-orange-200/80 font-semibold">
+                <span>Heavy ({SESSION_LOAD_THRESHOLDS.high - 7}-{SESSION_LOAD_THRESHOLDS.high - 1} pts):</span>
+                <span>{DAYS_OF_WEEK.filter(d => {
+                  const sum = getSessionLoadPoints(weeklySchedule[d]);
+                  return sum >= SESSION_LOAD_THRESHOLDS.high - 7 && sum < SESSION_LOAD_THRESHOLDS.high;
+                }).length} Days</span>
+              </div>
+              <div className="flex justify-between items-center text-red-200/80 font-semibold">
+                <span>High ({SESSION_LOAD_THRESHOLDS.high}+ pts):</span>
+                <span>{DAYS_OF_WEEK.filter(d => getSessionLoadPoints(weeklySchedule[d]) >= SESSION_LOAD_THRESHOLDS.high).length} Days</span>
               </div>
             </div>
           </div>
@@ -937,22 +880,31 @@ export default function TrainingView({ players, assessments, games, onUpdateGame
                 const load = getSessionLoadPoints(weeklySchedule[day]);
                 const maxPossibleLoad = 60;
                 const heightPercent = Math.min(100, Math.max(8, (load / maxPossibleLoad) * 100));
-                let barBg = 'bg-gradient-to-t from-emerald-500 to-emerald-400 shadow-[0_0_8px_rgba(16,185,129,0.3)]';
+                let barBg = 'bg-emerald-400/45';
+                let loadText = 'text-emerald-200/80 group-hover:text-emerald-100';
                 if (load >= SESSION_LOAD_THRESHOLDS.high) {
-                  barBg = 'bg-gradient-to-t from-rose-600 to-rose-400 shadow-[0_0_8px_rgba(239,68,68,0.4)]';
+                  barBg = 'bg-red-500/60';
+                  loadText = 'text-red-200/80 group-hover:text-red-100';
+                } else if (load >= SESSION_LOAD_THRESHOLDS.high - 3) {
+                  barBg = 'bg-orange-600/60';
+                  loadText = 'text-orange-100/80 group-hover:text-orange-50';
+                } else if (load >= SESSION_LOAD_THRESHOLDS.high - 7) {
+                  barBg = 'bg-orange-400/60';
+                  loadText = 'text-orange-200/80 group-hover:text-orange-100';
                 } else if (load >= SESSION_LOAD_THRESHOLDS.optimal) {
-                  barBg = 'bg-gradient-to-t from-amber-500 to-amber-400 shadow-[0_0_8px_rgba(245,158,11,0.3)]';
+                  barBg = 'bg-amber-300/60';
+                  loadText = 'text-amber-200/80 group-hover:text-amber-100';
                 }
                 
                 return (
                   <div key={day} className="flex flex-col items-center flex-1 group">
                     {/* Load indicator badge on hover / top */}
-                    <span className="text-[10px] font-mono font-black mb-1.5 text-slate-300 group-hover:text-indigo-400 transition-colors">
+                    <span className={`mb-1.5 text-[10px] font-mono font-semibold transition-colors ${loadText}`}>
                       {load} pts
                     </span>
                     
                     {/* Vertical Bar */}
-                    <div className="w-6 md:w-8 bg-slate-950 rounded-t-lg overflow-hidden h-24 flex items-end">
+                    <div className="w-6 md:w-8 bg-[#07111f] rounded-t-lg overflow-hidden h-24 flex items-end border border-cyan-300/10">
                       <div 
                         style={{ height: `${heightPercent}%` }}
                         className={`w-full rounded-t-md transition-all duration-300 ${barBg}`}
@@ -960,7 +912,7 @@ export default function TrainingView({ players, assessments, games, onUpdateGame
                     </div>
 
                     {/* Day Name */}
-                    <span className="text-[9px] font-sans font-extrabold text-slate-500 uppercase tracking-widest mt-2">{day.substring(0, 3)}</span>
+                    <span className="text-[9px] font-sans font-bold text-slate-500 uppercase tracking-widest mt-2">{day.substring(0, 3)}</span>
                   </div>
                 );
               })}
@@ -969,12 +921,12 @@ export default function TrainingView({ players, assessments, games, onUpdateGame
         </div>
 
         {/* Week Navigation */}
-        <div className="grid grid-cols-1 items-stretch gap-3 rounded-2xl border border-slate-200 bg-slate-50/70 p-2.5 sm:grid-cols-[9rem_minmax(15rem,1fr)_9rem] sm:items-center">
+        <div className="grid grid-cols-1 items-stretch gap-3 rounded-2xl border border-cyan-300/10 bg-[#0b1726]/72 p-2.5 shadow-inner shadow-black/10 sm:grid-cols-[9rem_minmax(15rem,1fr)_9rem] sm:items-center">
           <Button
             type="button"
             variant="outline"
             onClick={() => handleNavigateWeek(-1)}
-            className="h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-slate-700 hover:bg-slate-100 hover:text-indigo-700 transition-colors flex items-center justify-center gap-2 text-xs font-black"
+            className="h-10 w-full rounded-xl border border-cyan-300/10 bg-white/[0.04] px-3 text-slate-300 hover:border-cyan-300/20 hover:bg-cyan-300/10 hover:text-cyan-50 transition-colors flex items-center justify-center gap-2 text-xs font-semibold"
             aria-label="Open previous week's training schedule"
             title="Previous week"
           >
@@ -983,9 +935,9 @@ export default function TrainingView({ players, assessments, games, onUpdateGame
           </Button>
 
           <div className="flex min-h-12 flex-col items-center justify-center text-center px-3">
-            <span className="text-[9px] font-black uppercase tracking-widest text-slate-400">Training Week</span>
-            <span className="min-w-[14rem] text-sm font-display font-black text-slate-800">{weekRangeLabel}</span>
-            <span className="text-[10px] font-bold text-indigo-600">
+            <span className="text-[9px] font-semibold uppercase tracking-widest text-slate-500">Training Week</span>
+            <span className="min-w-[14rem] text-sm font-display font-black text-slate-50">{weekRangeLabel}</span>
+            <span className="text-[10px] font-semibold text-cyan-200">
               {isCurrentWeek ? 'Current week' : selectedWeekStart > getWeekStartDate(new Date()) ? 'Future week' : 'Past week'}
             </span>
           </div>
@@ -996,7 +948,7 @@ export default function TrainingView({ players, assessments, games, onUpdateGame
                 type="button"
                 variant="outline"
                 onClick={handleReturnToCurrentWeek}
-                className="h-10 w-full rounded-xl border border-indigo-100 bg-indigo-50 px-3 text-indigo-700 hover:bg-indigo-100 transition-colors text-xs font-black"
+                className="h-10 w-full rounded-xl border border-cyan-300/10 bg-cyan-300/10 px-3 text-cyan-100 hover:bg-cyan-300/15 transition-colors text-xs font-semibold"
               >
                 This Week
               </Button>
@@ -1005,7 +957,7 @@ export default function TrainingView({ players, assessments, games, onUpdateGame
               type="button"
               variant="outline"
               onClick={() => handleNavigateWeek(1)}
-              className={`${isCurrentWeek ? 'col-span-2 sm:col-span-1' : ''} h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-slate-700 hover:bg-slate-100 hover:text-indigo-700 transition-colors flex items-center justify-center gap-2 text-xs font-black`}
+              className={`${isCurrentWeek ? 'col-span-2 sm:col-span-1' : ''} h-10 w-full rounded-xl border border-cyan-300/10 bg-white/[0.04] px-3 text-slate-300 hover:border-cyan-300/20 hover:bg-cyan-300/10 hover:text-cyan-50 transition-colors flex items-center justify-center gap-2 text-xs font-semibold`}
               aria-label="Open next week's training schedule"
               title="Next week"
             >
@@ -1025,16 +977,16 @@ export default function TrainingView({ players, assessments, games, onUpdateGame
             const dayMatches = games.filter(g => (g.type === 'League' || g.type === 'Cup' || g.type === 'Friendly') && g.date === dateStr);
             
             let loadLabel = "LIGHT";
-            let loadColor = "bg-emerald-50 text-emerald-700 border-emerald-100";
-            let loadDot = "bg-emerald-500";
+            let loadColor = "bg-white/[0.04] text-slate-300 border-cyan-300/10";
+            let loadDot = "bg-cyan-300/45";
             if (totalLoad >= SESSION_LOAD_THRESHOLDS.high) {
               loadLabel = "HIGH LOAD";
-              loadColor = "bg-rose-50 text-rose-700 border-rose-100";
-              loadDot = "bg-rose-500";
+              loadColor = "bg-cyan-300/12 text-cyan-50 border-cyan-300/20";
+              loadDot = "bg-cyan-100";
             } else if (totalLoad >= SESSION_LOAD_THRESHOLDS.optimal) {
               loadLabel = "TRAINING";
-              loadColor = "bg-amber-50 text-amber-700 border-amber-100";
-              loadDot = "bg-amber-500";
+              loadColor = "bg-cyan-300/8 text-cyan-100 border-cyan-300/15";
+              loadDot = "bg-cyan-200";
             }
 
             return (
@@ -1043,23 +995,23 @@ export default function TrainingView({ players, assessments, games, onUpdateGame
                 key={day}
                 onDragOver={(e) => {
                   e.preventDefault();
-                  e.currentTarget.classList.add('border-indigo-500', 'bg-indigo-50/20');
+                  e.currentTarget.classList.add('border-cyan-300/40', 'bg-cyan-300/10');
                 }}
                 onDragLeave={(e) => {
-                  e.currentTarget.classList.remove('border-indigo-500', 'bg-indigo-50/20');
+                  e.currentTarget.classList.remove('border-cyan-300/40', 'bg-cyan-300/10');
                 }}
                 onDrop={(e) => {
-                  e.currentTarget.classList.remove('border-indigo-500', 'bg-indigo-50/20');
+                  e.currentTarget.classList.remove('border-cyan-300/40', 'bg-cyan-300/10');
                   handleDropDrill(day, e);
                 }}
-                className="border border-slate-200 bg-slate-50/40 rounded-xl p-3 flex flex-col justify-between min-h-[220px] transition-all relative group/day hover:border-slate-300"
+                className="border border-cyan-300/10 bg-[#0b1726]/72 rounded-xl p-3 flex flex-col justify-between min-h-[220px] transition-all relative group/day hover:border-cyan-300/20 hover:bg-white/[0.035]"
               >
                 {/* Day block top layout */}
                 <div className="space-y-2">
                   <div className="flex justify-between items-center">
                     <div className="flex flex-col">
-                      <span className="font-display font-black text-slate-800 text-xs uppercase tracking-wide leading-tight">{day}</span>
-                      <span className="text-[10px] text-indigo-600 font-bold font-mono tracking-tight">{weekDaysMap[day].monthDate}</span>
+                      <span className="font-display font-black text-slate-100 text-xs uppercase tracking-wide leading-tight">{day}</span>
+                      <span className="text-[10px] text-slate-400 font-semibold font-mono tracking-tight">{weekDaysMap[day].monthDate}</span>
                     </div>
                     <span className="text-[8px] text-slate-400 font-mono font-medium">{scheduledList.length} d</span>
                   </div>
@@ -1072,11 +1024,7 @@ export default function TrainingView({ players, assessments, games, onUpdateGame
 
                   {/* Match badge if there's a scheduled game */}
                   {dayMatches.length > 0 && dayMatches.map(m => (
-                    <div key={m.id} className={`p-1 rounded text-[8px] font-black border flex items-center gap-1 leading-none ${
-                      m.type === 'League' ? 'bg-blue-100 text-blue-700 border-blue-200' :
-                      m.type === 'Cup' ? 'bg-amber-100 text-amber-700 border-amber-200' :
-                      'bg-emerald-100 text-emerald-700 border-emerald-200'
-                    }`}>
+                    <div key={m.id} className="flex items-center gap-1 rounded border border-cyan-300/10 bg-white/[0.04] p-1 text-[8px] font-semibold leading-none text-slate-300">
                       <Trophy size={9} />
                       <span className="truncate">{m.type === 'League' ? 'LEAGUE' : m.type === 'Cup' ? 'CUP' : 'FRIENDLY'} vs {m.opponent.substring(0, 12)}</span>
                     </div>
@@ -1085,8 +1033,8 @@ export default function TrainingView({ players, assessments, games, onUpdateGame
                   {/* Scheduled drills list */}
                   <div className="space-y-1.5 pt-1.5">
                     {scheduledList.length === 0 ? (
-                      <div className="border border-dashed border-slate-200 rounded-lg p-4 text-center text-slate-400 text-[9px] flex flex-col items-center justify-center gap-1 select-none">
-                        <Hand size={14} className="text-slate-300 mx-auto" />
+                      <div className="border border-dashed border-cyan-300/10 rounded-lg p-4 text-center text-slate-500 text-[9px] flex flex-col items-center justify-center gap-1 select-none">
+                        <Hand size={14} className="text-slate-500 mx-auto" />
                         <span className="font-sans leading-tight">Drop drills</span>
                       </div>
                     ) : (
@@ -1094,12 +1042,12 @@ export default function TrainingView({ players, assessments, games, onUpdateGame
                         <div 
                           id={`scheduled-item-${item.id}`}
                           key={item.id}
-                          className="flex justify-between items-center bg-white border border-slate-200 rounded-lg p-1.5 hover:border-slate-300 transition-all text-[10px]"
+                          className="flex justify-between items-center rounded-lg border border-cyan-300/10 bg-white/[0.045] p-1.5 text-[10px] transition-all hover:border-cyan-300/20 hover:bg-cyan-300/8"
                         >
                           <div className="flex min-w-0 items-center gap-1 truncate pr-1">
                             <span className="text-slate-400 shrink-0">{getDrillIcon(item.drillId)}</span>
                             <span className="min-w-0 truncate">
-                              <span className="block truncate font-semibold leading-tight text-slate-800">
+                              <span className="block truncate font-semibold leading-tight text-slate-100">
                                 {item.name.replace("Challenge", "").replace("Workout", "").replace("Walkthrough", "").replace("Sprints", "")}
                               </span>
                               <span className="block text-[7px] uppercase tracking-wide text-slate-400">
@@ -1112,7 +1060,7 @@ export default function TrainingView({ players, assessments, games, onUpdateGame
                             variant="ghost"
                             size="icon"
                             onClick={() => handleRemoveDrill(day, item.id)}
-                            className="size-4 rounded bg-slate-100 text-slate-400 hover:bg-rose-50 hover:text-rose-500"
+                            className="size-4 rounded bg-white/[0.04] text-slate-500 hover:bg-rose-300/10 hover:text-rose-200"
                             title="Remove Drill"
                           >
                             <X size={10} aria-hidden="true" />
@@ -1124,14 +1072,14 @@ export default function TrainingView({ players, assessments, games, onUpdateGame
                 </div>
                 
                 {/* Day footer helper text */}
-                <div className="mt-3 flex items-center justify-between gap-2 border-t border-slate-100 pt-2">
+                <div className="mt-3 flex items-center justify-between gap-2 border-t border-cyan-300/10 pt-2">
                   <span className="text-[8px] font-bold text-slate-400">{totalDuration} min</span>
                   <Button
                     type="button"
                     variant="ghost"
                     size="sm"
                     onClick={() => setBuilderDay(day)}
-                    className="h-7 px-2 text-[9px] font-black text-indigo-600 hover:bg-indigo-50 hover:text-indigo-700"
+                    className="h-7 rounded-lg px-2 text-[9px] font-semibold text-cyan-200 hover:bg-cyan-300/10 hover:text-cyan-50"
                   >
                     Build session
                   </Button>
@@ -1159,19 +1107,19 @@ export default function TrainingView({ players, assessments, games, onUpdateGame
         <div className="lg:col-span-2 space-y-6">
           
           {/* Drills Catalog */}
-          <div className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm sm:p-6">
-            <div className="flex flex-col gap-3 border-b border-slate-100 pb-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="rounded-2xl border border-cyan-300/10 bg-[#07111f]/88 p-4 text-slate-100 shadow-lg shadow-black/20 backdrop-blur-xl sm:p-5">
+            <div className="flex flex-col gap-3 border-b border-cyan-300/10 pb-4 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex items-center gap-2.5">
-                <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600">
+                <div className="flex size-9 shrink-0 items-center justify-center rounded-xl border border-cyan-300/10 bg-cyan-300/10 text-cyan-100">
                   <Dumbbell size={16} />
                 </div>
                 <div>
-                  <h3 className="font-display font-black text-slate-800 text-sm uppercase tracking-wider">Tactical & Technical Drill Selector</h3>
-                  <p className="mt-0.5 text-[11px] text-slate-500">Find a drill, review its load, then add it to your training week.</p>
+                  <h3 className="font-display text-sm font-black uppercase tracking-wider text-slate-50">Tactical & Technical Drill Selector</h3>
+                  <p className="mt-0.5 text-[11px] text-slate-400">Find a drill, review its load, then add it to your training week.</p>
                 </div>
               </div>
 
-              <span aria-live="polite" className="w-fit rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-[10px] font-bold text-slate-600">
+              <span aria-live="polite" className="w-fit rounded-full border border-cyan-300/10 bg-white/[0.04] px-2.5 py-1 text-[10px] font-bold text-slate-300">
                 {filteredDrills.length} {filteredDrills.length === 1 ? 'drill' : 'drills'}
               </span>
             </div>
@@ -1180,21 +1128,21 @@ export default function TrainingView({ players, assessments, games, onUpdateGame
               <div className="border-b border-cyan-300/10 bg-[#0b1726]/78 p-3">
                 <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
                   <div className="flex min-w-0 gap-3">
-                    <div className={`flex size-11 shrink-0 items-center justify-center rounded-xl border border-cyan-300/10 bg-white/[0.06] shadow-sm shadow-black/10 ${getDrillIconColor(selectedScheduleDrill.id)}`}>
+                    <div className={`flex size-11 shrink-0 items-center justify-center rounded-xl border shadow-sm shadow-black/10 ${TRAINING_DRILL_ICON_CLASS}`}>
                       {getDrillIcon(selectedScheduleDrill.id)}
                     </div>
                     <div className="min-w-0">
-                      <span className="text-[9px] font-black uppercase tracking-wider text-orange-300">Selected drill</span>
+                      <span className="text-[9px] font-semibold uppercase tracking-[0.16em] text-slate-500">Selected drill</span>
                       <h4 className="mt-0.5 truncate text-sm font-black text-slate-50">{selectedScheduleDrill.name}</h4>
                       <p className="mt-1 line-clamp-2 text-[11px] leading-relaxed text-slate-300">{selectedScheduleDrill.description}</p>
                       <div className="mt-2 flex flex-wrap gap-1.5">
                         <span className="rounded-full border border-cyan-300/10 bg-white/[0.06] px-2 py-1 text-[9px] font-black uppercase text-slate-300 shadow-sm shadow-black/10">
                           {selectedScheduleDrill.category}
                         </span>
-                        <span className="inline-flex items-center gap-1 rounded-full border border-rose-300/20 bg-rose-300/10 px-2 py-1 text-[9px] font-black uppercase text-rose-200 shadow-sm shadow-black/10">
+                        <span className="inline-flex items-center gap-1 rounded-full border border-cyan-300/10 bg-white/[0.06] px-2 py-1 text-[9px] font-black uppercase text-slate-300 shadow-sm shadow-black/10">
                           <Gauge size={10} aria-hidden="true" /> Intensity {selectedScheduleDrill.fatigueIncrease}/10
                         </span>
-                        <span className="inline-flex items-center gap-1 rounded-full border border-emerald-300/20 bg-emerald-300/10 px-2 py-1 text-[9px] font-black uppercase text-emerald-200 shadow-sm shadow-black/10">
+                        <span className="inline-flex items-center gap-1 rounded-full border border-cyan-300/10 bg-white/[0.06] px-2 py-1 text-[9px] font-black uppercase text-slate-300 shadow-sm shadow-black/10">
                           <Target size={10} aria-hidden="true" /> {formatTrainingFocusList(selectedScheduleDrill.developmentFocus)}
                         </span>
                       </div>
@@ -1206,14 +1154,14 @@ export default function TrainingView({ players, assessments, games, onUpdateGame
                       <SelectTrigger aria-label="Day to add selected drill" className="h-9 w-32 flex-none border-cyan-300/10 bg-[#0b1726]/85 text-xs text-slate-100 sm:w-36">
                         <SelectValue />
                       </SelectTrigger>
-                      <SelectContent>
-                        {DAYS_OF_WEEK.map(day => <SelectItem key={day} value={day}>{day}</SelectItem>)}
+                      <SelectContent className={TRAINING_SELECT_CONTENT_CLASS}>
+                        {DAYS_OF_WEEK.map(day => <SelectItem key={day} value={day} className={TRAINING_SELECT_ITEM_CLASS}>{day}</SelectItem>)}
                       </SelectContent>
                     </Select>
                     <Button
                       type="button"
                       onClick={() => addDrillsToDay([selectedScheduleDrill], developmentDay)}
-                      className="h-9 bg-indigo-600 px-3 text-white hover:bg-indigo-700"
+                      className="h-9 rounded-lg border border-cyan-300/15 bg-cyan-300/12 px-3 text-cyan-50 hover:bg-cyan-300/18"
                     >
                       <CalendarPlus size={14} /> Add to day
                     </Button>
@@ -1246,23 +1194,23 @@ export default function TrainingView({ players, assessments, games, onUpdateGame
 
                   <div className="rounded-lg border border-cyan-300/10 bg-white/[0.035] p-3 shadow-sm shadow-black/10">
                     <div className="grid gap-3 md:grid-cols-2">
-                      <div className="relative rounded-lg border border-orange-300/15 bg-orange-300/10 p-3">
-                        <span className="absolute right-3 top-3 text-xl font-black leading-none text-orange-200/50">01</span>
+                      <div className="relative rounded-lg border border-cyan-300/10 bg-white/[0.045] p-3">
+                        <span className="absolute right-3 top-3 text-xl font-black leading-none text-slate-600/40">01</span>
                         <div className="flex items-center gap-2">
-                          <span className="flex size-7 shrink-0 items-center justify-center rounded-lg border border-orange-300/20 bg-[#0b1726]/72 text-orange-200">
+                          <span className="flex size-7 shrink-0 items-center justify-center rounded-lg border border-cyan-300/10 bg-[#0b1726]/72 text-slate-300">
                             <Route size={13} aria-hidden="true" />
                           </span>
-                          <span className="text-[9px] font-black uppercase tracking-wider text-orange-200">Setup</span>
+                          <span className="text-[9px] font-black uppercase tracking-wider text-slate-300">Setup</span>
                         </div>
                         <p className="mt-2 text-[11px] leading-relaxed text-slate-200">{selectedScheduleDrillInstructions.setup}</p>
                       </div>
-                      <div className="relative rounded-lg border border-emerald-300/15 bg-emerald-300/10 p-3">
-                        <span className="absolute right-3 top-3 text-xl font-black leading-none text-emerald-200/50">02</span>
+                      <div className="relative rounded-lg border border-cyan-300/10 bg-white/[0.045] p-3">
+                        <span className="absolute right-3 top-3 text-xl font-black leading-none text-slate-600/40">02</span>
                         <div className="flex items-center gap-2">
-                          <span className="flex size-7 shrink-0 items-center justify-center rounded-lg border border-emerald-300/20 bg-[#0b1726]/72 text-emerald-200">
+                          <span className="flex size-7 shrink-0 items-center justify-center rounded-lg border border-cyan-300/10 bg-[#0b1726]/72 text-slate-300">
                             <CheckCircle size={13} aria-hidden="true" />
                           </span>
-                          <span className="text-[9px] font-black uppercase tracking-wider text-emerald-200">Execution</span>
+                          <span className="text-[9px] font-black uppercase tracking-wider text-slate-300">Execution</span>
                         </div>
                         <p className="mt-2 text-[11px] leading-relaxed text-slate-200">{selectedScheduleDrillInstructions.execution}</p>
                       </div>
@@ -1270,7 +1218,7 @@ export default function TrainingView({ players, assessments, games, onUpdateGame
                   </div>
                 </div>
               ) : (
-                <p className="m-3 rounded-lg bg-slate-50 p-3 text-[11px] leading-relaxed text-slate-600">
+                <p className="m-3 rounded-lg border border-cyan-300/10 bg-white/[0.04] p-3 text-[11px] leading-relaxed text-slate-300">
                   {selectedScheduleDrill.description}
                 </p>
               )}
@@ -1295,17 +1243,17 @@ export default function TrainingView({ players, assessments, games, onUpdateGame
                       <Filter size={12} aria-hidden="true" /> Filter by focus
                     </label>
                     <Select value={selectedAttributeFilter} onValueChange={setSelectedAttributeFilter}>
-                      <SelectTrigger aria-label="Filter drills by focus" className="h-9 rounded-lg border-slate-200 bg-white text-xs text-slate-700">
+                      <SelectTrigger aria-label="Filter drills by focus" className="h-9 rounded-lg border-cyan-300/10 bg-[#0b1726]/85 text-xs text-slate-100">
                         <SelectValue>{DRILL_FILTER_LABELS[selectedAttributeFilter] ?? 'All drills'}</SelectValue>
                       </SelectTrigger>
-                      <SelectContent>
+                      <SelectContent className={TRAINING_SELECT_CONTENT_CLASS}>
                         {DRILL_FILTER_GROUPS.map((group, groupIndex) => (
                           <React.Fragment key={group.label}>
-                            {groupIndex > 0 && <SelectSeparator />}
+                            {groupIndex > 0 && <SelectSeparator className={TRAINING_SELECT_SEPARATOR_CLASS} />}
                             <SelectGroup>
-                              <SelectLabel>{group.label}</SelectLabel>
+                              <SelectLabel className={TRAINING_SELECT_LABEL_CLASS}>{group.label}</SelectLabel>
                               {group.options.map(option => (
-                                <SelectItem key={option.id} value={option.id}>{option.label}</SelectItem>
+                                <SelectItem key={option.id} value={option.id} className={TRAINING_SELECT_ITEM_CLASS}>{option.label}</SelectItem>
                               ))}
                             </SelectGroup>
                           </React.Fragment>
@@ -1313,22 +1261,22 @@ export default function TrainingView({ players, assessments, games, onUpdateGame
                       </SelectContent>
                     </Select>
                   </div>
-                  <Badge variant="outline" className="h-9 w-fit border-slate-200 bg-white px-3 text-[10px] font-black text-slate-500 sm:mb-0">
+                  <Badge variant="outline" className="h-9 w-fit border-cyan-300/10 bg-white/[0.04] px-3 text-[10px] font-black text-slate-300 sm:mb-0">
                     {visibleLibraryDrills.length} shown
                   </Badge>
                 </div>
               </div>
 
               <Tabs value={activeDrillLibraryTab} onValueChange={(value) => setActiveDrillLibraryTab(value as DrillLibraryTab)} className="mt-3">
-                <TabsList aria-label="Drill library categories" className="w-full justify-start overflow-x-auto rounded-xl border-slate-200 bg-slate-50 p-1">
+                <TabsList aria-label="Drill library categories" className="w-full justify-start overflow-x-auto rounded-xl border border-cyan-300/10 bg-[#0b1726]/72 p-1">
                   {DRILL_LIBRARY_TABS.map(tab => (
                     <TabsTrigger
                       key={tab.id}
                       value={tab.id}
-                      className="min-h-8 shrink-0 gap-1.5 rounded-lg px-2.5 text-[10px] data-[state=active]:bg-slate-900 data-[state=active]:text-white"
+                      className="min-h-8 shrink-0 gap-1.5 rounded-lg px-2.5 text-[10px] text-slate-400 data-[state=active]:bg-cyan-300/12 data-[state=active]:text-cyan-50"
                     >
                       {tab.label}
-                      <span className="rounded-full bg-white/70 px-1.5 py-0.5 text-[9px] text-slate-500 data-[state=active]:text-slate-500">
+                      <span className="rounded-full bg-white/[0.06] px-1.5 py-0.5 text-[9px] text-slate-400">
                         {drillLibraryTabCounts[tab.id]}
                       </span>
                     </TabsTrigger>
@@ -1337,13 +1285,13 @@ export default function TrainingView({ players, assessments, games, onUpdateGame
               </Tabs>
 
               {visibleLibraryDrills.length === 0 ? (
-                <div className="mt-3 rounded-xl border border-dashed border-slate-200 p-8 text-center text-slate-400">
-                  <Filter size={24} className="mx-auto text-slate-300" />
+                <div className="mt-3 rounded-xl border border-dashed border-cyan-300/10 p-8 text-center text-slate-400">
+                  <Filter size={24} className="mx-auto text-slate-500" />
                   <p className="mt-2 text-sm font-semibold">No drills in this view</p>
                   <p className="mt-1 text-xs text-slate-400">Try another tab or focus filter.</p>
                 </div>
               ) : (
-                <div className="mt-3 max-h-[28rem] overflow-y-auto rounded-xl border border-slate-200 bg-slate-50/70 p-2">
+                <div className="mt-3 max-h-[28rem] overflow-y-auto rounded-xl border border-cyan-300/10 bg-[#0b1726]/72 p-2">
                   <div className="grid grid-cols-1 gap-2 xl:grid-cols-2">
                     {visibleLibraryDrills.map((drill) => {
                       const isSelected = selectedDrillId === drill.id;
@@ -1366,29 +1314,29 @@ export default function TrainingView({ players, assessments, games, onUpdateGame
                           tabIndex={0}
                           aria-pressed={isSelected}
                           aria-label={`Select ${drill.name}`}
-                          className={`group flex cursor-grab items-start gap-3 rounded-lg border bg-white p-2.5 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 active:cursor-grabbing ${
+                          className={`group flex cursor-grab items-start gap-3 rounded-lg border bg-white/[0.035] p-2.5 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/25 active:cursor-grabbing ${
                             isSelected
-                              ? 'border-indigo-400 ring-1 ring-indigo-100'
+                              ? 'border-cyan-300/35 bg-cyan-300/8'
                               : isRecommended
-                                ? 'border-emerald-200 hover:border-emerald-300'
-                                : 'border-slate-200 hover:border-slate-300'
+                                ? 'border-cyan-300/18 hover:border-cyan-300/30'
+                                : 'border-cyan-300/10 hover:border-cyan-300/22 hover:bg-white/[0.055]'
                           }`}
                         >
-                          <span className={`flex size-9 shrink-0 items-center justify-center rounded-lg border ${getDrillIconColor(drill.id)}`}>
+                          <span className={`flex size-9 shrink-0 items-center justify-center rounded-lg border ${TRAINING_DRILL_ICON_CLASS}`}>
                             {getDrillIcon(drill.id)}
                           </span>
                           <span className="min-w-0 flex-1">
                             <span className="flex items-center gap-1.5">
-                              <span className="truncate text-xs font-black text-slate-900">{drill.name}</span>
+                              <span className="truncate text-xs font-black text-slate-100">{drill.name}</span>
                               {isRecommended && (
-                                <span className="shrink-0 rounded-full bg-emerald-100 px-1.5 py-0.5 text-[7px] font-black uppercase text-emerald-700">
+                                <span className="shrink-0 rounded-full border border-cyan-300/10 bg-cyan-300/10 px-1.5 py-0.5 text-[7px] font-black uppercase text-cyan-100">
                                   Recommended
                                 </span>
                               )}
                             </span>
-                            <span className="mt-1 line-clamp-1 text-[10px] leading-relaxed text-slate-500">{drill.description}</span>
+                            <span className="mt-1 line-clamp-1 text-[10px] leading-relaxed text-slate-400">{drill.description}</span>
                             <span className="mt-1.5 flex flex-wrap items-center gap-1.5 text-[9px] font-bold text-slate-400">
-                              <span className="rounded-md bg-slate-100 px-1.5 py-0.5 uppercase text-slate-500">{drill.category}</span>
+                              <span className="rounded-md bg-white/[0.06] px-1.5 py-0.5 uppercase text-slate-300">{drill.category}</span>
                               <span>Intensity {drill.fatigueIncrease}/10</span>
                               <span className="hidden sm:inline">Focus: {formatTrainingFocusList(drill.developmentFocus)}</span>
                             </span>
@@ -1406,15 +1354,15 @@ export default function TrainingView({ players, assessments, games, onUpdateGame
 
         {/* Player development and workload tools */}
         <div className="space-y-6">
-          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="rounded-2xl border border-cyan-300/10 bg-[#07111f]/88 p-5 text-slate-100 shadow-lg shadow-black/20 backdrop-blur-xl">
             <div className="flex items-start justify-between gap-3">
               <div className="flex items-center gap-2.5">
-                <div className={`flex size-9 shrink-0 items-center justify-center rounded-xl bg-slate-50 ${weekHealth.iconClass}`}>
+                <div className={`flex size-9 shrink-0 items-center justify-center rounded-xl border border-cyan-300/10 bg-cyan-300/10 ${weekHealth.iconClass}`}>
                   <HeartPulse size={17} aria-hidden="true" />
                 </div>
                 <div>
-                  <h4 className="font-display text-sm font-black text-slate-900">Week Health</h4>
-                  <p className="mt-0.5 text-[10px] text-slate-500">Planned workload at a glance</p>
+                  <h4 className="font-display text-sm font-black text-slate-50">Week Health</h4>
+                  <p className="mt-0.5 text-[10px] text-slate-400">Planned workload at a glance</p>
                 </div>
               </div>
               <span className={`rounded-full border px-2.5 py-1 text-[9px] font-black ${weekHealth.badgeClass}`}>
@@ -1423,21 +1371,21 @@ export default function TrainingView({ players, assessments, games, onUpdateGame
             </div>
 
             <div className="mt-4 grid grid-cols-2 gap-2">
-              <div className="rounded-xl border border-slate-100 bg-slate-50 p-3">
-                <strong className="block text-lg font-black text-slate-900">{weeklyLoad}</strong>
+              <div className="rounded-xl border border-cyan-300/10 bg-white/[0.04] p-3">
+                <strong className="block text-lg font-black text-slate-50">{weeklyLoad}</strong>
                 <span className="text-[8px] font-bold uppercase tracking-wider text-slate-500">Planned load points</span>
               </div>
-              <div className="rounded-xl border border-slate-100 bg-slate-50 p-3">
-                <strong className={`block text-lg font-black ${overloadedDays.length > 0 ? 'text-rose-600' : 'text-slate-900'}`}>
+              <div className="rounded-xl border border-cyan-300/10 bg-white/[0.04] p-3">
+                <strong className="block text-lg font-black text-slate-50">
                   {overloadedDays.length}
                 </strong>
                 <span className="text-[8px] font-bold uppercase tracking-wider text-slate-500">Overloaded days</span>
               </div>
             </div>
 
-            <div className="mt-3 flex items-start gap-2 rounded-xl border border-slate-100 bg-slate-50/70 p-3">
+            <div className="mt-3 flex items-start gap-2 rounded-xl border border-cyan-300/10 bg-white/[0.04] p-3">
               <ShieldCheck size={15} className={`mt-0.5 shrink-0 ${weekHealth.iconClass}`} aria-hidden="true" />
-              <p className="text-[10px] leading-relaxed text-slate-600" aria-live="polite">
+              <p className="text-[10px] leading-relaxed text-slate-300" aria-live="polite">
                 {overloadedDays.length === 0
                   ? 'No days are overloaded. The planned load is spread across the week.'
                   : `${overloadedDayNames} ${overloadedDays.length === 1 ? 'is' : 'are'} overloaded.`}
@@ -1455,15 +1403,15 @@ export default function TrainingView({ players, assessments, games, onUpdateGame
                 : `Add recovery to ${lowestLoadDay.day}`}
             </Button>
           </div>
-          <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-            <div className="border-b border-slate-100 p-5">
+          <div className="overflow-hidden rounded-2xl border border-cyan-300/10 bg-[#07111f]/88 text-slate-100 shadow-lg shadow-black/20 backdrop-blur-xl">
+            <div className="border-b border-cyan-300/10 p-5">
               <div className="flex items-center gap-3">
-                <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600">
+                <div className="flex size-9 shrink-0 items-center justify-center rounded-xl border border-cyan-300/10 bg-cyan-300/10 text-cyan-100">
                   <User size={17} aria-hidden="true" />
                 </div>
                 <div>
-                  <h4 className="font-display text-sm font-black text-slate-900">Player Development Plan</h4>
-                  <p className="mt-0.5 text-[10px] text-slate-500">Build a focused session in three steps</p>
+                  <h4 className="font-display text-sm font-black text-slate-50">Player Development Plan</h4>
+                  <p className="mt-0.5 text-[10px] text-slate-400">Build a focused session in three steps</p>
                 </div>
               </div>
 
@@ -1476,13 +1424,13 @@ export default function TrainingView({ players, assessments, games, onUpdateGame
                   setRecentEvidenceMessage('');
                 }}
               >
-                <SelectTrigger aria-label="Choose player for development plan" className="mt-1.5 h-10 rounded-lg border-slate-200 bg-white text-xs text-slate-700">
+                <SelectTrigger aria-label="Choose player for development plan" className="mt-1.5 h-10 rounded-lg border-cyan-300/10 bg-[#0b1726]/85 text-xs text-slate-100">
                   <SelectValue placeholder="Choose a squad member" />
                 </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">Choose a squad member</SelectItem>
+                <SelectContent className={TRAINING_SELECT_CONTENT_CLASS}>
+                  <SelectItem value="none" className={TRAINING_SELECT_ITEM_CLASS}>Choose a squad member</SelectItem>
                   {players.map(player => (
-                    <SelectItem key={player.id} value={player.id}>{player.name} ({player.position})</SelectItem>
+                    <SelectItem key={player.id} value={player.id} className={TRAINING_SELECT_ITEM_CLASS}>{player.name} ({player.position})</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -1495,53 +1443,41 @@ export default function TrainingView({ players, assessments, games, onUpdateGame
                     <img
                       src={recommendedPlayer.photoUrl}
                       alt=""
-                      className="size-12 rounded-xl border border-slate-200 object-cover"
+                      className="size-12 rounded-xl border border-cyan-300/10 object-cover"
                       referrerPolicy="no-referrer"
                     />
                     {recommendedPlayer.number > 0 && (
-                      <span className="absolute -bottom-1 -right-1 flex size-5 items-center justify-center rounded-md border-2 border-white bg-indigo-600 text-[9px] font-black text-white">
+                      <span className="absolute -bottom-1 -right-1 flex size-5 items-center justify-center rounded-md border-2 border-[#07111f] bg-cyan-300/20 text-[9px] font-black text-cyan-50">
                         {recommendedPlayer.number}
                       </span>
                     )}
                   </div>
                   <div className="min-w-0 flex-1">
-                    <h5 className="truncate text-sm font-black text-slate-900">{recommendedPlayer.name}</h5>
-                    <p className="mt-0.5 text-[10px] font-bold text-indigo-600">{recommendedPlayer.position}</p>
+                    <h5 className="truncate text-sm font-black text-slate-50">{recommendedPlayer.name}</h5>
+                    <p className="mt-0.5 text-[10px] font-bold text-cyan-200">{recommendedPlayer.position}</p>
                   </div>
                   <div className="text-right">
-                    <strong className="block text-xl font-black text-slate-900">{calculateOVR(recommendedPlayer.baseAttributes, recommendedPlayer.positionAttributes)}</strong>
+                    <strong className="block text-xl font-black text-slate-50">{calculateOVR(recommendedPlayer.baseAttributes, recommendedPlayer.positionAttributes)}</strong>
                     <span className="text-[8px] font-bold uppercase tracking-wider text-slate-400">Overall</span>
                   </div>
                 </div>
 
-                <div className={`rounded-xl border p-3 ${
-                  ratingConfidence.tone === 'strong'
-                    ? 'border-emerald-200 bg-emerald-50'
-                    : ratingConfidence.tone === 'moderate'
-                      ? 'border-amber-200 bg-amber-50'
-                      : 'border-slate-200 bg-slate-50'
-                }`}>
-                  <span className={`text-[9px] font-black uppercase tracking-wider ${
-                    ratingConfidence.tone === 'strong'
-                      ? 'text-emerald-700'
-                      : ratingConfidence.tone === 'moderate'
-                        ? 'text-amber-700'
-                        : 'text-slate-600'
-                  }`}>
+                <div className="rounded-xl border border-cyan-300/10 bg-white/[0.04] p-3">
+                  <span className="text-[9px] font-black uppercase tracking-wider text-slate-300">
                     {ratingConfidence.label}
                   </span>
-                  <p className="mt-1 text-[10px] leading-relaxed text-slate-600">{ratingConfidence.description}</p>
+                  <p className="mt-1 text-[10px] leading-relaxed text-slate-400">{ratingConfidence.description}</p>
                 </div>
 
-                <div className="rounded-xl border border-amber-200 bg-amber-50 p-3">
+                <div className="rounded-xl border border-cyan-300/10 bg-white/[0.04] p-3">
                   <div className="flex items-start gap-2.5">
-                    <Target size={16} className="mt-0.5 shrink-0 text-amber-600" aria-hidden="true" />
+                    <Target size={16} className="mt-0.5 shrink-0 text-cyan-200" aria-hidden="true" />
                     <div className="min-w-0">
-                      <span className="text-[9px] font-black uppercase tracking-wider text-amber-700">Development priority</span>
-                      <p className="mt-0.5 text-xs font-black capitalize text-slate-900">
+                      <span className="text-[9px] font-black uppercase tracking-wider text-slate-300">Development priority</span>
+                      <p className="mt-0.5 text-xs font-black capitalize text-slate-50">
                         {growthNeeds.lowestAttr === 'physicalness' ? 'Conditioning' : growthNeeds.lowestAttr} · {growthNeeds.lowestVal}/99
                       </p>
-                      <p className="mt-1 text-[10px] leading-relaxed text-slate-600">Recommended drills appear first for faster session building.</p>
+                      <p className="mt-1 text-[10px] leading-relaxed text-slate-400">Recommended drills appear first for faster session building.</p>
                     </div>
                   </div>
                 </div>
@@ -1553,15 +1489,15 @@ export default function TrainingView({ players, assessments, games, onUpdateGame
                       <p className="mt-0.5 text-[10px] text-slate-500">Select one or more.</p>
                     </div>
                     <Select value={developmentFocus} onValueChange={(value) => setDevelopmentFocus(value as typeof developmentFocus)}>
-                      <SelectTrigger aria-label="Filter player development drills" className="h-8 w-32 rounded-lg border-slate-200 bg-white text-[10px]">
+                      <SelectTrigger aria-label="Filter player development drills" className="h-8 w-32 rounded-lg border-cyan-300/10 bg-[#0b1726]/85 text-[10px] text-slate-100">
                         <SelectValue />
                       </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All drills</SelectItem>
-                        <SelectItem value="technical">Technical</SelectItem>
-                        <SelectItem value="tactical">Tactical</SelectItem>
-                        <SelectItem value="conditioning">Conditioning</SelectItem>
-                        <SelectItem value="recovery">Recovery</SelectItem>
+                      <SelectContent className={TRAINING_SELECT_CONTENT_CLASS}>
+                        <SelectItem value="all" className={TRAINING_SELECT_ITEM_CLASS}>All drills</SelectItem>
+                        <SelectItem value="technical" className={TRAINING_SELECT_ITEM_CLASS}>Technical</SelectItem>
+                        <SelectItem value="tactical" className={TRAINING_SELECT_ITEM_CLASS}>Tactical</SelectItem>
+                        <SelectItem value="conditioning" className={TRAINING_SELECT_ITEM_CLASS}>Conditioning</SelectItem>
+                        <SelectItem value="recovery" className={TRAINING_SELECT_ITEM_CLASS}>Recovery</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -1576,22 +1512,22 @@ export default function TrainingView({ players, assessments, games, onUpdateGame
                           type="button"
                           onClick={() => toggleTrainingDrill(drill.id)}
                           aria-pressed={isChosen}
-                          className={`flex w-full items-center gap-2.5 rounded-xl border p-2.5 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${
+                          className={`flex w-full items-center gap-2.5 rounded-xl border p-2.5 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/25 ${
                             isChosen
-                              ? 'border-indigo-300 bg-indigo-50'
-                              : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50'
+                              ? 'border-cyan-300/35 bg-cyan-300/10'
+                              : 'border-cyan-300/10 bg-white/[0.035] hover:border-cyan-300/22 hover:bg-white/[0.055]'
                           }`}
                         >
                           <span className={`flex size-5 shrink-0 items-center justify-center rounded-md border ${
-                            isChosen ? 'border-indigo-600 bg-indigo-600 text-white' : 'border-slate-300 bg-white text-transparent'
+                            isChosen ? 'border-cyan-300/40 bg-cyan-300/20 text-cyan-50' : 'border-cyan-300/15 bg-white/[0.04] text-transparent'
                           }`}>
                             <CheckCircle size={12} aria-hidden="true" />
                           </span>
                           <span className="min-w-0 flex-1">
                             <span className="flex items-center gap-1.5">
-                              <span className="truncate text-[11px] font-bold text-slate-900">{drill.name}</span>
+                              <span className="truncate text-[11px] font-bold text-slate-100">{drill.name}</span>
                               {supportsGap && (
-                                <span className="shrink-0 rounded-full bg-amber-100 px-1.5 py-0.5 text-[7px] font-black uppercase text-amber-700">Recommended</span>
+                                <span className="shrink-0 rounded-full border border-cyan-300/10 bg-cyan-300/10 px-1.5 py-0.5 text-[7px] font-black uppercase text-cyan-100">Recommended</span>
                               )}
                             </span>
                             <span className="mt-0.5 block truncate text-[9px] text-slate-500">{drill.category} · Intensity {drill.fatigueIncrease}/10</span>
@@ -1602,23 +1538,23 @@ export default function TrainingView({ players, assessments, games, onUpdateGame
                   </div>
                 </div>
 
-                <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                <div className="rounded-xl border border-cyan-300/10 bg-white/[0.04] p-3">
                   <div className="flex items-center justify-between gap-3">
                     <div>
                       <span className="text-[9px] font-black uppercase tracking-wider text-slate-500">3. Review session</span>
-                      <p className="mt-0.5 text-xs font-black text-slate-900">
+                      <p className="mt-0.5 text-xs font-black text-slate-50">
                         {selectedTrainingDrills.length} {selectedTrainingDrills.length === 1 ? 'drill' : 'drills'} · {selectedTrainingLoad} load points
                       </p>
                     </div>
                     <Button type="button" variant="ghost" size="sm" onClick={() => {
                       setSelectedTrainingDrillIds([]);
                       setRecentEvidenceMessage('');
-                    }} disabled={selectedTrainingDrillIds.length === 0} className="h-7 px-2 text-[9px] text-slate-500">
+                    }} disabled={selectedTrainingDrillIds.length === 0} className="h-7 px-2 text-[9px] text-slate-400 hover:text-slate-100">
                       Clear
                     </Button>
                   </div>
                   {Object.keys(developmentEvidenceSignals).length > 0 ? (
-                    <p className="mt-2 text-[10px] font-bold text-emerald-700">
+                    <p className="mt-2 text-[10px] font-bold text-cyan-100">
                       Training focus: {developmentFocusLabel}
                     </p>
                   ) : (
@@ -1630,7 +1566,7 @@ export default function TrainingView({ players, assessments, games, onUpdateGame
                     </p>
                   )}
                   {recentEvidenceMessage && (
-                    <p className="mt-2 rounded-lg border border-indigo-100 bg-indigo-50 px-2 py-1.5 text-[9px] font-bold leading-relaxed text-indigo-700" role="status">
+                    <p className="mt-2 rounded-lg border border-cyan-300/10 bg-cyan-300/10 px-2 py-1.5 text-[9px] font-bold leading-relaxed text-cyan-100" role="status">
                       {recentEvidenceMessage}
                     </p>
                   )}
@@ -1638,23 +1574,23 @@ export default function TrainingView({ players, assessments, games, onUpdateGame
 
                 <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-2">
                   <Select value={developmentDay} onValueChange={(value) => setDevelopmentDay(value as DayName)}>
-                    <SelectTrigger aria-label="Development plan day" className="h-9 rounded-lg border-slate-200 bg-white text-[11px]"><SelectValue /></SelectTrigger>
-                    <SelectContent>{DAYS_OF_WEEK.map(day => <SelectItem key={day} value={day}>{day}</SelectItem>)}</SelectContent>
+                    <SelectTrigger aria-label="Development plan day" className="h-9 rounded-lg border-cyan-300/10 bg-[#0b1726]/85 text-[11px] text-slate-100"><SelectValue /></SelectTrigger>
+                    <SelectContent className={TRAINING_SELECT_CONTENT_CLASS}>{DAYS_OF_WEEK.map(day => <SelectItem key={day} value={day} className={TRAINING_SELECT_ITEM_CLASS}>{day}</SelectItem>)}</SelectContent>
                   </Select>
-                  <Button type="button" variant="outline" onClick={() => addDrillsToDay(selectedTrainingDrills, developmentDay, recommendedPlayer.name)} disabled={selectedTrainingDrills.length === 0} className="h-9 border-slate-200 px-3 text-[10px] text-slate-700">
+                  <Button type="button" variant="outline" onClick={() => addDrillsToDay(selectedTrainingDrills, developmentDay, recommendedPlayer.name)} disabled={selectedTrainingDrills.length === 0} className="h-9 border-cyan-300/10 bg-white/[0.04] px-3 text-[10px] text-slate-200 hover:bg-cyan-300/10 hover:text-cyan-50">
                     <CalendarPlus size={13} /> Schedule
                   </Button>
                 </div>
-                <Button type="button" onClick={handleCompleteDevelopmentSession} disabled={selectedTrainingDrills.length === 0} className="h-10 w-full bg-indigo-600 text-[11px] text-white hover:bg-indigo-700">
+                <Button type="button" onClick={handleCompleteDevelopmentSession} disabled={selectedTrainingDrills.length === 0} className="h-10 w-full border border-cyan-300/15 bg-cyan-300/12 text-[11px] text-cyan-50 hover:bg-cyan-300/18">
                   <CheckCircle size={14} /> Log evidence and recommend reassessment
                 </Button>
               </div>
             ) : (
               <div className="p-5">
-                <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 p-6 text-center">
-                  <User size={22} className="mx-auto text-slate-300" aria-hidden="true" />
-                  <p className="mt-2 text-xs font-bold text-slate-700">Choose a player to get started</p>
-                  <p className="mt-1 text-[10px] leading-relaxed text-slate-500">We’ll identify a development priority and recommend suitable drills.</p>
+                <div className="rounded-xl border border-dashed border-cyan-300/10 bg-white/[0.035] p-6 text-center">
+                  <User size={22} className="mx-auto text-slate-500" aria-hidden="true" />
+                  <p className="mt-2 text-xs font-bold text-slate-200">Choose a player to get started</p>
+                  <p className="mt-1 text-[10px] leading-relaxed text-slate-400">We’ll identify a development priority and recommend suitable drills.</p>
                 </div>
               </div>
             )}

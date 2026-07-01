@@ -18,6 +18,12 @@ import {
 } from '../forms/validation';
 import SquadPaymentsPanel from './SquadPaymentsPanel';
 import { Button } from './ui/button';
+import {
+  WORKSPACE_SEGMENTED_LIST_CLASS,
+  WORKSPACE_SEGMENTED_TABS_CLASS,
+  WORKSPACE_SEGMENTED_TRIGGER_CLASS,
+  type SegmentedTabOption
+} from './ui/segmented-tabs';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
 import {
@@ -54,6 +60,12 @@ interface RosterViewProps {
 
 type PlayerFormField = 'name' | 'number' | 'position' | 'age' | 'height' | 'weight';
 type SquadSection = 'players' | 'staff' | 'payments';
+
+const SQUAD_SECTION_OPTIONS: Array<SegmentedTabOption<SquadSection>> = [
+  { value: 'players', label: 'Players' },
+  { value: 'staff', label: 'Staff' },
+  { value: 'payments', label: 'Payments' }
+];
 
 const PLAYER_POSITIONS = ['Forward', 'Midfielder', 'Defender', 'Goalkeeper'] as const;
 const STAFF_ROLE_OPTIONS = [
@@ -386,7 +398,26 @@ export default function RosterView({
       className={DARK_GLASS_CLASSES.dashboardShell}
       style={{ ...DARK_GLASS_THEME_STYLE, ...DARK_GLASS_DASHBOARD_SURFACE_STYLE }}
     >
-      
+      <nav className={WORKSPACE_SEGMENTED_TABS_CLASS} aria-label="Squad workspace sections">
+        <div className={WORKSPACE_SEGMENTED_LIST_CLASS}>
+          {SQUAD_SECTION_OPTIONS.map((section) => (
+            <button
+              key={section.value}
+              type="button"
+              onClick={() => {
+                setActiveSection(section.value);
+                setIsAdding(false);
+                setIsAddingStaff(false);
+              }}
+              className={WORKSPACE_SEGMENTED_TRIGGER_CLASS}
+              aria-pressed={activeSection === section.value}
+            >
+              {section.label}
+            </button>
+          ))}
+        </div>
+      </nav>
+
       {/* Dynamic Header banner */}
       <div className="relative overflow-hidden rounded-2xl border border-cyan-300/10 bg-[#07111f]/88 p-6 text-white shadow-lg shadow-black/20 backdrop-blur-xl">
         <div className="pointer-events-none absolute right-0 top-0 p-4 opacity-10">
@@ -408,39 +439,6 @@ export default function RosterView({
       </div>
 
       <div className="space-y-6">
-        {/* Top Controls: Search and Filters */}
-        <div className={DARK_GLASS_CLASSES.nav}>
-          {[
-            { id: 'players' as const, label: 'Players', icon: UserPlus },
-            { id: 'staff' as const, label: 'Staff', icon: Shield },
-            { id: 'payments' as const, label: 'Payments', icon: ReceiptText }
-          ].map(item => {
-            const Icon = item.icon;
-            const isActive = activeSection === item.id;
-            return (
-              <Button
-                key={item.id}
-                type="button"
-                variant="ghost"
-                onClick={() => {
-                  setActiveSection(item.id);
-                  setIsAdding(false);
-                  setIsAddingStaff(false);
-                }}
-                aria-pressed={isActive}
-                className={`h-10 rounded-xl border px-4 text-[11px] font-black uppercase tracking-wider ${
-                  isActive
-                    ? 'border-orange-300/40 bg-orange-400 text-slate-950 shadow-sm shadow-orange-950/25 hover:bg-orange-300 hover:text-slate-950'
-                    : 'border-cyan-300/10 bg-[#0b1726]/66 text-slate-400 hover:border-orange-300/20 hover:bg-orange-300/10 hover:text-orange-100'
-                }`}
-              >
-                <Icon size={14} aria-hidden="true" />
-                {item.label}
-              </Button>
-            );
-          })}
-        </div>
-
         {activeSection === 'players' && (
         <div className={`${rosterGlassPanelClass} px-3 py-3 font-medium`}>
           <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">

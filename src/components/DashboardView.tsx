@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { type ReactNode, useEffect, useMemo, useState } from 'react';
 import { AssessmentSession, Game, Player, Standing, Announcement, TeamInfo } from '../types';
 import {findUserStanding, sortStandings} from '../standings';
 import { Calendar, MapPin, Trophy, Shield, Megaphone, Star, Award, Zap, ArrowRight, CornerRightDown, TrendingUp, Edit, Upload, Link, Check, X, Image, Crown, Target, Flame, AlertCircle, Table, Users, ClipboardList, CloudSun, CloudRain, Wind, MoreHorizontal } from 'lucide-react';
@@ -484,6 +484,7 @@ const STRATEGY_SNAPSHOT_STORAGE_KEYS = new Set<string>([
 ]);
 
 interface DashboardViewProps {
+  homeWorkspaceHeader?: ReactNode;
   teamInfo: TeamInfo;
   players: Player[];
   games: Game[];
@@ -501,6 +502,7 @@ interface DashboardViewProps {
 }
 
 export default function DashboardView({ 
+  homeWorkspaceHeader,
   teamInfo, 
   players, 
   games, 
@@ -1106,6 +1108,8 @@ export default function DashboardView({
       className={DARK_GLASS_CLASSES.dashboardShell}
       style={{ ...DARK_GLASS_THEME_STYLE, ...DARK_GLASS_DASHBOARD_SURFACE_STYLE }}
     >
+
+      {homeWorkspaceHeader}
 
       {/* Hero Header Banner */}
       <div

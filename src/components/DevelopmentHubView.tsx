@@ -6,7 +6,7 @@ import {
   DARK_GLASS_THEME_STYLE
 } from '../theme/darkGlassTheme';
 import ViewLoadingFallback from './ViewLoadingFallback';
-import { SegmentedTabs } from './ui/segmented-tabs';
+import { SegmentedTabs, type SegmentedTabOption } from './ui/segmented-tabs';
 
 const AssessmentsView = lazy(() => import('./AssessmentsView'));
 const AssessmentDrillGuideView = lazy(() => import('./AssessmentDrillGuideView'));
@@ -14,10 +14,10 @@ const TrainingView = lazy(() => import('./TrainingView'));
 
 export type DevelopmentTab = 'assessments' | 'training' | 'assessment_guide';
 
-const DEVELOPMENT_TAB_OPTIONS: Array<{ value: DevelopmentTab; label: string }> = [
+const DEVELOPMENT_TAB_OPTIONS: Array<SegmentedTabOption<DevelopmentTab>> = [
   { value: 'training', label: 'Training' },
   { value: 'assessments', label: 'Assessments' },
-  { value: 'assessment_guide', label: 'Assessment Guide' }
+  { value: 'assessment_guide', label: 'Assessments Guide' }
 ];
 
 const DEVELOPMENT_GLASS_CLASS = [
@@ -66,12 +66,6 @@ const DEVELOPMENT_GLASS_CLASS = [
   '[&_tr]:!border-cyan-300/10'
 ].join(' ');
 
-const DEVELOPMENT_TAB_TRIGGER_CLASS = [
-  'h-9 rounded-xl border border-transparent px-4 text-xs font-black uppercase tracking-wide text-slate-400 transition',
-  'hover:border-orange-300/20 hover:bg-orange-300/10 hover:text-orange-100',
-  'data-[state=active]:border-orange-300/40 data-[state=active]:bg-orange-400 data-[state=active]:text-slate-950 data-[state=active]:shadow-sm data-[state=active]:shadow-orange-950/25'
-].join(' ');
-
 interface DevelopmentHubViewProps {
   activeTab: DevelopmentTab;
   onTabChange: (tab: DevelopmentTab) => void;
@@ -111,9 +105,6 @@ export default function DevelopmentHubView(props: DevelopmentHubViewProps) {
         options={DEVELOPMENT_TAB_OPTIONS}
         onValueChange={props.onTabChange}
         label="Development workspace sections"
-        className={DARK_GLASS_CLASSES.nav}
-        listClassName="h-auto w-full flex-wrap justify-start gap-1 bg-transparent p-0"
-        triggerClassName={DEVELOPMENT_TAB_TRIGGER_CLASS}
       />
 
       <Suspense fallback={<ViewLoadingFallback label={props.activeTab} />}>

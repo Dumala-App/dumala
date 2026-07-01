@@ -1,14 +1,19 @@
 import React, { lazy, Suspense, type ReactNode } from 'react';
 import type { AssessmentSession, Announcement, Game, Player, Standing, TeamInfo } from '../types';
 import ViewLoadingFallback from './ViewLoadingFallback';
-import { SegmentedTabs } from './ui/segmented-tabs';
+import {
+  WORKSPACE_SEGMENTED_LIST_CLASS,
+  WORKSPACE_SEGMENTED_TABS_CLASS,
+  WORKSPACE_SEGMENTED_TRIGGER_CLASS,
+  type SegmentedTabOption
+} from './ui/segmented-tabs';
 
 const DashboardView = lazy(() => import('./DashboardView'));
 const ScheduleView = lazy(() => import('./ScheduleView'));
 
 export type HomeTab = 'overview' | 'game_week';
 
-const HOME_TAB_OPTIONS: Array<{ value: HomeTab; label: string }> = [
+const HOME_TAB_OPTIONS: Array<SegmentedTabOption<HomeTab>> = [
   { value: 'overview', label: 'Overview' },
   { value: 'game_week', label: 'Game Week' }
 ];
@@ -52,28 +57,38 @@ interface HomeHubViewProps {
 }
 
 export default function HomeHubView(props: HomeHubViewProps) {
+  const homeWorkspaceHeader = (
+    <div className="flex flex-col items-start justify-between gap-3 lg:flex-row lg:items-start">
+      <nav className={WORKSPACE_SEGMENTED_TABS_CLASS} aria-label="Home workspace sections">
+        <div className={WORKSPACE_SEGMENTED_LIST_CLASS}>
+          {HOME_TAB_OPTIONS.map((tab) => (
+            <button
+              key={tab.value}
+              type="button"
+              aria-label={`Open ${tab.label}`}
+              aria-pressed={props.activeTab === tab.value}
+              onClick={() => props.onTabChange(tab.value)}
+              className={WORKSPACE_SEGMENTED_TRIGGER_CLASS}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+      </nav>
+      {props.workspaceControls && (
+        <div className="flex w-full min-w-0 justify-stretch lg:w-auto lg:justify-end">
+          {props.workspaceControls}
+        </div>
+      )}
+    </div>
+  );
+
   return (
     <div className="space-y-6">
-      <div className="grid gap-3 lg:grid-cols-[minmax(0,auto)_minmax(18rem,1fr)] lg:items-start">
-        <SegmentedTabs
-          value={props.activeTab}
-          options={HOME_TAB_OPTIONS}
-          onValueChange={props.onTabChange}
-          label="Home workspace sections"
-          className="rounded-2xl border border-cyan-300/10 bg-[#07111f]/88 p-2 text-slate-100 shadow-lg shadow-black/20 backdrop-blur-xl"
-          listClassName="border-cyan-300/10 bg-[#0b1726]/72 text-slate-400 shadow-inner shadow-black/10"
-          triggerClassName="text-slate-400 data-[state=active]:bg-orange-400 data-[state=active]:text-slate-950 data-[state=active]:shadow-sm data-[state=inactive]:hover:bg-orange-300/10 data-[state=inactive]:hover:text-orange-100"
-        />
-        {props.workspaceControls && (
-          <div className="flex min-w-0 justify-stretch lg:justify-end">
-            {props.workspaceControls}
-          </div>
-        )}
-      </div>
-
       <Suspense fallback={<ViewLoadingFallback label={props.activeTab === 'overview' ? 'overview' : 'game week'} />}>
         {props.activeTab === 'overview' ? (
           <DashboardView
+            homeWorkspaceHeader={homeWorkspaceHeader}
             teamInfo={props.teamInfo}
             players={props.players}
             games={props.games}
@@ -86,6 +101,7 @@ export default function HomeHubView(props: HomeHubViewProps) {
           />
         ) : (
           <ScheduleView
+            homeWorkspaceHeader={homeWorkspaceHeader}
             games={props.games}
             players={props.players}
             standings={props.standings}
