@@ -79,7 +79,6 @@ import {
   Shield, 
   Users, 
   Trophy, 
-  Heart, 
   Menu,
   X,
   Sliders,
@@ -1074,8 +1073,29 @@ export default function App() {
     );
   }
 
+  const usesDarkGlassShell = (
+    primaryTab === 'home'
+    || primaryTab === 'squad'
+    || primaryTab === 'tactics'
+    || primaryTab === 'development'
+    || primaryTab === 'league_updates'
+  );
+
   return (
-    <div id="stack-app-root" className="min-h-screen flex flex-col font-sans text-foreground">
+    <div
+      id="stack-app-root"
+      className={`relative min-h-screen flex flex-col font-sans ${
+        usesDarkGlassShell ? 'overflow-x-hidden bg-[#020713] text-slate-100 selection:bg-orange-400/30' : 'text-foreground'
+      }`}
+    >
+      {usesDarkGlassShell && (
+        <div aria-hidden="true" className="fixed inset-0 z-0 overflow-hidden">
+          <div className="absolute inset-0 bg-[#020713]" />
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_58%_18%,rgba(34,211,238,0.2),transparent_26rem),radial-gradient(circle_at_18%_18%,rgba(249,115,22,0.2),transparent_23rem),linear-gradient(135deg,#020713_0%,#051325_48%,#041511_100%)]" />
+          <div className="absolute left-1/2 top-1/2 h-[78vmin] w-[78vmin] -translate-x-1/2 -translate-y-1/2 rounded-full border border-cyan-300/10 bg-[conic-gradient(from_160deg,transparent,rgba(56,189,248,0.16),transparent,rgba(249,115,22,0.16),transparent)] opacity-70 blur-[1px]" />
+          <div className="absolute inset-x-[-10%] bottom-[-28%] h-[58%] rotate-[-4deg] border-t border-emerald-300/20 bg-[linear-gradient(rgba(34,197,94,0.12)_1px,transparent_1px),linear-gradient(90deg,rgba(34,197,94,0.12)_1px,transparent_1px)] bg-[size:4.5rem_4.5rem] [transform-origin:center]" />
+        </div>
+      )}
       <PwaStatusBanners />
       
       {/* Dynamic Navigation Topbar */}
@@ -1084,26 +1104,14 @@ export default function App() {
           <div className="flex justify-between items-center h-[72px]">
             
             {/* Logo Brand Icon */}
-            <div className="flex items-center gap-3 min-w-0">
+            <div className="flex min-w-0 items-center">
               <img
                 id="brand-logo"
                 src="/Dumala_logo.png"
                 alt="Dumala"
                 onClick={() => handleSelectPrimaryTab('home')}
-                className="w-14 h-14 rounded-xl object-contain cursor-pointer transition-all hover:-translate-y-0.5 active:translate-y-0 drop-shadow-sm"
+                className="h-[4.75rem] w-[4.75rem] cursor-pointer rounded-xl object-contain drop-shadow-sm transition-all hover:-translate-y-0.5 active:translate-y-0"
               />
-              <div>
-                <h1 
-                  id="brand-title" 
-                  onClick={() => handleSelectPrimaryTab('home')}
-                  className="font-display font-extrabold text-sm sm:text-base tracking-tight cursor-pointer text-white hover:text-orange-100 transition-colors truncate"
-                >
-                  Dumala
-                </h1>
-                <span id="brand-tagline" className="text-[10px] text-[var(--shell-muted)] block font-semibold truncate max-w-44">
-                  {teamInfo?.name || "Team workspace"}
-                </span>
-              </div>
             </div>
 
             {/* Desktop Navigation Link Tabs */}
@@ -1174,20 +1182,8 @@ export default function App() {
       </header>
 
       {/* Main Container Stage Body */}
-      <main id="app-main-content" className="flex-1 max-w-[1440px] w-full mx-auto p-4 sm:p-6 lg:p-8 space-y-6">
+      <main id="app-main-content" className="relative z-10 flex-1 max-w-[1440px] w-full mx-auto p-4 sm:p-6 lg:p-8 space-y-6">
         
-        {primaryTab === 'home' && (
-          <WorkspaceStatusBar
-            teamName={teamInfo.name}
-            cloudRuntime={cloudRuntime}
-            resetOpen={showResetConfirm}
-            onResetOpenChange={setShowResetConfirm}
-            onFeedback={() => setShowFeedback(true)}
-            onConfirmReset={confirmResetApp}
-            onSignedOut={handleSignedOut}
-          />
-        )}
-
         {showFeedback && (
           <Suspense fallback={null}>
             <FeedbackModal
@@ -1219,6 +1215,17 @@ export default function App() {
                   activeTab={homeTab}
                   onTabChange={setHomeTab}
                   onNavigate={handleNavigate}
+                  workspaceControls={
+                    <WorkspaceStatusBar
+                      teamName={teamInfo.name}
+                      cloudRuntime={cloudRuntime}
+                      resetOpen={showResetConfirm}
+                      onResetOpenChange={setShowResetConfirm}
+                      onFeedback={() => setShowFeedback(true)}
+                      onConfirmReset={confirmResetApp}
+                      onSignedOut={handleSignedOut}
+                    />
+                  }
                   teamInfo={teamInfo}
                   players={players}
                   games={games}
@@ -1342,15 +1349,8 @@ export default function App() {
       </AnimatePresence>
 
       {/* Application Footer */}
-      <footer id="app-footer" className="mt-12 space-y-2 border-t border-white/10 bg-[var(--shell)] py-6 text-center text-xs text-[var(--shell-muted)]">
-        <div className="flex justify-center gap-4 items-center flex-wrap">
-          <span className="font-display font-semibold text-white">Dumala</span>
-          <span className="font-sans text-white/20">|</span>
-          <span className="flex items-center gap-1">Designed with <Heart size={11} className="fill-accent text-accent" /> for elite athletic clubs</span>
-        </div>
-        <p className="text-[10px] text-[var(--shell-muted)]/80">
-          Your team data stays in this browser unless you export a backup.
-        </p>
+      <footer id="app-footer" className="relative z-10 mt-8 border-t border-cyan-300/10 bg-slate-950/55 px-4 py-2 text-center text-[11px] font-medium text-slate-300/75 shadow-[0_-10px_30px_rgba(2,8,23,0.18)] backdrop-blur-xl">
+        Dumala | The operating system built for coaches. Smart Coaching. Future Ready.
       </footer>
 
     </div>

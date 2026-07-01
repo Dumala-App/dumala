@@ -59,6 +59,10 @@ import {
 } from './ui/select';
 import { Textarea } from './ui/textarea';
 import { cn } from '../lib/utils';
+import {
+  DARK_GLASS_DASHBOARD_SURFACE_STYLE,
+  DARK_GLASS_THEME_STYLE
+} from '../theme/darkGlassTheme';
 import footballIconUrl from '../assets/tactics/football-icon.png';
 import wallImageUrl from '../assets/tactics/wall.png';
 
@@ -155,6 +159,10 @@ const SHAPE_IMPACT_TONE_CLASSES: Record<ShapeImpactCard['tone'], {
     value: 'text-rose-100'
   }
 };
+
+const tacticsGlassPanelClass = 'rounded-2xl border border-cyan-300/10 bg-[#07111f]/88 text-slate-100 shadow-lg shadow-black/20 backdrop-blur-xl';
+const tacticsGlassCardClass = 'rounded-xl border border-cyan-300/10 bg-[#0b1726]/66 text-slate-100 shadow-sm shadow-black/10 backdrop-blur-sm';
+const tacticsGlassInsetClass = 'rounded-xl border border-cyan-300/10 bg-[#0b1726]/72 text-slate-100 shadow-inner shadow-black/10 backdrop-blur-sm';
 
 const getDrawingStrokeDash = (strokeStyle?: DrawingStrokeStyle) => {
   if (strokeStyle === 'Dashed') return '3 2.2';
@@ -1094,7 +1102,7 @@ export default function TacticsView({ players, staff, teamCoach, teamName, teamL
         <span className="text-[10px] text-slate-500">Assign only what you need for the next match.</span>
       </div>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <div className="flex flex-col justify-between gap-2 rounded-xl border border-slate-800/80 bg-slate-950/40 p-3">
+        <div className={cn(tacticsGlassCardClass, 'flex flex-col justify-between gap-2 p-3')}>
           <div>
             <span className="block text-[10px] font-bold uppercase tracking-wider text-amber-400">Captain</span>
             <p className="mt-0.5 text-[11px] text-slate-400">Leads motivational boost.</p>
@@ -1112,7 +1120,7 @@ export default function TacticsView({ players, staff, teamCoach, teamName, teamL
           </Select>
         </div>
 
-        <div className="flex flex-col justify-between gap-2 rounded-xl border border-slate-800/80 bg-slate-950/40 p-3">
+        <div className={cn(tacticsGlassCardClass, 'flex flex-col justify-between gap-2 p-3')}>
           <div>
             <span className="block text-[10px] font-bold uppercase tracking-wider text-cyan-400">Free Kicks</span>
             <p className="mt-0.5 text-[11px] text-slate-400">Takes precision direct kicks.</p>
@@ -1130,7 +1138,7 @@ export default function TacticsView({ players, staff, teamCoach, teamName, teamL
           </Select>
         </div>
 
-        <div className="flex flex-col justify-between gap-2 rounded-xl border border-slate-800/80 bg-slate-950/40 p-3">
+        <div className={cn(tacticsGlassCardClass, 'flex flex-col justify-between gap-2 p-3')}>
           <div>
             <span className="block text-[10px] font-bold uppercase tracking-wider text-rose-400">Penalty Kicker</span>
             <p className="mt-0.5 text-[11px] text-slate-400">Assigned for highest composure.</p>
@@ -1148,7 +1156,7 @@ export default function TacticsView({ players, staff, teamCoach, teamName, teamL
           </Select>
         </div>
 
-        <div className="flex flex-col justify-between gap-2 rounded-xl border border-slate-800/80 bg-slate-950/40 p-3">
+        <div className={cn(tacticsGlassCardClass, 'flex flex-col justify-between gap-2 p-3')}>
           <div>
             <span className="block text-[10px] font-bold uppercase tracking-wider text-yellow-400">Corner Kicks</span>
             <p className="mt-0.5 text-[11px] text-slate-400">Crosses from left and right flags.</p>
@@ -1170,21 +1178,25 @@ export default function TacticsView({ players, staff, teamCoach, teamName, teamL
   );
 
   return (
-    <div id="tactics-view-container" className="grid grid-cols-1 xl:grid-cols-12 gap-4 bg-slate-900 p-4 sm:p-5 rounded-2xl border border-slate-800 text-slate-100 shadow-xl relative overflow-hidden">
+    <div
+      id="tactics-view-container"
+      className="relative grid grid-cols-1 gap-4 overflow-hidden rounded-[1.75rem] border border-cyan-300/10 p-4 text-slate-100 shadow-2xl shadow-black/25 sm:p-5 lg:p-6 xl:grid-cols-12"
+      style={{ ...DARK_GLASS_THEME_STYLE, ...DARK_GLASS_DASHBOARD_SURFACE_STYLE }}
+    >
       
       {/* Visual background ambient glow elements */}
-      <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-indigo-650/10 rounded-full blur-[140px] pointer-events-none" />
-      <div className="absolute bottom-0 right-1/4 w-[500px] h-[500px] bg-emerald-600/10 rounded-full blur-[140px] pointer-events-none" />
+      <div className="pointer-events-none absolute left-1/4 top-0 h-[500px] w-[500px] rounded-full bg-cyan-400/10 blur-[140px]" />
+      <div className="pointer-events-none absolute bottom-0 right-1/4 h-[500px] w-[500px] rounded-full bg-orange-400/10 blur-[140px]" />
 
       <div className="xl:col-span-12 relative z-10">
-        <div className="flex flex-col gap-3 rounded-xl border border-slate-800 bg-[#0f172a]/95 p-3 shadow-md">
+        <div className={cn(tacticsGlassPanelClass, 'flex flex-col gap-3 p-3')}>
           <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
             <div>
               <p className="text-[10px] font-black uppercase tracking-widest text-amber-400">Tactics Workspace</p>
               <h2 className="font-display text-lg font-black text-white">Match planning desk</h2>
               <p className="text-xs text-slate-400">Set the match shape, work the board, and manage supporting details without leaving the workspace.</p>
             </div>
-            <div className="grid w-full grid-cols-2 gap-1 rounded-xl border border-slate-800 bg-slate-950/70 p-1 sm:w-auto sm:min-w-[24rem]">
+            <div className={cn(tacticsGlassInsetClass, 'grid w-full grid-cols-2 gap-1 p-1 sm:w-auto sm:min-w-[24rem]')}>
               <Button
                 type="button"
                 onClick={() => setActiveWorkspaceSection('board')}
@@ -1222,7 +1234,7 @@ export default function TacticsView({ players, staff, teamCoach, teamName, teamL
       <div className="xl:col-span-3 flex flex-col gap-5 relative z-10">
         
         {/* Coach Details Widget */}
-        <div className="bg-[#0f172a]/95 p-4 rounded-2xl border border-slate-800/80 shadow-md">
+        <div className={cn(tacticsGlassPanelClass, 'p-4')}>
           {isEditingCoach ? (
             <div className="space-y-2.5 text-xs">
               <div className="flex justify-between items-center pb-1.5 border-b border-slate-800/80">
@@ -1238,7 +1250,7 @@ export default function TacticsView({ players, staff, teamCoach, teamName, teamL
                 </Button>
               </div>
               
-              <div className="rounded-lg border border-slate-800 bg-slate-950/70 p-2">
+              <div className="rounded-lg border border-cyan-300/10 bg-[#0b1726]/72 p-2 shadow-inner shadow-black/10">
                 <span className="text-[9px] text-slate-400 uppercase tracking-widest font-black block mb-1">Roster Manager / Coach</span>
                 <div className="flex items-center gap-2">
                   <img
@@ -1301,9 +1313,9 @@ export default function TacticsView({ players, staff, teamCoach, teamName, teamL
         </div>
 
         {/* Flag Box / Team Brand Crest Widget */}
-        <div className="bg-[#0f172a]/95 p-4.5 rounded-2xl border border-slate-800/80 shadow-md flex items-center justify-between gap-4">
+        <div className={cn(tacticsGlassPanelClass, 'flex items-center justify-between gap-4 p-4.5')}>
           <div className="flex items-center gap-3">
-            <div className="shrink-0 w-12 h-12 rounded-xl bg-slate-900/40 border border-slate-700/80 overflow-hidden shadow shadow-indigo-900/30 flex items-center justify-center">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-cyan-300/10 bg-white/[0.035] shadow shadow-black/20">
               {renderTeamLogo(40, 'text-slate-200')}
             </div>
             <div>
@@ -1314,7 +1326,7 @@ export default function TacticsView({ players, staff, teamCoach, teamName, teamL
           <span className="text-xs bg-slate-800 text-slate-300 px-2 py-1 rounded font-bold font-mono">CLUB</span>
         </div>
 
-        <div className="bg-[#0f172a]/95 p-3 rounded-xl border border-slate-800/80 shadow-md">
+        <div className={cn(tacticsGlassPanelClass, 'rounded-xl p-3')}>
           <span className="text-[10px] font-bold text-slate-400 tracking-wider uppercase block px-2 pb-2">Workspace Panels</span>
           <div className="grid grid-cols-2 gap-2">
             {[
@@ -1338,7 +1350,7 @@ export default function TacticsView({ players, staff, teamCoach, teamName, teamL
                   className={`h-16 flex-col gap-1 rounded-lg text-[10px] font-black uppercase tracking-wide ${
                     activeBoardPanel === item.id
                       ? 'bg-amber-400 text-slate-950 shadow-sm'
-                      : 'bg-slate-950/60 text-slate-400 hover:bg-slate-800 hover:text-white'
+                      : 'border border-cyan-300/10 bg-[#0b1726]/66 text-slate-400 hover:bg-orange-300/10 hover:text-white'
                   }`}
                 >
                   <Icon size={15} />
@@ -1350,7 +1362,7 @@ export default function TacticsView({ players, staff, teamCoach, teamName, teamL
           <div className="mt-3 border-t border-slate-800 pt-3">
             <label className="mb-1.5 block px-1 text-[9px] font-black uppercase tracking-widest text-slate-500">Match Format</label>
             <Select value={matchFormat} onValueChange={(value) => setMatchFormat(value as MatchFormat)}>
-              <SelectTrigger id="select-match-format-sidebar" className="h-10 rounded-lg border-slate-800 bg-slate-950 text-xs font-bold text-slate-100 focus:ring-amber-400/30">
+              <SelectTrigger id="select-match-format-sidebar" className="h-10 rounded-lg border-cyan-300/10 bg-[#0b1726]/85 text-xs font-bold text-slate-100 focus:ring-amber-400/30">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent className="border-slate-800 bg-slate-950 text-slate-100">
@@ -1400,7 +1412,7 @@ export default function TacticsView({ players, staff, teamCoach, teamName, teamL
       {/* MAIN SOCCER PITCH AREA */}
       <div
         className={cn(
-          'xl:col-span-6 flex flex-col bg-emerald-950/20 rounded-xl p-3 sm:p-4 border border-slate-800 relative z-10',
+          'relative z-10 flex flex-col rounded-xl border border-cyan-300/10 bg-[#07111f]/56 p-3 shadow-lg shadow-black/20 backdrop-blur-xl sm:p-4 xl:col-span-6',
           isBoardFullscreen && 'fixed inset-0 z-[70] overflow-y-auto rounded-none border-0 bg-slate-950/98 p-3 sm:p-5'
         )}
       >
@@ -1416,7 +1428,7 @@ export default function TacticsView({ players, staff, teamCoach, teamName, teamL
                 onClick={() => setIsFullscreenToolsetVisible((value) => !value)}
                 variant="outline"
                 size="sm"
-                className="h-8 rounded-lg border-slate-700 bg-slate-950 px-2 text-[10px] font-black uppercase tracking-wider text-slate-200 hover:bg-slate-800"
+            className="h-8 rounded-lg border-cyan-300/10 bg-[#0b1726]/85 px-2 text-[10px] font-black uppercase tracking-wider text-slate-200 hover:bg-orange-300/10"
                 aria-label={isFullscreenToolsetVisible ? 'Hide fullscreen coach toolset' : 'Show fullscreen coach toolset'}
               >
                 <SlidersHorizontal size={13} />
@@ -1799,7 +1811,7 @@ export default function TacticsView({ players, staff, teamCoach, teamName, teamL
           )}
 
           {/* Floating HUD bottom overlay details */}
-          <div className="absolute bottom-4 left-4 rounded-lg border border-slate-800 bg-slate-950/80 p-2">
+          <div className="absolute bottom-4 left-4 rounded-lg border border-cyan-300/10 bg-[#07111f]/82 p-2 shadow-lg shadow-black/20 backdrop-blur-md">
             <div className="flex items-center gap-1.5">
               <span className="text-[10px] text-slate-400 font-bold tracking-widest uppercase">Formation</span>
             </div>
@@ -1811,7 +1823,7 @@ export default function TacticsView({ players, staff, teamCoach, teamName, teamL
         <div
           id="tactical-field-style-summary"
           className={cn(
-            'mt-3 w-full max-w-[576px] mx-auto rounded-xl border border-slate-800 bg-slate-950/80 px-3 py-2 text-center shadow-sm',
+            'mx-auto mt-3 w-full max-w-[576px] rounded-xl border border-cyan-300/10 bg-[#07111f]/82 px-3 py-2 text-center shadow-sm shadow-black/10 backdrop-blur-md',
             isBoardFullscreen && 'hidden'
           )}
         >
@@ -1823,7 +1835,7 @@ export default function TacticsView({ players, staff, teamCoach, teamName, teamL
           </div>
 
           {isBoardFullscreen && isFullscreenToolsetVisible && (
-            <div className="rounded-xl border border-slate-800/80 bg-[#0f172a]/95 p-3 shadow-lg">
+            <div className={cn(tacticsGlassPanelClass, 'rounded-xl p-3')}>
               <div className="flex items-center justify-between border-b border-slate-800/60 pb-2">
                 <div className="flex items-center gap-2">
                   <BookOpen size={18} className="text-indigo-400" />
@@ -1888,7 +1900,7 @@ export default function TacticsView({ players, staff, teamCoach, teamName, teamL
                 </div>
 
                 {isDrawingMode && (
-                  <div className="space-y-2 rounded-xl border border-slate-800/80 bg-slate-950/80 p-2.5">
+                  <div className={cn(tacticsGlassInsetClass, 'space-y-2 p-2.5')}>
                     <div className="flex items-center justify-between gap-2">
                       <span className="text-[9px] font-bold uppercase text-slate-400">Color</span>
                       <div className="flex gap-1.5">
@@ -1947,7 +1959,7 @@ export default function TacticsView({ players, staff, teamCoach, teamName, teamL
                   </Button>
                 </div>
 
-                <div className="rounded-xl border border-slate-800/80 bg-slate-950/70 p-2.5">
+                <div className={cn(tacticsGlassInsetClass, 'p-2.5')}>
                   <div className="mb-2 flex items-center justify-between gap-2">
                     <span className="text-[9px] font-black uppercase tracking-widest text-slate-400">Scenario</span>
                     <span className="text-[8.5px] font-bold text-slate-600">moves ball/tools</span>
@@ -1985,7 +1997,7 @@ export default function TacticsView({ players, staff, teamCoach, teamName, teamL
                   </Select>
                 </div>
 
-                <div className="rounded-xl border border-slate-800/80 bg-slate-950/70 p-2.5">
+                <div className={cn(tacticsGlassInsetClass, 'p-2.5')}>
                   <div className="mb-2 flex items-center justify-between gap-2">
                     <span className="text-[9px] font-black uppercase tracking-widest text-slate-400">Drawing Layers</span>
                     <span className="text-[8.5px] font-bold text-slate-600">draw / show</span>
@@ -2054,7 +2066,7 @@ export default function TacticsView({ players, staff, teamCoach, teamName, teamL
                   </Button>
                 </div>
 
-                <div className="rounded-xl border border-slate-800/80 bg-slate-950/70 p-2.5">
+                <div className={cn(tacticsGlassInsetClass, 'p-2.5')}>
                   <span className="mb-2 block text-[9px] font-black uppercase tracking-widest text-slate-400">Snapshots</span>
                   <div className="flex gap-1.5">
                     <Input
@@ -2102,7 +2114,7 @@ export default function TacticsView({ players, staff, teamCoach, teamName, teamL
       <div className="xl:col-span-3 space-y-5 flex flex-col relative z-10">
 
         {/* Coach's Playbook Toolkit */}
-        <div className={cn('bg-[#0f172a]/95 p-4 rounded-xl border border-slate-800/80 shadow-lg space-y-4', activeBoardPanel !== 'tools' && 'hidden')}>
+        <div className={cn(tacticsGlassPanelClass, 'space-y-4 rounded-xl p-4', activeBoardPanel !== 'tools' && 'hidden')}>
           <div className="flex items-center justify-between pb-2 border-b border-slate-800/60">
             <div className="flex items-center gap-2">
               <BookOpen size={20} className="text-indigo-400" />
@@ -2137,7 +2149,7 @@ export default function TacticsView({ players, staff, teamCoach, teamName, teamL
             </div>
 
             {isDrawingMode && (
-              <div id="drawing-brush-controls" className="bg-slate-950/80 p-2.5 rounded-xl border border-slate-800/80 space-y-2.5">
+              <div id="drawing-brush-controls" className={cn(tacticsGlassInsetClass, 'space-y-2.5 p-2.5')}>
                 {/* Color presets and brush size selector */}
                 <div className="flex items-center justify-between gap-2.5">
                   <span className="text-[9px] text-slate-400 font-bold uppercase font-mono">Brush Color</span>
@@ -2291,11 +2303,11 @@ export default function TacticsView({ players, staff, teamCoach, teamName, teamL
         </div>
 
         {/* Featured Player detail display (eFootball card look) */}
-        <div className="bg-[#0f172a]/95 p-4 rounded-2xl border border-slate-850 shadow-md flex-1 flex flex-col justify-between">
+        <div className={cn(tacticsGlassPanelClass, 'flex flex-1 flex-col justify-between p-4')}>
           <div>
             <div className="flex justify-between items-center pb-2.5 border-b border-slate-800/80">
               <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">POSITION DETAIL VIEW</span>
-              <div className="flex bg-slate-800 text-slate-300 p-0.5 rounded-lg text-[10px] font-bold">
+              <div className="flex rounded-lg border border-cyan-300/10 bg-[#0b1726]/72 p-0.5 text-[10px] font-bold text-slate-300 shadow-inner shadow-black/10">
                 <Button
                   type="button"
                   onClick={() => setRightPanelTab('Basic')} 
@@ -2594,7 +2606,7 @@ export default function TacticsView({ players, staff, teamCoach, teamName, teamL
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95 }}
-            className="xl:col-span-12 bg-[#0f172a]/95 border border-slate-800 rounded-xl p-4 text-xs select-none relative shadow-lg lg:p-5"
+            className={cn(tacticsGlassPanelClass, 'relative select-none rounded-xl p-4 text-xs lg:p-5 xl:col-span-12')}
           >
             <div className="flex flex-col gap-3 border-b border-slate-800 pb-4 md:flex-row md:items-center md:justify-between">
               <div>
@@ -2612,7 +2624,7 @@ export default function TacticsView({ players, staff, teamCoach, teamName, teamL
 
             {/* Team Formation (shared for both modes) */}
             <div className="my-4 grid grid-cols-1 gap-3 lg:grid-cols-[18rem_minmax(0,1fr)]">
-              <div className="rounded-xl border border-slate-800/80 bg-slate-950/60 p-3.5">
+              <div className={cn(tacticsGlassCardClass, 'p-3.5')}>
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <label className="block text-[10px] font-black uppercase tracking-widest text-slate-300">Formation</label>
@@ -2635,7 +2647,7 @@ export default function TacticsView({ players, staff, teamCoach, teamName, teamL
                   </SelectContent>
                 </Select>
               </div>
-              <div className="rounded-xl border border-slate-800 bg-slate-950/60 p-3.5">
+              <div className={cn(tacticsGlassCardClass, 'p-3.5')}>
                 <div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between">
                   <div>
                     <span className="text-[10px] font-black uppercase tracking-widest text-slate-300">Shape Impact</span>
@@ -2662,7 +2674,7 @@ export default function TacticsView({ players, staff, teamCoach, teamName, teamL
               </div>
             </div>
 
-            <section className="mb-4 rounded-xl border border-slate-800 bg-slate-950/70 p-3.5">
+            <section className={cn(tacticsGlassInsetClass, 'mb-4 p-3.5')}>
               <div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between">
                 <div>
                   <h5 className="text-[10px] font-black uppercase tracking-widest text-slate-300">Strategy Context</h5>
@@ -2787,7 +2799,7 @@ export default function TacticsView({ players, staff, teamCoach, teamName, teamL
               </div>
             </section>
 
-            <section className="mb-4 rounded-xl border border-slate-800 bg-slate-950/70 p-3.5">
+            <section className={cn(tacticsGlassInsetClass, 'mb-4 p-3.5')}>
               <div className="grid grid-cols-1 gap-3 border-b border-slate-800 pb-3 lg:grid-cols-[minmax(0,1fr)_22rem] lg:items-end">
                 <div>
                   <h5 className="text-[10px] font-black uppercase tracking-widest text-slate-300">Matchup Strategy</h5>
@@ -2922,7 +2934,7 @@ export default function TacticsView({ players, staff, teamCoach, teamName, teamL
             </section>
 
             <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
-                <section className="flex min-h-0 flex-col rounded-xl border border-slate-800 bg-slate-950/60 p-4 md:p-5 xl:max-h-[42rem]">
+                <section className={cn(tacticsGlassCardClass, 'flex min-h-0 flex-col p-4 md:p-5 xl:max-h-[42rem]')}>
                   <div className="mb-3">
                     <h5 className="text-[10px] font-black tracking-widest text-slate-300 uppercase">Attacking Plan</h5>
                     <p className="mt-1 text-[11px] text-slate-500">Select how the team should create chances after winning or keeping the ball.</p>
@@ -2939,7 +2951,7 @@ export default function TacticsView({ players, staff, teamCoach, teamName, teamL
                           className={`block w-full min-w-0 whitespace-normal rounded-xl border p-4 text-left align-top transition ${
                             selected
                               ? 'border-indigo-400 bg-indigo-500/15 shadow-sm shadow-indigo-500/10'
-                              : 'border-slate-800 bg-slate-900/60 hover:border-slate-700 hover:bg-slate-900'
+                              : 'border-cyan-300/10 bg-[#0b1726]/66 hover:border-orange-300/30 hover:bg-orange-300/10'
                           }`}
                         >
                           <div className="flex min-w-0 items-start justify-between gap-3">
@@ -2960,7 +2972,7 @@ export default function TacticsView({ players, staff, teamCoach, teamName, teamL
                   </div>
                 </section>
 
-                <section className="flex min-h-0 flex-col rounded-xl border border-slate-800 bg-slate-950/60 p-4 md:p-5 xl:max-h-[42rem]">
+                <section className={cn(tacticsGlassCardClass, 'flex min-h-0 flex-col p-4 md:p-5 xl:max-h-[42rem]')}>
                   <div className="mb-3">
                     <h5 className="text-[10px] font-black tracking-widest text-slate-300 uppercase">Defensive Plan</h5>
                     <p className="mt-1 text-[11px] text-slate-500">Define the team trigger, line height, and first recovery behavior out of possession.</p>
@@ -2977,7 +2989,7 @@ export default function TacticsView({ players, staff, teamCoach, teamName, teamL
                           className={`block w-full min-w-0 whitespace-normal rounded-xl border p-4 text-left align-top transition ${
                             selected
                               ? 'border-emerald-400 bg-emerald-500/15 shadow-sm shadow-emerald-500/10'
-                              : 'border-slate-800 bg-slate-900/60 hover:border-slate-700 hover:bg-slate-900'
+                              : 'border-cyan-300/10 bg-[#0b1726]/66 hover:border-orange-300/30 hover:bg-orange-300/10'
                           }`}
                         >
                           <div className="flex min-w-0 items-start justify-between gap-3">
@@ -3007,7 +3019,7 @@ export default function TacticsView({ players, staff, teamCoach, teamName, teamL
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 10 }}
-            className="xl:col-span-12 rounded-xl border border-slate-800 bg-[#0f172a] p-5"
+            className={cn(tacticsGlassPanelClass, 'rounded-xl p-5 xl:col-span-12')}
           >
             {renderSetPieceLeadership()}
           </motion.div>
@@ -3020,7 +3032,7 @@ export default function TacticsView({ players, staff, teamCoach, teamName, teamL
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 10 }}
-            className="xl:col-span-12 max-h-[48vh] overflow-y-auto bg-[#0f172a] border border-slate-800 rounded-xl p-5"
+            className={cn(tacticsGlassPanelClass, 'max-h-[48vh] overflow-y-auto rounded-xl p-5 xl:col-span-12')}
           >
             <h4 className="font-display font-black text-white mb-3 text-xs uppercase tracking-wider">Current Starting {MATCH_FORMAT_CONFIG[matchFormat].size} List</h4>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
@@ -3031,8 +3043,8 @@ export default function TacticsView({ players, staff, teamCoach, teamName, teamL
                   <div 
                     key={idx} 
                     onClick={() => setSelectedSlotIndex(idx)}
-                    className={`p-3 bg-slate-900 border rounded-xl flex items-center justify-between cursor-pointer transition-all ${
-                      selectedSlotIndex === idx ? 'border-amber-400 bg-amber-500/5' : 'border-slate-800 hover:bg-slate-850'
+                    className={`flex cursor-pointer items-center justify-between rounded-xl border p-3 shadow-sm shadow-black/10 backdrop-blur-sm transition-all ${
+                      selectedSlotIndex === idx ? 'border-amber-400 bg-amber-500/10' : 'border-cyan-300/10 bg-[#0b1726]/66 hover:bg-orange-300/10'
                     }`}
                   >
                     <div className="flex items-center gap-2">
@@ -3056,7 +3068,7 @@ export default function TacticsView({ players, staff, teamCoach, teamName, teamL
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 10 }}
-            className="xl:col-span-12 max-h-[48vh] overflow-y-auto bg-[#0f172a] border border-slate-800 rounded-xl p-5"
+            className={cn(tacticsGlassPanelClass, 'max-h-[48vh] overflow-y-auto rounded-xl p-5 xl:col-span-12')}
           >
             <h4 className="font-display font-black text-white mb-3 text-xs uppercase tracking-wider">Available Substitutes (Not in main {MATCH_FORMAT_CONFIG[matchFormat].size})</h4>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
@@ -3064,7 +3076,7 @@ export default function TacticsView({ players, staff, teamCoach, teamName, teamL
                 <div 
                   key={player.id} 
                   onClick={() => handleAssignPlayer(player)}
-                  className="p-3 bg-slate-900 border border-slate-800 rounded-xl flex items-center justify-between cursor-pointer hover:border-indigo-400 transition-all"
+                  className="flex cursor-pointer items-center justify-between rounded-xl border border-cyan-300/10 bg-[#0b1726]/66 p-3 shadow-sm shadow-black/10 backdrop-blur-sm transition-all hover:border-indigo-400 hover:bg-indigo-400/10"
                 >
                   <div className="flex items-center gap-2">
                     <img src={player.photoUrl} className="w-8 h-8 rounded-full object-cover" referrerPolicy="no-referrer" />
@@ -3092,7 +3104,7 @@ export default function TacticsView({ players, staff, teamCoach, teamName, teamL
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 10 }}
-            className="xl:col-span-12 max-h-[48vh] overflow-y-auto bg-[#0f172a] border border-slate-800 rounded-xl p-5"
+            className={cn(tacticsGlassPanelClass, 'max-h-[48vh] overflow-y-auto rounded-xl p-5 xl:col-span-12')}
           >
             <h4 className="font-display font-black text-white mb-3 text-xs uppercase tracking-wider">All Reservable Pool ({allEligiblePool.length} Total Athletes)</h4>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
@@ -3100,7 +3112,7 @@ export default function TacticsView({ players, staff, teamCoach, teamName, teamL
                 <div 
                   key={player.id} 
                   onClick={() => handleAssignPlayer(player)}
-                  className="p-3 bg-slate-900 border border-slate-850 rounded-xl flex items-center justify-between cursor-pointer hover:border-amber-400 transition-all"
+                  className="flex cursor-pointer items-center justify-between rounded-xl border border-cyan-300/10 bg-[#0b1726]/66 p-3 shadow-sm shadow-black/10 backdrop-blur-sm transition-all hover:border-amber-400 hover:bg-amber-400/10"
                 >
                   <div className="flex items-center gap-2">
                     <img src={player.photoUrl} className="w-8 h-8 rounded-full object-cover" referrerPolicy="no-referrer" />
@@ -3117,7 +3129,7 @@ export default function TacticsView({ players, staff, teamCoach, teamName, teamL
       </AnimatePresence>
 
       {/* PERSISTENT QUICK NOTES PANEL */}
-      <div id="tactics-quick-notes-panel" className={cn('xl:col-span-12 max-h-[68vh] overflow-y-auto bg-[#0f172a] border border-slate-800 rounded-xl p-5 select-none relative z-10', activeBoardPanel !== 'notes' && 'hidden')}>
+      <div id="tactics-quick-notes-panel" className={cn(tacticsGlassPanelClass, 'relative z-10 max-h-[68vh] select-none overflow-y-auto rounded-xl p-5 xl:col-span-12', activeBoardPanel !== 'notes' && 'hidden')}>
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-slate-800/85 mb-6">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-indigo-600/15 text-indigo-400 rounded-xl border border-indigo-500/20">
@@ -3134,7 +3146,7 @@ export default function TacticsView({ players, staff, teamCoach, teamName, teamL
           </div>
           
           {/* Quick Note Filter Pills */}
-          <div className="flex flex-wrap items-center gap-1.5 bg-slate-900 p-1 rounded-xl border border-slate-800">
+          <div className="flex flex-wrap items-center gap-1.5 rounded-xl border border-cyan-300/10 bg-[#0b1726]/72 p-1 shadow-inner shadow-black/10">
             {['All', 'Formation', 'Set Pieces', 'Strategy', 'General'].map(cat => (
               <Button
                 key={cat}
@@ -3157,7 +3169,7 @@ export default function TacticsView({ players, staff, teamCoach, teamName, teamL
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           
           {/* LEFT SIDE: CREATOR FORM */}
-          <form onSubmit={handleAddNote} className="lg:col-span-4 bg-slate-900/60 p-4 rounded-xl border border-slate-800/80 flex flex-col justify-between gap-3.5">
+          <form onSubmit={handleAddNote} className={cn(tacticsGlassCardClass, 'flex flex-col justify-between gap-3.5 p-4 lg:col-span-4')}>
             <span className="text-[10px] font-black tracking-widest text-amber-400 uppercase block">
               Create New Reminder
             </span>
@@ -3239,8 +3251,8 @@ export default function TacticsView({ players, staff, teamCoach, teamName, teamL
                   return (
                     <div 
                       key={note.id} 
-                      className={`p-4 bg-slate-900 border rounded-xl flex flex-col justify-between gap-3.5 transition-all ${
-                        isEditing ? 'border-amber-400 shadow-sm shadow-amber-400/5' : 'border-slate-800 hover:border-slate-750'
+                      className={`flex flex-col justify-between gap-3.5 rounded-xl border bg-[#0b1726]/66 p-4 shadow-sm shadow-black/10 backdrop-blur-sm transition-all ${
+                        isEditing ? 'border-amber-400 shadow-sm shadow-amber-400/10' : 'border-cyan-300/10 hover:border-orange-300/30 hover:bg-orange-300/10'
                       }`}
                     >
                       {isEditing ? (

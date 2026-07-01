@@ -78,7 +78,7 @@ const CARD_TYPE_BADGE_VARIANTS: Record<CardType, React.ComponentProps<typeof Bad
   'Second Yellow': 'warning',
   'Straight Red': 'destructive'
 };
-const standingsCompactControlClass = 'h-8 rounded-md text-[10px] font-medium';
+const standingsCompactControlClass = 'h-8 rounded-md border-cyan-300/10 bg-[#0b1726]/85 text-[10px] font-medium text-slate-100 placeholder:text-slate-500 focus-visible:border-orange-300/50 focus-visible:ring-orange-300/20 data-[placeholder]:text-slate-300 [&>span]:text-slate-100';
 const standingsPanelControlClass = 'rounded-xl text-xs font-semibold';
 const standingsPanelInvalidClass = 'border-rose-300 focus-visible:ring-rose-500/25';
 
@@ -755,7 +755,7 @@ export default function StandingsView({
                   type="text"
                   value={tempLeagueName}
                   onChange={e => setTempLeagueName(e.target.value)}
-                  className="h-8 w-52 rounded-xl bg-white px-3 py-1.5 font-display text-xs font-bold text-slate-800"
+                  className="h-8 w-52 rounded-xl border-cyan-300/10 bg-[#0b1726]/85 px-3 py-1.5 font-display text-xs font-bold text-slate-100"
                   placeholder="Division Name"
                 />
                 <Button
@@ -778,8 +778,8 @@ export default function StandingsView({
               </div>
             ) : (
               <div className="flex items-center gap-2.5">
-                <h4 className="font-display font-bold text-xs text-slate-800 uppercase tracking-widest flex items-center gap-2">
-                  <Trophy size={16} className="text-indigo-600 animate-pulse" /> {teamInfo.league || "Regional Premier Division"} Standings
+                <h4 className="font-display font-bold text-xs text-slate-100 uppercase tracking-widest flex items-center gap-2">
+                  <Trophy size={16} className="text-orange-300 animate-pulse" /> {teamInfo.league || "Regional Premier Division"} Standings
                 </h4>
                 <Button
                   type="button"
@@ -789,7 +789,7 @@ export default function StandingsView({
                   }}
                   variant="ghost"
                   size="icon"
-                  className="size-7 text-slate-400 hover:bg-indigo-50 hover:text-indigo-700"
+                  className="size-7 text-slate-300 hover:bg-white/[0.07] hover:text-white"
                   title="Edit League Name"
                   aria-label="Edit league name"
                 >
@@ -799,7 +799,7 @@ export default function StandingsView({
             )}
           </div>
           
-          <span className="text-[10px] font-black uppercase py-1 px-2.5 bg-slate-200 text-slate-700 rounded-lg font-mono tracking-wider w-max">
+          <span className="text-[10px] font-black uppercase py-1 px-2.5 rounded-lg border border-cyan-300/10 bg-[#0b1726]/78 text-slate-100 font-mono tracking-wider w-max">
             Season {teamInfo.founded || "2026"}
           </span>
         </div>
@@ -854,8 +854,8 @@ export default function StandingsView({
                           : ''
                       } ${
                         isUser 
-                          ? 'bg-blue-50/50 font-semibold hover:bg-blue-50' 
-                          : 'hover:bg-slate-50/50 text-slate-600'
+                          ? 'bg-white/[0.09] font-semibold text-slate-100 hover:bg-white/[0.14]' 
+                          : 'text-slate-300 hover:bg-white/[0.055]'
                       }`}
                     >
                       {/* Rank cell */}
@@ -870,7 +870,7 @@ export default function StandingsView({
                       </td>
 
                       {/* Team Name Cell */}
-                      <td id={`standing-team-${team.rank}-name`} className="py-3.5 px-4 font-medium text-slate-800 text-sm">
+                      <td id={`standing-team-${team.rank}-name`} className="py-3.5 px-4 font-medium text-slate-100 text-sm">
                         {editingTeam === team.teamName ? (
                           <div>
                             <Input
@@ -901,7 +901,7 @@ export default function StandingsView({
                               </Badge>
                             )}
                             {isUser && (
-                              <Badge className="shrink-0 rounded border-transparent bg-indigo-600 px-1.5 py-0 text-[9px] text-white">
+                              <Badge className="shrink-0 rounded border border-orange-300/30 bg-orange-300/15 px-1.5 py-0 text-[9px] text-orange-100">
                                 My Team
                               </Badge>
                             )}
@@ -1027,7 +1027,7 @@ export default function StandingsView({
                             <FieldError id="edit-standing-ga-error" message={standingEditErrors.goalsAgainst} />
                           </td>
                           <td className="py-3.5 px-3 text-center font-bold font-mono">{previewGf - previewGa}</td>
-                          <td className="py-3.5 px-4 text-center font-display font-black text-sm text-indigo-750">{(previewWon * 3) + previewDrawn}</td>
+                          <td className="py-3.5 px-4 text-center font-display font-black text-sm text-slate-100">{(previewWon * 3) + previewDrawn}</td>
                         </>
                       ) : (
                         /* Display fields row */
@@ -1043,7 +1043,7 @@ export default function StandingsView({
                               {gd > 0 ? `+${gd}` : gd}
                             </span>
                           </td>
-                          <td id={`standing-points-${team.rank}`} className="py-3.5 px-4 font-display font-black text-center text-sm text-indigo-700">
+                          <td id={`standing-points-${team.rank}`} className="py-3.5 px-4 font-display font-black text-center text-sm text-slate-100">
                             {team.points}
                           </td>
                         </>
@@ -1070,7 +1070,7 @@ export default function StandingsView({
                                 onClick={() => startEdit(team)}
                                 variant="ghost"
                                 size="sm"
-                                className="h-8 px-2 text-[10px] font-bold text-indigo-700 hover:bg-indigo-50 hover:text-indigo-900"
+                                className="h-8 px-2 text-[10px] font-bold text-slate-100 hover:bg-white/[0.07] hover:text-white"
                               >
                                 <Edit size={11} /> Edit
                               </Button>
@@ -1126,7 +1126,7 @@ export default function StandingsView({
               <span className="text-slate-400 text-[10px] sm:text-[11px] mt-0.5">Goal Difference (GF - GA)</span>
             </div>
             <div className="flex flex-col border-s border-slate-200 pl-3">
-              <span className="font-bold text-indigo-700 font-mono">Pts</span>
+              <span className="font-bold text-slate-100 font-mono">Pts</span>
               <span className="text-slate-400 text-[10px] sm:text-[11px] mt-0.5">Points (Win=3, Draw=1, Loss=0)</span>
             </div>
           </div>
@@ -1439,9 +1439,9 @@ function DisciplinaryRecords({
           <p className="text-[11px] text-slate-500 mt-0.5">Log player offences and award Man of the Match honours</p>
         </div>
         <div className="flex items-center gap-2 text-[10px]">
-          <Badge variant="warning" className="rounded-full">Yellow {players.reduce((s, p) => s + (p.yellowCards || 0), 0)}</Badge>
-          <Badge variant="destructive" className="rounded-full">Red {players.reduce((s, p) => s + (p.redCards || 0), 0)}</Badge>
-          <Badge variant="warning" className="rounded-full border-amber-200 bg-amber-50 text-amber-700">
+          <Badge variant="warning" className="rounded-full border-amber-300/25 bg-amber-300/10 text-amber-100">Yellow {players.reduce((s, p) => s + (p.yellowCards || 0), 0)}</Badge>
+          <Badge variant="destructive" className="rounded-full border-rose-300/25 bg-rose-300/10 text-rose-100">Red {players.reduce((s, p) => s + (p.redCards || 0), 0)}</Badge>
+          <Badge variant="warning" className="rounded-full border-amber-300/25 bg-amber-300/10 text-amber-100">
             MVP {players.reduce((s, p) => s + (p.mvpAwards || 0), 0)}
           </Badge>
         </div>
@@ -1460,8 +1460,8 @@ function DisciplinaryRecords({
               <p className="text-[10px] text-slate-500">Log player offences - yellow & red cards</p>
             </div>
             <div className="flex items-center gap-1.5 text-[9px]">
-              <Badge variant="warning" className="rounded">Yellow {players.reduce((s, p) => s + (p.yellowCards || 0), 0)}</Badge>
-              <Badge variant="destructive" className="rounded">Red {players.reduce((s, p) => s + (p.redCards || 0), 0)}</Badge>
+              <Badge variant="warning" className="rounded border-amber-300/25 bg-amber-300/10 text-amber-100">Yellow {players.reduce((s, p) => s + (p.yellowCards || 0), 0)}</Badge>
+              <Badge variant="destructive" className="rounded border-rose-300/25 bg-rose-300/10 text-rose-100">Red {players.reduce((s, p) => s + (p.redCards || 0), 0)}</Badge>
             </div>
           </div>
 
@@ -1472,7 +1472,7 @@ function DisciplinaryRecords({
             </h4>
             <div className="grid grid-cols-2 gap-1.5 mb-2">
               <div>
-                <Label className="mb-0.5 block text-[8px] text-slate-400">Player *</Label>
+                <Label className="mb-0.5 block text-[8px] text-slate-300">Player *</Label>
                 <Select value={selectedPlayerId} onValueChange={setSelectedPlayerId}>
                   <SelectTrigger className={standingsCompactControlClass}>
                     <SelectValue placeholder="Select..." />
@@ -1483,11 +1483,11 @@ function DisciplinaryRecords({
                 </Select>
               </div>
               <div>
-                <Label className="mb-0.5 block text-[8px] text-slate-400">Date *</Label>
+                <Label className="mb-0.5 block text-[8px] text-slate-300">Date *</Label>
                 <Input type="date" value={offenseDate} onChange={e => setOffenseDate(e.target.value)} className={standingsCompactControlClass} />
               </div>
               <div>
-                <Label className="mb-0.5 block text-[8px] text-slate-400">Card *</Label>
+                <Label className="mb-0.5 block text-[8px] text-slate-300">Card *</Label>
                 <Select value={cardType} onValueChange={value => setCardType(parseCardType(value))}>
                   <SelectTrigger className={standingsCompactControlClass}>
                     <SelectValue />
@@ -1498,15 +1498,15 @@ function DisciplinaryRecords({
                 </Select>
               </div>
               <div>
-                <Label className="mb-0.5 block text-[8px] text-slate-400">Minute</Label>
+                <Label className="mb-0.5 block text-[8px] text-slate-300">Minute</Label>
                 <Input type="number" min="1" max="120" placeholder="67'" value={offenseMinute} onChange={e => setOffenseMinute(e.target.value)} className={standingsCompactControlClass} />
               </div>
               <div>
-                <Label className="mb-0.5 block text-[8px] text-slate-400">Opponent</Label>
+                <Label className="mb-0.5 block text-[8px] text-slate-300">Opponent</Label>
                 <Input type="text" placeholder="Metro Knights" value={opponent} onChange={e => setOpponent(e.target.value)} className={standingsCompactControlClass} />
               </div>
               <div>
-                <Label className="mb-0.5 block text-[8px] text-slate-400">Reason *</Label>
+                <Label className="mb-0.5 block text-[8px] text-slate-300">Reason *</Label>
                 <Input type="text" placeholder="Reckless tackle..." value={reason} onChange={e => setReason(e.target.value)} className={standingsCompactControlClass} />
               </div>
             </div>
@@ -1518,14 +1518,14 @@ function DisciplinaryRecords({
           {/* Player Card Tally */}
           {playersWithCards.length > 0 && (
             <div>
-              <h4 className="text-[9px] font-mono font-black uppercase tracking-wider text-slate-400 mb-1.5 flex items-center gap-1"><ClipboardList size={12} className="text-slate-500" /> Card Tally</h4>
+              <h4 className="text-[9px] font-mono font-black uppercase tracking-wider text-slate-300 mb-1.5 flex items-center gap-1"><ClipboardList size={12} className="text-orange-300" /> Card Tally</h4>
               <div className="grid grid-cols-2 gap-1.5">
                 {playersWithCards.map(p => (
-                  <div key={p.id} className="bg-slate-50 rounded-lg p-2 border border-slate-200 flex items-center justify-between">
-                    <div className="min-w-0 text-[9px] font-bold text-slate-700 truncate pr-1">{p.name}</div>
+                  <div key={p.id} className="bg-[#0b1726]/78 rounded-lg p-2 border border-cyan-300/10 flex items-center justify-between shadow-sm shadow-black/10">
+                    <div className="min-w-0 text-[9px] font-bold text-slate-100 truncate pr-1">{p.name}</div>
                     <div className="flex items-center gap-1 shrink-0">
-                      <Badge variant="warning" className="rounded px-1 py-0 text-[9px]">{p.yellowCards} Yellow</Badge>
-                      {p.redCards > 0 && (<Badge variant="destructive" className="rounded px-1 py-0 text-[9px]">{p.redCards} Red</Badge>)}
+                      <Badge variant="warning" className="rounded border-amber-300/25 bg-amber-300/10 px-1 py-0 text-[9px] text-amber-100">{p.yellowCards} Yellow</Badge>
+                      {p.redCards > 0 && (<Badge variant="destructive" className="rounded border-rose-300/25 bg-rose-300/10 px-1 py-0 text-[9px] text-rose-100">{p.redCards} Red</Badge>)}
                     </div>
                   </div>
                 ))}
@@ -1584,7 +1584,7 @@ function DisciplinaryRecords({
               </h3>
               <p className="text-[10px] text-slate-500">Award match MVP to standout performers</p>
             </div>
-            <Badge variant="warning" className="rounded">MVP {players.reduce((s, p) => s + (p.mvpAwards || 0), 0)} Total</Badge>
+            <Badge variant="warning" className="rounded border-amber-300/25 bg-amber-300/10 text-amber-100">MVP {players.reduce((s, p) => s + (p.mvpAwards || 0), 0)} Total</Badge>
           </div>
 
           {/* MVP Award Form */}
@@ -1594,7 +1594,7 @@ function DisciplinaryRecords({
             </h4>
             <div className="grid grid-cols-2 gap-1.5 mb-2">
               <div>
-                <Label className="mb-0.5 block text-[8px] text-slate-400">Player *</Label>
+                <Label className="mb-0.5 block text-[8px] text-slate-300">Player *</Label>
                 <Select value={mvpPlayerId} onValueChange={setMvpPlayerId}>
                   <SelectTrigger className={standingsCompactControlClass}>
                     <SelectValue placeholder="Select..." />
@@ -1605,15 +1605,15 @@ function DisciplinaryRecords({
                 </Select>
               </div>
               <div>
-                <Label className="mb-0.5 block text-[8px] text-slate-400">Date</Label>
+                <Label className="mb-0.5 block text-[8px] text-slate-300">Date</Label>
                 <Input type="date" value={mvpDate} onChange={e => setMvpDate(e.target.value)} className={standingsCompactControlClass} />
               </div>
               <div>
-                <Label className="mb-0.5 block text-[8px] text-slate-400">Opponent</Label>
+                <Label className="mb-0.5 block text-[8px] text-slate-300">Opponent</Label>
                 <Input type="text" placeholder="vs Metro Knights" value={mvpOpponent} onChange={e => setMvpOpponent(e.target.value)} className={standingsCompactControlClass} />
               </div>
               <div>
-                <Label className="mb-0.5 block text-[8px] text-slate-400">Note</Label>
+                <Label className="mb-0.5 block text-[8px] text-slate-300">Note</Label>
                 <Input type="text" placeholder="Hat-trick, clean sheet..." value={mvpNote} onChange={e => setMvpNote(e.target.value)} className={standingsCompactControlClass} />
               </div>
             </div>
@@ -1625,15 +1625,15 @@ function DisciplinaryRecords({
           {/* MVP Leaderboard */}
           {activePlayers.filter(p => (p.mvpAwards || 0) > 0).length > 0 && (
             <div>
-              <h4 className="text-[9px] font-mono font-black uppercase tracking-wider text-slate-400 mb-1.5 flex items-center gap-1"><Star size={12} className="text-amber-500" /> MVP Leaderboard</h4>
+              <h4 className="text-[9px] font-mono font-black uppercase tracking-wider text-slate-300 mb-1.5 flex items-center gap-1"><Star size={12} className="text-amber-300" /> MVP Leaderboard</h4>
               <div className="grid grid-cols-1 gap-1.5">
                 {[...activePlayers].filter(p => (p.mvpAwards || 0) > 0).sort((a,b) => (b.mvpAwards || 0) - (a.mvpAwards || 0)).slice(0, 8).map((p, idx) => (
-                  <div key={p.id} className="bg-slate-50 rounded-lg p-2 border border-slate-200 flex items-center justify-between">
+                  <div key={p.id} className="bg-[#0b1726]/78 rounded-lg p-2 border border-cyan-300/10 flex items-center justify-between shadow-sm shadow-black/10">
                     <div className="flex items-center gap-2 min-w-0">
-                      <span className="font-display font-black text-[10px] text-slate-300 w-4">{idx+1}</span>
-                      <span className="text-[9px] font-bold text-slate-700 truncate">{p.name}</span>
+                      <span className="font-display font-black text-[10px] text-orange-200 w-4">{idx+1}</span>
+                      <span className="text-[9px] font-bold text-slate-100 truncate">{p.name}</span>
                     </div>
-                    <Badge variant="warning" className="shrink-0 rounded px-1.5 py-0 text-[9px]">MVP {p.mvpAwards}</Badge>
+                    <Badge variant="warning" className="shrink-0 rounded border-amber-300/25 bg-amber-300/10 px-1.5 py-0 text-[9px] text-amber-100">MVP {p.mvpAwards}</Badge>
                   </div>
                 ))}
               </div>

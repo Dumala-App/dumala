@@ -4,7 +4,11 @@ import { useDialogAccessibility } from '../hooks/useDialogAccessibility';
 import { usePwaInstall } from '../hooks/usePwaInstall';
 import { Button } from './ui/button';
 
-export default function PwaInstallControl() {
+type PwaInstallControlProps = {
+  tone?: 'default' | 'darkGlass';
+};
+
+export default function PwaInstallControl({ tone = 'default' }: PwaInstallControlProps) {
   const {
     installMessage,
     isAppleMobile,
@@ -19,7 +23,11 @@ export default function PwaInstallControl() {
 
   if (isInstalled) {
     return (
-      <span className="inline-flex items-center gap-1 rounded-lg border border-sky-100 bg-sky-50 px-2.5 py-1 text-[10px] font-bold text-sky-700">
+      <span className={`inline-flex items-center gap-1 rounded-lg border px-2.5 py-1 text-[10px] font-bold ${
+        tone === 'darkGlass'
+          ? 'border-sky-300/20 bg-sky-300/10 text-sky-100'
+          : 'border-sky-100 bg-sky-50 text-sky-700'
+      }`}>
         <Smartphone size={10} /> Installed
       </span>
     );
@@ -32,7 +40,11 @@ export default function PwaInstallControl() {
         variant="outline"
         size="sm"
         onClick={requestInstall}
-        className="h-7 gap-1 rounded-lg border-blue-100 bg-blue-50 px-2.5 text-[10px] text-blue-700 hover:border-blue-200 hover:bg-blue-100 hover:text-blue-800 [&_svg]:size-3"
+        className={`h-7 gap-1 rounded-lg px-2.5 text-[10px] [&_svg]:size-3 ${
+          tone === 'darkGlass'
+            ? 'border-cyan-300/15 bg-[#0b1726]/85 text-slate-100 shadow-sm shadow-black/10 hover:border-orange-300/35 hover:bg-orange-300/10 hover:text-orange-100'
+            : 'border-blue-100 bg-blue-50 text-blue-700 hover:border-blue-200 hover:bg-blue-100 hover:text-blue-800'
+        }`}
       >
         <Download size={10} />
         Install Dumala
