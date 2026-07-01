@@ -46,6 +46,7 @@ import {
   resetManagedWorkspace,
   readWorkspaceSummaries,
   restoreBackupIntoActiveWorkspace,
+  setActiveWorkspaceId as persistActiveWorkspaceId,
   switchManagedWorkspace,
   touchWorkspaceSummary,
   type WorkspaceSummary
@@ -751,8 +752,9 @@ export default function App() {
   };
 
   const handleSignedOut = () => {
-    clearDumalaStorage();
-    setWorkspaces([]);
+    if (activeWorkspaceId) copyActiveKeysToWorkspace(activeWorkspaceId);
+    persistActiveWorkspaceId(null);
+    setWorkspaces(readWorkspaceSummaries());
     setActiveWorkspaceId(null);
     setIsOnboarded(false);
     setTeamInfo(null);
@@ -1081,14 +1083,14 @@ export default function App() {
 
   if (!isOnboarded || !teamInfo) {
     return (
-      <div className="min-h-screen bg-background text-foreground">
+      <div className="min-h-screen bg-[#020713] text-slate-100">
         <PwaStatusBanners />
         <div className="fixed right-4 top-4 z-40">
           <PwaInstallControl />
         </div>
         {storageWarningBanner && <div className="mx-auto max-w-3xl px-4 pt-4">{storageWarningBanner}</div>}
         {recoveryBanner && <div className="mx-auto max-w-3xl px-4 pt-4">{recoveryBanner}</div>}
-        <Suspense fallback={<div className="mx-auto max-w-3xl p-4"><ViewLoadingFallback label="onboarding" /></div>}>
+        <Suspense fallback={<div className="min-h-screen bg-[#020713] p-4 text-slate-100"><div className="mx-auto max-w-3xl"><ViewLoadingFallback label="onboarding" /></div></div>}>
           <ViewErrorBoundary viewName="Onboarding" resetKeys={['onboarding']}>
             <OnboardingView
               onComplete={handleCreateTeamWorkspace}

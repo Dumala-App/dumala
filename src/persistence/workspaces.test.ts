@@ -188,4 +188,21 @@ describe('managed workspaces', () => {
     expect(JSON.parse(storage.getItem(STORAGE_KEYS.teamInfo)!).name).toBe('Remote FC');
     expect(JSON.parse(storage.getItem(STORAGE_KEYS.staff)!)).toEqual([]);
   });
+
+  it('restores a saved cloud workspace when the active shell was cleared for sign-out', () => {
+    const storage = new MemoryStorage();
+    const first = activateCloudWorkspace(team('Cloud FC'), 'cloud-club-1', storage, '2026-06-30T00:00:00.000Z');
+    storage.setItem(STORAGE_KEYS.players, JSON.stringify([{ id: 'cloud-player' }]));
+    copyActiveKeysToWorkspace(first.summary.id, storage);
+
+    storage.removeItem(STORAGE_KEYS.onboarded);
+    storage.removeItem(STORAGE_KEYS.teamInfo);
+    storage.removeItem(STORAGE_KEYS.players);
+
+    activateCloudWorkspace(team('Cloud FC'), 'cloud-club-1', storage, '2026-07-01T00:00:00.000Z');
+
+    expect(getActiveWorkspaceId(storage)).toBe(first.summary.id);
+    expect(JSON.parse(storage.getItem(STORAGE_KEYS.teamInfo)!).name).toBe('Cloud FC');
+    expect(JSON.parse(storage.getItem(STORAGE_KEYS.players)!)).toEqual([{ id: 'cloud-player' }]);
+  });
 });

@@ -315,6 +315,12 @@ export const switchManagedWorkspace = (
     throw new Error('The selected team workspace could not be found.');
   }
 
+  if (currentWorkspaceId === nextWorkspaceId) {
+    setActiveWorkspaceId(nextWorkspaceId, storage);
+    copyWorkspaceToActiveKeys(nextWorkspaceId, storage);
+    return;
+  }
+
   if (currentWorkspaceId) copyActiveKeysToWorkspace(currentWorkspaceId, storage);
   setActiveWorkspaceId(nextWorkspaceId, storage);
   copyWorkspaceToActiveKeys(nextWorkspaceId, storage);
