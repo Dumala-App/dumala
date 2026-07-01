@@ -1,0 +1,3680 @@
+{
+  "format": "dumala-workspace",
+  "version": 4,
+  "exportedAt": "2026-07-01T00:00:00.000Z",
+  "core": {
+    "teamInfo": {
+      "name": "France 2026",
+      "founded": "1919",
+      "stadium": "Stade de France",
+      "coach": "Didier Deschamps",
+      "league": "World Championship 2026 Preparation League",
+      "logoColor": "#1D4ED8",
+      "logoUrl": ""
+    },
+    "players": [
+      {
+        "id": "fra-maignan",
+        "name": "Mike Maignan",
+        "number": 16,
+        "position": "Goalkeeper",
+        "bio": "Goalkeeper in the France 2026 squad profile with a clear role in a fast, flexible 4-2-3-1 model.",
+        "photoUrl": "/placeholders/goalkeeper-placeholder.png",
+        "age": 31,
+        "height": 191,
+        "weight": 89,
+        "gamesPlayed": 4,
+        "points": 0,
+        "assists": 0,
+        "cleanSheetsOrRebounds": 1,
+        "minutesPlayed": 360,
+        "mvpAwards": 0,
+        "yellowCards": 0,
+        "redCards": 0,
+        "baseAttributes": {
+          "pace": 70,
+          "stamina": 82,
+          "agility": 88,
+          "strength": 86,
+          "firstTouch": 78,
+          "shortPassing": 80
+        },
+        "positionAttributes": {
+          "Reflexes": 91,
+          "Handling": 88,
+          "Diving": 90,
+          "Distribution": 84
+        },
+        "registrationStatus": "Active",
+        "specialtyTraits": [
+          "Sweeper keeper",
+          "Reflex saves"
+        ],
+        "coachNotes": "Keeps a high starting position so the back line can hold halfway.",
+        "dateOfBirth": "1995-01-10",
+        "fprdsRole": "GK",
+        "fprdsAgeGroupPreference": "Adult",
+        "fprdsLastAssessmentId": "assess-maignan-2026-06-24",
+        "offenses": [],
+        "mvpHistory": []
+      },
+      {
+        "id": "fra-kounde",
+        "name": "Jules Kounde",
+        "number": 5,
+        "position": "Defender",
+        "bio": "Defender in the France 2026 squad profile with a clear role in a fast, flexible 4-2-3-1 model.",
+        "photoUrl": "/placeholders/defender-placeholder.png",
+        "age": 27,
+        "height": 180,
+        "weight": 75,
+        "gamesPlayed": 4,
+        "points": 0,
+        "assists": 0,
+        "cleanSheetsOrRebounds": 1,
+        "minutesPlayed": 344,
+        "mvpAwards": 0,
+        "yellowCards": 0,
+        "redCards": 0,
+        "baseAttributes": {
+          "pace": 91,
+          "stamina": 91,
+          "agility": 87,
+          "strength": 82,
+          "firstTouch": 84,
+          "shortPassing": 83
+        },
+        "positionAttributes": {
+          "Tackling": 84,
+          "Defensive Heading": 78,
+          "Positioning": 83,
+          "Crossing": 88
+        },
+        "registrationStatus": "Active",
+        "specialtyTraits": [
+          "Recovery pace",
+          "Inverted fullback"
+        ],
+        "coachNotes": "Can tuck inside during buildup to form the second pivot.",
+        "dateOfBirth": "1999-02-11",
+        "fprdsRole": "FB",
+        "fprdsAgeGroupPreference": "Adult",
+        "fprdsLastAssessmentId": "assess-kounde-2026-06-24",
+        "offenses": [],
+        "mvpHistory": []
+      },
+      {
+        "id": "fra-saliba",
+        "name": "William Saliba",
+        "number": 17,
+        "position": "Defender",
+        "bio": "Defender in the France 2026 squad profile with a clear role in a fast, flexible 4-2-3-1 model.",
+        "photoUrl": "/placeholders/defender-placeholder.png",
+        "age": 25,
+        "height": 192,
+        "weight": 88,
+        "gamesPlayed": 4,
+        "points": 0,
+        "assists": 0,
+        "cleanSheetsOrRebounds": 1,
+        "minutesPlayed": 360,
+        "mvpAwards": 1,
+        "yellowCards": 0,
+        "redCards": 0,
+        "baseAttributes": {
+          "pace": 84,
+          "stamina": 86,
+          "agility": 80,
+          "strength": 89,
+          "firstTouch": 82,
+          "shortPassing": 84
+        },
+        "positionAttributes": {
+          "Tackling": 89,
+          "Defensive Heading": 88,
+          "Positioning": 89,
+          "Crossing": 70
+        },
+        "registrationStatus": "Active",
+        "specialtyTraits": [
+          "Calm carrier",
+          "Duel control"
+        ],
+        "coachNotes": "Primary rest-defense organizer against direct counters.",
+        "dateOfBirth": "2001-03-12",
+        "fprdsRole": "CB",
+        "fprdsAgeGroupPreference": "Adult",
+        "fprdsLastAssessmentId": "assess-saliba-2026-06-24",
+        "offenses": [],
+        "mvpHistory": []
+      },
+      {
+        "id": "fra-upamecano",
+        "name": "Dayot Upamecano",
+        "number": 4,
+        "position": "Defender",
+        "bio": "Defender in the France 2026 squad profile with a clear role in a fast, flexible 4-2-3-1 model.",
+        "photoUrl": "/placeholders/defender-placeholder.png",
+        "age": 27,
+        "height": 186,
+        "weight": 90,
+        "gamesPlayed": 3,
+        "points": 0,
+        "assists": 0,
+        "cleanSheetsOrRebounds": 0,
+        "minutesPlayed": 258,
+        "mvpAwards": 0,
+        "yellowCards": 1,
+        "redCards": 0,
+        "baseAttributes": {
+          "pace": 84,
+          "stamina": 86,
+          "agility": 80,
+          "strength": 89,
+          "firstTouch": 82,
+          "shortPassing": 84
+        },
+        "positionAttributes": {
+          "Tackling": 89,
+          "Defensive Heading": 88,
+          "Positioning": 89,
+          "Crossing": 70
+        },
+        "registrationStatus": "Active",
+        "specialtyTraits": [
+          "Front-foot stopper",
+          "Aerial power"
+        ],
+        "coachNotes": "Step into midfield only when the six is covering the channel.",
+        "dateOfBirth": "1999-04-13",
+        "fprdsRole": "CB",
+        "fprdsAgeGroupPreference": "Adult",
+        "fprdsLastAssessmentId": "assess-upamecano-2026-06-24",
+        "offenses": [
+          {
+            "id": "offense-fra-upamecano-belgium",
+            "gameId": "match-france-belgium-2026-06-20",
+            "gameOpponent": "Belgium",
+            "date": "2026-06-20",
+            "cardType": "Yellow",
+            "reason": "Stopping a counterattack",
+            "matchMinute": 54
+          }
+        ],
+        "mvpHistory": []
+      },
+      {
+        "id": "fra-theo-hernandez",
+        "name": "Theo Hernandez",
+        "number": 22,
+        "position": "Defender",
+        "bio": "Defender in the France 2026 squad profile with a clear role in a fast, flexible 4-2-3-1 model.",
+        "photoUrl": "/placeholders/defender-placeholder.png",
+        "age": 28,
+        "height": 184,
+        "weight": 81,
+        "gamesPlayed": 4,
+        "points": 0,
+        "assists": 0,
+        "cleanSheetsOrRebounds": 1,
+        "minutesPlayed": 328,
+        "mvpAwards": 0,
+        "yellowCards": 0,
+        "redCards": 0,
+        "baseAttributes": {
+          "pace": 91,
+          "stamina": 91,
+          "agility": 87,
+          "strength": 82,
+          "firstTouch": 84,
+          "shortPassing": 83
+        },
+        "positionAttributes": {
+          "Tackling": 84,
+          "Defensive Heading": 78,
+          "Positioning": 83,
+          "Crossing": 88
+        },
+        "registrationStatus": "Active",
+        "specialtyTraits": [
+          "Explosive overlap",
+          "Left-side carry"
+        ],
+        "coachNotes": "Create the wide lane when the left winger comes inside.",
+        "dateOfBirth": "1998-05-14",
+        "fprdsRole": "FB",
+        "fprdsAgeGroupPreference": "Adult",
+        "fprdsLastAssessmentId": "assess-theo-hernandez-2026-06-24",
+        "offenses": [],
+        "mvpHistory": []
+      },
+      {
+        "id": "fra-tchouameni",
+        "name": "Aurelien Tchouameni",
+        "number": 8,
+        "position": "Midfielder",
+        "bio": "Midfielder in the France 2026 squad profile with a clear role in a fast, flexible 4-2-3-1 model.",
+        "photoUrl": "/placeholders/midfielder-placeholder.png",
+        "age": 26,
+        "height": 188,
+        "weight": 83,
+        "gamesPlayed": 4,
+        "points": 1,
+        "assists": 0,
+        "cleanSheetsOrRebounds": 0,
+        "minutesPlayed": 352,
+        "mvpAwards": 1,
+        "yellowCards": 0,
+        "redCards": 0,
+        "baseAttributes": {
+          "pace": 82,
+          "stamina": 91,
+          "agility": 84,
+          "strength": 88,
+          "firstTouch": 88,
+          "shortPassing": 91
+        },
+        "positionAttributes": {
+          "Tackling": 89,
+          "Defensive Heading": 82,
+          "Positioning": 91,
+          "Pressing": 90
+        },
+        "registrationStatus": "Active",
+        "specialtyTraits": [
+          "Screening",
+          "Long switch"
+        ],
+        "coachNotes": "Anchor the counter-press and protect the center-backs.",
+        "dateOfBirth": "2000-06-15",
+        "fprdsRole": "CDM",
+        "fprdsAgeGroupPreference": "Adult",
+        "fprdsLastAssessmentId": "assess-tchouameni-2026-06-24",
+        "offenses": [],
+        "mvpHistory": []
+      },
+      {
+        "id": "fra-camavinga",
+        "name": "Eduardo Camavinga",
+        "number": 6,
+        "position": "Midfielder",
+        "bio": "Midfielder in the France 2026 squad profile with a clear role in a fast, flexible 4-2-3-1 model.",
+        "photoUrl": "/placeholders/midfielder-placeholder.png",
+        "age": 23,
+        "height": 182,
+        "weight": 76,
+        "gamesPlayed": 4,
+        "points": 0,
+        "assists": 0,
+        "cleanSheetsOrRebounds": 0,
+        "minutesPlayed": 296,
+        "mvpAwards": 0,
+        "yellowCards": 1,
+        "redCards": 0,
+        "baseAttributes": {
+          "pace": 84,
+          "stamina": 90,
+          "agility": 89,
+          "strength": 82,
+          "firstTouch": 91,
+          "shortPassing": 92
+        },
+        "positionAttributes": {
+          "Long Passing": 91,
+          "Vision": 90,
+          "Ball Retention": 90,
+          "Pressing": 86
+        },
+        "registrationStatus": "Active",
+        "specialtyTraits": [
+          "Press resistance",
+          "Ball winning"
+        ],
+        "coachNotes": "Use as tempo disruptor when opponents build through midfield.",
+        "dateOfBirth": "2003-07-16",
+        "fprdsRole": "CM",
+        "fprdsAgeGroupPreference": "Adult",
+        "fprdsLastAssessmentId": "assess-camavinga-2026-06-24",
+        "offenses": [],
+        "mvpHistory": []
+      },
+      {
+        "id": "fra-zaire-emery",
+        "name": "Warren Zaire-Emery",
+        "number": 18,
+        "position": "Midfielder",
+        "bio": "Midfielder in the France 2026 squad profile with a clear role in a fast, flexible 4-2-3-1 model.",
+        "photoUrl": "/placeholders/midfielder-placeholder.png",
+        "age": 20,
+        "height": 178,
+        "weight": 74,
+        "gamesPlayed": 3,
+        "points": 0,
+        "assists": 0,
+        "cleanSheetsOrRebounds": 0,
+        "minutesPlayed": 174,
+        "mvpAwards": 0,
+        "yellowCards": 0,
+        "redCards": 0,
+        "baseAttributes": {
+          "pace": 84,
+          "stamina": 90,
+          "agility": 89,
+          "strength": 82,
+          "firstTouch": 91,
+          "shortPassing": 92
+        },
+        "positionAttributes": {
+          "Long Passing": 91,
+          "Vision": 90,
+          "Ball Retention": 90,
+          "Pressing": 86
+        },
+        "registrationStatus": "Active",
+        "specialtyTraits": [
+          "Box-to-box engine",
+          "Combination play"
+        ],
+        "coachNotes": "Arrive late around the box after the first wide overload.",
+        "dateOfBirth": "2006-08-17",
+        "fprdsRole": "CM",
+        "fprdsAgeGroupPreference": "Adult",
+        "fprdsLastAssessmentId": "assess-zaire-emery-2026-06-24",
+        "offenses": [],
+        "mvpHistory": []
+      },
+      {
+        "id": "fra-griezmann",
+        "name": "Antoine Griezmann",
+        "number": 7,
+        "position": "Forward",
+        "bio": "Forward in the France 2026 squad profile with a clear role in a fast, flexible 4-2-3-1 model.",
+        "photoUrl": "/placeholders/forward-placeholder.png",
+        "age": 35,
+        "height": 176,
+        "weight": 73,
+        "gamesPlayed": 3,
+        "points": 1,
+        "assists": 0,
+        "cleanSheetsOrRebounds": 0,
+        "minutesPlayed": 216,
+        "mvpAwards": 0,
+        "yellowCards": 0,
+        "redCards": 0,
+        "baseAttributes": {
+          "pace": 84,
+          "stamina": 90,
+          "agility": 89,
+          "strength": 82,
+          "firstTouch": 91,
+          "shortPassing": 92
+        },
+        "positionAttributes": {
+          "Long Passing": 91,
+          "Vision": 90,
+          "Ball Retention": 90,
+          "Pressing": 86
+        },
+        "registrationStatus": "Active",
+        "specialtyTraits": [
+          "Between-lines creator",
+          "Set pieces"
+        ],
+        "coachNotes": "Free role in the right half-space; manage minutes after 65.",
+        "dateOfBirth": "1991-09-18",
+        "fprdsRole": "CM",
+        "fprdsAgeGroupPreference": "Adult",
+        "fprdsLastAssessmentId": "assess-griezmann-2026-06-24",
+        "offenses": [],
+        "mvpHistory": []
+      },
+      {
+        "id": "fra-mbappe",
+        "name": "Kylian Mbappe",
+        "number": 10,
+        "position": "Forward",
+        "bio": "Forward in the France 2026 squad profile with a clear role in a fast, flexible 4-2-3-1 model.",
+        "photoUrl": "/placeholders/forward-placeholder.png",
+        "age": 27,
+        "height": 178,
+        "weight": 75,
+        "gamesPlayed": 4,
+        "points": 4,
+        "assists": 0,
+        "cleanSheetsOrRebounds": 0,
+        "minutesPlayed": 352,
+        "mvpAwards": 1,
+        "yellowCards": 0,
+        "redCards": 0,
+        "baseAttributes": {
+          "pace": 95,
+          "stamina": 87,
+          "agility": 92,
+          "strength": 84,
+          "firstTouch": 91,
+          "shortPassing": 84
+        },
+        "positionAttributes": {
+          "Finishing": 94,
+          "Shot Power": 91,
+          "Offensive 1v1": 93,
+          "Attacking Heading": 82
+        },
+        "registrationStatus": "Active",
+        "specialtyTraits": [
+          "Elite acceleration",
+          "Clinical finisher"
+        ],
+        "coachNotes": "Attack the blind side of the right center-back in transition.",
+        "dateOfBirth": "1999-01-19",
+        "fprdsRole": "ST",
+        "fprdsAgeGroupPreference": "Adult",
+        "fprdsLastAssessmentId": "assess-mbappe-2026-06-24",
+        "offenses": [],
+        "mvpHistory": [
+          {
+            "id": "mvp-mbappe-netherlands",
+            "date": "2026-06-16",
+            "opponent": "Netherlands",
+            "note": "Two goals and constant threat behind the line."
+          }
+        ]
+      },
+      {
+        "id": "fra-dembele",
+        "name": "Ousmane Dembele",
+        "number": 11,
+        "position": "Forward",
+        "bio": "Forward in the France 2026 squad profile with a clear role in a fast, flexible 4-2-3-1 model.",
+        "photoUrl": "/placeholders/forward-placeholder.png",
+        "age": 29,
+        "height": 178,
+        "weight": 67,
+        "gamesPlayed": 4,
+        "points": 1,
+        "assists": 0,
+        "cleanSheetsOrRebounds": 0,
+        "minutesPlayed": 280,
+        "mvpAwards": 0,
+        "yellowCards": 0,
+        "redCards": 0,
+        "baseAttributes": {
+          "pace": 94,
+          "stamina": 88,
+          "agility": 93,
+          "strength": 78,
+          "firstTouch": 90,
+          "shortPassing": 86
+        },
+        "positionAttributes": {
+          "Crossing": 88,
+          "Offensive 1v1": 92,
+          "Long Passing": 82,
+          "Finishing": 85
+        },
+        "registrationStatus": "Active",
+        "specialtyTraits": [
+          "Two-footed winger",
+          "1v1 isolation"
+        ],
+        "coachNotes": "Hold width early, then attack the far-post lane after switches.",
+        "dateOfBirth": "1997-02-20",
+        "fprdsRole": "W",
+        "fprdsAgeGroupPreference": "Adult",
+        "fprdsLastAssessmentId": "assess-dembele-2026-06-24",
+        "offenses": [],
+        "mvpHistory": []
+      },
+      {
+        "id": "fra-kolo-muani",
+        "name": "Randal Kolo Muani",
+        "number": 12,
+        "position": "Forward",
+        "bio": "Forward in the France 2026 squad profile with a clear role in a fast, flexible 4-2-3-1 model.",
+        "photoUrl": "/placeholders/forward-placeholder.png",
+        "age": 27,
+        "height": 187,
+        "weight": 80,
+        "gamesPlayed": 3,
+        "points": 0,
+        "assists": 0,
+        "cleanSheetsOrRebounds": 0,
+        "minutesPlayed": 84,
+        "mvpAwards": 0,
+        "yellowCards": 0,
+        "redCards": 0,
+        "baseAttributes": {
+          "pace": 95,
+          "stamina": 87,
+          "agility": 92,
+          "strength": 84,
+          "firstTouch": 91,
+          "shortPassing": 84
+        },
+        "positionAttributes": {
+          "Finishing": 94,
+          "Shot Power": 91,
+          "Offensive 1v1": 93,
+          "Attacking Heading": 82
+        },
+        "registrationStatus": "Active",
+        "specialtyTraits": [
+          "Channel running",
+          "Pressing forward"
+        ],
+        "coachNotes": "Best impact option when chasing second balls.",
+        "dateOfBirth": "1999-03-21",
+        "fprdsRole": "ST",
+        "fprdsAgeGroupPreference": "Adult",
+        "fprdsLastAssessmentId": "assess-kolo-muani-2026-06-24",
+        "offenses": [],
+        "mvpHistory": []
+      },
+      {
+        "id": "fra-olise",
+        "name": "Michael Olise",
+        "number": 20,
+        "position": "Forward",
+        "bio": "Forward in the France 2026 squad profile with a clear role in a fast, flexible 4-2-3-1 model.",
+        "photoUrl": "/placeholders/forward-placeholder.png",
+        "age": 24,
+        "height": 184,
+        "weight": 76,
+        "gamesPlayed": 3,
+        "points": 1,
+        "assists": 0,
+        "cleanSheetsOrRebounds": 0,
+        "minutesPlayed": 138,
+        "mvpAwards": 1,
+        "yellowCards": 0,
+        "redCards": 0,
+        "baseAttributes": {
+          "pace": 94,
+          "stamina": 88,
+          "agility": 93,
+          "strength": 78,
+          "firstTouch": 90,
+          "shortPassing": 86
+        },
+        "positionAttributes": {
+          "Crossing": 88,
+          "Offensive 1v1": 92,
+          "Long Passing": 82,
+          "Finishing": 85
+        },
+        "registrationStatus": "Active",
+        "specialtyTraits": [
+          "Left-foot delivery",
+          "Final pass"
+        ],
+        "coachNotes": "Use as right-sided creator against compact blocks.",
+        "dateOfBirth": "2002-04-22",
+        "fprdsRole": "W",
+        "fprdsAgeGroupPreference": "Adult",
+        "fprdsLastAssessmentId": "assess-olise-2026-06-24",
+        "offenses": [],
+        "mvpHistory": []
+      },
+      {
+        "id": "fra-konate",
+        "name": "Ibrahima Konate",
+        "number": 15,
+        "position": "Defender",
+        "bio": "Defender in the France 2026 squad profile with a clear role in a fast, flexible 4-2-3-1 model.",
+        "photoUrl": "/placeholders/defender-placeholder.png",
+        "age": 27,
+        "height": 194,
+        "weight": 95,
+        "gamesPlayed": 2,
+        "points": 0,
+        "assists": 0,
+        "cleanSheetsOrRebounds": 1,
+        "minutesPlayed": 72,
+        "mvpAwards": 0,
+        "yellowCards": 0,
+        "redCards": 0,
+        "baseAttributes": {
+          "pace": 84,
+          "stamina": 86,
+          "agility": 80,
+          "strength": 89,
+          "firstTouch": 82,
+          "shortPassing": 84
+        },
+        "positionAttributes": {
+          "Tackling": 89,
+          "Defensive Heading": 88,
+          "Positioning": 89,
+          "Crossing": 70
+        },
+        "registrationStatus": "Active",
+        "specialtyTraits": [
+          "Aerial dominance",
+          "Recovery strength"
+        ],
+        "coachNotes": "Rotate in when opponent uses a target striker.",
+        "dateOfBirth": "1999-05-23",
+        "fprdsRole": "CB",
+        "fprdsAgeGroupPreference": "Adult",
+        "fprdsLastAssessmentId": "assess-konate-2026-06-24",
+        "offenses": [],
+        "mvpHistory": []
+      },
+      {
+        "id": "fra-rabiot",
+        "name": "Adrien Rabiot",
+        "number": 14,
+        "position": "Midfielder",
+        "bio": "Midfielder in the France 2026 squad profile with a clear role in a fast, flexible 4-2-3-1 model.",
+        "photoUrl": "/placeholders/midfielder-placeholder.png",
+        "age": 31,
+        "height": 188,
+        "weight": 80,
+        "gamesPlayed": 3,
+        "points": 0,
+        "assists": 0,
+        "cleanSheetsOrRebounds": 0,
+        "minutesPlayed": 96,
+        "mvpAwards": 0,
+        "yellowCards": 1,
+        "redCards": 0,
+        "baseAttributes": {
+          "pace": 84,
+          "stamina": 90,
+          "agility": 89,
+          "strength": 82,
+          "firstTouch": 91,
+          "shortPassing": 92
+        },
+        "positionAttributes": {
+          "Long Passing": 91,
+          "Vision": 90,
+          "Ball Retention": 90,
+          "Pressing": 86
+        },
+        "registrationStatus": "Active",
+        "specialtyTraits": [
+          "Line-breaking runs",
+          "Defensive balance"
+        ],
+        "coachNotes": "Stabilize the left side when protecting a lead.",
+        "dateOfBirth": "1995-06-24",
+        "fprdsRole": "CM",
+        "fprdsAgeGroupPreference": "Adult",
+        "fprdsLastAssessmentId": "assess-rabiot-2026-06-24",
+        "offenses": [
+          {
+            "id": "offense-fra-rabiot-belgium",
+            "gameId": "match-france-belgium-2026-06-20",
+            "gameOpponent": "Belgium",
+            "date": "2026-06-20",
+            "cardType": "Yellow",
+            "reason": "Stopping a counterattack",
+            "matchMinute": 72
+          }
+        ],
+        "mvpHistory": []
+      }
+    ],
+    "staff": [
+      {
+        "id": "staff-deschamps",
+        "name": "Didier Deschamps",
+        "role": "Head Coach",
+        "bio": "Tournament manager focused on compact defending and explosive transition attacks.",
+        "photoUrl": "/placeholders/staff-placeholder.png",
+        "email": "coach@france2026.example",
+        "phone": "+33 1 00 00 2026",
+        "since": "2012",
+        "status": "Active"
+      },
+      {
+        "id": "staff-boghossian",
+        "name": "Alain Boghossian",
+        "role": "Assistant Coach",
+        "bio": "Supports match preparation, midfield balance, and substitution planning.",
+        "photoUrl": "/placeholders/staff-placeholder.png",
+        "since": "2018",
+        "status": "Active"
+      },
+      {
+        "id": "staff-raviot",
+        "name": "Franck Raviot",
+        "role": "Goalkeeper Coach",
+        "bio": "Leads goalkeeper distribution, box command, and penalty preparation.",
+        "photoUrl": "/placeholders/staff-placeholder.png",
+        "since": "2014",
+        "status": "Active"
+      },
+      {
+        "id": "staff-moreau",
+        "name": "Claire Moreau",
+        "role": "Performance Coach",
+        "bio": "Manages load, sprint exposure, and return-to-play checkpoints.",
+        "photoUrl": "/placeholders/staff-placeholder.png",
+        "since": "2024",
+        "status": "Active"
+      }
+    ],
+    "games": [
+      {
+        "id": "match-france-canada-2026-06-08",
+        "opponent": "Canada",
+        "date": "2026-06-08",
+        "time": "20:00",
+        "location": "MetLife Stadium",
+        "status": "Completed",
+        "type": "Friendly",
+        "ourScore": 2,
+        "opponentScore": 0,
+        "scorers": [
+          {
+            "playerId": "fra-mbappe",
+            "playerName": "Kylian Mbappe",
+            "count": 1
+          },
+          {
+            "playerId": "fra-olise",
+            "playerName": "Michael Olise",
+            "count": 1
+          }
+        ],
+        "creditedPlayerIds": [
+          "fra-maignan",
+          "fra-kounde",
+          "fra-saliba",
+          "fra-konate",
+          "fra-theo-hernandez",
+          "fra-tchouameni",
+          "fra-camavinga",
+          "fra-zaire-emery",
+          "fra-olise",
+          "fra-mbappe",
+          "fra-kolo-muani",
+          "fra-dembele",
+          "fra-rabiot"
+        ],
+        "mvpId": "fra-olise",
+        "notes": "Controlled tune-up with strong right-side combinations."
+      },
+      {
+        "id": "match-france-netherlands-2026-06-16",
+        "opponent": "Netherlands",
+        "date": "2026-06-16",
+        "time": "21:00",
+        "location": "BMO Field",
+        "status": "Completed",
+        "type": "League",
+        "ourScore": 3,
+        "opponentScore": 1,
+        "scorers": [
+          {
+            "playerId": "fra-mbappe",
+            "playerName": "Kylian Mbappe",
+            "count": 2
+          },
+          {
+            "playerId": "fra-griezmann",
+            "playerName": "Antoine Griezmann",
+            "count": 1
+          }
+        ],
+        "creditedPlayerIds": [
+          "fra-maignan",
+          "fra-kounde",
+          "fra-saliba",
+          "fra-upamecano",
+          "fra-theo-hernandez",
+          "fra-tchouameni",
+          "fra-camavinga",
+          "fra-zaire-emery",
+          "fra-griezmann",
+          "fra-dembele",
+          "fra-mbappe",
+          "fra-olise",
+          "fra-rabiot"
+        ],
+        "mvpId": "fra-mbappe",
+        "notes": "Fast starts behind the Dutch high line decided the match."
+      },
+      {
+        "id": "match-france-belgium-2026-06-20",
+        "opponent": "Belgium",
+        "date": "2026-06-20",
+        "time": "18:00",
+        "location": "Lincoln Financial Field",
+        "status": "Completed",
+        "type": "League",
+        "ourScore": 1,
+        "opponentScore": 1,
+        "scorers": [
+          {
+            "playerId": "fra-dembele",
+            "playerName": "Ousmane Dembele",
+            "count": 1
+          }
+        ],
+        "creditedPlayerIds": [
+          "fra-maignan",
+          "fra-kounde",
+          "fra-saliba",
+          "fra-upamecano",
+          "fra-theo-hernandez",
+          "fra-tchouameni",
+          "fra-camavinga",
+          "fra-griezmann",
+          "fra-dembele",
+          "fra-mbappe",
+          "fra-kolo-muani",
+          "fra-konate",
+          "fra-rabiot"
+        ],
+        "mvpId": "fra-saliba",
+        "notes": "Defensive shape held late pressure after conceding from a set piece."
+      },
+      {
+        "id": "match-france-croatia-2026-06-24",
+        "opponent": "Croatia",
+        "date": "2026-06-24",
+        "time": "19:30",
+        "location": "AT&T Stadium",
+        "status": "Completed",
+        "type": "Cup",
+        "ourScore": 2,
+        "opponentScore": 1,
+        "scorers": [
+          {
+            "playerId": "fra-mbappe",
+            "playerName": "Kylian Mbappe",
+            "count": 1
+          },
+          {
+            "playerId": "fra-tchouameni",
+            "playerName": "Aurelien Tchouameni",
+            "count": 1
+          }
+        ],
+        "creditedPlayerIds": [
+          "fra-maignan",
+          "fra-kounde",
+          "fra-saliba",
+          "fra-upamecano",
+          "fra-theo-hernandez",
+          "fra-tchouameni",
+          "fra-camavinga",
+          "fra-zaire-emery",
+          "fra-griezmann",
+          "fra-dembele",
+          "fra-mbappe",
+          "fra-kolo-muani",
+          "fra-olise"
+        ],
+        "mvpId": "fra-tchouameni",
+        "notes": "Midfield duel improved after switching Camavinga higher."
+      },
+      {
+        "id": "match-france-portugal-2026-07-05",
+        "opponent": "Portugal",
+        "date": "2026-07-05",
+        "time": "20:00",
+        "location": "SoFi Stadium",
+        "status": "Upcoming",
+        "type": "Cup",
+        "notes": "Prepare wide overload defense and second-ball cover."
+      },
+      {
+        "id": "training-france-transition-2026-07-02",
+        "opponent": "Transition rehearsal",
+        "date": "2026-07-02",
+        "time": "10:00",
+        "location": "Training Base Pitch 1",
+        "status": "Upcoming",
+        "type": "Training",
+        "notes": "Rehearse regain-to-through-ball actions and penalty routine."
+      }
+    ],
+    "standings": [
+      {
+        "rank": 1,
+        "teamName": "France",
+        "played": 4,
+        "won": 3,
+        "drawn": 1,
+        "lost": 0,
+        "goalsFor": 8,
+        "goalsAgainst": 3,
+        "points": 10,
+        "isUserTeam": true
+      },
+      {
+        "rank": 2,
+        "teamName": "Netherlands",
+        "played": 4,
+        "won": 2,
+        "drawn": 1,
+        "lost": 1,
+        "goalsFor": 7,
+        "goalsAgainst": 5,
+        "points": 7,
+        "isUserTeam": false
+      },
+      {
+        "rank": 3,
+        "teamName": "Belgium",
+        "played": 4,
+        "won": 1,
+        "drawn": 2,
+        "lost": 1,
+        "goalsFor": 5,
+        "goalsAgainst": 5,
+        "points": 5,
+        "isUserTeam": false
+      },
+      {
+        "rank": 4,
+        "teamName": "Croatia",
+        "played": 4,
+        "won": 1,
+        "drawn": 1,
+        "lost": 2,
+        "goalsFor": 4,
+        "goalsAgainst": 5,
+        "points": 4,
+        "isUserTeam": false
+      },
+      {
+        "rank": 5,
+        "teamName": "Canada",
+        "played": 4,
+        "won": 1,
+        "drawn": 0,
+        "lost": 3,
+        "goalsFor": 3,
+        "goalsAgainst": 7,
+        "points": 3,
+        "isUserTeam": false
+      },
+      {
+        "rank": 6,
+        "teamName": "Austria",
+        "played": 4,
+        "won": 0,
+        "drawn": 3,
+        "lost": 1,
+        "goalsFor": 4,
+        "goalsAgainst": 6,
+        "points": 3,
+        "isUserTeam": false
+      }
+    ],
+    "announcements": [
+      {
+        "id": "bulletin-portugal-preview",
+        "title": "Portugal quarter-final preview",
+        "content": "Portugal are expected to overload the left half-space. Training emphasis this week is compact rest defense, early switches to Dembele, and Mbappe runs between fullback and center-back.",
+        "date": "2026-07-01",
+        "category": "Matchday",
+        "author": "Didier Deschamps"
+      },
+      {
+        "id": "bulletin-recovery-block",
+        "title": "Recovery and sprint exposure block",
+        "content": "Starters complete pool recovery and mobility before a short acceleration exposure. Substitutes have a 45-minute high-intensity technical session.",
+        "date": "2026-06-25",
+        "category": "Training",
+        "author": "Claire Moreau"
+      },
+      {
+        "id": "bulletin-family-window",
+        "title": "Family visit window confirmed",
+        "content": "Family access is open after lunch on Friday. Players must return to the team hotel before the tactical briefing.",
+        "date": "2026-06-28",
+        "category": "Social",
+        "author": "Team Operations"
+      },
+      {
+        "id": "bulletin-load-alert",
+        "title": "Load management note",
+        "content": "Griezmann and Rabiot are on reduced external load until the final matchday-minus-two session. Medical review after each field session.",
+        "date": "2026-06-30",
+        "category": "Urgent",
+        "author": "Performance Staff"
+      }
+    ],
+    "assessments": [
+      {
+        "id": "assess-maignan-2026-05-24",
+        "playerId": "fra-maignan",
+        "assessmentDate": "2026-05-24",
+        "createdAt": "2026-05-24T09:00:00.000Z",
+        "assessmentType": "Quick",
+        "ageGroup": "Adult",
+        "role": "GK",
+        "rawResults": {
+          "role": "GK",
+          "assessmentType": "Quick",
+          "base": {
+            "sprint10mSeconds": 1.62,
+            "sprint30mSeconds": 3.82,
+            "yoyoMeters": 1680,
+            "illinoisSeconds": 14.4,
+            "broadJumpCm": 238,
+            "medicineBallThrowCm": 690,
+            "firstTouchSuccessesOutOf10": 8,
+            "shortPassingSuccessesOutOf10": 8
+          },
+          "roleSpecific": {
+            "gkReflexesSavesOutOf10": 9,
+            "gkHandlingCleanCatchesOutOf10": 8
+          }
+        },
+        "attributeScores": {
+          "pace": 70,
+          "stamina": 82,
+          "agility": 88,
+          "strength": 86,
+          "firstTouch": 78,
+          "shortPassing": 80,
+          "finishingBox": 68,
+          "shotPower": 76,
+          "offensive1v1": 72,
+          "attackingHeading": 70,
+          "longPassing": 78,
+          "visionPlaymaking": 78,
+          "ballRetention": 78,
+          "pressingInterceptions": 78,
+          "tackling": 70,
+          "defensiveHeading": 72,
+          "positioningClearances": 72,
+          "crossing": 70,
+          "reflexes": 91,
+          "handling": 88,
+          "divingReach": 90,
+          "distribution": 84
+        },
+        "ovr": 82,
+        "labels": {
+          "weakestAttributeId": "distribution",
+          "ovrTierLabel": "High Performance"
+        },
+        "deltas": {},
+        "coachNotes": "Baseline assessment before the tournament block."
+      },
+      {
+        "id": "assess-maignan-2026-06-24",
+        "playerId": "fra-maignan",
+        "assessmentDate": "2026-06-24",
+        "createdAt": "2026-06-24T09:00:00.000Z",
+        "assessmentType": "Full",
+        "ageGroup": "Adult",
+        "role": "GK",
+        "rawResults": {
+          "role": "GK",
+          "assessmentType": "Full",
+          "base": {
+            "sprint10mSeconds": 1.62,
+            "sprint30mSeconds": 3.82,
+            "yoyoMeters": 1680,
+            "illinoisSeconds": 14.4,
+            "broadJumpCm": 238,
+            "medicineBallThrowCm": 690,
+            "firstTouchSuccessesOutOf10": 8,
+            "shortPassingSuccessesOutOf10": 8
+          },
+          "roleSpecific": {
+            "gkReflexesSavesOutOf10": 9,
+            "gkHandlingCleanCatchesOutOf10": 8
+          }
+        },
+        "attributeScores": {
+          "pace": 72,
+          "stamina": 84,
+          "agility": 90,
+          "strength": 88,
+          "firstTouch": 80,
+          "shortPassing": 82,
+          "finishingBox": 68,
+          "shotPower": 76,
+          "offensive1v1": 72,
+          "attackingHeading": 70,
+          "longPassing": 78,
+          "visionPlaymaking": 78,
+          "ballRetention": 78,
+          "pressingInterceptions": 78,
+          "tackling": 70,
+          "defensiveHeading": 72,
+          "positioningClearances": 72,
+          "crossing": 70,
+          "reflexes": 91,
+          "handling": 88,
+          "divingReach": 90,
+          "distribution": 84
+        },
+        "ovr": 84,
+        "labels": {
+          "weakestAttributeId": "distribution",
+          "ovrTierLabel": "Elite"
+        },
+        "deltas": {
+          "previousSessionId": "assess-maignan-2026-05-24",
+          "ovrDelta": 2,
+          "attributeDeltas": {
+            "distribution": 2,
+            "stamina": 1
+          }
+        },
+        "coachNotes": "Improved transfer from training into match actions. Maintain the current four-week focus.",
+        "developmentPlan": {
+          "focusAttributeId": "distribution",
+          "priorityScore": 78,
+          "weeks": [
+            {
+              "weekNumber": 1,
+              "focus": "Technical primer",
+              "drillIds": [
+                "drill-first-touch-scan",
+                "drill-press-trigger"
+              ],
+              "notes": "Low fatigue repetitions with clean cues."
+            },
+            {
+              "weekNumber": 2,
+              "focus": "Game-speed repetition",
+              "drillIds": [
+                "drill-transition-wave",
+                "drill-channel-run"
+              ],
+              "notes": "Increase speed and decision pressure."
+            },
+            {
+              "weekNumber": 3,
+              "focus": "Opponent-specific transfer",
+              "drillIds": [
+                "drill-wide-overload",
+                "drill-rest-defense"
+              ],
+              "notes": "Connect individual focus to Portugal plan."
+            },
+            {
+              "weekNumber": 4,
+              "focus": "Retest and maintain",
+              "drillIds": [
+                "drill-fprds-retest"
+              ],
+              "notes": "Retest core metric and reduce volume before matchday."
+            }
+          ]
+        }
+      },
+      {
+        "id": "assess-kounde-2026-05-24",
+        "playerId": "fra-kounde",
+        "assessmentDate": "2026-05-24",
+        "createdAt": "2026-05-24T09:00:00.000Z",
+        "assessmentType": "Quick",
+        "ageGroup": "Adult",
+        "role": "FB",
+        "rawResults": {
+          "role": "FB",
+          "assessmentType": "Quick",
+          "base": {
+            "sprint10mSeconds": 1.64,
+            "sprint30mSeconds": 3.84,
+            "yoyoMeters": 1715,
+            "illinoisSeconds": 14.46,
+            "broadJumpCm": 239,
+            "medicineBallThrowCm": 698,
+            "firstTouchSuccessesOutOf10": 8,
+            "shortPassingSuccessesOutOf10": 8
+          },
+          "roleSpecific": {
+            "crossingSuccessesOutOf10": 8,
+            "tacklingWinsOutOf10": 8,
+            "recoveryRunsOutOf10": 9
+          }
+        },
+        "attributeScores": {
+          "pace": 91,
+          "stamina": 91,
+          "agility": 87,
+          "strength": 82,
+          "firstTouch": 84,
+          "shortPassing": 83,
+          "finishingBox": 68,
+          "shotPower": 76,
+          "offensive1v1": 72,
+          "attackingHeading": 70,
+          "longPassing": 78,
+          "visionPlaymaking": 78,
+          "ballRetention": 78,
+          "pressingInterceptions": 78,
+          "tackling": 88,
+          "defensiveHeading": 72,
+          "positioningClearances": 72,
+          "crossing": 88,
+          "reflexes": 40,
+          "handling": 40,
+          "divingReach": 40,
+          "distribution": 65
+        },
+        "ovr": 83,
+        "labels": {
+          "weakestAttributeId": "defensiveHeading",
+          "ovrTierLabel": "High Performance"
+        },
+        "deltas": {},
+        "coachNotes": "Baseline assessment before the tournament block."
+      },
+      {
+        "id": "assess-kounde-2026-06-24",
+        "playerId": "fra-kounde",
+        "assessmentDate": "2026-06-24",
+        "createdAt": "2026-06-24T09:00:00.000Z",
+        "assessmentType": "Full",
+        "ageGroup": "Adult",
+        "role": "FB",
+        "rawResults": {
+          "role": "FB",
+          "assessmentType": "Full",
+          "base": {
+            "sprint10mSeconds": 1.64,
+            "sprint30mSeconds": 3.84,
+            "yoyoMeters": 1715,
+            "illinoisSeconds": 14.46,
+            "broadJumpCm": 239,
+            "medicineBallThrowCm": 698,
+            "firstTouchSuccessesOutOf10": 8,
+            "shortPassingSuccessesOutOf10": 8
+          },
+          "roleSpecific": {
+            "crossingSuccessesOutOf10": 8,
+            "tacklingWinsOutOf10": 8,
+            "recoveryRunsOutOf10": 9
+          }
+        },
+        "attributeScores": {
+          "pace": 93,
+          "stamina": 93,
+          "agility": 89,
+          "strength": 84,
+          "firstTouch": 86,
+          "shortPassing": 85,
+          "finishingBox": 68,
+          "shotPower": 76,
+          "offensive1v1": 72,
+          "attackingHeading": 70,
+          "longPassing": 78,
+          "visionPlaymaking": 78,
+          "ballRetention": 78,
+          "pressingInterceptions": 78,
+          "tackling": 88,
+          "defensiveHeading": 72,
+          "positioningClearances": 72,
+          "crossing": 88,
+          "reflexes": 40,
+          "handling": 40,
+          "divingReach": 40,
+          "distribution": 65
+        },
+        "ovr": 85,
+        "labels": {
+          "weakestAttributeId": "defensiveHeading",
+          "ovrTierLabel": "Elite"
+        },
+        "deltas": {
+          "previousSessionId": "assess-kounde-2026-05-24",
+          "ovrDelta": 2,
+          "attributeDeltas": {
+            "defensiveHeading": 2,
+            "stamina": 1
+          }
+        },
+        "coachNotes": "Improved transfer from training into match actions. Maintain the current four-week focus.",
+        "developmentPlan": {
+          "focusAttributeId": "defensiveHeading",
+          "priorityScore": 77,
+          "weeks": [
+            {
+              "weekNumber": 1,
+              "focus": "Technical primer",
+              "drillIds": [
+                "drill-first-touch-scan",
+                "drill-press-trigger"
+              ],
+              "notes": "Low fatigue repetitions with clean cues."
+            },
+            {
+              "weekNumber": 2,
+              "focus": "Game-speed repetition",
+              "drillIds": [
+                "drill-transition-wave",
+                "drill-channel-run"
+              ],
+              "notes": "Increase speed and decision pressure."
+            },
+            {
+              "weekNumber": 3,
+              "focus": "Opponent-specific transfer",
+              "drillIds": [
+                "drill-wide-overload",
+                "drill-rest-defense"
+              ],
+              "notes": "Connect individual focus to Portugal plan."
+            },
+            {
+              "weekNumber": 4,
+              "focus": "Retest and maintain",
+              "drillIds": [
+                "drill-fprds-retest"
+              ],
+              "notes": "Retest core metric and reduce volume before matchday."
+            }
+          ]
+        }
+      },
+      {
+        "id": "assess-saliba-2026-05-24",
+        "playerId": "fra-saliba",
+        "assessmentDate": "2026-05-24",
+        "createdAt": "2026-05-24T09:00:00.000Z",
+        "assessmentType": "Quick",
+        "ageGroup": "Adult",
+        "role": "CB",
+        "rawResults": {
+          "role": "CB",
+          "assessmentType": "Quick",
+          "base": {
+            "sprint10mSeconds": 1.65,
+            "sprint30mSeconds": 3.86,
+            "yoyoMeters": 1750,
+            "illinoisSeconds": 14.52,
+            "broadJumpCm": 240,
+            "medicineBallThrowCm": 706,
+            "firstTouchSuccessesOutOf10": 8,
+            "shortPassingSuccessesOutOf10": 8
+          },
+          "roleSpecific": {
+            "tacklingWinsOutOf10": 8,
+            "defensiveHeadersWonOutOf8": 7,
+            "positioningErrorsOutOf10": 1
+          }
+        },
+        "attributeScores": {
+          "pace": 84,
+          "stamina": 86,
+          "agility": 80,
+          "strength": 89,
+          "firstTouch": 82,
+          "shortPassing": 84,
+          "finishingBox": 68,
+          "shotPower": 76,
+          "offensive1v1": 72,
+          "attackingHeading": 82,
+          "longPassing": 78,
+          "visionPlaymaking": 78,
+          "ballRetention": 78,
+          "pressingInterceptions": 90,
+          "tackling": 88,
+          "defensiveHeading": 88,
+          "positioningClearances": 89,
+          "crossing": 70,
+          "reflexes": 40,
+          "handling": 40,
+          "divingReach": 40,
+          "distribution": 65
+        },
+        "ovr": 84,
+        "labels": {
+          "weakestAttributeId": "agility",
+          "ovrTierLabel": "High Performance"
+        },
+        "deltas": {},
+        "coachNotes": "Baseline assessment before the tournament block."
+      },
+      {
+        "id": "assess-saliba-2026-06-24",
+        "playerId": "fra-saliba",
+        "assessmentDate": "2026-06-24",
+        "createdAt": "2026-06-24T09:00:00.000Z",
+        "assessmentType": "Full",
+        "ageGroup": "Adult",
+        "role": "CB",
+        "rawResults": {
+          "role": "CB",
+          "assessmentType": "Full",
+          "base": {
+            "sprint10mSeconds": 1.65,
+            "sprint30mSeconds": 3.86,
+            "yoyoMeters": 1750,
+            "illinoisSeconds": 14.52,
+            "broadJumpCm": 240,
+            "medicineBallThrowCm": 706,
+            "firstTouchSuccessesOutOf10": 8,
+            "shortPassingSuccessesOutOf10": 8
+          },
+          "roleSpecific": {
+            "tacklingWinsOutOf10": 8,
+            "defensiveHeadersWonOutOf8": 7,
+            "positioningErrorsOutOf10": 1
+          }
+        },
+        "attributeScores": {
+          "pace": 86,
+          "stamina": 88,
+          "agility": 82,
+          "strength": 91,
+          "firstTouch": 84,
+          "shortPassing": 86,
+          "finishingBox": 68,
+          "shotPower": 76,
+          "offensive1v1": 72,
+          "attackingHeading": 82,
+          "longPassing": 78,
+          "visionPlaymaking": 78,
+          "ballRetention": 78,
+          "pressingInterceptions": 90,
+          "tackling": 88,
+          "defensiveHeading": 88,
+          "positioningClearances": 89,
+          "crossing": 70,
+          "reflexes": 40,
+          "handling": 40,
+          "divingReach": 40,
+          "distribution": 65
+        },
+        "ovr": 86,
+        "labels": {
+          "weakestAttributeId": "agility",
+          "ovrTierLabel": "Elite"
+        },
+        "deltas": {
+          "previousSessionId": "assess-saliba-2026-05-24",
+          "ovrDelta": 2,
+          "attributeDeltas": {
+            "agility": 2,
+            "stamina": 1
+          }
+        },
+        "coachNotes": "Improved transfer from training into match actions. Maintain the current four-week focus.",
+        "developmentPlan": {
+          "focusAttributeId": "agility",
+          "priorityScore": 76,
+          "weeks": [
+            {
+              "weekNumber": 1,
+              "focus": "Technical primer",
+              "drillIds": [
+                "drill-first-touch-scan",
+                "drill-press-trigger"
+              ],
+              "notes": "Low fatigue repetitions with clean cues."
+            },
+            {
+              "weekNumber": 2,
+              "focus": "Game-speed repetition",
+              "drillIds": [
+                "drill-transition-wave",
+                "drill-channel-run"
+              ],
+              "notes": "Increase speed and decision pressure."
+            },
+            {
+              "weekNumber": 3,
+              "focus": "Opponent-specific transfer",
+              "drillIds": [
+                "drill-wide-overload",
+                "drill-rest-defense"
+              ],
+              "notes": "Connect individual focus to Portugal plan."
+            },
+            {
+              "weekNumber": 4,
+              "focus": "Retest and maintain",
+              "drillIds": [
+                "drill-fprds-retest"
+              ],
+              "notes": "Retest core metric and reduce volume before matchday."
+            }
+          ]
+        }
+      },
+      {
+        "id": "assess-upamecano-2026-05-24",
+        "playerId": "fra-upamecano",
+        "assessmentDate": "2026-05-24",
+        "createdAt": "2026-05-24T09:00:00.000Z",
+        "assessmentType": "Quick",
+        "ageGroup": "Adult",
+        "role": "CB",
+        "rawResults": {
+          "role": "CB",
+          "assessmentType": "Quick",
+          "base": {
+            "sprint10mSeconds": 1.67,
+            "sprint30mSeconds": 3.88,
+            "yoyoMeters": 1785,
+            "illinoisSeconds": 14.58,
+            "broadJumpCm": 241,
+            "medicineBallThrowCm": 714,
+            "firstTouchSuccessesOutOf10": 8,
+            "shortPassingSuccessesOutOf10": 8
+          },
+          "roleSpecific": {
+            "tacklingWinsOutOf10": 8,
+            "defensiveHeadersWonOutOf8": 7,
+            "positioningErrorsOutOf10": 1
+          }
+        },
+        "attributeScores": {
+          "pace": 84,
+          "stamina": 86,
+          "agility": 80,
+          "strength": 89,
+          "firstTouch": 82,
+          "shortPassing": 84,
+          "finishingBox": 68,
+          "shotPower": 76,
+          "offensive1v1": 72,
+          "attackingHeading": 82,
+          "longPassing": 78,
+          "visionPlaymaking": 78,
+          "ballRetention": 78,
+          "pressingInterceptions": 90,
+          "tackling": 88,
+          "defensiveHeading": 88,
+          "positioningClearances": 89,
+          "crossing": 70,
+          "reflexes": 40,
+          "handling": 40,
+          "divingReach": 40,
+          "distribution": 65
+        },
+        "ovr": 85,
+        "labels": {
+          "weakestAttributeId": "agility",
+          "ovrTierLabel": "High Performance"
+        },
+        "deltas": {},
+        "coachNotes": "Baseline assessment before the tournament block."
+      },
+      {
+        "id": "assess-upamecano-2026-06-24",
+        "playerId": "fra-upamecano",
+        "assessmentDate": "2026-06-24",
+        "createdAt": "2026-06-24T09:00:00.000Z",
+        "assessmentType": "Full",
+        "ageGroup": "Adult",
+        "role": "CB",
+        "rawResults": {
+          "role": "CB",
+          "assessmentType": "Full",
+          "base": {
+            "sprint10mSeconds": 1.67,
+            "sprint30mSeconds": 3.88,
+            "yoyoMeters": 1785,
+            "illinoisSeconds": 14.58,
+            "broadJumpCm": 241,
+            "medicineBallThrowCm": 714,
+            "firstTouchSuccessesOutOf10": 8,
+            "shortPassingSuccessesOutOf10": 8
+          },
+          "roleSpecific": {
+            "tacklingWinsOutOf10": 8,
+            "defensiveHeadersWonOutOf8": 7,
+            "positioningErrorsOutOf10": 1
+          }
+        },
+        "attributeScores": {
+          "pace": 86,
+          "stamina": 88,
+          "agility": 82,
+          "strength": 91,
+          "firstTouch": 84,
+          "shortPassing": 86,
+          "finishingBox": 68,
+          "shotPower": 76,
+          "offensive1v1": 72,
+          "attackingHeading": 82,
+          "longPassing": 78,
+          "visionPlaymaking": 78,
+          "ballRetention": 78,
+          "pressingInterceptions": 90,
+          "tackling": 88,
+          "defensiveHeading": 88,
+          "positioningClearances": 89,
+          "crossing": 70,
+          "reflexes": 40,
+          "handling": 40,
+          "divingReach": 40,
+          "distribution": 65
+        },
+        "ovr": 87,
+        "labels": {
+          "weakestAttributeId": "agility",
+          "ovrTierLabel": "Elite"
+        },
+        "deltas": {
+          "previousSessionId": "assess-upamecano-2026-05-24",
+          "ovrDelta": 2,
+          "attributeDeltas": {
+            "agility": 2,
+            "stamina": 1
+          }
+        },
+        "coachNotes": "Improved transfer from training into match actions. Maintain the current four-week focus.",
+        "developmentPlan": {
+          "focusAttributeId": "agility",
+          "priorityScore": 75,
+          "weeks": [
+            {
+              "weekNumber": 1,
+              "focus": "Technical primer",
+              "drillIds": [
+                "drill-first-touch-scan",
+                "drill-press-trigger"
+              ],
+              "notes": "Low fatigue repetitions with clean cues."
+            },
+            {
+              "weekNumber": 2,
+              "focus": "Game-speed repetition",
+              "drillIds": [
+                "drill-transition-wave",
+                "drill-channel-run"
+              ],
+              "notes": "Increase speed and decision pressure."
+            },
+            {
+              "weekNumber": 3,
+              "focus": "Opponent-specific transfer",
+              "drillIds": [
+                "drill-wide-overload",
+                "drill-rest-defense"
+              ],
+              "notes": "Connect individual focus to Portugal plan."
+            },
+            {
+              "weekNumber": 4,
+              "focus": "Retest and maintain",
+              "drillIds": [
+                "drill-fprds-retest"
+              ],
+              "notes": "Retest core metric and reduce volume before matchday."
+            }
+          ]
+        }
+      },
+      {
+        "id": "assess-theo-hernandez-2026-05-24",
+        "playerId": "fra-theo-hernandez",
+        "assessmentDate": "2026-05-24",
+        "createdAt": "2026-05-24T09:00:00.000Z",
+        "assessmentType": "Quick",
+        "ageGroup": "Adult",
+        "role": "FB",
+        "rawResults": {
+          "role": "FB",
+          "assessmentType": "Quick",
+          "base": {
+            "sprint10mSeconds": 1.68,
+            "sprint30mSeconds": 3.9,
+            "yoyoMeters": 1820,
+            "illinoisSeconds": 14.64,
+            "broadJumpCm": 242,
+            "medicineBallThrowCm": 722,
+            "firstTouchSuccessesOutOf10": 8,
+            "shortPassingSuccessesOutOf10": 8
+          },
+          "roleSpecific": {
+            "crossingSuccessesOutOf10": 8,
+            "tacklingWinsOutOf10": 8,
+            "recoveryRunsOutOf10": 9
+          }
+        },
+        "attributeScores": {
+          "pace": 91,
+          "stamina": 91,
+          "agility": 87,
+          "strength": 82,
+          "firstTouch": 84,
+          "shortPassing": 83,
+          "finishingBox": 68,
+          "shotPower": 76,
+          "offensive1v1": 72,
+          "attackingHeading": 70,
+          "longPassing": 78,
+          "visionPlaymaking": 78,
+          "ballRetention": 78,
+          "pressingInterceptions": 78,
+          "tackling": 88,
+          "defensiveHeading": 72,
+          "positioningClearances": 72,
+          "crossing": 88,
+          "reflexes": 40,
+          "handling": 40,
+          "divingReach": 40,
+          "distribution": 65
+        },
+        "ovr": 82,
+        "labels": {
+          "weakestAttributeId": "defensiveHeading",
+          "ovrTierLabel": "High Performance"
+        },
+        "deltas": {},
+        "coachNotes": "Baseline assessment before the tournament block."
+      },
+      {
+        "id": "assess-theo-hernandez-2026-06-24",
+        "playerId": "fra-theo-hernandez",
+        "assessmentDate": "2026-06-24",
+        "createdAt": "2026-06-24T09:00:00.000Z",
+        "assessmentType": "Full",
+        "ageGroup": "Adult",
+        "role": "FB",
+        "rawResults": {
+          "role": "FB",
+          "assessmentType": "Full",
+          "base": {
+            "sprint10mSeconds": 1.68,
+            "sprint30mSeconds": 3.9,
+            "yoyoMeters": 1820,
+            "illinoisSeconds": 14.64,
+            "broadJumpCm": 242,
+            "medicineBallThrowCm": 722,
+            "firstTouchSuccessesOutOf10": 8,
+            "shortPassingSuccessesOutOf10": 8
+          },
+          "roleSpecific": {
+            "crossingSuccessesOutOf10": 8,
+            "tacklingWinsOutOf10": 8,
+            "recoveryRunsOutOf10": 9
+          }
+        },
+        "attributeScores": {
+          "pace": 93,
+          "stamina": 93,
+          "agility": 89,
+          "strength": 84,
+          "firstTouch": 86,
+          "shortPassing": 85,
+          "finishingBox": 68,
+          "shotPower": 76,
+          "offensive1v1": 72,
+          "attackingHeading": 70,
+          "longPassing": 78,
+          "visionPlaymaking": 78,
+          "ballRetention": 78,
+          "pressingInterceptions": 78,
+          "tackling": 88,
+          "defensiveHeading": 72,
+          "positioningClearances": 72,
+          "crossing": 88,
+          "reflexes": 40,
+          "handling": 40,
+          "divingReach": 40,
+          "distribution": 65
+        },
+        "ovr": 84,
+        "labels": {
+          "weakestAttributeId": "defensiveHeading",
+          "ovrTierLabel": "Elite"
+        },
+        "deltas": {
+          "previousSessionId": "assess-theo-hernandez-2026-05-24",
+          "ovrDelta": 2,
+          "attributeDeltas": {
+            "defensiveHeading": 2,
+            "stamina": 1
+          }
+        },
+        "coachNotes": "Improved transfer from training into match actions. Maintain the current four-week focus.",
+        "developmentPlan": {
+          "focusAttributeId": "defensiveHeading",
+          "priorityScore": 74,
+          "weeks": [
+            {
+              "weekNumber": 1,
+              "focus": "Technical primer",
+              "drillIds": [
+                "drill-first-touch-scan",
+                "drill-press-trigger"
+              ],
+              "notes": "Low fatigue repetitions with clean cues."
+            },
+            {
+              "weekNumber": 2,
+              "focus": "Game-speed repetition",
+              "drillIds": [
+                "drill-transition-wave",
+                "drill-channel-run"
+              ],
+              "notes": "Increase speed and decision pressure."
+            },
+            {
+              "weekNumber": 3,
+              "focus": "Opponent-specific transfer",
+              "drillIds": [
+                "drill-wide-overload",
+                "drill-rest-defense"
+              ],
+              "notes": "Connect individual focus to Portugal plan."
+            },
+            {
+              "weekNumber": 4,
+              "focus": "Retest and maintain",
+              "drillIds": [
+                "drill-fprds-retest"
+              ],
+              "notes": "Retest core metric and reduce volume before matchday."
+            }
+          ]
+        }
+      },
+      {
+        "id": "assess-tchouameni-2026-05-24",
+        "playerId": "fra-tchouameni",
+        "assessmentDate": "2026-05-24",
+        "createdAt": "2026-05-24T09:00:00.000Z",
+        "assessmentType": "Quick",
+        "ageGroup": "Adult",
+        "role": "CDM",
+        "rawResults": {
+          "role": "CDM",
+          "assessmentType": "Quick",
+          "base": {
+            "sprint10mSeconds": 1.7,
+            "sprint30mSeconds": 3.92,
+            "yoyoMeters": 1855,
+            "illinoisSeconds": 14.7,
+            "broadJumpCm": 243,
+            "medicineBallThrowCm": 730,
+            "firstTouchSuccessesOutOf10": 8,
+            "shortPassingSuccessesOutOf10": 8
+          },
+          "roleSpecific": {
+            "interceptionsOutOf10": 9,
+            "longPassesCompletedOutOf10": 8,
+            "duelsWonOutOf10": 8
+          }
+        },
+        "attributeScores": {
+          "pace": 82,
+          "stamina": 91,
+          "agility": 84,
+          "strength": 88,
+          "firstTouch": 88,
+          "shortPassing": 91,
+          "finishingBox": 68,
+          "shotPower": 76,
+          "offensive1v1": 72,
+          "attackingHeading": 70,
+          "longPassing": 90,
+          "visionPlaymaking": 78,
+          "ballRetention": 90,
+          "pressingInterceptions": 90,
+          "tackling": 88,
+          "defensiveHeading": 72,
+          "positioningClearances": 89,
+          "crossing": 70,
+          "reflexes": 40,
+          "handling": 40,
+          "divingReach": 40,
+          "distribution": 65
+        },
+        "ovr": 83,
+        "labels": {
+          "weakestAttributeId": "firstTouch",
+          "ovrTierLabel": "High Performance"
+        },
+        "deltas": {},
+        "coachNotes": "Baseline assessment before the tournament block."
+      },
+      {
+        "id": "assess-tchouameni-2026-06-24",
+        "playerId": "fra-tchouameni",
+        "assessmentDate": "2026-06-24",
+        "createdAt": "2026-06-24T09:00:00.000Z",
+        "assessmentType": "Full",
+        "ageGroup": "Adult",
+        "role": "CDM",
+        "rawResults": {
+          "role": "CDM",
+          "assessmentType": "Full",
+          "base": {
+            "sprint10mSeconds": 1.7,
+            "sprint30mSeconds": 3.92,
+            "yoyoMeters": 1855,
+            "illinoisSeconds": 14.7,
+            "broadJumpCm": 243,
+            "medicineBallThrowCm": 730,
+            "firstTouchSuccessesOutOf10": 8,
+            "shortPassingSuccessesOutOf10": 8
+          },
+          "roleSpecific": {
+            "interceptionsOutOf10": 9,
+            "longPassesCompletedOutOf10": 8,
+            "duelsWonOutOf10": 8
+          }
+        },
+        "attributeScores": {
+          "pace": 84,
+          "stamina": 93,
+          "agility": 86,
+          "strength": 90,
+          "firstTouch": 90,
+          "shortPassing": 93,
+          "finishingBox": 68,
+          "shotPower": 76,
+          "offensive1v1": 72,
+          "attackingHeading": 70,
+          "longPassing": 90,
+          "visionPlaymaking": 78,
+          "ballRetention": 90,
+          "pressingInterceptions": 90,
+          "tackling": 88,
+          "defensiveHeading": 72,
+          "positioningClearances": 89,
+          "crossing": 70,
+          "reflexes": 40,
+          "handling": 40,
+          "divingReach": 40,
+          "distribution": 65
+        },
+        "ovr": 85,
+        "labels": {
+          "weakestAttributeId": "firstTouch",
+          "ovrTierLabel": "Elite"
+        },
+        "deltas": {
+          "previousSessionId": "assess-tchouameni-2026-05-24",
+          "ovrDelta": 2,
+          "attributeDeltas": {
+            "firstTouch": 2,
+            "stamina": 1
+          }
+        },
+        "coachNotes": "Improved transfer from training into match actions. Maintain the current four-week focus.",
+        "developmentPlan": {
+          "focusAttributeId": "firstTouch",
+          "priorityScore": 73,
+          "weeks": [
+            {
+              "weekNumber": 1,
+              "focus": "Technical primer",
+              "drillIds": [
+                "drill-first-touch-scan",
+                "drill-press-trigger"
+              ],
+              "notes": "Low fatigue repetitions with clean cues."
+            },
+            {
+              "weekNumber": 2,
+              "focus": "Game-speed repetition",
+              "drillIds": [
+                "drill-transition-wave",
+                "drill-channel-run"
+              ],
+              "notes": "Increase speed and decision pressure."
+            },
+            {
+              "weekNumber": 3,
+              "focus": "Opponent-specific transfer",
+              "drillIds": [
+                "drill-wide-overload",
+                "drill-rest-defense"
+              ],
+              "notes": "Connect individual focus to Portugal plan."
+            },
+            {
+              "weekNumber": 4,
+              "focus": "Retest and maintain",
+              "drillIds": [
+                "drill-fprds-retest"
+              ],
+              "notes": "Retest core metric and reduce volume before matchday."
+            }
+          ]
+        }
+      },
+      {
+        "id": "assess-camavinga-2026-05-24",
+        "playerId": "fra-camavinga",
+        "assessmentDate": "2026-05-24",
+        "createdAt": "2026-05-24T09:00:00.000Z",
+        "assessmentType": "Quick",
+        "ageGroup": "Adult",
+        "role": "CM",
+        "rawResults": {
+          "role": "CM",
+          "assessmentType": "Quick",
+          "base": {
+            "sprint10mSeconds": 1.71,
+            "sprint30mSeconds": 3.94,
+            "yoyoMeters": 1890,
+            "illinoisSeconds": 14.76,
+            "broadJumpCm": 244,
+            "medicineBallThrowCm": 738,
+            "firstTouchSuccessesOutOf10": 8,
+            "shortPassingSuccessesOutOf10": 8
+          },
+          "roleSpecific": {
+            "longPassesCompletedOutOf10": 9,
+            "ballRetentionUnderPressureOutOf10": 9,
+            "pressingActionsOutOf10": 8
+          }
+        },
+        "attributeScores": {
+          "pace": 84,
+          "stamina": 90,
+          "agility": 89,
+          "strength": 82,
+          "firstTouch": 91,
+          "shortPassing": 92,
+          "finishingBox": 68,
+          "shotPower": 76,
+          "offensive1v1": 72,
+          "attackingHeading": 70,
+          "longPassing": 90,
+          "visionPlaymaking": 91,
+          "ballRetention": 90,
+          "pressingInterceptions": 78,
+          "tackling": 70,
+          "defensiveHeading": 72,
+          "positioningClearances": 72,
+          "crossing": 70,
+          "reflexes": 40,
+          "handling": 40,
+          "divingReach": 40,
+          "distribution": 65
+        },
+        "ovr": 84,
+        "labels": {
+          "weakestAttributeId": "strength",
+          "ovrTierLabel": "High Performance"
+        },
+        "deltas": {},
+        "coachNotes": "Baseline assessment before the tournament block."
+      },
+      {
+        "id": "assess-camavinga-2026-06-24",
+        "playerId": "fra-camavinga",
+        "assessmentDate": "2026-06-24",
+        "createdAt": "2026-06-24T09:00:00.000Z",
+        "assessmentType": "Full",
+        "ageGroup": "Adult",
+        "role": "CM",
+        "rawResults": {
+          "role": "CM",
+          "assessmentType": "Full",
+          "base": {
+            "sprint10mSeconds": 1.71,
+            "sprint30mSeconds": 3.94,
+            "yoyoMeters": 1890,
+            "illinoisSeconds": 14.76,
+            "broadJumpCm": 244,
+            "medicineBallThrowCm": 738,
+            "firstTouchSuccessesOutOf10": 8,
+            "shortPassingSuccessesOutOf10": 8
+          },
+          "roleSpecific": {
+            "longPassesCompletedOutOf10": 9,
+            "ballRetentionUnderPressureOutOf10": 9,
+            "pressingActionsOutOf10": 8
+          }
+        },
+        "attributeScores": {
+          "pace": 86,
+          "stamina": 92,
+          "agility": 91,
+          "strength": 84,
+          "firstTouch": 93,
+          "shortPassing": 94,
+          "finishingBox": 68,
+          "shotPower": 76,
+          "offensive1v1": 72,
+          "attackingHeading": 70,
+          "longPassing": 90,
+          "visionPlaymaking": 91,
+          "ballRetention": 90,
+          "pressingInterceptions": 78,
+          "tackling": 70,
+          "defensiveHeading": 72,
+          "positioningClearances": 72,
+          "crossing": 70,
+          "reflexes": 40,
+          "handling": 40,
+          "divingReach": 40,
+          "distribution": 65
+        },
+        "ovr": 86,
+        "labels": {
+          "weakestAttributeId": "strength",
+          "ovrTierLabel": "Elite"
+        },
+        "deltas": {
+          "previousSessionId": "assess-camavinga-2026-05-24",
+          "ovrDelta": 2,
+          "attributeDeltas": {
+            "strength": 2,
+            "stamina": 1
+          }
+        },
+        "coachNotes": "Improved transfer from training into match actions. Maintain the current four-week focus.",
+        "developmentPlan": {
+          "focusAttributeId": "strength",
+          "priorityScore": 72,
+          "weeks": [
+            {
+              "weekNumber": 1,
+              "focus": "Technical primer",
+              "drillIds": [
+                "drill-first-touch-scan",
+                "drill-press-trigger"
+              ],
+              "notes": "Low fatigue repetitions with clean cues."
+            },
+            {
+              "weekNumber": 2,
+              "focus": "Game-speed repetition",
+              "drillIds": [
+                "drill-transition-wave",
+                "drill-channel-run"
+              ],
+              "notes": "Increase speed and decision pressure."
+            },
+            {
+              "weekNumber": 3,
+              "focus": "Opponent-specific transfer",
+              "drillIds": [
+                "drill-wide-overload",
+                "drill-rest-defense"
+              ],
+              "notes": "Connect individual focus to Portugal plan."
+            },
+            {
+              "weekNumber": 4,
+              "focus": "Retest and maintain",
+              "drillIds": [
+                "drill-fprds-retest"
+              ],
+              "notes": "Retest core metric and reduce volume before matchday."
+            }
+          ]
+        }
+      },
+      {
+        "id": "assess-zaire-emery-2026-05-24",
+        "playerId": "fra-zaire-emery",
+        "assessmentDate": "2026-05-24",
+        "createdAt": "2026-05-24T09:00:00.000Z",
+        "assessmentType": "Quick",
+        "ageGroup": "Adult",
+        "role": "CM",
+        "rawResults": {
+          "role": "CM",
+          "assessmentType": "Quick",
+          "base": {
+            "sprint10mSeconds": 1.73,
+            "sprint30mSeconds": 3.96,
+            "yoyoMeters": 1925,
+            "illinoisSeconds": 14.82,
+            "broadJumpCm": 245,
+            "medicineBallThrowCm": 746,
+            "firstTouchSuccessesOutOf10": 8,
+            "shortPassingSuccessesOutOf10": 8
+          },
+          "roleSpecific": {
+            "longPassesCompletedOutOf10": 9,
+            "ballRetentionUnderPressureOutOf10": 9,
+            "pressingActionsOutOf10": 8
+          }
+        },
+        "attributeScores": {
+          "pace": 84,
+          "stamina": 90,
+          "agility": 89,
+          "strength": 82,
+          "firstTouch": 91,
+          "shortPassing": 92,
+          "finishingBox": 68,
+          "shotPower": 76,
+          "offensive1v1": 72,
+          "attackingHeading": 70,
+          "longPassing": 90,
+          "visionPlaymaking": 91,
+          "ballRetention": 90,
+          "pressingInterceptions": 78,
+          "tackling": 70,
+          "defensiveHeading": 72,
+          "positioningClearances": 72,
+          "crossing": 70,
+          "reflexes": 40,
+          "handling": 40,
+          "divingReach": 40,
+          "distribution": 65
+        },
+        "ovr": 85,
+        "labels": {
+          "weakestAttributeId": "strength",
+          "ovrTierLabel": "High Performance"
+        },
+        "deltas": {},
+        "coachNotes": "Baseline assessment before the tournament block."
+      },
+      {
+        "id": "assess-zaire-emery-2026-06-24",
+        "playerId": "fra-zaire-emery",
+        "assessmentDate": "2026-06-24",
+        "createdAt": "2026-06-24T09:00:00.000Z",
+        "assessmentType": "Full",
+        "ageGroup": "Adult",
+        "role": "CM",
+        "rawResults": {
+          "role": "CM",
+          "assessmentType": "Full",
+          "base": {
+            "sprint10mSeconds": 1.73,
+            "sprint30mSeconds": 3.96,
+            "yoyoMeters": 1925,
+            "illinoisSeconds": 14.82,
+            "broadJumpCm": 245,
+            "medicineBallThrowCm": 746,
+            "firstTouchSuccessesOutOf10": 8,
+            "shortPassingSuccessesOutOf10": 8
+          },
+          "roleSpecific": {
+            "longPassesCompletedOutOf10": 9,
+            "ballRetentionUnderPressureOutOf10": 9,
+            "pressingActionsOutOf10": 8
+          }
+        },
+        "attributeScores": {
+          "pace": 86,
+          "stamina": 92,
+          "agility": 91,
+          "strength": 84,
+          "firstTouch": 93,
+          "shortPassing": 94,
+          "finishingBox": 68,
+          "shotPower": 76,
+          "offensive1v1": 72,
+          "attackingHeading": 70,
+          "longPassing": 90,
+          "visionPlaymaking": 91,
+          "ballRetention": 90,
+          "pressingInterceptions": 78,
+          "tackling": 70,
+          "defensiveHeading": 72,
+          "positioningClearances": 72,
+          "crossing": 70,
+          "reflexes": 40,
+          "handling": 40,
+          "divingReach": 40,
+          "distribution": 65
+        },
+        "ovr": 87,
+        "labels": {
+          "weakestAttributeId": "strength",
+          "ovrTierLabel": "Elite"
+        },
+        "deltas": {
+          "previousSessionId": "assess-zaire-emery-2026-05-24",
+          "ovrDelta": 2,
+          "attributeDeltas": {
+            "strength": 2,
+            "stamina": 1
+          }
+        },
+        "coachNotes": "Improved transfer from training into match actions. Maintain the current four-week focus.",
+        "developmentPlan": {
+          "focusAttributeId": "strength",
+          "priorityScore": 71,
+          "weeks": [
+            {
+              "weekNumber": 1,
+              "focus": "Technical primer",
+              "drillIds": [
+                "drill-first-touch-scan",
+                "drill-press-trigger"
+              ],
+              "notes": "Low fatigue repetitions with clean cues."
+            },
+            {
+              "weekNumber": 2,
+              "focus": "Game-speed repetition",
+              "drillIds": [
+                "drill-transition-wave",
+                "drill-channel-run"
+              ],
+              "notes": "Increase speed and decision pressure."
+            },
+            {
+              "weekNumber": 3,
+              "focus": "Opponent-specific transfer",
+              "drillIds": [
+                "drill-wide-overload",
+                "drill-rest-defense"
+              ],
+              "notes": "Connect individual focus to Portugal plan."
+            },
+            {
+              "weekNumber": 4,
+              "focus": "Retest and maintain",
+              "drillIds": [
+                "drill-fprds-retest"
+              ],
+              "notes": "Retest core metric and reduce volume before matchday."
+            }
+          ]
+        }
+      },
+      {
+        "id": "assess-griezmann-2026-05-24",
+        "playerId": "fra-griezmann",
+        "assessmentDate": "2026-05-24",
+        "createdAt": "2026-05-24T09:00:00.000Z",
+        "assessmentType": "Quick",
+        "ageGroup": "Adult",
+        "role": "CM",
+        "rawResults": {
+          "role": "CM",
+          "assessmentType": "Quick",
+          "base": {
+            "sprint10mSeconds": 1.74,
+            "sprint30mSeconds": 3.98,
+            "yoyoMeters": 1960,
+            "illinoisSeconds": 14.88,
+            "broadJumpCm": 246,
+            "medicineBallThrowCm": 754,
+            "firstTouchSuccessesOutOf10": 8,
+            "shortPassingSuccessesOutOf10": 8
+          },
+          "roleSpecific": {
+            "longPassesCompletedOutOf10": 9,
+            "ballRetentionUnderPressureOutOf10": 9,
+            "pressingActionsOutOf10": 8
+          }
+        },
+        "attributeScores": {
+          "pace": 84,
+          "stamina": 90,
+          "agility": 89,
+          "strength": 82,
+          "firstTouch": 91,
+          "shortPassing": 92,
+          "finishingBox": 68,
+          "shotPower": 76,
+          "offensive1v1": 72,
+          "attackingHeading": 70,
+          "longPassing": 90,
+          "visionPlaymaking": 91,
+          "ballRetention": 90,
+          "pressingInterceptions": 78,
+          "tackling": 70,
+          "defensiveHeading": 72,
+          "positioningClearances": 72,
+          "crossing": 70,
+          "reflexes": 40,
+          "handling": 40,
+          "divingReach": 40,
+          "distribution": 65
+        },
+        "ovr": 82,
+        "labels": {
+          "weakestAttributeId": "strength",
+          "ovrTierLabel": "High Performance"
+        },
+        "deltas": {},
+        "coachNotes": "Baseline assessment before the tournament block."
+      },
+      {
+        "id": "assess-griezmann-2026-06-24",
+        "playerId": "fra-griezmann",
+        "assessmentDate": "2026-06-24",
+        "createdAt": "2026-06-24T09:00:00.000Z",
+        "assessmentType": "Full",
+        "ageGroup": "Adult",
+        "role": "CM",
+        "rawResults": {
+          "role": "CM",
+          "assessmentType": "Full",
+          "base": {
+            "sprint10mSeconds": 1.74,
+            "sprint30mSeconds": 3.98,
+            "yoyoMeters": 1960,
+            "illinoisSeconds": 14.88,
+            "broadJumpCm": 246,
+            "medicineBallThrowCm": 754,
+            "firstTouchSuccessesOutOf10": 8,
+            "shortPassingSuccessesOutOf10": 8
+          },
+          "roleSpecific": {
+            "longPassesCompletedOutOf10": 9,
+            "ballRetentionUnderPressureOutOf10": 9,
+            "pressingActionsOutOf10": 8
+          }
+        },
+        "attributeScores": {
+          "pace": 86,
+          "stamina": 92,
+          "agility": 91,
+          "strength": 84,
+          "firstTouch": 93,
+          "shortPassing": 94,
+          "finishingBox": 68,
+          "shotPower": 76,
+          "offensive1v1": 72,
+          "attackingHeading": 70,
+          "longPassing": 90,
+          "visionPlaymaking": 91,
+          "ballRetention": 90,
+          "pressingInterceptions": 78,
+          "tackling": 70,
+          "defensiveHeading": 72,
+          "positioningClearances": 72,
+          "crossing": 70,
+          "reflexes": 40,
+          "handling": 40,
+          "divingReach": 40,
+          "distribution": 65
+        },
+        "ovr": 84,
+        "labels": {
+          "weakestAttributeId": "strength",
+          "ovrTierLabel": "Elite"
+        },
+        "deltas": {
+          "previousSessionId": "assess-griezmann-2026-05-24",
+          "ovrDelta": 2,
+          "attributeDeltas": {
+            "strength": 2,
+            "stamina": 1
+          }
+        },
+        "coachNotes": "Improved transfer from training into match actions. Maintain the current four-week focus.",
+        "developmentPlan": {
+          "focusAttributeId": "strength",
+          "priorityScore": 70,
+          "weeks": [
+            {
+              "weekNumber": 1,
+              "focus": "Technical primer",
+              "drillIds": [
+                "drill-first-touch-scan",
+                "drill-press-trigger"
+              ],
+              "notes": "Low fatigue repetitions with clean cues."
+            },
+            {
+              "weekNumber": 2,
+              "focus": "Game-speed repetition",
+              "drillIds": [
+                "drill-transition-wave",
+                "drill-channel-run"
+              ],
+              "notes": "Increase speed and decision pressure."
+            },
+            {
+              "weekNumber": 3,
+              "focus": "Opponent-specific transfer",
+              "drillIds": [
+                "drill-wide-overload",
+                "drill-rest-defense"
+              ],
+              "notes": "Connect individual focus to Portugal plan."
+            },
+            {
+              "weekNumber": 4,
+              "focus": "Retest and maintain",
+              "drillIds": [
+                "drill-fprds-retest"
+              ],
+              "notes": "Retest core metric and reduce volume before matchday."
+            }
+          ]
+        }
+      },
+      {
+        "id": "assess-mbappe-2026-05-24",
+        "playerId": "fra-mbappe",
+        "assessmentDate": "2026-05-24",
+        "createdAt": "2026-05-24T09:00:00.000Z",
+        "assessmentType": "Quick",
+        "ageGroup": "Adult",
+        "role": "ST",
+        "rawResults": {
+          "role": "ST",
+          "assessmentType": "Quick",
+          "base": {
+            "sprint10mSeconds": 1.76,
+            "sprint30mSeconds": 4,
+            "yoyoMeters": 1995,
+            "illinoisSeconds": 14.94,
+            "broadJumpCm": 247,
+            "medicineBallThrowCm": 762,
+            "firstTouchSuccessesOutOf10": 8,
+            "shortPassingSuccessesOutOf10": 8
+          },
+          "roleSpecific": {
+            "finishingGoalsOutOf6": 5,
+            "finishingOnTargetOutOf6": 5,
+            "shotPowerMaxControlledDistanceMeters": 28
+          }
+        },
+        "attributeScores": {
+          "pace": 95,
+          "stamina": 87,
+          "agility": 92,
+          "strength": 84,
+          "firstTouch": 91,
+          "shortPassing": 84,
+          "finishingBox": 93,
+          "shotPower": 91,
+          "offensive1v1": 90,
+          "attackingHeading": 82,
+          "longPassing": 78,
+          "visionPlaymaking": 78,
+          "ballRetention": 78,
+          "pressingInterceptions": 78,
+          "tackling": 70,
+          "defensiveHeading": 72,
+          "positioningClearances": 72,
+          "crossing": 70,
+          "reflexes": 40,
+          "handling": 40,
+          "divingReach": 40,
+          "distribution": 65
+        },
+        "ovr": 83,
+        "labels": {
+          "weakestAttributeId": "attackingHeading",
+          "ovrTierLabel": "High Performance"
+        },
+        "deltas": {},
+        "coachNotes": "Baseline assessment before the tournament block."
+      },
+      {
+        "id": "assess-mbappe-2026-06-24",
+        "playerId": "fra-mbappe",
+        "assessmentDate": "2026-06-24",
+        "createdAt": "2026-06-24T09:00:00.000Z",
+        "assessmentType": "Full",
+        "ageGroup": "Adult",
+        "role": "ST",
+        "rawResults": {
+          "role": "ST",
+          "assessmentType": "Full",
+          "base": {
+            "sprint10mSeconds": 1.76,
+            "sprint30mSeconds": 4,
+            "yoyoMeters": 1995,
+            "illinoisSeconds": 14.94,
+            "broadJumpCm": 247,
+            "medicineBallThrowCm": 762,
+            "firstTouchSuccessesOutOf10": 8,
+            "shortPassingSuccessesOutOf10": 8
+          },
+          "roleSpecific": {
+            "finishingGoalsOutOf6": 5,
+            "finishingOnTargetOutOf6": 5,
+            "shotPowerMaxControlledDistanceMeters": 28
+          }
+        },
+        "attributeScores": {
+          "pace": 97,
+          "stamina": 89,
+          "agility": 94,
+          "strength": 86,
+          "firstTouch": 93,
+          "shortPassing": 86,
+          "finishingBox": 93,
+          "shotPower": 91,
+          "offensive1v1": 90,
+          "attackingHeading": 82,
+          "longPassing": 78,
+          "visionPlaymaking": 78,
+          "ballRetention": 78,
+          "pressingInterceptions": 78,
+          "tackling": 70,
+          "defensiveHeading": 72,
+          "positioningClearances": 72,
+          "crossing": 70,
+          "reflexes": 40,
+          "handling": 40,
+          "divingReach": 40,
+          "distribution": 65
+        },
+        "ovr": 85,
+        "labels": {
+          "weakestAttributeId": "attackingHeading",
+          "ovrTierLabel": "Elite"
+        },
+        "deltas": {
+          "previousSessionId": "assess-mbappe-2026-05-24",
+          "ovrDelta": 2,
+          "attributeDeltas": {
+            "attackingHeading": 2,
+            "stamina": 1
+          }
+        },
+        "coachNotes": "Improved transfer from training into match actions. Maintain the current four-week focus.",
+        "developmentPlan": {
+          "focusAttributeId": "attackingHeading",
+          "priorityScore": 69,
+          "weeks": [
+            {
+              "weekNumber": 1,
+              "focus": "Technical primer",
+              "drillIds": [
+                "drill-first-touch-scan",
+                "drill-press-trigger"
+              ],
+              "notes": "Low fatigue repetitions with clean cues."
+            },
+            {
+              "weekNumber": 2,
+              "focus": "Game-speed repetition",
+              "drillIds": [
+                "drill-transition-wave",
+                "drill-channel-run"
+              ],
+              "notes": "Increase speed and decision pressure."
+            },
+            {
+              "weekNumber": 3,
+              "focus": "Opponent-specific transfer",
+              "drillIds": [
+                "drill-wide-overload",
+                "drill-rest-defense"
+              ],
+              "notes": "Connect individual focus to Portugal plan."
+            },
+            {
+              "weekNumber": 4,
+              "focus": "Retest and maintain",
+              "drillIds": [
+                "drill-fprds-retest"
+              ],
+              "notes": "Retest core metric and reduce volume before matchday."
+            }
+          ]
+        }
+      },
+      {
+        "id": "assess-dembele-2026-05-24",
+        "playerId": "fra-dembele",
+        "assessmentDate": "2026-05-24",
+        "createdAt": "2026-05-24T09:00:00.000Z",
+        "assessmentType": "Quick",
+        "ageGroup": "Adult",
+        "role": "W",
+        "rawResults": {
+          "role": "W",
+          "assessmentType": "Quick",
+          "base": {
+            "sprint10mSeconds": 1.77,
+            "sprint30mSeconds": 4.02,
+            "yoyoMeters": 2030,
+            "illinoisSeconds": 15,
+            "broadJumpCm": 248,
+            "medicineBallThrowCm": 770,
+            "firstTouchSuccessesOutOf10": 8,
+            "shortPassingSuccessesOutOf10": 8
+          },
+          "roleSpecific": {
+            "dribblesCompletedOutOf10": 9,
+            "crossesCompletedOutOf10": 8,
+            "shotsOnTargetOutOf6": 4
+          }
+        },
+        "attributeScores": {
+          "pace": 94,
+          "stamina": 88,
+          "agility": 93,
+          "strength": 78,
+          "firstTouch": 90,
+          "shortPassing": 86,
+          "finishingBox": 84,
+          "shotPower": 76,
+          "offensive1v1": 90,
+          "attackingHeading": 70,
+          "longPassing": 78,
+          "visionPlaymaking": 78,
+          "ballRetention": 78,
+          "pressingInterceptions": 78,
+          "tackling": 70,
+          "defensiveHeading": 72,
+          "positioningClearances": 72,
+          "crossing": 88,
+          "reflexes": 40,
+          "handling": 40,
+          "divingReach": 40,
+          "distribution": 65
+        },
+        "ovr": 84,
+        "labels": {
+          "weakestAttributeId": "pressingInterceptions",
+          "ovrTierLabel": "High Performance"
+        },
+        "deltas": {},
+        "coachNotes": "Baseline assessment before the tournament block."
+      },
+      {
+        "id": "assess-dembele-2026-06-24",
+        "playerId": "fra-dembele",
+        "assessmentDate": "2026-06-24",
+        "createdAt": "2026-06-24T09:00:00.000Z",
+        "assessmentType": "Full",
+        "ageGroup": "Adult",
+        "role": "W",
+        "rawResults": {
+          "role": "W",
+          "assessmentType": "Full",
+          "base": {
+            "sprint10mSeconds": 1.77,
+            "sprint30mSeconds": 4.02,
+            "yoyoMeters": 2030,
+            "illinoisSeconds": 15,
+            "broadJumpCm": 248,
+            "medicineBallThrowCm": 770,
+            "firstTouchSuccessesOutOf10": 8,
+            "shortPassingSuccessesOutOf10": 8
+          },
+          "roleSpecific": {
+            "dribblesCompletedOutOf10": 9,
+            "crossesCompletedOutOf10": 8,
+            "shotsOnTargetOutOf6": 4
+          }
+        },
+        "attributeScores": {
+          "pace": 96,
+          "stamina": 90,
+          "agility": 95,
+          "strength": 80,
+          "firstTouch": 92,
+          "shortPassing": 88,
+          "finishingBox": 84,
+          "shotPower": 76,
+          "offensive1v1": 90,
+          "attackingHeading": 70,
+          "longPassing": 78,
+          "visionPlaymaking": 78,
+          "ballRetention": 78,
+          "pressingInterceptions": 78,
+          "tackling": 70,
+          "defensiveHeading": 72,
+          "positioningClearances": 72,
+          "crossing": 88,
+          "reflexes": 40,
+          "handling": 40,
+          "divingReach": 40,
+          "distribution": 65
+        },
+        "ovr": 86,
+        "labels": {
+          "weakestAttributeId": "pressingInterceptions",
+          "ovrTierLabel": "Elite"
+        },
+        "deltas": {
+          "previousSessionId": "assess-dembele-2026-05-24",
+          "ovrDelta": 2,
+          "attributeDeltas": {
+            "pressingInterceptions": 2,
+            "stamina": 1
+          }
+        },
+        "coachNotes": "Improved transfer from training into match actions. Maintain the current four-week focus.",
+        "developmentPlan": {
+          "focusAttributeId": "pressingInterceptions",
+          "priorityScore": 68,
+          "weeks": [
+            {
+              "weekNumber": 1,
+              "focus": "Technical primer",
+              "drillIds": [
+                "drill-first-touch-scan",
+                "drill-press-trigger"
+              ],
+              "notes": "Low fatigue repetitions with clean cues."
+            },
+            {
+              "weekNumber": 2,
+              "focus": "Game-speed repetition",
+              "drillIds": [
+                "drill-transition-wave",
+                "drill-channel-run"
+              ],
+              "notes": "Increase speed and decision pressure."
+            },
+            {
+              "weekNumber": 3,
+              "focus": "Opponent-specific transfer",
+              "drillIds": [
+                "drill-wide-overload",
+                "drill-rest-defense"
+              ],
+              "notes": "Connect individual focus to Portugal plan."
+            },
+            {
+              "weekNumber": 4,
+              "focus": "Retest and maintain",
+              "drillIds": [
+                "drill-fprds-retest"
+              ],
+              "notes": "Retest core metric and reduce volume before matchday."
+            }
+          ]
+        }
+      },
+      {
+        "id": "assess-kolo-muani-2026-05-24",
+        "playerId": "fra-kolo-muani",
+        "assessmentDate": "2026-05-24",
+        "createdAt": "2026-05-24T09:00:00.000Z",
+        "assessmentType": "Quick",
+        "ageGroup": "Adult",
+        "role": "ST",
+        "rawResults": {
+          "role": "ST",
+          "assessmentType": "Quick",
+          "base": {
+            "sprint10mSeconds": 1.79,
+            "sprint30mSeconds": 4.04,
+            "yoyoMeters": 2065,
+            "illinoisSeconds": 15.06,
+            "broadJumpCm": 249,
+            "medicineBallThrowCm": 778,
+            "firstTouchSuccessesOutOf10": 8,
+            "shortPassingSuccessesOutOf10": 8
+          },
+          "roleSpecific": {
+            "finishingGoalsOutOf6": 5,
+            "finishingOnTargetOutOf6": 5,
+            "shotPowerMaxControlledDistanceMeters": 28
+          }
+        },
+        "attributeScores": {
+          "pace": 95,
+          "stamina": 87,
+          "agility": 92,
+          "strength": 84,
+          "firstTouch": 91,
+          "shortPassing": 84,
+          "finishingBox": 93,
+          "shotPower": 91,
+          "offensive1v1": 90,
+          "attackingHeading": 82,
+          "longPassing": 78,
+          "visionPlaymaking": 78,
+          "ballRetention": 78,
+          "pressingInterceptions": 78,
+          "tackling": 70,
+          "defensiveHeading": 72,
+          "positioningClearances": 72,
+          "crossing": 70,
+          "reflexes": 40,
+          "handling": 40,
+          "divingReach": 40,
+          "distribution": 65
+        },
+        "ovr": 85,
+        "labels": {
+          "weakestAttributeId": "attackingHeading",
+          "ovrTierLabel": "High Performance"
+        },
+        "deltas": {},
+        "coachNotes": "Baseline assessment before the tournament block."
+      },
+      {
+        "id": "assess-kolo-muani-2026-06-24",
+        "playerId": "fra-kolo-muani",
+        "assessmentDate": "2026-06-24",
+        "createdAt": "2026-06-24T09:00:00.000Z",
+        "assessmentType": "Full",
+        "ageGroup": "Adult",
+        "role": "ST",
+        "rawResults": {
+          "role": "ST",
+          "assessmentType": "Full",
+          "base": {
+            "sprint10mSeconds": 1.79,
+            "sprint30mSeconds": 4.04,
+            "yoyoMeters": 2065,
+            "illinoisSeconds": 15.06,
+            "broadJumpCm": 249,
+            "medicineBallThrowCm": 778,
+            "firstTouchSuccessesOutOf10": 8,
+            "shortPassingSuccessesOutOf10": 8
+          },
+          "roleSpecific": {
+            "finishingGoalsOutOf6": 5,
+            "finishingOnTargetOutOf6": 5,
+            "shotPowerMaxControlledDistanceMeters": 28
+          }
+        },
+        "attributeScores": {
+          "pace": 97,
+          "stamina": 89,
+          "agility": 94,
+          "strength": 86,
+          "firstTouch": 93,
+          "shortPassing": 86,
+          "finishingBox": 93,
+          "shotPower": 91,
+          "offensive1v1": 90,
+          "attackingHeading": 82,
+          "longPassing": 78,
+          "visionPlaymaking": 78,
+          "ballRetention": 78,
+          "pressingInterceptions": 78,
+          "tackling": 70,
+          "defensiveHeading": 72,
+          "positioningClearances": 72,
+          "crossing": 70,
+          "reflexes": 40,
+          "handling": 40,
+          "divingReach": 40,
+          "distribution": 65
+        },
+        "ovr": 87,
+        "labels": {
+          "weakestAttributeId": "attackingHeading",
+          "ovrTierLabel": "Elite"
+        },
+        "deltas": {
+          "previousSessionId": "assess-kolo-muani-2026-05-24",
+          "ovrDelta": 2,
+          "attributeDeltas": {
+            "attackingHeading": 2,
+            "stamina": 1
+          }
+        },
+        "coachNotes": "Improved transfer from training into match actions. Maintain the current four-week focus.",
+        "developmentPlan": {
+          "focusAttributeId": "attackingHeading",
+          "priorityScore": 67,
+          "weeks": [
+            {
+              "weekNumber": 1,
+              "focus": "Technical primer",
+              "drillIds": [
+                "drill-first-touch-scan",
+                "drill-press-trigger"
+              ],
+              "notes": "Low fatigue repetitions with clean cues."
+            },
+            {
+              "weekNumber": 2,
+              "focus": "Game-speed repetition",
+              "drillIds": [
+                "drill-transition-wave",
+                "drill-channel-run"
+              ],
+              "notes": "Increase speed and decision pressure."
+            },
+            {
+              "weekNumber": 3,
+              "focus": "Opponent-specific transfer",
+              "drillIds": [
+                "drill-wide-overload",
+                "drill-rest-defense"
+              ],
+              "notes": "Connect individual focus to Portugal plan."
+            },
+            {
+              "weekNumber": 4,
+              "focus": "Retest and maintain",
+              "drillIds": [
+                "drill-fprds-retest"
+              ],
+              "notes": "Retest core metric and reduce volume before matchday."
+            }
+          ]
+        }
+      }
+    ],
+    "paymentLedger": [
+      {
+        "id": "payment-kit-fra-maignan",
+        "playerId": "fra-maignan",
+        "playerNameSnapshot": "Mike Maignan",
+        "type": "charge",
+        "category": "kit",
+        "amount": 75,
+        "date": "2026-06-01",
+        "dueDate": "2026-06-10",
+        "note": "Tournament kit allocation",
+        "createdAt": "2026-06-01T08:00:00.000Z"
+      },
+      {
+        "id": "payment-kit-paid-fra-maignan",
+        "playerId": "fra-maignan",
+        "playerNameSnapshot": "Mike Maignan",
+        "type": "payment",
+        "category": "kit",
+        "amount": 75,
+        "date": "2026-06-08",
+        "method": "bank_transfer",
+        "reference": "FR26-001",
+        "createdAt": "2026-06-08T08:00:00.000Z"
+      },
+      {
+        "id": "payment-kit-fra-kounde",
+        "playerId": "fra-kounde",
+        "playerNameSnapshot": "Jules Kounde",
+        "type": "charge",
+        "category": "kit",
+        "amount": 75,
+        "date": "2026-06-01",
+        "dueDate": "2026-06-10",
+        "note": "Tournament kit allocation",
+        "createdAt": "2026-06-01T08:00:00.000Z"
+      },
+      {
+        "id": "payment-kit-paid-fra-kounde",
+        "playerId": "fra-kounde",
+        "playerNameSnapshot": "Jules Kounde",
+        "type": "payment",
+        "category": "kit",
+        "amount": 75,
+        "date": "2026-06-08",
+        "method": "card",
+        "reference": "FR26-002",
+        "createdAt": "2026-06-08T08:00:00.000Z"
+      },
+      {
+        "id": "payment-kit-fra-saliba",
+        "playerId": "fra-saliba",
+        "playerNameSnapshot": "William Saliba",
+        "type": "charge",
+        "category": "kit",
+        "amount": 75,
+        "date": "2026-06-01",
+        "dueDate": "2026-06-10",
+        "note": "Tournament kit allocation",
+        "createdAt": "2026-06-01T08:00:00.000Z"
+      },
+      {
+        "id": "payment-kit-paid-fra-saliba",
+        "playerId": "fra-saliba",
+        "playerNameSnapshot": "William Saliba",
+        "type": "payment",
+        "category": "kit",
+        "amount": 75,
+        "date": "2026-06-08",
+        "method": "bank_transfer",
+        "reference": "FR26-003",
+        "createdAt": "2026-06-08T08:00:00.000Z"
+      },
+      {
+        "id": "payment-kit-fra-upamecano",
+        "playerId": "fra-upamecano",
+        "playerNameSnapshot": "Dayot Upamecano",
+        "type": "charge",
+        "category": "kit",
+        "amount": 75,
+        "date": "2026-06-01",
+        "dueDate": "2026-06-10",
+        "note": "Tournament kit allocation",
+        "createdAt": "2026-06-01T08:00:00.000Z"
+      },
+      {
+        "id": "payment-kit-paid-fra-upamecano",
+        "playerId": "fra-upamecano",
+        "playerNameSnapshot": "Dayot Upamecano",
+        "type": "payment",
+        "category": "kit",
+        "amount": 75,
+        "date": "2026-06-08",
+        "method": "card",
+        "reference": "FR26-004",
+        "createdAt": "2026-06-08T08:00:00.000Z"
+      },
+      {
+        "id": "payment-kit-fra-theo-hernandez",
+        "playerId": "fra-theo-hernandez",
+        "playerNameSnapshot": "Theo Hernandez",
+        "type": "charge",
+        "category": "kit",
+        "amount": 75,
+        "date": "2026-06-01",
+        "dueDate": "2026-06-10",
+        "note": "Tournament kit allocation",
+        "createdAt": "2026-06-01T08:00:00.000Z"
+      },
+      {
+        "id": "payment-kit-paid-fra-theo-hernandez",
+        "playerId": "fra-theo-hernandez",
+        "playerNameSnapshot": "Theo Hernandez",
+        "type": "payment",
+        "category": "kit",
+        "amount": 75,
+        "date": "2026-06-08",
+        "method": "bank_transfer",
+        "reference": "FR26-005",
+        "createdAt": "2026-06-08T08:00:00.000Z"
+      },
+      {
+        "id": "payment-kit-fra-tchouameni",
+        "playerId": "fra-tchouameni",
+        "playerNameSnapshot": "Aurelien Tchouameni",
+        "type": "charge",
+        "category": "kit",
+        "amount": 75,
+        "date": "2026-06-01",
+        "dueDate": "2026-06-10",
+        "note": "Tournament kit allocation",
+        "createdAt": "2026-06-01T08:00:00.000Z"
+      },
+      {
+        "id": "payment-kit-paid-fra-tchouameni",
+        "playerId": "fra-tchouameni",
+        "playerNameSnapshot": "Aurelien Tchouameni",
+        "type": "payment",
+        "category": "kit",
+        "amount": 75,
+        "date": "2026-06-08",
+        "method": "card",
+        "reference": "FR26-006",
+        "createdAt": "2026-06-08T08:00:00.000Z"
+      },
+      {
+        "id": "payment-kit-fra-camavinga",
+        "playerId": "fra-camavinga",
+        "playerNameSnapshot": "Eduardo Camavinga",
+        "type": "charge",
+        "category": "kit",
+        "amount": 75,
+        "date": "2026-06-01",
+        "dueDate": "2026-06-10",
+        "note": "Tournament kit allocation",
+        "createdAt": "2026-06-01T08:00:00.000Z"
+      },
+      {
+        "id": "payment-kit-paid-fra-camavinga",
+        "playerId": "fra-camavinga",
+        "playerNameSnapshot": "Eduardo Camavinga",
+        "type": "payment",
+        "category": "kit",
+        "amount": 50,
+        "date": "2026-06-08",
+        "method": "bank_transfer",
+        "reference": "FR26-007",
+        "createdAt": "2026-06-08T08:00:00.000Z"
+      },
+      {
+        "id": "payment-kit-fra-zaire-emery",
+        "playerId": "fra-zaire-emery",
+        "playerNameSnapshot": "Warren Zaire-Emery",
+        "type": "charge",
+        "category": "kit",
+        "amount": 75,
+        "date": "2026-06-01",
+        "dueDate": "2026-06-10",
+        "note": "Tournament kit allocation",
+        "createdAt": "2026-06-01T08:00:00.000Z"
+      },
+      {
+        "id": "payment-kit-paid-fra-zaire-emery",
+        "playerId": "fra-zaire-emery",
+        "playerNameSnapshot": "Warren Zaire-Emery",
+        "type": "payment",
+        "category": "kit",
+        "amount": 50,
+        "date": "2026-06-08",
+        "method": "card",
+        "reference": "FR26-008",
+        "createdAt": "2026-06-08T08:00:00.000Z"
+      }
+    ]
+  },
+  "featureState": {
+    "availability": {
+      "match-france-portugal-2026-07-05": {
+        "fra-maignan": "yes",
+        "fra-kounde": "yes",
+        "fra-saliba": "yes",
+        "fra-upamecano": "yes",
+        "fra-theo-hernandez": "yes",
+        "fra-tchouameni": "yes",
+        "fra-camavinga": "yes",
+        "fra-zaire-emery": "yes",
+        "fra-griezmann": "yes",
+        "fra-mbappe": "yes",
+        "fra-dembele": "yes",
+        "fra-kolo-muani": "yes",
+        "fra-olise": "maybe",
+        "fra-konate": "yes",
+        "fra-rabiot": "yes"
+      },
+      "training-france-transition-2026-07-02": {
+        "fra-maignan": "yes",
+        "fra-kounde": "yes",
+        "fra-saliba": "yes",
+        "fra-upamecano": "yes",
+        "fra-theo-hernandez": "yes",
+        "fra-tchouameni": "yes",
+        "fra-camavinga": "yes",
+        "fra-zaire-emery": "yes",
+        "fra-griezmann": "yes",
+        "fra-mbappe": "yes",
+        "fra-dembele": "yes",
+        "fra-kolo-muani": "yes",
+        "fra-olise": "maybe",
+        "fra-konate": "yes",
+        "fra-rabiot": "yes"
+      }
+    },
+    "coachNotes": {
+      "fra-maignan": "Mike Maignan: keep individual FPRDS focus aligned with Portugal match plan.",
+      "fra-kounde": "Jules Kounde: keep individual FPRDS focus aligned with Portugal match plan.",
+      "fra-saliba": "William Saliba: keep individual FPRDS focus aligned with Portugal match plan.",
+      "fra-upamecano": "Dayot Upamecano: keep individual FPRDS focus aligned with Portugal match plan.",
+      "fra-theo-hernandez": "Theo Hernandez: keep individual FPRDS focus aligned with Portugal match plan.",
+      "fra-tchouameni": "Aurelien Tchouameni: keep individual FPRDS focus aligned with Portugal match plan.",
+      "fra-camavinga": "Eduardo Camavinga: keep individual FPRDS focus aligned with Portugal match plan.",
+      "fra-zaire-emery": "Warren Zaire-Emery: keep individual FPRDS focus aligned with Portugal match plan.",
+      "fra-griezmann": "Antoine Griezmann: keep individual FPRDS focus aligned with Portugal match plan.",
+      "fra-mbappe": "Kylian Mbappe: keep individual FPRDS focus aligned with Portugal match plan."
+    },
+    "weeklyTraining": {
+      "Monday": [
+        {
+          "id": "fr26-mon-activation",
+          "drillId": "drill-mobility-rondo",
+          "name": "Mobility rondo and passing rhythm",
+          "fatigueIncrease": 1,
+          "block": "warmup",
+          "order": 1,
+          "durationMinutes": 20,
+          "intensityRating": 2,
+          "equipment": [
+            "cones",
+            "balls"
+          ],
+          "notes": "Keep starters low load."
+        }
+      ],
+      "Tuesday": [
+        {
+          "id": "fr26-tue-transition",
+          "drillId": "drill-transition-wave",
+          "name": "Regain to forward run wave",
+          "fatigueIncrease": 3,
+          "block": "tactical",
+          "order": 1,
+          "durationMinutes": 32,
+          "intensityRating": 4,
+          "equipment": [
+            "mini goals",
+            "mannequins"
+          ],
+          "notes": "Cue first pass into Mbappe or weak-side winger."
+        }
+      ],
+      "Wednesday": [
+        {
+          "id": "fr26-wed-rest-defense",
+          "drillId": "drill-rest-defense",
+          "name": "Rest defense against Portugal counters",
+          "fatigueIncrease": 2,
+          "block": "tactical",
+          "order": 1,
+          "durationMinutes": 30,
+          "intensityRating": 3,
+          "equipment": [
+            "bibs",
+            "cones"
+          ],
+          "notes": "Back four plus six stay connected."
+        }
+      ],
+      "Thursday": [
+        {
+          "id": "fr26-thu-finishing",
+          "drillId": "drill-channel-run",
+          "name": "Channel runs and cutback finishing",
+          "fatigueIncrease": 3,
+          "block": "technical",
+          "order": 1,
+          "durationMinutes": 28,
+          "intensityRating": 4,
+          "equipment": [
+            "goals",
+            "balls"
+          ],
+          "playerId": "fra-mbappe",
+          "playerName": "Kylian Mbappe",
+          "notes": "Alternate far-post and near-post timing."
+        }
+      ],
+      "Friday": [
+        {
+          "id": "fr26-fri-setpieces",
+          "drillId": "drill-set-piece-rotation",
+          "name": "Corners, penalties, and free kicks",
+          "fatigueIncrease": 1,
+          "block": "technical",
+          "order": 1,
+          "durationMinutes": 25,
+          "intensityRating": 2,
+          "equipment": [
+            "balls",
+            "mannequins"
+          ],
+          "notes": "Griezmann delivery, Tchouameni second ball."
+        }
+      ],
+      "Saturday": [
+        {
+          "id": "fr26-sat-walkthrough",
+          "drillId": "drill-matchday-minus-one",
+          "name": "Portugal tactical walkthrough",
+          "fatigueIncrease": 1,
+          "block": "tactical",
+          "order": 1,
+          "durationMinutes": 22,
+          "intensityRating": 1,
+          "equipment": [
+            "bibs"
+          ],
+          "notes": "No contact. Confirm pressing triggers."
+        }
+      ],
+      "Sunday": []
+    },
+    "weeklyTrainingHistory": null,
+    "standingsBackups": [
+      {
+        "id": "standings-france-2026-06-24",
+        "createdAt": "2026-06-24T22:30:00.000Z",
+        "label": "Post-Croatia table",
+        "source": "manual",
+        "standings": [
+          {
+            "rank": 1,
+            "teamName": "France",
+            "played": 4,
+            "won": 3,
+            "drawn": 1,
+            "lost": 0,
+            "goalsFor": 8,
+            "goalsAgainst": 3,
+            "points": 10,
+            "isUserTeam": true
+          },
+          {
+            "rank": 2,
+            "teamName": "Netherlands",
+            "played": 4,
+            "won": 2,
+            "drawn": 1,
+            "lost": 1,
+            "goalsFor": 7,
+            "goalsAgainst": 5,
+            "points": 7,
+            "isUserTeam": false
+          },
+          {
+            "rank": 3,
+            "teamName": "Belgium",
+            "played": 4,
+            "won": 1,
+            "drawn": 2,
+            "lost": 1,
+            "goalsFor": 5,
+            "goalsAgainst": 5,
+            "points": 5,
+            "isUserTeam": false
+          },
+          {
+            "rank": 4,
+            "teamName": "Croatia",
+            "played": 4,
+            "won": 1,
+            "drawn": 1,
+            "lost": 2,
+            "goalsFor": 4,
+            "goalsAgainst": 5,
+            "points": 4,
+            "isUserTeam": false
+          },
+          {
+            "rank": 5,
+            "teamName": "Canada",
+            "played": 4,
+            "won": 1,
+            "drawn": 0,
+            "lost": 3,
+            "goalsFor": 3,
+            "goalsAgainst": 7,
+            "points": 3,
+            "isUserTeam": false
+          },
+          {
+            "rank": 6,
+            "teamName": "Austria",
+            "played": 4,
+            "won": 0,
+            "drawn": 3,
+            "lost": 1,
+            "goalsFor": 4,
+            "goalsAgainst": 6,
+            "points": 3,
+            "isUserTeam": false
+          }
+        ]
+      }
+    ],
+    "standingsPreferences": {
+      "sundayBackupEnabled": true
+    },
+    "tactics": {
+      "matchFormat": "11-a-side",
+      "formation": "4-2-3-1",
+      "opponentFormation": "4-3-3",
+      "playstyle": "Quick Counter",
+      "isCustomStrategy": false,
+      "customPlaystyle": "Explosive transition with controlled possession spells",
+      "customDefensiveStyle": "Compact mid-block with sprint press triggers",
+      "customMentality": "Balanced",
+      "customStrategyNotes": "Draw Portugal forward, protect the center with Tchouameni, then release Mbappe and Dembele into the channels after regains.",
+      "coachLevel": "Expert",
+      "customPlaystyles": [
+        "Quick Counter",
+        "Possession Game",
+        "Out Wide"
+      ],
+      "captainId": "fra-mbappe",
+      "penaltyTakerId": "fra-mbappe",
+      "freeKickTakerId": "fra-griezmann",
+      "cornerTakerId": "fra-griezmann",
+      "defensiveStyle": "Mid Block",
+      "strategyContext": {
+        "matchState": "balanced",
+        "matchPhase": "first-half",
+        "teamCondition": "normal",
+        "opponentBehavior": "wide-overload",
+        "riskLevel": "balanced"
+      },
+      "playerExtras": {
+        "fra-griezmann": {
+          "status": "starting",
+          "yellowCards": 0,
+          "redCards": 0
+        },
+        "fra-rabiot": {
+          "status": "substitute",
+          "yellowCards": 1,
+          "redCards": 0
+        },
+        "fra-kolo-muani": {
+          "status": "substitute",
+          "yellowCards": 0,
+          "redCards": 0
+        }
+      },
+      "lineup": {
+        "GK": {
+          "id": "fra-maignan",
+          "name": "Mike Maignan",
+          "rating": 90,
+          "position": "GK",
+          "condition": "A",
+          "photoUrl": "/placeholders/goalkeeper-placeholder.png",
+          "isLegend": false
+        },
+        "RB": {
+          "id": "fra-kounde",
+          "name": "Jules Kounde",
+          "rating": 87,
+          "position": "RB",
+          "condition": "A",
+          "photoUrl": "/placeholders/defender-placeholder.png",
+          "isLegend": false
+        },
+        "CB1": {
+          "id": "fra-saliba",
+          "name": "William Saliba",
+          "rating": 87,
+          "position": "CB1",
+          "condition": "A",
+          "photoUrl": "/placeholders/defender-placeholder.png",
+          "isLegend": false
+        },
+        "CB2": {
+          "id": "fra-upamecano",
+          "name": "Dayot Upamecano",
+          "rating": 87,
+          "position": "CB2",
+          "condition": "B",
+          "photoUrl": "/placeholders/defender-placeholder.png",
+          "isLegend": false
+        },
+        "LB": {
+          "id": "fra-theo-hernandez",
+          "name": "Theo Hernandez",
+          "rating": 87,
+          "position": "LB",
+          "condition": "A",
+          "photoUrl": "/placeholders/defender-placeholder.png",
+          "isLegend": false
+        },
+        "DMF": {
+          "id": "fra-tchouameni",
+          "name": "Aurelien Tchouameni",
+          "rating": 87,
+          "position": "DMF",
+          "condition": "A",
+          "photoUrl": "/placeholders/midfielder-placeholder.png",
+          "isLegend": false
+        },
+        "CMF": {
+          "id": "fra-camavinga",
+          "name": "Eduardo Camavinga",
+          "rating": 87,
+          "position": "CMF",
+          "condition": "A",
+          "photoUrl": "/placeholders/midfielder-placeholder.png",
+          "isLegend": false
+        },
+        "AMF": {
+          "id": "fra-griezmann",
+          "name": "Antoine Griezmann",
+          "rating": 87,
+          "position": "AMF",
+          "condition": "B",
+          "photoUrl": "/placeholders/forward-placeholder.png",
+          "isLegend": false
+        },
+        "RWF": {
+          "id": "fra-dembele",
+          "name": "Ousmane Dembele",
+          "rating": 87,
+          "position": "RWF",
+          "condition": "A",
+          "photoUrl": "/placeholders/forward-placeholder.png",
+          "isLegend": false
+        },
+        "LWF": {
+          "id": "fra-olise",
+          "name": "Michael Olise",
+          "rating": 87,
+          "position": "LWF",
+          "condition": "A",
+          "photoUrl": "/placeholders/forward-placeholder.png",
+          "isLegend": false
+        },
+        "CF": {
+          "id": "fra-mbappe",
+          "name": "Kylian Mbappe",
+          "rating": 94,
+          "position": "CF",
+          "condition": "A",
+          "photoUrl": "/placeholders/forward-placeholder.png",
+          "isLegend": false
+        }
+      },
+      "notes": [
+        {
+          "id": "tactics-note-portugal-press",
+          "title": "Portugal press trigger",
+          "content": "Press aggressively only on backwards passes into their left center-back. Otherwise hold a compact 4-4-2 shell.",
+          "category": "Strategy",
+          "createdAt": "2026-07-01T09:00:00.000Z"
+        },
+        {
+          "id": "tactics-note-set-pieces",
+          "title": "Near-post decoy",
+          "content": "Upamecano attacks near-post lane as decoy; Saliba delays to the penalty spot for second contact.",
+          "category": "Set Pieces",
+          "createdAt": "2026-07-01T09:15:00.000Z"
+        }
+      ],
+      "draggedPositions": {},
+      "drawings": [
+        {
+          "color": "#2563eb",
+          "width": 4,
+          "points": [
+            [
+              210,
+              420
+            ],
+            [
+              310,
+              350
+            ],
+            [
+              450,
+              290
+            ],
+            [
+              610,
+              210
+            ]
+          ]
+        },
+        {
+          "color": "#ef4444",
+          "width": 3,
+          "points": [
+            [
+              520,
+              180
+            ],
+            [
+              450,
+              235
+            ],
+            [
+              390,
+              270
+            ]
+          ]
+        }
+      ],
+      "boardSnapshots": []
+    }
+  }
+}

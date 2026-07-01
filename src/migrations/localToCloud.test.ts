@@ -345,6 +345,43 @@ describe('local-to-cloud migration package', () => {
     });
   });
 
+  it('maps assessment history references to cloud UUIDs', () => {
+    const previousAssessment = {
+      ...assessment,
+      id: 'assess-messi-2026-05-24',
+      assessmentDate: '2026-05-24',
+      createdAt: '2026-05-24T00:00:00.000Z',
+      deltas: {},
+      developmentPlan: undefined
+    };
+    const latestAssessment = {
+      ...assessment,
+      id: 'assess-messi-2026-06-24',
+      deltas: {
+        previousSessionId: previousAssessment.id,
+        attributeDeltas: { strength: 2 }
+      }
+    };
+    const migration = createCloudMigrationPackage({
+      ...core,
+      players: [{
+        ...player,
+        fprdsLastAssessmentId: latestAssessment.id
+      }],
+      assessments: [latestAssessment, previousAssessment]
+    }, createStorage(), options);
+    const byTable = (table: string) => migration.payload.records.filter(item => item.table === table);
+    const previousCloudId = toCloudUuid(options.importId, 'assessment_sessions', previousAssessment.id);
+    const latestCloudId = toCloudUuid(options.importId, 'assessment_sessions', latestAssessment.id);
+    const latestRow = byTable('assessment_sessions').find(item => item.sourceId === latestAssessment.id)!.data;
+    const playerRow = byTable('players')[0].data;
+
+    expect(latestRow.id).toBe(latestCloudId);
+    expect(latestRow.previous_session_id).toBe(previousCloudId);
+    expect(playerRow.fprds_last_assessment_id).toBe(latestCloudId);
+    expect(String(latestRow.previous_session_id)).toMatch(/^[0-9a-f-]{36}$/);
+  });
+
   it('preserves valid UUID source IDs and maps legacy string IDs deterministically', () => {
     const uuid = '11111111-1111-4111-8111-111111111111';
 
