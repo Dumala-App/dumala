@@ -795,7 +795,7 @@ export default function App() {
     setPrimaryTab(target.primary);
 
     if (target.primary === 'home') {
-      setHomeTab(target.homeTab ?? 'overview');
+      setHomeTab(current => target.homeTab ?? current);
     }
 
     if (target.primary === 'development') {

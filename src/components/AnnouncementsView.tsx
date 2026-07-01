@@ -43,17 +43,24 @@ const ANNOUNCEMENT_BADGE_VARIANTS: Record<AnnouncementCategory, React.ComponentP
   Training: 'warning',
   Social: 'success'
 };
+const ANNOUNCEMENT_BADGE_CLASSES: Record<AnnouncementCategory, string> = {
+  Urgent: 'border-rose-300/30 bg-rose-300/12 text-rose-100',
+  Matchday: 'border-orange-300/30 bg-orange-300/15 text-orange-100',
+  Training: 'border-amber-300/30 bg-amber-300/15 text-amber-100',
+  Social: 'border-emerald-300/30 bg-emerald-300/15 text-emerald-100'
+};
 
 const parseAnnouncementCategory = (value: string): AnnouncementCategory => (
   ANNOUNCEMENT_CATEGORIES.includes(value as AnnouncementCategory) ? value as AnnouncementCategory : 'Urgent'
 );
 
-const announcementControlClass = 'rounded-xl text-sm';
-const announcementCardClass = 'rounded-2xl border border-border bg-card p-5 shadow-sm';
-const announcementHeaderClass = 'border-b border-border pb-3';
-const announcementTitleClass = 'font-display text-lg font-black tracking-tight text-foreground';
-const announcementDescriptionClass = 'mt-1 text-sm font-medium leading-relaxed text-muted-foreground';
-const announcementLabelClass = 'text-[11px] font-black uppercase tracking-widest text-muted-foreground';
+const announcementControlClass = 'rounded-xl border-cyan-300/10 bg-[#07111f]/80 text-sm font-semibold text-slate-100 shadow-sm shadow-black/10 placeholder:text-slate-500 focus-visible:border-orange-300/50 focus-visible:ring-orange-300/15';
+const announcementCardClass = `${DARK_GLASS_CLASSES.panel} p-5`;
+const announcementHeaderClass = DARK_GLASS_CLASSES.sectionDivider;
+const announcementTitleClass = 'font-display text-lg font-black tracking-tight text-slate-100';
+const announcementDescriptionClass = 'mt-1 text-sm font-medium leading-relaxed text-slate-400';
+const announcementLabelClass = 'text-[11px] font-black uppercase tracking-widest text-slate-500';
+const announcementActionClass = 'rounded-xl border-cyan-300/15 bg-[#0b1726]/85 text-sm font-medium text-slate-100 shadow-sm shadow-black/10 hover:border-orange-300/35 hover:bg-orange-300/10 hover:text-orange-100';
 
 export default function AnnouncementsView({ homeWorkspaceHeader, announcements, onAddAnnouncement, onDeleteAnnouncement }: AnnouncementsViewProps) {
   const [isAdding, setIsAdding] = useState(false);
@@ -94,7 +101,7 @@ export default function AnnouncementsView({ homeWorkspaceHeader, announcements, 
       {/* Title Header Panel */}
       <div className={`${announcementCardClass} flex flex-col justify-between gap-4 sm:flex-row sm:items-center`}>
         <div className="flex items-center gap-3">
-          <div className="flex size-10 items-center justify-center rounded-xl border border-primary/15 bg-primary/10 text-primary">
+          <div className="flex size-10 items-center justify-center rounded-xl border border-orange-300/20 bg-orange-300/10 text-orange-200 shadow-sm shadow-black/10">
             <Megaphone size={18} />
           </div>
           <div>
@@ -107,7 +114,7 @@ export default function AnnouncementsView({ homeWorkspaceHeader, announcements, 
           id="toggle-announcement-form-btn"
           type="button"
           onClick={() => setIsAdding(!isAdding)}
-          className="rounded-xl text-xs font-bold"
+          className="rounded-xl bg-orange-400 text-xs font-black text-slate-950 shadow-lg shadow-orange-950/20 hover:bg-orange-300"
         >
           {isAdding ? <Plus size={14} className="rotate-45" /> : <Plus size={14} />}
           {isAdding ? 'Cancel Post' : 'Post Announcement'}
@@ -123,17 +130,17 @@ export default function AnnouncementsView({ homeWorkspaceHeader, announcements, 
           className={`${announcementCardClass} space-y-4`}
         >
           <div className={`${announcementHeaderClass} flex items-center gap-2`}>
-            <Megaphone className="text-primary" size={18} />
+            <Megaphone className="text-orange-300" size={18} />
             <div>
               <p className={announcementLabelClass}>New bulletin</p>
-              <h4 className="font-display text-base font-black text-foreground">Draft Bulletin Notice</h4>
+              <h4 className="font-display text-base font-black text-slate-100">Draft Bulletin Notice</h4>
             </div>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="md:col-span-2">
-                <Label htmlFor="ann-title-input" className="mb-1 block">Headline Notice *</Label>
+                <Label htmlFor="ann-title-input" className="mb-1 block text-slate-300">Headline Notice *</Label>
                 <Input
                   id="ann-title-input"
                   type="text" 
@@ -146,7 +153,7 @@ export default function AnnouncementsView({ homeWorkspaceHeader, announcements, 
               </div>
 
               <div>
-                <Label className="mb-1 block">Importance Category *</Label>
+                <Label className="mb-1 block text-slate-300">Importance Category *</Label>
                 <Select
                   value={realCategory}
                   onValueChange={value => setRealCategory(parseAnnouncementCategory(value))}
@@ -154,7 +161,7 @@ export default function AnnouncementsView({ homeWorkspaceHeader, announcements, 
                   <SelectTrigger id="ann-category-select" className={announcementControlClass}>
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="border-cyan-300/10 bg-[#07111f] text-slate-100">
                     {ANNOUNCEMENT_CATEGORIES.map(category => (
                       <SelectItem key={category} value={category}>
                         {ANNOUNCEMENT_CATEGORY_LABELS[category]}
@@ -165,7 +172,7 @@ export default function AnnouncementsView({ homeWorkspaceHeader, announcements, 
               </div>
 
               <div className="md:col-span-3">
-                <Label htmlFor="ann-author-input" className="mb-1 block">Author Name / Role *</Label>
+                <Label htmlFor="ann-author-input" className="mb-1 block text-slate-300">Author Name / Role *</Label>
                 <Input
                   id="ann-author-input"
                   type="text" 
@@ -177,7 +184,7 @@ export default function AnnouncementsView({ homeWorkspaceHeader, announcements, 
               </div>
 
               <div className="md:col-span-3">
-                <Label htmlFor="ann-content-input" className="mb-1 block">Body Content *</Label>
+                <Label htmlFor="ann-content-input" className="mb-1 block text-slate-300">Body Content *</Label>
                 <Textarea
                   id="ann-content-input"
                   required
@@ -190,20 +197,20 @@ export default function AnnouncementsView({ homeWorkspaceHeader, announcements, 
               </div>
             </div>
 
-            <div className="flex gap-2 justify-end border-t border-border pt-3">
+            <div className="flex justify-end gap-2 border-t border-cyan-300/10 pt-3">
               <Button
                 id="cancel-add-ann-btn"
                 type="button" 
                 onClick={() => setIsAdding(false)}
                 variant="outline"
-                className="rounded-xl text-sm font-medium"
+                className={announcementActionClass}
               >
                 Cancel
               </Button>
               <Button
                 id="submit-ann-btn"
                 type="submit" 
-                className="rounded-xl px-5 text-sm font-semibold"
+                className="rounded-xl bg-orange-400 px-5 text-sm font-black text-slate-950 shadow-lg shadow-orange-950/20 hover:bg-orange-300"
               >
                 Publish Notice
               </Button>
@@ -215,10 +222,10 @@ export default function AnnouncementsView({ homeWorkspaceHeader, announcements, 
       {/* Announcements List */}
       <div id="announcement-bulletins-list" className="space-y-4">
         {announcements.length === 0 ? (
-          <div className="flex flex-col items-center justify-center space-y-3 rounded-2xl border border-dashed border-border bg-muted/45 px-6 py-12 text-center">
-            <Bell size={32} className="text-muted-foreground/60" />
-            <h4 className="font-display text-base font-black text-foreground">Notice Bulletin empty</h4>
-            <p className="max-w-sm text-sm font-medium leading-relaxed text-muted-foreground">Any coach updates or schedule changes will highlight here.</p>
+          <div className="flex flex-col items-center justify-center space-y-3 rounded-2xl border border-dashed border-cyan-300/15 bg-white/[0.035] px-6 py-12 text-center shadow-sm shadow-black/10">
+            <Bell size={32} className="text-slate-500" />
+            <h4 className="font-display text-base font-black text-slate-100">Notice Bulletin empty</h4>
+            <p className="max-w-sm text-sm font-medium leading-relaxed text-slate-400">Any coach updates or schedule changes will highlight here.</p>
           </div>
         ) : (
           announcements.map((ann) => {
@@ -232,16 +239,16 @@ export default function AnnouncementsView({ homeWorkspaceHeader, announcements, 
                 key={ann.id}
                 initial={{ opacity: 0, y: 5 }}
                 animate={{ opacity: 1, y: 0 }}
-                className={`relative overflow-hidden rounded-2xl border bg-card p-5 shadow-sm transition-colors hover:border-primary/25 ${
-                  isUrgent ? 'border-destructive/25 bg-destructive/5' : 'border-border'
+                className={`relative overflow-hidden rounded-2xl border p-5 text-slate-100 shadow-lg shadow-black/15 backdrop-blur-xl transition-colors hover:border-orange-300/30 hover:bg-orange-300/10 ${
+                  isUrgent ? 'border-rose-300/25 bg-rose-300/10' : 'border-cyan-300/10 bg-[#07111f]/88'
                 }`}
               >
                 {/* Left accent bar based on category */}
                 <div className={`absolute top-0 left-0 bottom-0 w-1.5 ${
                   isUrgent ? 'bg-rose-500' :
-                  isMatchday ? 'bg-primary' :
-                  isTraining ? 'bg-warning' :
-                  'bg-success'
+                  isMatchday ? 'bg-orange-400' :
+                  isTraining ? 'bg-amber-300' :
+                  'bg-emerald-400'
                 }`} />
 
                 <div className="flex justify-between items-start pl-2 gap-4">
@@ -250,16 +257,16 @@ export default function AnnouncementsView({ homeWorkspaceHeader, announcements, 
                       <Badge
                         id={`ann-${ann.id}-cat-badge`}
                         variant={ANNOUNCEMENT_BADGE_VARIANTS[ann.category]}
-                        className="rounded-full px-2.5"
+                        className={`rounded-full px-2.5 shadow-sm shadow-black/10 ${ANNOUNCEMENT_BADGE_CLASSES[ann.category]}`}
                       >
                         {ann.category}
                       </Badge>
-                      <span id={`ann-${ann.id}-date`} className="text-xs font-medium text-muted-foreground">
+                      <span id={`ann-${ann.id}-date`} className="text-xs font-medium text-slate-400">
                         Posted: {ann.date}
                       </span>
                     </div>
 
-                    <h4 id={`ann-${ann.id}-title`} className="pt-1 font-display text-base font-black tracking-tight text-foreground md:text-lg">
+                    <h4 id={`ann-${ann.id}-title`} className="pt-1 font-display text-base font-black tracking-tight text-slate-100 md:text-lg">
                       {ann.title}
                     </h4>
                   </div>
@@ -270,7 +277,7 @@ export default function AnnouncementsView({ homeWorkspaceHeader, announcements, 
                     onClick={() => onDeleteAnnouncement(ann.id)}
                     variant="ghost"
                     size="icon"
-                    className="size-8 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+                    className="size-8 text-slate-400 hover:bg-rose-300/10 hover:text-rose-200"
                     title="Remove Bulletin"
                     aria-label={`Remove ${ann.title}`}
                   >
@@ -279,20 +286,20 @@ export default function AnnouncementsView({ homeWorkspaceHeader, announcements, 
                 </div>
 
                 <div className="mt-3.5 pl-2">
-                  <p id={`ann-${ann.id}-content`} className="whitespace-pre-wrap text-sm font-medium leading-relaxed text-muted-foreground">
+                  <p id={`ann-${ann.id}-content`} className="whitespace-pre-wrap text-sm font-medium leading-relaxed text-slate-300">
                     {ann.content}
                   </p>
                 </div>
 
-                <div className="mt-4 flex flex-col justify-between gap-3 border-t border-border pt-3 pl-2 text-xs text-muted-foreground sm:flex-row sm:items-center">
-                  <span id={`ann-${ann.id}-author`} className="flex items-center gap-1.5 font-semibold text-foreground">
-                    <span className="flex size-5 items-center justify-center rounded-full bg-muted text-[10px] font-bold text-muted-foreground">
+                <div className="mt-4 flex flex-col justify-between gap-3 border-t border-cyan-300/10 pt-3 pl-2 text-xs text-slate-400 sm:flex-row sm:items-center">
+                  <span id={`ann-${ann.id}-author`} className="flex items-center gap-1.5 font-semibold text-slate-100">
+                    <span className="flex size-5 items-center justify-center rounded-full border border-cyan-300/10 bg-white/[0.06] text-[10px] font-bold text-slate-300">
                       {ann.author.charAt(0).toUpperCase()}
                     </span>
                     {ann.author}
                   </span>
                   <div className="flex items-center gap-1.5">
-                    <Info size={12} className="text-muted-foreground" /> Only Coaches and Admins can delete notices
+                    <Info size={12} className="text-slate-500" /> Only Coaches and Admins can delete notices
                   </div>
                 </div>
 

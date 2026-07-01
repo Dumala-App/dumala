@@ -1,7 +1,7 @@
 import React, { type ReactNode, useEffect, useMemo, useState } from 'react';
 import { AssessmentSession, Game, Player, Standing, Announcement, TeamInfo } from '../types';
 import {findUserStanding, sortStandings} from '../standings';
-import { Calendar, MapPin, Trophy, Shield, Megaphone, Star, Award, Zap, ArrowRight, CornerRightDown, TrendingUp, Edit, Upload, Link, Check, X, Image, Crown, Target, Flame, AlertCircle, Table, Users, ClipboardList, CloudSun, CloudRain, Wind, MoreHorizontal } from 'lucide-react';
+import { Calendar, MapPin, Trophy, Shield, Megaphone, Star, Award, Zap, ArrowRight, CornerRightDown, TrendingUp, Edit, Upload, Link, Check, X, Image, Crown, Target, Flame, AlertCircle, Table, Users, ClipboardList, CloudSun, CloudRain, Wind, MoreHorizontal, Clock, Route } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
 import { Badge } from './ui/badge';
@@ -203,6 +203,68 @@ const cleanLocationQuery = (value: string) => (
     .replace(/\s+/g, ' ')
     .trim()
 );
+
+const getCalendarEventStartMs = (game: Game) => {
+  const time = game.time?.trim() || '00:00';
+  const timestamp = new Date(`${game.date}T${time}`).getTime();
+  return Number.isNaN(timestamp) ? Number.POSITIVE_INFINITY : timestamp;
+};
+
+export const selectMatchDayPrepEvent = (
+  games: Game[],
+  now = new Date()
+): Game | undefined => {
+  const nowMs = now.getTime();
+
+  return games
+    .filter(game => game.status === 'Upcoming')
+    .map(game => ({ game, startsAt: getCalendarEventStartMs(game) }))
+    .filter(item => item.startsAt >= nowMs)
+    .sort((a, b) => a.startsAt - b.startsAt)[0]?.game;
+};
+
+const formatCalendarEventDateTime = (game: Game) => {
+  const timestamp = getCalendarEventStartMs(game);
+  if (!Number.isFinite(timestamp)) return `${game.date} @ ${game.time}`;
+
+  return new Intl.DateTimeFormat('en', {
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit'
+  }).format(new Date(timestamp));
+};
+
+const getCalendarEventCountdown = (game: Game, now = new Date()) => {
+  const diffMs = getCalendarEventStartMs(game) - now.getTime();
+  if (!Number.isFinite(diffMs) || diffMs <= 0) return 'Due now';
+
+  const totalMinutes = Math.ceil(diffMs / 60000);
+  const days = Math.floor(totalMinutes / 1440);
+  const hours = Math.floor((totalMinutes % 1440) / 60);
+  const minutes = totalMinutes % 60;
+
+  if (days > 0) return `${days}d ${hours}h`;
+  if (hours > 0) return `${hours}h ${minutes}m`;
+  return `${minutes}m`;
+};
+
+const getEventTypeLabel = (event: Game) => (
+  event.type === 'Training' ? 'Practice' : event.type === 'Meeting' ? 'Meeting' : 'Matchday'
+);
+
+const getMatchPrepChecklist = (event: Game) => {
+  if (event.type === 'Training') {
+    return ['Confirm attendance', 'Set drill blocks', 'Prep equipment'];
+  }
+
+  if (event.type === 'Meeting') {
+    return ['Share agenda', 'Prepare clips', 'Confirm attendees'];
+  }
+
+  return ['Confirm squad list', 'Review tactics', 'Verify travel'];
+};
 
 const getWeatherArtType = (code: number) => {
   if (code >= 95) return 'storm';
@@ -468,6 +530,18 @@ const dashboardSuccessBadgeClass = 'border-emerald-300/25 bg-emerald-300/10 text
 const dashboardWarningBadgeClass = 'border-amber-300/30 bg-amber-300/15 text-white shadow-sm shadow-black/10';
 const dashboardDangerBadgeClass = 'border-rose-300/25 bg-rose-300/10 text-rose-100 shadow-sm shadow-black/10';
 const dashboardInfoBadgeClass = 'border-cyan-300/25 bg-cyan-300/10 text-cyan-100 shadow-sm shadow-black/10';
+const dashboardAnnouncementBadgeClasses: Record<Announcement['category'], string> = {
+  Urgent: 'border-rose-300/30 bg-rose-300/12 text-rose-100 shadow-sm shadow-black/10',
+  Matchday: 'border-orange-300/30 bg-orange-300/15 text-orange-100 shadow-sm shadow-black/10',
+  Training: 'border-amber-300/30 bg-amber-300/15 text-amber-100 shadow-sm shadow-black/10',
+  Social: 'border-emerald-300/30 bg-emerald-300/15 text-emerald-100 shadow-sm shadow-black/10'
+};
+const dashboardAnnouncementAccentClasses: Record<Announcement['category'], string> = {
+  Urgent: 'bg-rose-500',
+  Matchday: 'bg-orange-400',
+  Training: 'bg-amber-300',
+  Social: 'bg-emerald-400'
+};
 const WEATHER_LOCATION_STORAGE_KEY = 'dumala_weather_location';
 const WEATHER_PLACE_STORAGE_KEY = 'dumala_weather_place';
 const STRATEGY_SNAPSHOT_STORAGE_KEYS = new Set<string>([
@@ -692,12 +766,7 @@ export default function DashboardView({
     setTimeout(() => setLogoStatus('idle'), 2500);
   };
   
-  // Find the next upcoming match
-  const upcomingGames = games
-    .filter(g => g.status === 'Upcoming')
-    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-  
-  const nextMatch = upcomingGames[0];
+  const nextMatch = useMemo(() => selectMatchDayPrepEvent(games), [games]);
   const weatherLocationQuery = useMemo(() => {
     const candidates = [
       savedWeatherPlace?.label ?? savedWeatherLocation,
@@ -967,6 +1036,21 @@ export default function DashboardView({
   const rankedStandings = sortStandings(standings);
   const userTeam = findUserStanding(rankedStandings, teamInfo.name);
   const leagueRank = userTeam?.rank;
+  const nextOpponentStanding = nextMatch
+    ? rankedStandings.find(row => row.teamName.trim().toLowerCase() === nextMatch.opponent.trim().toLowerCase())
+    : undefined;
+  const activePlayersCount = players.filter(player => player.registrationStatus === 'Active').length;
+  const unavailablePlayersCount = Math.max(0, players.length - activePlayersCount);
+  const nextMatchChecklist = nextMatch ? getMatchPrepChecklist(nextMatch) : [];
+  const nextMatchCountdown = nextMatch ? getCalendarEventCountdown(nextMatch) : '';
+  const nextMatchDateTime = nextMatch ? formatCalendarEventDateTime(nextMatch) : '';
+  const nextMatchPrepTone = nextMatch && nextMatch.type !== 'Training' && nextMatch.type !== 'Meeting'
+    ? nextOpponentStanding
+      ? `Opponent sits #${nextOpponentStanding.rank} with ${nextOpponentStanding.points} pts`
+      : 'Add opponent to League table for deeper intel'
+    : nextMatch?.type === 'Training'
+      ? `${activePlayersCount} active players available for session planning`
+      : 'Staff and player briefing event';
   
   // Calculate team's point trend over the last 10 games played
   const userCompletedGames = games
@@ -1392,55 +1476,83 @@ export default function DashboardView({
 
             {nextMatch ? (
               <div className="mt-5 space-y-4">
-                <div className="flex items-center gap-4 justify-between">
-                  {nextMatch.type === 'Training' || nextMatch.type === 'Meeting' ? (
-                    <div className="text-left w-full">
-                      <span className="text-xs font-bold text-muted-foreground">Scheduled event</span>
-                      <h4 id="next-match-opponent-slug" className="mt-1 font-display text-2xl font-black tracking-tight text-foreground">{nextMatch.opponent}</h4>
+                <div className="rounded-2xl border border-orange-300/20 bg-[linear-gradient(135deg,rgba(249,115,22,0.18),rgba(14,165,233,0.12)_48%,rgba(11,23,38,0.78))] p-4 shadow-lg shadow-black/20">
+                  <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Badge variant="warning" className={dashboardWarningBadgeClass}>
+                          <Clock size={11} aria-hidden="true" /> T-{nextMatchCountdown}
+                        </Badge>
+                        <Badge variant="outline" className={dashboardBadgeClass}>
+                          {getEventTypeLabel(nextMatch)}
+                        </Badge>
+                      </div>
+                      <div className="mt-3">
+                        <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">
+                          {nextMatch.type === 'Training' || nextMatch.type === 'Meeting' ? 'Scheduled event' : 'Next opponent'}
+                        </span>
+                        <h4 id="next-match-opponent-slug" className="mt-1 truncate font-display text-3xl font-black tracking-tight text-white">
+                          {nextMatch.opponent}
+                        </h4>
+                        <p className="mt-1 text-xs font-semibold text-slate-300">{nextMatchPrepTone}</p>
+                      </div>
                     </div>
-                  ) : (
-                    <>
-                      <div className="text-left">
-                        <span className="text-xs font-bold text-muted-foreground">Our squad</span>
-                        <h4 className="mt-1 max-w-[160px] truncate font-display text-xl font-black text-foreground">{teamInfo?.name || "Apex Rangers"}</h4>
-                      </div>
-                      <div className="rounded-full border border-cyan-300/10 bg-[#0b1726]/80 px-3.5 py-1.5 font-display text-sm font-bold text-slate-400 shadow-sm shadow-black/10">VS</div>
-                      <div className="text-right">
-                        <span className="text-xs font-bold text-muted-foreground">Opponent</span>
-                        <h4 id="next-match-opponent-slug" className="mt-1 max-w-[160px] truncate font-display text-xl font-black text-orange-200">{nextMatch.opponent}</h4>
-                      </div>
-                    </>
-                  )}
-                </div>
 
-                <div className={`grid grid-cols-1 gap-3 p-4 text-sm sm:grid-cols-2 ${dashboardInsetPanelClass}`}>
-                  <div>
-                    <span className="flex items-center gap-1.5 font-semibold text-muted-foreground">
-                      <MapPin size={14} className="text-cyan-200" aria-hidden="true" /> Kickoff Location
-                    </span>
-                    <span id="next-match-loc" className="mt-0.5 block font-semibold text-foreground">{nextMatch.location}</span>
-                  </div>
-                  <div>
-                    <span className="flex items-center gap-1.5 font-semibold text-muted-foreground">
-                      <Calendar size={14} className="text-orange-300" aria-hidden="true" /> Date &amp; Timing
-                    </span>
-                    <span id="next-match-datetime" className="mt-0.5 block font-semibold text-foreground">{nextMatch.date} @ {nextMatch.time}</span>
+                    {nextMatch.type !== 'Training' && nextMatch.type !== 'Meeting' && (
+                      <div className="flex shrink-0 items-center gap-2 rounded-xl border border-cyan-300/10 bg-[#07111f]/75 px-3 py-2 text-sm shadow-sm shadow-black/15">
+                        <span className="max-w-[7rem] truncate font-bold text-slate-100">{teamInfo?.name || 'Our Team'}</span>
+                        <span className="rounded-full bg-orange-300 px-2 py-0.5 text-[10px] font-black text-slate-950">VS</span>
+                        <span className="max-w-[7rem] truncate font-bold text-orange-100">{nextMatch.opponent}</span>
+                      </div>
+                    )}
                   </div>
                 </div>
 
-                <div className="flex items-start gap-3 rounded-xl border border-primary/15 bg-primary/5 p-4 text-sm">
-                  <Megaphone size={16} className="mt-0.5 shrink-0 text-emerald-300" aria-hidden="true" />
-                  <div>
-                    <strong className="block text-foreground">{(teamInfo?.coach || "Coach Sterling")}'s prep directives</strong>
-                    <p className="mt-1 leading-relaxed text-muted-foreground">
-                      {nextMatch.notes || (
-                        nextMatch.type === 'Training' 
-                          ? "Focus on high-intensity workloads and technical precision. Ensure all athletic gear is complete."
-                          : nextMatch.type === 'Meeting'
-                          ? "Reviewing tactical formations, video reels, and assignment coordinates. Bring your playbooks."
-                          : "Review defense lines, lock opponent channels, and coordinate tactical transitions. Stay focused."
-                      )}
-                    </p>
+                <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+                  {[
+                    { label: 'Date & time', value: nextMatchDateTime, icon: Calendar, id: 'next-match-datetime' },
+                    { label: 'Venue', value: nextMatch.location, icon: MapPin, id: 'next-match-loc' },
+                    { label: 'Squad pool', value: `${activePlayersCount} active`, icon: Users },
+                    { label: 'Availability', value: unavailablePlayersCount > 0 ? `${unavailablePlayersCount} unavailable` : 'All clear', icon: AlertCircle }
+                  ].map(({ label, value, icon: Icon, id }) => (
+                    <div key={label} className="rounded-xl border border-cyan-300/10 bg-[#0b1726]/72 p-3 shadow-sm shadow-black/10">
+                      <span className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider text-slate-500">
+                        <Icon size={12} className="text-cyan-200" aria-hidden="true" /> {label}
+                      </span>
+                      <span id={id} className="mt-1 block truncate text-sm font-black text-slate-100">{value}</span>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="grid grid-cols-1 gap-3 md:grid-cols-[minmax(0,1fr)_minmax(12rem,0.58fr)]">
+                  <div className="flex items-start gap-3 rounded-xl border border-emerald-300/15 bg-emerald-300/10 p-4 text-sm">
+                    <Megaphone size={16} className="mt-0.5 shrink-0 text-emerald-300" aria-hidden="true" />
+                    <div>
+                      <strong className="block text-foreground">{(teamInfo?.coach || 'Coach')}'s prep directive</strong>
+                      <p className="mt-1 leading-relaxed text-muted-foreground">
+                        {nextMatch.notes || (
+                          nextMatch.type === 'Training'
+                            ? 'Focus on high-intensity workloads, technical precision, and attendance discipline.'
+                            : nextMatch.type === 'Meeting'
+                              ? 'Review tactical clips, player assignments, and next-session responsibilities.'
+                              : 'Confirm squad readiness, review the opponent profile, and lock travel plus warm-up timing.'
+                        )}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="rounded-xl border border-cyan-300/10 bg-[#0b1726]/72 p-4">
+                    <span className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider text-slate-400">
+                      <ClipboardList size={13} className="text-orange-300" aria-hidden="true" /> Prep checklist
+                    </span>
+                    <div className="mt-3 space-y-2">
+                      {nextMatchChecklist.map(item => (
+                        <div key={item} className="flex items-center gap-2 text-xs font-semibold text-slate-200">
+                          <Check size={13} className="text-emerald-300" aria-hidden="true" />
+                          <span>{item}</span>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -1454,16 +1566,18 @@ export default function DashboardView({
             )}
           </div>
 
-          <div className={`mt-5 flex items-center justify-between border-t pt-4 text-sm ${dashboardDividerBorderClass}`}>
-            <span className="font-medium text-muted-foreground">Coordinate calendars in real time</span>
+          <div className={`mt-5 flex flex-col gap-3 border-t pt-4 text-sm sm:flex-row sm:items-center sm:justify-between ${dashboardDividerBorderClass}`}>
+            <span className="inline-flex items-center gap-2 font-medium text-muted-foreground">
+              <Route size={14} className="text-cyan-200" aria-hidden="true" />
+              Coordinate calendar, venue, and squad readiness
+            </span>
             <Button
               id="dash-go-schedule"
               type="button"
-              variant="link"
               onClick={() => onNavigate({ primary: 'home', homeTab: 'game_week' })}
-              className="gap-1"
+              className="h-9 rounded-xl bg-orange-400 px-3 text-xs font-black text-slate-950 shadow-lg shadow-orange-950/20 hover:bg-orange-300"
             >
-              View schedule <ArrowRight size={13} />
+              Open Game Week <ArrowRight size={13} />
             </Button>
           </div>
         </div>
@@ -1721,31 +1835,24 @@ export default function DashboardView({
                 <div 
                   id={`dash-ann-${ann.id}-card`}
                   key={ann.id} 
-                  className={`rounded-xl border p-4 transition-colors ${
+                  className={`relative overflow-hidden rounded-xl border p-4 pl-5 shadow-lg shadow-black/15 backdrop-blur-xl transition-colors hover:border-orange-300/30 hover:bg-orange-300/10 ${
                     ann.category === 'Urgent' 
-                      ? 'border-rose-300/20 bg-rose-300/10 text-rose-50'
+                      ? 'border-rose-300/25 bg-rose-300/10 text-rose-50'
                       : 'border-cyan-300/10 bg-[#0b1726]/66 text-slate-100'
                   }`}
                 >
+                  <div className={`absolute bottom-0 left-0 top-0 w-1.5 ${dashboardAnnouncementAccentClasses[ann.category]}`} />
                   <div className="mb-2 flex items-center justify-between gap-3">
                     <Badge
                       variant={ann.category === 'Urgent' ? 'destructive' : ann.category === 'Matchday' ? 'info' : ann.category === 'Training' ? 'success' : 'secondary'}
-                      className={
-                        ann.category === 'Urgent'
-                          ? dashboardDangerBadgeClass
-                          : ann.category === 'Matchday'
-                            ? dashboardInfoBadgeClass
-                            : ann.category === 'Training'
-                              ? dashboardSuccessBadgeClass
-                              : dashboardBadgeClass
-                      }
+                      className={`rounded-full px-2.5 ${dashboardAnnouncementBadgeClasses[ann.category]}`}
                     >
                       {ann.category}
                     </Badge>
-                    <span className="shrink-0 text-xs font-semibold text-muted-foreground">{ann.date}</span>
+                    <span className="shrink-0 text-xs font-semibold text-slate-400">{ann.date}</span>
                   </div>
-                  <h4 className="line-clamp-1 text-sm font-black leading-tight text-foreground">{ann.title}</h4>
-                  <p className="mt-1 line-clamp-2 text-sm leading-relaxed text-muted-foreground">
+                  <h4 className="line-clamp-1 text-sm font-black leading-tight text-slate-100">{ann.title}</h4>
+                  <p className="mt-1 line-clamp-2 text-sm leading-relaxed text-slate-300">
                     "{ann.content}"
                   </p>
                 </div>
