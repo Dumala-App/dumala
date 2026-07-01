@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ChevronDown, MessageSquare, RotateCcw } from 'lucide-react';
+import { ChevronDown, CloudUpload, Loader2, MessageSquare, RotateCcw } from 'lucide-react';
 import type { AccountBootstrapResult } from '../cloud/account';
 import type { CloudRuntime } from '../cloud/runtime';
 import type { CloudAuthController } from '../hooks/useCloudAuth';
@@ -20,6 +20,15 @@ import { Button } from './ui/button';
 
 const WORKSPACE_GLASS_ACTION_CLASS = 'border-cyan-300/15 bg-[#0b1726]/85 text-slate-100 shadow-sm shadow-black/10 hover:border-orange-300/35 hover:bg-orange-300/10 hover:text-orange-100';
 
+export type CloudBackupStatus =
+  | { state: 'hidden' }
+  | { state: 'needs_sign_in'; message?: string }
+  | { state: 'needs_link'; message?: string }
+  | { state: 'needed'; message?: string }
+  | { state: 'current'; message?: string; backedUpAt?: string }
+  | { state: 'running'; message?: string }
+  | { state: 'error'; message: string };
+
 interface WorkspaceStatusBarProps {
   teamName: string;
   cloudRuntime: CloudRuntime;
@@ -30,6 +39,8 @@ interface WorkspaceStatusBarProps {
   onConfirmReset: () => void;
   onSignedOut?: () => void;
   onCloudWorkspaceReady?: (result: AccountBootstrapResult) => void;
+  cloudBackupStatus?: CloudBackupStatus;
+  onCloudBackup?: () => Promise<void>;
 }
 
 export default function WorkspaceStatusBar({
@@ -41,10 +52,31 @@ export default function WorkspaceStatusBar({
   onFeedback,
   onConfirmReset,
   onSignedOut,
-  onCloudWorkspaceReady
+  onCloudWorkspaceReady,
+  cloudBackupStatus = { state: 'hidden' },
+  onCloudBackup
 }: WorkspaceStatusBarProps) {
   const [panelOpen, setPanelOpen] = useState(false);
+  const [cloudBackupOpen, setCloudBackupOpen] = useState(false);
   const shouldShowPanel = panelOpen || resetOpen;
+  const canRunCloudBackup = Boolean(onCloudBackup) && (
+    cloudBackupStatus.state === 'needed'
+    || cloudBackupStatus.state === 'error'
+  );
+  const cloudBackupTone = cloudBackupStatus.state === 'current'
+    ? 'border-emerald-300/30 bg-emerald-300/10 text-emerald-100'
+    : cloudBackupStatus.state === 'running'
+      ? 'border-amber-300/30 bg-amber-300/10 text-amber-100'
+      : cloudBackupStatus.state === 'needed' || cloudBackupStatus.state === 'error'
+        ? 'border-rose-300/30 bg-rose-300/10 text-rose-100'
+        : 'border-slate-500/30 bg-slate-500/10 text-slate-300';
+  const cloudBackupLabel = cloudBackupStatus.state === 'current'
+    ? 'Backed up'
+    : cloudBackupStatus.state === 'running'
+      ? 'Backing up'
+      : cloudBackupStatus.state === 'needed' || cloudBackupStatus.state === 'error'
+        ? 'Not backed up'
+        : 'Cloud pending';
 
   return (
     <div
@@ -83,6 +115,59 @@ export default function WorkspaceStatusBar({
             <p className="rounded-lg border border-emerald-300/15 bg-emerald-300/10 px-2.5 py-1.5 text-[11px] font-bold text-emerald-100">
               Workspace ready
             </p>
+          )}
+
+          {cloudRuntime.enabled && cloudBackupStatus.state !== 'hidden' && (
+            <div className="rounded-lg border border-cyan-300/10 bg-[#050b14]/90 p-2">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <span className={`inline-flex min-h-7 items-center gap-1.5 rounded-md border px-2 text-[10px] font-black ${cloudBackupTone}`}>
+                  {cloudBackupStatus.state === 'running' ? <Loader2 size={11} className="animate-spin" /> : <CloudUpload size={11} />}
+                  {cloudBackupLabel}
+                </span>
+                <AlertDialog open={cloudBackupOpen} onOpenChange={setCloudBackupOpen}>
+                  <AlertDialogTrigger asChild>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      disabled={!canRunCloudBackup}
+                      className={`h-7 px-2.5 text-[10px] ${WORKSPACE_GLASS_ACTION_CLASS} disabled:cursor-not-allowed disabled:opacity-55`}
+                    >
+                      <CloudUpload size={10} /> Cloud backup
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Back up this workspace?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Dumala will create a local Full Workspace backup first, then upload this roster, staff, schedule, bulletins, assessments, payments, training, tactics, and standings to your linked cloud workspace. Your browser copy stays here.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={() => {
+                          setCloudBackupOpen(false);
+                          void onCloudBackup?.();
+                        }}
+                      >
+                        Start backup
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </div>
+              {cloudBackupStatus.state !== 'current' && cloudBackupStatus.message && (
+                <p className="mt-1.5 text-[10px] font-semibold leading-4 text-slate-400">
+                  {cloudBackupStatus.message}
+                </p>
+              )}
+              {cloudBackupStatus.state === 'current' && (
+                <p className="mt-1.5 text-[10px] font-semibold leading-4 text-emerald-200/80">
+                  Cloud copy matches this local workspace.
+                </p>
+              )}
+            </div>
           )}
 
         <div className="flex flex-wrap gap-1.5">

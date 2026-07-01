@@ -3,7 +3,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
 import type { CloudRuntime } from '../cloud/runtime';
 import type { CloudAuthController } from '../hooks/useCloudAuth';
-import WorkspaceStatusBar from './WorkspaceStatusBar';
+import WorkspaceStatusBar, { type CloudBackupStatus } from './WorkspaceStatusBar';
 
 const signedOutAuth: CloudAuthController = {
   state: { status: 'signedOut' },
@@ -27,7 +27,8 @@ const signedInAuth: CloudAuthController = {
 
 const renderStatus = (
   cloudRuntime: CloudRuntime,
-  cloudAuthController: CloudAuthController = signedOutAuth
+  cloudAuthController: CloudAuthController = signedOutAuth,
+  cloudBackupStatus?: CloudBackupStatus
 ) => renderToStaticMarkup(
   <WorkspaceStatusBar
     teamName="Barbados FC 2026"
@@ -37,6 +38,8 @@ const renderStatus = (
     onResetOpenChange={vi.fn()}
     onFeedback={vi.fn()}
     onConfirmReset={vi.fn()}
+    cloudBackupStatus={cloudBackupStatus}
+    onCloudBackup={vi.fn()}
   />
 );
 
@@ -80,5 +83,38 @@ describe('WorkspaceStatusBar', () => {
     expect(html).toContain('Cloud connected');
     expect(html).toContain('Sign out');
     expect(html).not.toContain('Continue with Google');
+  });
+
+  it('shows a red cloud backup badge when the linked workspace needs upload', () => {
+    const html = renderStatus({
+      enabled: true,
+      dataAccess: {
+        auth: {},
+        account: {}
+      }
+    } as CloudRuntime, signedInAuth, {
+      state: 'needed',
+      message: 'Your local copy stays on this browser.'
+    });
+
+    expect(html).toContain('Cloud backup');
+    expect(html).toContain('Not backed up');
+    expect(html).toContain('Your local copy stays on this browser.');
+  });
+
+  it('shows a green cloud backup badge when the local content matches the cloud copy', () => {
+    const html = renderStatus({
+      enabled: true,
+      dataAccess: {
+        auth: {},
+        account: {}
+      }
+    } as CloudRuntime, signedInAuth, {
+      state: 'current',
+      backedUpAt: '2026-07-01T00:00:00.000Z'
+    });
+
+    expect(html).toContain('Backed up');
+    expect(html).toContain('Cloud copy matches this local workspace.');
   });
 });
