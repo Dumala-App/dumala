@@ -36,21 +36,21 @@ describe('WorkspaceStatusBar', () => {
       }
     } as CloudRuntime);
 
-    expect(html).toContain('Workspace ready.');
-    expect(html).toContain('Saved locally');
     expect(html).toContain('Continue with Google');
     expect(html).toContain('Use email instead');
     expect(html).not.toContain('coach@example.com');
+    expect(html).toContain('Install Dumala');
     expect(html).toContain('Feedback');
     expect(html).toContain('Reset');
+    expect(html).not.toContain('Saved locally');
   });
 
   it('keeps the status bar local-first when cloud accounts are disabled', () => {
     const html = renderStatus({ enabled: false, dataAccess: null });
 
-    expect(html).toContain('Workspace ready.');
-    expect(html).toContain('Saved locally');
-    expect(html).toContain('Local workspace is active');
+    expect(html).toContain('Workspace ready');
+    expect(html).toContain('Install Dumala');
     expect(html).not.toContain('coach@example.com');
+    expect(html).not.toContain('Saved locally');
   });
 });
