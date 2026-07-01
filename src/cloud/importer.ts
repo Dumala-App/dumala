@@ -5,6 +5,7 @@ import { createContentFingerprint, toCloudUuid } from '../migrations/localToClou
 
 type ImportTable = ReturnType<DumalaSupabaseClient['from']>;
 type WorkspaceImportUpdate = Database['public']['Tables']['workspace_imports']['Update'];
+type ClubMembershipInsert = Database['public']['Tables']['club_memberships']['Insert'];
 
 export interface CloudImportDeviceContext {
   label?: string;
@@ -111,6 +112,44 @@ const upsertRows = async (
   );
 };
 
+const ensureOwnerMembership = async (
+  client: DumalaSupabaseClient,
+  clubId: string,
+  userId: string
+) => {
+  const { data, error } = await client
+    .from('club_memberships')
+    .select('id')
+    .eq('club_id', clubId)
+    .eq('user_id', userId)
+    .eq('role', 'owner')
+    .eq('membership_state', 'active')
+    .maybeSingle();
+
+  if (error) {
+    throw new CloudImportError(
+      `Failed to read owner membership: ${getErrorMessage(error)}`,
+      'OWNER_MEMBERSHIP_READ_FAILED',
+      error
+    );
+  }
+
+  if (data) return;
+
+  const ownerMembership: ClubMembershipInsert = {
+    club_id: clubId,
+    user_id: userId,
+    role: 'owner',
+    membership_state: 'active'
+  };
+
+  await expectMutation(
+    client.from('club_memberships').insert(ownerMembership),
+    'OWNER_MEMBERSHIP_INSERT_FAILED',
+    'Failed to create owner membership'
+  );
+};
+
 const updateWorkspaceImportStatus = async (
   client: DumalaSupabaseClient,
   cloudImportId: string,
@@ -150,12 +189,7 @@ export const importCloudPayload = async (
   await upsertRows(client.from('clubs'), [buildClubRow(clubRecords[0], userId)], 'CLUB_UPSERT_FAILED');
   uploadedTables.push({ table: 'clubs', count: 1 });
 
-  await upsertRows(client.from('club_memberships'), [withoutUndefined({
-    club_id: payload.clubId,
-    user_id: userId,
-    role: 'owner',
-    membership_state: 'active'
-  })], 'OWNER_MEMBERSHIP_UPSERT_FAILED', 'club_id,user_id');
+  await ensureOwnerMembership(client, payload.clubId, userId);
 
   await upsertRows(client.from('devices'), [withoutUndefined({
     id: deviceId,

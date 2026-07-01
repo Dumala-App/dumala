@@ -111,7 +111,7 @@ const createStorage = () => {
 };
 
 interface Operation {
-  type: 'upsert' | 'update';
+  type: 'insert' | 'select' | 'upsert' | 'update';
   table: string;
   rows?: Record<string, unknown>[];
   values?: Record<string, unknown>;
@@ -119,7 +119,7 @@ interface Operation {
   filters?: Array<{ column: string; value: unknown }>;
 }
 
-const createClient = (options: { failTable?: string; userId?: string | null } = {}) => {
+const createClient = (options: { existingOwnerMembership?: boolean; failTable?: string; userId?: string | null } = {}) => {
   const operations: Operation[] = [];
   const userId = options.userId === undefined ? '11111111-1111-4111-8111-111111111111' : options.userId;
 
@@ -131,11 +131,34 @@ const createClient = (options: { failTable?: string; userId?: string | null } = 
       })
     },
     from: (table: string) => ({
+      insert: async (row: Record<string, unknown>) => {
+        operations.push({ type: 'insert', table, rows: [row] });
+        return {
+          error: options.failTable === table ? { message: `${table} rejected` } : null
+        };
+      },
       upsert: async (rows: Record<string, unknown>[], config?: { onConflict?: string }) => {
         operations.push({ type: 'upsert', table, rows, onConflict: config?.onConflict });
         return {
           error: options.failTable === table ? { message: `${table} rejected` } : null
         };
+      },
+      select: (columns: string) => {
+        const filters: Array<{ column: string; value: unknown }> = [];
+        const query = {
+          eq: (column: string, value: unknown) => {
+            filters.push({ column, value });
+            return query;
+          },
+          maybeSingle: async () => {
+            operations.push({ type: 'select', table, values: { columns }, filters });
+            return {
+              data: options.existingOwnerMembership ? { id: 'membership-1' } : null,
+              error: null
+            };
+          }
+        };
+        return query;
       },
       update: (values: Record<string, unknown>) => ({
         eq: async (column: string, value: unknown) => {
@@ -168,13 +191,22 @@ describe('cloud importer', () => {
     });
 
     const upsertedTables = operations.filter(operation => operation.type === 'upsert').map(operation => operation.table);
-    expect(upsertedTables.slice(0, 5)).toEqual([
+    expect(upsertedTables.slice(0, 4)).toEqual([
       'clubs',
-      'club_memberships',
       'devices',
       'workspace_imports',
       'players'
     ]);
+    expect(operations).toContainEqual({
+      type: 'insert',
+      table: 'club_memberships',
+      rows: [{
+        club_id: payload.clubId,
+        user_id: '11111111-1111-4111-8111-111111111111',
+        role: 'owner',
+        membership_state: 'active'
+      }]
+    });
     expect(upsertedTables.indexOf('match_results')).toBeGreaterThan(upsertedTables.indexOf('games'));
     expect(upsertedTables.indexOf('match_scorer_contributions')).toBeGreaterThan(upsertedTables.indexOf('match_results'));
 
@@ -197,6 +229,37 @@ describe('cloud importer', () => {
       table: 'workspace_imports',
       values: { status: 'completed' }
     });
+  });
+
+  it('reuses an existing owner membership instead of upserting through RLS-protected owner updates', async () => {
+    const payload = createPayload();
+    const { client, operations } = createClient({
+      existingOwnerMembership: true,
+      failTable: 'club_memberships'
+    });
+
+    await expect(importCloudPayload(client, payload, {
+      appVersion: '0.0.0'
+    })).resolves.toMatchObject({ state: 'complete' });
+
+    expect(operations).toContainEqual(expect.objectContaining({
+      type: 'select',
+      table: 'club_memberships',
+      filters: expect.arrayContaining([
+        { column: 'club_id', value: payload.clubId },
+        { column: 'user_id', value: '11111111-1111-4111-8111-111111111111' },
+        { column: 'role', value: 'owner' },
+        { column: 'membership_state', value: 'active' }
+      ])
+    }));
+    expect(operations).not.toContainEqual(expect.objectContaining({
+      type: 'insert',
+      table: 'club_memberships'
+    }));
+    expect(operations).not.toContainEqual(expect.objectContaining({
+      type: 'upsert',
+      table: 'club_memberships'
+    }));
   });
 
   it('marks the workspace import failed when a domain upsert is rejected', async () => {
