@@ -27,11 +27,11 @@ The offline verifier must confirm:
 - production service worker activation;
 - cold launch and refresh with the network disabled;
 - persisted V3 player and staff records;
-- Overview and Game Week;
+- Overview, Bulletins, and Game Week;
 - Squad and staff directory;
 - Tactics;
 - Training and Assessments;
-- League, Bulletins, and Updates;
+- League and Updates;
 - a bulletin created offline and preserved after refresh;
 - visible offline status.
 
@@ -75,7 +75,7 @@ Record the following for each physical-device row:
 4. Close the installed app completely.
 5. Disable Wi-Fi and mobile data.
 6. Cold-launch the installed app and confirm the offline banner.
-7. Open Game Week, Squad, Tactics, Training, Assessments, League, Bulletins, and Updates.
+7. Open Bulletins, Game Week, Squad, Tactics, Training, Assessments, League, and Updates.
 8. Make one harmless local edit, close the app, reopen it offline, and confirm persistence.
 9. Refresh or relaunch while still offline.
 10. Reconnect and confirm the connection-restored message.

@@ -26,6 +26,8 @@ const renderHome = () => renderToStaticMarkup(
     assessments={[]}
     onSelectPlayer={vi.fn()}
     onUpdateTeamInfo={vi.fn()}
+    onAddAnnouncement={vi.fn()}
+    onDeleteAnnouncement={vi.fn()}
     onAddGame={vi.fn()}
     onRecordResult={vi.fn()}
     onDeleteGame={vi.fn()}

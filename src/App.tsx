@@ -36,6 +36,7 @@ import {
   writeJsonStorage
 } from './persistence/storage';
 import {
+  activateCloudWorkspace,
   bootstrapManagedWorkspaces,
   copyActiveKeysToWorkspace,
   createManagedWorkspace,
@@ -49,6 +50,7 @@ import {
   touchWorkspaceSummary,
   type WorkspaceSummary
 } from './persistence/workspaces';
+import type { AccountBootstrapResult } from './cloud/account';
 import {
   estimateStorageHealth,
   formatStorageSize,
@@ -209,9 +211,9 @@ export default function App() {
 
   const [isOnboarded, setIsOnboarded] = useState(initialWorkspace.isOnboarded);
   type PrimaryTab = 'home' | 'squad' | 'tactics' | 'development' | 'league_updates';
-  type HomeTab = 'overview' | 'game_week';
+  type HomeTab = 'overview' | 'bulletins' | 'game_week';
   type DevelopmentTab = 'assessments' | 'training' | 'assessment_guide';
-  type LeagueUpdatesTab = 'league' | 'updates' | 'bulletins';
+  type LeagueUpdatesTab = 'league' | 'updates';
   const primaryTabs: Array<{ id: PrimaryTab; label: string; icon: LucideIcon }> = [
     { id: 'home', label: 'Home', icon: Shield },
     { id: 'squad', label: 'Squad', icon: Users },
@@ -893,6 +895,31 @@ export default function App() {
     handleNavigate({ primary: 'home', homeTab: 'overview' });
   };
 
+  const handleCloudWorkspaceReady = (result: AccountBootstrapResult) => {
+    if (activeWorkspaceId) copyActiveKeysToWorkspace(activeWorkspaceId);
+
+    const cloudTeamInfo: TeamInfo = {
+      name: result.club.name,
+      founded: result.club.founded ?? new Date(result.club.created_at).getFullYear().toString(),
+      stadium: result.club.stadium ?? 'Home Ground',
+      coach: result.profile.display_name ?? 'Team Coach',
+      league: result.club.league ?? 'Friendly Division',
+      logoColor: result.club.logo_color,
+      logoUrl: result.club.logo_url ?? undefined
+    };
+    const activated = activateCloudWorkspace(cloudTeamInfo, result.club.id);
+
+    setWorkspaces(activated.workspaces);
+    setActiveWorkspaceId(activated.summary.id);
+    loadWorkspaceStateFromStorage();
+    setIsOnboarded(true);
+    setSelectedPlayer(null);
+    setSelectedStaff(null);
+    setIntegrityFocus(null);
+    setMobileMenuOpen(false);
+    handleNavigate({ primary: 'home', homeTab: 'overview' });
+  };
+
   const handleSwitchTeamWorkspace = (workspaceId: string) => {
     if (workspaceId === activeWorkspaceId) return;
     switchManagedWorkspace(workspaceId, activeWorkspaceId);
@@ -1066,6 +1093,7 @@ export default function App() {
             <OnboardingView
               onComplete={handleCreateTeamWorkspace}
               cloudRuntime={cloudRuntime}
+              onCloudWorkspaceReady={handleCloudWorkspaceReady}
             />
           </ViewErrorBoundary>
         </Suspense>
@@ -1210,7 +1238,7 @@ export default function App() {
         <div id="tab-content-frame">
           <Suspense fallback={<ViewLoadingFallback label="workspace" />}>
             {primaryTab === 'home' && (
-              <ViewErrorBoundary viewName={homeTab === 'overview' ? 'Overview' : 'Game Week'} onReturnHome={handleReturnHomeFromError} resetKeys={[primaryTab, homeTab]}>
+              <ViewErrorBoundary viewName={homeTab === 'overview' ? 'Overview' : homeTab === 'bulletins' ? 'Bulletins' : 'Game Week'} onReturnHome={handleReturnHomeFromError} resetKeys={[primaryTab, homeTab]}>
                 <HomeHubView
                   activeTab={homeTab}
                   onTabChange={setHomeTab}
@@ -1234,6 +1262,8 @@ export default function App() {
                   assessments={assessments}
                   onSelectPlayer={setSelectedPlayer}
                   onUpdateTeamInfo={handleUpdateTeamInfo}
+                  onAddAnnouncement={handleAddAnnouncement}
+                  onDeleteAnnouncement={handleDeleteAnnouncement}
                   onAddGame={handleAddGame}
                   onRecordResult={handleRecordResult}
                   onDeleteGame={handleDeleteGame}
@@ -1290,7 +1320,7 @@ export default function App() {
             )}
 
             {primaryTab === 'league_updates' && (
-              <ViewErrorBoundary viewName={leagueUpdatesTab === 'league' ? 'League' : leagueUpdatesTab === 'bulletins' ? 'Bulletins' : 'Updates'} onReturnHome={handleReturnHomeFromError} resetKeys={[primaryTab, leagueUpdatesTab]}>
+              <ViewErrorBoundary viewName={leagueUpdatesTab === 'league' ? 'League' : 'Updates'} onReturnHome={handleReturnHomeFromError} resetKeys={[primaryTab, leagueUpdatesTab]}>
                 <LeagueUpdatesHubView
                   activeTab={leagueUpdatesTab}
                   onTabChange={setLeagueUpdatesTab}
@@ -1303,9 +1333,6 @@ export default function App() {
                   onUpdateAllStandings={handleUpdateAllStandings}
                   players={players}
                   onUpdatePlayer={handleUpdatePlayer}
-                  announcements={announcements}
-                  onAddAnnouncement={handleAddAnnouncement}
-                  onDeleteAnnouncement={handleDeleteAnnouncement}
                   highlightStandingTeamName={integrityFocus?.standingTeamName ?? null}
                 />
               </ViewErrorBoundary>

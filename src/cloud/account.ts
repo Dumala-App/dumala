@@ -7,6 +7,10 @@ export type CloudClub = Tables<'clubs'>;
 export type CloudClubMembership = Tables<'club_memberships'>;
 export type CloudDevice = Tables<'devices'>;
 
+type CloudMembershipWithClub = CloudClubMembership & {
+  clubs: CloudClub | null;
+};
+
 export interface AccountBootstrapInput {
   clubName: string;
   deviceId: string;
@@ -71,6 +75,28 @@ const readOwnedClub = async (client: DumalaSupabaseClient, userId: string): Prom
     'OWNER_CLUB_READ_FAILED',
     'Failed to read owner club'
   );
+
+const readActiveMembershipWithClub = async (
+  client: DumalaSupabaseClient,
+  userId: string
+): Promise<CloudMembershipWithClub | null> =>
+  expectNoError(
+    await client
+      .from('club_memberships')
+      .select('*, clubs(*)')
+      .eq('user_id', userId)
+      .eq('membership_state', 'active')
+      .order('created_at', { ascending: true })
+      .limit(1)
+      .maybeSingle(),
+    'ACTIVE_MEMBERSHIP_READ_FAILED',
+    'Failed to read account workspace'
+  ) as CloudMembershipWithClub | null;
+
+const withoutJoinedClub = (membership: CloudMembershipWithClub): CloudClubMembership => {
+  const { clubs: _clubs, ...row } = membership;
+  return row;
+};
 
 const readUserProfile = async (client: DumalaSupabaseClient, userId: string): Promise<CloudUserProfile | null> =>
   expectNoError(
@@ -173,11 +199,12 @@ export const ensureAccountBootstrap = async (
 
   const profile = await readUserProfile(client, user.id) ?? await createUserProfile(client, user.id, user.email, input);
 
-  const club = await readOwnedClub(client, user.id) ?? await createOwnerClub(client, user.id, input);
-
   const acceptedAt = now.toISOString();
-  const membership = await readOwnerMembership(client, club.id, user.id)
-    ?? await createOwnerMembership(client, club.id, user.id, acceptedAt);
+  const activeMembership = await readActiveMembershipWithClub(client, user.id);
+  const club = activeMembership?.clubs ?? await readOwnedClub(client, user.id) ?? await createOwnerClub(client, user.id, input);
+  const membership = activeMembership
+    ? withoutJoinedClub(activeMembership)
+    : await readOwnerMembership(client, club.id, user.id) ?? await createOwnerMembership(client, club.id, user.id, acceptedAt);
 
   const device = expectNoError(
     await client

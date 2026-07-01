@@ -55,11 +55,11 @@ Prevent an unexpected render failure in one view or widget from taking down the 
    - recovery guidance for exporting a backup after reload;
    - technical details collapsed behind a development-only section.
 6. Add view-level boundaries around the lazy-loaded active views:
-   - Overview and Game Week;
+   - Overview, Bulletins, and Game Week;
    - Squad;
    - Tactics;
    - Training and Assessments;
-   - League, Bulletins, and Updates.
+   - League and Updates.
 7. Build a view fallback containing:
    - affected view name;
    - **Retry view**;

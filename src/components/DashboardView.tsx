@@ -493,9 +493,9 @@ interface DashboardViewProps {
   assessments: AssessmentSession[];
   onNavigate: (target: {
     primary: 'home' | 'squad' | 'tactics' | 'development' | 'league_updates';
-    homeTab?: 'overview' | 'game_week';
+    homeTab?: 'overview' | 'bulletins' | 'game_week';
     developmentTab?: 'assessments' | 'training' | 'assessment_guide';
-    leagueUpdatesTab?: 'league' | 'updates' | 'bulletins';
+    leagueUpdatesTab?: 'league' | 'updates';
   }) => void;
   onSelectPlayer: (player: Player) => void;
   onUpdateTeamInfo: (updated: TeamInfo) => void;
@@ -1764,7 +1764,7 @@ export default function DashboardView({
             id="dash-go-ann"
             type="button"
             variant="outline"
-            onClick={() => onNavigate({ primary: 'league_updates', leagueUpdatesTab: 'updates' })}
+            onClick={() => onNavigate({ primary: 'home', homeTab: 'bulletins' })}
             className={`mt-5 w-full rounded-xl ${dashboardActionButtonClass}`}
           >
             Open bulletin notices <ArrowRight size={12} />
