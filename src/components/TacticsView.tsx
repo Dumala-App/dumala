@@ -1508,14 +1508,13 @@ export default function TacticsView({
         <div className={cn(
           'min-h-0',
           isBoardFullscreen && 'grid flex-1 grid-cols-1 gap-3',
-          isBoardFullscreen && isFullscreenToolsetVisible && 'items-center',
-          isBoardFullscreen && isFullscreenToolsetVisible && 'lg:grid-cols-[minmax(0,1fr)_24rem]',
-          isBoardFullscreen && !isFullscreenToolsetVisible && 'lg:grid-cols-1'
+          isBoardFullscreen && isFullscreenToolsetVisible && '2xl:items-center 2xl:grid-cols-[minmax(0,1fr)_24rem]',
+          isBoardFullscreen && !isFullscreenToolsetVisible && '2xl:grid-cols-1'
         )}>
           <div className={cn(
             'min-h-0',
             isBoardFullscreen && 'flex h-full min-h-0 flex-col',
-            isBoardFullscreen && isFullscreenToolsetVisible && 'justify-center'
+            isBoardFullscreen && isFullscreenToolsetVisible && '2xl:justify-center'
           )}>
         {/* Render interactive Tactical Pitch Board */}
         <div 
@@ -1528,7 +1527,7 @@ export default function TacticsView({
           onLostPointerCapture={finishDrawingInteraction}
           className={cn(
             'relative w-full mx-auto bg-[#132c1b] rounded-xl overflow-hidden border border-emerald-900/60 shadow-lg select-none touch-none',
-            isBoardFullscreen && isFullscreenToolsetVisible && 'aspect-video max-w-full rounded-lg lg:max-w-[calc((100vh-9rem)*1.777)]',
+            isBoardFullscreen && isFullscreenToolsetVisible && 'h-full min-h-0 flex-1 max-w-none rounded-lg 2xl:h-auto 2xl:flex-none 2xl:aspect-video 2xl:max-w-[calc((100vh-9rem)*1.777)]',
             isBoardFullscreen && !isFullscreenToolsetVisible && 'h-full min-h-0 flex-1 max-w-none rounded-lg',
             !isBoardFullscreen && 'aspect-[7/10] max-w-[576px]'
           )}
@@ -1952,7 +1951,12 @@ export default function TacticsView({
           </div>
 
           {isBoardFullscreen && isFullscreenToolsetVisible && (
-            <div className={cn(tacticsGlassPanelClass, 'rounded-xl p-3')}>
+            <div
+              className={cn(
+                tacticsGlassPanelClass,
+                'absolute right-3 top-3 z-50 max-h-[calc(100%-1.5rem)] w-[min(26rem,calc(100%-1.5rem))] overflow-y-auto rounded-xl p-3 shadow-2xl 2xl:static 2xl:max-h-full 2xl:w-auto 2xl:overflow-y-auto'
+              )}
+            >
               <div className="flex items-center justify-between border-b border-slate-800/60 pb-2">
                 <div className="flex items-center gap-2">
                   <BookOpen size={18} className="text-indigo-400" />
