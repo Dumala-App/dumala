@@ -68,9 +68,10 @@ export const useCloudAuth = ({ enabled, auth }: UseCloudAuthInput): CloudAuthCon
       if (!enabled || !auth) return Promise.resolve();
       return auth.signInWithGoogle(redirectTo);
     },
-    signOut: () => {
+    signOut: async () => {
       if (!enabled || !auth) return Promise.resolve();
-      return auth.signOut();
+      await auth.signOut();
+      setState({ status: 'signedOut' });
     }
   };
 };

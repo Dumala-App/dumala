@@ -134,7 +134,10 @@ export const CloudAccountGate = ({
 
   useEffect(() => {
     if (!bootstrapAccount) return;
-    if (!runtime.enabled || auth.state.status !== 'signedIn') return;
+    if (!runtime.enabled || auth.state.status !== 'signedIn') {
+      bootstrappedUsers.current.clear();
+      return;
+    }
     if (bootstrappedUsers.current.has(auth.state.session.userId)) return;
     bootstrappedUsers.current.add(auth.state.session.userId);
 
