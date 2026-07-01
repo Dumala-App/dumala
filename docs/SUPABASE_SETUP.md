@@ -17,14 +17,14 @@ The repository now includes:
 - cloud import, lifecycle, and operations guardrails in `src/cloud/`
 - `.env.example`
 
-Cloud sync remains disabled unless `VITE_DUMALA_CLOUD_ENABLED=true`.
+Cloud sync remains disabled on fresh clones. In local dev, it auto-enables when `VITE_DUMALA_CLOUD_ENABLED` is blank or missing and both local Supabase browser values are present. Use `VITE_DUMALA_CLOUD_ENABLED=false` only when you intentionally want local-only mode.
 
 ## Local Environment
 
 Copy `.env.example` to `.env.local` and fill in values after `supabase start` prints local credentials:
 
 ```text
-VITE_DUMALA_CLOUD_ENABLED=false
+VITE_DUMALA_CLOUD_ENABLED=
 VITE_SUPABASE_URL=http://127.0.0.1:54321
 VITE_SUPABASE_PUBLISHABLE_KEY=<local publishable key>
 SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_ID=<local Google web OAuth client ID>

@@ -1,12 +1,7 @@
 import React, { lazy, Suspense, type ReactNode } from 'react';
 import type { AssessmentSession, Announcement, Game, Player, Standing, TeamInfo } from '../types';
 import ViewLoadingFallback from './ViewLoadingFallback';
-import {
-  WORKSPACE_SEGMENTED_LIST_CLASS,
-  WORKSPACE_SEGMENTED_TABS_CLASS,
-  WORKSPACE_SEGMENTED_TRIGGER_CLASS,
-  type SegmentedTabOption
-} from './ui/segmented-tabs';
+import { SegmentedTabs, type SegmentedTabOption } from './ui/segmented-tabs';
 
 const DashboardView = lazy(() => import('./DashboardView'));
 const AnnouncementsView = lazy(() => import('./AnnouncementsView'));
@@ -63,22 +58,12 @@ interface HomeHubViewProps {
 export default function HomeHubView(props: HomeHubViewProps) {
   const homeWorkspaceHeader = (
     <div className="flex flex-col items-start justify-between gap-3 lg:flex-row lg:items-start">
-      <nav className={WORKSPACE_SEGMENTED_TABS_CLASS} aria-label="Home workspace sections">
-        <div className={WORKSPACE_SEGMENTED_LIST_CLASS}>
-          {HOME_TAB_OPTIONS.map((tab) => (
-            <button
-              key={tab.value}
-              type="button"
-              aria-label={`Open ${tab.label}`}
-              aria-pressed={props.activeTab === tab.value}
-              onClick={() => props.onTabChange(tab.value)}
-              className={WORKSPACE_SEGMENTED_TRIGGER_CLASS}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
-      </nav>
+      <SegmentedTabs
+        value={props.activeTab}
+        options={HOME_TAB_OPTIONS}
+        onValueChange={props.onTabChange}
+        label="Home workspace sections"
+      />
       {props.workspaceControls && (
         <div className="flex w-full min-w-0 justify-stretch lg:w-auto lg:justify-end">
           {props.workspaceControls}

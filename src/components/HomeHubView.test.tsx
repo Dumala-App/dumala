@@ -39,8 +39,9 @@ describe('HomeHubView', () => {
   it('keeps the local Home workspace focused while lazy loading', () => {
     const html = renderHome();
 
-    expect(html).toContain('Open Bulletins');
-    expect(html).toContain('Open Game Week');
+    expect(html).toContain('role="tab"');
+    expect(html).toContain('Bulletins');
+    expect(html).toContain('Game Week');
     expect(html).toContain('Loading overview');
     expect(html).not.toContain('Use your Dumala cloud account');
   });

@@ -1,11 +1,12 @@
 import { z } from 'zod';
 
-const booleanEnvSchema = z.enum(['true', 'false']).optional();
+const booleanEnvSchema = z.enum(['true', 'false']).optional().or(z.literal(''));
 
 const cloudEnvironmentSchema = z.object({
   VITE_DUMALA_CLOUD_ENABLED: booleanEnvSchema,
   VITE_SUPABASE_URL: z.string().url().optional().or(z.literal('')),
-  VITE_SUPABASE_PUBLISHABLE_KEY: z.string().optional()
+  VITE_SUPABASE_PUBLISHABLE_KEY: z.string().optional(),
+  DEV: z.boolean().optional()
 });
 
 export interface CloudConfig {
@@ -18,14 +19,20 @@ export const readCloudConfig = (
   env: Record<string, string | boolean | undefined> = import.meta.env
 ): CloudConfig => {
   const parsed = cloudEnvironmentSchema.parse({
-    VITE_DUMALA_CLOUD_ENABLED: String(env.VITE_DUMALA_CLOUD_ENABLED ?? 'false'),
+    VITE_DUMALA_CLOUD_ENABLED: typeof env.VITE_DUMALA_CLOUD_ENABLED === 'string'
+      ? env.VITE_DUMALA_CLOUD_ENABLED
+      : undefined,
     VITE_SUPABASE_URL: typeof env.VITE_SUPABASE_URL === 'string' ? env.VITE_SUPABASE_URL : '',
     VITE_SUPABASE_PUBLISHABLE_KEY: typeof env.VITE_SUPABASE_PUBLISHABLE_KEY === 'string'
       ? env.VITE_SUPABASE_PUBLISHABLE_KEY
-      : ''
+      : '',
+    DEV: typeof env.DEV === 'boolean' ? env.DEV : false
   });
 
-  const enabled = parsed.VITE_DUMALA_CLOUD_ENABLED === 'true';
+  const hasSupabaseConfig = Boolean(parsed.VITE_SUPABASE_URL && parsed.VITE_SUPABASE_PUBLISHABLE_KEY);
+  const enabled = parsed.VITE_DUMALA_CLOUD_ENABLED === 'true'
+    || (parsed.VITE_DUMALA_CLOUD_ENABLED !== 'false' && parsed.DEV === true && hasSupabaseConfig);
+
   return {
     enabled,
     supabaseUrl: parsed.VITE_SUPABASE_URL || undefined,
