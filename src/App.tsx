@@ -46,6 +46,7 @@ import {
   resetManagedWorkspace,
   readWorkspaceSummaries,
   restoreBackupIntoActiveWorkspace,
+  markCloudWorkspaceSignedOut,
   setActiveWorkspaceId as persistActiveWorkspaceId,
   switchManagedWorkspace,
   touchWorkspaceSummary,
@@ -77,6 +78,7 @@ import {
 } from './integrity/workspaceIntegrity';
 import { findUserStanding } from './standings';
 import { useCloudRuntime } from './hooks/useCloudRuntime';
+import { useCloudAuth } from './hooks/useCloudAuth';
 
 import { 
   Shield, 
@@ -171,6 +173,10 @@ const readPersistedWorkspaceState = () => {
 
 export default function App() {
   const cloudRuntime = useCloudRuntime();
+  const cloudAuthController = useCloudAuth({
+    enabled: cloudRuntime.enabled,
+    auth: cloudRuntime.dataAccess?.auth ?? null
+  });
   const analyticsSessionIdRef = useRef(getOrCreateAnalyticsSessionId());
   const [hashRoute, setHashRoute] = useState(getHashRoute);
   type IntegrityFocus = {
@@ -753,6 +759,7 @@ export default function App() {
 
   const handleSignedOut = () => {
     if (activeWorkspaceId) copyActiveKeysToWorkspace(activeWorkspaceId);
+    markCloudWorkspaceSignedOut();
     persistActiveWorkspaceId(null);
     setWorkspaces(readWorkspaceSummaries());
     setActiveWorkspaceId(null);
@@ -1095,6 +1102,7 @@ export default function App() {
             <OnboardingView
               onComplete={handleCreateTeamWorkspace}
               cloudRuntime={cloudRuntime}
+              cloudAuthController={cloudAuthController}
               onCloudWorkspaceReady={handleCloudWorkspaceReady}
             />
           </ViewErrorBoundary>
@@ -1249,11 +1257,13 @@ export default function App() {
                     <WorkspaceStatusBar
                       teamName={teamInfo.name}
                       cloudRuntime={cloudRuntime}
+                      cloudAuthController={cloudAuthController}
                       resetOpen={showResetConfirm}
                       onResetOpenChange={setShowResetConfirm}
                       onFeedback={() => setShowFeedback(true)}
                       onConfirmReset={confirmResetApp}
                       onSignedOut={handleSignedOut}
+                      onCloudWorkspaceReady={handleCloudWorkspaceReady}
                     />
                   }
                   teamInfo={teamInfo}

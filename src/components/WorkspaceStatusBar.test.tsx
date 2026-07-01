@@ -14,11 +14,25 @@ const signedOutAuth: CloudAuthController = {
   signOut: vi.fn()
 };
 
-const renderStatus = (cloudRuntime: CloudRuntime) => renderToStaticMarkup(
+const signedInAuth: CloudAuthController = {
+  ...signedOutAuth,
+  state: {
+    status: 'signedIn',
+    session: {
+      userId: 'user-1',
+      email: 'coach@example.com'
+    }
+  }
+};
+
+const renderStatus = (
+  cloudRuntime: CloudRuntime,
+  cloudAuthController: CloudAuthController = signedOutAuth
+) => renderToStaticMarkup(
   <WorkspaceStatusBar
     teamName="Barbados FC 2026"
     cloudRuntime={cloudRuntime}
-    cloudAuthController={signedOutAuth}
+    cloudAuthController={cloudAuthController}
     resetOpen={false}
     onResetOpenChange={vi.fn()}
     onFeedback={vi.fn()}
@@ -52,5 +66,19 @@ describe('WorkspaceStatusBar', () => {
     expect(html).toContain('Install Dumala');
     expect(html).not.toContain('coach@example.com');
     expect(html).not.toContain('Saved locally');
+  });
+
+  it('shows sign out controls from the shared signed-in cloud session', () => {
+    const html = renderStatus({
+      enabled: true,
+      dataAccess: {
+        auth: {},
+        account: {}
+      }
+    } as CloudRuntime, signedInAuth);
+
+    expect(html).toContain('Cloud connected');
+    expect(html).toContain('Sign out');
+    expect(html).not.toContain('Continue with Google');
   });
 });
