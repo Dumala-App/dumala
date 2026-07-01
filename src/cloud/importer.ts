@@ -112,6 +112,19 @@ const upsertRows = async (
   );
 };
 
+const insertRows = async (
+  table: ImportTable,
+  rows: Record<string, unknown>[],
+  code: string
+) => {
+  if (rows.length === 0) return;
+  await expectMutation(
+    table.insert(rows as Array<Record<string, Json | undefined>>),
+    code,
+    `Failed to insert ${rows.length} row(s)`
+  );
+};
+
 const ensureOwnerMembership = async (
   client: DumalaSupabaseClient,
   clubId: string,
@@ -215,7 +228,11 @@ export const importCloudPayload = async (
       if (table === 'clubs') continue;
       const tableRecords = recordsFor(payload, table);
       const rows = tableRecords.map(record => buildDomainRow(record, userId, deviceId));
-      await upsertRows(client.from(table), rows, `${table.toUpperCase()}_UPSERT_FAILED`);
+      if (table === 'bulletins') {
+        await insertRows(client.from(table), rows, 'BULLETINS_INSERT_FAILED');
+      } else {
+        await upsertRows(client.from(table), rows, `${table.toUpperCase()}_UPSERT_FAILED`);
+      }
       if (rows.length > 0) uploadedTables.push({ table, count: rows.length });
     }
 
