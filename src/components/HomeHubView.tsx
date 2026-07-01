@@ -89,10 +89,11 @@ export default function HomeHubView(props: HomeHubViewProps) {
 
   return (
     <div className="space-y-6">
+      {homeWorkspaceHeader}
+
       <Suspense fallback={<ViewLoadingFallback label={props.activeTab === 'game_week' ? 'game week' : props.activeTab} />}>
         {props.activeTab === 'overview' && (
           <DashboardView
-            homeWorkspaceHeader={homeWorkspaceHeader}
             teamInfo={props.teamInfo}
             players={props.players}
             games={props.games}
@@ -107,7 +108,6 @@ export default function HomeHubView(props: HomeHubViewProps) {
 
         {props.activeTab === 'bulletins' && (
           <AnnouncementsView
-            homeWorkspaceHeader={homeWorkspaceHeader}
             announcements={props.announcements}
             onAddAnnouncement={props.onAddAnnouncement}
             onDeleteAnnouncement={props.onDeleteAnnouncement}
@@ -116,7 +116,6 @@ export default function HomeHubView(props: HomeHubViewProps) {
 
         {props.activeTab === 'game_week' && (
           <ScheduleView
-            homeWorkspaceHeader={homeWorkspaceHeader}
             games={props.games}
             players={props.players}
             standings={props.standings}

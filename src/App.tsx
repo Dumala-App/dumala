@@ -883,6 +883,10 @@ export default function App() {
     return handleNavigate({ primary: tab });
   };
 
+  const handleSelectHomeTab = (tab: HomeTab) => {
+    handleNavigate({ primary: 'home', homeTab: tab });
+  };
+
   const handleCreateTeamWorkspace = (team: TeamInfo, headCoach: StaffMember) => {
     if (activeWorkspaceId) copyActiveKeysToWorkspace(activeWorkspaceId);
     const created = createManagedWorkspace(team, headCoach);
@@ -1251,7 +1255,7 @@ export default function App() {
               <ViewErrorBoundary viewName={homeTab === 'overview' ? 'Overview' : homeTab === 'bulletins' ? 'Bulletins' : 'Game Week'} onReturnHome={handleReturnHomeFromError} resetKeys={[primaryTab, homeTab]}>
                 <HomeHubView
                   activeTab={homeTab}
-                  onTabChange={setHomeTab}
+                  onTabChange={handleSelectHomeTab}
                   onNavigate={handleNavigate}
                   workspaceControls={
                     <WorkspaceStatusBar
