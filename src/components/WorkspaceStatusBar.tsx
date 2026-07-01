@@ -15,7 +15,6 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger
 } from './ui/alert-dialog';
-import { Badge } from './ui/badge';
 import { Button } from './ui/button';
 
 const WORKSPACE_GLASS_ACTION_CLASS = 'border-cyan-300/15 bg-[#0b1726]/85 text-slate-100 shadow-sm shadow-black/10 hover:border-orange-300/35 hover:bg-orange-300/10 hover:text-orange-100';
@@ -63,29 +62,26 @@ export default function WorkspaceStatusBar({
       <section
         id="workspace-status-panel"
         hidden={!shouldShowPanel}
-        className="absolute bottom-full left-0 z-50 mb-3 w-full rounded-2xl border border-cyan-300/10 bg-[#07111f]/95 p-2.5 text-slate-100 shadow-2xl shadow-black/35 backdrop-blur-xl transition-all duration-300 ease-out lg:bottom-auto lg:left-auto lg:right-full lg:top-0 lg:mb-0 lg:mr-3 lg:w-[min(38rem,calc(100vw-19rem))]"
+        className="absolute bottom-full left-0 z-50 mb-3 w-[min(22rem,calc(100vw-2rem))] rounded-2xl border border-cyan-300/10 bg-[#07111f]/95 p-2 text-slate-100 shadow-2xl shadow-black/35 backdrop-blur-xl transition-all duration-300 ease-out lg:bottom-auto lg:left-auto lg:right-full lg:top-0 lg:mb-0 lg:mr-3"
       >
-        <div className="grid grid-cols-1 gap-2">
-        <p className="rounded-lg border border-emerald-300/15 bg-emerald-300/10 px-3 py-1.5 text-xs font-bold text-emerald-100">
-          Workspace ready.
-        </p>
-        {cloudRuntime.enabled ? (
-          <CloudAccountGate
-            clubName={teamName}
-            appVersion="0.0.0"
-            runtime={cloudRuntime}
-            authController={cloudAuthController}
-            layout="compact"
-            onSignedOut={onSignedOut}
-          />
-        ) : (
-          <p className="rounded-lg border border-cyan-300/10 bg-[#0b1726]/72 px-3 py-1.5 text-xs font-medium text-slate-400">
-            Local workspace is active. Cloud account sync is unavailable in this build.
-          </p>
-        )}
+        <div className="grid grid-cols-1 gap-1.5">
+          {cloudRuntime.enabled ? (
+            <CloudAccountGate
+              clubName={teamName}
+              appVersion="0.0.0"
+              runtime={cloudRuntime}
+              authController={cloudAuthController}
+              tone="dark"
+              layout="compact"
+              onSignedOut={onSignedOut}
+            />
+          ) : (
+            <p className="rounded-lg border border-emerald-300/15 bg-emerald-300/10 px-2.5 py-1.5 text-[11px] font-bold text-emerald-100">
+              Workspace ready
+            </p>
+          )}
 
-        <div className="flex flex-wrap gap-2">
-          <Badge variant="success" className="border-emerald-300/25 bg-emerald-300/10 text-emerald-100">Saved locally</Badge>
+        <div className="flex flex-wrap gap-1.5">
           <PwaInstallControl tone="darkGlass" />
           <Button
             type="button"
@@ -126,8 +122,8 @@ export default function WorkspaceStatusBar({
             </AlertDialogContent>
           </AlertDialog>
         </div>
-      </div>
-        </section>
+        </div>
+      </section>
     </div>
   );
 }
