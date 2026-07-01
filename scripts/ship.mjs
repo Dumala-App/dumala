@@ -159,7 +159,10 @@ run('git', ['switch', 'main']);
 run('git', ['pull', '--ff-only', 'origin', 'main']);
 
 if (branch !== 'main' && branch !== 'master') {
-  run('git', ['branch', '-D', branch]);
+  const localBranchExists = spawnSync('git', ['rev-parse', '--verify', '--quiet', branch]).status === 0;
+  if (localBranchExists) {
+    run('git', ['branch', '-D', branch]);
+  }
 }
 
 console.log(`\nShipped ${message}`);
