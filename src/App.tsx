@@ -81,7 +81,7 @@ import { findUserStanding } from './standings';
 import { useCloudRuntime } from './hooks/useCloudRuntime';
 import { useCloudAuth } from './hooks/useCloudAuth';
 import { shouldResetHomeTabAfterCloudWorkspaceReady } from './navigation/cloudWorkspaceNavigation';
-import { getOrCreateCloudDeviceId } from './components/CloudAccountGate';
+import { bootstrapSignedInCloudAccount, getOrCreateCloudDeviceId } from './components/CloudAccountGate';
 import { runCloudBackupFlow } from './cloud/workspaceBackupFlow';
 import { createContentFingerprint } from './migrations/localToCloud';
 
@@ -234,6 +234,7 @@ export default function App() {
     auth: cloudRuntime.dataAccess?.auth ?? null
   });
   const analyticsSessionIdRef = useRef(getOrCreateAnalyticsSessionId());
+  const onboardingCloudBootstrapUserRef = useRef<string | null>(null);
   const [hashRoute, setHashRoute] = useState(getHashRoute);
   type IntegrityFocus = {
     playerId?: string | null;
@@ -1125,6 +1126,29 @@ export default function App() {
       handleNavigate({ primary: 'home', homeTab: 'overview' });
     }
   };
+
+  useEffect(() => {
+    if (startupRecoveryIssues.length > 0) return;
+    if (isOnboarded || teamInfo) return;
+    if (!cloudRuntime.enabled || cloudAuthController.state.status !== 'signedIn') {
+      onboardingCloudBootstrapUserRef.current = null;
+      return;
+    }
+
+    const userId = cloudAuthController.state.session.userId;
+    if (onboardingCloudBootstrapUserRef.current === userId) return;
+    onboardingCloudBootstrapUserRef.current = userId;
+
+    bootstrapSignedInCloudAccount(cloudRuntime, cloudAuthController.state, undefined, '0.0.0')
+      .then(result => {
+        onboardingCloudBootstrapUserRef.current = null;
+        handleCloudWorkspaceReady(result);
+      })
+      .catch(error => {
+        onboardingCloudBootstrapUserRef.current = null;
+        console.warn('Cloud account setup could not finish from onboarding session recovery.', error);
+      });
+  }, [cloudAuthController.state, cloudRuntime, isOnboarded, startupRecoveryIssues.length, teamInfo]);
 
   const handleWorkspaceCloudReady = (result: AccountBootstrapResult) => {
     if (activeWorkspaceId && teamInfo) {

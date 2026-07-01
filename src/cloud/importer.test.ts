@@ -131,8 +131,8 @@ const createClient = (options: { existingOwnerMembership?: boolean; failTable?: 
       })
     },
     from: (table: string) => ({
-      insert: async (row: Record<string, unknown>) => {
-        operations.push({ type: 'insert', table, rows: [row] });
+      insert: async (rowOrRows: Record<string, unknown> | Record<string, unknown>[]) => {
+        operations.push({ type: 'insert', table, rows: Array.isArray(rowOrRows) ? rowOrRows : [rowOrRows] });
         return {
           error: options.failTable === table ? { message: `${table} rejected` } : null
         };
@@ -172,7 +172,7 @@ const createClient = (options: { existingOwnerMembership?: boolean; failTable?: 
   return { client, operations };
 };
 
-const createPayload = () => createCloudMigrationPackage(core, createStorage(), {
+const createPayload = (workspace: CoreWorkspace = core) => createCloudMigrationPackage(workspace, createStorage(), {
   importId: 'import-1',
   sourceDeviceId: 'browser-device-1',
   targetClubId: 'club-1',
@@ -262,6 +262,38 @@ describe('cloud importer', () => {
     }));
   });
 
+  it('inserts imported bulletins without requiring direct update permission', async () => {
+    const payload = createPayload({
+      ...core,
+      announcements: [{
+        id: 'bulletin-1',
+        title: 'Training',
+        content: 'Bring water.',
+        date: '2026-06-24',
+        category: 'Training',
+        author: 'Coach Test'
+      }]
+    });
+    const { client, operations } = createClient();
+
+    await expect(importCloudPayload(client, payload, {
+      appVersion: '0.0.0'
+    })).resolves.toMatchObject({ state: 'complete' });
+
+    expect(operations).toContainEqual(expect.objectContaining({
+      type: 'insert',
+      table: 'bulletins',
+      rows: [expect.objectContaining({
+        title: 'Training',
+        created_by: '11111111-1111-4111-8111-111111111111'
+      })]
+    }));
+    expect(operations).not.toContainEqual(expect.objectContaining({
+      type: 'upsert',
+      table: 'bulletins'
+    }));
+  });
+
   it('marks the workspace import failed when a domain upsert is rejected', async () => {
     const payload = createPayload();
     const { client, operations } = createClient({ failTable: 'players' });
@@ -276,6 +308,36 @@ describe('cloud importer', () => {
       values: {
         status: 'failed',
         failure_code: 'PLAYERS_UPSERT_FAILED'
+      }
+    });
+  });
+
+  it('marks the workspace import failed when a bulletin insert is rejected', async () => {
+    const payload = createPayload({
+      ...core,
+      announcements: [{
+        id: 'bulletin-1',
+        title: 'Training',
+        content: 'Bring water.',
+        date: '2026-06-24',
+        category: 'Training',
+        author: 'Coach Test'
+      }]
+    });
+    const { client, operations } = createClient({ failTable: 'bulletins' });
+
+    await expect(importCloudPayload(client, payload, {
+      appVersion: '0.0.0'
+    })).rejects.toMatchObject({
+      code: 'BULLETINS_INSERT_FAILED'
+    });
+
+    expect(operations.at(-1)).toMatchObject({
+      type: 'update',
+      table: 'workspace_imports',
+      values: {
+        status: 'failed',
+        failure_code: 'BULLETINS_INSERT_FAILED'
       }
     });
   });
