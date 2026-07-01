@@ -15,10 +15,12 @@ import {
   tacticsNotesSchema
 } from '../persistence/schemas';
 import {
+  readBooleanStorage,
   readJsonStorage,
   readStringStorage,
   removeStorage,
   STORAGE_KEYS,
+  writeBooleanStorage,
   writeJsonStorage,
   writeStringStorage
 } from '../persistence/storage';
@@ -121,8 +123,10 @@ type TacticsBoardSnapshot = {
 };
 type TacticsWorkspaceSection = 'board' | 'library';
 type TacticsBoardPanel = 'squad' | 'tactics' | 'tools' | 'notes';
+type BoardPosition = { role: string; top: number; left: number };
 
 const TACTICS_NOTE_CATEGORIES: readonly TacticsNoteCategory[] = ['Formation', 'Set Pieces', 'Strategy', 'General'];
+const SHOW_OPPONENT_SHAPE_STORAGE_KEY = 'squad_show_opponent_shape';
 const TACTICAL_PHASES: readonly TacticalPhase[] = ['In Possession', 'Out of Possession', 'Transition', 'Set Piece'];
 const DRAWING_LAYERS: readonly DrawingLayer[] = ['Runs', 'Passes', 'Pressing', 'Defensive Shape'];
 const DRAWING_STROKE_STYLES: readonly DrawingStrokeStyle[] = ['Solid', 'Dashed', 'Dotted'];
@@ -191,10 +195,94 @@ const parseTacticsNoteCategory = (value: string): TacticsNoteCategory => (
   TACTICS_NOTE_CATEGORIES.includes(value as TacticsNoteCategory) ? value as TacticsNoteCategory : 'General'
 );
 
+const buildFormationPositions = (selectedFormation: string, matchFormat: MatchFormat): BoardPosition[] => {
+  const defaultGK = { role: 'GK', top: 86, left: 50 };
+  const formatSize = MATCH_FORMAT_CONFIG[matchFormat].size;
+  const expectedOutfield = formatSize - 1;
+  const parts = selectedFormation.split('-').map(Number).filter(n => !isNaN(n) && n > 0);
+  let effectiveParts = parts;
+  const totalOutfield = parts.reduce((a, b) => a + b, 0);
+
+  if (parts.length === 0 || totalOutfield !== expectedOutfield) {
+    const fallbackFmt = MATCH_FORMAT_CONFIG[matchFormat].formations[0];
+    effectiveParts = fallbackFmt.split('-').map(Number).filter(n => !isNaN(n) && n > 0);
+    if (effectiveParts.length === 0 || effectiveParts.reduce((a, b) => a + b, 0) !== expectedOutfield) {
+      if (matchFormat === '11-a-side') effectiveParts = [4, 3, 3];
+      else if (matchFormat === '9-a-side') effectiveParts = [3, 3, 2];
+      else if (matchFormat === '8-a-side') effectiveParts = [2, 3, 2];
+      else if (matchFormat === '7-a-side') effectiveParts = [2, 3, 1];
+      else if (matchFormat === '6-a-side') effectiveParts = [2, 2, 1];
+      else effectiveParts = [1, 2, 1];
+    }
+  }
+
+  const numRows = effectiveParts.length;
+  const getRowTop = (rowIndex: number) => {
+    if (numRows === 1) return 45;
+    const minTop = 15;
+    const maxTop = 72;
+    const ratio = rowIndex / (numRows - 1);
+    return Math.round(maxTop - ratio * (maxTop - minTop));
+  };
+
+  const positions: BoardPosition[] = [];
+
+  for (let r = numRows - 1; r >= 0; r--) {
+    const count = effectiveParts[r];
+    const top = getRowTop(r);
+
+    for (let i = 0; i < count; i++) {
+      let left = 50;
+      if (count > 1) {
+        const minLeft = 16;
+        const maxLeft = 84;
+        left = Math.round(minLeft + (i / (count - 1)) * (maxLeft - minLeft));
+      }
+
+      let role = 'MID';
+      if (r === 0) {
+        if (count === 1) role = 'CB';
+        else if (count === 2) role = i === 0 ? 'LB' : 'RB';
+        else if (count === 3) role = i === 0 ? 'LCB' : i === 1 ? 'CB' : 'RCB';
+        else if (count === 4) role = i === 0 ? 'LB' : i === 1 || i === 2 ? 'CB' : 'RB';
+        else if (count === 5) role = i === 0 ? 'LWB' : i === 1 ? 'CB' : i === 2 ? 'CB' : i === 3 ? 'CB' : 'RWB';
+        else role = 'DEF';
+      } else if (r === numRows - 1) {
+        if (count === 1) role = 'CF';
+        else if (count === 2) role = i === 0 ? 'LWF' : 'RWF';
+        else if (count === 3) role = i === 0 ? 'LWF' : i === 1 ? 'CF' : 'RWF';
+        else role = 'FWD';
+      } else {
+        const isAttackingMid = r === numRows - 2;
+        const isDefensiveMid = r === 1 && numRows > 3;
+
+        if (isDefensiveMid) {
+          role = count === 1 ? 'DMF' : i === 0 ? 'LDMF' : 'RDMF';
+        } else if (isAttackingMid) {
+          role = count === 1 ? 'AMF' : i === 0 ? 'LAMF' : i === count - 1 ? 'RAMF' : 'AMF';
+        } else {
+          role = count === 1 ? 'CMF' : i === 0 ? 'LMF' : i === count - 1 ? 'RMF' : 'CMF';
+        }
+      }
+
+      positions.push({ role, top, left });
+    }
+  }
+
+  positions.push(defaultGK);
+  return positions;
+};
+
 const toLandscapePoint = ({ left, top }: BoardPoint): BoardPoint => ({
   left: 100 - top,
   top: left
 });
+
+const toLandscapePlayerPoint = (point: BoardPoint, role: string, isManuallyPositioned: boolean): BoardPoint => {
+  const landscapePoint = toLandscapePoint(point);
+  if (role !== 'GK' || isManuallyPositioned) return landscapePoint;
+  return { ...landscapePoint, left: 6 };
+};
 
 const fromLandscapePoint = ({ left, top }: BoardPoint): BoardPoint => ({
   left: top,
@@ -216,6 +304,7 @@ export default function TacticsView({ players, staff, teamCoach, teamName, teamL
   });
   const [formation, setFormation] = useState<string>(() => readStringStorage(STORAGE_KEYS.formation, stringSchema, '4-1-2-3', 'Tactics formation'));
   const [opponentFormation, setOpponentFormation] = useState<string>(() => readStringStorage(STORAGE_KEYS.opponentFormation, stringSchema, getDefaultFormation('11-a-side'), 'Opponent formation'));
+  const [showOpponentShape, setShowOpponentShape] = useState<boolean>(() => readBooleanStorage(SHOW_OPPONENT_SHAPE_STORAGE_KEY, false, 'Opponent shape overlay'));
   const [playstyle, setPlaystyle] = useState<string>(() => readStringStorage(STORAGE_KEYS.playstyle, stringSchema, 'Quick Counter', 'Tactics playstyle'));
   const [activeTab, setActiveTab] = useState<'Tactics' | 'Team' | 'Substitutes' | 'Reserves'>('Tactics');
   const [activeWorkspaceSection, setActiveWorkspaceSection] = useState<TacticsWorkspaceSection>('board');
@@ -313,6 +402,10 @@ export default function TacticsView({ players, staff, teamCoach, teamName, teamL
   useEffect(() => {
     writeStringStorage(STORAGE_KEYS.opponentFormation, opponentFormation);
   }, [opponentFormation]);
+
+  useEffect(() => {
+    writeBooleanStorage(SHOW_OPPONENT_SHAPE_STORAGE_KEY, showOpponentShape);
+  }, [showOpponentShape]);
 
   useEffect(() => {
     writeStringStorage(STORAGE_KEYS.playstyle, playstyle);
@@ -646,92 +739,14 @@ export default function TacticsView({ players, staff, teamCoach, teamName, teamL
   }, [boardSnapshots]);
 
   // Coordinate positions mapper on soccer field container depending on selected formation
-  const fieldPositions = useMemo(() => {
-    const defaultGK = { role: 'GK', top: 86, left: 50 };
-    const formatSize = MATCH_FORMAT_CONFIG[matchFormat].size;
-    const expectedOutfield = formatSize - 1;
-
-    // Resolve which formation string to use
-    const resolvedFormation = formation;
-
-    const parts = resolvedFormation.split('-').map(Number).filter(n => !isNaN(n) && n > 0);
-    
-    // If parts don't resolve or outfield sum doesn't match the format, fallback to first formation for this format
-    let effectiveParts = parts;
-    const totalOutfield = parts.reduce((a, b) => a + b, 0);
-    if (parts.length === 0 || totalOutfield !== expectedOutfield) {
-      const fallbackFmt = MATCH_FORMAT_CONFIG[matchFormat].formations[0];
-      effectiveParts = fallbackFmt.split('-').map(Number).filter(n => !isNaN(n) && n > 0);
-      if (effectiveParts.length === 0 || effectiveParts.reduce((a, b) => a + b, 0) !== expectedOutfield) {
-        // Ultimate fallback per format
-        if (matchFormat === '11-a-side') effectiveParts = [4, 3, 3];
-        else if (matchFormat === '9-a-side') effectiveParts = [3, 3, 2];
-        else if (matchFormat === '8-a-side') effectiveParts = [2, 3, 2];
-        else if (matchFormat === '7-a-side') effectiveParts = [2, 3, 1];
-        else if (matchFormat === '6-a-side') effectiveParts = [2, 2, 1];
-        else effectiveParts = [1, 2, 1];
-      }
-    }
-
-    const numRows = effectiveParts.length;
-    
-    const getRowTop = (rowIndex: number) => {
-      if (numRows === 1) return 45;
-      const minTop = 15;
-      const maxTop = 72;
-      const ratio = rowIndex / (numRows - 1);
-      return Math.round(maxTop - ratio * (maxTop - minTop));
-    };
-
-    const positions: { role: string; top: number; left: number }[] = [];
-
-    // Build rows from back (defenders) to front (forwards)
-    for (let r = numRows - 1; r >= 0; r--) {
-      const count = effectiveParts[r];
-      const top = getRowTop(r);
-
-      for (let i = 0; i < count; i++) {
-        let left = 50;
-        if (count > 1) {
-          const minLeft = 16;
-          const maxLeft = 84;
-          left = Math.round(minLeft + (i / (count - 1)) * (maxLeft - minLeft));
-        }
-
-        let role = 'MID';
-        if (r === 0) {
-          // Defenders row (bottom of pitch)
-          if (count === 1) role = 'CB';
-          else if (count === 2) role = i === 0 ? 'LB' : 'RB';
-          else if (count === 3) role = i === 0 ? 'LCB' : i === 1 ? 'CB' : 'RCB';
-          else if (count === 4) role = i === 0 ? 'LB' : i === 1 || i === 2 ? 'CB' : 'RB';
-          else if (count === 5) role = i === 0 ? 'LWB' : i === 1 ? 'CB' : i === 2 ? 'CB' : i === 3 ? 'CB' : 'RWB';
-          else role = 'DEF';
-        } else if (r === numRows - 1) {
-          // Forwards row (top of pitch)
-          if (count === 1) role = 'CF';
-          else if (count === 2) role = i === 0 ? 'LWF' : 'RWF';
-          else if (count === 3) role = i === 0 ? 'LWF' : i === 1 ? 'CF' : 'RWF';
-          else role = 'FWD';
-        } else {
-          // Midfield rows
-          const isAttackingMid = r === numRows - 2;
-          const isDefensiveMid = r === 1 && numRows > 3;
-          
-          if (isDefensiveMid) {
-            role = count === 1 ? 'DMF' : i === 0 ? 'LDMF' : 'RDMF';
-          } else if (isAttackingMid) {
-            role = count === 1 ? 'AMF' : i === 0 ? 'LAMF' : i === count - 1 ? 'RAMF' : 'AMF';
-          } else {
-            role = count === 1 ? 'CMF' : i === 0 ? 'LMF' : i === count - 1 ? 'RMF' : 'CMF';
-          }
-        }
-        positions.push({ role, top, left });
-      }
-    }
-    positions.push(defaultGK);
-    return positions;
-  }, [formation, matchFormat]);
+  const fieldPositions = useMemo(() => buildFormationPositions(formation, matchFormat), [formation, matchFormat]);
+  const opponentShapePositions = useMemo(() => (
+    buildFormationPositions(opponentFormation, matchFormat).map(position => ({
+      ...position,
+      top: 100 - position.top,
+      left: 100 - position.left
+    }))
+  ), [opponentFormation, matchFormat]);
 
   // Keep valid manual assignments, then fill open slots with the best position-matched players.
   useEffect(() => {
@@ -1413,11 +1428,15 @@ export default function TacticsView({ players, staff, teamCoach, teamName, teamL
       <div
         className={cn(
           'relative z-10 flex flex-col rounded-xl border border-cyan-300/10 bg-[#07111f]/56 p-3 shadow-lg shadow-black/20 backdrop-blur-xl sm:p-4 xl:col-span-6',
-          isBoardFullscreen && 'fixed inset-0 z-[70] overflow-y-auto rounded-none border-0 bg-slate-950/98 p-3 sm:p-5'
+          isBoardFullscreen && 'fixed inset-0 z-[120] h-[100dvh] overflow-hidden rounded-none border-0 bg-slate-950/98 p-3 pt-[calc(env(safe-area-inset-top)+0.75rem)] sm:p-5 sm:pt-[calc(env(safe-area-inset-top)+1.25rem)]'
         )}
       >
-        
-        <div className="flex flex-col gap-3 mb-4 sm:flex-row sm:items-center sm:justify-between">
+        <div
+          className={cn(
+            'mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between',
+            isBoardFullscreen && 'hidden'
+          )}
+        >
           <div>
             <h3 className="font-display font-black text-white text-sm tracking-widest uppercase text-emerald-400">Match Layout</h3>
           </div>
@@ -1428,7 +1447,7 @@ export default function TacticsView({ players, staff, teamCoach, teamName, teamL
                 onClick={() => setIsFullscreenToolsetVisible((value) => !value)}
                 variant="outline"
                 size="sm"
-            className="h-8 rounded-lg border-cyan-300/10 bg-[#0b1726]/85 px-2 text-[10px] font-black uppercase tracking-wider text-slate-200 hover:bg-orange-300/10"
+                className="h-8 rounded-lg border-cyan-300/10 bg-[#0b1726]/85 px-2 text-[10px] font-black uppercase tracking-wider text-slate-200 hover:bg-orange-300/10"
                 aria-label={isFullscreenToolsetVisible ? 'Hide fullscreen coach toolset' : 'Show fullscreen coach toolset'}
               >
                 <SlidersHorizontal size={13} />
@@ -1470,10 +1489,15 @@ export default function TacticsView({ players, staff, teamCoach, teamName, teamL
         <div className={cn(
           'min-h-0',
           isBoardFullscreen && 'grid flex-1 grid-cols-1 gap-3',
+          isBoardFullscreen && isFullscreenToolsetVisible && 'items-center',
           isBoardFullscreen && isFullscreenToolsetVisible && 'lg:grid-cols-[minmax(0,1fr)_24rem]',
           isBoardFullscreen && !isFullscreenToolsetVisible && 'lg:grid-cols-1'
         )}>
-          <div className={cn('min-h-0', isBoardFullscreen && 'flex min-h-0 flex-col')}>
+          <div className={cn(
+            'min-h-0',
+            isBoardFullscreen && 'flex h-full min-h-0 flex-col',
+            isBoardFullscreen && isFullscreenToolsetVisible && 'justify-center'
+          )}>
         {/* Render interactive Tactical Pitch Board */}
         <div 
           id="tactical-field-card" 
@@ -1486,7 +1510,7 @@ export default function TacticsView({ players, staff, teamCoach, teamName, teamL
           className={cn(
             'relative w-full mx-auto bg-[#132c1b] rounded-xl overflow-hidden border border-emerald-900/60 shadow-lg select-none touch-none',
             isBoardFullscreen && isFullscreenToolsetVisible && 'aspect-video max-w-full rounded-lg lg:max-w-[calc((100vh-9rem)*1.777)]',
-            isBoardFullscreen && !isFullscreenToolsetVisible && 'aspect-video max-w-full rounded-lg lg:max-w-[calc((100vh-5.5rem)*1.777)]',
+            isBoardFullscreen && !isFullscreenToolsetVisible && 'h-full min-h-0 flex-1 max-w-none rounded-lg',
             !isBoardFullscreen && 'aspect-[7/10] max-w-[576px]'
           )}
         >
@@ -1566,12 +1590,31 @@ export default function TacticsView({ players, staff, teamCoach, teamName, teamL
             </g>
           </svg>
 
+          {showOpponentShape && (
+            <div className="pointer-events-none absolute inset-0 z-[16]" aria-hidden="true">
+              {opponentShapePositions.map((position, index) => {
+                const displayPos = isBoardFullscreen ? toLandscapePoint(position) : position;
+                return (
+                  <div
+                    key={`${opponentFormation}-${position.role}-${index}`}
+                    className="absolute flex -translate-x-1/2 -translate-y-1/2 flex-col items-center gap-1 opacity-45"
+                    style={{ top: `${displayPos.top}%`, left: `${displayPos.left}%` }}
+                  >
+                    <span className="size-4 rounded-full border border-rose-200/50 bg-rose-300/55 shadow-[0_0_16px_rgba(251,113,133,0.28)]" />
+                    <span className="rounded bg-slate-950/45 px-1 text-[7px] font-black uppercase tracking-wide text-rose-100/70">{position.role}</span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
           {/* Rendering the Starting cards at calculated coordinates */}
           {fieldPositions.map((pos, idx) => {
             const player = lineup[idx];
             const isSelected = selectedSlotIndex === idx;
+            const isManuallyPositioned = Boolean(draggedPositions[idx]);
             const currentPos = draggedPositions[idx] || { top: pos.top, left: pos.left };
-            const displayPos = isBoardFullscreen ? toLandscapePoint(currentPos) : currentPos;
+            const displayPos = isBoardFullscreen ? toLandscapePlayerPoint(currentPos, pos.role, isManuallyPositioned) : currentPos;
             
             if (!player) {
               return (
@@ -1728,11 +1771,11 @@ export default function TacticsView({ players, staff, teamCoach, teamName, teamL
                     e.preventDefault();
                     handleRemovePlayer(e, idx);
                   }}
-                  className="absolute -top-3 -right-3 z-40 size-9 rounded-full border border-red-600 bg-rose-500 text-white opacity-100 shadow-xl hover:scale-110 hover:bg-rose-600 active:scale-95 sm:opacity-0 sm:group-hover:opacity-100 sm:focus-visible:opacity-100"
+                  className="absolute -top-2 -right-2 z-40 size-6 rounded-full border border-red-600 bg-rose-500 text-white opacity-100 shadow-lg hover:scale-110 hover:bg-rose-600 active:scale-95 sm:opacity-0 sm:group-hover:opacity-100 sm:focus-visible:opacity-100"
                   title="Remove Squad Player from Position"
                   aria-label={`Remove ${player.name || 'player'} from ${pos.role}`}
                 >
-                  <Trash2 size={14} />
+                  <Trash2 size={9} />
                 </Button>
 
                 {/* Absolute naming label placed safely beneath card container */}
@@ -1811,11 +1854,66 @@ export default function TacticsView({ players, staff, teamCoach, teamName, teamL
           )}
 
           {/* Floating HUD bottom overlay details */}
-          <div className="absolute bottom-4 left-4 rounded-lg border border-cyan-300/10 bg-[#07111f]/82 p-2 shadow-lg shadow-black/20 backdrop-blur-md">
-            <div className="flex items-center gap-1.5">
-              <span className="text-[10px] text-slate-400 font-bold tracking-widest uppercase">Formation</span>
+          <div
+            className={cn(
+              'absolute bottom-4 left-4 flex max-w-[calc(100%-2rem)] items-end gap-2',
+              isBoardFullscreen && 'opacity-60 transition-opacity hover:opacity-100 focus-within:opacity-100'
+            )}
+            onPointerDown={(event) => event.stopPropagation()}
+            onPointerMove={(event) => event.stopPropagation()}
+            onPointerUp={(event) => event.stopPropagation()}
+          >
+            <div className="rounded-lg border border-cyan-300/10 bg-[#07111f]/82 p-2 shadow-lg shadow-black/20 backdrop-blur-md">
+              <div className="flex items-center gap-1.5">
+                <span className="text-[10px] text-slate-400 font-bold tracking-widest uppercase">Formation</span>
+              </div>
+              <p id="pitch-hud-val-formation" className="font-display font-black text-white text-lg leading-tight uppercase">{activeFormation}</p>
             </div>
-            <p id="pitch-hud-val-formation" className="font-display font-black text-white text-lg leading-tight uppercase">{activeFormation}</p>
+
+            {isBoardFullscreen && (
+              <div className="flex flex-wrap items-center gap-1.5 rounded-lg border border-slate-800/70 bg-slate-950/85 p-1.5 shadow-lg shadow-black/25 backdrop-blur-md">
+                <Button
+                  type="button"
+                  onClick={() => setIsFullscreenToolsetVisible((value) => !value)}
+                  variant="outline"
+                  size="sm"
+                  className="h-8 rounded-md border-cyan-300/10 bg-[#0b1726]/85 px-2 text-[9px] font-black uppercase tracking-wider text-slate-200 hover:bg-orange-300/10"
+                  aria-label={isFullscreenToolsetVisible ? 'Hide fullscreen coach toolset' : 'Show fullscreen coach toolset'}
+                >
+                  <SlidersHorizontal size={12} />
+                  {isFullscreenToolsetVisible ? 'Hide' : 'Show'}
+                </Button>
+                <Button
+                  type="button"
+                  onClick={handleAutoFillBoard}
+                  variant="outline"
+                  size="sm"
+                  className="h-8 rounded-md border-emerald-500/30 bg-emerald-500/10 px-2 text-[9px] font-black uppercase tracking-wider text-emerald-400 hover:bg-emerald-500 hover:text-slate-950"
+                >
+                  Auto
+                </Button>
+                <Button
+                  type="button"
+                  onClick={handleClearBoard}
+                  variant="outline"
+                  size="sm"
+                  className="h-8 rounded-md border-rose-500/30 bg-rose-500/10 px-2 text-[9px] font-black uppercase tracking-wider text-rose-400 hover:bg-rose-500 hover:text-white"
+                >
+                  Clear
+                </Button>
+                <Button
+                  type="button"
+                  onClick={() => setIsBoardFullscreen(false)}
+                  variant="outline"
+                  size="sm"
+                  className="h-8 rounded-md border-amber-300 bg-amber-400 px-2 text-[9px] font-black uppercase tracking-wider text-slate-950 hover:bg-amber-300"
+                  aria-label="Exit match layout fullscreen"
+                >
+                  <Minimize2 size={12} />
+                  Exit
+                </Button>
+              </div>
+            )}
           </div>
 
         </div>
@@ -1879,6 +1977,36 @@ export default function TacticsView({ players, staff, teamCoach, teamName, teamL
                         ))}
                       </SelectContent>
                     </Select>
+                  </div>
+                  <div className="col-span-2">
+                    <label className="mb-1 block text-[8.5px] font-black uppercase tracking-widest text-slate-500">Opponent Shape</label>
+                    <div className="grid grid-cols-[minmax(0,1fr)_4rem] gap-1.5">
+                      <Select value={opponentFormation} onValueChange={setOpponentFormation}>
+                        <SelectTrigger id="select-fullscreen-opponent-formation" className="h-8 rounded-lg border-slate-800 bg-slate-950 text-[10px] font-bold text-slate-100 focus:ring-amber-400/30">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent className="z-[90] border-slate-800 bg-slate-950 text-slate-100">
+                          {MATCH_FORMAT_CONFIG[matchFormat].formations.map((fmt) => (
+                            <SelectItem key={fmt} value={fmt} className="text-xs font-bold">{fmt}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <Button
+                        type="button"
+                        onClick={() => setShowOpponentShape((value) => !value)}
+                        variant="outline"
+                        size="sm"
+                        className={cn(
+                          'h-8 rounded-lg px-2 text-[9px] font-black uppercase tracking-wider',
+                          showOpponentShape
+                            ? 'border-emerald-400/40 bg-emerald-500/15 text-emerald-300 hover:bg-emerald-500/20'
+                            : 'border-rose-500/40 bg-rose-500/10 text-rose-300 hover:bg-rose-500/15'
+                        )}
+                        aria-label={`${showOpponentShape ? 'Hide' : 'Show'} opponent formation dots`}
+                      >
+                        {showOpponentShape ? 'On' : 'Off'}
+                      </Button>
+                    </div>
                   </div>
                 </div>
 
@@ -2646,6 +2774,36 @@ export default function TacticsView({ players, staff, teamCoach, teamName, teamL
                     ))}
                   </SelectContent>
                 </Select>
+                <div className="mt-3 space-y-1.5 border-t border-slate-800/70 pt-3">
+                  <label className="block text-[9px] font-black uppercase tracking-widest text-slate-500">Opponent shape</label>
+                  <div className="grid grid-cols-[minmax(0,1fr)_3.5rem] gap-1.5">
+                    <Select value={opponentFormation} onValueChange={setOpponentFormation}>
+                      <SelectTrigger id="select-opponent-formation" className="h-10 rounded-lg border-slate-800 bg-slate-900 px-3 text-xs font-black text-sky-200 focus:ring-sky-400/30">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="border-slate-800 bg-slate-950 text-slate-100">
+                        {MATCH_FORMAT_CONFIG[matchFormat].formations.map((fmt) => (
+                          <SelectItem key={fmt} value={fmt} className="text-xs font-bold">{fmt}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Button
+                      type="button"
+                      onClick={() => setShowOpponentShape((value) => !value)}
+                      variant="outline"
+                      size="sm"
+                      className={cn(
+                        'h-10 rounded-lg px-2 text-[9px] font-black uppercase tracking-wider',
+                        showOpponentShape
+                          ? 'border-emerald-400/40 bg-emerald-500/15 text-emerald-300 hover:bg-emerald-500/20'
+                          : 'border-rose-500/40 bg-rose-500/10 text-rose-300 hover:bg-rose-500/15'
+                      )}
+                      aria-label={`${showOpponentShape ? 'Hide' : 'Show'} opponent formation dots`}
+                    >
+                      {showOpponentShape ? 'On' : 'Off'}
+                    </Button>
+                  </div>
+                </div>
               </div>
               <div className={cn(tacticsGlassCardClass, 'p-3.5')}>
                 <div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between">
@@ -2800,34 +2958,12 @@ export default function TacticsView({ players, staff, teamCoach, teamName, teamL
             </section>
 
             <section className={cn(tacticsGlassInsetClass, 'mb-4 p-3.5')}>
-              <div className="grid grid-cols-1 gap-3 border-b border-slate-800 pb-3 lg:grid-cols-[minmax(0,1fr)_22rem] lg:items-end">
+              <div className="border-b border-slate-800 pb-3">
                 <div>
                   <h5 className="text-[10px] font-black uppercase tracking-widest text-slate-300">Matchup Strategy</h5>
                   <p className="mt-1 max-w-xl text-[11px] leading-relaxed text-slate-500">
                     Compare shapes, review the coaching read, then apply only the plan you want to use.
                   </p>
-                </div>
-                <div className="grid grid-cols-2 gap-2">
-                  <div className="space-y-1">
-                    <span className="block text-[9px] font-black uppercase tracking-widest text-slate-500">Our shape</span>
-                    <div className="flex h-10 items-center justify-between rounded-lg border border-slate-800 bg-slate-900 px-3 text-xs font-black text-amber-300">
-                      <span>{formation}</span>
-                      <span className="text-[9px] font-black uppercase tracking-widest text-slate-600">{MATCH_FORMAT_CONFIG[matchFormat].size}</span>
-                    </div>
-                  </div>
-                  <div className="space-y-1">
-                    <label className="block text-[9px] font-black uppercase tracking-widest text-slate-500">Opponent shape</label>
-                    <Select value={opponentFormation} onValueChange={setOpponentFormation}>
-                      <SelectTrigger id="select-opponent-formation" className="h-10 rounded-lg border-slate-800 bg-slate-900 px-3 text-xs font-black text-sky-200 focus:ring-sky-400/30">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent className="border-slate-800 bg-slate-950 text-slate-100">
-                        {MATCH_FORMAT_CONFIG[matchFormat].formations.map((fmt) => (
-                          <SelectItem key={fmt} value={fmt} className="text-xs font-bold">{fmt}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
                 </div>
               </div>
 
