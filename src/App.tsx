@@ -79,6 +79,7 @@ import {
 import { findUserStanding } from './standings';
 import { useCloudRuntime } from './hooks/useCloudRuntime';
 import { useCloudAuth } from './hooks/useCloudAuth';
+import { shouldResetHomeTabAfterCloudWorkspaceReady } from './navigation/cloudWorkspaceNavigation';
 
 import { 
   Shield, 
@@ -908,7 +909,7 @@ export default function App() {
     handleNavigate({ primary: 'home', homeTab: 'overview' });
   };
 
-  const handleCloudWorkspaceReady = (result: AccountBootstrapResult) => {
+  const applyCloudWorkspace = (result: AccountBootstrapResult) => {
     if (activeWorkspaceId) copyActiveKeysToWorkspace(activeWorkspaceId);
 
     const cloudTeamInfo: TeamInfo = {
@@ -930,7 +931,20 @@ export default function App() {
     setSelectedStaff(null);
     setIntegrityFocus(null);
     setMobileMenuOpen(false);
-    handleNavigate({ primary: 'home', homeTab: 'overview' });
+  };
+
+  const handleCloudWorkspaceReady = (result: AccountBootstrapResult) => {
+    applyCloudWorkspace(result);
+    if (shouldResetHomeTabAfterCloudWorkspaceReady('onboarding')) {
+      handleNavigate({ primary: 'home', homeTab: 'overview' });
+    }
+  };
+
+  const handleWorkspaceCloudReady = (result: AccountBootstrapResult) => {
+    applyCloudWorkspace(result);
+    if (shouldResetHomeTabAfterCloudWorkspaceReady('workspace_controls')) {
+      handleNavigate({ primary: 'home', homeTab: 'overview' });
+    }
   };
 
   const handleSwitchTeamWorkspace = (workspaceId: string) => {
@@ -1267,7 +1281,7 @@ export default function App() {
                       onFeedback={() => setShowFeedback(true)}
                       onConfirmReset={confirmResetApp}
                       onSignedOut={handleSignedOut}
-                      onCloudWorkspaceReady={handleCloudWorkspaceReady}
+                      onCloudWorkspaceReady={handleWorkspaceCloudReady}
                     />
                   }
                   teamInfo={teamInfo}

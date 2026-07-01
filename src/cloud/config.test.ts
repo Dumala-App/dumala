@@ -29,4 +29,42 @@ describe('cloud config', () => {
       supabasePublishableKey: 'sb_publishable_test'
     });
   });
+
+  it('auto-enables local dev cloud when Supabase values are present and the flag is blank', () => {
+    expect(readCloudConfig({
+      DEV: true,
+      VITE_DUMALA_CLOUD_ENABLED: '',
+      VITE_SUPABASE_URL: 'http://127.0.0.1:54321',
+      VITE_SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_test'
+    })).toEqual({
+      enabled: true,
+      supabaseUrl: 'http://127.0.0.1:54321',
+      supabasePublishableKey: 'sb_publishable_test'
+    });
+  });
+
+  it('keeps the explicit local cloud disable override', () => {
+    expect(readCloudConfig({
+      DEV: true,
+      VITE_DUMALA_CLOUD_ENABLED: 'false',
+      VITE_SUPABASE_URL: 'http://127.0.0.1:54321',
+      VITE_SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_test'
+    })).toEqual({
+      enabled: false,
+      supabaseUrl: 'http://127.0.0.1:54321',
+      supabasePublishableKey: 'sb_publishable_test'
+    });
+  });
+
+  it('does not auto-enable cloud outside local dev without the explicit flag', () => {
+    expect(readCloudConfig({
+      DEV: false,
+      VITE_SUPABASE_URL: 'http://127.0.0.1:54321',
+      VITE_SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_test'
+    })).toEqual({
+      enabled: false,
+      supabaseUrl: 'http://127.0.0.1:54321',
+      supabasePublishableKey: 'sb_publishable_test'
+    });
+  });
 });
