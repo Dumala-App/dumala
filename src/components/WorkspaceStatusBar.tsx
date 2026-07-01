@@ -63,7 +63,7 @@ export default function WorkspaceStatusBar({
       <section
         id="workspace-status-panel"
         hidden={!shouldShowPanel}
-        className="absolute bottom-full left-0 z-30 mb-3 w-full rounded-2xl border border-cyan-300/10 bg-[#07111f]/95 p-2.5 text-slate-100 shadow-2xl shadow-black/35 backdrop-blur-xl transition-all duration-300 ease-out lg:left-auto lg:right-0 lg:w-[min(38rem,calc(100vw-3rem))]"
+        className="absolute bottom-full left-0 z-50 mb-3 w-full rounded-2xl border border-cyan-300/10 bg-[#07111f]/95 p-2.5 text-slate-100 shadow-2xl shadow-black/35 backdrop-blur-xl transition-all duration-300 ease-out lg:bottom-auto lg:left-auto lg:right-full lg:top-0 lg:mb-0 lg:mr-3 lg:w-[min(38rem,calc(100vw-19rem))]"
       >
         <div className="grid grid-cols-1 gap-2">
         <p className="rounded-lg border border-emerald-300/15 bg-emerald-300/10 px-3 py-1.5 text-xs font-bold text-emerald-100">
