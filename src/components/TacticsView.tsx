@@ -296,9 +296,18 @@ interface TacticsViewProps {
   teamName?: string;
   teamLogoUrl?: string;
   onUpdatePlayer?: (updated: Player) => void;
+  onMatchLayoutFullscreenChange?: (isFullscreen: boolean) => void;
 }
 
-export default function TacticsView({ players, staff, teamCoach, teamName, teamLogoUrl, onUpdatePlayer }: TacticsViewProps) {
+export default function TacticsView({
+  players,
+  staff,
+  teamCoach,
+  teamName,
+  teamLogoUrl,
+  onUpdatePlayer,
+  onMatchLayoutFullscreenChange
+}: TacticsViewProps) {
   const [matchFormat, setMatchFormat] = useState<MatchFormat>(() => {
     return readStringStorage(STORAGE_KEYS.matchFormat, matchFormatSchema, '11-a-side', 'Tactics match format');
   });
@@ -327,6 +336,16 @@ export default function TacticsView({ players, staff, teamCoach, teamName, teamL
   useEffect(() => {
     setIsTeamLogoBroken(false);
   }, [teamLogoUrl]);
+
+  useEffect(() => {
+    onMatchLayoutFullscreenChange?.(isBoardFullscreen);
+  }, [isBoardFullscreen, onMatchLayoutFullscreenChange]);
+
+  useEffect(() => {
+    return () => {
+      onMatchLayoutFullscreenChange?.(false);
+    };
+  }, [onMatchLayoutFullscreenChange]);
 
   useEffect(() => {
     if (!isBoardFullscreen) return;

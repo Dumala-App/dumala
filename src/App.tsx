@@ -290,6 +290,7 @@ export default function App() {
   const [homeTab, setHomeTab] = useState<HomeTab>('overview');
   const [developmentTab, setDevelopmentTab] = useState<DevelopmentTab>('assessments');
   const [leagueUpdatesTab, setLeagueUpdatesTab] = useState<LeagueUpdatesTab>('league');
+  const [isMatchLayoutFullscreen, setIsMatchLayoutFullscreen] = useState<boolean>(false);
   
   const [teamInfo, setTeamInfo] = useState<TeamInfo | null>(initialWorkspace.teamInfo);
   const [players, setPlayers] = useState<Player[]>(initialWorkspace.players);
@@ -1378,87 +1379,89 @@ export default function App() {
       <PwaStatusBanners />
       
       {/* Dynamic Navigation Topbar */}
-      <header id="app-topbar" className="sticky top-0 z-40 border-b border-white/10 bg-[var(--shell)]/95 text-[var(--shell-foreground)] shadow-lg shadow-slate-950/10 backdrop-blur-xl">
-        <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-[72px]">
-            
-            {/* Logo Brand Icon */}
-            <div className="flex min-w-0 items-center">
-              <img
-                id="brand-logo"
-                src="/Dumala_logo.png"
-                alt="Dumala"
-                onClick={() => handleSelectPrimaryTab('home')}
-                className="h-[4.75rem] w-[4.75rem] cursor-pointer rounded-xl object-contain drop-shadow-sm transition-all hover:-translate-y-0.5 active:translate-y-0"
-              />
-            </div>
+      {!isMatchLayoutFullscreen && (
+        <header id="app-topbar" className="sticky top-0 z-40 border-b border-white/10 bg-[var(--shell)]/95 text-[var(--shell-foreground)] shadow-lg shadow-slate-950/10 backdrop-blur-xl">
+          <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex justify-between items-center h-[72px]">
+              
+              {/* Logo Brand Icon */}
+              <div className="flex min-w-0 items-center">
+                <img
+                  id="brand-logo"
+                  src="/Dumala_logo.png"
+                  alt="Dumala"
+                  onClick={() => handleSelectPrimaryTab('home')}
+                  className="h-[4.75rem] w-[4.75rem] cursor-pointer rounded-xl object-contain drop-shadow-sm transition-all hover:-translate-y-0.5 active:translate-y-0"
+                />
+              </div>
 
-            {/* Desktop Navigation Link Tabs */}
-            <nav id="desktop-nav" aria-label="Primary navigation" className="hidden lg:flex items-center gap-1 rounded-2xl border border-white/[0.08] bg-white/[0.06] p-1.5">
+              {/* Desktop Navigation Link Tabs */}
+              <nav id="desktop-nav" aria-label="Primary navigation" className="hidden lg:flex items-center gap-1 rounded-2xl border border-white/[0.08] bg-white/[0.06] p-1.5">
+                {primaryTabs.map((tab) => {
+                  return (
+                    <ShellNavItem
+                      id={`nav-tab-btn-${tab.id}`}
+                      key={tab.id}
+                      label={tab.label}
+                      icon={tab.icon}
+                      isActive={primaryTab === tab.id}
+                      onSelect={() => handleSelectPrimaryTab(tab.id)}
+                      layout="desktop"
+                    />
+                  );
+                })}
+              </nav>
+
+              {/* Mobile Navigation Sandwich Trigger */}
+              <div className="flex items-center gap-2">
+                <TeamWorkspaceMenu
+                  workspaces={workspaces}
+                  activeWorkspaceId={activeWorkspaceId}
+                  activeTeamName={teamInfo?.name || 'Team workspace'}
+                  onCreateWorkspace={handleCreateTeamWorkspace}
+                  onSwitchWorkspace={handleSwitchTeamWorkspace}
+                  onRenameWorkspace={handleRenameTeamWorkspace}
+                  onDeleteWorkspace={handleDeleteTeamWorkspace}
+                  onExportCurrentWorkspace={handleExportBackup}
+                  onImportWorkspace={handleImportTeamWorkspace}
+                />
+                <Button
+                  id="mobile-menu-hamburger"
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                  aria-label={mobileMenuOpen ? 'Close navigation' : 'Open navigation'}
+                  aria-expanded={mobileMenuOpen}
+                  className="size-10 rounded-xl bg-white/10 text-white hover:bg-white/15 hover:text-white active:scale-95 lg:hidden [&_svg]:size-5"
+                >
+                  {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
+                </Button>
+              </div>
+
+            </div>
+          </div>
+
+          {/* Expandable Mobile Dropdown Menu */}
+          {mobileMenuOpen && (
+            <div id="mobile-nav-panel" className="grid grid-cols-2 gap-2 border-t border-white/10 bg-[var(--shell)] p-3 lg:hidden">
               {primaryTabs.map((tab) => {
                 return (
                   <ShellNavItem
-                    id={`nav-tab-btn-${tab.id}`}
+                    id={`mobile-nav-btn-${tab.id}`}
                     key={tab.id}
                     label={tab.label}
                     icon={tab.icon}
                     isActive={primaryTab === tab.id}
                     onSelect={() => handleSelectPrimaryTab(tab.id)}
-                    layout="desktop"
+                    layout="mobile"
                   />
                 );
               })}
-            </nav>
-
-            {/* Mobile Navigation Sandwich Trigger */}
-            <div className="flex items-center gap-2">
-              <TeamWorkspaceMenu
-                workspaces={workspaces}
-                activeWorkspaceId={activeWorkspaceId}
-                activeTeamName={teamInfo?.name || 'Team workspace'}
-                onCreateWorkspace={handleCreateTeamWorkspace}
-                onSwitchWorkspace={handleSwitchTeamWorkspace}
-                onRenameWorkspace={handleRenameTeamWorkspace}
-                onDeleteWorkspace={handleDeleteTeamWorkspace}
-                onExportCurrentWorkspace={handleExportBackup}
-                onImportWorkspace={handleImportTeamWorkspace}
-              />
-              <Button
-                id="mobile-menu-hamburger"
-                type="button"
-                variant="ghost"
-                size="icon"
-                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                aria-label={mobileMenuOpen ? 'Close navigation' : 'Open navigation'}
-                aria-expanded={mobileMenuOpen}
-                className="size-10 rounded-xl bg-white/10 text-white hover:bg-white/15 hover:text-white active:scale-95 lg:hidden [&_svg]:size-5"
-              >
-                {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
-              </Button>
             </div>
-
-          </div>
-        </div>
-
-        {/* Expandable Mobile Dropdown Menu */}
-        {mobileMenuOpen && (
-          <div id="mobile-nav-panel" className="grid grid-cols-2 gap-2 border-t border-white/10 bg-[var(--shell)] p-3 lg:hidden">
-            {primaryTabs.map((tab) => {
-              return (
-                <ShellNavItem
-                  id={`mobile-nav-btn-${tab.id}`}
-                  key={tab.id}
-                  label={tab.label}
-                  icon={tab.icon}
-                  isActive={primaryTab === tab.id}
-                  onSelect={() => handleSelectPrimaryTab(tab.id)}
-                  layout="mobile"
-                />
-              );
-            })}
-          </div>
-        )}
-      </header>
+          )}
+        </header>
+      )}
 
       {/* Main Container Stage Body */}
       <main id="app-main-content" className="relative z-10 flex-1 max-w-[1440px] w-full mx-auto p-4 sm:p-6 lg:p-8 space-y-6">
@@ -1552,7 +1555,15 @@ export default function App() {
 
             {primaryTab === 'tactics' && (
               <ViewErrorBoundary viewName="Tactics" onReturnHome={handleReturnHomeFromError} resetKeys={[primaryTab]}>
-                <TacticsView players={players} staff={staff} teamCoach={teamInfo?.coach || ''} teamName={teamInfo?.name || 'Apex Rangers'} teamLogoUrl={teamInfo?.logoUrl} onUpdatePlayer={handleUpdatePlayer} />
+                <TacticsView
+                  players={players}
+                  staff={staff}
+                  teamCoach={teamInfo?.coach || ''}
+                  teamName={teamInfo?.name || 'Apex Rangers'}
+                  teamLogoUrl={teamInfo?.logoUrl}
+                  onUpdatePlayer={handleUpdatePlayer}
+                  onMatchLayoutFullscreenChange={setIsMatchLayoutFullscreen}
+                />
               </ViewErrorBoundary>
             )}
 
