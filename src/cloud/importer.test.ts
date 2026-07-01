@@ -119,7 +119,13 @@ interface Operation {
   filters?: Array<{ column: string; value: unknown }>;
 }
 
-const createClient = (options: { existingOwnerMembership?: boolean; failTable?: string; userId?: string | null } = {}) => {
+const createClient = (options: {
+  existingOwnerMembership?: boolean;
+  existingRows?: Record<string, Record<string, unknown>[]>;
+  failSelectTable?: string;
+  failTable?: string;
+  userId?: string | null;
+} = {}) => {
   const operations: Operation[] = [];
   const userId = options.userId === undefined ? '11111111-1111-4111-8111-111111111111' : options.userId;
 
@@ -145,8 +151,16 @@ const createClient = (options: { existingOwnerMembership?: boolean; failTable?: 
       },
       select: (columns: string) => {
         const filters: Array<{ column: string; value: unknown }> = [];
+        const readRows = () => ({
+          data: options.existingRows?.[table] ?? [],
+          error: options.failSelectTable === table ? { message: `${table} read rejected` } : null
+        });
         const query = {
           eq: (column: string, value: unknown) => {
+            filters.push({ column, value });
+            return query;
+          },
+          is: (column: string, value: unknown) => {
             filters.push({ column, value });
             return query;
           },
@@ -154,8 +168,15 @@ const createClient = (options: { existingOwnerMembership?: boolean; failTable?: 
             operations.push({ type: 'select', table, values: { columns }, filters });
             return {
               data: options.existingOwnerMembership ? { id: 'membership-1' } : null,
-              error: null
+              error: options.failSelectTable === table ? { message: `${table} read rejected` } : null
             };
+          },
+          then: (
+            resolve: (value: { data: Record<string, unknown>[]; error: { message: string } | null }) => unknown,
+            reject?: (reason: unknown) => unknown
+          ) => {
+            operations.push({ type: 'select', table, values: { columns }, filters });
+            return Promise.resolve(readRows()).then(resolve, reject);
           }
         };
         return query;
@@ -172,7 +193,7 @@ const createClient = (options: { existingOwnerMembership?: boolean; failTable?: 
   return { client, operations };
 };
 
-const createPayload = (workspace: CoreWorkspace = core) => createCloudMigrationPackage(workspace, createStorage(), {
+const createPayload = (workspace: CoreWorkspace = core, storage = createStorage()) => createCloudMigrationPackage(workspace, storage, {
   importId: 'import-1',
   sourceDeviceId: 'browser-device-1',
   targetClubId: 'club-1',
@@ -292,6 +313,89 @@ describe('cloud importer', () => {
       type: 'upsert',
       table: 'bulletins'
     }));
+  });
+
+  it('skips active standings rows that already exist by club and team name', async () => {
+    const standings = Array.from({ length: 6 }, (_, index) => ({
+      rank: index + 1,
+      teamName: `Team ${index + 1}`,
+      played: 4,
+      won: 2,
+      drawn: 1,
+      lost: 1,
+      goalsFor: 8,
+      goalsAgainst: 5,
+      points: 7,
+      isUserTeam: index === 0
+    }));
+    const payload = createPayload({ ...core, standings });
+    const { client, operations } = createClient({
+      existingRows: {
+        standings_rows: standings.map(standing => ({ team_name: standing.teamName }))
+      }
+    });
+
+    await expect(importCloudPayload(client, payload, {
+      appVersion: '0.0.0'
+    })).resolves.toMatchObject({ state: 'complete' });
+
+    expect(operations).toContainEqual(expect.objectContaining({
+      type: 'select',
+      table: 'standings_rows',
+      values: { columns: 'team_name' },
+      filters: expect.arrayContaining([
+        { column: 'club_id', value: payload.clubId },
+        { column: 'deleted_at', value: null }
+      ])
+    }));
+    expect(operations).not.toContainEqual(expect.objectContaining({
+      type: 'upsert',
+      table: 'standings_rows'
+    }));
+  });
+
+  it('filters existing natural-key rows while still backing up new rows', async () => {
+    const storage = createStorage();
+    storage.setItem(STORAGE_KEYS.availability, JSON.stringify({
+      'game-1': {
+        'player-1': 'yes',
+        'player-new': 'maybe'
+      }
+    }));
+    const payload = createPayload({
+      ...core,
+      players: [
+        ...core.players,
+        {
+          ...core.players[0],
+          id: 'player-new',
+          name: 'Bea Cruz',
+          number: 10
+        }
+      ]
+    }, storage);
+    const existingPlayerId = toCloudUuid(payload.importId, 'players', 'player-1');
+    const { client, operations } = createClient({
+      existingRows: {
+        player_availability: [{
+          event_id: 'game-1',
+          player_id: existingPlayerId
+        }]
+      }
+    });
+
+    await expect(importCloudPayload(client, payload, {
+      appVersion: '0.0.0'
+    })).resolves.toMatchObject({ state: 'complete' });
+
+    const availabilityWrite = operations.find(operation =>
+      operation.type === 'upsert' && operation.table === 'player_availability'
+    );
+    expect(availabilityWrite?.rows).toHaveLength(1);
+    expect(availabilityWrite?.rows?.[0]).toMatchObject({
+      event_id: 'game-1',
+      player_id: toCloudUuid(payload.importId, 'players', 'player-new')
+    });
   });
 
   it('marks the workspace import failed when a domain upsert is rejected', async () => {

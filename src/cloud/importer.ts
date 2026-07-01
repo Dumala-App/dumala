@@ -6,6 +6,7 @@ import { createContentFingerprint, toCloudUuid } from '../migrations/localToClou
 type ImportTable = ReturnType<DumalaSupabaseClient['from']>;
 type WorkspaceImportUpdate = Database['public']['Tables']['workspace_imports']['Update'];
 type ClubMembershipInsert = Database['public']['Tables']['club_memberships']['Insert'];
+type NaturalKeyTable = keyof typeof NATURAL_ACTIVE_KEYS;
 
 export interface CloudImportDeviceContext {
   label?: string;
@@ -60,6 +61,15 @@ const IMPORT_ORDER = [
   'tactics_player_extras'
 ] as const;
 
+const NATURAL_ACTIVE_KEYS = {
+  match_results: ['game_id'],
+  standings_rows: ['team_name'],
+  assessment_development_plan_weeks: ['assessment_session_id', 'week_number'],
+  player_availability: ['event_id', 'player_id'],
+  tactics_lineup_assignments: ['tactics_workspace_id', 'slot_id'],
+  tactics_player_extras: ['player_id']
+} as const;
+
 const getErrorMessage = (error: unknown) => {
   if (!error) return 'Unknown Supabase error.';
   if (error instanceof Error) return error.message;
@@ -97,6 +107,48 @@ const buildDomainRow = (record: CloudImportRecord, userId: string, deviceId: str
     updated_by: userId,
     origin_device_id: deviceId
   });
+
+const isNaturalKeyTable = (table: string): table is NaturalKeyTable =>
+  table in NATURAL_ACTIVE_KEYS;
+
+const naturalKeyFor = (row: Record<string, unknown>, columns: readonly string[]) =>
+  columns.map(column => String(row[column] ?? '')).join('\u001f');
+
+const removeExistingNaturalKeyRows = async (
+  client: DumalaSupabaseClient,
+  table: NaturalKeyTable,
+  rows: Record<string, unknown>[]
+) => {
+  if (rows.length === 0) return rows;
+
+  const clubId = rows[0].club_id;
+  if (typeof clubId !== 'string') return rows;
+
+  const keyColumns = NATURAL_ACTIVE_KEYS[table];
+  let query = client
+    .from(table)
+    .select(keyColumns.join(','))
+    .eq('club_id', clubId)
+    .is('deleted_at', null);
+
+  if (table === 'match_results') {
+    query = query.is('reversed_at', null);
+  }
+
+  const { data, error } = await query;
+  if (error) {
+    throw new CloudImportError(
+      `Failed to read existing ${table} rows: ${getErrorMessage(error)}`,
+      `${table.toUpperCase()}_NATURAL_KEY_READ_FAILED`,
+      error
+    );
+  }
+
+  const existingRows = Array.isArray(data) ? data as unknown as Record<string, unknown>[] : [];
+  const existingKeys = new Set(existingRows.map(row => naturalKeyFor(row, keyColumns)));
+
+  return rows.filter(row => !existingKeys.has(naturalKeyFor(row, keyColumns)));
+};
 
 const upsertRows = async (
   table: ImportTable,
@@ -228,12 +280,15 @@ export const importCloudPayload = async (
       if (table === 'clubs') continue;
       const tableRecords = recordsFor(payload, table);
       const rows = tableRecords.map(record => buildDomainRow(record, userId, deviceId));
+      const rowsToWrite = isNaturalKeyTable(table)
+        ? await removeExistingNaturalKeyRows(client, table, rows)
+        : rows;
       if (table === 'bulletins') {
-        await insertRows(client.from(table), rows, 'BULLETINS_INSERT_FAILED');
+        await insertRows(client.from(table), rowsToWrite, 'BULLETINS_INSERT_FAILED');
       } else {
-        await upsertRows(client.from(table), rows, `${table.toUpperCase()}_UPSERT_FAILED`);
+        await upsertRows(client.from(table), rowsToWrite, `${table.toUpperCase()}_UPSERT_FAILED`);
       }
-      if (rows.length > 0) uploadedTables.push({ table, count: rows.length });
+      if (rowsToWrite.length > 0) uploadedTables.push({ table, count: rowsToWrite.length });
     }
 
     await updateWorkspaceImportStatus(client, cloudImportId, {
