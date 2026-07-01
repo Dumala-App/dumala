@@ -85,6 +85,52 @@ const TRAINING_SELECT_LABEL_CLASS = 'text-[10px] font-black uppercase tracking-[
 const TRAINING_SELECT_SEPARATOR_CLASS = 'bg-cyan-300/10';
 const TRAINING_DRILL_ICON_CLASS = 'border-cyan-300/12 bg-white/[0.045] text-slate-300 group-hover:border-cyan-300/20 group-hover:bg-cyan-300/8 group-hover:text-cyan-100';
 
+const getTrainingCategoryStyle = (category: string) => {
+  const value = category.toLowerCase();
+  if (value.includes('recovery') || value.includes('mobility')) {
+    return 'border-emerald-300/25 bg-emerald-400/12 text-emerald-100 shadow-[0_0_12px_rgba(52,211,153,0.12)]';
+  }
+  if (value.includes('conditioning') || value.includes('stamina') || value.includes('physical')) {
+    return 'border-orange-300/25 bg-orange-400/12 text-orange-100 shadow-[0_0_12px_rgba(251,146,60,0.14)]';
+  }
+  if (value.includes('tactical') || value.includes('strategy') || value.includes('defender')) {
+    return 'border-cyan-300/25 bg-cyan-300/12 text-cyan-100 shadow-[0_0_12px_rgba(34,211,238,0.12)]';
+  }
+  if (value.includes('forward') || value.includes('shooting')) {
+    return 'border-amber-300/25 bg-amber-300/12 text-amber-100 shadow-[0_0_12px_rgba(252,211,77,0.12)]';
+  }
+  return 'border-indigo-300/25 bg-indigo-300/12 text-indigo-100 shadow-[0_0_12px_rgba(129,140,248,0.12)]';
+};
+
+const getTrainingLoadStyle = (load: number) => {
+  if (load >= SESSION_LOAD_THRESHOLDS.high) {
+    return {
+      badge: 'border-red-300/30 bg-red-500/15 text-red-100 shadow-[0_0_14px_rgba(239,68,68,0.18)]',
+      text: 'text-red-200',
+      dot: 'bg-red-400 shadow-[0_0_8px_rgba(248,113,113,0.6)]'
+    };
+  }
+  if (load >= SESSION_LOAD_THRESHOLDS.high - 3) {
+    return {
+      badge: 'border-orange-300/30 bg-orange-600/20 text-orange-50 shadow-[0_0_14px_rgba(249,115,22,0.18)]',
+      text: 'text-orange-100',
+      dot: 'bg-orange-500 shadow-[0_0_8px_rgba(249,115,22,0.6)]'
+    };
+  }
+  if (load >= SESSION_LOAD_THRESHOLDS.optimal) {
+    return {
+      badge: 'border-amber-300/25 bg-amber-400/15 text-amber-100 shadow-[0_0_14px_rgba(252,211,77,0.14)]',
+      text: 'text-amber-200',
+      dot: 'bg-amber-300 shadow-[0_0_8px_rgba(252,211,77,0.55)]'
+    };
+  }
+  return {
+    badge: 'border-emerald-300/25 bg-emerald-500/12 text-emerald-100 shadow-[0_0_14px_rgba(16,185,129,0.12)]',
+    text: 'text-emerald-200',
+    dot: 'bg-emerald-300 shadow-[0_0_8px_rgba(52,211,153,0.55)]'
+  };
+};
+
 const DEFAULT_SCHEDULE: WeeklySchedule = {
   Monday: [
     { id: 'init-1', drillId: 'drill-warm-rondo-arrival', name: 'Arrival Rondo Warm-Up', fatigueIncrease: 2 },
@@ -653,6 +699,9 @@ export default function TrainingView({ players, assessments, games, onUpdateGame
   const developmentEvidenceSummary = summarizeDevelopmentEvidence(selectedTrainingDrills, selectedTrainingLoad);
   const developmentEvidenceSignals = developmentEvidenceSummary.focusSignals;
   const developmentFocusLabel = formatTrainingFocusList(developmentEvidenceSignals);
+  const selectedScheduleDrillCategoryClass = getTrainingCategoryStyle(selectedScheduleDrill.category);
+  const selectedScheduleDrillLoadStyle = getTrainingLoadStyle(selectedScheduleDrill.fatigueIncrease);
+  const selectedTrainingLoadStyle = getTrainingLoadStyle(selectedTrainingLoad);
   const latestRecommendedPlayerAssessment = recommendedPlayer
     ? selectLatestAssessmentForPlayer(assessments, recommendedPlayer.id)
     : null;
@@ -672,22 +721,22 @@ export default function TrainingView({ players, assessments, games, onUpdateGame
   const weekHealth = overloadedDays.length >= 2 || weeklyLoad > SESSION_LOAD_THRESHOLDS.weeklyHigh
     ? {
         label: 'High load',
-        badgeClass: 'border-cyan-300/15 bg-cyan-300/10 text-cyan-100',
-        iconClass: 'text-cyan-200',
-        actionClass: 'border-cyan-300/15 bg-white/[0.04] text-slate-200 hover:bg-cyan-300/10 hover:text-cyan-50'
+        badgeClass: 'border-red-300/30 bg-red-500/15 text-red-100 shadow-[0_0_14px_rgba(239,68,68,0.16)]',
+        iconClass: 'text-red-200',
+        actionClass: 'border-red-300/25 bg-red-500/10 text-red-100 hover:bg-red-500/15 hover:text-red-50'
       }
     : overloadedDays.length === 1 || recoveryDays < 2
       ? {
           label: 'Needs attention',
-          badgeClass: 'border-cyan-300/15 bg-cyan-300/10 text-cyan-100',
-          iconClass: 'text-cyan-200',
-          actionClass: 'border-cyan-300/15 bg-white/[0.04] text-slate-200 hover:bg-cyan-300/10 hover:text-cyan-50'
+          badgeClass: 'border-amber-300/25 bg-amber-400/15 text-amber-100 shadow-[0_0_14px_rgba(252,211,77,0.14)]',
+          iconClass: 'text-amber-200',
+          actionClass: 'border-amber-300/25 bg-amber-400/10 text-amber-100 hover:bg-amber-400/15 hover:text-amber-50'
         }
       : {
           label: 'Balanced',
-          badgeClass: 'border-cyan-300/15 bg-cyan-300/10 text-cyan-100',
-          iconClass: 'text-cyan-200',
-          actionClass: 'border-cyan-300/15 bg-white/[0.04] text-slate-200 hover:bg-cyan-300/10 hover:text-cyan-50'
+          badgeClass: 'border-emerald-300/25 bg-emerald-500/12 text-emerald-100 shadow-[0_0_14px_rgba(16,185,129,0.14)]',
+          iconClass: 'text-emerald-200',
+          actionClass: 'border-emerald-300/25 bg-emerald-500/10 text-emerald-100 hover:bg-emerald-500/15 hover:text-emerald-50'
         };
 
   const addDrillsToDay = (drills: readonly TrainingDrill[], day: DayName, playerName?: string) => {
@@ -847,27 +896,27 @@ export default function TrainingView({ players, assessments, games, onUpdateGame
             </p>
             
             {/* Distribution Index info */}
-            <div className="mt-2 space-y-1 rounded-lg border border-cyan-300/10 bg-[#07111f]/80 p-2 text-[10px] font-mono">
-              <div className="flex justify-between items-center text-emerald-200/80 font-semibold">
-                <span>Light (0-{SESSION_LOAD_THRESHOLDS.optimal - 1} pts):</span>
+            <div className="mt-2 space-y-1.5 rounded-lg border border-cyan-300/10 bg-[#07111f]/80 p-2 text-[10px] font-mono">
+              <div className="flex items-center justify-between gap-2 font-semibold text-emerald-200">
+                <span className="flex items-center gap-1.5"><span className="size-1.5 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.65)]" />Light (0-{SESSION_LOAD_THRESHOLDS.optimal - 1} pts):</span>
                 <span>{DAYS_OF_WEEK.filter(d => getSessionLoadPoints(weeklySchedule[d]) < SESSION_LOAD_THRESHOLDS.optimal).length} Days</span>
               </div>
-              <div className="flex justify-between items-center text-amber-200/80 font-semibold">
-                <span>Training ({SESSION_LOAD_THRESHOLDS.optimal}-{SESSION_LOAD_THRESHOLDS.high - 8} pts):</span>
+              <div className="flex items-center justify-between gap-2 font-semibold text-amber-200">
+                <span className="flex items-center gap-1.5"><span className="size-1.5 rounded-full bg-amber-300 shadow-[0_0_8px_rgba(252,211,77,0.65)]" />Training ({SESSION_LOAD_THRESHOLDS.optimal}-{SESSION_LOAD_THRESHOLDS.high - 8} pts):</span>
                 <span>{DAYS_OF_WEEK.filter(d => {
                   const sum = getSessionLoadPoints(weeklySchedule[d]);
                   return sum >= SESSION_LOAD_THRESHOLDS.optimal && sum < SESSION_LOAD_THRESHOLDS.high - 7;
                 }).length} Days</span>
               </div>
-              <div className="flex justify-between items-center text-orange-200/80 font-semibold">
-                <span>Heavy ({SESSION_LOAD_THRESHOLDS.high - 7}-{SESSION_LOAD_THRESHOLDS.high - 1} pts):</span>
+              <div className="flex items-center justify-between gap-2 font-semibold text-orange-200">
+                <span className="flex items-center gap-1.5"><span className="size-1.5 rounded-full bg-orange-400 shadow-[0_0_8px_rgba(251,146,60,0.65)]" />Heavy ({SESSION_LOAD_THRESHOLDS.high - 7}-{SESSION_LOAD_THRESHOLDS.high - 1} pts):</span>
                 <span>{DAYS_OF_WEEK.filter(d => {
                   const sum = getSessionLoadPoints(weeklySchedule[d]);
                   return sum >= SESSION_LOAD_THRESHOLDS.high - 7 && sum < SESSION_LOAD_THRESHOLDS.high;
                 }).length} Days</span>
               </div>
-              <div className="flex justify-between items-center text-red-200/80 font-semibold">
-                <span>High ({SESSION_LOAD_THRESHOLDS.high}+ pts):</span>
+              <div className="flex items-center justify-between gap-2 font-semibold text-red-200">
+                <span className="flex items-center gap-1.5"><span className="size-1.5 rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.65)]" />High ({SESSION_LOAD_THRESHOLDS.high}+ pts):</span>
                 <span>{DAYS_OF_WEEK.filter(d => getSessionLoadPoints(weeklySchedule[d]) >= SESSION_LOAD_THRESHOLDS.high).length} Days</span>
               </div>
             </div>
@@ -880,31 +929,36 @@ export default function TrainingView({ players, assessments, games, onUpdateGame
                 const load = getSessionLoadPoints(weeklySchedule[day]);
                 const maxPossibleLoad = 60;
                 const heightPercent = Math.min(100, Math.max(8, (load / maxPossibleLoad) * 100));
-                let barBg = 'bg-emerald-400/45';
-                let loadText = 'text-emerald-200/80 group-hover:text-emerald-100';
+                let barBg = 'bg-gradient-to-t from-emerald-600 to-emerald-300 shadow-[0_0_14px_rgba(16,185,129,0.34)]';
+                let loadText = 'text-emerald-200 group-hover:text-emerald-100';
+                let trackRing = 'group-hover:border-emerald-300/40';
                 if (load >= SESSION_LOAD_THRESHOLDS.high) {
-                  barBg = 'bg-red-500/60';
-                  loadText = 'text-red-200/80 group-hover:text-red-100';
+                  barBg = 'bg-gradient-to-t from-red-700 via-red-500 to-rose-300 shadow-[0_0_16px_rgba(239,68,68,0.5)]';
+                  loadText = 'text-red-200 group-hover:text-red-100';
+                  trackRing = 'group-hover:border-red-300/50';
                 } else if (load >= SESSION_LOAD_THRESHOLDS.high - 3) {
-                  barBg = 'bg-orange-600/60';
-                  loadText = 'text-orange-100/80 group-hover:text-orange-50';
+                  barBg = 'bg-gradient-to-t from-orange-700 via-orange-500 to-red-300 shadow-[0_0_15px_rgba(249,115,22,0.46)]';
+                  loadText = 'text-orange-100 group-hover:text-orange-50';
+                  trackRing = 'group-hover:border-orange-300/50';
                 } else if (load >= SESSION_LOAD_THRESHOLDS.high - 7) {
-                  barBg = 'bg-orange-400/60';
-                  loadText = 'text-orange-200/80 group-hover:text-orange-100';
+                  barBg = 'bg-gradient-to-t from-orange-600 to-orange-300 shadow-[0_0_14px_rgba(251,146,60,0.4)]';
+                  loadText = 'text-orange-200 group-hover:text-orange-100';
+                  trackRing = 'group-hover:border-orange-300/40';
                 } else if (load >= SESSION_LOAD_THRESHOLDS.optimal) {
-                  barBg = 'bg-amber-300/60';
-                  loadText = 'text-amber-200/80 group-hover:text-amber-100';
+                  barBg = 'bg-gradient-to-t from-amber-600 to-yellow-300 shadow-[0_0_14px_rgba(245,158,11,0.38)]';
+                  loadText = 'text-amber-200 group-hover:text-amber-100';
+                  trackRing = 'group-hover:border-amber-300/40';
                 }
                 
                 return (
                   <div key={day} className="flex flex-col items-center flex-1 group">
                     {/* Load indicator badge on hover / top */}
-                    <span className={`mb-1.5 text-[10px] font-mono font-semibold transition-colors ${loadText}`}>
+                    <span className={`mb-1.5 text-[10px] font-mono font-bold transition-colors ${loadText}`}>
                       {load} pts
                     </span>
                     
                     {/* Vertical Bar */}
-                    <div className="w-6 md:w-8 bg-[#07111f] rounded-t-lg overflow-hidden h-24 flex items-end border border-cyan-300/10">
+                    <div className={`w-6 md:w-8 bg-[#07111f] rounded-t-lg overflow-hidden h-24 flex items-end border border-cyan-300/10 transition-colors ${trackRing}`}>
                       <div 
                         style={{ height: `${heightPercent}%` }}
                         className={`w-full rounded-t-md transition-all duration-300 ${barBg}`}
@@ -977,16 +1031,24 @@ export default function TrainingView({ players, assessments, games, onUpdateGame
             const dayMatches = games.filter(g => (g.type === 'League' || g.type === 'Cup' || g.type === 'Friendly') && g.date === dateStr);
             
             let loadLabel = "LIGHT";
-            let loadColor = "bg-white/[0.04] text-slate-300 border-cyan-300/10";
-            let loadDot = "bg-cyan-300/45";
+            let loadColor = "bg-emerald-500/12 text-emerald-100 border-emerald-300/25";
+            let loadDot = "bg-emerald-300 shadow-[0_0_8px_rgba(52,211,153,0.55)]";
             if (totalLoad >= SESSION_LOAD_THRESHOLDS.high) {
               loadLabel = "HIGH LOAD";
-              loadColor = "bg-cyan-300/12 text-cyan-50 border-cyan-300/20";
-              loadDot = "bg-cyan-100";
+              loadColor = "bg-red-500/15 text-red-100 border-red-300/30";
+              loadDot = "bg-red-400 shadow-[0_0_8px_rgba(248,113,113,0.6)]";
+            } else if (totalLoad >= SESSION_LOAD_THRESHOLDS.high - 3) {
+              loadLabel = "PEAK";
+              loadColor = "bg-orange-600/20 text-orange-50 border-orange-300/30";
+              loadDot = "bg-orange-500 shadow-[0_0_8px_rgba(249,115,22,0.6)]";
+            } else if (totalLoad >= SESSION_LOAD_THRESHOLDS.high - 7) {
+              loadLabel = "HEAVY";
+              loadColor = "bg-orange-400/15 text-orange-100 border-orange-300/25";
+              loadDot = "bg-orange-300 shadow-[0_0_8px_rgba(251,146,60,0.55)]";
             } else if (totalLoad >= SESSION_LOAD_THRESHOLDS.optimal) {
               loadLabel = "TRAINING";
-              loadColor = "bg-cyan-300/8 text-cyan-100 border-cyan-300/15";
-              loadDot = "bg-cyan-200";
+              loadColor = "bg-amber-400/15 text-amber-100 border-amber-300/25";
+              loadDot = "bg-amber-300 shadow-[0_0_8px_rgba(252,211,77,0.55)]";
             }
 
             return (
@@ -1136,13 +1198,14 @@ export default function TrainingView({ players, assessments, games, onUpdateGame
                       <h4 className="mt-0.5 truncate text-sm font-black text-slate-50">{selectedScheduleDrill.name}</h4>
                       <p className="mt-1 line-clamp-2 text-[11px] leading-relaxed text-slate-300">{selectedScheduleDrill.description}</p>
                       <div className="mt-2 flex flex-wrap gap-1.5">
-                        <span className="rounded-full border border-cyan-300/10 bg-white/[0.06] px-2 py-1 text-[9px] font-black uppercase text-slate-300 shadow-sm shadow-black/10">
+                        <span className={`rounded-full border px-2 py-1 text-[9px] font-black uppercase shadow-sm shadow-black/10 ${selectedScheduleDrillCategoryClass}`}>
                           {selectedScheduleDrill.category}
                         </span>
-                        <span className="inline-flex items-center gap-1 rounded-full border border-cyan-300/10 bg-white/[0.06] px-2 py-1 text-[9px] font-black uppercase text-slate-300 shadow-sm shadow-black/10">
+                        <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-1 text-[9px] font-black uppercase shadow-sm shadow-black/10 ${selectedScheduleDrillLoadStyle.badge}`}>
+                          <span className={`size-1.5 rounded-full ${selectedScheduleDrillLoadStyle.dot}`} />
                           <Gauge size={10} aria-hidden="true" /> Intensity {selectedScheduleDrill.fatigueIncrease}/10
                         </span>
-                        <span className="inline-flex items-center gap-1 rounded-full border border-cyan-300/10 bg-white/[0.06] px-2 py-1 text-[9px] font-black uppercase text-slate-300 shadow-sm shadow-black/10">
+                        <span className="inline-flex items-center gap-1 rounded-full border border-indigo-300/20 bg-indigo-300/10 px-2 py-1 text-[9px] font-black uppercase text-indigo-100 shadow-sm shadow-black/10">
                           <Target size={10} aria-hidden="true" /> {formatTrainingFocusList(selectedScheduleDrill.developmentFocus)}
                         </span>
                       </div>
@@ -1172,21 +1235,21 @@ export default function TrainingView({ players, assessments, games, onUpdateGame
               {selectedScheduleDrillInstructions ? (
                 <div className="grid gap-3 p-3 lg:grid-cols-[0.78fr_1.22fr]">
                   <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-1">
-                    <div className="rounded-lg border border-cyan-300/10 bg-white/[0.045] p-3 shadow-sm shadow-black/10">
+                    <div className="rounded-lg border border-emerald-300/20 bg-emerald-400/10 p-3 shadow-sm shadow-emerald-950/10">
                       <div className="flex items-center gap-2">
-                        <span className="flex size-7 shrink-0 items-center justify-center rounded-lg border border-cyan-300/10 bg-[#0b1726]/72 text-slate-300">
+                        <span className="flex size-7 shrink-0 items-center justify-center rounded-lg border border-emerald-300/25 bg-emerald-400/12 text-emerald-100">
                           <Dumbbell size={13} aria-hidden="true" />
                         </span>
-                        <span className="text-[9px] font-black uppercase tracking-wider text-slate-400">Equipment</span>
+                        <span className="text-[9px] font-black uppercase tracking-wider text-emerald-100">Equipment</span>
                       </div>
                       <p className="mt-2 text-[11px] leading-relaxed text-slate-300">{selectedScheduleDrillInstructions.equipment}</p>
                     </div>
-                    <div className="rounded-lg border border-cyan-300/10 bg-white/[0.045] p-3 shadow-sm shadow-black/10">
+                    <div className="rounded-lg border border-amber-300/20 bg-amber-300/10 p-3 shadow-sm shadow-amber-950/10">
                       <div className="flex items-center gap-2">
-                        <span className="flex size-7 shrink-0 items-center justify-center rounded-lg border border-cyan-300/10 bg-[#0b1726]/72 text-slate-300">
+                        <span className="flex size-7 shrink-0 items-center justify-center rounded-lg border border-amber-300/25 bg-amber-300/12 text-amber-100">
                           <Timer size={13} aria-hidden="true" />
                         </span>
-                        <span className="text-[9px] font-black uppercase tracking-wider text-slate-400">Sets / reps</span>
+                        <span className="text-[9px] font-black uppercase tracking-wider text-amber-100">Sets / reps</span>
                       </div>
                       <p className="mt-2 text-[11px] leading-relaxed text-slate-300">{selectedScheduleDrillInstructions.setsReps}</p>
                     </div>
@@ -1194,23 +1257,23 @@ export default function TrainingView({ players, assessments, games, onUpdateGame
 
                   <div className="rounded-lg border border-cyan-300/10 bg-white/[0.035] p-3 shadow-sm shadow-black/10">
                     <div className="grid gap-3 md:grid-cols-2">
-                      <div className="relative rounded-lg border border-cyan-300/10 bg-white/[0.045] p-3">
-                        <span className="absolute right-3 top-3 text-xl font-black leading-none text-slate-600/40">01</span>
+                      <div className="relative rounded-lg border border-cyan-300/20 bg-cyan-300/10 p-3">
+                        <span className="absolute right-3 top-3 text-xl font-black leading-none text-cyan-100/20">01</span>
                         <div className="flex items-center gap-2">
-                          <span className="flex size-7 shrink-0 items-center justify-center rounded-lg border border-cyan-300/10 bg-[#0b1726]/72 text-slate-300">
+                          <span className="flex size-7 shrink-0 items-center justify-center rounded-lg border border-cyan-300/25 bg-cyan-300/12 text-cyan-100">
                             <Route size={13} aria-hidden="true" />
                           </span>
-                          <span className="text-[9px] font-black uppercase tracking-wider text-slate-300">Setup</span>
+                          <span className="text-[9px] font-black uppercase tracking-wider text-cyan-100">Setup</span>
                         </div>
                         <p className="mt-2 text-[11px] leading-relaxed text-slate-200">{selectedScheduleDrillInstructions.setup}</p>
                       </div>
-                      <div className="relative rounded-lg border border-cyan-300/10 bg-white/[0.045] p-3">
-                        <span className="absolute right-3 top-3 text-xl font-black leading-none text-slate-600/40">02</span>
+                      <div className="relative rounded-lg border border-indigo-300/20 bg-indigo-300/10 p-3">
+                        <span className="absolute right-3 top-3 text-xl font-black leading-none text-indigo-100/20">02</span>
                         <div className="flex items-center gap-2">
-                          <span className="flex size-7 shrink-0 items-center justify-center rounded-lg border border-cyan-300/10 bg-[#0b1726]/72 text-slate-300">
+                          <span className="flex size-7 shrink-0 items-center justify-center rounded-lg border border-indigo-300/25 bg-indigo-300/12 text-indigo-100">
                             <CheckCircle size={13} aria-hidden="true" />
                           </span>
-                          <span className="text-[9px] font-black uppercase tracking-wider text-slate-300">Execution</span>
+                          <span className="text-[9px] font-black uppercase tracking-wider text-indigo-100">Execution</span>
                         </div>
                         <p className="mt-2 text-[11px] leading-relaxed text-slate-200">{selectedScheduleDrillInstructions.execution}</p>
                       </div>
@@ -1296,6 +1359,8 @@ export default function TrainingView({ players, assessments, games, onUpdateGame
                     {visibleLibraryDrills.map((drill) => {
                       const isSelected = selectedDrillId === drill.id;
                       const isRecommended = growthNeeds?.isBeneficial(drill);
+                      const categoryStyle = getTrainingCategoryStyle(drill.category);
+                      const loadStyle = getTrainingLoadStyle(drill.fatigueIncrease);
                       return (
                         <div
                           key={drill.id}
@@ -1316,28 +1381,30 @@ export default function TrainingView({ players, assessments, games, onUpdateGame
                           aria-label={`Select ${drill.name}`}
                           className={`group flex cursor-grab items-start gap-3 rounded-lg border bg-white/[0.035] p-2.5 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/25 active:cursor-grabbing ${
                             isSelected
-                              ? 'border-cyan-300/35 bg-cyan-300/8'
+                              ? 'border-cyan-300/35 bg-cyan-300/10 shadow-[0_0_18px_rgba(34,211,238,0.12)]'
                               : isRecommended
-                                ? 'border-cyan-300/18 hover:border-cyan-300/30'
+                                ? 'border-emerald-300/20 bg-emerald-500/[0.045] hover:border-emerald-300/35 hover:bg-emerald-500/10'
                                 : 'border-cyan-300/10 hover:border-cyan-300/22 hover:bg-white/[0.055]'
                           }`}
                         >
-                          <span className={`flex size-9 shrink-0 items-center justify-center rounded-lg border ${TRAINING_DRILL_ICON_CLASS}`}>
+                          <span className={`flex size-9 shrink-0 items-center justify-center rounded-lg border ${isSelected ? 'border-cyan-300/30 bg-cyan-300/12 text-cyan-100' : TRAINING_DRILL_ICON_CLASS}`}>
                             {getDrillIcon(drill.id)}
                           </span>
                           <span className="min-w-0 flex-1">
                             <span className="flex items-center gap-1.5">
                               <span className="truncate text-xs font-black text-slate-100">{drill.name}</span>
                               {isRecommended && (
-                                <span className="shrink-0 rounded-full border border-cyan-300/10 bg-cyan-300/10 px-1.5 py-0.5 text-[7px] font-black uppercase text-cyan-100">
+                                <span className="shrink-0 rounded-full border border-emerald-300/25 bg-emerald-500/12 px-1.5 py-0.5 text-[7px] font-black uppercase text-emerald-100">
                                   Recommended
                                 </span>
                               )}
                             </span>
                             <span className="mt-1 line-clamp-1 text-[10px] leading-relaxed text-slate-400">{drill.description}</span>
                             <span className="mt-1.5 flex flex-wrap items-center gap-1.5 text-[9px] font-bold text-slate-400">
-                              <span className="rounded-md bg-white/[0.06] px-1.5 py-0.5 uppercase text-slate-300">{drill.category}</span>
-                              <span>Intensity {drill.fatigueIncrease}/10</span>
+                              <span className={`rounded-md border px-1.5 py-0.5 uppercase ${categoryStyle}`}>{drill.category}</span>
+                              <span className={`inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5 ${loadStyle.badge}`}>
+                                <span className={`size-1 rounded-full ${loadStyle.dot}`} />Intensity {drill.fatigueIncrease}/10
+                              </span>
                               <span className="hidden sm:inline">Focus: {formatTrainingFocusList(drill.developmentFocus)}</span>
                             </span>
                           </span>
@@ -1462,18 +1529,18 @@ export default function TrainingView({ players, assessments, games, onUpdateGame
                   </div>
                 </div>
 
-                <div className="rounded-xl border border-cyan-300/10 bg-white/[0.04] p-3">
+                <div className="rounded-xl border border-indigo-300/20 bg-indigo-300/10 p-3 shadow-sm shadow-indigo-950/10">
                   <span className="text-[9px] font-black uppercase tracking-wider text-slate-300">
                     {ratingConfidence.label}
                   </span>
                   <p className="mt-1 text-[10px] leading-relaxed text-slate-400">{ratingConfidence.description}</p>
                 </div>
 
-                <div className="rounded-xl border border-cyan-300/10 bg-white/[0.04] p-3">
+                <div className="rounded-xl border border-orange-300/25 bg-orange-400/10 p-3 shadow-sm shadow-orange-950/10">
                   <div className="flex items-start gap-2.5">
-                    <Target size={16} className="mt-0.5 shrink-0 text-cyan-200" aria-hidden="true" />
+                    <Target size={16} className="mt-0.5 shrink-0 text-orange-200" aria-hidden="true" />
                     <div className="min-w-0">
-                      <span className="text-[9px] font-black uppercase tracking-wider text-slate-300">Development priority</span>
+                      <span className="text-[9px] font-black uppercase tracking-wider text-orange-100">Development priority</span>
                       <p className="mt-0.5 text-xs font-black capitalize text-slate-50">
                         {growthNeeds.lowestAttr === 'physicalness' ? 'Conditioning' : growthNeeds.lowestAttr} · {growthNeeds.lowestVal}/99
                       </p>
@@ -1506,6 +1573,8 @@ export default function TrainingView({ players, assessments, games, onUpdateGame
                     {orderedDevelopmentDrills.map(drill => {
                       const isChosen = selectedTrainingDrillIds.includes(drill.id);
                       const supportsGap = drill.targetAttributes.includes(growthNeeds.lowestAttr);
+                      const categoryStyle = getTrainingCategoryStyle(drill.category);
+                      const loadStyle = getTrainingLoadStyle(drill.fatigueIncrease);
                       return (
                         <button
                           key={drill.id}
@@ -1514,8 +1583,10 @@ export default function TrainingView({ players, assessments, games, onUpdateGame
                           aria-pressed={isChosen}
                           className={`flex w-full items-center gap-2.5 rounded-xl border p-2.5 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/25 ${
                             isChosen
-                              ? 'border-cyan-300/35 bg-cyan-300/10'
-                              : 'border-cyan-300/10 bg-white/[0.035] hover:border-cyan-300/22 hover:bg-white/[0.055]'
+                              ? 'border-cyan-300/35 bg-cyan-300/10 shadow-[0_0_16px_rgba(34,211,238,0.12)]'
+                              : supportsGap
+                                ? 'border-emerald-300/20 bg-emerald-500/[0.045] hover:border-emerald-300/35 hover:bg-emerald-500/10'
+                                : 'border-cyan-300/10 bg-white/[0.035] hover:border-cyan-300/22 hover:bg-white/[0.055]'
                           }`}
                         >
                           <span className={`flex size-5 shrink-0 items-center justify-center rounded-md border ${
@@ -1527,10 +1598,15 @@ export default function TrainingView({ players, assessments, games, onUpdateGame
                             <span className="flex items-center gap-1.5">
                               <span className="truncate text-[11px] font-bold text-slate-100">{drill.name}</span>
                               {supportsGap && (
-                                <span className="shrink-0 rounded-full border border-cyan-300/10 bg-cyan-300/10 px-1.5 py-0.5 text-[7px] font-black uppercase text-cyan-100">Recommended</span>
+                                <span className="shrink-0 rounded-full border border-emerald-300/25 bg-emerald-500/12 px-1.5 py-0.5 text-[7px] font-black uppercase text-emerald-100">Recommended</span>
                               )}
                             </span>
-                            <span className="mt-0.5 block truncate text-[9px] text-slate-500">{drill.category} · Intensity {drill.fatigueIncrease}/10</span>
+                            <span className="mt-1 flex flex-wrap items-center gap-1.5 text-[8px] font-bold">
+                              <span className={`rounded-md border px-1.5 py-0.5 uppercase ${categoryStyle}`}>{drill.category}</span>
+                              <span className={`inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5 ${loadStyle.badge}`}>
+                                <span className={`size-1 rounded-full ${loadStyle.dot}`} />Intensity {drill.fatigueIncrease}/10
+                              </span>
+                            </span>
                           </span>
                         </button>
                       );
@@ -1538,10 +1614,14 @@ export default function TrainingView({ players, assessments, games, onUpdateGame
                   </div>
                 </div>
 
-                <div className="rounded-xl border border-cyan-300/10 bg-white/[0.04] p-3">
+                <div className={`rounded-xl border p-3 shadow-sm shadow-black/10 ${
+                  selectedTrainingDrills.length > 0
+                    ? selectedTrainingLoadStyle.badge
+                    : 'border-cyan-300/10 bg-white/[0.04]'
+                }`}>
                   <div className="flex items-center justify-between gap-3">
                     <div>
-                      <span className="text-[9px] font-black uppercase tracking-wider text-slate-500">3. Review session</span>
+                      <span className="text-[9px] font-black uppercase tracking-wider text-slate-400">3. Review session</span>
                       <p className="mt-0.5 text-xs font-black text-slate-50">
                         {selectedTrainingDrills.length} {selectedTrainingDrills.length === 1 ? 'drill' : 'drills'} · {selectedTrainingLoad} load points
                       </p>
@@ -1554,7 +1634,7 @@ export default function TrainingView({ players, assessments, games, onUpdateGame
                     </Button>
                   </div>
                   {Object.keys(developmentEvidenceSignals).length > 0 ? (
-                    <p className="mt-2 text-[10px] font-bold text-cyan-100">
+                    <p className={`mt-2 text-[10px] font-bold ${selectedTrainingLoadStyle.text}`}>
                       Training focus: {developmentFocusLabel}
                     </p>
                   ) : (
