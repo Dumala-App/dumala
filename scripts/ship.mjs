@@ -45,6 +45,32 @@ const capture = (command, args = []) => {
   return result.stdout.trim();
 };
 
+const sleep = ms => new Promise(resolve => {
+  setTimeout(resolve, ms);
+});
+
+const waitForChecksToStart = async prNumber => {
+  for (let attempt = 1; attempt <= 24; attempt += 1) {
+    const checkCount = Number(capture('gh', [
+      'pr',
+      'view',
+      prNumber,
+      '--json',
+      'statusCheckRollup',
+      '--jq',
+      '.statusCheckRollup | length'
+    ]));
+
+    if (checkCount > 0) return;
+
+    console.log(`Waiting for GitHub checks to start (${attempt}/24)...`);
+    await sleep(5000);
+  }
+
+  console.error('Timed out waiting for GitHub checks to start.');
+  process.exit(1);
+};
+
 const hasChanges = () => capture('git', ['status', '--porcelain']).length > 0;
 
 const slugify = value => value
@@ -125,6 +151,7 @@ if (!prNumber) {
   process.exit(1);
 }
 
+await waitForChecksToStart(prNumber);
 run('gh', ['pr', 'checks', prNumber, '--watch', '--fail-fast']);
 run('gh', ['pr', 'merge', prNumber, '--merge', '--delete-branch']);
 
