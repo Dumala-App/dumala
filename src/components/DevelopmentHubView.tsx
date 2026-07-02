@@ -1,5 +1,6 @@
 import React, { lazy, Suspense, useEffect, useState } from 'react';
 import type { AssessmentSession, Game, Player } from '../types';
+import type { DayName } from '../training/synchronization';
 import {
   DARK_GLASS_CLASSES,
   DARK_GLASS_DASHBOARD_SURFACE_STYLE,
@@ -73,6 +74,8 @@ interface DevelopmentHubViewProps {
   players: Player[];
   games: Game[];
   onUpdateGames: (games: Game[]) => void;
+  initialTrainingBuilderDay?: DayName | null;
+  onInitialTrainingBuilderDayHandled?: () => void;
 
   assessments: AssessmentSession[];
   preselectedAssessmentsPlayerId: string | null;
@@ -135,6 +138,8 @@ export default function DevelopmentHubView(props: DevelopmentHubViewProps) {
               assessments={props.assessments}
               games={props.games}
               onUpdateGames={props.onUpdateGames}
+              initialBuilderDay={props.initialTrainingBuilderDay}
+              onInitialBuilderDayHandled={props.onInitialTrainingBuilderDayHandled}
             />
           </section>
         )}

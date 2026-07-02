@@ -22,6 +22,7 @@ import {
   tacticsLineupSchema,
   tacticsNotesSchema,
   teamInfoSchema,
+  trainingSessionMetaMapSchema,
   weeklyScheduleSchema
 } from './schemas';
 
@@ -42,6 +43,8 @@ export const STORAGE_KEYS = {
   weeklySchedule: 'squad_weekly_schedule',
   weeklyScheduleWeeks: 'squad_weekly_schedule_weeks',
   weeklyScheduleHistory: 'squad_weekly_schedule_history',
+  weeklyScheduleCadence: 'squad_weekly_schedule_cadence',
+  trainingSessionMeta: 'squad_training_session_meta',
   matchFormat: 'squad_match_format',
   formation: 'squad_formation',
   opponentFormation: 'squad_opponent_formation',
@@ -89,6 +92,8 @@ export const storageSchemas = {
   [STORAGE_KEYS.coachNotes]: coachNotesSchema,
   [STORAGE_KEYS.weeklySchedule]: weeklyScheduleSchema,
   [STORAGE_KEYS.weeklyScheduleHistory]: weeklyScheduleSchema,
+  [STORAGE_KEYS.weeklyScheduleCadence]: stringSchema,
+  [STORAGE_KEYS.trainingSessionMeta]: trainingSessionMetaMapSchema,
   [STORAGE_KEYS.matchFormat]: matchFormatSchema,
   [STORAGE_KEYS.formation]: stringSchema,
   [STORAGE_KEYS.opponentFormation]: stringSchema,
@@ -150,6 +155,8 @@ const STORAGE_SECTIONS: Record<string, string> = {
   [STORAGE_KEYS.coachNotes]: 'Coach notes',
   [STORAGE_KEYS.weeklySchedule]: 'Weekly training',
   [STORAGE_KEYS.weeklyScheduleHistory]: 'Training history',
+  [STORAGE_KEYS.weeklyScheduleCadence]: 'Training schedule cadence',
+  [STORAGE_KEYS.trainingSessionMeta]: 'Training session notes',
   [STORAGE_KEYS.matchFormat]: 'Tactics match format',
   [STORAGE_KEYS.formation]: 'Tactics formation',
   [STORAGE_KEYS.opponentFormation]: 'Opponent formation',
@@ -190,6 +197,7 @@ const STRING_STORAGE_KEYS = new Set<string>([
   STORAGE_KEYS.customMentality,
   STORAGE_KEYS.customStrategyNotes,
   STORAGE_KEYS.coachLevel,
+  STORAGE_KEYS.weeklyScheduleCadence,
   STORAGE_KEYS.captainId,
   STORAGE_KEYS.penaltyTakerId,
   STORAGE_KEYS.freeKickTakerId,

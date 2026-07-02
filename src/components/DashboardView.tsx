@@ -1,7 +1,8 @@
 import React, { type ReactNode, useEffect, useMemo, useState } from 'react';
+import { z } from 'zod';
 import { AssessmentSession, Game, Player, Standing, Announcement, TeamInfo } from '../types';
 import {findUserStanding, sortStandings} from '../standings';
-import { Calendar, MapPin, Trophy, Shield, Megaphone, Star, Award, Zap, ArrowRight, CornerRightDown, TrendingUp, Edit, Upload, Link, Check, X, Image, Crown, Target, Flame, AlertCircle, Table, Users, ClipboardList, CloudSun, CloudRain, Wind, MoreHorizontal, Clock, Route } from 'lucide-react';
+import { Calendar, MapPin, Trophy, Shield, Megaphone, Star, Award, Zap, ArrowRight, CornerRightDown, TrendingUp, Edit, Upload, Link, Check, X, Image, Crown, Target, Flame, AlertCircle, Table, Users, ClipboardList, CloudSun, CloudRain, Wind, MoreHorizontal, Clock, Route, Package } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
 import { Badge } from './ui/badge';
@@ -12,6 +13,8 @@ import {
   matchFormatSchema,
   strategyContextSchema,
   stringSchema,
+  trainingSessionMetaMapSchema,
+  weeklyScheduleSchema,
   tacticsLineupSchema
 } from '../persistence/schemas';
 import {
@@ -35,6 +38,16 @@ import {
   STRATEGY_CONTEXT_LABELS,
   type StrategyContext
 } from '../tactics/strategyContext';
+import {
+  DAYS_OF_WEEK,
+  buildTrainingSessionSummary,
+  getWeekDaysMap,
+  getWeekStartDate,
+  toDateKey,
+  type DayName,
+  type TrainingSessionSummary,
+  type WeeklySchedule
+} from '../training/synchronization';
 import {
   DARK_GLASS_CLASSES,
   DARK_GLASS_DASHBOARD_SURFACE_STYLE,
@@ -557,6 +570,51 @@ const STRATEGY_SNAPSHOT_STORAGE_KEYS = new Set<string>([
   STORAGE_KEYS.lineup
 ]);
 
+const weeklyScheduleWeeksSchema = z.record(z.string(), weeklyScheduleSchema);
+
+const emptyWeeklySchedule = (): WeeklySchedule => ({
+  Monday: [],
+  Tuesday: [],
+  Wednesday: [],
+  Thursday: [],
+  Friday: [],
+  Saturday: [],
+  Sunday: []
+});
+
+const readDashboardTrainingSchedule = (weekKey: string, currentWeekKey: string): WeeklySchedule => {
+  const scheduleWeeks = readJsonStorage(STORAGE_KEYS.weeklyScheduleWeeks, weeklyScheduleWeeksSchema, {}, 'Weekly training weeks');
+  if (scheduleWeeks[weekKey]) return scheduleWeeks[weekKey];
+  if (weekKey === currentWeekKey) {
+    return readJsonStorage(STORAGE_KEYS.weeklySchedule, weeklyScheduleSchema, emptyWeeklySchedule(), 'Weekly training');
+  }
+  return emptyWeeklySchedule();
+};
+
+const selectWeeklyTrainingSummaries = (today = new Date()): TrainingSessionSummary[] => {
+  const weekStart = getWeekStartDate(today);
+  const weekKey = toDateKey(weekStart);
+  const weekDaysMap = getWeekDaysMap(weekStart);
+  const schedule = readDashboardTrainingSchedule(weekKey, weekKey);
+  const metaMap = readJsonStorage(STORAGE_KEYS.trainingSessionMeta, trainingSessionMetaMapSchema, {}, 'Training session notes');
+  const weekMeta = metaMap[weekKey] ?? {};
+
+  return DAYS_OF_WEEK
+    .map(day => buildTrainingSessionSummary({
+      day,
+      dateStr: weekDaysMap[day].dateStr,
+      drills: schedule[day],
+      meta: weekMeta[day]
+    }))
+    .filter(summary => summary.drills.length > 0);
+};
+
+const getWeekEndDateKey = (date: Date) => {
+  const end = getWeekStartDate(date);
+  end.setDate(end.getDate() + 6);
+  return toDateKey(end);
+};
+
 interface DashboardViewProps {
   homeWorkspaceHeader?: ReactNode;
   teamInfo: TeamInfo;
@@ -569,6 +627,7 @@ interface DashboardViewProps {
     primary: 'home' | 'squad' | 'tactics' | 'development' | 'league_updates';
     homeTab?: 'overview' | 'bulletins' | 'game_week';
     developmentTab?: 'assessments' | 'training' | 'assessment_guide';
+    trainingDay?: DayName;
     leagueUpdatesTab?: 'league' | 'updates';
   }) => void;
   onSelectPlayer: (player: Player) => void;
@@ -612,6 +671,8 @@ export default function DashboardView({
   const [showWeatherSettings, setShowWeatherSettings] = useState(() => !savedWeatherLocation);
   const [weatherLocationSuggestions, setWeatherLocationSuggestions] = useState<WeatherLocationSuggestion[]>([]);
   const [weatherLocationSearchStatus, setWeatherLocationSearchStatus] = useState<'idle' | 'loading' | 'ready' | 'error'>('idle');
+  const [dailyPrepPanel, setDailyPrepPanel] = useState<'training' | 'match'>('match');
+  const [trainingStorageRefreshKey, setTrainingStorageRefreshKey] = useState(0);
 
   const presetLogos = [
     { key: 'shield', label: 'Classic Shield', icon: Shield },
@@ -767,6 +828,49 @@ export default function DashboardView({
   };
   
   const nextMatch = useMemo(() => selectMatchDayPrepEvent(games), [games]);
+  const todayDateKey = useMemo(() => toDateKey(new Date()), []);
+  const currentWeekEndKey = useMemo(() => getWeekEndDateKey(new Date()), []);
+  const weeklyTrainingSummaries = useMemo(
+    () => selectWeeklyTrainingSummaries(new Date()),
+    [games, trainingStorageRefreshKey]
+  );
+  const todayTrainingSummary = weeklyTrainingSummaries.find(summary => summary.dateStr === todayDateKey);
+  const nextTrainingSummary = weeklyTrainingSummaries.find(summary => summary.dateStr >= todayDateKey);
+  const dashboardTrainingSummary = todayTrainingSummary ?? nextTrainingSummary;
+  const dashboardTrainingDay = dashboardTrainingSummary?.day ?? null;
+  const weekMatchPrepEvent = useMemo(() => (
+    games
+      .filter(game => game.status === 'Upcoming' && game.type !== 'Training' && game.date >= todayDateKey && game.date <= currentWeekEndKey)
+      .sort((a, b) => getCalendarEventStartMs(a) - getCalendarEventStartMs(b))[0]
+  ), [currentWeekEndKey, games, todayDateKey]);
+  const showDailyPrepSwitcher = Boolean(todayTrainingSummary && weekMatchPrepEvent);
+  const activeDailyPrepPanel = dashboardTrainingSummary && (dailyPrepPanel === 'training' || !nextMatch)
+    ? 'training'
+    : 'match';
+
+  useEffect(() => {
+    setDailyPrepPanel(todayTrainingSummary ? 'training' : 'match');
+  }, [todayTrainingSummary?.dateStr]);
+
+  useEffect(() => {
+    const refreshTrainingStorage = () => setTrainingStorageRefreshKey(key => key + 1);
+    const handleStorageChange = (event: StorageEvent) => {
+      if (
+        event.key === STORAGE_KEYS.weeklySchedule
+        || event.key === STORAGE_KEYS.weeklyScheduleWeeks
+        || event.key === STORAGE_KEYS.trainingSessionMeta
+      ) {
+        refreshTrainingStorage();
+      }
+    };
+
+    window.addEventListener('focus', refreshTrainingStorage);
+    window.addEventListener('storage', handleStorageChange);
+    return () => {
+      window.removeEventListener('focus', refreshTrainingStorage);
+      window.removeEventListener('storage', handleStorageChange);
+    };
+  }, []);
   const weatherLocationQuery = useMemo(() => {
     const candidates = [
       savedWeatherPlace?.label ?? savedWeatherLocation,
@@ -1457,24 +1561,113 @@ export default function DashboardView({
       {/* Grid: Next Clash Spotlight & Latest Announcement notices */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         
-        {/* Match Day Prep (Left col 7) */}
+        {/* Daily Prep (Left col 7) */}
         <div className={`order-1 lg:col-span-7 flex flex-col justify-between ${dashboardCardClass}`}>
           <div>
             <div className={`${dashboardHeaderClass} flex items-start justify-between gap-3`}>
               <div>
                 <h3 className={dashboardSectionTitleClass}>
-                  <Calendar size={18} className="text-orange-300" aria-hidden="true" /> Match Day Prep
+                  <Calendar size={18} className={activeDailyPrepPanel === 'training' ? 'text-emerald-300' : 'text-orange-300'} aria-hidden="true" />
+                  {activeDailyPrepPanel === 'training' ? (todayTrainingSummary ? "Today's Training" : 'Next Training') : 'Match Day Prep'}
                 </h3>
                 <p className={dashboardSectionDescriptionClass}>
-                  Next event details, location, and coach directives.
+                  {activeDailyPrepPanel === 'training'
+                    ? 'Daily session agenda, key drills, equipment, and coach cues.'
+                    : 'Next event details, location, and coach directives.'}
                 </p>
               </div>
-              <Badge variant={nextMatch ? 'info' : 'outline'} className={`shrink-0 ${dashboardBadgeClass}`}>
-                {nextMatch ? (nextMatch.type === 'Training' ? 'Practice' : nextMatch.type === 'Meeting' ? 'Meeting' : 'Matchday') : 'Spotlight'}
-              </Badge>
+              <div className="flex shrink-0 items-center gap-2">
+                {showDailyPrepSwitcher && (
+                  <div className="flex rounded-full border border-slate-500/15 bg-[#07111f]/80 p-1">
+                    {[
+                      { id: 'training' as const, label: 'Training' },
+                      { id: 'match' as const, label: 'Match Prep' }
+                    ].map(option => (
+                      <button
+                        key={option.id}
+                        type="button"
+                        onClick={() => setDailyPrepPanel(option.id)}
+                        className={`rounded-full px-2.5 py-1 text-[10px] font-black transition-colors ${
+                          dailyPrepPanel === option.id
+                            ? option.id === 'training'
+                              ? 'bg-emerald-300 text-slate-950'
+                              : 'bg-orange-300 text-slate-950'
+                            : 'text-slate-400 hover:text-slate-100'
+                        }`}
+                      >
+                        {option.label}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
 
-            {nextMatch ? (
+            {activeDailyPrepPanel === 'training' && dashboardTrainingSummary ? (
+              <div className="mt-4 space-y-3">
+                <div className="rounded-xl border border-emerald-300/15 bg-[#0b1726]/72 p-3 shadow-sm shadow-black/15">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="rounded-full border border-emerald-300/20 bg-emerald-300/10 px-2 py-0.5 text-[9px] font-black uppercase text-emerald-100">
+                          {todayTrainingSummary ? 'Today' : dashboardTrainingSummary.day}
+                        </span>
+                        <span className="rounded-full border border-slate-500/15 bg-white/[0.035] px-2 py-0.5 text-[9px] font-black uppercase text-slate-300">
+                          {dashboardTrainingSummary.status === 'in_progress' ? 'In progress' : dashboardTrainingSummary.status}
+                        </span>
+                        <span className="text-[10px] font-bold uppercase tracking-wide text-slate-500">{dashboardTrainingSummary.dateStr}</span>
+                      </div>
+                      <div className="mt-1">
+                        <h4 className="truncate font-display text-xl font-black tracking-tight text-white">
+                          {dashboardTrainingSummary.day} Session
+                        </h4>
+                        <p className="hidden">
+                          {dashboardTrainingSummary.drills.length} drills · {dashboardTrainingSummary.duration} min · {dashboardTrainingSummary.loadPoints} load points
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 gap-2 md:grid-cols-[minmax(0,1fr)_15rem]">
+                  <div className="rounded-xl border border-emerald-300/12 bg-emerald-300/8 p-3">
+                    <span className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider text-emerald-100">
+                      <ClipboardList size={13} aria-hidden="true" /> Key drills
+                    </span>
+                    <div className="mt-2 space-y-1.5">
+                      {dashboardTrainingSummary.keyDrills.map(drill => (
+                        <div key={drill.id} className="flex items-center justify-between gap-3 rounded-md border border-white/[0.07] bg-white/[0.035] px-2.5 py-1.5">
+                          <span className="min-w-0 truncate text-[11px] font-bold text-slate-100">{drill.name}</span>
+                          <span className="shrink-0 text-[8px] font-black uppercase text-emerald-100">{drill.durationMinutes ?? 10} min</span>
+                        </div>
+                      ))}
+                      {dashboardTrainingSummary.overflowCount > 0 && (
+                        <p className="text-[10px] font-bold text-slate-400">+{dashboardTrainingSummary.overflowCount} more drills in the session builder</p>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="grid gap-2">
+                    <div className="rounded-xl border border-violet-300/12 bg-violet-300/8 p-3">
+                      <span className="flex items-center gap-1.5 text-[9px] font-black uppercase tracking-wider text-violet-100">
+                        <Package size={12} aria-hidden="true" /> Equipment
+                      </span>
+                      <p className="mt-1 line-clamp-2 text-[11px] font-semibold leading-relaxed text-slate-300">
+                        {dashboardTrainingSummary.equipment.slice(0, 4).join(', ') || 'No equipment listed.'}
+                      </p>
+                    </div>
+                    <div className="rounded-xl border border-amber-300/12 bg-amber-300/8 p-3">
+                      <span className="flex items-center gap-1.5 text-[9px] font-black uppercase tracking-wider text-amber-100">
+                        <Megaphone size={12} aria-hidden="true" /> Cues
+                      </span>
+                      <p className="mt-1 line-clamp-2 text-[11px] font-semibold leading-relaxed text-slate-300">
+                        {dashboardTrainingSummary.coachCues.slice(0, 1).join(' | ') || dashboardTrainingSummary.warnings[0] || 'Add cues inside the session builder.'}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ) : nextMatch ? (
               <div className="mt-5 space-y-4">
                 <div className="rounded-2xl border border-orange-300/20 bg-[linear-gradient(135deg,rgba(249,115,22,0.18),rgba(14,165,233,0.12)_48%,rgba(11,23,38,0.78))] p-4 shadow-lg shadow-black/20">
                   <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
@@ -1558,9 +1751,12 @@ export default function DashboardView({
               </div>
             ) : (
               <div className="flex flex-col items-center justify-center space-y-3 py-12 text-center text-sm text-muted-foreground">
-                <span>✨ No upcoming matches scheduled at this time.</span>
+                <span>No training or match prep scheduled for this week.</span>
+                <span className="cursor-pointer text-emerald-200 hover:text-emerald-100 hover:underline" onClick={() => onNavigate({ primary: 'development', developmentTab: 'training' })}>
+                  Plan training week
+                </span>
                 <span className="cursor-pointer text-orange-200 hover:text-orange-100 hover:underline" onClick={() => onNavigate({ primary: 'home', homeTab: 'game_week' })}>
-                  Add games inside the Schedule builder →
+                  Add games
                 </span>
               </div>
             )}
@@ -1568,16 +1764,28 @@ export default function DashboardView({
 
           <div className={`mt-5 flex flex-col gap-3 border-t pt-4 text-sm sm:flex-row sm:items-center sm:justify-between ${dashboardDividerBorderClass}`}>
             <span className="inline-flex items-center gap-2 font-medium text-muted-foreground">
-              <Route size={14} className="text-cyan-200" aria-hidden="true" />
-              Coordinate calendar, venue, and squad readiness
+              <Route size={14} className={activeDailyPrepPanel === 'training' ? 'text-emerald-200' : 'text-cyan-200'} aria-hidden="true" />
+              {activeDailyPrepPanel === 'training'
+                ? 'Run the daily session from the structured training sheet'
+                : 'Coordinate calendar, venue, and squad readiness'}
             </span>
             <Button
               id="dash-go-schedule"
               type="button"
-              onClick={() => onNavigate({ primary: 'home', homeTab: 'game_week' })}
-              className="h-9 rounded-xl bg-orange-400 px-3 text-xs font-black text-slate-950 shadow-lg shadow-orange-950/20 hover:bg-orange-300"
+              onClick={() => {
+                if (activeDailyPrepPanel === 'training' && dashboardTrainingDay) {
+                  onNavigate({ primary: 'development', developmentTab: 'training', trainingDay: dashboardTrainingDay });
+                  return;
+                }
+                onNavigate({ primary: 'home', homeTab: 'game_week' });
+              }}
+              className={`h-9 rounded-xl px-3 text-xs font-black text-slate-950 shadow-lg ${
+                activeDailyPrepPanel === 'training'
+                  ? 'bg-emerald-300 shadow-emerald-950/20 hover:bg-emerald-200'
+                  : 'bg-orange-300 shadow-orange-950/20 hover:bg-orange-200'
+              }`}
             >
-              Open Game Week <ArrowRight size={13} />
+              {activeDailyPrepPanel === 'training' ? 'Open Session' : 'Open Game Week'} <ArrowRight size={13} />
             </Button>
           </div>
         </div>

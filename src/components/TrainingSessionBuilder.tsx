@@ -1,10 +1,11 @@
 import React from 'react';
-import { ArrowDown, ArrowUp, CheckCircle, Clock, Copy, Gauge, Package, Plus, Sparkles, Trash2, X } from 'lucide-react';
-import type { TrainingDrill } from '../training/drillLibrary';
-import { getDrillEquipment, inferDrillSessionBlock } from '../training/drillLibrary';
+import { ArrowDown, ArrowUp, CheckCircle, Clock, Copy, Gauge, Info, Package, Plus, Sparkles, Trash2, X } from 'lucide-react';
+import type { DrillInstruction, TrainingDrill } from '../training/drillLibrary';
+import { DRILL_INSTRUCTIONS, getDrillEquipment, inferDrillSessionBlock } from '../training/drillLibrary';
 import {
   SESSION_BLOCKS,
   SESSION_LOAD_THRESHOLDS,
+  buildTrainingSessionSummary,
   getOrderedSessionDrills,
   getScheduledDrillBlock,
   getScheduledDrillDuration,
@@ -13,7 +14,8 @@ import {
   getSessionLoadPoints,
   type DayName,
   type ScheduledDrill,
-  type SessionBlockId
+  type SessionBlockId,
+  type TrainingSessionMeta
 } from '../training/synchronization';
 import { Button } from './ui/button';
 import { getDrillIcon } from './TrainingDrillCard';
@@ -33,7 +35,9 @@ interface TrainingSessionBuilderProps {
   day: DayName;
   drills: ScheduledDrill[];
   library: readonly TrainingDrill[];
+  meta?: TrainingSessionMeta;
   onChange: (drills: ScheduledDrill[]) => void;
+  onMetaChange?: (meta: TrainingSessionMeta) => void;
   onClose: () => void;
 }
 
@@ -184,7 +188,9 @@ export default function TrainingSessionBuilder({
   day,
   drills,
   library,
+  meta,
   onChange,
+  onMetaChange,
   onClose
 }: TrainingSessionBuilderProps) {
   const [suggestionVariant, setSuggestionVariant] = React.useState(0);
@@ -192,6 +198,7 @@ export default function TrainingSessionBuilder({
   const duration = getSessionDuration(drills);
   const loadPoints = getSessionLoadPoints(drills);
   const equipment = uniqueEquipment(drills);
+  const sessionSummary = buildTrainingSessionSummary({ day, dateStr: '', drills, meta });
   const hasWarmup = drills.some(drill => getScheduledDrillBlock(drill) === 'warmup');
   const hasCooldown = drills.some(drill => getScheduledDrillBlock(drill) === 'cooldown');
   const blockDurations = SESSION_BLOCKS.map(block => ({
@@ -204,6 +211,8 @@ export default function TrainingSessionBuilder({
     duration > 120 ? 'This session is longer than two hours.' : null
   ].filter((warning): warning is string => Boolean(warning));
   const readiness = getReadinessStyle(loadPoints, warnings.length, drills.length);
+  const sessionStatus = meta?.status ?? 'planned';
+  const reflection = meta?.reflection ?? '';
 
   const addDrill = (block: SessionBlockId, drillId: string) => {
     const source = library.find(drill => drill.id === drillId);
@@ -250,6 +259,18 @@ export default function TrainingSessionBuilder({
     onChange(drills.map(drill => drill.id === id ? { ...drill, ...patch } : drill));
   };
 
+  const updateDrillStatus = (drill: ScheduledDrill, status: NonNullable<ScheduledDrill['status']>) => {
+    updateDrill(drill.id, {
+      status,
+      completedAt: status === 'done' ? new Date().toISOString() : undefined,
+      skipReason: status === 'skipped' ? drill.skipReason ?? '' : undefined
+    });
+  };
+
+  const updateMeta = (patch: TrainingSessionMeta) => {
+    onMetaChange?.({ ...meta, ...patch });
+  };
+
   const moveWithinBlock = (id: string, direction: -1 | 1) => {
     const current = drills.find(drill => drill.id === id);
     if (!current) return;
@@ -278,6 +299,19 @@ export default function TrainingSessionBuilder({
           <p className="mt-1 text-[11px] text-slate-400">Build the session in delivery order. Changes save automatically.</p>
         </div>
         <div className="flex items-center gap-1.5">
+          <select
+            value={sessionStatus}
+            onChange={(event) => updateMeta({
+              status: event.target.value as TrainingSessionMeta['status'],
+              completedAt: event.target.value === 'completed' ? new Date().toISOString() : meta?.completedAt
+            })}
+            className="h-8 rounded-full border border-emerald-300/20 bg-[#07111f] px-2 text-[9px] font-black text-emerald-100 outline-none focus:ring-2 focus:ring-emerald-300/25"
+            aria-label="Session status"
+          >
+            <option value="planned">Planned</option>
+            <option value="in_progress">In progress</option>
+            <option value="completed">Completed</option>
+          </select>
           <span className={`rounded-full border px-2.5 py-1 text-[9px] font-black ${readiness.className}`}>{readiness.label}</span>
           {drills.length > 0 && (
             <AlertDialog>
@@ -359,7 +393,9 @@ export default function TrainingSessionBuilder({
                     <div className="rounded-lg border border-dashed border-cyan-300/10 bg-white/[0.025] px-3 py-4 text-center text-[10px] text-slate-500">
                       No {block.label.toLowerCase()} drills yet.
                     </div>
-                  ) : blockDrills.map((drill, index) => (
+                  ) : blockDrills.map((drill, index) => {
+                    const instruction: DrillInstruction | undefined = DRILL_INSTRUCTIONS[drill.drillId];
+                    return (
                     <div key={drill.id} className="rounded-xl border border-cyan-300/10 bg-white/[0.045] p-3 shadow-sm shadow-black/10">
                       <div className="flex items-start gap-2.5">
                         <span className={`mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-lg border ${styles.icon}`}>
@@ -389,6 +425,18 @@ export default function TrainingSessionBuilder({
                       </div>
 
                       <div className="mt-3 grid gap-2 sm:grid-cols-3">
+                        <label className="text-[9px] font-bold text-slate-400">
+                          Drill status
+                          <select
+                            value={drill.status ?? 'planned'}
+                            onChange={(event) => updateDrillStatus(drill, event.target.value as NonNullable<ScheduledDrill['status']>)}
+                            className="mt-1 h-8 w-full rounded-lg border border-cyan-300/10 bg-[#07111f] px-2 text-[10px] font-bold text-slate-100 outline-none focus:ring-2 focus:ring-cyan-300/25"
+                          >
+                            <option value="planned">Planned</option>
+                            <option value="done">Done</option>
+                            <option value="skipped">Skipped</option>
+                          </select>
+                        </label>
                         <label className="text-[9px] font-bold text-slate-400">
                           Duration
                           <div className="relative mt-1">
@@ -426,6 +474,18 @@ export default function TrainingSessionBuilder({
                             {SESSION_BLOCKS.map(option => <option key={option.id} value={option.id}>{option.label}</option>)}
                           </select>
                         </label>
+                        {drill.status === 'skipped' && (
+                          <label className="text-[9px] font-bold text-slate-400 sm:col-span-3">
+                            Skip reason
+                            <input
+                              type="text"
+                              value={drill.skipReason ?? ''}
+                              onChange={(event) => updateDrill(drill.id, { skipReason: event.target.value })}
+                              placeholder="e.g. ran out of time, equipment unavailable"
+                              className="mt-1 h-8 w-full rounded-lg border border-amber-300/15 bg-[#07111f] px-2.5 text-[10px] text-slate-100 outline-none placeholder:text-slate-500 focus:ring-2 focus:ring-amber-300/25"
+                            />
+                          </label>
+                        )}
                         <label className="text-[9px] font-bold text-slate-400 sm:col-span-3">
                           Coach cue <span className="font-normal text-slate-400">(optional)</span>
                           <input
@@ -437,8 +497,34 @@ export default function TrainingSessionBuilder({
                           />
                         </label>
                       </div>
+
+                      {instruction && (
+                        <details className="mt-3 rounded-lg border border-indigo-300/15 bg-indigo-300/8 p-3">
+                          <summary className="flex cursor-pointer items-center gap-1.5 text-[9px] font-black uppercase tracking-wider text-indigo-100">
+                            <Info size={12} aria-hidden="true" /> How to run
+                          </summary>
+                          <div className="mt-3 grid gap-2 text-[10px] leading-relaxed text-slate-300 sm:grid-cols-2">
+                            <div>
+                              <span className="font-black uppercase text-slate-500">Setup</span>
+                              <p className="mt-1">{instruction.setup}</p>
+                            </div>
+                            <div>
+                              <span className="font-black uppercase text-slate-500">Execution</span>
+                              <p className="mt-1">{instruction.execution}</p>
+                            </div>
+                            <div>
+                              <span className="font-black uppercase text-slate-500">Equipment</span>
+                              <p className="mt-1">{instruction.equipment}</p>
+                            </div>
+                            <div>
+                              <span className="font-black uppercase text-slate-500">Sets / reps</span>
+                              <p className="mt-1">{instruction.setsReps}</p>
+                            </div>
+                          </div>
+                        </details>
+                      )}
                     </div>
-                  ))}
+                  );})}
                 </div>
               </section>
             );
@@ -466,8 +552,8 @@ export default function TrainingSessionBuilder({
             </div>
             <div className="rounded-lg border border-emerald-300/20 bg-emerald-500/10 p-2.5">
               <CheckCircle size={14} className="text-emerald-200" aria-hidden="true" />
-              <strong className="mt-1 block text-base font-black text-slate-50">{drills.length}</strong>
-              <span className="text-[8px] font-bold uppercase text-emerald-100/80">Drills</span>
+              <strong className="mt-1 block text-base font-black text-slate-50">{sessionSummary.completedCount}/{drills.length}</strong>
+              <span className="text-[8px] font-bold uppercase text-emerald-100/80">Done</span>
             </div>
           </div>
 
@@ -522,6 +608,16 @@ export default function TrainingSessionBuilder({
               )}
             </div>
           )}
+
+          <label className="mt-4 block text-[9px] font-black uppercase tracking-wider text-slate-400">
+            Session reflection
+            <textarea
+              value={reflection}
+              onChange={(event) => updateMeta({ reflection: event.target.value })}
+              placeholder="What worked, what changed, and what to repeat next session..."
+              className="mt-2 min-h-24 w-full resize-y rounded-lg border border-cyan-300/10 bg-[#07111f] px-3 py-2 text-[10px] font-medium normal-case tracking-normal text-slate-100 outline-none placeholder:text-slate-500 focus:ring-2 focus:ring-cyan-300/25"
+            />
+          </label>
 
           <Button type="button" onClick={onClose} className="mt-4 h-9 w-full border border-cyan-300/25 bg-cyan-300/15 text-cyan-50 hover:bg-cyan-300/22">
             Done

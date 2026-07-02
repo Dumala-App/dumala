@@ -2,12 +2,14 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { z } from 'zod';
 import { Player, Game, AssessmentSession } from '../types';
 import { selectLatestAssessmentForPlayer } from '../fprds/assessmentService';
-import { weeklyScheduleSchema } from '../persistence/schemas';
-import { readJsonStorage, STORAGE_KEYS, writeJsonStorage } from '../persistence/storage';
+import { trainingSessionMetaMapSchema, weeklyScheduleSchema } from '../persistence/schemas';
+import { readJsonStorage, readStringStorage, STORAGE_KEYS, writeJsonStorage, writeStringStorage } from '../persistence/storage';
 import {
   DAYS_OF_WEEK,
   SESSION_BLOCKS,
   SESSION_LOAD_THRESHOLDS,
+  buildTrainingSessionSummary,
+  getSessionEquipment,
   getWeekDaysMap,
   getOrderedSessionDrills,
   getScheduledDrillBlock,
@@ -17,6 +19,8 @@ import {
   synchronizeTrainingCalendar,
   type DayName,
   type ScheduledDrill,
+  type TrainingSessionMeta,
+  type TrainingSessionMetaMap,
   type WeeklySchedule
 } from '../training/synchronization';
 import {
@@ -54,6 +58,8 @@ interface TrainingViewProps {
   assessments: AssessmentSession[];
   games: Game[];
   onUpdateGames: (games: Game[]) => void;
+  initialBuilderDay?: DayName | null;
+  onInitialBuilderDayHandled?: () => void;
 }
 
 type WeeklyTemplateMode =
@@ -67,6 +73,15 @@ type WeeklyTemplateMode =
   | 'defender-focus'
   | 'last-week';
 
+type TrainingScheduleMode =
+  | 'mwf'
+  | 'tths'
+  | 'weekend'
+  | 'mw'
+  | 'tth'
+  | 'weekdays'
+  | 'custom';
+
 const WEEKLY_TEMPLATE_OPTIONS: Array<{ mode: WeeklyTemplateMode; label: string }> = [
   { mode: 'tactical', label: 'Tactical' },
   { mode: 'prematch', label: 'Pre-match' },
@@ -78,6 +93,22 @@ const WEEKLY_TEMPLATE_OPTIONS: Array<{ mode: WeeklyTemplateMode; label: string }
   { mode: 'defender-focus', label: 'Defenders' },
   { mode: 'last-week', label: 'Last week' }
 ];
+
+const TRAINING_SCHEDULE_OPTIONS: Array<{ mode: TrainingScheduleMode; label: string; days: DayName[] }> = [
+  { mode: 'mwf', label: 'MWF', days: ['Monday', 'Wednesday', 'Friday'] },
+  { mode: 'tths', label: 'Tue / Thu / Sat', days: ['Tuesday', 'Thursday', 'Saturday'] },
+  { mode: 'weekend', label: 'Weekend', days: ['Saturday', 'Sunday'] },
+  { mode: 'mw', label: 'Mon / Wed', days: ['Monday', 'Wednesday'] },
+  { mode: 'tth', label: 'Tue / Thu', days: ['Tuesday', 'Thursday'] },
+  { mode: 'weekdays', label: 'Mon - Fri', days: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'] },
+  { mode: 'custom', label: 'Every day', days: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'] }
+];
+
+const trainingScheduleModeSchema = z.enum(['mwf', 'tths', 'weekend', 'mw', 'tth', 'weekdays', 'custom']);
+
+const getTrainingScheduleDays = (mode: TrainingScheduleMode): DayName[] => {
+  return TRAINING_SCHEDULE_OPTIONS.find(option => option.mode === mode)?.days ?? [...DAYS_OF_WEEK];
+};
 
 const TRAINING_SELECT_CONTENT_CLASS = 'z-[90] border-cyan-300/15 bg-[#07111f] text-slate-100 shadow-2xl shadow-black/35';
 const TRAINING_SELECT_ITEM_CLASS = 'text-slate-200 focus:bg-cyan-300/12 focus:text-cyan-50 data-[state=checked]:bg-cyan-300/10 data-[state=checked]:text-cyan-50';
@@ -153,6 +184,13 @@ const DEFAULT_SCHEDULE: WeeklySchedule = {
 
 const weeklyScheduleWeeksSchema = z.record(z.string(), weeklyScheduleSchema);
 
+const readTrainingSessionMeta = () => readJsonStorage(
+  STORAGE_KEYS.trainingSessionMeta,
+  trainingSessionMetaMapSchema,
+  {},
+  'Training session notes'
+);
+
 const DRILL_FILTER_GROUPS = [
   {
     label: 'Training type',
@@ -216,6 +254,15 @@ const createEmptyWeeklySchedule = (): WeeklySchedule => ({
   Saturday: [],
   Sunday: []
 });
+
+const filterScheduleToTrainingDays = (schedule: WeeklySchedule, trainingDays: DayName[]): WeeklySchedule => {
+  const activeDays = new Set(trainingDays);
+  const next = createEmptyWeeklySchedule();
+  DAYS_OF_WEEK.forEach(day => {
+    next[day] = activeDays.has(day) ? schedule[day] : [];
+  });
+  return next;
+};
 
 const normalizeWeeklySchedule = (schedule: WeeklySchedule): WeeklySchedule => {
   const normalized = createEmptyWeeklySchedule();
@@ -322,19 +369,39 @@ const createScheduledDrill = (
   };
 };
 
-export default function TrainingView({ players, assessments, games, onUpdateGames }: TrainingViewProps) {
+export default function TrainingView({
+  players,
+  assessments,
+  games,
+  onUpdateGames,
+  initialBuilderDay,
+  onInitialBuilderDayHandled
+}: TrainingViewProps) {
   const [selectedDrillId, setSelectedDrillId] = useState<string>(TRAINING_DRILLS[0].id);
   const [builderDay, setBuilderDay] = useState<DayName | null>(null);
+  const [selectedTemplateMode, setSelectedTemplateMode] = useState<WeeklyTemplateMode | ''>('');
+  const [trainingScheduleMode, setTrainingScheduleMode] = useState<TrainingScheduleMode>(() =>
+    readStringStorage(
+      STORAGE_KEYS.weeklyScheduleCadence,
+      trainingScheduleModeSchema,
+      'weekdays',
+      'Training schedule cadence'
+    )
+  );
+  const [activeTrainingDays, setActiveTrainingDays] = useState<DayName[]>(() => getTrainingScheduleDays(trainingScheduleMode));
   const currentWeekKey = useMemo(() => toDateKey(getWeekStartDate(new Date())), []);
   const [selectedWeekStart, setSelectedWeekStart] = useState<Date>(() => getWeekStartDate(new Date()));
   const selectedWeekKey = useMemo(() => toDateKey(selectedWeekStart), [selectedWeekStart]);
   const [weeklySchedule, setWeeklySchedule] = useState<WeeklySchedule>(() => {
     return readScheduleForWeek(currentWeekKey, currentWeekKey);
   });
+  const [trainingSessionMeta, setTrainingSessionMeta] = useState<TrainingSessionMetaMap>(() => readTrainingSessionMeta());
 
   const weekDaysMap = useMemo(() => getWeekDaysMap(selectedWeekStart), [selectedWeekStart]);
   const weekRangeLabel = useMemo(() => getWeekRangeLabel(selectedWeekStart), [selectedWeekStart]);
   const isCurrentWeek = selectedWeekKey === currentWeekKey;
+  const activeTrainingDaySet = useMemo(() => new Set(activeTrainingDays), [activeTrainingDays]);
+  const selectedWeekSessionMeta = trainingSessionMeta[selectedWeekKey] ?? {};
 
   useEffect(() => {
     // Archive current week as history before overwriting
@@ -343,6 +410,21 @@ export default function TrainingView({ players, assessments, games, onUpdateGame
     writeScheduleForWeek(selectedWeekKey, weeklySchedule);
     writeJsonStorage(STORAGE_KEYS.weeklySchedule, weeklySchedule);
   }, [selectedWeekKey, weeklySchedule]);
+
+  useEffect(() => {
+    writeJsonStorage(STORAGE_KEYS.trainingSessionMeta, trainingSessionMeta);
+  }, [trainingSessionMeta]);
+
+  useEffect(() => {
+    if (!initialBuilderDay) return;
+    if (selectedWeekKey !== currentWeekKey) {
+      const currentStart = getWeekStartDate(new Date());
+      setSelectedWeekStart(currentStart);
+      setWeeklySchedule(readScheduleForWeek(currentWeekKey, currentWeekKey));
+    }
+    setBuilderDay(initialBuilderDay);
+    onInitialBuilderDayHandled?.();
+  }, [currentWeekKey, initialBuilderDay, onInitialBuilderDayHandled, selectedWeekKey]);
 
   // Synchronize Weekly Training to Calendar Games
   useEffect(() => {
@@ -417,7 +499,30 @@ export default function TrainingView({ players, assessments, games, onUpdateGame
     });
   };
 
+  const handleTrainingScheduleChange = (mode: TrainingScheduleMode) => {
+    const option = TRAINING_SCHEDULE_OPTIONS.find(item => item.mode === mode);
+    if (!option) return;
+    setTrainingScheduleMode(mode);
+    setActiveTrainingDays(option.days);
+    writeStringStorage(STORAGE_KEYS.weeklyScheduleCadence, mode);
+    if (builderDay && !option.days.includes(builderDay)) {
+      setBuilderDay(null);
+    }
+    setWeeklySchedule(prev => normalizeWeeklySchedule(filterScheduleToTrainingDays(prev, option.days)));
+  };
+
+  const handleUpdateSessionMeta = (day: DayName, meta: TrainingSessionMeta) => {
+    setTrainingSessionMeta(current => ({
+      ...current,
+      [selectedWeekKey]: {
+        ...(current[selectedWeekKey] ?? {}),
+        [day]: meta
+      }
+    }));
+  };
+
   const handleLoadTemplate = (mode: WeeklyTemplateMode) => {
+    setSelectedTemplateMode(mode);
     if (mode === 'last-week') {
       const prev = readJsonStorage(STORAGE_KEYS.weeklyScheduleHistory, weeklyScheduleSchema.nullable(), null, 'Training history');
       if (!prev) return;
@@ -428,14 +533,14 @@ export default function TrainingView({ players, assessments, games, onUpdateGame
           id: `lw-${day}-${Date.now()}-${index}`
         }));
       });
-      setWeeklySchedule(normalizeWeeklySchedule(restored));
+      setWeeklySchedule(normalizeWeeklySchedule(filterScheduleToTrainingDays(restored, activeTrainingDays)));
       return;
     }
 
     const fillDays = (template: Partial<Record<DayName, Array<{ id: string; drillId: string; name: string; fatigueIncrease: number }>>>) => {
       const base: WeeklySchedule = { Monday:[], Tuesday:[], Wednesday:[], Thursday:[], Friday:[], Saturday:[], Sunday:[] };
       DAYS_OF_WEEK.forEach(day => { if (template[day]) base[day] = template[day]; });
-      return normalizeWeeklySchedule(base);
+      return normalizeWeeklySchedule(filterScheduleToTrainingDays(base, activeTrainingDays));
     };
 
     if (mode === 'heavy') {
@@ -856,32 +961,51 @@ export default function TrainingView({ players, assessments, games, onUpdateGame
           </div>
 
           {/* Controls */}
-          <div className="rounded-xl border border-cyan-300/10 bg-[#0b1726]/72 px-3 py-2 shadow-inner shadow-black/10">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="mr-1 shrink-0 text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-500">Presets</span>
-              <div className="flex min-w-0 flex-1 flex-wrap gap-1.5">
-                {WEEKLY_TEMPLATE_OPTIONS.map((option) => (
-                  <Button
-                    key={option.mode}
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleLoadTemplate(option.mode)}
-                    className="h-7 rounded-lg border-cyan-300/10 bg-white/[0.035] px-2.5 text-[10px] font-semibold text-slate-300 shadow-sm shadow-black/10 hover:border-cyan-300/25 hover:bg-cyan-300/10 hover:text-cyan-50"
-                  >
-                    {option.label}
-                  </Button>
-                ))}
+          <div className="rounded-xl border border-cyan-300/10 bg-[#0b1726]/72 p-2 shadow-inner shadow-black/10">
+            <div className="grid gap-2 sm:grid-cols-2">
+              <div className="min-w-0 rounded-lg border border-cyan-300/10 bg-white/[0.025] p-2">
+                <span className="mb-1.5 block text-[9px] font-semibold uppercase tracking-[0.18em] text-slate-500">Presets</span>
+                <Select
+                  value={selectedTemplateMode}
+                  onValueChange={(value) => handleLoadTemplate(value as WeeklyTemplateMode)}
+                >
+                  <SelectTrigger className="h-8 rounded-lg border-cyan-300/10 bg-[#07111f]/80 px-2 text-[10px] font-semibold text-slate-200 shadow-sm shadow-black/10 focus:ring-cyan-300/20">
+                    <SelectValue placeholder="Choose plan" />
+                  </SelectTrigger>
+                  <SelectContent className={TRAINING_SELECT_CONTENT_CLASS}>
+                    <SelectGroup>
+                      <SelectLabel className={TRAINING_SELECT_LABEL_CLASS}>Weekly presets</SelectLabel>
+                      {WEEKLY_TEMPLATE_OPTIONS.map((option) => (
+                        <SelectItem key={option.mode} value={option.mode} className={TRAINING_SELECT_ITEM_CLASS}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
               </div>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={handleClearAllWeekly}
-                className="ml-auto h-7 shrink-0 rounded-lg border-slate-500/20 bg-white/[0.035] px-3 text-[10px] font-semibold text-slate-300 hover:border-slate-300/25 hover:bg-white/[0.07] hover:text-white"
-              >
-                Reset
-              </Button>
+
+              <div className="min-w-0 rounded-lg border border-cyan-300/10 bg-white/[0.025] p-2">
+                <span className="mb-1.5 block text-[9px] font-semibold uppercase tracking-[0.18em] text-slate-500">Usual schedule</span>
+                <Select
+                  value={trainingScheduleMode}
+                  onValueChange={(value) => handleTrainingScheduleChange(value as TrainingScheduleMode)}
+                >
+                  <SelectTrigger className="h-8 rounded-lg border-cyan-300/10 bg-[#07111f]/80 px-2 text-[10px] font-semibold text-slate-200 shadow-sm shadow-black/10 focus:ring-cyan-300/20">
+                    <SelectValue placeholder="Training days" />
+                  </SelectTrigger>
+                  <SelectContent className={TRAINING_SELECT_CONTENT_CLASS}>
+                    <SelectGroup>
+                      <SelectLabel className={TRAINING_SELECT_LABEL_CLASS}>Training cadence</SelectLabel>
+                      {TRAINING_SCHEDULE_OPTIONS.map((option) => (
+                        <SelectItem key={option.mode} value={option.mode} className={TRAINING_SELECT_ITEM_CLASS}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           </div>
         </div>
@@ -923,8 +1047,19 @@ export default function TrainingView({ players, assessments, games, onUpdateGame
           </div>
 
           {/* Mini Chart of weekly Load Curve */}
-          <div className="md:col-span-3 flex flex-col justify-end h-36">
-            <div className="flex items-end justify-between h-full px-2 mt-4">
+          <div className="md:col-span-3 flex h-36 flex-col">
+            <div className="flex items-center justify-end">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handleClearAllWeekly}
+                className="h-7 shrink-0 rounded-lg border-slate-500/20 bg-white/[0.035] px-3 text-[10px] font-semibold text-slate-300 hover:border-slate-300/25 hover:bg-white/[0.07] hover:text-white"
+              >
+                Reset
+              </Button>
+            </div>
+            <div className="flex flex-1 items-end justify-between px-2 pt-5">
               {DAYS_OF_WEEK.map((day) => {
                 const load = getSessionLoadPoints(weeklySchedule[day]);
                 const maxPossibleLoad = 60;
@@ -1025,10 +1160,29 @@ export default function TrainingView({ players, assessments, games, onUpdateGame
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
           {DAYS_OF_WEEK.map((day) => {
             const scheduledList = getOrderedSessionDrills(weeklySchedule[day]);
+            const sessionSummary = buildTrainingSessionSummary({
+              day,
+              dateStr: weekDaysMap[day].dateStr,
+              drills: scheduledList,
+              meta: selectedWeekSessionMeta[day]
+            });
             const totalLoad = getSessionLoadPoints(scheduledList);
             const totalDuration = getSessionDuration(scheduledList);
             const dateStr = weekDaysMap[day].dateStr;
             const dayMatches = games.filter(g => (g.type === 'League' || g.type === 'Cup' || g.type === 'Friendly') && g.date === dateStr);
+            const isUsualTrainingDay = activeTrainingDaySet.has(day);
+            const hasSession = scheduledList.length > 0;
+            const stateLabel = hasSession ? 'Train' : isUsualTrainingDay ? 'Planned' : 'Rest';
+            const sessionStateClass = hasSession
+              ? 'border-emerald-300/25 bg-emerald-400/12 text-emerald-100'
+              : isUsualTrainingDay
+                ? 'border-amber-300/25 bg-amber-300/12 text-amber-100'
+                : 'border-slate-500/20 bg-slate-700/20 text-slate-400';
+            const cardToneClass = hasSession
+              ? 'border-emerald-300/12 bg-[#0d1620]/82 hover:border-emerald-300/25'
+              : isUsualTrainingDay
+                ? 'border-amber-300/12 bg-[#0e1722]/78 hover:border-amber-300/25'
+                : 'border-slate-500/12 bg-[#0b1220]/66 hover:border-slate-400/20';
             
             let loadLabel = "LIGHT";
             let loadColor = "bg-emerald-500/12 text-emerald-100 border-emerald-300/25";
@@ -1066,27 +1220,42 @@ export default function TrainingView({ players, assessments, games, onUpdateGame
                   e.currentTarget.classList.remove('border-cyan-300/40', 'bg-cyan-300/10');
                   handleDropDrill(day, e);
                 }}
-                className="border border-cyan-300/10 bg-[#0b1726]/72 rounded-xl p-3 flex flex-col justify-between min-h-[220px] transition-all relative group/day hover:border-cyan-300/20 hover:bg-white/[0.035]"
+                className={`relative flex min-h-[226px] flex-col justify-between rounded-xl border p-3 shadow-sm shadow-black/15 transition-all group/day ${cardToneClass}`}
               >
                 {/* Day block top layout */}
-                <div className="space-y-2">
-                  <div className="flex justify-between items-center">
-                    <div className="flex flex-col">
-                      <span className="font-display font-black text-slate-100 text-xs uppercase tracking-wide leading-tight">{day}</span>
-                      <span className="text-[10px] text-slate-400 font-semibold font-mono tracking-tight">{weekDaysMap[day].monthDate}</span>
+                <div className="space-y-2.5">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <span className="block truncate font-display text-[13px] font-black uppercase tracking-wide text-slate-100">{day}</span>
+                      <span className="mt-0.5 block text-[10px] font-semibold text-slate-400">{weekDaysMap[day].monthDate}</span>
                     </div>
-                    <span className="text-[8px] text-slate-400 font-mono font-medium">{scheduledList.length} d</span>
+                    <div className="flex shrink-0 flex-col items-end gap-1">
+                      <span className={`rounded-full border px-2 py-0.5 text-[8px] font-black uppercase tracking-wide ${sessionStateClass}`}>
+                        {stateLabel}
+                      </span>
+                      {sessionSummary.status !== 'planned' && hasSession && (
+                        <span className="rounded-full border border-indigo-300/20 bg-indigo-300/10 px-1.5 py-0.5 text-[7px] font-bold uppercase text-indigo-100">
+                          {sessionSummary.status === 'in_progress' ? 'Live' : 'Done'}
+                        </span>
+                      )}
+                    </div>
                   </div>
 
                   {/* Load indicator tag */}
-                  <div className={`p-1 rounded text-[8px] font-mono font-bold border flex items-center justify-center gap-1 leading-none ${loadColor}`}>
-                    <span className={`w-1 h-1 rounded-full ${loadDot}`}></span>
-                    <span>{loadLabel} ({totalLoad} pts)</span>
+                  <div className="grid grid-cols-2 gap-1.5">
+                    <div className={`flex items-center justify-center gap-1 rounded-lg border px-1.5 py-1 text-[8px] font-mono font-bold leading-none ${loadColor}`}>
+                      <span className={`size-1 rounded-full ${loadDot}`}></span>
+                      <span>{loadLabel}</span>
+                    </div>
+                    <div className="flex items-center justify-center gap-1 rounded-lg border border-violet-300/15 bg-violet-300/8 px-1.5 py-1 text-[8px] font-mono font-bold leading-none text-violet-100">
+                      <Timer size={9} aria-hidden="true" />
+                      <span>{totalDuration} min</span>
+                    </div>
                   </div>
 
                   {/* Match badge if there's a scheduled game */}
                   {dayMatches.length > 0 && dayMatches.map(m => (
-                    <div key={m.id} className="flex items-center gap-1 rounded border border-cyan-300/10 bg-white/[0.04] p-1 text-[8px] font-semibold leading-none text-slate-300">
+                    <div key={m.id} className="flex items-center gap-1 rounded-lg border border-amber-300/20 bg-amber-300/10 p-1.5 text-[8px] font-semibold leading-none text-amber-100">
                       <Trophy size={9} />
                       <span className="truncate">{m.type === 'League' ? 'LEAGUE' : m.type === 'Cup' ? 'CUP' : 'FRIENDLY'} vs {m.opponent.substring(0, 12)}</span>
                     </div>
@@ -1095,16 +1264,20 @@ export default function TrainingView({ players, assessments, games, onUpdateGame
                   {/* Scheduled drills list */}
                   <div className="space-y-1.5 pt-1.5">
                     {scheduledList.length === 0 ? (
-                      <div className="border border-dashed border-cyan-300/10 rounded-lg p-4 text-center text-slate-500 text-[9px] flex flex-col items-center justify-center gap-1 select-none">
-                        <Hand size={14} className="text-slate-500 mx-auto" />
-                        <span className="font-sans leading-tight">Drop drills</span>
+                      <div className="flex min-h-[72px] select-none flex-col items-center justify-center gap-1.5 rounded-lg border border-dashed border-slate-500/18 bg-slate-950/18 p-3 text-center text-[9px] text-slate-500">
+                        <Hand size={14} className={isUsualTrainingDay ? 'text-amber-200/75' : 'text-slate-500'} aria-hidden="true" />
+                        <span className="font-semibold leading-tight text-slate-400">
+                          {isUsualTrainingDay ? 'Planned day, no drills yet' : 'Rest day'}
+                        </span>
+                        <span className="leading-tight text-slate-500">Drop drills here</span>
                       </div>
                     ) : (
-                      scheduledList.map((item) => (
+                      <>
+                      {sessionSummary.keyDrills.map((item) => (
                         <div 
                           id={`scheduled-item-${item.id}`}
                           key={item.id}
-                          className="flex justify-between items-center rounded-lg border border-cyan-300/10 bg-white/[0.045] p-1.5 text-[10px] transition-all hover:border-cyan-300/20 hover:bg-cyan-300/8"
+                          className="flex items-center justify-between rounded-lg border border-slate-500/14 bg-white/[0.045] p-1.5 text-[10px] transition-all hover:border-emerald-300/25 hover:bg-emerald-300/8"
                         >
                           <div className="flex min-w-0 items-center gap-1 truncate pr-1">
                             <span className="text-slate-400 shrink-0">{getDrillIcon(item.drillId)}</span>
@@ -1128,22 +1301,57 @@ export default function TrainingView({ players, assessments, games, onUpdateGame
                             <X size={10} aria-hidden="true" />
                           </Button>
                         </div>
-                      ))
+                      ))}
+                      {sessionSummary.overflowCount > 0 && (
+                        <div className="rounded-lg border border-slate-500/12 bg-slate-950/18 px-2 py-1 text-center text-[8px] font-bold uppercase text-slate-400">
+                          +{sessionSummary.overflowCount} more drills in builder
+                        </div>
+                      )}
+                      </>
                     )}
                   </div>
                 </div>
                 
                 {/* Day footer helper text */}
-                <div className="mt-3 flex items-center justify-between gap-2 border-t border-cyan-300/10 pt-2">
-                  <span className="text-[8px] font-bold text-slate-400">{totalDuration} min</span>
+                <div className="mt-3 space-y-2 border-t border-slate-500/12 pt-2">
+                  <div className="flex items-center justify-between gap-2">
+                  <span className="inline-flex min-w-0 items-center gap-1 truncate text-[8px] font-bold uppercase tracking-wide text-slate-500">
+                    <Gauge size={10} aria-hidden="true" />
+                    {scheduledList.length} {scheduledList.length === 1 ? 'drill' : 'drills'} · {totalLoad} pts
+                  </span>
+                    <span className={`rounded-full border px-1.5 py-0.5 text-[7px] font-bold uppercase ${
+                      sessionSummary.readiness === 'ready'
+                        ? 'border-emerald-300/20 bg-emerald-400/10 text-emerald-100'
+                        : sessionSummary.readiness === 'high_load'
+                          ? 'border-red-300/25 bg-red-500/12 text-red-100'
+                          : sessionSummary.readiness === 'needs_structure'
+                            ? 'border-amber-300/25 bg-amber-300/12 text-amber-100'
+                            : 'border-slate-500/15 bg-white/[0.025] text-slate-500'
+                    }`}>
+                      {sessionSummary.readiness === 'needs_structure' ? 'Needs prep' : sessionSummary.readiness.replace('_', ' ')}
+                    </span>
+                  </div>
+                  {hasSession && (
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="min-w-0 truncate text-[8px] font-semibold text-slate-500">
+                        {getSessionEquipment(scheduledList).slice(0, 2).join(', ') || 'No equipment listed'}
+                      </span>
+                      {sessionSummary.warnings.length > 0 && (
+                        <span className="shrink-0 text-[8px] font-bold text-amber-200">{sessionSummary.warnings.length} warning</span>
+                      )}
+                    </div>
+                  )}
                   <Button
                     type="button"
                     variant="ghost"
                     size="sm"
                     onClick={() => setBuilderDay(day)}
-                    className="h-7 rounded-lg px-2 text-[9px] font-semibold text-cyan-200 hover:bg-cyan-300/10 hover:text-cyan-50"
+                    className="h-7 w-full shrink-0 rounded-lg border border-slate-500/14 bg-white/[0.035] px-2 text-[9px] font-semibold text-slate-200 hover:border-emerald-300/25 hover:bg-emerald-300/10 hover:text-emerald-50"
+                    aria-label={`Open ${day} training session`}
+                    title={`Open ${day} session`}
                   >
-                    Build session
+                    <CalendarPlus size={12} aria-hidden="true" />
+                    {hasSession ? 'Open' : 'Build'}
                   </Button>
                 </div>
               </div>
@@ -1156,7 +1364,9 @@ export default function TrainingView({ players, assessments, games, onUpdateGame
             day={builderDay}
             drills={weeklySchedule[builderDay]}
             library={TRAINING_DRILLS}
+            meta={selectedWeekSessionMeta[builderDay]}
             onChange={(drills) => setWeeklySchedule(current => ({ ...current, [builderDay]: drills }))}
+            onMetaChange={(meta) => handleUpdateSessionMeta(builderDay, meta)}
             onClose={() => setBuilderDay(null)}
           />
         )}
