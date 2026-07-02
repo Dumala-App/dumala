@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import type { Game } from '../types';
 import {
+  buildTrainingSessionSummary,
+  getDayNameForDateKey,
   getOrderedSessionDrills,
   getSessionDuration,
   getSessionLoadPoints,
@@ -173,5 +175,55 @@ describe('training calendar synchronization', () => {
     expect(result.games[0].notes).toContain('20 minutes, 10 load points');
     expect(result.games[0].notes).toContain('Equipment: cones, pinnies');
     expect(result.games[0].notes).toContain('Coach cues: Team Shape: Keep the back line compact');
+  });
+
+  it('builds a daily training summary with key drills, overflow, cues, and completion state', () => {
+    const drills = [
+      drill({
+        id: 'tactical-1',
+        name: 'Team Shape',
+        block: 'tactical',
+        order: 0,
+        durationMinutes: 20,
+        intensityRating: 5,
+        equipment: ['cones', 'pinnies'],
+        notes: 'Keep the back line compact',
+        status: 'done'
+      }),
+      drill({
+        id: 'warmup-1',
+        name: 'Dynamic Warm-up',
+        block: 'warmup',
+        order: 0,
+        durationMinutes: 10,
+        intensityRating: 2,
+        equipment: ['cones'],
+        status: 'skipped',
+        skipReason: 'Late arrival'
+      }),
+      drill({ id: 'cooldown-1', name: 'Cooldown', block: 'cooldown', order: 0, durationMinutes: 10, intensityRating: 1 }),
+      drill({ id: 'tech-1', name: 'Passing', block: 'technical', order: 0, durationMinutes: 15, intensityRating: 4 })
+    ];
+
+    const summary = buildTrainingSessionSummary({
+      day: 'Monday',
+      dateStr: '2026-06-15',
+      drills,
+      meta: { status: 'completed', reflection: 'Good tempo.' }
+    });
+
+    expect(summary.keyDrills.map(item => item.id)).toEqual(['warmup-1', 'tech-1', 'tactical-1']);
+    expect(summary.overflowCount).toBe(1);
+    expect(summary.equipment).toEqual(['cones', 'pinnies']);
+    expect(summary.coachCues).toEqual(['Team Shape: Keep the back line compact']);
+    expect(summary.completedCount).toBe(1);
+    expect(summary.skippedCount).toBe(1);
+    expect(summary.status).toBe('completed');
+    expect(summary.reflection).toBe('Good tempo.');
+  });
+
+  it('maps a date key back to the matching training week day', () => {
+    expect(getDayNameForDateKey('2026-06-17', weekDaysMap)).toBe('Wednesday');
+    expect(getDayNameForDateKey('2026-06-28', weekDaysMap)).toBeNull();
   });
 });

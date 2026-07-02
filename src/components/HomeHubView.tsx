@@ -1,5 +1,6 @@
 import React, { lazy, Suspense, type ReactNode } from 'react';
 import type { AssessmentSession, Announcement, Game, Player, Standing, TeamInfo } from '../types';
+import type { DayName } from '../training/synchronization';
 import ViewLoadingFallback from './ViewLoadingFallback';
 import { SegmentedTabs, type SegmentedTabOption } from './ui/segmented-tabs';
 
@@ -19,7 +20,7 @@ export type HubNavigateTarget =
   | { primary: 'home'; homeTab: HomeTab }
   | { primary: 'squad' }
   | { primary: 'tactics' }
-  | { primary: 'development'; developmentTab: 'assessments' | 'training' | 'assessment_guide' }
+  | { primary: 'development'; developmentTab: 'assessments' | 'training' | 'assessment_guide'; trainingDay?: DayName }
   | { primary: 'league_updates'; leagueUpdatesTab: 'league' | 'updates' };
 
 interface HomeHubViewProps {

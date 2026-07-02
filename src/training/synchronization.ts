@@ -42,9 +42,40 @@ export interface ScheduledDrill {
   intensityRating?: number;
   equipment?: string[];
   notes?: string;
+  status?: 'planned' | 'done' | 'skipped';
+  completedAt?: string;
+  skipReason?: string;
 }
 
 export type WeeklySchedule = Record<DayName, ScheduledDrill[]>;
+
+export type TrainingSessionStatus = 'planned' | 'in_progress' | 'completed';
+
+export interface TrainingSessionMeta {
+  status?: TrainingSessionStatus;
+  completedAt?: string;
+  reflection?: string;
+}
+
+export type TrainingSessionMetaMap = Record<string, Partial<Record<DayName, TrainingSessionMeta>>>;
+
+export interface TrainingSessionSummary {
+  day: DayName;
+  dateStr: string;
+  drills: ScheduledDrill[];
+  keyDrills: ScheduledDrill[];
+  overflowCount: number;
+  duration: number;
+  loadPoints: number;
+  equipment: string[];
+  coachCues: string[];
+  warnings: string[];
+  readiness: 'ready' | 'needs_structure' | 'high_load' | 'no_drills';
+  status: TrainingSessionStatus;
+  completedCount: number;
+  skippedCount: number;
+  reflection: string;
+}
 
 export const getScheduledDrillBlock = (drill: ScheduledDrill): SessionBlockId => drill.block ?? 'technical';
 
@@ -65,6 +96,15 @@ export const getSessionLoadPoints = (drills: readonly ScheduledDrill[]): number 
   drills.reduce((total, drill) => total + getScheduledDrillLoadPoints(drill), 0)
 );
 
+export const getSessionEquipment = (drills: readonly ScheduledDrill[]): string[] => {
+  const equipment = new Map<string, string>();
+  drills.flatMap(drill => drill.equipment ?? []).forEach(item => {
+    const key = item.trim().toLowerCase();
+    if (key && !equipment.has(key)) equipment.set(key, item.trim());
+  });
+  return [...equipment.values()];
+};
+
 export const getOrderedSessionDrills = (drills: readonly ScheduledDrill[]): ScheduledDrill[] => {
   const blockOrder = new Map(SESSION_BLOCKS.map((block, index) => [block.id, index]));
   return [...drills].sort((first, second) => {
@@ -75,18 +115,80 @@ export const getOrderedSessionDrills = (drills: readonly ScheduledDrill[]): Sche
   });
 };
 
+export const getTrainingSessionWarnings = (drills: readonly ScheduledDrill[]): string[] => {
+  const hasWarmup = drills.some(drill => getScheduledDrillBlock(drill) === 'warmup');
+  const hasCooldown = drills.some(drill => getScheduledDrillBlock(drill) === 'cooldown');
+  const duration = getSessionDuration(drills);
+  return [
+    drills.length > 0 && !hasWarmup ? 'Add a warm-up block before the main work.' : null,
+    drills.length > 0 && !hasCooldown ? 'Finish with a cooldown or recovery drill.' : null,
+    duration > 120 ? 'This session is longer than two hours.' : null
+  ].filter((warning): warning is string => Boolean(warning));
+};
+
+export const getTrainingSessionReadiness = (drills: readonly ScheduledDrill[]): TrainingSessionSummary['readiness'] => {
+  if (drills.length === 0) return 'no_drills';
+  if (getSessionLoadPoints(drills) >= SESSION_LOAD_THRESHOLDS.high) return 'high_load';
+  if (getTrainingSessionWarnings(drills).length > 0) return 'needs_structure';
+  return 'ready';
+};
+
+export const buildTrainingSessionSummary = ({
+  day,
+  dateStr,
+  drills,
+  meta
+}: {
+  day: DayName;
+  dateStr: string;
+  drills: readonly ScheduledDrill[];
+  meta?: TrainingSessionMeta;
+}): TrainingSessionSummary => {
+  const orderedDrills = getOrderedSessionDrills(drills);
+  const keyDrills = orderedDrills.slice(0, 3);
+  return {
+    day,
+    dateStr,
+    drills: orderedDrills,
+    keyDrills,
+    overflowCount: Math.max(0, orderedDrills.length - keyDrills.length),
+    duration: getSessionDuration(orderedDrills),
+    loadPoints: getSessionLoadPoints(orderedDrills),
+    equipment: getSessionEquipment(orderedDrills),
+    coachCues: orderedDrills.flatMap(drill => drill.notes?.trim() ? [`${drill.name}: ${drill.notes.trim()}`] : []),
+    warnings: getTrainingSessionWarnings(orderedDrills),
+    readiness: getTrainingSessionReadiness(orderedDrills),
+    status: meta?.status ?? 'planned',
+    completedCount: orderedDrills.filter(drill => drill.status === 'done').length,
+    skippedCount: orderedDrills.filter(drill => drill.status === 'skipped').length,
+    reflection: meta?.reflection ?? ''
+  };
+};
+
 export type WeekDaysMap = Record<DayName, {
   dateStr: string;
   monthDate: string;
   displayStrOrMonthDate: string;
 }>;
 
-export const getWeekDaysMap = (refDate: Date): WeekDaysMap => {
-  const day = refDate.getDay();
+export const toDateKey = (date: Date) => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+export const getWeekStartDate = (date: Date) => {
+  const day = date.getDay();
   const diff = day === 0 ? -6 : 1 - day;
-  const monday = new Date(refDate);
-  monday.setHours(12, 0, 0, 0);
-  monday.setDate(refDate.getDate() + diff);
+  const start = new Date(date);
+  start.setHours(12, 0, 0, 0);
+  start.setDate(date.getDate() + diff);
+  return start;
+};
+
+export const getWeekDaysMap = (refDate: Date): WeekDaysMap => {
+  const monday = getWeekStartDate(refDate);
 
   return DAYS_OF_WEEK.reduce<WeekDaysMap>((map, dayName, index) => {
     const date = new Date(monday);
@@ -106,6 +208,10 @@ export const getWeekDaysMap = (refDate: Date): WeekDaysMap => {
   }, {} as WeekDaysMap);
 };
 
+export const getDayNameForDateKey = (dateKey: string, weekDaysMap: WeekDaysMap): DayName | null => (
+  DAYS_OF_WEEK.find(day => weekDaysMap[day].dateStr === dateKey) ?? null
+);
+
 export const buildTrainingCalendarGames = (
   weeklySchedule: WeeklySchedule,
   weekDaysMap: WeekDaysMap
@@ -118,7 +224,7 @@ export const buildTrainingCalendarGames = (
   const drillText = orderedDrills.map(drill => `${drill.icon ?? ''} ${drill.name}`.trim()).join(' & ');
   const workLoad = getSessionLoadPoints(drills);
   const duration = getSessionDuration(drills);
-  const equipment = [...new Set(drills.flatMap(drill => drill.equipment ?? []))];
+  const equipment = getSessionEquipment(drills);
   const coachCues = orderedDrills.flatMap(drill => drill.notes?.trim() ? [`${drill.name}: ${drill.notes.trim()}`] : []);
   const developmentPlayers = [...new Set(
     drills.flatMap(drill => drill.playerName ? [drill.playerName] : [])

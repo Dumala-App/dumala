@@ -311,7 +311,10 @@ export const scheduledDrillSchema = z.object({
   durationMinutes: finiteNumber.optional(),
   intensityRating: finiteNumber.optional(),
   equipment: z.array(z.string()).optional(),
-  notes: z.string().optional()
+  notes: z.string().optional(),
+  status: z.enum(['planned', 'done', 'skipped']).optional(),
+  completedAt: z.string().optional(),
+  skipReason: z.string().optional()
 }).passthrough();
 
 export const weeklyScheduleSchema = z.object({
@@ -323,6 +326,25 @@ export const weeklyScheduleSchema = z.object({
   Saturday: z.array(scheduledDrillSchema),
   Sunday: z.array(scheduledDrillSchema)
 });
+
+export const trainingSessionMetaSchema = z.object({
+  status: z.enum(['planned', 'in_progress', 'completed']).optional(),
+  completedAt: z.string().optional(),
+  reflection: z.string().optional()
+}).passthrough();
+
+export const trainingSessionMetaMapSchema = z.record(
+  z.string(),
+  z.object({
+    Monday: trainingSessionMetaSchema.optional(),
+    Tuesday: trainingSessionMetaSchema.optional(),
+    Wednesday: trainingSessionMetaSchema.optional(),
+    Thursday: trainingSessionMetaSchema.optional(),
+    Friday: trainingSessionMetaSchema.optional(),
+    Saturday: trainingSessionMetaSchema.optional(),
+    Sunday: trainingSessionMetaSchema.optional()
+  }).passthrough()
+);
 
 export const standingsBackupSchema = z.object({
   id: z.string(),

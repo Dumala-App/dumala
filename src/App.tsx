@@ -81,6 +81,7 @@ import { findUserStanding } from './standings';
 import { useCloudRuntime } from './hooks/useCloudRuntime';
 import { useCloudAuth } from './hooks/useCloudAuth';
 import { shouldResetHomeTabAfterCloudWorkspaceReady } from './navigation/cloudWorkspaceNavigation';
+import type { DayName } from './training/synchronization';
 import { bootstrapSignedInCloudAccount, getOrCreateCloudDeviceId } from './components/CloudAccountGate';
 import { runCloudBackupFlow } from './cloud/workspaceBackupFlow';
 import { createContentFingerprint } from './migrations/localToCloud';
@@ -289,6 +290,7 @@ export default function App() {
   const [primaryTab, setPrimaryTab] = useState<PrimaryTab>('home');
   const [homeTab, setHomeTab] = useState<HomeTab>('overview');
   const [developmentTab, setDevelopmentTab] = useState<DevelopmentTab>('assessments');
+  const [initialTrainingBuilderDay, setInitialTrainingBuilderDay] = useState<DayName | null>(null);
   const [leagueUpdatesTab, setLeagueUpdatesTab] = useState<LeagueUpdatesTab>('league');
   const [isMatchLayoutFullscreen, setIsMatchLayoutFullscreen] = useState<boolean>(false);
   
@@ -979,6 +981,7 @@ export default function App() {
     primary: PrimaryTab;
     homeTab?: HomeTab;
     developmentTab?: DevelopmentTab;
+    trainingDay?: DayName;
     leagueUpdatesTab?: LeagueUpdatesTab;
   }) => {
     setPrimaryTab(target.primary);
@@ -989,6 +992,7 @@ export default function App() {
 
     if (target.primary === 'development') {
       setDevelopmentTab(target.developmentTab ?? 'assessments');
+      setInitialTrainingBuilderDay(target.developmentTab === 'training' ? target.trainingDay ?? null : null);
     }
 
     if (target.primary === 'league_updates') {
@@ -1575,6 +1579,8 @@ export default function App() {
                   players={players}
                   games={games}
                   onUpdateGames={setGames}
+                  initialTrainingBuilderDay={initialTrainingBuilderDay}
+                  onInitialTrainingBuilderDayHandled={() => setInitialTrainingBuilderDay(null)}
                   assessments={assessments}
                   preselectedAssessmentsPlayerId={preselectedAssessmentsPlayerId}
                   onClearPreselectedAssessmentsPlayerId={() => setPreselectedAssessmentsPlayerId(null)}
