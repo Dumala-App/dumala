@@ -1,10 +1,12 @@
 # Dumala Beta MVP
 
-Updated: 2026-06-29
+Updated: 2026-07-02
 
 ## Objective
 
 The current MVP is a local-first football operations and player-development app for managing multiple team workspaces in one browser. It is intended for real beta testing by coaches while the product remains simple to deploy, switch between teams, back up, and reset.
+
+The current business hypothesis is that Dumala should keep the public offer simple: Free for early trust and a Premium monthly subscription for coaches, clubs, academies, schools, and multi-squad organizations that need stronger workflows, reports, and professional presentation.
 
 ## Included
 
@@ -40,6 +42,8 @@ The current MVP is a local-first football operations and player-development app 
 6. Official PFF/AFC credential verification.
 7. Multi-squad, multi-season, and shared club administration beyond separate local team workspaces.
 8. Native mobile application.
+9. Paid subscription enforcement.
+10. Validated pricing or paid plan limits.
 
 ## Required user flows
 
@@ -98,5 +102,7 @@ Export a JSON backup, restore it in a fresh browser, and confirm assessments and
 ## Exit criteria
 
 The beta MVP is ready for broader testing when reliability and data-confidence tasks in [TASKS.md](TASKS.md) are complete, repeated assessments produce explainable and comparable records without corrupting roster data, and official development progress remains assessment-derived.
+
+The MVP is ready for subscription packaging only after the coach-facing pitch, first-week success flow, and private beta willingness-to-pay interviews are completed.
 
 Future scope is defined in [ROADMAP.md](ROADMAP.md).

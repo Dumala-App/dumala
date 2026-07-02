@@ -1,6 +1,6 @@
 # Dumala Product Roadmap
 
-Updated: 2026-06-29
+Updated: 2026-07-02
 
 ## Source of truth
 
@@ -151,6 +151,24 @@ Status: **Long Term**
 
 A club can manage multiple squads and seasons from one organized workspace.
 
+## Commercial validation and SaaS packaging
+
+Status: **Next**
+
+### Planned deliverables
+
+- Create a coach-facing one-page pitch that leads with weekly admin relief, match-week preparation, and clearer player development.
+- Package the public offer as two choices: Free and Premium monthly subscription.
+- Use Coach, Club, and Academy language as value-positioning segments inside Premium, not as separate visible subscription choices.
+- Validate whether solo coaches will pay roughly USD 9-15 per month before introducing any future club-scale pricing.
+- Build a first-week success flow that gets a coach to value after adding 8-12 players and one upcoming match.
+- Prepare a demo/sample workspace so coaches can evaluate the product before doing full setup.
+- Recruit 10-20 real coaches or clubs for private beta feedback, activation tracking, and willingness-to-pay interviews.
+
+### Completion criteria
+
+Dumala has a tested subscription story, a simple first offer, and real coach feedback before paid packaging is treated as validated.
+
 ## Product principles
 
 1. Reliability before breadth.
@@ -160,3 +178,4 @@ A club can manage multiple squads and seasons from one organized workspace.
 5. Explainable assessment scoring before wider FPRDS claims.
 6. Training creates development evidence; FPRDS assessment verifies current ability.
 7. Official coaching credentials must never be replaced by an internal Dumala score.
+8. Pricing must follow proven coach and club value, not feature count alone.

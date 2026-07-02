@@ -110,6 +110,7 @@ const HomeHubView = lazy(() => import('./components/HomeHubView'));
 const DevelopmentHubView = lazy(() => import('./components/DevelopmentHubView'));
 const LeagueUpdatesHubView = lazy(() => import('./components/LeagueUpdatesHubView'));
 const AdminConsoleView = lazy(() => import('./components/AdminConsoleView'));
+const LandingPage = lazy(() => import('./components/LandingPage'));
 
 const getHashRoute = () => typeof window === 'undefined' ? '' : window.location.hash.replace(/^#\/?/, '');
 
@@ -1262,6 +1263,17 @@ export default function App() {
         <PwaStatusBanners />
         <Suspense fallback={<ViewLoadingFallback label="admin console" />}>
           <AdminConsoleView />
+        </Suspense>
+      </>
+    );
+  }
+
+  if (hashRoute === 'landing') {
+    return (
+      <>
+        <PwaStatusBanners />
+        <Suspense fallback={<ViewLoadingFallback label="landing page" />}>
+          <LandingPage />
         </Suspense>
       </>
     );

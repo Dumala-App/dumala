@@ -1,6 +1,6 @@
 # Dumala Feasibility Study
 
-Updated: 2026-06-26
+Updated: 2026-07-02
 
 ## Core Finding
 
@@ -89,6 +89,10 @@ The main caution is product-state clarity. Some docs still describe the MVP as l
 ### Commercial Feasibility: Promising, But Must Be Validated
 
 Coaches will value the product if it removes admin pain quickly. Willingness to pay may be limited for individual grassroots coaches, so pricing should likely start low for solo coaches and move upward for clubs, academies, and multi-squad organizations.
+
+The business model is reasonable as SaaS, but the buyer matters. A solo grassroots coach is likely price-sensitive and may compare Dumala against WhatsApp, Google Sheets, notebooks, and memory. A club, academy, school, or paid coaching program has a stronger reason to subscribe because Dumala can improve staff coordination, parent-facing professionalism, player-development proof, and retention. Even so, the public offer should stay simple: Free and Premium monthly subscription.
+
+The strongest subscription trigger is not the number of modules. It is whether Dumala saves time every week and makes the coach or club look more organized.
 
 ### Operational Feasibility: Beta-Ready, Not Yet Broad Public-Scale
 
@@ -231,22 +235,45 @@ Downloadable player assessment reports will naturally spread to players, parents
 
 A sensible packaging path:
 
-- **Free Beta:** One team, local workspace, basic roster/schedule/training/tactics.
-- **Coach Plan:** Single team, assessments, reports, backup/cloud sync.
-- **Club Plan:** Multiple staff, roles, shared cloud workspace, payments, reports.
-- **Academy Plan:** Multiple squads, long-term development history, assessment exports, public profiles, trial shortlists.
+- **Free:** One team, local workspace, basic roster, schedule, training, tactics, and backup/export value.
+- **Premium monthly subscription:** Stronger assessment workflows, downloadable reports, guided planning, cloud sync when production-approved, communication tools, and club/academy-ready reporting as those capabilities become available.
 
 Do not rush pricing until 10-20 coaches have used it for real match weeks. The most likely paying customers are academies and clubs, not individual volunteer coaches.
 
+### Reasonable Pricing Hypothesis
+
+These ranges are hypotheses for interviews and beta validation, not final prices:
+
+| Choice | Likely monthly range | What must be true |
+| --- | ---: | --- |
+| Free | USD 0 | Coaches can try one team with enough value to trust the workflow. |
+| Premium monthly | USD 9-15 initial target | Reports, assessments, development tracking, guided planning, and weekly time savings are used often enough to justify paying. |
+
+For an individual coach, the practical Premium target is likely USD 9-15 per month. Higher future pricing for clubs and academies should be validated later, after shared staff workflows, parent/player reporting, and cloud collaboration create enough extra value.
+
+### Subscription Selling Points
+
+- Save hours on weekly admin.
+- Plan sessions and match days faster.
+- Track player development in a structured way.
+- Produce reports that can be shared with players, parents, or club leaders.
+- Run a team or academy with a more professional operating rhythm.
+- Keep the coach in control while the system assists with planning, tactics, and assessment records.
+
+The clearest subscription promise is:
+
+**Run your football team like a professional academy.**
+
 ## Best Next Moves
 
-1. Make a coach-facing one-page pitch.
-2. Add a guided demo/sample workspace.
-3. Finish downloadable FPRDS reports.
-4. Get two qualified football practitioners to review FPRDS benchmarks.
-5. Run a 10-club private beta.
-6. Track activation: roster added, first event scheduled, first result logged, first assessment saved.
-7. Turn the strongest beta story into a case study.
+1. Make a coach-facing one-page pitch with two choices: Free and Premium monthly subscription. Completed in-app at `#landing`.
+2. Design the first-week success flow: add 8-12 players, schedule one event, prepare tactics, log one result, and save one assessment.
+3. Add a guided demo/sample workspace.
+4. Finish downloadable FPRDS reports.
+5. Get two qualified football practitioners to review FPRDS benchmarks.
+6. Run a 10-club private beta.
+7. Track activation: roster added, first event scheduled, first result logged, first assessment saved, report downloaded.
+8. Turn the strongest beta story into a case study.
 
 ## Bottom Line
 

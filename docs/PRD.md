@@ -1,6 +1,6 @@
 # Dumala Product Requirements Document
 
-Updated: 2026-06-29
+Updated: 2026-07-02
 
 ## 1. Product summary
 
@@ -12,6 +12,8 @@ The product combines club operations with player development:
 - Development: structured FPRDS assessments, benchmark-based scoring, player cards, assessment history, and development plans.
 
 The current release is a public beta, not a shared multi-user service. The detailed future sequence is maintained in [ROADMAP.md](ROADMAP.md) and the in-app **Updates > Roadmap Snapshot**.
+
+The current commercial hypothesis is coach-first SaaS with two public choices: Free and Premium monthly subscription. Premium messaging can speak to coaches, clubs, academies, and schools, but the visible plan structure should remain simple until paid demand is validated.
 
 ## 2. Problem statement
 
@@ -42,6 +44,7 @@ Dumala provides one structured workspace for weekly team administration and repe
 7. Separate development activity from verified ability so FPRDS ratings remain evidence-based.
 8. Let operators manage multiple local teams while preserving a clean path toward cloud clubs.
 9. Build toward offline use, tablets, shared clubs, public profiles, and Philippine coach education.
+10. Validate a subscription model around weekly time savings, match-week preparation, and clearer player-development records before enforcing paid plans.
 
 ## 5. Current non-goals
 
@@ -251,3 +254,7 @@ The in-app **Updates > Roadmap Snapshot** is the product-facing roadmap. [ROADMA
 ## 12. Development doctrine
 
 [FPRDS_EVIDENCE_BASED_DEVELOPMENT_SYSTEM.md](FPRDS_EVIDENCE_BASED_DEVELOPMENT_SYSTEM.md) is the authority for Dumala's player-development model. It defines the core rule that training creates development evidence, while FPRDS assessment verifies current ability and updates official ratings.
+
+## 13. Commercial validation doctrine
+
+[DUMALA_FEASIBILITY_STUDY.md](DUMALA_FEASIBILITY_STUDY.md) is the authority for the current SaaS hypothesis. Pricing, plan limits, and subscription messaging should be validated with real coaches and clubs before being treated as final product requirements.
