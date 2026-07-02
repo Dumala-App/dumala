@@ -1,6 +1,6 @@
 # Dumala Delivery Tasks
 
-Updated: 2026-06-29
+Updated: 2026-07-02
 
 Status values: **Done**, **In Progress**, **Next**, **Planned**, **Long Term**.
 
@@ -9,7 +9,7 @@ Status values: **Done**, **In Progress**, **Next**, **Planned**, **Long Term**.
 Progress is calculated from the completed capabilities and open checklist items in this document. The roadmap bars track implementation, while Release Validation tracks the latest verified build checks.
 
 ```text
-Overall roadmap                 [########--]  80%  84 / 105
+Overall roadmap                 [########--]  77%  86 / 111
 
 Shipped beta foundation         [##########] 100%  20 / 20
 Current Beta: Reliability       [##########] 100%  24 / 24
@@ -21,6 +21,7 @@ Phase 4: Team collaboration     [##########] 100%   5 / 5
 Phase 5: Profiles and drafting  [----------]   0%   0 / 6
 Future: Coach education         [----------]   0%   0 / 6
 Future: Club operations         [##--------]  17%   1 / 6
+Commercial validation           [###-------]  33%   2 / 6
 Release: App stores             [----------]   0%   0 / 1
 
 Release validation              [##########] 100%  14 / 14
@@ -38,11 +39,22 @@ Release validation              [##########] 100%  14 / 14
 | Phase 5: Public profiles and drafting | 0 | 6 | 0% | Long Term |
 | Future Expansion: Philippine coach education | 0 | 6 | 0% | Long Term |
 | Future Expansion: Club operations | 1 | 6 | 17% | Long Term |
+| Commercial validation and SaaS packaging | 2 | 6 | 33% | In Progress |
 | Future Release: App store distribution | 0 | 1 | 0% | Deferred |
 
 The FPRDS total includes sixteen completed capabilities: the five shipped assessment features plus interpolation, role-weighting, age-transition, required-field validation coverage, true historical progress charts, player/session comparison reports, the evidence-based development doctrine, training evidence naming, removal of direct training-to-rating mutation, reassessment recommendations, and rating confidence labels. Practitioner benchmark review is deferred until qualified external reviewers are available.
 
 ## Recent changes
+
+### Completed: 2026-07-02
+
+- [x] Clarified the SaaS business model hypothesis: Dumala should be priced gently for individual coaches and monetized more seriously through clubs, academies, schools, and multi-squad organizations.
+- [x] Identified the strongest subscription promise as saving weekly admin time, improving match-week preparation, and creating clearer player-development records.
+- [x] Confirmed the likely Premium monthly subscription range for individual coaches as roughly USD 9-15 per month, with higher pricing reserved for future club-scale capabilities only after validation.
+- [x] Confirmed the simpler packaging direction: keep only two visible choices, Free and Premium monthly subscription, while describing Coach, Club, and Academy use cases inside the Premium value proposition.
+- [x] Reframed the commercial pitch from "team management software" to "run your football team like a professional academy" and "the coach's weekly command center."
+- [x] Set the next product task as a coach-facing subscription/value proposition pass before adding more broad feature work.
+- [x] Built the coach-facing landing page at `#landing` with the simplified two-choice Free and Premium monthly subscription offer.
 
 ### Completed: 2026-06-29
 
@@ -288,6 +300,15 @@ Phase 3 implementation baseline is complete. Local launch-readiness checks now i
 - [ ] **Long Term:** Add calendar export and scheduled reminders.
 - [ ] **Long Term:** Add multiple squads and age groups.
 - [ ] **Long Term:** Preserve records across seasons.
+
+## Commercial validation and SaaS packaging
+
+- [x] **Done:** Define the initial SaaS hypothesis, target paying users, and coach/club subscription ranges.
+- [x] **Done:** Create a coach-facing one-page pitch and pricing/value proposition with two choices: Free and Premium monthly subscription.
+- [ ] **Next:** Design the first-week success flow so a coach gets value after adding 8-12 players and one upcoming match.
+- [ ] **Planned:** Prepare a demo/sample workspace that lets coaches evaluate Dumala without entering a full roster first.
+- [ ] **Planned:** Recruit 10-20 real coaches or clubs for private beta validation and collect willingness-to-pay feedback.
+- [ ] **Planned:** Define activation metrics: roster added, first event scheduled, first result logged, first assessment saved, report downloaded.
 
 ## Future Release: App store distribution
 

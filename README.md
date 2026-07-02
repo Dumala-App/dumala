@@ -2,6 +2,10 @@
 
 Dumala is a local-first football team management web application for coaches, managers, and grassroots club operators. It combines weekly club operations with structured player assessment across multiple local team workspaces in one browser.
 
+The current commercial direction is to validate Dumala as a coach-first SaaS: affordable for individual coaches, stronger for clubs and academies that need shared operations, reporting, and a professional development record.
+
+The coach-facing pitch page is available in the app at `#landing`.
+
 ## Current capabilities
 
 - Team onboarding and club identity
@@ -105,6 +109,7 @@ A traditional static host can also serve the application. Upload only the conten
 
 - [Product Requirements](docs/PRD.md)
 - [MVP Definition](docs/MVP.md)
+- [Feasibility Study](docs/DUMALA_FEASIBILITY_STUDY.md)
 - [Architecture](docs/ARCHITECTURE.md)
 - [FPRDS Evidence-Based Development System](docs/FPRDS_EVIDENCE_BASED_DEVELOPMENT_SYSTEM.md)
 - [Product Roadmap](docs/ROADMAP.md)

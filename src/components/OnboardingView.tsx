@@ -146,6 +146,12 @@ export default function OnboardingView({ onComplete, cloudRuntime, cloudAuthCont
       onPointerLeave={() => setPointer({ x: 58, y: 42 })}
     >
       <InteractiveOnboardingBackdrop pointer={pointer} />
+      <a
+        href="#landing"
+        className="fixed left-4 top-4 z-40 rounded-lg border border-white/10 bg-white/[0.07] px-3 py-2 text-xs font-bold text-slate-200 shadow-lg shadow-black/20 backdrop-blur-md transition hover:bg-white/[0.12] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-300/40"
+      >
+        View coach pitch
+      </a>
       <main className="relative z-10 flex h-full min-h-0 items-center justify-center p-3 sm:p-4 lg:p-6">
         <section className="flex min-h-0 w-full max-w-3xl items-center justify-center">
           <div className="flex max-h-full w-full flex-col overflow-hidden rounded-[1.85rem] border border-white/10 bg-[#07111f]/90 p-5 shadow-2xl shadow-black/45 backdrop-blur-xl sm:p-6">
