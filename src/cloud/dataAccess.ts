@@ -20,6 +20,7 @@ import {
 } from './auth';
 import {
   ensureAccountBootstrap,
+  hasExistingAccountWorkspace,
   type AccountBootstrapInput,
   type AccountBootstrapResult
 } from './account';
@@ -111,6 +112,7 @@ export interface CloudAuthRepository {
 
 export interface CloudAccountRepository {
   ensureBootstrap(input: AccountBootstrapInput): Promise<AccountBootstrapResult>;
+  hasExistingWorkspace(): Promise<boolean>;
 }
 
 export interface CloudMembershipRepository {
@@ -190,7 +192,8 @@ export const createCloudDataAccess = (client: DumalaSupabaseClient): CloudDataAc
     subscribeToAuthChanges: onChange => subscribeToAuthChanges(client, onChange)
   },
   account: {
-    ensureBootstrap: input => ensureAccountBootstrap(client, input)
+    ensureBootstrap: input => ensureAccountBootstrap(client, input),
+    hasExistingWorkspace: () => hasExistingAccountWorkspace(client)
   },
   bulletins: {
     list: clubId => listSharedBulletins(client, clubId),

@@ -224,3 +224,12 @@ export const ensureAccountBootstrap = async (
 
   return { profile, club, membership, device };
 };
+
+export const hasExistingAccountWorkspace = async (
+  client: DumalaSupabaseClient
+): Promise<boolean> => {
+  const user = await getSignedInUser(client);
+  const activeMembership = await readActiveMembershipWithClub(client, user.id);
+  if (activeMembership?.clubs) return true;
+  return (await readOwnedClub(client, user.id)) !== null;
+};
