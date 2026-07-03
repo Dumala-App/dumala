@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(npm run lint)",
+      "PowerShell(Copy-Item \"H:\\\\2026-Claude\\\\Glowing Stadium.mp4\" \"H:\\\\Teamph\\\\public\\\\glowing-stadium.mp4\" -Force; Get-Item \"H:\\\\Teamph\\\\public\\\\glowing-stadium.mp4\" | Select-Object Name, @{n='MB';e={[math]::Round\\($_.Length/1MB,2\\)}})",
+      "Bash(git add *)",
+      "Bash(git push *)",
+      "Bash(gh pr *)",
+      "Bash(git checkout *)",
+      "Bash(git pull *)"
+    ]
+  }
+}
