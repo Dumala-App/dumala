@@ -209,6 +209,44 @@ export const AetherFlowParticles = ({
   return <canvas ref={canvasRef} aria-hidden="true" className={cn('absolute left-0 top-0 h-full w-full', className)} />;
 };
 
+interface AetherFlowBackdropProps {
+  className?: string;
+  particleColor?: string;
+  lineRGB?: string;
+  highlightRGB?: string;
+}
+
+/** The dark navy + orange bloom + particle network + grid used behind the landing page. */
+export const AetherFlowBackdrop = ({ className, particleColor, lineRGB, highlightRGB }: AetherFlowBackdropProps) => (
+  <div aria-hidden="true" className={cn('pointer-events-none overflow-hidden', className ?? 'absolute inset-0')}>
+    <div
+      style={{
+        position: 'absolute',
+        left: '50%',
+        top: '-24rem',
+        width: '76rem',
+        height: '46rem',
+        transform: 'translateX(-50%)',
+        borderRadius: '50%',
+        background: 'rgba(255,138,61,.07)',
+        filter: 'blur(120px)'
+      }}
+    />
+    <AetherFlowParticles particleColor={particleColor} lineRGB={lineRGB} highlightRGB={highlightRGB} />
+    <div
+      style={{
+        position: 'absolute',
+        inset: 0,
+        backgroundImage:
+          'linear-gradient(rgba(148,163,184,.045) 1px,transparent 1px),linear-gradient(90deg,rgba(148,163,184,.045) 1px,transparent 1px)',
+        backgroundSize: '76px 76px',
+        WebkitMaskImage: 'radial-gradient(ellipse 62% 52% at 50% 0%,black,transparent)',
+        maskImage: 'radial-gradient(ellipse 62% 52% at 50% 0%,black,transparent)'
+      }}
+    />
+  </div>
+);
+
 const AetherFlowHero = ({
   className,
   badge,
