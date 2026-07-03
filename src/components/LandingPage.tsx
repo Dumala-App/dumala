@@ -1,7 +1,26 @@
-import React, { useEffect, useRef } from 'react';
-import { BarChart3, BrainCircuit, CalendarDays, CloudSun, Dumbbell, FileText, Presentation, ShieldCheck, Users } from 'lucide-react';
+import React, { useEffect, useRef, useState, type FormEvent } from 'react';
+import { BarChart3, BrainCircuit, CalendarDays, CheckCircle2, CloudSun, Dumbbell, FileText, Loader2, Presentation, Send, ShieldCheck, Users } from 'lucide-react';
 import AetherFlowHero, { AetherFlowBackdrop } from './ui/aether-flow-hero';
 import { GlowingEffect } from './ui/glowing-effect';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle
+} from './ui/dialog';
+import { useCloudRuntime } from '../hooks/useCloudRuntime';
+import {
+  createPremiumLeadRecord,
+  hasPremiumLeadErrors,
+  initialPremiumLeadForm,
+  storePremiumLead,
+  submitPremiumLead,
+  validatePremiumLeadForm,
+  type PremiumLeadErrors,
+  type PremiumLeadField,
+  type PremiumLeadForm
+} from '../landing/premiumLeadCapture';
 
 const steps = [
   { n: '01', when: 'Mon–Wed', title: 'Plan the week', text: 'Fixtures, training and availability on one calendar.' },
@@ -103,11 +122,21 @@ const styles = `
 .dc-glow-card{position:relative;z-index:1;height:100%;overflow:hidden;border:1px solid rgba(255,255,255,.12);background:rgba(8,16,38,.70);border-radius:16px;backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);box-shadow:inset 0 1px 0 rgba(255,255,255,.08)}
 .dc-startfree{display:block;width:100%;text-align:center;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.04);color:#DDE4EF;text-decoration:none;font-weight:600;font-size:13.5px;padding:11px;border-radius:12px;box-shadow:inset 0 1px 0 rgba(255,255,255,.08),0 1px 2px rgba(0,0,0,.3);transition:background .15s,border-color .15s}
 .dc-startfree:hover{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.24)}
-.dc-joinbeta{display:block;width:100%;text-align:center;background:linear-gradient(180deg,#FF9A52,#FF8A3D);color:#180A00;text-decoration:none;font-weight:700;font-size:13.5px;padding:11px;border-radius:12px;box-shadow:inset 0 1px 0 rgba(255,255,255,.30),0 1px 2px rgba(0,0,0,.35),0 6px 16px -8px rgba(255,138,61,.5);transition:background .15s}
+.dc-joinbeta{display:block;width:100%;text-align:center;background:linear-gradient(180deg,#FF9A52,#FF8A3D);color:#180A00;text-decoration:none;font-weight:700;font-size:13.5px;padding:11px;border-radius:12px;box-shadow:inset 0 1px 0 rgba(255,255,255,.30),0 1px 2px rgba(0,0,0,.35),0 6px 16px -8px rgba(255,138,61,.5);transition:background .15s;border:none;cursor:pointer;font-family:inherit}
 .dc-joinbeta:hover{background:linear-gradient(180deg,#FFB06E,#FFA35F)}
 .dc-foot-link{background:none;border:none;cursor:pointer;padding:0;font-family:inherit;font-size:13.5px;color:var(--dc-dim);transition:color .15s;text-decoration:none}
 .dc-foot-link:hover{color:#DDE4EF}
 .dc-header-nav{display:flex;align-items:center;gap:4px}
+.dc-lead-field{display:grid;gap:6px;font-size:12px;font-weight:800;color:#DDE4EF}
+.dc-lead-field span{font-size:10px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:#8A96AD}
+.dc-lead-field input,.dc-lead-field select,.dc-lead-field textarea{width:100%;border:1px solid rgba(255,255,255,.13);background:rgba(4,9,26,.72);color:#F5F7FB;border-radius:12px;padding:11px 12px;font:inherit;font-size:13px;font-weight:600;outline:none;box-shadow:inset 0 1px 0 rgba(255,255,255,.05)}
+.dc-lead-field textarea{min-height:92px;resize:vertical;line-height:1.5}
+.dc-lead-field input:focus,.dc-lead-field select:focus,.dc-lead-field textarea:focus{border-color:rgba(255,138,61,.72);box-shadow:0 0 0 3px rgba(255,138,61,.18)}
+.dc-lead-error{font-size:11px;font-weight:700;color:#FDBA74}
+.dc-lead-status{border-radius:14px;border:1px solid rgba(255,255,255,.12);padding:12px 14px;font-size:12px;font-weight:800;line-height:1.5}
+.dc-lead-submit{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:none;cursor:pointer;border-radius:12px;background:linear-gradient(180deg,#FF9A52,#FF8A3D);color:#180A00;padding:12px 16px;font-family:inherit;font-size:13px;font-weight:800;box-shadow:inset 0 1px 0 rgba(255,255,255,.30),0 8px 18px -12px rgba(255,138,61,.7)}
+.dc-lead-submit:disabled{cursor:not-allowed;opacity:.68}
+.dc-lead-ghost{border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.04);color:#DDE4EF;cursor:pointer;border-radius:12px;padding:12px 16px;font-family:inherit;font-size:13px;font-weight:800}
 
 @media (max-width:700px){
   .dc-header-nav{display:none}
@@ -124,6 +153,12 @@ const styles = `
 
 export default function LandingPage() {
   const rootRef = useRef<HTMLDivElement>(null);
+  const runtime = useCloudRuntime();
+  const [premiumModalOpen, setPremiumModalOpen] = useState(false);
+  const [premiumLead, setPremiumLead] = useState<PremiumLeadForm>(initialPremiumLeadForm);
+  const [premiumLeadErrors, setPremiumLeadErrors] = useState<PremiumLeadErrors>({});
+  const [premiumLeadStatus, setPremiumLeadStatus] = useState<'idle' | 'submitting' | 'success' | 'error'>('idle');
+  const [premiumLeadMessage, setPremiumLeadMessage] = useState('');
 
   const scrollToId = (id: string) => {
     const el = document.getElementById(id);
@@ -134,6 +169,39 @@ export default function LandingPage() {
   const goTop = (e: React.MouseEvent) => {
     e.preventDefault();
     window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+  const scrollToPricingPlans = () => scrollToId('pricing-plans');
+  const openPremiumLeadModal = () => {
+    setPremiumLeadErrors({});
+    setPremiumLeadStatus('idle');
+    setPremiumLeadMessage('');
+    setPremiumModalOpen(true);
+  };
+  const updatePremiumLead = (field: PremiumLeadField, value: string) => {
+    setPremiumLead(current => ({ ...current, [field]: value }));
+    setPremiumLeadErrors(current => ({ ...current, [field]: undefined }));
+  };
+  const handlePremiumLeadSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const errors = validatePremiumLeadForm(premiumLead);
+    setPremiumLeadErrors(errors);
+    if (hasPremiumLeadErrors(errors)) return;
+
+    const lead = createPremiumLeadRecord(premiumLead);
+    storePremiumLead(lead);
+    setPremiumLeadStatus('submitting');
+    setPremiumLeadMessage('');
+
+    try {
+      const deliveredLead = await submitPremiumLead(lead, runtime);
+      storePremiumLead(deliveredLead);
+      setPremiumLeadStatus('success');
+      setPremiumLeadMessage('You are on the Premium beta list. We will follow up before Premium access opens.');
+      setPremiumLead(initialPremiumLeadForm);
+    } catch {
+      setPremiumLeadStatus('error');
+      setPremiumLeadMessage('We saved your details in this browser, but could not send them yet. Please try again when your connection is back.');
+    }
   };
 
   // Scroll-reveal for below-the-fold blocks
@@ -193,7 +261,7 @@ export default function LandingPage() {
           <nav className="dc-header-nav">
             <button type="button" onClick={() => scrollToId('value')} className="dc-nav-link">How it works</button>
             <button type="button" onClick={() => scrollToId('features')} className="dc-nav-link">Features</button>
-            <button type="button" onClick={() => scrollToId('pricing')} className="dc-nav-link">Pricing</button>
+            <button type="button" onClick={scrollToPricingPlans} className="dc-nav-link">Pricing</button>
             <button type="button" onClick={() => scrollToId('fit')} className="dc-nav-link">Why Dumala</button>
           </nav>
           <a href="#/app" className="dc-openapp">Open app</a>
@@ -216,7 +284,7 @@ export default function LandingPage() {
             actions={
               <>
                 <a href="#/app" className="dc-cta-primary">Start free →</a>
-                <button type="button" onClick={() => scrollToId('pricing')} className="dc-cta-secondary">See pricing</button>
+                <button type="button" onClick={scrollToPricingPlans} className="dc-cta-secondary">See pricing</button>
               </>
             }
             footnote="Free plan available · No credit card required"
@@ -285,7 +353,7 @@ export default function LandingPage() {
               <p style={{ margin: '16px auto 0', fontSize: 15.5, lineHeight: 1.7, color: '#8A96AD' }}>Free is for trying the workflow in a real match week. Premium is for coaches and organizations that need stronger reports and planning.</p>
             </div>
 
-            <div style={{ margin: '56px auto 0', maxWidth: 920, display: 'flex', flexDirection: 'column', gap: 20 }}>
+            <div id="pricing-plans" style={{ margin: '40px auto 0', maxWidth: 920, display: 'flex', flexDirection: 'column', gap: 20 }}>
               {/* Free — Matchday pass ticket */}
               <article data-reveal="1" className="dc-ticket" style={{ opacity: 1, position: 'relative', display: 'grid', gridTemplateColumns: 'minmax(0,1fr) 264px', border: '1px solid rgba(255,255,255,.14)', background: 'rgba(8,16,38,.68)', borderRadius: 20, overflow: 'hidden', backdropFilter: 'blur(14px)', WebkitBackdropFilter: 'blur(14px)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,.08),0 1px 2px rgba(0,0,0,.3),0 22px 46px -30px rgba(0,0,0,.75)' }}>
                 <GlowingEffect spread={42} glow disabled={false} proximity={82} inactiveZone={0.01} borderWidth={3} />
@@ -356,7 +424,7 @@ export default function LandingPage() {
                     <span style={{ fontFamily: "'Manrope', sans-serif", fontWeight: 800, fontSize: 44, letterSpacing: '-.03em', color: '#F5F7FB' }}>₱499</span>
                   </div>
                   <span style={{ fontSize: 12, color: '#8A96AD' }}>per month · <span style={{ textDecoration: 'line-through', color: '#5C6880' }}>₱800</span> early-bird</span>
-                  <a href="#/app" className="dc-joinbeta" style={{ marginTop: 16 }}>Join the beta list</a>
+                  <button type="button" onClick={openPremiumLeadModal} className="dc-joinbeta" style={{ marginTop: 16 }}>Join the beta list</button>
                   <div aria-hidden="true" style={{ marginTop: 16, width: 110, height: 26, background: 'repeating-linear-gradient(90deg,rgba(255,179,126,.5) 0 2px,transparent 2px 5px,rgba(255,179,126,.5) 5px 6px,transparent 6px 10px)', borderRadius: 2, opacity: 0.6 }} />
                 </div>
               </article>
@@ -405,7 +473,7 @@ export default function LandingPage() {
                   <p style={{ margin: '16px 0 0', maxWidth: 600, fontSize: 14.5, lineHeight: 1.75, color: '#B9C2D4' }}>Use Dumala with one team, test the planning rhythm, and upgrade only when the reports and match-week workflow are clearly saving time.</p>
                   <div style={{ marginTop: 28, display: 'flex', gap: 12, flexWrap: 'wrap' }}>
                     <a href="#/app" className="dc-cta-primary">Open Dumala -&gt;</a>
-                    <button type="button" onClick={() => scrollToId('pricing')} className="dc-cta-secondary">Compare plans</button>
+                    <button type="button" onClick={scrollToPricingPlans} className="dc-cta-secondary">Compare plans</button>
                   </div>
                 </div>
 
@@ -443,7 +511,7 @@ export default function LandingPage() {
               <nav style={{ marginTop: 14, display: 'grid', gap: 10 }}>
                 <button type="button" onClick={() => scrollToId('value')} className="dc-foot-link" style={{ textAlign: 'left' }}>How it works</button>
                 <button type="button" onClick={() => scrollToId('features')} className="dc-foot-link" style={{ textAlign: 'left' }}>Inside the app</button>
-                <button type="button" onClick={() => scrollToId('pricing')} className="dc-foot-link" style={{ textAlign: 'left' }}>Pricing</button>
+                <button type="button" onClick={scrollToPricingPlans} className="dc-foot-link" style={{ textAlign: 'left' }}>Pricing</button>
                 <button type="button" onClick={() => scrollToId('fit')} className="dc-foot-link" style={{ textAlign: 'left' }}>Why Dumala</button>
               </nav>
             </div>
@@ -477,6 +545,94 @@ export default function LandingPage() {
           </div>
         </div>
       </footer>
+
+      <Dialog open={premiumModalOpen} onOpenChange={setPremiumModalOpen}>
+        <DialogContent className="max-h-[92vh] max-w-2xl overflow-y-auto border-white/15 bg-[#071026] p-0 text-[#F5F7FB] shadow-2xl">
+          <DialogHeader className="border-b border-white/10 px-5 py-5 pr-12 sm:px-6">
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+              <div style={{ display: 'flex', width: 42, height: 42, flexShrink: 0, alignItems: 'center', justifyContent: 'center', borderRadius: 12, border: '1px solid rgba(255,138,61,.28)', background: 'rgba(255,138,61,.12)', color: '#FFB37E' }}>
+                <Send size={18} aria-hidden="true" />
+              </div>
+              <div>
+                <DialogTitle className="text-[#F5F7FB]">Join the Premium beta list</DialogTitle>
+                <DialogDescription className="mt-2 text-[#8A96AD]">
+                  Tell us a little about your team so we can invite the right coaches and clubs first when Premium beta access opens.
+                </DialogDescription>
+              </div>
+            </div>
+          </DialogHeader>
+
+          <form onSubmit={handlePremiumLeadSubmit} style={{ display: 'grid', gap: 16, padding: 24 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(min(220px,100%),1fr))', gap: 14 }}>
+              <label className="dc-lead-field">
+                <span>Name</span>
+                <input value={premiumLead.name} onChange={event => updatePremiumLead('name', event.target.value)} autoComplete="name" data-validation-field="name" />
+                {premiumLeadErrors.name && <strong className="dc-lead-error">{premiumLeadErrors.name}</strong>}
+              </label>
+              <label className="dc-lead-field">
+                <span>Email</span>
+                <input type="email" value={premiumLead.email} onChange={event => updatePremiumLead('email', event.target.value)} autoComplete="email" data-validation-field="email" />
+                {premiumLeadErrors.email && <strong className="dc-lead-error">{premiumLeadErrors.email}</strong>}
+              </label>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(min(190px,100%),1fr))', gap: 14 }}>
+              <label className="dc-lead-field">
+                <span>Club or team</span>
+                <input value={premiumLead.organization} onChange={event => updatePremiumLead('organization', event.target.value)} autoComplete="organization" data-validation-field="organization" />
+                {premiumLeadErrors.organization && <strong className="dc-lead-error">{premiumLeadErrors.organization}</strong>}
+              </label>
+              <label className="dc-lead-field">
+                <span>Role</span>
+                <select value={premiumLead.role} onChange={event => updatePremiumLead('role', event.target.value)}>
+                  <option>Coach</option>
+                  <option>Club manager</option>
+                  <option>Academy staff</option>
+                  <option>School staff</option>
+                  <option>Other</option>
+                </select>
+              </label>
+              <label className="dc-lead-field">
+                <span>Teams</span>
+                <input type="number" min={1} max={99} value={premiumLead.teamCount} onChange={event => updatePremiumLead('teamCount', event.target.value)} data-validation-field="teamCount" />
+                {premiumLeadErrors.teamCount && <strong className="dc-lead-error">{premiumLeadErrors.teamCount}</strong>}
+              </label>
+            </div>
+
+            <label className="dc-lead-field">
+              <span>What would make Premium worth it?</span>
+              <textarea value={premiumLead.notes} onChange={event => updatePremiumLead('notes', event.target.value)} maxLength={800} placeholder="Reports, cloud sync, staff workflows, academy records, or anything else you would pay for." />
+            </label>
+
+            <div style={{ borderRadius: 16, border: '1px solid rgba(255,138,61,.18)', background: 'rgba(255,138,61,.08)', padding: 14, color: '#FFD9BC', fontSize: 12.5, lineHeight: 1.55 }}>
+              You can keep using Dumala free during beta. We will only use these details to follow up about Premium access, reporting needs, and club-ready workflows.
+            </div>
+
+            {premiumLeadStatus !== 'idle' && (
+              <div
+                role="status"
+                className="dc-lead-status"
+                style={{
+                  borderColor: premiumLeadStatus === 'success' ? 'rgba(52,211,153,.38)' : premiumLeadStatus === 'error' ? 'rgba(251,186,116,.42)' : 'rgba(255,255,255,.12)',
+                  background: premiumLeadStatus === 'success' ? 'rgba(16,185,129,.12)' : premiumLeadStatus === 'error' ? 'rgba(251,146,60,.12)' : 'rgba(255,255,255,.04)',
+                  color: premiumLeadStatus === 'success' ? '#A7F3D0' : premiumLeadStatus === 'error' ? '#FDBA74' : '#DDE4EF'
+                }}
+              >
+                {premiumLeadStatus === 'success' && <CheckCircle2 size={15} aria-hidden="true" style={{ display: 'inline', marginRight: 8, verticalAlign: '-2px' }} />}
+                {premiumLeadMessage || 'Sending your request...'}
+              </div>
+            )}
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, flexWrap: 'wrap', borderTop: '1px solid rgba(255,255,255,.08)', paddingTop: 16 }}>
+              <button type="button" onClick={() => setPremiumModalOpen(false)} className="dc-lead-ghost">Close</button>
+              <button type="submit" disabled={premiumLeadStatus === 'submitting'} className="dc-lead-submit">
+                {premiumLeadStatus === 'submitting' ? <Loader2 size={15} className="animate-spin" aria-hidden="true" /> : <Send size={15} aria-hidden="true" />}
+                {premiumLeadStatus === 'submitting' ? 'Joining list...' : 'Join the Premium beta list'}
+              </button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
