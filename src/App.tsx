@@ -83,7 +83,6 @@ import { useCloudAuth } from './hooks/useCloudAuth';
 import { shouldResetHomeTabAfterCloudWorkspaceReady } from './navigation/cloudWorkspaceNavigation';
 import type { DayName } from './training/synchronization';
 import {
-  bootstrapSignedInCloudAccount,
   clearPendingAppAuthRedirect,
   getOrCreateCloudDeviceId,
   hasPendingAppAuthRedirect
@@ -247,7 +246,6 @@ export default function App() {
     auth: cloudRuntime.dataAccess?.auth ?? null
   });
   const analyticsSessionIdRef = useRef(getOrCreateAnalyticsSessionId());
-  const onboardingCloudBootstrapUserRef = useRef<string | null>(null);
   const [hashRoute, setHashRoute] = useState(getHashRoute);
   type IntegrityFocus = {
     playerId?: string | null;
@@ -1152,28 +1150,41 @@ export default function App() {
     }
   };
 
-  useEffect(() => {
-    if (startupRecoveryIssues.length > 0) return;
-    if (isOnboarded || teamInfo) return;
-    if (!cloudRuntime.enabled || cloudAuthController.state.status !== 'signedIn') {
-      onboardingCloudBootstrapUserRef.current = null;
-      return;
+  const handleCloudOnboardingComplete = (
+    result: AccountBootstrapResult,
+    team: TeamInfo,
+    headCoach: StaffMember,
+    mockBackup?: WorkspaceBackupV4
+  ) => {
+    if (activeWorkspaceId) copyActiveKeysToWorkspace(activeWorkspaceId);
+    const activated = activateCloudWorkspace(team, result.club.id);
+    setWorkspaces(activated.workspaces);
+    setActiveWorkspaceId(activated.summary.id);
+
+    if (mockBackup) {
+      restoreBackupIntoActiveWorkspace(mockBackup, activated.summary.id);
+    } else {
+      writeJsonStorage(STORAGE_KEYS.teamInfo, team);
+      writeJsonStorage(STORAGE_KEYS.players, []);
+      writeJsonStorage(STORAGE_KEYS.staff, [headCoach]);
+      writeJsonStorage(STORAGE_KEYS.games, []);
+      writeJsonStorage(STORAGE_KEYS.standings, []);
+      writeJsonStorage(STORAGE_KEYS.announcements, []);
+      writeJsonStorage(STORAGE_KEYS.assessments, []);
+      writeJsonStorage(STORAGE_KEYS.paymentLedger, []);
     }
 
-    const userId = cloudAuthController.state.session.userId;
-    if (onboardingCloudBootstrapUserRef.current === userId) return;
-    onboardingCloudBootstrapUserRef.current = userId;
-
-    bootstrapSignedInCloudAccount(cloudRuntime, cloudAuthController.state, undefined, '0.0.0')
-      .then(result => {
-        onboardingCloudBootstrapUserRef.current = null;
-        handleCloudWorkspaceReady(result);
-      })
-      .catch(error => {
-        onboardingCloudBootstrapUserRef.current = null;
-        console.warn('Cloud account setup could not finish from onboarding session recovery.', error);
-      });
-  }, [cloudAuthController.state, cloudRuntime, isOnboarded, startupRecoveryIssues.length, teamInfo]);
+    loadWorkspaceStateFromStorage();
+    setWorkspaces(readWorkspaceSummaries());
+    setIsOnboarded(true);
+    setSelectedPlayer(null);
+    setSelectedStaff(null);
+    setIntegrityFocus(null);
+    setMobileMenuOpen(false);
+    if (shouldResetHomeTabAfterCloudWorkspaceReady('onboarding')) {
+      handleNavigate({ primary: 'home', homeTab: 'overview' });
+    }
+  };
 
   const handleWorkspaceCloudReady = (result: AccountBootstrapResult) => {
     if (activeWorkspaceId && teamInfo) {
@@ -1381,6 +1392,8 @@ export default function App() {
               cloudRuntime={cloudRuntime}
               cloudAuthController={cloudAuthController}
               onCloudWorkspaceReady={handleCloudWorkspaceReady}
+              onCloudOnboardingComplete={handleCloudOnboardingComplete}
+              isReturningUser={workspaces.length > 0}
             />
           </ViewErrorBoundary>
         </Suspense>

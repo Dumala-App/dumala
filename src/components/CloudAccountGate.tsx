@@ -13,6 +13,17 @@ const CLOUD_DEVICE_ID_KEY = 'dumala_cloud_device_id';
 const APP_AUTH_CALLBACK_PARAM = 'dumalaAuth';
 const APP_AUTH_PENDING_KEY = 'dumala_pending_app_auth_redirect';
 const APP_AUTH_PENDING_TTL_MS = 10 * 60 * 1000;
+export const ONBOARDING_INTENT_KEY = 'dumala_onboarding_intent';
+
+export const markOnboardingIntent = () => {
+  if (typeof window === 'undefined') return;
+  window.localStorage.setItem(ONBOARDING_INTENT_KEY, Date.now().toString());
+};
+
+export const hasOnboardingIntent = () => {
+  if (typeof window === 'undefined') return false;
+  return window.localStorage.getItem(ONBOARDING_INTENT_KEY) !== null;
+};
 
 export const getAppAuthRedirectUrl = (): string | undefined => {
   if (typeof window === 'undefined') return undefined;
@@ -75,6 +86,7 @@ export const submitCloudAccountEmail = async (
   requestOtp: CloudAuthController['requestOtp'],
   redirectTo?: string
 ): Promise<void> => {
+  markOnboardingIntent();
   if (!redirectTo) markPendingAppAuthRedirect();
   redirectTo ??= getAppAuthRedirectUrl();
   await requestOtp(email, redirectTo);
@@ -85,6 +97,7 @@ export const submitCloudPasswordSignIn = async (
   password: string,
   signInWithPassword: CloudAuthController['signInWithPassword']
 ): Promise<void> => {
+  markOnboardingIntent();
   await signInWithPassword(email, password);
 };
 
@@ -94,6 +107,7 @@ export const submitCloudPasswordRegistration = async (
   signUpWithPassword: CloudAuthController['signUpWithPassword'],
   redirectTo?: string
 ): Promise<void> => {
+  markOnboardingIntent();
   if (!redirectTo) markPendingAppAuthRedirect();
   redirectTo ??= getAppAuthRedirectUrl();
   await signUpWithPassword(email, password, redirectTo);
@@ -103,6 +117,7 @@ export const submitCloudGoogleSignIn = async (
   signInWithGoogle: CloudAuthController['signInWithGoogle'],
   redirectTo?: string
 ): Promise<void> => {
+  markOnboardingIntent();
   if (!redirectTo) markPendingAppAuthRedirect();
   redirectTo ??= getAppAuthRedirectUrl();
   await signInWithGoogle(redirectTo);
@@ -125,7 +140,7 @@ export const buildAccountBootstrapInput = (
   deviceId: getOrCreateCloudDeviceId(),
   deviceLabel: typeof navigator === 'undefined' ? 'Dumala web session' : navigator.userAgent.slice(0, 120),
   appVersion,
-  displayName: state.session.email,
+  displayName: state.session.displayName ?? state.session.email,
   now: new Date()
 });
 

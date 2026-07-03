@@ -6,6 +6,8 @@ export interface CloudAuthSession {
   email?: string;
   lastSignInAt?: string;
   assuranceLevel?: string | null;
+  displayName?: string;
+  avatarUrl?: string;
 }
 
 export interface MfaFactor {
@@ -83,6 +85,11 @@ export const toCloudAuthState = (session: Session | null): AuthState => {
   if (!user) return { status: 'signedOut' };
   const claims = parseJwtPayload(session.access_token);
   const assuranceLevel = typeof claims?.aal === 'string' ? claims.aal : null;
+  const metadata = user.user_metadata ?? {};
+  const displayName = [metadata.full_name, metadata.name, metadata.display_name]
+    .find(value => typeof value === 'string' && value.trim().length > 0) as string | undefined;
+  const avatarUrl = [metadata.avatar_url, metadata.picture]
+    .find(value => typeof value === 'string' && value.trim().length > 0) as string | undefined;
 
   return {
     status: 'signedIn',
@@ -90,7 +97,9 @@ export const toCloudAuthState = (session: Session | null): AuthState => {
       userId: user.id,
       email: user.email,
       lastSignInAt: user.last_sign_in_at,
-      assuranceLevel
+      assuranceLevel,
+      displayName,
+      avatarUrl
     }
   };
 };
