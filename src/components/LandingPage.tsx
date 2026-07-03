@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { BarChart3, BrainCircuit, CalendarDays, CloudSun, Dumbbell, FileText, Presentation, ShieldCheck, Users } from 'lucide-react';
-import AetherFlowHero, { AetherFlowParticles } from './ui/aether-flow-hero';
+import AetherFlowHero, { AetherFlowBackdrop } from './ui/aether-flow-hero';
 import { GlowingEffect } from './ui/glowing-effect';
 
 const steps = [
@@ -181,20 +181,7 @@ export default function LandingPage() {
       <style dangerouslySetInnerHTML={{ __html: styles }} />
 
       {/* ambient background */}
-      <div aria-hidden="true" style={{ position: 'fixed', inset: 0, zIndex: 0, pointerEvents: 'none', overflow: 'hidden' }}>
-        <div style={{ position: 'absolute', left: '50%', top: '-24rem', width: '76rem', height: '46rem', transform: 'translateX(-50%)', borderRadius: '50%', background: 'rgba(255,138,61,.07)', filter: 'blur(120px)' }} />
-        <AetherFlowParticles />
-        <div
-          style={{
-            position: 'absolute',
-            inset: 0,
-            backgroundImage: 'linear-gradient(rgba(148,163,184,.045) 1px,transparent 1px),linear-gradient(90deg,rgba(148,163,184,.045) 1px,transparent 1px)',
-            backgroundSize: '76px 76px',
-            WebkitMaskImage: 'radial-gradient(ellipse 62% 52% at 50% 0%,black,transparent)',
-            maskImage: 'radial-gradient(ellipse 62% 52% at 50% 0%,black,transparent)'
-          }}
-        />
-      </div>
+      <AetherFlowBackdrop className="fixed inset-0 z-0" />
 
       {/* header */}
       <header style={{ position: 'fixed', left: 0, right: 0, top: 0, zIndex: 40, borderBottom: '1px solid rgba(255,255,255,.06)', background: 'rgba(4,9,26,.78)', backdropFilter: 'blur(18px)', WebkitBackdropFilter: 'blur(18px)' }}>
@@ -217,15 +204,15 @@ export default function LandingPage() {
         {/* HERO — Aether Flow particle network in the brand palette */}
         <section style={{ position: 'relative' }}>
           <AetherFlowHero
-            badge="Private beta — shaped with real coaches"
+            badge="The team management app for football coaches"
             title={
               <>
-                <span style={{ background: 'linear-gradient(180deg,#fff,rgba(255,255,255,.62))', WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent' }}>Run your team like a</span>
+                <span style={{ background: 'linear-gradient(180deg,#fff,rgba(255,255,255,.62))', WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent' }}>One app to manage</span>
                 <br />
-                <span style={{ background: 'linear-gradient(180deg,#FFB37E,#FF8A3D)', WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent' }}>professional academy.</span>
+                <span style={{ background: 'linear-gradient(180deg,#FFB37E,#FF8A3D)', WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent' }}>your entire team.</span>
               </>
             }
-            description="Plan the week, prepare match day, and build player-development records that prove your coaching works — without living in chats and spreadsheets."
+            description="Roster, schedule, tactics, and player development — connected in one workspace, not scattered across chats and spreadsheets."
             actions={
               <>
                 <a href="#/app" className="dc-cta-primary">Start free →</a>
@@ -269,7 +256,7 @@ export default function LandingPage() {
             <div data-reveal="1" style={{ maxWidth: 640, margin: '0 auto', textAlign: 'center', opacity: 1 }}>
               <p style={{ margin: 0, fontSize: 11, fontWeight: 700, letterSpacing: '.22em', textTransform: 'uppercase', color: '#FF9E5E' }}>Inside the app</p>
               <h2 style={{ fontFamily: "'Manrope', sans-serif", fontWeight: 800, letterSpacing: '-.03em', fontSize: 'clamp(1.9rem,3.4vw,2.6rem)', lineHeight: 1.15, margin: '16px 0 0', color: '#F5F7FB' }}>The tools doing the heavy lifting.</h2>
-              <p style={{ margin: '16px auto 0', fontSize: 15.5, lineHeight: 1.7, color: '#8A96AD' }}>Not a spreadsheet with a crest — a coaching toolkit built around how football weeks actually run.</p>
+              <p style={{ margin: '16px auto 0', fontSize: 15.5, lineHeight: 1.7, color: '#8A96AD' }}>Every tool works from the same connected team data — plan the week, prepare match day, and develop players without leaving the app.</p>
             </div>
 
             <div style={{ marginTop: 48, display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(min(300px,100%),1fr))', gap: 14 }}>
@@ -383,7 +370,7 @@ export default function LandingPage() {
             <div data-reveal="1" style={{ maxWidth: 640, margin: '0 auto', textAlign: 'center', opacity: 1 }}>
               <p style={{ margin: 0, fontSize: 11, fontWeight: 700, letterSpacing: '.22em', textTransform: 'uppercase', color: '#FF9E5E' }}>Why Dumala</p>
               <h2 style={{ fontFamily: "'Manrope', sans-serif", fontWeight: 800, letterSpacing: '-.03em', fontSize: 'clamp(1.9rem,3.4vw,2.6rem)', lineHeight: 1.15, margin: '16px 0 0', color: '#F5F7FB' }}>More clarity before every session and match.</h2>
-              <p style={{ margin: '16px auto 0', fontSize: 15.5, lineHeight: 1.7, color: '#8A96AD' }}>Every feature exists to hand you back hours between sessions — and turn them into visible player development.</p>
+              <p style={{ margin: '16px auto 0', fontSize: 15.5, lineHeight: 1.7, color: '#8A96AD' }}>When your team's information lives in one place, every decision starts with the full picture — and your hours go into coaching, not admin.</p>
             </div>
 
             <div style={{ marginTop: 42, display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(min(300px,100%),1fr))', gap: 14 }}>
@@ -447,7 +434,7 @@ export default function LandingPage() {
                 <img src="/Dumala_logo.png" alt="" style={{ width: 32, height: 32, objectFit: 'contain' }} />
                 <span style={{ fontFamily: "'Manrope', sans-serif", fontWeight: 800, fontSize: 17 }}>Dumala</span>
               </a>
-              <p style={{ margin: '14px 0 0', maxWidth: 330, fontSize: 13.5, lineHeight: 1.7, color: '#8A96AD' }}>A local-first football coaching workspace for planning sessions, preparing match day, and proving player development.</p>
+              <p style={{ margin: '14px 0 0', maxWidth: 330, fontSize: 13.5, lineHeight: 1.7, color: '#8A96AD' }}>The football coaching app that connects your team's information — planning, match preparation, and player development in one workspace.</p>
               <p style={{ margin: '16px 0 0', fontSize: 11, fontWeight: 800, letterSpacing: '.16em', textTransform: 'uppercase', color: '#FF9E5E' }}>Private beta now open</p>
             </div>
 

@@ -1,12 +1,15 @@
-import React, { type CSSProperties, useState } from 'react';
+import React, { useState } from 'react';
 import { ArrowRight, CheckCircle, Cloud, Flag, MapPin, User } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import type { AccountBootstrapResult } from '../cloud/account';
 import type { CloudRuntime } from '../cloud/runtime';
 import type { CloudAuthController } from '../hooks/useCloudAuth';
+import { ORANGE_NEW_CLASSES, ORANGE_NEW_GLOW_PROPS } from '../theme/orangeNewTheme';
 import { StaffMember, TeamInfo } from '../types';
 import CloudAccountGate from './CloudAccountGate';
+import { AetherFlowBackdrop } from './ui/aether-flow-hero';
 import { Button } from './ui/button';
+import { GlowingEffect } from './ui/glowing-effect';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
 import {
@@ -38,64 +41,45 @@ export function OnboardingCloudAccountEntry({
   onCloudWorkspaceReady?: (result: AccountBootstrapResult) => void;
 }) {
   return (
-    <section aria-labelledby="onboarding-cloud-account-title" className="rounded-2xl border border-cyan-300/10 bg-white/[0.022] p-3 shadow-lg shadow-black/15">
-      <div className="grid gap-3 md:grid-cols-[minmax(0,0.9fr)_minmax(16rem,0.92fr)] md:items-center">
-        <div>
-          <div className="flex items-center gap-2">
-            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-cyan-300/15 bg-cyan-300/[0.06] text-cyan-200">
-              <Cloud size={13} aria-hidden="true" />
-            </span>
-            <h2 id="onboarding-cloud-account-title" className="text-sm font-black text-slate-100">
-              Start with Dumala Cloud
-            </h2>
+    <section aria-labelledby="onboarding-cloud-account-title" className={ORANGE_NEW_CLASSES.glowShellTight}>
+      <GlowingEffect {...ORANGE_NEW_GLOW_PROPS.shellTight} />
+      <div className={`${ORANGE_NEW_CLASSES.glowCardTight} p-3`}>
+        <div className="grid gap-3 md:grid-cols-[minmax(0,0.9fr)_minmax(16rem,0.92fr)] md:items-center">
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-orange-300/15 bg-orange-300/[0.08] text-orange-200">
+                <Cloud size={13} aria-hidden="true" />
+              </span>
+              <h2 id="onboarding-cloud-account-title" className="text-sm font-black text-slate-100">
+                Start with Dumala Cloud
+              </h2>
+            </div>
+            <p className="mt-2 max-w-sm text-[11px] leading-5 text-slate-400">
+              Google is the fastest way to create or access your private coach account. You can still continue locally below.
+            </p>
           </div>
-          <p className="mt-2 max-w-sm text-[11px] leading-5 text-slate-400">
-            Google is the fastest way to create or access your private coach account. You can still continue locally below.
-          </p>
+          {runtime.enabled ? (
+            <CloudAccountGate
+              appVersion="0.0.0"
+              bootstrapAccount
+              tone="dark"
+              runtime={runtime}
+              authController={authController}
+              onBootstrapComplete={onCloudWorkspaceReady}
+            />
+          ) : (
+            <div role="status" className="rounded-md border border-amber-300/15 bg-amber-300/[0.055] px-2.5 py-1.5 text-[9.5px] font-semibold leading-4 text-amber-100/80">
+              Cloud registration is unavailable in this build. Local workspace setup remains available.
+            </div>
+          )}
         </div>
-        {runtime.enabled ? (
-          <CloudAccountGate
-            appVersion="0.0.0"
-            bootstrapAccount
-            tone="dark"
-            runtime={runtime}
-            authController={authController}
-            onBootstrapComplete={onCloudWorkspaceReady}
-          />
-        ) : (
-          <div role="status" className="rounded-md border border-amber-300/15 bg-amber-300/[0.055] px-2.5 py-1.5 text-[9.5px] font-semibold leading-4 text-amber-100/80">
-            Cloud registration is unavailable in this build. Local workspace setup remains available.
-          </div>
-        )}
       </div>
     </section>
   );
 }
 
-function InteractiveOnboardingBackdrop({ pointer }: { pointer: { x: number; y: number } }) {
-  return (
-    <div
-      aria-hidden="true"
-      className="absolute inset-0 overflow-hidden"
-      style={{
-        '--pointer-x': `${pointer.x}%`,
-        '--pointer-y': `${pointer.y}%`
-      } as CSSProperties}
-    >
-      <div className="absolute inset-0 bg-[#020713]" />
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_var(--pointer-x)_var(--pointer-y),rgba(34,211,238,0.24),transparent_26rem),radial-gradient(circle_at_18%_18%,rgba(249,115,22,0.22),transparent_23rem),linear-gradient(135deg,#020713_0%,#051325_48%,#041511_100%)] transition-[background] duration-300" />
-      <div className="absolute left-1/2 top-1/2 h-[78vmin] w-[78vmin] -translate-x-1/2 -translate-y-1/2 rounded-full border border-cyan-300/10 bg-[conic-gradient(from_160deg,transparent,rgba(56,189,248,0.18),transparent,rgba(249,115,22,0.18),transparent)] opacity-70 blur-[1px]" />
-      <div className="absolute inset-x-[-10%] bottom-[-28%] h-[58%] rotate-[-4deg] border-t border-emerald-300/20 bg-[linear-gradient(rgba(34,197,94,0.12)_1px,transparent_1px),linear-gradient(90deg,rgba(34,197,94,0.12)_1px,transparent_1px)] bg-[size:4.5rem_4.5rem] [transform-origin:center]" />
-      <div className="absolute left-[calc(var(--pointer-x)-9rem)] top-[calc(var(--pointer-y)-9rem)] h-72 w-72 rounded-full border border-cyan-200/15 bg-cyan-300/10 blur-2xl transition-all duration-300" />
-      <div className="absolute right-6 top-8 hidden h-52 w-52 rounded-full border border-orange-300/10 lg:block" />
-      <div className="absolute bottom-8 left-8 hidden h-36 w-36 rounded-full border border-emerald-300/10 lg:block" />
-    </div>
-  );
-}
-
 export default function OnboardingView({ onComplete, cloudRuntime, cloudAuthController, onCloudWorkspaceReady }: OnboardingViewProps) {
   const [step, setStep] = useState<1 | 2>(1);
-  const [pointer, setPointer] = useState({ x: 58, y: 42 });
 
   const [teamName, setTeamName] = useState('');
   const [stadium, setStadium] = useState('');
@@ -134,18 +118,8 @@ export default function OnboardingView({ onComplete, cloudRuntime, cloudAuthCont
   };
 
   return (
-    <div
-      className="relative h-dvh overflow-hidden bg-[#020713] font-sans text-slate-100 selection:bg-orange-400/30"
-      onPointerMove={(event) => {
-        const bounds = event.currentTarget.getBoundingClientRect();
-        setPointer({
-          x: ((event.clientX - bounds.left) / bounds.width) * 100,
-          y: ((event.clientY - bounds.top) / bounds.height) * 100
-        });
-      }}
-      onPointerLeave={() => setPointer({ x: 58, y: 42 })}
-    >
-      <InteractiveOnboardingBackdrop pointer={pointer} />
+    <div className={`h-dvh ${ORANGE_NEW_CLASSES.accessShell}`}>
+      <AetherFlowBackdrop className="absolute inset-0 z-0" />
       <a
         href="#landing"
         className="fixed left-4 top-4 z-40 rounded-lg border border-white/10 bg-white/[0.07] px-3 py-2 text-xs font-bold text-slate-200 shadow-lg shadow-black/20 backdrop-blur-md transition hover:bg-white/[0.12] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-300/40"
@@ -154,7 +128,9 @@ export default function OnboardingView({ onComplete, cloudRuntime, cloudAuthCont
       </a>
       <main className="relative z-10 flex h-full min-h-0 items-center justify-center p-3 sm:p-4 lg:p-6">
         <section className="flex min-h-0 w-full max-w-3xl items-center justify-center">
-          <div className="flex max-h-full w-full flex-col overflow-hidden rounded-[1.85rem] border border-white/10 bg-[#07111f]/90 p-5 shadow-2xl shadow-black/45 backdrop-blur-xl sm:p-6">
+          <div className={`max-h-full w-full ${ORANGE_NEW_CLASSES.glowShell}`}>
+          <GlowingEffect {...ORANGE_NEW_GLOW_PROPS.shell} />
+          <div className="relative z-10 flex max-h-full w-full flex-col overflow-hidden rounded-[1.6rem] border border-white/10 bg-[#07111f]/90 p-5 shadow-2xl shadow-black/45 backdrop-blur-xl sm:p-6">
             <div className="mb-5 text-center">
               <img
                 src="/Dumala_logo.png"
@@ -260,7 +236,7 @@ export default function OnboardingView({ onComplete, cloudRuntime, cloudAuthCont
                       onClick={handleNext}
                       disabled={!teamName.trim()}
                       size="lg"
-                      className="h-10 rounded-xl bg-orange-400 px-4 text-sm font-black text-slate-950 shadow-lg shadow-orange-500/20 hover:bg-orange-300 active:scale-[0.98]"
+                      className={ORANGE_NEW_CLASSES.ctaPrimaryButton}
                     >
                       Confirm Identity <ArrowRight size={16} />
                     </Button>
@@ -385,7 +361,7 @@ export default function OnboardingView({ onComplete, cloudRuntime, cloudAuthCont
                       onClick={generateTeam}
                       disabled={!mgrName.trim()}
                       size="lg"
-                      className="h-10 rounded-xl bg-orange-400 px-4 text-sm font-black text-slate-950 shadow-lg shadow-orange-500/20 hover:bg-orange-300 active:scale-[0.98]"
+                      className={ORANGE_NEW_CLASSES.ctaPrimaryButton}
                     >
                       Enter Workspace <CheckCircle size={16} />
                     </Button>
@@ -393,6 +369,7 @@ export default function OnboardingView({ onComplete, cloudRuntime, cloudAuthCont
                 </motion.div>
               )}
             </AnimatePresence>
+          </div>
           </div>
         </section>
       </main>
