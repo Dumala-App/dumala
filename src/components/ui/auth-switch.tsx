@@ -128,6 +128,7 @@ export function AuthSwitch({
   const isCreateMode = mode === 'create';
   const isSignInMode = mode === 'signIn';
   const isLinkMode = mode === 'link';
+  const isSignInChoice = isSignInMode || isLinkMode;
   const formTitle = isCreateMode ? 'Create account' : isSignInMode ? 'Sign in with email' : 'Email sign-in link';
   const helperTone = submitState === 'error' || authController?.state.status === 'error' ? 'text-rose-300' : 'text-emerald-200';
 
@@ -202,74 +203,67 @@ export function AuthSwitch({
         className
       )}
     >
-      <div className="grid gap-4 lg:grid-cols-[minmax(0,0.88fr)_minmax(18rem,1fr)]">
-        <div className="rounded-2xl border border-white/10 bg-[#050b14]/58 p-4">
-          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-orange-300">
-            {returning ? 'Welcome back' : 'Account first'}
-          </p>
-          <h2 className="mt-2 font-display text-2xl font-black leading-tight text-white">
-            {returning ? 'Welcome back' : 'Create your account'}
-          </h2>
-          <p className="mt-2 text-sm font-semibold leading-6 text-slate-400">
-            {returning
-              ? 'Sign in to reopen setup or restore your saved Dumala workspace.'
-              : 'Create a Dumala account first, then set up your club identity and offline-ready workspace.'}
-          </p>
-
-          <div className="mt-5 grid gap-2">
-            <button
-              type="button"
-              onClick={() => resetMode('create')}
-              aria-pressed={isCreateMode}
-              className={cn(
-                'rounded-xl border p-3 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-300/45',
-                isCreateMode
-                  ? 'border-orange-300/50 bg-orange-300/[0.1] text-orange-100 shadow-lg shadow-orange-950/15'
-                  : 'border-white/10 bg-white/[0.035] text-slate-300 hover:border-orange-300/25 hover:bg-orange-300/[0.06]'
-              )}
-            >
-              <span className="block text-sm font-black">Create Account</span>
-              <span className="mt-1 block text-xs font-semibold leading-5 text-slate-400">New account with Google or email.</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => resetMode('signIn')}
-              aria-pressed={isSignInMode}
-              className={cn(
-                'rounded-xl border p-3 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/45',
-                isSignInMode
-                  ? 'border-cyan-300/45 bg-cyan-300/[0.09] text-cyan-100 shadow-lg shadow-cyan-950/15'
-                  : 'border-white/10 bg-white/[0.035] text-slate-300 hover:border-cyan-300/25 hover:bg-cyan-300/[0.06]'
-              )}
-            >
-              <span className="block text-sm font-black">Sign in</span>
-              <span className="mt-1 block text-xs font-semibold leading-5 text-slate-400">Already have a Dumala account.</span>
-            </button>
-          </div>
+      <div className="grid gap-3">
+        <div className="grid gap-2 sm:grid-cols-2" role="tablist" aria-label="Choose account access">
+          <button
+            type="button"
+            onClick={() => resetMode('create')}
+            aria-pressed={isCreateMode}
+            className={cn(
+              'min-h-[5.5rem] rounded-2xl border p-4 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-300/45',
+              isCreateMode
+                ? 'border-orange-300/60 bg-orange-300/[0.12] text-orange-100 shadow-lg shadow-orange-950/20'
+                : 'border-white/10 bg-[#050b14]/62 text-slate-300 hover:border-orange-300/25 hover:bg-orange-300/[0.06]'
+            )}
+          >
+            <span className="block text-base font-black">Create Account</span>
+            <span className="mt-1 block text-xs font-semibold leading-5 text-slate-400">Start a new Dumala account with email.</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => resetMode('signIn')}
+            aria-pressed={isSignInChoice}
+            className={cn(
+              'min-h-[5.5rem] rounded-2xl border p-4 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/45',
+              isSignInChoice
+                ? 'border-cyan-300/50 bg-cyan-300/[0.1] text-cyan-100 shadow-lg shadow-cyan-950/20'
+                : 'border-white/10 bg-[#050b14]/62 text-slate-300 hover:border-cyan-300/25 hover:bg-cyan-300/[0.06]'
+            )}
+          >
+            <span className="block text-base font-black">Sign in</span>
+            <span className="mt-1 block text-xs font-semibold leading-5 text-slate-400">Return with Google, email, or a secure link.</span>
+          </button>
         </div>
 
-        <div className="rounded-2xl border border-cyan-300/15 bg-[#050b14]/86 p-4 shadow-xl shadow-black/20">
-          <div className="rounded-xl border border-white/10 bg-white/[0.035] p-3">
-            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">Google account</p>
-            <Button
-              type="button"
-              onClick={() => void handleGoogle()}
-              disabled={submitState === 'sending'}
-              className="mt-2 h-11 w-full rounded-xl bg-white text-sm font-black text-slate-950 shadow-lg shadow-cyan-950/20 hover:bg-cyan-50 disabled:bg-slate-600 disabled:text-slate-300"
-            >
-              {submitState === 'sending' ? (
-                <span className="inline-flex items-center gap-2"><Loader2 size={15} className="animate-spin" aria-hidden="true" />Connecting</span>
-              ) : (
-                'Continue with Google'
-              )}
-            </Button>
-          </div>
+        <div className={cn(
+          'rounded-2xl border bg-[#050b14]/86 p-4 shadow-xl shadow-black/20',
+          isCreateMode ? 'border-orange-300/18' : 'border-cyan-300/15'
+        )}>
+          {isSignInChoice && (
+            <>
+              <div className="rounded-xl border border-white/10 bg-white/[0.035] p-3">
+                <p className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">Google account</p>
+                <Button
+                  type="button"
+                  onClick={() => void handleGoogle()}
+                  disabled={submitState === 'sending'}
+                  className="mt-2 h-11 w-full rounded-xl bg-white text-sm font-black text-slate-950 shadow-lg shadow-cyan-950/20 hover:bg-cyan-50 disabled:bg-slate-600 disabled:text-slate-300"
+                >
+                  {submitState === 'sending' ? (
+                    <span className="inline-flex items-center gap-2"><Loader2 size={15} className="animate-spin" aria-hidden="true" />Connecting</span>
+                  ) : (
+                    'Continue with Google'
+                  )}
+                </Button>
+              </div>
 
-          <div className="my-4 flex items-center gap-3 text-[10px] font-black uppercase tracking-[0.18em] text-slate-500">
-            <span className="h-px flex-1 bg-white/10" />
-            Email
-            <span className="h-px flex-1 bg-white/10" />
-          </div>
+              <div className="my-4 flex items-center gap-3 text-[10px] font-black uppercase tracking-[0.18em] text-slate-500">
+                <span className="h-px flex-1 bg-white/10" />
+                Email
+                <span className="h-px flex-1 bg-white/10" />
+              </div>
+            </>
+          )}
 
           {isLinkMode ? (
             <form onSubmit={handleLinkSubmit} className="grid gap-3">
@@ -295,7 +289,7 @@ export function AuthSwitch({
               <div>
                 <h3 className="text-base font-black text-slate-100">{formTitle}</h3>
                 <p className="mt-1 text-xs font-semibold leading-5 text-slate-500">
-                  {isCreateMode ? 'Use email if you prefer not to continue with Google.' : 'Use the email and password attached to your Dumala account.'}
+                  {isCreateMode ? 'Create your cloud account first. Club setup comes next.' : 'Use the email and password attached to your Dumala account.'}
                 </p>
               </div>
               <div className="grid gap-1.5">
@@ -342,15 +336,17 @@ export function AuthSwitch({
             </form>
           )}
 
+          {isSignInChoice && (
           <div className="mt-4 border-t border-white/[0.08] pt-3">
             <button
               type="button"
-              onClick={() => resetMode(isLinkMode ? (returning ? 'signIn' : 'create') : 'link')}
+              onClick={() => resetMode(isLinkMode ? 'signIn' : 'link')}
               className="w-full rounded-xl px-3 py-2 text-xs font-black text-slate-400 transition hover:bg-white/[0.05] hover:text-cyan-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/40"
             >
               {isLinkMode ? 'Use password instead' : 'Send a passwordless email link'}
             </button>
           </div>
+          )}
 
           {message && <p className={cn('mt-3 text-[11px] font-semibold leading-5', helperTone)}>{message}</p>}
           {authController?.state.status === 'error' && <p className="mt-3 text-[11px] font-semibold leading-5 text-rose-300">{authController.state.message}</p>}
