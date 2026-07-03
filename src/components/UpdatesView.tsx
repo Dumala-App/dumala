@@ -4,6 +4,7 @@ import { Button } from './ui/button';
 
 export default function UpdatesView() {
   const [openEntries, setOpenEntries] = useState<Record<string, boolean>>({
+    landing_page_saas_launch_routing: true,
     july_product_coaching_overhaul: true,
     major_cloud_and_product_milestone: true,
     assessment_feedback_reports_and_polish: true,
@@ -45,6 +46,7 @@ export default function UpdatesView() {
     'Offline Ready': 'border-purple-400/40 bg-purple-400/15 text-purple-100',
     'Core Workflow': 'border-green-400/40 bg-green-400/15 text-green-100',
     'FPRDS Vision': 'border-yellow-400/40 bg-yellow-400/15 text-yellow-100',
+    'Go To Market': 'border-pink-400/40 bg-pink-400/15 text-pink-100',
     Roadmap: 'border-slate-400/40 bg-slate-400/15 text-slate-100'
   };
 
@@ -52,6 +54,77 @@ export default function UpdatesView() {
     changelogBadgeStyles[badge] ?? 'border-slate-400/40 bg-slate-400/15 text-slate-100';
 
   const changelogEntries = [
+    {
+      id: 'landing_page_saas_launch_routing',
+      date: '2026-07-03',
+      title: 'Coach-First Landing Page, SaaS Positioning, and App Launch Routing',
+      badge: 'Go To Market',
+      summary: 'Dumala now has a public coach-facing landing page with simple Free and Premium pricing, a dedicated app route separated from the marketing site, an installed app that opens straight into the workspace, and cloud sign-in that returns cleanly to the coach app.',
+      accent: 'border-pink-400/20 bg-slate-950/90 text-slate-100',
+      renderContent: () => (
+        <div className="space-y-4">
+          <p className="text-sm text-slate-300 leading-relaxed">
+            This update begins Dumala&apos;s go-to-market pass. The product now presents a clear public story for coaches, keeps the marketing page separate from the working app, and makes signing in and installing feel like a real product rather than a single-page prototype.
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {[
+              {
+                icon: Megaphone,
+                title: 'Coach-first landing page',
+                desc: 'A new public landing page leads with weekly admin relief, match-week preparation, and clearer player development, positioning Dumala as the coach\'s weekly command center.'
+              },
+              {
+                icon: TrendingUp,
+                title: 'Simple two-choice pricing',
+                desc: 'Pricing is packaged as two clear options — Free while in beta and a Premium monthly subscription — with Coach, Club, and Academy value framed inside Premium instead of separate visible tiers.'
+              },
+              {
+                icon: Hash,
+                title: 'Dedicated app route',
+                desc: 'The coach workspace now lives on its own #/app route, cleanly separated from the marketing landing page so the two experiences no longer share the same entry point.'
+              },
+              {
+                icon: Download,
+                title: 'Installed app opens into the workspace',
+                desc: 'The installable app now launches directly into the coaching workspace instead of the marketing page, so an installed copy behaves like a dedicated coaching tool.'
+              },
+              {
+                icon: Cloud,
+                title: 'Cleaner cloud sign-in return',
+                desc: 'Google and email sign-in redirects now return coaches straight back into the app after authenticating, so cloud sign-in no longer strands users on the wrong route.'
+              },
+              {
+                icon: FlaskConical,
+                title: 'Stronger daily training prep',
+                desc: 'The training dashboard daily-prep view was upgraded with clearer session context so coaches get more useful match-week and training-day guidance at a glance.'
+              },
+              {
+                icon: Target,
+                title: 'Launch configuration and cleanup',
+                desc: 'A repeatable launch configuration was added for running the app, offline verification now checks the dedicated app route, and an unused pricing card was removed to keep the offer focused.'
+              }
+            ].map(item => {
+              const Icon = item.icon;
+
+              return (
+                <div key={item.title} className="rounded-xl border border-pink-400/20 bg-slate-900/80 p-4 shadow-sm shadow-black/20">
+                  <div className="mb-2 flex items-center gap-2">
+                    <span className="flex h-8 w-8 items-center justify-center rounded-lg border border-pink-400/30 bg-pink-400/10 text-pink-200">
+                      <Icon size={16} aria-hidden="true" />
+                    </span>
+                    <h5 className="text-xs font-black uppercase tracking-wider text-pink-100">{item.title}</h5>
+                  </div>
+                  <p className="text-xs text-slate-400 leading-relaxed">{item.desc}</p>
+                </div>
+              );
+            })}
+          </div>
+          <p className="rounded-xl border border-pink-400/20 bg-pink-400/10 p-3 text-xs font-semibold leading-relaxed text-pink-100">
+            The subscription story is being validated, not locked in. Dumala stays free during beta while we confirm whether coaches will pay for weekly time savings before any club-scale pricing is introduced.
+          </p>
+        </div>
+      )
+    },
     {
       id: 'july_product_coaching_overhaul',
       date: '2026-07-01',
@@ -1134,6 +1207,23 @@ export default function UpdatesView() {
               completion: 'A club can manage multiple squads and seasons from one organized workspace.',
               color: 'border-l-rose-400 bg-rose-400/10',
               badge: 'border-rose-400/30 bg-rose-400/15 text-rose-100'
+            },
+            {
+              phase: 'Commercial Validation',
+              status: 'In Progress',
+              objective: 'Commercial validation and SaaS packaging',
+              deliverables: [
+                'Lead the public offer with weekly admin relief, match-week preparation, and clearer player development.',
+                'Package pricing as two clear choices: Free during beta and a Premium monthly subscription, with Coach, Club, and Academy value framed inside Premium.',
+                'Validate whether solo coaches will pay roughly USD 9-15 per month before introducing any future club-scale pricing.',
+                'Build a first-week success flow that gets a coach to value after adding 8-12 players and one upcoming match.',
+                'Prepare a demo/sample workspace so coaches can evaluate the product before full setup.',
+                'Recruit 10-20 real coaches or clubs for private beta feedback, activation tracking, and willingness-to-pay interviews.'
+              ],
+              benefit: 'Dumala earns a tested subscription story and real coach feedback before paid packaging is treated as validated.',
+              completion: 'A coach-facing pitch, a simple first offer, and real activation and willingness-to-pay feedback are in place.',
+              color: 'border-l-pink-400 bg-pink-400/10',
+              badge: 'border-pink-400/30 bg-pink-400/15 text-pink-100'
             }
           ].map((item) => (
             <div key={item.phase} className={`rounded-r-xl border border-l-4 border-slate-800 ${item.color} p-4 shadow-sm shadow-black/20 md:p-5 space-y-4`}>

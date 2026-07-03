@@ -1,6 +1,6 @@
 # Dumala Product Roadmap
 
-Updated: 2026-07-02
+Updated: 2026-07-03
 
 ## Source of truth
 
@@ -153,13 +153,16 @@ A club can manage multiple squads and seasons from one organized workspace.
 
 ## Commercial validation and SaaS packaging
 
-Status: **Next**
+Status: **In Progress**
+
+### Delivered
+
+- Shipped a coach-facing landing page that leads with weekly admin relief, match-week preparation, and clearer player development.
+- Packaged the public offer as two choices: Free during beta and a Premium monthly subscription, with Coach, Club, and Academy value framed inside Premium rather than as separate visible tiers.
+- Separated the marketing landing page from the coach workspace with a dedicated `#/app` route, made the installed app open straight into the workspace, and returned cloud sign-in redirects cleanly to the app.
 
 ### Planned deliverables
 
-- Create a coach-facing one-page pitch that leads with weekly admin relief, match-week preparation, and clearer player development.
-- Package the public offer as two choices: Free and Premium monthly subscription.
-- Use Coach, Club, and Academy language as value-positioning segments inside Premium, not as separate visible subscription choices.
 - Validate whether solo coaches will pay roughly USD 9-15 per month before introducing any future club-scale pricing.
 - Build a first-week success flow that gets a coach to value after adding 8-12 players and one upcoming match.
 - Prepare a demo/sample workspace so coaches can evaluate the product before doing full setup.

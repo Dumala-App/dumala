@@ -209,7 +209,7 @@ export default function LandingPage() {
             <button type="button" onClick={() => scrollToId('pricing')} className="dc-nav-link">Pricing</button>
             <button type="button" onClick={() => scrollToId('fit')} className="dc-nav-link">Why Dumala</button>
           </nav>
-          <a href="#/" className="dc-openapp">Open app</a>
+          <a href="#/app" className="dc-openapp">Open app</a>
         </div>
       </header>
 
@@ -228,7 +228,7 @@ export default function LandingPage() {
             description="Plan the week, prepare match day, and build player-development records that prove your coaching works — without living in chats and spreadsheets."
             actions={
               <>
-                <a href="#/" className="dc-cta-primary">Start free →</a>
+                <a href="#/app" className="dc-cta-primary">Start free →</a>
                 <button type="button" onClick={() => scrollToId('pricing')} className="dc-cta-secondary">See pricing</button>
               </>
             }
@@ -331,7 +331,7 @@ export default function LandingPage() {
                     <span style={{ fontFamily: "'Manrope', sans-serif", fontWeight: 800, fontSize: 44, letterSpacing: '-.03em', color: '#F5F7FB' }}>₱0</span>
                   </div>
                   <span style={{ fontSize: 12, color: '#5C6880' }}>forever, while in beta</span>
-                  <a href="#/" className="dc-startfree" style={{ marginTop: 16 }}>Start free</a>
+                  <a href="#/app" className="dc-startfree" style={{ marginTop: 16 }}>Start free</a>
                   <div aria-hidden="true" style={{ marginTop: 16, width: 110, height: 26, background: 'repeating-linear-gradient(90deg,rgba(221,228,239,.35) 0 2px,transparent 2px 5px,rgba(221,228,239,.35) 5px 6px,transparent 6px 10px)', borderRadius: 2, opacity: 0.5 }} />
                 </div>
               </article>
@@ -369,7 +369,7 @@ export default function LandingPage() {
                     <span style={{ fontFamily: "'Manrope', sans-serif", fontWeight: 800, fontSize: 44, letterSpacing: '-.03em', color: '#F5F7FB' }}>₱499</span>
                   </div>
                   <span style={{ fontSize: 12, color: '#8A96AD' }}>per month · <span style={{ textDecoration: 'line-through', color: '#5C6880' }}>₱800</span> early-bird</span>
-                  <a href="#/" className="dc-joinbeta" style={{ marginTop: 16 }}>Join the beta list</a>
+                  <a href="#/app" className="dc-joinbeta" style={{ marginTop: 16 }}>Join the beta list</a>
                   <div aria-hidden="true" style={{ marginTop: 16, width: 110, height: 26, background: 'repeating-linear-gradient(90deg,rgba(255,179,126,.5) 0 2px,transparent 2px 5px,rgba(255,179,126,.5) 5px 6px,transparent 6px 10px)', borderRadius: 2, opacity: 0.6 }} />
                 </div>
               </article>
@@ -417,7 +417,7 @@ export default function LandingPage() {
                   <h2 style={{ fontFamily: "'Manrope', sans-serif", fontWeight: 800, letterSpacing: '-.03em', fontSize: 'clamp(1.9rem,3.6vw,2.7rem)', lineHeight: 1.12, margin: '16px 0 0', maxWidth: 680, color: '#F5F7FB' }}>Run one real match week in Dumala for free.</h2>
                   <p style={{ margin: '16px 0 0', maxWidth: 600, fontSize: 14.5, lineHeight: 1.75, color: '#B9C2D4' }}>Use Dumala with one team, test the planning rhythm, and upgrade only when the reports and match-week workflow are clearly saving time.</p>
                   <div style={{ marginTop: 28, display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-                    <a href="#/" className="dc-cta-primary">Open Dumala -&gt;</a>
+                    <a href="#/app" className="dc-cta-primary">Open Dumala -&gt;</a>
                     <button type="button" onClick={() => scrollToId('pricing')} className="dc-cta-secondary">Compare plans</button>
                   </div>
                 </div>
@@ -483,7 +483,7 @@ export default function LandingPage() {
           <div style={{ marginTop: 40, paddingTop: 22, borderTop: '1px solid rgba(255,255,255,.06)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
             <p style={{ margin: 0, fontSize: 12, color: '#43506B' }}>© {new Date().getFullYear()} Dumala. Built for coaches.</p>
             <div style={{ display: 'flex', gap: 18, flexWrap: 'wrap' }}>
-              <a href="#/" className="dc-foot-link">Open app</a>
+              <a href="#/app" className="dc-foot-link">Open app</a>
               <button type="button" onClick={goTop} className="dc-foot-link">Back to top</button>
             </div>
           </div>

@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from 'vitest';
 import {
   bootstrapSignedInCloudAccount,
   CloudAccountGate,
+  getAppAuthRedirectUrl,
   submitCloudAccountEmail,
   submitCloudGoogleSignIn,
   submitCloudPasswordRegistration,
@@ -23,6 +24,18 @@ const signedOutAuth = (): CloudAuthController => ({
 });
 
 describe('CloudAccountGate', () => {
+  it('builds app auth redirects without hash routing so OAuth can return to the coach app', () => {
+    vi.stubGlobal('window', {
+      location: {
+        href: 'https://dumala.test/#/app'
+      }
+    });
+
+    expect(getAppAuthRedirectUrl()).toBe('https://dumala.test/?dumalaAuth=app');
+
+    vi.unstubAllGlobals();
+  });
+
   it('renders nothing when cloud runtime is disabled', () => {
     const html = renderToStaticMarkup(
       <CloudAccountGate

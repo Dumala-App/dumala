@@ -10,6 +10,15 @@ import { Input } from './ui/input';
 import { Label } from './ui/label';
 
 const CLOUD_DEVICE_ID_KEY = 'dumala_cloud_device_id';
+const APP_AUTH_CALLBACK_PARAM = 'dumalaAuth';
+
+export const getAppAuthRedirectUrl = (): string | undefined => {
+  if (typeof window === 'undefined') return undefined;
+  const url = new URL(window.location.href);
+  url.searchParams.set(APP_AUTH_CALLBACK_PARAM, 'app');
+  url.hash = '';
+  return url.toString();
+};
 
 export interface CloudAccountGateProps {
   clubName?: string;
@@ -41,7 +50,7 @@ export const getOrCreateCloudDeviceId = (): string => {
 export const submitCloudAccountEmail = async (
   email: string,
   requestOtp: CloudAuthController['requestOtp'],
-  redirectTo = typeof window === 'undefined' ? undefined : window.location.href
+  redirectTo = getAppAuthRedirectUrl()
 ): Promise<void> => {
   await requestOtp(email, redirectTo);
 };
@@ -58,14 +67,14 @@ export const submitCloudPasswordRegistration = async (
   email: string,
   password: string,
   signUpWithPassword: CloudAuthController['signUpWithPassword'],
-  redirectTo = typeof window === 'undefined' ? undefined : window.location.href
+  redirectTo = getAppAuthRedirectUrl()
 ): Promise<void> => {
   await signUpWithPassword(email, password, redirectTo);
 };
 
 export const submitCloudGoogleSignIn = async (
   signInWithGoogle: CloudAuthController['signInWithGoogle'],
-  redirectTo = typeof window === 'undefined' ? undefined : window.location.href
+  redirectTo = getAppAuthRedirectUrl()
 ): Promise<void> => {
   await signInWithGoogle(redirectTo);
 };
