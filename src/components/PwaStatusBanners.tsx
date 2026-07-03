@@ -48,12 +48,14 @@ export default function PwaStatusBanners() {
       )}
 
       {updateAvailable && (
-        <div className="pointer-events-auto rounded-2xl border border-blue-300 bg-blue-50 px-4 py-3 text-blue-950 shadow-xl">
+        <div className="pointer-events-auto rounded-2xl border border-orange-300/35 bg-[#07111f]/95 px-4 py-3 text-slate-100 shadow-2xl shadow-black/35 backdrop-blur-xl">
           <div className="flex items-start gap-3">
-            <RefreshCw size={18} className={`mt-0.5 shrink-0 text-blue-700 ${isUpdating ? 'animate-spin' : ''}`} />
+            <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border border-cyan-300/20 bg-cyan-300/[0.08] text-cyan-200">
+              <RefreshCw size={16} className={isUpdating ? 'animate-spin' : ''} aria-hidden="true" />
+            </span>
             <div className="min-w-0 flex-1">
-              <p className="text-xs font-black uppercase tracking-wide">New Dumala version available</p>
-              <p className="mt-1 text-xs leading-relaxed">
+              <p className="text-xs font-black uppercase tracking-wide text-orange-200">New Dumala version available</p>
+              <p className="mt-1 text-xs leading-relaxed text-slate-400">
                 Your workspace data is preserved. Update when you are ready for one controlled reload.
               </p>
               <div className="mt-3 flex flex-wrap gap-2">
@@ -62,7 +64,7 @@ export default function PwaStatusBanners() {
                   size="sm"
                   onClick={activateUpdate}
                   disabled={isUpdating}
-                  className="h-8 rounded-lg bg-blue-700 text-[11px] font-black text-white hover:bg-blue-600 disabled:cursor-wait"
+                  className="h-8 rounded-lg bg-gradient-to-b from-[#ff9a52] to-[#ff8a3d] px-3 text-[11px] font-black text-[#180a00] shadow-lg shadow-orange-950/20 hover:from-[#ffb06e] hover:to-[#ffa35f] disabled:cursor-wait disabled:opacity-70"
                 >
                   {isUpdating ? 'Updating...' : 'Update now'}
                 </Button>
@@ -72,7 +74,7 @@ export default function PwaStatusBanners() {
                   size="sm"
                   onClick={dismissUpdate}
                   disabled={isUpdating}
-                  className="h-8 rounded-lg border-blue-200 text-[11px] font-black text-blue-800 hover:bg-blue-100 hover:text-blue-900"
+                  className="h-8 rounded-lg border-white/12 bg-white/[0.035] px-3 text-[11px] font-black text-slate-300 hover:bg-white/[0.08] hover:text-white disabled:opacity-60"
                 >
                   Later
                 </Button>

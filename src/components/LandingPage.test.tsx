@@ -14,15 +14,12 @@ describe('LandingPage Premium CTA', () => {
     expect(html).not.toContain('<a href="#/app" class="dc-joinbeta"');
   });
 
-  it('includes the branded account switch without icons inside text fields', () => {
+  it('does not render account access below the hero', () => {
     const html = renderToStaticMarkup(<LandingPage />);
 
-    expect(html).toContain('Dumala account access');
-    expect(html).toContain('Start fresh or pick up where you left off.');
-    expect(html).toContain('Create account');
-    expect(html).toContain('Sign in');
-    expect(html).toContain('placeholder="coach@example.com"');
-    expect(html).not.toContain('class="input-field"');
-    expect(html).not.toContain('<i>');
+    expect(html).not.toContain('id="account-access"');
+    expect(html).not.toContain('Dumala account access');
+    expect(html).not.toContain('Start fresh or pick up where you left off.');
+    expect(html).not.toContain('placeholder="coach@example.com"');
   });
 });

@@ -9,7 +9,6 @@ import {
   DialogHeader,
   DialogTitle
 } from './ui/dialog';
-import AuthSwitch from './ui/auth-switch';
 import { useCloudRuntime } from '../hooks/useCloudRuntime';
 import {
   createPremiumLeadRecord,
@@ -294,17 +293,6 @@ export default function LandingPage() {
         </section>
 
         {/* HOW IT WORKS — compact weekly rhythm strip */}
-        <section id="account-access" style={{ padding: '30px 24px 0' }}>
-          <div style={{ maxWidth: 1040, margin: '0 auto' }}>
-            <div data-reveal="1" style={{ maxWidth: 620, margin: '0 auto 24px', textAlign: 'center', opacity: 1 }}>
-              <p style={{ margin: 0, fontSize: 11, fontWeight: 700, letterSpacing: '.22em', textTransform: 'uppercase', color: '#FF9E5E' }}>Account access</p>
-              <h2 style={{ fontFamily: "'Manrope', sans-serif", fontWeight: 800, letterSpacing: '-.03em', fontSize: 'clamp(1.9rem,3.4vw,2.6rem)', lineHeight: 1.15, margin: '16px 0 0', color: '#F5F7FB' }}>Start fresh or pick up where you left off.</h2>
-              <p style={{ margin: '14px auto 0', fontSize: 15, lineHeight: 1.7, color: '#8A96AD' }}>Dumala requires an account before club setup, while your team workspace stays useful locally after onboarding.</p>
-            </div>
-            <AuthSwitch />
-          </div>
-        </section>
-
         <section id="value" style={{ padding: '80px 24px 0' }}>
           <div style={{ maxWidth: 1160, margin: '0 auto' }}>
             <div data-reveal="1" style={{ maxWidth: 620, margin: '0 auto', textAlign: 'center', opacity: 1 }}>
