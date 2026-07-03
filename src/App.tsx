@@ -82,7 +82,12 @@ import { useCloudRuntime } from './hooks/useCloudRuntime';
 import { useCloudAuth } from './hooks/useCloudAuth';
 import { shouldResetHomeTabAfterCloudWorkspaceReady } from './navigation/cloudWorkspaceNavigation';
 import type { DayName } from './training/synchronization';
-import { bootstrapSignedInCloudAccount, getOrCreateCloudDeviceId } from './components/CloudAccountGate';
+import {
+  bootstrapSignedInCloudAccount,
+  clearPendingAppAuthRedirect,
+  getOrCreateCloudDeviceId,
+  hasPendingAppAuthRedirect
+} from './components/CloudAccountGate';
 import { runCloudBackupFlow } from './cloud/workspaceBackupFlow';
 import { createContentFingerprint } from './migrations/localToCloud';
 
@@ -118,6 +123,7 @@ const isAppAuthRedirect = () => {
   if (typeof window === 'undefined') return false;
   return new URLSearchParams(window.location.search).get('dumalaAuth') === 'app';
 };
+const shouldRouteAuthReturnToApp = () => isAppAuthRedirect() || hasPendingAppAuthRedirect();
 
 const CLOUD_BACKUP_METADATA_PREFIX = 'dumala_cloud_backup__';
 
@@ -893,9 +899,10 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    if (!isAppAuthRedirect() || cloudAuthController.state.status === 'loading') return;
+    if (!shouldRouteAuthReturnToApp() || cloudAuthController.state.status === 'loading') return;
     const nextUrl = `${window.location.pathname}#/app`;
     window.history.replaceState(null, '', nextUrl);
+    clearPendingAppAuthRedirect();
     setHashRoute('app');
   }, [cloudAuthController.state.status]);
 
@@ -1280,7 +1287,7 @@ export default function App() {
     );
   }
 
-  if (isLandingRoute(hashRoute) && !isAppAuthRedirect()) {
+  if (isLandingRoute(hashRoute) && !shouldRouteAuthReturnToApp()) {
     return (
       <>
         <PwaStatusBanners />

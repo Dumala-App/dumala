@@ -11,6 +11,8 @@ import { Label } from './ui/label';
 
 const CLOUD_DEVICE_ID_KEY = 'dumala_cloud_device_id';
 const APP_AUTH_CALLBACK_PARAM = 'dumalaAuth';
+const APP_AUTH_PENDING_KEY = 'dumala_pending_app_auth_redirect';
+const APP_AUTH_PENDING_TTL_MS = 10 * 60 * 1000;
 
 export const getAppAuthRedirectUrl = (): string | undefined => {
   if (typeof window === 'undefined') return undefined;
@@ -18,6 +20,27 @@ export const getAppAuthRedirectUrl = (): string | undefined => {
   url.searchParams.set(APP_AUTH_CALLBACK_PARAM, 'app');
   url.hash = '';
   return url.toString();
+};
+
+export const markPendingAppAuthRedirect = () => {
+  if (typeof window === 'undefined') return;
+  window.localStorage.setItem(APP_AUTH_PENDING_KEY, Date.now().toString());
+};
+
+export const hasPendingAppAuthRedirect = () => {
+  if (typeof window === 'undefined') return false;
+  const startedAt = Number(window.localStorage.getItem(APP_AUTH_PENDING_KEY));
+  if (!Number.isFinite(startedAt) || startedAt <= 0) return false;
+  if (Date.now() - startedAt > APP_AUTH_PENDING_TTL_MS) {
+    window.localStorage.removeItem(APP_AUTH_PENDING_KEY);
+    return false;
+  }
+  return true;
+};
+
+export const clearPendingAppAuthRedirect = () => {
+  if (typeof window === 'undefined') return;
+  window.localStorage.removeItem(APP_AUTH_PENDING_KEY);
 };
 
 export interface CloudAccountGateProps {
@@ -50,8 +73,10 @@ export const getOrCreateCloudDeviceId = (): string => {
 export const submitCloudAccountEmail = async (
   email: string,
   requestOtp: CloudAuthController['requestOtp'],
-  redirectTo = getAppAuthRedirectUrl()
+  redirectTo?: string
 ): Promise<void> => {
+  if (!redirectTo) markPendingAppAuthRedirect();
+  redirectTo ??= getAppAuthRedirectUrl();
   await requestOtp(email, redirectTo);
 };
 
@@ -67,15 +92,19 @@ export const submitCloudPasswordRegistration = async (
   email: string,
   password: string,
   signUpWithPassword: CloudAuthController['signUpWithPassword'],
-  redirectTo = getAppAuthRedirectUrl()
+  redirectTo?: string
 ): Promise<void> => {
+  if (!redirectTo) markPendingAppAuthRedirect();
+  redirectTo ??= getAppAuthRedirectUrl();
   await signUpWithPassword(email, password, redirectTo);
 };
 
 export const submitCloudGoogleSignIn = async (
   signInWithGoogle: CloudAuthController['signInWithGoogle'],
-  redirectTo = getAppAuthRedirectUrl()
+  redirectTo?: string
 ): Promise<void> => {
+  if (!redirectTo) markPendingAppAuthRedirect();
+  redirectTo ??= getAppAuthRedirectUrl();
   await signInWithGoogle(redirectTo);
 };
 
