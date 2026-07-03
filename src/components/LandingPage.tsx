@@ -1,555 +1,497 @@
-import React from 'react';
-import {
-  ArrowRight,
-  BarChart3,
-  CalendarDays,
-  Check,
-  CheckCircle2,
-  ClipboardList,
-  FileText,
-  Flag,
-  Lock,
-  Sparkles,
-  Trophy,
-  Users
-} from 'lucide-react';
-import { Button } from './ui/button';
-import * as PricingCard from './ui/pricing-card';
+import React, { useEffect, useRef } from 'react';
+import { BarChart3, BrainCircuit, CalendarDays, CloudSun, Dumbbell, FileText, Presentation, ShieldCheck, Users } from 'lucide-react';
+import AetherFlowHero, { AetherFlowParticles } from './ui/aether-flow-hero';
+import { GlowingEffect } from './ui/glowing-effect';
 
-const premiumUseCases = [
+const steps = [
+  { n: '01', when: 'Mon–Wed', title: 'Plan the week', text: 'Fixtures, training and availability on one calendar.' },
+  { n: '02', when: 'Thu–Fri', title: 'Prepare the match', text: 'Lineup, formation and set plays on the match board.' },
+  { n: '03', when: 'Matchday', title: 'Track development', text: 'FPRDS ratings for every player, every match.' },
+  { n: '04', when: 'Sunday', title: 'Show the value', text: 'Development reports players and parents can see.' }
+];
+
+const features = [
   {
-    label: 'Coach',
-    title: 'Run one team with less weekly admin',
-    detail: 'Plan the week, prepare tactics, assess players, and keep the squad organized from one workspace.'
+    Icon: CalendarDays,
+    title: 'Match-week calendar',
+    text: 'Fixtures, sessions, availability and preparation tasks stay tied to the week instead of scattered across chats.'
   },
   {
-    label: 'Club',
-    title: 'Coordinate staff without losing control',
-    detail: 'Use reports, shared operating rhythm, and cleaner communication as club workflows mature.'
+    Icon: BrainCircuit,
+    title: 'Playstyle strategy engine',
+    text: 'Choose how you want to play and the engine turns it into formation, roles and tactical guidance for the week.'
   },
   {
-    label: 'Academy',
-    title: 'Turn assessments into development proof',
-    detail: 'Build player records that help coaches, parents, and leaders understand progress over time.'
+    Icon: Presentation,
+    title: 'Interactive match board',
+    text: 'A fullscreen tactics board for lineups, formations, set plays and opponent shape — made for the touchline.'
+  },
+  {
+    Icon: BarChart3,
+    title: 'FPRDS assessments',
+    text: 'Structured player ratings and feedback reports you can compare match after match, season after season.'
+  },
+  {
+    Icon: FileText,
+    title: 'Player development reports',
+    text: 'Turn assessment history into clear progress summaries for players, parents and staff conversations.'
+  },
+  {
+    Icon: Dumbbell,
+    title: 'Training & drill library',
+    text: 'Plan sessions from a coaching library of drills, diagrams and formations matched to your week’s focus.'
+  },
+  {
+    Icon: Users,
+    title: 'Squad & match-day prep',
+    text: 'Roster, availability, fixtures and match-day preparation in one place.'
+  },
+  {
+    Icon: CloudSun,
+    title: 'Weather advisory',
+    text: 'Check conditions before training or kickoff so coaches can adjust drills, kit reminders and match-day plans early.'
+  },
+  {
+    Icon: ShieldCheck,
+    title: 'Offline workspace backups',
+    text: 'Installable app that keeps working offline, with full workspace backup, restore and multiple team support.'
   }
 ];
 
-const freeFeatures = [
-  'One local team workspace',
-  'Roster, schedule, tactics, and training basics',
-  'Full workspace backup and restore',
-  'Good for trying Dumala during real match weeks'
-];
-
-const premiumFeatures = [
-  'Advanced assessment and development reporting',
-  'Guided planning for training and match preparation',
-  'Cloud sync and staff workflows when production-approved',
-  'Premium support for serious coach, club, and academy use'
-];
-
-const freeLockedFeatures = [
-  'Downloadable assessment reports',
-  'Guided match-week planning',
-  'Cloud sync when production-approved'
-];
-
-const matchweekCycle = [
+const wins = [
   {
-    step: '01',
-    clock: 'Mon–Wed',
-    icon: CalendarDays,
-    title: 'Plan the week',
-    text: 'Fixtures, training, availability, and coach notes stay connected instead of scattered.'
+    title: 'Squad admin',
+    benefit: 'Know who is available without chasing replies.',
+    before: 'Availability and fixtures chased through group chats all week.',
+    after: 'Roster, availability and schedule answered in one workspace.',
+    note: 'Ask once. See who’s in for Saturday at a glance.'
   },
   {
-    step: '02',
-    clock: 'Thu–Fri',
-    icon: Flag,
-    title: 'Prepare the match',
-    text: 'Lineups, formations, tactics, opponent context, and roles live in one match-day surface.'
+    title: 'Match preparation',
+    benefit: 'Arrive with the plan already built.',
+    before: 'Lineups rebuilt from memory an hour before kickoff.',
+    after: 'Formations, set plays and roles saved and reused every match week.',
+    note: 'Your match plan survives the bus ride to the pitch.'
   },
   {
-    step: '03',
-    clock: 'Matchday',
-    icon: BarChart3,
-    title: 'Track development',
-    text: 'FPRDS assessments create comparable player records instead of vague progress notes.'
-  },
-  {
-    step: '04',
-    clock: 'Sunday',
-    icon: FileText,
-    title: 'Show the value',
-    text: 'Reports and development records make coaching work easier to explain to players and parents.'
+    title: 'Player development',
+    benefit: 'Turn progress into evidence.',
+    before: '“He’s improving” — with nothing to show for it.',
+    after: 'FPRDS records and reports that prove progress over the season.',
+    note: 'Development conversations backed by real data.'
   }
 ];
 
-const navItems = [
-  { id: 'value', label: 'How it works' },
-  { id: 'pricing', label: 'Pricing' },
-  { id: 'premium-fit', label: 'Who it fits' }
-];
+const styles = `
+.dc-root{--dc-bg:#04091A;--dc-ink:#F5F7FB;--dc-muted:#8A96AD;--dc-dim:#5C6880;--dc-accent:#FF8A3D;--dc-accent-2:#FFB37E}
+.dc-root *{box-sizing:border-box}
 
-const panelClass = 'rounded-2xl border border-white/[0.06] bg-white/[0.02]';
-const eyebrowClass = 'text-[11px] font-semibold uppercase tracking-[0.22em] text-orange-300';
+.dc-nav-link{background:none;border:none;cursor:pointer;padding:8px 14px;border-radius:10px;font-family:inherit;font-size:14px;font-weight:500;color:var(--dc-muted);transition:color .15s}
+.dc-nav-link:hover{color:var(--dc-ink)}
+.dc-openapp{display:inline-flex;align-items:center;gap:6px;background:linear-gradient(180deg,#FF9A52,#FF8A3D);color:#180A00;text-decoration:none;font-weight:700;font-size:14px;padding:9px 18px;border-radius:12px;box-shadow:inset 0 1px 0 rgba(255,255,255,.32),0 1px 2px rgba(0,0,0,.35),0 6px 14px -7px rgba(255,138,61,.5);transition:background .15s,box-shadow .15s}
+.dc-openapp:hover{background:linear-gradient(180deg,#FFB06E,#FFA35F)}
+.dc-cta-primary{display:inline-flex;align-items:center;gap:8px;background:linear-gradient(180deg,#FF9A52,#FF8A3D);color:#180A00;text-decoration:none;font-weight:700;font-size:15px;padding:14px 28px;border-radius:14px;box-shadow:inset 0 1px 0 rgba(255,255,255,.34),0 1px 2px rgba(0,0,0,.4),0 8px 20px -9px rgba(255,138,61,.55);transition:background .15s,transform .15s,box-shadow .15s;border:none;cursor:pointer;font-family:inherit}
+.dc-cta-primary:hover{background:linear-gradient(180deg,#FFB06E,#FFA35F);transform:translateY(-1px);box-shadow:inset 0 1px 0 rgba(255,255,255,.34),0 2px 4px rgba(0,0,0,.4),0 12px 26px -10px rgba(255,138,61,.6)}
+.dc-cta-secondary{display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.14);color:#DDE4EF;cursor:pointer;font-family:inherit;font-weight:600;font-size:15px;padding:14px 28px;border-radius:14px;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);box-shadow:inset 0 1px 0 rgba(255,255,255,.10),0 1px 2px rgba(0,0,0,.3);transition:border-color .15s,background .15s}
+.dc-cta-secondary:hover{border-color:rgba(255,255,255,.26);background:rgba(255,255,255,.07)}
+.dc-card{border:1px solid rgba(255,255,255,.14);background:rgba(8,16,38,.66);border-radius:18px;backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);box-shadow:inset 0 1px 0 rgba(255,255,255,.08),0 1px 2px rgba(0,0,0,.3),0 14px 30px -20px rgba(0,0,0,.65);transition:border-color .2s,background .2s,box-shadow .2s}
+.dc-card:hover{border-color:rgba(255,138,61,.34);background:rgba(8,16,38,.76);box-shadow:inset 0 1px 0 rgba(255,255,255,.10),0 1px 2px rgba(0,0,0,.35),0 18px 36px -20px rgba(0,0,0,.7)}
+.dc-feature-shell{position:relative;min-height:210px;list-style:none;border:1px solid rgba(255,255,255,.10);border-radius:22px;padding:8px;background:rgba(255,255,255,.025);box-shadow:0 16px 34px -26px rgba(0,0,0,.75)}
+.dc-feature-card{position:relative;z-index:1;height:100%;overflow:hidden;border:1px solid rgba(255,255,255,.12);background:rgba(8,16,38,.70);border-radius:16px;padding:24px;backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);box-shadow:inset 0 1px 0 rgba(255,255,255,.08)}
+.dc-feature-icon{display:inline-flex;width:40px;height:40px;align-items:center;justify-content:center;border-radius:12px;border:1px solid rgba(255,138,61,.25);background:rgba(255,138,61,.10);color:#FFB37E}
+.dc-glow-shell{position:relative;list-style:none;border:1px solid rgba(255,255,255,.10);border-radius:22px;padding:8px;background:rgba(255,255,255,.025);box-shadow:0 16px 34px -26px rgba(0,0,0,.75)}
+.dc-glow-card{position:relative;z-index:1;height:100%;overflow:hidden;border:1px solid rgba(255,255,255,.12);background:rgba(8,16,38,.70);border-radius:16px;backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);box-shadow:inset 0 1px 0 rgba(255,255,255,.08)}
+.dc-startfree{display:block;width:100%;text-align:center;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.04);color:#DDE4EF;text-decoration:none;font-weight:600;font-size:13.5px;padding:11px;border-radius:12px;box-shadow:inset 0 1px 0 rgba(255,255,255,.08),0 1px 2px rgba(0,0,0,.3);transition:background .15s,border-color .15s}
+.dc-startfree:hover{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.24)}
+.dc-joinbeta{display:block;width:100%;text-align:center;background:linear-gradient(180deg,#FF9A52,#FF8A3D);color:#180A00;text-decoration:none;font-weight:700;font-size:13.5px;padding:11px;border-radius:12px;box-shadow:inset 0 1px 0 rgba(255,255,255,.30),0 1px 2px rgba(0,0,0,.35),0 6px 16px -8px rgba(255,138,61,.5);transition:background .15s}
+.dc-joinbeta:hover{background:linear-gradient(180deg,#FFB06E,#FFA35F)}
+.dc-foot-link{background:none;border:none;cursor:pointer;padding:0;font-family:inherit;font-size:13.5px;color:var(--dc-dim);transition:color .15s;text-decoration:none}
+.dc-foot-link:hover{color:#DDE4EF}
+.dc-header-nav{display:flex;align-items:center;gap:4px}
 
-function SectionHeading({
-  eyebrow,
-  title,
-  description
-}: {
-  eyebrow: string;
-  title: string;
-  description?: string;
-}) {
-  return (
-    <div className="mx-auto max-w-2xl text-center">
-      <p className={eyebrowClass}>{eyebrow}</p>
-      <h2 className="mt-4 font-display text-3xl font-bold tracking-tight text-white sm:text-4xl">{title}</h2>
-      {description ? <p className="mt-4 text-base leading-7 text-slate-400">{description}</p> : null}
-    </div>
-  );
+@media (max-width:700px){
+  .dc-header-nav{display:none}
 }
-
-function TacticsBoard() {
-  const nodes = [
-    { y: 86, label: 'Plan' },
-    { y: 186, label: 'Prepare' },
-    { y: 286, label: 'Track' },
-    { y: 386, label: 'Show' }
-  ];
-
-  return (
-    <div className="flex h-full flex-col rounded-xl border border-white/[0.06] bg-white/[0.02] p-4">
-      <div className="mb-4 flex items-center justify-between gap-3">
-        <div>
-          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-400">Match week board</p>
-          <p className="mt-1 text-xs text-slate-500">The weekly coaching rhythm, mapped like a board.</p>
-        </div>
-        <span className="rounded-full border border-orange-300/25 bg-orange-300/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-orange-200">
-          Beta
-        </span>
-      </div>
-      <svg
-        viewBox="0 0 320 470"
-        role="img"
-        aria-labelledby="tactics-board-title"
-        className="mx-auto h-auto w-full max-w-xs"
-      >
-        <title id="tactics-board-title">
-          A vertical tactics board showing the weekly coaching cycle: plan, prepare, track, show.
-        </title>
-        <rect x="20" y="16" width="280" height="438" rx="10" fill="#060d1c" stroke="#94a3b8" strokeOpacity="0.16" strokeWidth="1.5" />
-        <line x1="20" y1="235" x2="300" y2="235" stroke="#94a3b8" strokeOpacity="0.14" strokeWidth="1.5" />
-        <circle cx="160" cy="235" r="46" fill="none" stroke="#94a3b8" strokeOpacity="0.14" strokeWidth="1.5" />
-        <circle cx="160" cy="235" r="2" fill="#94a3b8" fillOpacity="0.35" />
-        <rect x="90" y="16" width="140" height="70" fill="none" stroke="#94a3b8" strokeOpacity="0.13" strokeWidth="1.5" />
-        <rect x="90" y="384" width="140" height="70" fill="none" stroke="#94a3b8" strokeOpacity="0.13" strokeWidth="1.5" />
-        <path
-          d="M 160 86 L 160 386"
-          stroke="#fb923c"
-          strokeWidth="1.5"
-          strokeDasharray="2 8"
-          strokeLinecap="round"
-          strokeOpacity="0.7"
-          fill="none"
-        />
-
-        {nodes.map((node, index) => (
-          <g key={node.label}>
-            <circle cx="160" cy={node.y} r="15" fill="#060d1c" stroke="#fb923c" strokeOpacity="0.8" strokeWidth="1.5" />
-            <text
-              x="160"
-              y={node.y + 4}
-              textAnchor="middle"
-              fontSize="11"
-              fontWeight="700"
-              fill="#fdba74"
-              fontFamily="inherit"
-            >
-              {index + 1}
-            </text>
-            <text
-              x={192}
-              y={node.y + 4}
-              fontSize="13"
-              fontWeight="600"
-              fill="#e2e8f0"
-              fillOpacity="0.85"
-              fontFamily="inherit"
-            >
-              {node.label}
-            </text>
-          </g>
-        ))}
-      </svg>
-    </div>
-  );
+@media (max-width:640px){
+  .dc-ticket{grid-template-columns:1fr !important}
+  .dc-ticket-stub{border-left:none !important;border-top:2px dashed rgba(255,255,255,.12) !important}
+  .dc-ticket-stub-premium{border-left:none !important;border-top:2px dashed rgba(255,138,61,.32) !important}
 }
-
-function HeroDashboardPreview() {
-  return (
-    <div className="relative mx-auto mt-16 w-full max-w-6xl">
-      <div
-        aria-hidden="true"
-        className="absolute left-1/2 top-[-10%] -z-10 h-[26rem] w-[85%] -translate-x-1/2 rounded-full bg-orange-500/[0.08] blur-3xl"
-      />
-      <div className="overflow-hidden rounded-2xl border border-white/[0.08] bg-[#050b18]/90 shadow-2xl shadow-black/40 backdrop-blur-xl">
-        <div className="flex items-center gap-2 border-b border-white/[0.06] px-4 py-3">
-          <span className="size-2.5 rounded-full bg-white/10" aria-hidden="true" />
-          <span className="size-2.5 rounded-full bg-white/10" aria-hidden="true" />
-          <span className="size-2.5 rounded-full bg-white/10" aria-hidden="true" />
-          <span className="ml-3 text-xs font-medium text-slate-500">Dumala — Match week</span>
-        </div>
-
-        <div className="grid gap-4 p-4 sm:p-5 lg:grid-cols-[minmax(0,1fr)_minmax(17rem,0.42fr)]">
-          <div>
-            <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-500">Command center</p>
-                <h2 className="mt-1 font-display text-xl font-bold tracking-tight text-white">Portuseros FC match week</h2>
-              </div>
-              <div className="flex gap-2 text-[10px] font-semibold uppercase tracking-wide">
-                <span className="rounded-full border border-emerald-300/20 bg-emerald-300/10 px-2.5 py-1 text-emerald-200">Ready</span>
-                <span className="rounded-full border border-white/[0.08] bg-white/[0.03] px-2.5 py-1 text-slate-300">U15</span>
-              </div>
-            </div>
-
-            <div className="grid gap-3 sm:grid-cols-3">
-              {[
-                ['Next match', 'Sat 4:00 PM', 'Lineup pending'],
-                ['Available', '14 / 18', '3 need reply'],
-                ['Focus', 'Defensive transition', '2 drills planned']
-              ].map(([label, value, meta]) => (
-                <div key={label} className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-4">
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-500">{label}</p>
-                  <p className="mt-2 font-display text-lg font-bold tracking-tight text-white">{value}</p>
-                  <p className="mt-1 text-xs text-slate-500">{meta}</p>
-                </div>
-              ))}
-            </div>
-
-            <div className="mt-3 grid gap-3 lg:grid-cols-[minmax(0,0.62fr)_minmax(0,0.38fr)]">
-              <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-4">
-                <div className="mb-4 flex items-center justify-between">
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-400">Weekly flow</p>
-                  <span className="text-[10px] font-semibold text-orange-300">4 steps</span>
-                </div>
-                <div className="space-y-2.5">
-                  {matchweekCycle.map(({ step, title, clock }) => (
-                    <div key={step} className="grid grid-cols-[2.25rem_minmax(0,1fr)_4.5rem] items-center gap-3 rounded-lg border border-white/[0.05] bg-white/[0.02] px-3 py-2">
-                      <span className="text-xs font-semibold text-orange-300">{step}</span>
-                      <span className="truncate text-sm font-medium text-slate-200">{title}</span>
-                      <span className="text-right text-[10px] font-medium uppercase tracking-wide text-slate-500">{clock}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-4">
-                <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-400">FPRDS snapshot</p>
-                <div className="mt-4 space-y-3">
-                  {[
-                    ['OVR confidence', 'Fresh'],
-                    ['Top gain', '+6 stamina'],
-                    ['Next review', 'Sunday']
-                  ].map(([label, value]) => (
-                    <div key={label} className="flex items-center justify-between gap-3">
-                      <span className="text-xs text-slate-500">{label}</span>
-                      <span className="text-xs font-semibold text-slate-200">{value}</span>
-                    </div>
-                  ))}
-                </div>
-                <div className="mt-5 h-24 rounded-lg border border-white/[0.05] bg-[linear-gradient(180deg,rgba(251,146,60,0.14),rgba(251,146,60,0.02))]" />
-              </div>
-            </div>
-          </div>
-
-          <TacticsBoard />
-        </div>
-      </div>
-    </div>
-  );
+@media (prefers-reduced-motion: reduce){
+  .dc-root *{animation-duration:.001ms !important;animation-iteration-count:1 !important}
 }
+`;
 
 export default function LandingPage() {
-  const scrollToSection = (sectionId: string) => {
-    document.getElementById(sectionId)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  const rootRef = useRef<HTMLDivElement>(null);
+
+  const scrollToId = (id: string) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const top = el.getBoundingClientRect().top + window.scrollY - 84;
+    window.scrollTo({ top, behavior: 'smooth' });
+  };
+  const goTop = (e: React.MouseEvent) => {
+    e.preventDefault();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  // Scroll-reveal for below-the-fold blocks
+  useEffect(() => {
+    const root = rootRef.current;
+    if (!root || !('IntersectionObserver' in window)) return;
+    const els = Array.from(root.querySelectorAll<HTMLElement>('[data-reveal]'));
+    const obs = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            const t = entry.target as HTMLElement;
+            t.style.opacity = '1';
+            t.style.transform = 'translateY(0)';
+            obs.unobserve(t);
+          }
+        });
+      },
+      { threshold: 0.12 }
+    );
+    els.forEach((el) => {
+      if (el.getBoundingClientRect().top > window.innerHeight) {
+        el.style.opacity = '0';
+        el.style.transform = 'translateY(26px)';
+        el.style.transition = 'opacity .7s ease-out, transform .7s cubic-bezier(.2,.7,.2,1)';
+        obs.observe(el);
+      }
+    });
+    return () => obs.disconnect();
+  }, []);
+
   return (
-    <div className="relative min-h-screen overflow-x-hidden bg-[#030814] text-slate-100 antialiased selection:bg-orange-400/30">
-      <div aria-hidden="true" className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
-        <div className="absolute inset-0 bg-[#030814]" />
-        <div className="absolute left-1/2 top-[-22rem] h-[44rem] w-[72rem] -translate-x-1/2 rounded-full bg-orange-500/[0.07] blur-[120px]" />
-        <div className="absolute inset-0 bg-[linear-gradient(rgba(148,163,184,0.05)_1px,transparent_1px),linear-gradient(90deg,rgba(148,163,184,0.05)_1px,transparent_1px)] bg-[size:4.5rem_4.5rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,black,transparent)]" />
+    <div
+      ref={rootRef}
+      className="dc-root"
+      style={{
+        minHeight: '100vh',
+        background: '#04091A',
+        color: '#F5F7FB',
+        fontFamily: "'DM Sans', ui-sans-serif, system-ui, sans-serif",
+        overflowX: 'hidden',
+        position: 'relative'
+      }}
+    >
+      <style dangerouslySetInnerHTML={{ __html: styles }} />
+
+      {/* ambient background */}
+      <div aria-hidden="true" style={{ position: 'fixed', inset: 0, zIndex: 0, pointerEvents: 'none', overflow: 'hidden' }}>
+        <div style={{ position: 'absolute', left: '50%', top: '-24rem', width: '76rem', height: '46rem', transform: 'translateX(-50%)', borderRadius: '50%', background: 'rgba(255,138,61,.07)', filter: 'blur(120px)' }} />
+        <AetherFlowParticles />
+        <div
+          style={{
+            position: 'absolute',
+            inset: 0,
+            backgroundImage: 'linear-gradient(rgba(148,163,184,.045) 1px,transparent 1px),linear-gradient(90deg,rgba(148,163,184,.045) 1px,transparent 1px)',
+            backgroundSize: '76px 76px',
+            WebkitMaskImage: 'radial-gradient(ellipse 62% 52% at 50% 0%,black,transparent)',
+            maskImage: 'radial-gradient(ellipse 62% 52% at 50% 0%,black,transparent)'
+          }}
+        />
       </div>
 
-      <header className="fixed inset-x-0 top-0 z-40 border-b border-white/[0.06] bg-[#030814]/80 backdrop-blur-xl">
-        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
-          <a href="#landing" className="flex items-center gap-2.5" aria-label="Dumala landing page">
-            <img src="/Dumala_logo.png" alt="" className="h-9 w-9 object-contain" />
-            <span className="font-display text-lg font-bold tracking-tight text-white">Dumala</span>
+      {/* header */}
+      <header style={{ position: 'fixed', left: 0, right: 0, top: 0, zIndex: 40, borderBottom: '1px solid rgba(255,255,255,.06)', background: 'rgba(4,9,26,.78)', backdropFilter: 'blur(18px)', WebkitBackdropFilter: 'blur(18px)' }}>
+        <div style={{ maxWidth: 1160, margin: '0 auto', height: 66, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, padding: '0 24px' }}>
+          <a href="#top" onClick={goTop} style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none', color: '#F5F7FB' }}>
+            <img src="/Dumala_logo.png" alt="Dumala" style={{ width: 34, height: 34, objectFit: 'contain' }} />
+            <span style={{ fontFamily: "'Manrope', sans-serif", fontWeight: 800, fontSize: 18, letterSpacing: '-.02em' }}>Dumala</span>
           </a>
-          <nav aria-label="Landing page navigation" className="hidden items-center gap-1 md:flex">
-            {navItems.map((item) => (
-              <button
-                key={item.id}
-                type="button"
-                onClick={() => scrollToSection(item.id)}
-                className="rounded-lg px-3.5 py-2 text-sm font-medium text-slate-400 transition-colors hover:text-white focus-visible:text-white focus-visible:outline-none"
-              >
-                {item.label}
-              </button>
-            ))}
+          <nav className="dc-header-nav">
+            <button type="button" onClick={() => scrollToId('value')} className="dc-nav-link">How it works</button>
+            <button type="button" onClick={() => scrollToId('features')} className="dc-nav-link">Features</button>
+            <button type="button" onClick={() => scrollToId('pricing')} className="dc-nav-link">Pricing</button>
+            <button type="button" onClick={() => scrollToId('fit')} className="dc-nav-link">Why Dumala</button>
           </nav>
-          <Button asChild size="sm" className="bg-orange-400 font-semibold text-slate-950 shadow-sm shadow-orange-950/25 hover:bg-orange-300">
-            <a href="#/">Open app</a>
-          </Button>
+          <a href="#/" className="dc-openapp">Open app</a>
         </div>
       </header>
 
-      <main className="relative z-10">
-        <section
-          className="relative px-4 pb-16 pt-32 sm:px-6 md:pt-40 lg:px-8"
-          style={{ animation: 'view-enter 240ms ease-out' }}
-        >
-          <div className="mx-auto max-w-4xl text-center">
-            <button
-              type="button"
-              onClick={() => scrollToSection('pricing')}
-              className="group inline-flex max-w-full flex-wrap items-center justify-center gap-x-2 gap-y-1 rounded-full border border-white/[0.08] bg-white/[0.03] px-4 py-1.5 text-xs text-slate-400 transition-colors hover:border-orange-300/25 hover:text-slate-200"
-            >
-              <span className="hidden size-1.5 rounded-full bg-orange-400 sm:inline-block" aria-hidden="true" />
-              Private beta is being shaped with real coaches
-              <span className="inline-flex items-center gap-1 whitespace-nowrap font-semibold text-orange-300 transition-colors group-hover:text-orange-200">
-                See the offer
-                <ArrowRight size={12} aria-hidden="true" />
-              </span>
-            </button>
-
-            <h1 className="mx-auto mt-8 max-w-3xl bg-gradient-to-b from-white via-white to-white/55 bg-clip-text font-display text-4xl font-bold leading-[1.06] tracking-tight text-transparent sm:text-6xl lg:text-[4.25rem]">
-              Run your football team like a professional academy.
-            </h1>
-            <p className="mx-auto mt-6 max-w-2xl text-base leading-8 text-slate-400 sm:text-lg">
-              Dumala helps coaches plan the week, prepare match day, manage the squad, and build player-development records — without living inside chats and spreadsheets.
-            </p>
-            <div className="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row">
-              <Button asChild size="lg" className="bg-orange-400 px-6 font-semibold text-slate-950 shadow-[0_12px_32px_rgba(249,115,22,0.28)] transition-transform hover:bg-orange-300 active:scale-[0.98]">
-                <a href="#/">Start free <ArrowRight size={16} aria-hidden="true" /></a>
-              </Button>
-              <Button
-                type="button"
-                size="lg"
-                variant="outline"
-                onClick={() => scrollToSection('pricing')}
-                className="border-white/10 bg-white/[0.03] px-6 text-slate-200 hover:border-white/20 hover:bg-white/[0.06] hover:text-white"
-              >
-                Compare Free and Premium
-              </Button>
-            </div>
-            <p className="mt-6 text-xs text-slate-500">Free plan available · No credit card required</p>
-          </div>
-
-          <HeroDashboardPreview />
+      <main id="top" style={{ position: 'relative', zIndex: 1 }}>
+        {/* HERO — Aether Flow particle network in the brand palette */}
+        <section style={{ position: 'relative' }}>
+          <AetherFlowHero
+            badge="Private beta — shaped with real coaches"
+            title={
+              <>
+                <span style={{ background: 'linear-gradient(180deg,#fff,rgba(255,255,255,.62))', WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent' }}>Run your team like a</span>
+                <br />
+                <span style={{ background: 'linear-gradient(180deg,#FFB37E,#FF8A3D)', WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent' }}>professional academy.</span>
+              </>
+            }
+            description="Plan the week, prepare match day, and build player-development records that prove your coaching works — without living in chats and spreadsheets."
+            actions={
+              <>
+                <a href="#/" className="dc-cta-primary">Start free →</a>
+                <button type="button" onClick={() => scrollToId('pricing')} className="dc-cta-secondary">See pricing</button>
+              </>
+            }
+            footnote="Free plan available · No credit card required"
+            showParticles={false}
+          />
         </section>
 
-        <section id="value" className="px-4 py-24 sm:px-6 lg:px-8">
-          <div className="mx-auto max-w-7xl">
-            <SectionHeading
-              eyebrow="Why coaches subscribe"
-              title="Less admin, sharper preparation, proof of development."
-              description="One weekly rhythm from Monday planning to Sunday reporting — every step connected to the next."
-            />
-            <div className="mt-14 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-              {matchweekCycle.map(({ step, clock, icon: Icon, title, text }) => (
-                <article
-                  key={title}
-                  className={`${panelClass} group relative overflow-hidden p-6 transition-colors duration-200 hover:border-orange-300/25 hover:bg-white/[0.04]`}
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="flex size-11 items-center justify-center rounded-xl border border-white/[0.08] bg-white/[0.03] text-orange-300 transition-colors group-hover:border-orange-300/25">
+        {/* HOW IT WORKS — compact weekly rhythm strip */}
+        <section id="value" style={{ padding: '80px 24px 0' }}>
+          <div style={{ maxWidth: 1160, margin: '0 auto' }}>
+            <div data-reveal="1" style={{ maxWidth: 620, margin: '0 auto', textAlign: 'center', opacity: 1 }}>
+              <p style={{ margin: 0, fontSize: 11, fontWeight: 700, letterSpacing: '.22em', textTransform: 'uppercase', color: '#FF9E5E' }}>How it works</p>
+              <h2 style={{ fontFamily: "'Manrope', sans-serif", fontWeight: 800, letterSpacing: '-.03em', fontSize: 'clamp(1.9rem,3.4vw,2.6rem)', lineHeight: 1.15, margin: '16px 0 0', color: '#F5F7FB' }}>From Monday's plan to Sunday's proof.</h2>
+            </div>
+
+            <div style={{ marginTop: 36, display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(min(230px,100%),1fr))', gap: 12 }}>
+              {steps.map(({ n, when, title, text }) => (
+                <article key={n} data-reveal="1" className="dc-glow-shell" style={{ opacity: 1 }}>
+                  <GlowingEffect spread={34} glow disabled={false} proximity={58} inactiveZone={0.01} borderWidth={2} />
+                  <div className="dc-glow-card" style={{ padding: '18px 20px' }}>
+                    <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 8 }}>
+                      <span style={{ fontFamily: "'Manrope', sans-serif", fontWeight: 800, fontSize: 15, color: 'rgba(255,138,61,.9)' }}>{n}</span>
+                      <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.14em', textTransform: 'uppercase', color: '#5C6880' }}>{when}</span>
+                    </div>
+                    <h3 style={{ fontFamily: "'Manrope', sans-serif", fontWeight: 800, letterSpacing: '-.01em', fontSize: 15.5, margin: '10px 0 0', color: '#F5F7FB' }}>{title}</h3>
+                    <p style={{ margin: '6px 0 0', fontSize: 12.5, lineHeight: 1.55, color: '#8A96AD' }}>{text}</p>
+                  </div>
+                </article>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* FEATURES */}
+        <section id="features" style={{ padding: '90px 24px 20px' }}>
+          <div style={{ maxWidth: 1160, margin: '0 auto' }}>
+            <div data-reveal="1" style={{ maxWidth: 640, margin: '0 auto', textAlign: 'center', opacity: 1 }}>
+              <p style={{ margin: 0, fontSize: 11, fontWeight: 700, letterSpacing: '.22em', textTransform: 'uppercase', color: '#FF9E5E' }}>Inside the app</p>
+              <h2 style={{ fontFamily: "'Manrope', sans-serif", fontWeight: 800, letterSpacing: '-.03em', fontSize: 'clamp(1.9rem,3.4vw,2.6rem)', lineHeight: 1.15, margin: '16px 0 0', color: '#F5F7FB' }}>The tools doing the heavy lifting.</h2>
+              <p style={{ margin: '16px auto 0', fontSize: 15.5, lineHeight: 1.7, color: '#8A96AD' }}>Not a spreadsheet with a crest — a coaching toolkit built around how football weeks actually run.</p>
+            </div>
+
+            <div style={{ marginTop: 48, display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(min(300px,100%),1fr))', gap: 14 }}>
+              {features.map(({ Icon, title, text }) => (
+                <article key={title} data-reveal="1" className="dc-feature-shell" style={{ opacity: 1 }}>
+                  <GlowingEffect spread={40} glow disabled={false} proximity={72} inactiveZone={0.01} borderWidth={3} />
+                  <div className="dc-feature-card">
+                    <span className="dc-feature-icon">
                       <Icon size={19} aria-hidden="true" />
                     </span>
-                    <div className="text-right">
-                      <span className="block font-display text-sm font-bold text-slate-600">{step}</span>
-                      <span className="block text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-500">{clock}</span>
-                    </div>
+                    <h3 style={{ fontFamily: "'Manrope', sans-serif", fontWeight: 800, letterSpacing: '-.01em', fontSize: 16.5, margin: '16px 0 0', color: '#F5F7FB' }}>{title}</h3>
+                    <p style={{ margin: '8px 0 0', fontSize: 13.5, lineHeight: 1.65, color: '#8A96AD' }}>{text}</p>
                   </div>
-                  <h3 className="mt-6 font-display text-lg font-bold tracking-tight text-white">{title}</h3>
-                  <p className="mt-2.5 text-sm leading-6 text-slate-400">{text}</p>
                 </article>
               ))}
             </div>
           </div>
         </section>
 
-        <section id="pricing" className="px-4 py-24 sm:px-6 lg:px-8">
-          <div className="mx-auto max-w-7xl">
-            <SectionHeading
-              eyebrow="Simple pricing"
-              title="Start free. Upgrade when Dumala becomes part of your weekly rhythm."
-              description="Free is for trying the workflow. Premium is for serious coaches and organizations that need stronger reports, planning, and growth tools."
-            />
+        {/* PRICING */}
+        <section id="pricing" style={{ padding: '110px 24px 20px' }}>
+          <div style={{ maxWidth: 1160, margin: '0 auto' }}>
+            <div data-reveal="1" style={{ maxWidth: 640, margin: '0 auto', textAlign: 'center', opacity: 1 }}>
+              <p style={{ margin: 0, fontSize: 11, fontWeight: 700, letterSpacing: '.22em', textTransform: 'uppercase', color: '#FF9E5E' }}>Simple pricing</p>
+              <h2 style={{ fontFamily: "'Manrope', sans-serif", fontWeight: 800, letterSpacing: '-.03em', fontSize: 'clamp(1.9rem,3.4vw,2.6rem)', lineHeight: 1.15, margin: '16px 0 0', color: '#F5F7FB' }}>Start free. Upgrade when it becomes your rhythm.</h2>
+              <p style={{ margin: '16px auto 0', fontSize: 15.5, lineHeight: 1.7, color: '#8A96AD' }}>Free is for trying the workflow in a real match week. Premium is for coaches and organizations that need stronger reports and planning.</p>
+            </div>
 
-            <div className="mx-auto mt-14 grid max-w-4xl gap-5 md:grid-cols-2">
-              <PricingCard.Card className="border-white/[0.07] bg-[#050b18]/90">
-                <PricingCard.Header className="border-white/[0.06]">
-                  <PricingCard.Plan>
-                    <PricingCard.PlanName>
-                      <Users aria-hidden="true" className="text-slate-400" />
-                      <span>Free</span>
-                    </PricingCard.PlanName>
-                    <PricingCard.Badge className="border-white/[0.08] bg-white/[0.03] text-slate-400">Beta</PricingCard.Badge>
-                  </PricingCard.Plan>
-                  <PricingCard.Price>
-                    <PricingCard.MainPrice>$0</PricingCard.MainPrice>
-                    <PricingCard.Period>/ month</PricingCard.Period>
-                  </PricingCard.Price>
-                  <PricingCard.Description>For coaches getting Dumala into a real match week.</PricingCard.Description>
-                  <Button asChild className="mt-4 w-full border-white/10 bg-white/[0.03] text-slate-200 hover:bg-white/[0.07] hover:text-white" variant="outline">
-                    <a href="#/">Start free</a>
-                  </Button>
-                </PricingCard.Header>
-                <PricingCard.Body>
-                  <PricingCard.List>
-                    {freeFeatures.map((feature) => (
-                      <PricingCard.ListItem key={feature}>
-                        <Check className="mt-1 size-4 shrink-0 text-emerald-400" aria-hidden="true" />
-                        <span>{feature}</span>
-                      </PricingCard.ListItem>
+            <div style={{ margin: '56px auto 0', maxWidth: 920, display: 'flex', flexDirection: 'column', gap: 20 }}>
+              {/* Free — Matchday pass ticket */}
+              <article data-reveal="1" className="dc-ticket" style={{ opacity: 1, position: 'relative', display: 'grid', gridTemplateColumns: 'minmax(0,1fr) 264px', border: '1px solid rgba(255,255,255,.14)', background: 'rgba(8,16,38,.68)', borderRadius: 20, overflow: 'hidden', backdropFilter: 'blur(14px)', WebkitBackdropFilter: 'blur(14px)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,.08),0 1px 2px rgba(0,0,0,.3),0 22px 46px -30px rgba(0,0,0,.75)' }}>
+                <GlowingEffect spread={42} glow disabled={false} proximity={82} inactiveZone={0.01} borderWidth={3} />
+                <div style={{ padding: '30px 34px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+                    <span style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '.2em', textTransform: 'uppercase', color: '#5C6880' }}>Matchday pass</span>
+                    <span style={{ height: 1, flex: 1, background: 'rgba(255,255,255,.07)', minWidth: 40 }} />
+                    <span style={{ border: '1px solid rgba(255,255,255,.09)', background: 'rgba(255,255,255,.03)', borderRadius: 999, padding: '3px 11px', fontSize: 10.5, fontWeight: 600, color: '#8A96AD' }}>Beta</span>
+                  </div>
+                  <h3 style={{ fontFamily: "'Manrope', sans-serif", fontWeight: 800, letterSpacing: '-.02em', fontSize: 26, margin: '16px 0 0', color: '#F5F7FB' }}>Free</h3>
+                  <p style={{ margin: '8px 0 0', fontSize: 13.5, lineHeight: 1.6, color: '#8A96AD' }}>For coaches getting Dumala into a real match week.</p>
+                  <div style={{ marginTop: 22, display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(220px,1fr))', gap: '10px 24px' }}>
+                    {['One local team workspace', 'Roster, schedule, tactics, training basics', 'Full workspace backup and restore', 'Real match weeks, zero commitment'].map((f) => (
+                      <div key={f} style={{ display: 'flex', gap: 10, fontSize: 13.5, lineHeight: 1.55, color: '#B9C2D4' }}>
+                        <span style={{ color: '#34D399', fontWeight: 700 }}>✓</span>
+                        <span>{f}</span>
+                      </div>
                     ))}
-                  </PricingCard.List>
-                  <PricingCard.Separator>Premium unlocks</PricingCard.Separator>
-                  <PricingCard.List>
-                    {freeLockedFeatures.map((feature) => (
-                      <PricingCard.ListItem key={feature} className="text-slate-500">
-                        <Lock className="mt-1 size-4 shrink-0 text-slate-600" aria-hidden="true" />
-                        <span>{feature}</span>
-                      </PricingCard.ListItem>
-                    ))}
-                  </PricingCard.List>
-                </PricingCard.Body>
-              </PricingCard.Card>
+                  </div>
+                  <p style={{ margin: '20px 0 0', fontSize: 12, lineHeight: 1.6, color: '#5C6880' }}>
+                    <span style={{ fontWeight: 700, letterSpacing: '.12em', textTransform: 'uppercase', fontSize: 10, color: '#5C6880' }}>Premium unlocks · </span>
+                    Downloadable reports · Guided match-week planning · Cloud sync
+                  </p>
+                </div>
+                <div className="dc-ticket-stub" style={{ position: 'relative', borderLeft: '2px dashed rgba(255,255,255,.12)', padding: '30px 26px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 6, textAlign: 'center' }}>
+                  <span aria-hidden="true" style={{ position: 'absolute', left: -12, top: -11, width: 22, height: 22, borderRadius: '50%', background: '#04091A', border: '1px solid rgba(255,255,255,.09)' }} />
+                  <span aria-hidden="true" style={{ position: 'absolute', left: -12, bottom: -11, width: 22, height: 22, borderRadius: '50%', background: '#04091A', border: '1px solid rgba(255,255,255,.09)' }} />
+                  <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.24em', textTransform: 'uppercase', color: '#5C6880' }}>Admit one team</span>
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 5, marginTop: 4 }}>
+                    <span style={{ fontFamily: "'Manrope', sans-serif", fontWeight: 800, fontSize: 44, letterSpacing: '-.03em', color: '#F5F7FB' }}>₱0</span>
+                  </div>
+                  <span style={{ fontSize: 12, color: '#5C6880' }}>forever, while in beta</span>
+                  <a href="#/" className="dc-startfree" style={{ marginTop: 16 }}>Start free</a>
+                  <div aria-hidden="true" style={{ marginTop: 16, width: 110, height: 26, background: 'repeating-linear-gradient(90deg,rgba(221,228,239,.35) 0 2px,transparent 2px 5px,rgba(221,228,239,.35) 5px 6px,transparent 6px 10px)', borderRadius: 2, opacity: 0.5 }} />
+                </div>
+              </article>
 
-              <PricingCard.Card className="border-orange-300/30 bg-[#050b18]/90 shadow-orange-950/20 ring-1 ring-orange-300/20">
-                <PricingCard.Header className="border-orange-300/15 bg-orange-300/[0.07]">
-                  <PricingCard.Plan>
-                    <PricingCard.PlanName className="text-orange-100">
-                      <Trophy aria-hidden="true" className="text-orange-300" />
-                      <span>Premium</span>
-                    </PricingCard.PlanName>
-                    <PricingCard.Badge>Recommended</PricingCard.Badge>
-                  </PricingCard.Plan>
-                  <PricingCard.Price>
-                    <PricingCard.MainPrice>$9–15</PricingCard.MainPrice>
-                    <PricingCard.Period>/ month</PricingCard.Period>
-                    <PricingCard.OriginalPrice>$20+</PricingCard.OriginalPrice>
-                  </PricingCard.Price>
-                  <PricingCard.Description>For serious coaches, clubs, and academies that use Dumala every week.</PricingCard.Description>
-                  <Button asChild className="mt-4 w-full bg-orange-400 font-semibold text-slate-950 shadow-sm shadow-orange-950/25 hover:bg-orange-300">
-                    <a href="#/">Join the beta list</a>
-                  </Button>
-                </PricingCard.Header>
-                <PricingCard.Body>
-                  <PricingCard.List>
-                    {premiumFeatures.map((feature) => (
-                      <PricingCard.ListItem key={feature}>
-                        <CheckCircle2 className="mt-1 size-4 shrink-0 text-orange-300" aria-hidden="true" />
-                        <span>{feature}</span>
-                      </PricingCard.ListItem>
+              {/* Premium — Season pass ticket */}
+              <article data-reveal="1" className="dc-ticket" style={{ opacity: 1, position: 'relative', display: 'grid', gridTemplateColumns: 'minmax(0,1fr) 264px', border: '1px solid rgba(255,138,61,.42)', background: 'linear-gradient(120deg,rgba(255,138,61,.10),rgba(8,16,38,0) 45%),rgba(8,16,38,.70)', borderRadius: 20, overflow: 'hidden', backdropFilter: 'blur(14px)', WebkitBackdropFilter: 'blur(14px)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,.08),0 1px 2px rgba(0,0,0,.35),0 22px 48px -30px rgba(255,138,61,.4),0 30px 60px -34px rgba(0,0,0,.7)' }}>
+                <GlowingEffect spread={42} glow disabled={false} proximity={82} inactiveZone={0.01} borderWidth={3} />
+                <span style={{ position: 'absolute', top: 0, left: 34, background: '#FF8A3D', color: '#180A00', fontSize: 10, fontWeight: 800, letterSpacing: '.14em', textTransform: 'uppercase', padding: '5px 12px', borderRadius: '0 0 8px 8px' }}>Recommended</span>
+                <div style={{ padding: '38px 34px 30px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+                    <span style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '.2em', textTransform: 'uppercase', color: '#FFB37E' }}>Season pass</span>
+                    <span style={{ height: 1, flex: 1, background: 'rgba(255,138,61,.18)', minWidth: 40 }} />
+                    <span style={{ border: '1px solid rgba(255,138,61,.3)', background: 'rgba(255,138,61,.1)', borderRadius: 999, padding: '3px 11px', fontSize: 10.5, fontWeight: 700, color: '#FFB37E' }}>Full squad access</span>
+                  </div>
+                  <h3 style={{ fontFamily: "'Manrope', sans-serif", fontWeight: 800, letterSpacing: '-.02em', fontSize: 26, margin: '16px 0 0', color: '#FFD9BC' }}>Premium</h3>
+                  <p style={{ margin: '8px 0 0', fontSize: 13.5, lineHeight: 1.6, color: '#B9C2D4' }}>For serious coaches, clubs, and academies that use Dumala every week.</p>
+                  <div style={{ marginTop: 22, display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(220px,1fr))', gap: '10px 24px' }}>
+                    {['Advanced assessment & development reporting', 'Guided training & match preparation', 'Cloud sync and staff workflows', 'Premium support for coach, club & academy'].map((f) => (
+                      <div key={f} style={{ display: 'flex', gap: 10, fontSize: 13.5, lineHeight: 1.55, color: '#B9C2D4' }}>
+                        <span style={{ color: '#FFB37E', fontWeight: 700 }}>✓</span>
+                        <span>{f}</span>
+                      </div>
                     ))}
-                  </PricingCard.List>
-                  <PricingCard.Separator>Best fit</PricingCard.Separator>
-                  <PricingCard.List>
-                    {['Serious coach workflow', 'Club-ready reports', 'Academy development records'].map((feature) => (
-                      <PricingCard.ListItem key={feature}>
-                        <Check className="mt-1 size-4 shrink-0 text-slate-400" aria-hidden="true" />
-                        <span>{feature}</span>
-                      </PricingCard.ListItem>
-                    ))}
-                  </PricingCard.List>
-                </PricingCard.Body>
-              </PricingCard.Card>
+                  </div>
+                  <p style={{ margin: '20px 0 0', fontSize: 12, lineHeight: 1.6, color: '#8A96AD' }}>
+                    <span style={{ fontWeight: 700, letterSpacing: '.12em', textTransform: 'uppercase', fontSize: 10, color: '#FFB37E' }}>Best fit · </span>
+                    Serious coach workflow · Club-ready reports · Academy development records
+                  </p>
+                </div>
+                <div className="dc-ticket-stub-premium" style={{ position: 'relative', borderLeft: '2px dashed rgba(255,138,61,.32)', background: 'repeating-linear-gradient(-45deg,rgba(255,138,61,.045) 0 10px,transparent 10px 20px)', padding: '30px 26px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 6, textAlign: 'center' }}>
+                  <span aria-hidden="true" style={{ position: 'absolute', left: -12, top: -11, width: 22, height: 22, borderRadius: '50%', background: '#04091A', border: '1px solid rgba(255,138,61,.4)' }} />
+                  <span aria-hidden="true" style={{ position: 'absolute', left: -12, bottom: -11, width: 22, height: 22, borderRadius: '50%', background: '#04091A', border: '1px solid rgba(255,138,61,.4)' }} />
+                  <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.24em', textTransform: 'uppercase', color: '#FFB37E' }}>Whole season</span>
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginTop: 4 }}>
+                    <span style={{ fontFamily: "'Manrope', sans-serif", fontWeight: 800, fontSize: 44, letterSpacing: '-.03em', color: '#F5F7FB' }}>₱499</span>
+                  </div>
+                  <span style={{ fontSize: 12, color: '#8A96AD' }}>per month · <span style={{ textDecoration: 'line-through', color: '#5C6880' }}>₱800</span> early-bird</span>
+                  <a href="#/" className="dc-joinbeta" style={{ marginTop: 16 }}>Join the beta list</a>
+                  <div aria-hidden="true" style={{ marginTop: 16, width: 110, height: 26, background: 'repeating-linear-gradient(90deg,rgba(255,179,126,.5) 0 2px,transparent 2px 5px,rgba(255,179,126,.5) 5px 6px,transparent 6px 10px)', borderRadius: 2, opacity: 0.6 }} />
+                </div>
+              </article>
             </div>
           </div>
         </section>
 
-        <section id="premium-fit" className="px-4 py-24 sm:px-6 lg:px-8">
-          <div className="mx-auto max-w-7xl">
-            <SectionHeading
-              eyebrow="Who it fits"
-              title="One Premium plan, three football realities."
-              description="Coach, Club, and Academy are not separate public plans yet — they describe who gets value from the Premium subscription."
-            />
-            <div className="mt-14 grid gap-4 lg:grid-cols-3">
-              {premiumUseCases.map((useCase) => (
-                <article
-                  key={useCase.label}
-                  className={`${panelClass} p-7 transition-colors duration-200 hover:border-orange-300/25 hover:bg-white/[0.04]`}
-                >
-                  <span className="inline-flex items-center gap-2 rounded-full border border-orange-300/20 bg-orange-300/[0.08] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-orange-200">
-                    <span className="size-1.5 rounded-full bg-orange-400" aria-hidden="true" />
-                    {useCase.label}
-                  </span>
-                  <h3 className="mt-6 font-display text-xl font-bold tracking-tight text-white">{useCase.title}</h3>
-                  <p className="mt-3 text-sm leading-6 text-slate-400">{useCase.detail}</p>
+        {/* WHY DUMALA */}
+        <section id="fit" style={{ padding: '110px 24px 20px' }}>
+          <div style={{ maxWidth: 1160, margin: '0 auto' }}>
+            <div data-reveal="1" style={{ maxWidth: 640, margin: '0 auto', textAlign: 'center', opacity: 1 }}>
+              <p style={{ margin: 0, fontSize: 11, fontWeight: 700, letterSpacing: '.22em', textTransform: 'uppercase', color: '#FF9E5E' }}>Why Dumala</p>
+              <h2 style={{ fontFamily: "'Manrope', sans-serif", fontWeight: 800, letterSpacing: '-.03em', fontSize: 'clamp(1.9rem,3.4vw,2.6rem)', lineHeight: 1.15, margin: '16px 0 0', color: '#F5F7FB' }}>More clarity before every session and match.</h2>
+              <p style={{ margin: '16px auto 0', fontSize: 15.5, lineHeight: 1.7, color: '#8A96AD' }}>Every feature exists to hand you back hours between sessions — and turn them into visible player development.</p>
+            </div>
+
+            <div style={{ marginTop: 42, display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(min(300px,100%),1fr))', gap: 14 }}>
+              {wins.map((w) => (
+                <article key={w.title} data-reveal="1" className="dc-glow-shell" style={{ opacity: 1 }}>
+                  <GlowingEffect spread={36} glow disabled={false} proximity={64} inactiveZone={0.01} borderWidth={2} />
+                  <div className="dc-glow-card" style={{ padding: 26 }}>
+                  <span style={{ display: 'inline-flex', border: '1px solid rgba(255,138,61,.24)', background: 'rgba(255,138,61,.1)', borderRadius: 999, padding: '4px 10px', fontSize: 10, fontWeight: 800, letterSpacing: '.14em', textTransform: 'uppercase', color: '#FFB37E' }}>{w.title}</span>
+                  <h3 style={{ fontFamily: "'Manrope', sans-serif", fontWeight: 800, letterSpacing: '-.02em', fontSize: 21, lineHeight: 1.2, margin: '16px 0 0', color: '#F5F7FB' }}>{w.benefit}</h3>
+                  <p style={{ margin: '10px 0 0', fontSize: 13.5, lineHeight: 1.65, color: '#B9C2D4' }}>{w.note}</p>
+                  <div style={{ marginTop: 18, display: 'flex', gap: 10 }}>
+                    <span aria-hidden="true" style={{ color: '#FFB37E', fontWeight: 700, fontSize: 13 }}>✓</span>
+                    <p style={{ margin: 0, fontSize: 13.5, lineHeight: 1.6, fontWeight: 600, color: '#DDE4EF' }}>{w.after}</p>
+                  </div>
+                  </div>
                 </article>
               ))}
             </div>
           </div>
         </section>
 
-        <section className="px-4 pb-24 pt-4 sm:px-6 lg:px-8">
-          <div className="relative mx-auto max-w-5xl overflow-hidden rounded-3xl border border-white/[0.08] bg-[#050b18]/90 px-6 py-14 text-center sm:px-12">
-            <div
-              aria-hidden="true"
-              className="absolute left-1/2 top-0 h-64 w-[36rem] -translate-x-1/2 -translate-y-1/2 rounded-full bg-orange-500/[0.12] blur-3xl"
-            />
-            <div className="relative">
-              <p className={`${eyebrowClass} inline-flex items-center gap-2`}>
-                <Sparkles size={14} aria-hidden="true" />
-                Private beta offer
-              </p>
-              <h2 className="mx-auto mt-4 max-w-2xl font-display text-3xl font-bold tracking-tight text-white sm:text-4xl">
-                Free beta for one team. Upgrade later when Premium proves its value.
-              </h2>
-              <p className="mx-auto mt-4 max-w-xl text-sm leading-7 text-slate-400">
-                The next product goal is to validate whether coaches feel the weekly time savings clearly enough to subscribe.
-              </p>
-              <div className="mt-8 flex justify-center">
-                <Button asChild size="lg" className="bg-orange-400 px-6 font-semibold text-slate-950 shadow-[0_12px_32px_rgba(249,115,22,0.28)] hover:bg-orange-300">
-                  <a href="#/">Open Dumala <ClipboardList size={16} aria-hidden="true" /></a>
-                </Button>
+        {/* CTA */}
+        <section style={{ padding: '110px 24px 96px' }}>
+          <div data-reveal="1" className="dc-glow-shell dc-beta-offer" style={{ opacity: 1, maxWidth: 1040, margin: '0 auto', borderRadius: 30 }}>
+            <GlowingEffect spread={44} glow disabled={false} proximity={96} inactiveZone={0.01} borderWidth={3} />
+            <div className="dc-glow-card" style={{ position: 'relative', overflow: 'hidden', borderRadius: 22, padding: 34, textAlign: 'left' }}>
+              <div aria-hidden="true" style={{ position: 'absolute', left: '35%', top: 0, width: '38rem', height: '16rem', transform: 'translate(-50%,-55%)', borderRadius: '50%', background: 'rgba(255,138,61,.14)', filter: 'blur(70px)' }} />
+              <div style={{ position: 'relative', display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(min(320px,100%),1fr))', gap: 28, alignItems: 'center' }}>
+                <div>
+                  <p style={{ margin: 0, fontSize: 11, fontWeight: 800, letterSpacing: '.22em', textTransform: 'uppercase', color: '#FF9E5E' }}>Private beta offer</p>
+                  <h2 style={{ fontFamily: "'Manrope', sans-serif", fontWeight: 800, letterSpacing: '-.03em', fontSize: 'clamp(1.9rem,3.6vw,2.7rem)', lineHeight: 1.12, margin: '16px 0 0', maxWidth: 680, color: '#F5F7FB' }}>Run one real match week in Dumala for free.</h2>
+                  <p style={{ margin: '16px 0 0', maxWidth: 600, fontSize: 14.5, lineHeight: 1.75, color: '#B9C2D4' }}>Use Dumala with one team, test the planning rhythm, and upgrade only when the reports and match-week workflow are clearly saving time.</p>
+                  <div style={{ marginTop: 28, display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+                    <a href="#/" className="dc-cta-primary">Open Dumala -&gt;</a>
+                    <button type="button" onClick={() => scrollToId('pricing')} className="dc-cta-secondary">Compare plans</button>
+                  </div>
+                </div>
+
+                <div className="dc-card" style={{ padding: 22 }}>
+                  {['Free for one local team workspace', 'No credit card required during beta', 'Back up and restore your work anytime'].map((item) => (
+                    <div key={item} style={{ display: 'flex', gap: 10, alignItems: 'flex-start', padding: '10px 0', borderBottom: item === 'Back up and restore your work anytime' ? 'none' : '1px solid rgba(255,255,255,.08)' }}>
+                      <span aria-hidden="true" style={{ color: '#FFB37E', fontWeight: 800, fontSize: 13 }}>+</span>
+                      <span style={{ fontSize: 13.5, lineHeight: 1.55, color: '#DDE4EF' }}>{item}</span>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
           </div>
         </section>
       </main>
 
-      <footer className="relative z-10 border-t border-white/[0.06] px-4 py-10 sm:px-6 lg:px-8">
-        <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-6 md:flex-row">
-          <a href="#landing" className="flex items-center gap-2.5" aria-label="Dumala landing page">
-            <img src="/Dumala_logo.png" alt="" className="h-8 w-8 object-contain" />
-            <span className="font-display text-base font-bold tracking-tight text-white">Dumala</span>
-          </a>
-          <nav aria-label="Footer navigation" className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2">
-            {navItems.map((item) => (
-              <button
-                key={item.id}
-                type="button"
-                onClick={() => scrollToSection(item.id)}
-                className="text-sm text-slate-500 transition-colors hover:text-slate-200"
-              >
-                {item.label}
-              </button>
-            ))}
-            <a href="#/" className="text-sm text-slate-500 transition-colors hover:text-slate-200">Open app</a>
-          </nav>
-          <p className="text-xs text-slate-600">© {new Date().getFullYear()} Dumala. Built for coaches.</p>
+      {/* footer */}
+      <footer style={{ position: 'relative', zIndex: 1, borderTop: '1px solid rgba(255,255,255,.06)', padding: '56px 24px 34px', background: 'rgba(4,9,26,.42)' }}>
+        <div data-reveal="1" className="dc-glow-shell" style={{ opacity: 1, maxWidth: 1160, margin: '0 auto', borderRadius: 26 }}>
+          <GlowingEffect spread={46} glow disabled={false} proximity={96} inactiveZone={0.01} borderWidth={3} />
+          <div className="dc-glow-card" style={{ padding: '34px 32px 28px', borderRadius: 18 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(min(210px,100%),1fr))', gap: 32, alignItems: 'start' }}>
+            <div>
+              <a href="#top" onClick={goTop} style={{ display: 'inline-flex', alignItems: 'center', gap: 10, textDecoration: 'none', color: '#F5F7FB' }}>
+                <img src="/Dumala_logo.png" alt="" style={{ width: 32, height: 32, objectFit: 'contain' }} />
+                <span style={{ fontFamily: "'Manrope', sans-serif", fontWeight: 800, fontSize: 17 }}>Dumala</span>
+              </a>
+              <p style={{ margin: '14px 0 0', maxWidth: 330, fontSize: 13.5, lineHeight: 1.7, color: '#8A96AD' }}>A local-first football coaching workspace for planning sessions, preparing match day, and proving player development.</p>
+              <p style={{ margin: '16px 0 0', fontSize: 11, fontWeight: 800, letterSpacing: '.16em', textTransform: 'uppercase', color: '#FF9E5E' }}>Private beta now open</p>
+            </div>
+
+            <div>
+              <h3 style={{ margin: 0, fontSize: 12, fontWeight: 800, letterSpacing: '.14em', textTransform: 'uppercase', color: '#DDE4EF' }}>Product</h3>
+              <nav style={{ marginTop: 14, display: 'grid', gap: 10 }}>
+                <button type="button" onClick={() => scrollToId('value')} className="dc-foot-link" style={{ textAlign: 'left' }}>How it works</button>
+                <button type="button" onClick={() => scrollToId('features')} className="dc-foot-link" style={{ textAlign: 'left' }}>Inside the app</button>
+                <button type="button" onClick={() => scrollToId('pricing')} className="dc-foot-link" style={{ textAlign: 'left' }}>Pricing</button>
+                <button type="button" onClick={() => scrollToId('fit')} className="dc-foot-link" style={{ textAlign: 'left' }}>Why Dumala</button>
+              </nav>
+            </div>
+
+            <div>
+              <h3 style={{ margin: 0, fontSize: 12, fontWeight: 800, letterSpacing: '.14em', textTransform: 'uppercase', color: '#DDE4EF' }}>Built For</h3>
+              <div style={{ marginTop: 14, display: 'grid', gap: 10 }}>
+                {['Grassroots coaches', 'Club staff', 'Academy teams', 'Player development'].map((item) => (
+                  <span key={item} style={{ fontSize: 13.5, color: '#5C6880' }}>{item}</span>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <h3 style={{ margin: 0, fontSize: 12, fontWeight: 800, letterSpacing: '.14em', textTransform: 'uppercase', color: '#DDE4EF' }}>Workspace</h3>
+              <div style={{ marginTop: 14, display: 'grid', gap: 10 }}>
+                {['Works offline', 'Local backups', 'Multi-team ready', 'Weather-aware prep'].map((item) => (
+                  <span key={item} style={{ fontSize: 13.5, color: '#5C6880' }}>{item}</span>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <div style={{ marginTop: 40, paddingTop: 22, borderTop: '1px solid rgba(255,255,255,.06)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
+            <p style={{ margin: 0, fontSize: 12, color: '#43506B' }}>© {new Date().getFullYear()} Dumala. Built for coaches.</p>
+            <div style={{ display: 'flex', gap: 18, flexWrap: 'wrap' }}>
+              <a href="#/" className="dc-foot-link">Open app</a>
+              <button type="button" onClick={goTop} className="dc-foot-link">Back to top</button>
+            </div>
+          </div>
+          </div>
         </div>
       </footer>
     </div>
   );
 }
+
+
