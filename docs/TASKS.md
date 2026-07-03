@@ -1,6 +1,6 @@
 # Dumala Delivery Tasks
 
-Updated: 2026-07-02
+Updated: 2026-07-03
 
 Status values: **Done**, **In Progress**, **Next**, **Planned**, **Long Term**.
 
@@ -45,6 +45,15 @@ Release validation              [##########] 100%  14 / 14
 The FPRDS total includes sixteen completed capabilities: the five shipped assessment features plus interpolation, role-weighting, age-transition, required-field validation coverage, true historical progress charts, player/session comparison reports, the evidence-based development doctrine, training evidence naming, removal of direct training-to-rating mutation, reassessment recommendations, and rating confidence labels. Practitioner benchmark review is deferred until qualified external reviewers are available.
 
 ## Recent changes
+
+### Completed: 2026-07-03
+
+- [x] Separated the marketing landing page from the coach workspace by moving the app onto a dedicated `#/app` route while keeping the landing page as the default public entry point.
+- [x] Made the installed PWA open directly into the coach workspace by pointing the manifest `start_url` at `/#/app` and verifying the offline cold-launch flow against the app route.
+- [x] Fixed cloud sign-in redirects so Google and email OAuth return coaches into the app via a `dumalaAuth=app` callback instead of stranding them on the landing route, with coverage in `CloudAccountGate.test.tsx`.
+- [x] Polished the landing page hero and footer effects and shipped a repeatable launch configuration (`.claude/launch.json`) for running the app.
+- [x] Removed an unused pricing card to keep the public Free and Premium offer focused.
+- [x] Upgraded the training dashboard daily-prep view with clearer session context for match-week and training-day guidance.
 
 ### Completed: 2026-07-02
 

@@ -185,6 +185,7 @@ const verifyOfflineWorkflows = async page => {
 
 const port = await getAvailablePort();
 const baseUrl = `http://127.0.0.1:${port}/`;
+const appLaunchUrl = `${baseUrl}#/app`;
 const preview = spawn(
   process.execPath,
   [viteBinPath, 'preview', '--host', '127.0.0.1', '--port', String(port), '--strictPort'],
@@ -222,7 +223,7 @@ try {
     }, workspaceEntries);
 
     const onlinePage = await context.newPage();
-    await onlinePage.goto(baseUrl, {waitUntil: 'domcontentloaded'});
+    await onlinePage.goto(appLaunchUrl, {waitUntil: 'domcontentloaded'});
     await expectAppShell(onlinePage, 'initial online load');
     await waitForActiveServiceWorker(onlinePage);
     await onlinePage.close();
@@ -230,7 +231,7 @@ try {
     await context.setOffline(true);
 
     const coldLaunchPage = await context.newPage();
-    await coldLaunchPage.goto(baseUrl, {waitUntil: 'domcontentloaded'});
+    await coldLaunchPage.goto(appLaunchUrl, {waitUntil: 'domcontentloaded'});
     await expectAppShell(coldLaunchPage, 'offline cold launch');
     await verifyOfflineWorkflows(coldLaunchPage);
 

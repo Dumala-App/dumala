@@ -113,6 +113,11 @@ const AdminConsoleView = lazy(() => import('./components/AdminConsoleView'));
 const LandingPage = lazy(() => import('./components/LandingPage'));
 
 const getHashRoute = () => typeof window === 'undefined' ? '' : window.location.hash.replace(/^#\/?/, '');
+const isLandingRoute = (route: string) => route === '' || route === 'landing';
+const isAppAuthRedirect = () => {
+  if (typeof window === 'undefined') return false;
+  return new URLSearchParams(window.location.search).get('dumalaAuth') === 'app';
+};
 
 const CLOUD_BACKUP_METADATA_PREFIX = 'dumala_cloud_backup__';
 
@@ -888,6 +893,13 @@ export default function App() {
   }, []);
 
   useEffect(() => {
+    if (!isAppAuthRedirect() || cloudAuthController.state.status === 'loading') return;
+    const nextUrl = `${window.location.pathname}#/app`;
+    window.history.replaceState(null, '', nextUrl);
+    setHashRoute('app');
+  }, [cloudAuthController.state.status]);
+
+  useEffect(() => {
     if (!cloudRuntime.enabled) return;
     const viewName = primaryTab;
     const eventPayload = {
@@ -1268,7 +1280,7 @@ export default function App() {
     );
   }
 
-  if (hashRoute === 'landing') {
+  if (isLandingRoute(hashRoute) && !isAppAuthRedirect()) {
     return (
       <>
         <PwaStatusBanners />
