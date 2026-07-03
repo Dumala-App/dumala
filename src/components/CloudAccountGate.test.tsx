@@ -7,7 +7,9 @@ import {
   CloudAccountGate,
   getAppAuthRedirectUrl,
   hasPendingAppAuthRedirect,
+  hasOnboardingIntent,
   markPendingAppAuthRedirect,
+  ONBOARDING_INTENT_KEY,
   submitCloudAccountEmail,
   submitCloudGoogleSignIn,
   submitCloudPasswordRegistration,
@@ -60,6 +62,21 @@ describe('CloudAccountGate', () => {
 
     clearPendingAppAuthRedirect();
     expect(hasPendingAppAuthRedirect()).toBe(false);
+
+    vi.unstubAllGlobals();
+  });
+
+  it('marks onboarding intent only when an auth action is submitted', async () => {
+    stubWindow();
+    const signInWithPassword = vi.fn().mockResolvedValue(undefined);
+
+    expect(hasOnboardingIntent()).toBe(false);
+
+    await submitCloudPasswordSignIn('coach@example.com', 'secure-pass-1', signInWithPassword);
+
+    expect(signInWithPassword).toHaveBeenCalledWith('coach@example.com', 'secure-pass-1');
+    expect(window.localStorage.getItem(ONBOARDING_INTENT_KEY)).not.toBeNull();
+    expect(hasOnboardingIntent()).toBe(true);
 
     vi.unstubAllGlobals();
   });
