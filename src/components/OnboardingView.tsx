@@ -1,5 +1,5 @@
-import React, { FormEvent, useEffect, useMemo, useState } from 'react';
-import { ArrowLeft, ArrowRight, CheckCircle, Chrome, Cloud, Flag, KeyRound, Loader2, Mail, MapPin, Sparkles, User, UserPlus } from 'lucide-react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { ArrowLeft, ArrowRight, CheckCircle, Flag, Loader2, MapPin, Sparkles, User } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import type { AccountBootstrapResult } from '../cloud/account';
 import type { CloudRuntime } from '../cloud/runtime';
@@ -11,13 +11,10 @@ import { StaffMember, TeamInfo } from '../types';
 import {
   bootstrapSignedInCloudAccount,
   hasOnboardingIntent,
-  markOnboardingIntent,
-  submitCloudAccountEmail,
-  submitCloudGoogleSignIn,
-  submitCloudPasswordRegistration,
-  submitCloudPasswordSignIn
+  markOnboardingIntent
 } from './CloudAccountGate';
 import { AetherFlowBackdrop } from './ui/aether-flow-hero';
+import AuthSwitch from './ui/auth-switch';
 import { Button } from './ui/button';
 import { GlowingEffect } from './ui/glowing-effect';
 import { Input } from './ui/input';
@@ -60,195 +57,6 @@ const getSessionCoachPhoto = (authController?: CloudAuthController) => {
   if (authController?.state.status !== 'signedIn') return '';
   return authController.state.session.avatarUrl ?? '';
 };
-
-function OnboardingAuthEntry({
-  runtime,
-  authController,
-  returning
-}: {
-  runtime: CloudRuntime;
-  authController?: CloudAuthController;
-  returning: boolean;
-}) {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [mode, setMode] = useState<'register' | 'signIn' | 'magicLink'>(returning ? 'signIn' : 'register');
-  const [submitState, setSubmitState] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle');
-  const [message, setMessage] = useState('');
-
-  if (!runtime.enabled) {
-    return (
-      <section aria-labelledby="onboarding-cloud-account-title" className={ORANGE_NEW_CLASSES.glowShellTight}>
-        <GlowingEffect {...ORANGE_NEW_GLOW_PROPS.shellTight} />
-        <div className={`${ORANGE_NEW_CLASSES.glowCardTight} p-4`}>
-          <div className="flex items-start gap-3">
-            <Cloud size={18} className="mt-0.5 text-amber-200" aria-hidden="true" />
-            <div>
-              <h2 id="onboarding-cloud-account-title" className="text-sm font-black text-slate-100">Cloud account required</h2>
-              <p className="mt-1 text-xs leading-5 text-slate-400">
-                Account access is unavailable in this build. Enable Dumala Cloud to create or sign in before setting up a workspace.
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-    );
-  }
-
-  if (!authController || authController.state.status === 'loading') {
-    return (
-      <section aria-label="Cloud account" className={ORANGE_NEW_CLASSES.glowShellTight}>
-        <GlowingEffect {...ORANGE_NEW_GLOW_PROPS.shellTight} />
-        <div className={`${ORANGE_NEW_CLASSES.glowCardTight} p-4 text-xs font-semibold text-slate-300`}>
-          <span className="inline-flex items-center gap-2"><Loader2 size={14} className="animate-spin" /> Checking cloud account</span>
-        </div>
-      </section>
-    );
-  }
-
-  if (authController.state.status === 'signedIn') {
-    return (
-      <section aria-label="Cloud account connected" className={ORANGE_NEW_CLASSES.glowShellTight}>
-        <GlowingEffect {...ORANGE_NEW_GLOW_PROPS.shellTight} />
-        <div className={`${ORANGE_NEW_CLASSES.glowCardTight} p-4`}>
-          <div className="flex items-center gap-3">
-            <span className="flex h-10 w-10 items-center justify-center rounded-xl border border-emerald-300/20 bg-emerald-300/[0.09] text-emerald-100">
-              <CheckCircle size={17} aria-hidden="true" />
-            </span>
-            <div>
-              <h2 className="text-sm font-black text-slate-100">Account connected</h2>
-              <p className="mt-1 text-xs text-slate-400">Create your club identity or start from a sample workspace.</p>
-            </div>
-          </div>
-        </div>
-      </section>
-    );
-  }
-
-  const handleGoogle = async () => {
-    setSubmitState('sending');
-    setMessage('');
-    try {
-      await submitCloudGoogleSignIn(authController.signInWithGoogle);
-      setSubmitState('sent');
-      setMessage('Redirecting to Google. Club setup will continue after sign-in.');
-    } catch (error) {
-      setSubmitState('error');
-      setMessage(error instanceof Error ? error.message : 'Could not start Google sign-in.');
-    }
-  };
-
-  const handlePassword = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    setSubmitState('sending');
-    setMessage('');
-    try {
-      if (mode === 'register') {
-        await submitCloudPasswordRegistration(email, password, authController.signUpWithPassword);
-        setMessage('Account created. Confirm your email if required, then sign in to continue.');
-      } else {
-        await submitCloudPasswordSignIn(email, password, authController.signInWithPassword);
-        setMessage('Signed in. Your club setup is ready.');
-      }
-      setSubmitState('sent');
-    } catch (error) {
-      setSubmitState('error');
-      setMessage(error instanceof Error ? error.message : 'Could not complete account access.');
-    }
-  };
-
-  const handleMagicLink = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    setSubmitState('sending');
-    setMessage('');
-    try {
-      await submitCloudAccountEmail(email, authController.requestOtp);
-      setSubmitState('sent');
-      setMessage('Check your email for the Dumala sign-in link.');
-    } catch (error) {
-      setSubmitState('error');
-      setMessage(error instanceof Error ? error.message : 'Could not send the sign-in link.');
-    }
-  };
-
-  const helperTone = submitState === 'error' || authController.state.status === 'error' ? 'text-rose-300' : 'text-emerald-200';
-  const title = returning ? 'Welcome back' : 'Create your account';
-
-  return (
-    <section aria-labelledby="onboarding-cloud-account-title" className={ORANGE_NEW_CLASSES.glowShellTight}>
-      <GlowingEffect {...ORANGE_NEW_GLOW_PROPS.shellTight} />
-      <div className={`${ORANGE_NEW_CLASSES.glowCardTight} p-4`}>
-        <div className="grid gap-4 md:grid-cols-[minmax(0,0.9fr)_minmax(17rem,0.95fr)] md:items-start">
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-orange-300/15 bg-orange-300/[0.08] text-orange-200">
-                {returning ? <KeyRound size={14} aria-hidden="true" /> : <UserPlus size={14} aria-hidden="true" />}
-              </span>
-              <h2 id="onboarding-cloud-account-title" className="text-base font-black text-slate-100">
-                {title}
-              </h2>
-            </div>
-            <p className="mt-2 max-w-sm text-xs leading-5 text-slate-400">
-              {returning
-                ? 'Continue with your Dumala account to reopen setup or restore your workspace.'
-                : 'Start with Google or email. Your workspace details stay available locally for offline use after setup.'}
-            </p>
-          </div>
-
-          <div className="rounded-xl border border-cyan-300/15 bg-[#050b14]/90 p-3">
-            <Button
-              type="button"
-              onClick={() => void handleGoogle()}
-              disabled={submitState === 'sending'}
-              className="h-10 w-full gap-2 rounded-lg bg-white text-sm font-black text-slate-950 shadow-lg shadow-cyan-950/20 hover:bg-cyan-50 disabled:bg-slate-600 [&_svg]:size-4"
-            >
-              {submitState === 'sending' ? <Loader2 size={15} className="animate-spin" /> : <Chrome size={15} />}
-              Continue with Google
-            </Button>
-
-            <div className="my-3 h-px bg-white/10" />
-
-            {mode === 'magicLink' ? (
-              <form onSubmit={handleMagicLink} className="grid gap-2">
-                <Label htmlFor="onboarding-cloud-email" className="text-[11px] normal-case tracking-normal text-slate-300">Email address</Label>
-                <Input id="onboarding-cloud-email" type="email" value={email} onChange={event => setEmail(event.target.value)} placeholder="coach@example.com" className="h-9 rounded-md border-slate-700 bg-[#07111f] px-2.5 text-xs text-slate-100 placeholder:text-slate-500 focus-visible:border-cyan-400 focus-visible:ring-cyan-400/20" required />
-                <Button type="submit" size="sm" disabled={submitState === 'sending'} className="h-9 gap-1 rounded-md bg-cyan-600 px-2.5 text-xs text-white hover:bg-cyan-500 disabled:bg-slate-500 [&_svg]:size-3.5">
-                  {submitState === 'sending' ? <Loader2 size={13} className="animate-spin" /> : <Mail size={13} />}
-                  Send sign-in link
-                </Button>
-              </form>
-            ) : (
-              <form onSubmit={handlePassword} className="grid gap-2">
-                <Label htmlFor="onboarding-cloud-email" className="text-[11px] normal-case tracking-normal text-slate-300">Email address</Label>
-                <Input id="onboarding-cloud-email" type="email" value={email} onChange={event => setEmail(event.target.value)} placeholder="coach@example.com" className="h-9 rounded-md border-slate-700 bg-[#07111f] px-2.5 text-xs text-slate-100 placeholder:text-slate-500 focus-visible:border-cyan-400 focus-visible:ring-cyan-400/20" required />
-                <Input id="onboarding-cloud-password" type="password" value={password} onChange={event => setPassword(event.target.value)} placeholder="Password" minLength={mode === 'register' ? 8 : undefined} className="h-9 rounded-md border-slate-700 bg-[#07111f] px-2.5 text-xs text-slate-100 placeholder:text-slate-500 focus-visible:border-cyan-400 focus-visible:ring-cyan-400/20" required />
-                <Button type="submit" size="sm" disabled={submitState === 'sending'} className="h-9 gap-1 rounded-md bg-cyan-600 px-2.5 text-xs text-white hover:bg-cyan-500 disabled:bg-slate-500 [&_svg]:size-3.5">
-                  {submitState === 'sending' ? <Loader2 size={13} className="animate-spin" /> : mode === 'register' ? <UserPlus size={13} /> : <KeyRound size={13} />}
-                  {mode === 'register' ? 'Create account with email' : 'Sign in with email'}
-                </Button>
-              </form>
-            )}
-
-            <div className="mt-3 flex flex-wrap items-center justify-center gap-2 border-t border-white/[0.07] pt-3">
-              <button type="button" onClick={() => { setMode('register'); setMessage(''); setSubmitState('idle'); markOnboardingIntent(); }} className={`rounded-md px-2 py-1 text-[11px] font-bold ${mode === 'register' ? 'bg-orange-300/10 text-orange-200' : 'text-slate-400 hover:bg-white/5 hover:text-white'}`}>
-                Create account
-              </button>
-              <button type="button" onClick={() => { setMode('signIn'); setMessage(''); setSubmitState('idle'); markOnboardingIntent(); }} className={`rounded-md px-2 py-1 text-[11px] font-bold ${mode === 'signIn' ? 'bg-cyan-300/10 text-cyan-200' : 'text-slate-400 hover:bg-white/5 hover:text-white'}`}>
-                Sign in
-              </button>
-              <button type="button" onClick={() => { setMode('magicLink'); setMessage(''); setSubmitState('idle'); markOnboardingIntent(); }} className={`rounded-md px-2 py-1 text-[11px] font-bold ${mode === 'magicLink' ? 'bg-cyan-300/10 text-cyan-200' : 'text-slate-400 hover:bg-white/5 hover:text-white'}`}>
-                Email link
-              </button>
-            </div>
-
-            {message && <p className={`mt-2 text-[11px] font-semibold leading-4 ${helperTone}`}>{message}</p>}
-            {authController.state.status === 'error' && <p className="mt-2 text-[11px] font-semibold text-rose-300">{authController.state.message}</p>}
-          </div>
-        </div>
-      </div>
-    </section>
-  );
-}
 
 export default function OnboardingView({
   onComplete,
@@ -398,8 +206,8 @@ export default function OnboardingView({
 
               <AnimatePresence mode="wait">
                 {stage === 'auth-intent' && (
-                  <motion.div key="auth" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.25 }} className="mx-auto w-full max-w-[40rem]">
-                    <OnboardingAuthEntry runtime={cloudRuntime} authController={cloudAuthController} returning={returning} />
+                  <motion.div key="auth" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.25 }} className="mx-auto w-full max-w-[44rem]">
+                    <AuthSwitch runtime={cloudRuntime} authController={cloudAuthController} returning={returning} />
                   </motion.div>
                 )}
 

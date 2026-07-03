@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { DumalaSupabaseClient } from './client';
-import { ensureAccountBootstrap } from './account';
+import { ensureAccountBootstrap, hasExistingAccountWorkspace } from './account';
 
 class QueryStep {
   constructor(
@@ -169,5 +169,65 @@ describe('account bootstrap repository', () => {
       table: 'club_memberships',
       method: 'upsert'
     }));
+  });
+
+  it('detects an existing workspace without creating records', async () => {
+    const calls: Array<{ table: string; method: string; value?: unknown }> = [];
+    const responses = new Map<string, unknown[]>([
+      ['club_memberships', [{
+        data: {
+          id: 'membership-1',
+          club_id: 'club-1',
+          user_id: 'user-1',
+          membership_state: 'active',
+          clubs: { id: 'club-1', name: 'Dumala FC' }
+        },
+        error: null
+      }]]
+    ]);
+    const from = vi.fn((table: string) => {
+      const response = responses.get(table)?.shift();
+      if (!response) throw new Error(`Missing mock response for ${table}.`);
+      return new QueryStep(table, calls, response);
+    });
+    const client = {
+      auth: {
+        getUser: vi.fn().mockResolvedValue({
+          data: { user: { id: 'user-1', email: 'coach@example.com' } },
+          error: null
+        })
+      },
+      from
+    } as unknown as DumalaSupabaseClient;
+
+    await expect(hasExistingAccountWorkspace(client)).resolves.toBe(true);
+    expect(calls).not.toContainEqual(expect.objectContaining({ method: 'insert' }));
+    expect(calls).not.toContainEqual(expect.objectContaining({ method: 'upsert' }));
+  });
+
+  it('returns false for a new account without creating a default club', async () => {
+    const calls: Array<{ table: string; method: string; value?: unknown }> = [];
+    const responses = new Map<string, unknown[]>([
+      ['club_memberships', [{ data: null, error: null }]],
+      ['clubs', [{ data: null, error: null }]]
+    ]);
+    const from = vi.fn((table: string) => {
+      const response = responses.get(table)?.shift();
+      if (!response) throw new Error(`Missing mock response for ${table}.`);
+      return new QueryStep(table, calls, response);
+    });
+    const client = {
+      auth: {
+        getUser: vi.fn().mockResolvedValue({
+          data: { user: { id: 'user-1', email: 'coach@example.com' } },
+          error: null
+        })
+      },
+      from
+    } as unknown as DumalaSupabaseClient;
+
+    await expect(hasExistingAccountWorkspace(client)).resolves.toBe(false);
+    expect(calls).not.toContainEqual(expect.objectContaining({ method: 'insert' }));
+    expect(calls).not.toContainEqual(expect.objectContaining({ method: 'upsert' }));
   });
 });

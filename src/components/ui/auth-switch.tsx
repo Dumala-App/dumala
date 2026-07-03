@@ -1,21 +1,196 @@
-import React, { FormEvent, useState } from 'react';
+import React, { FormEvent, useEffect, useState } from 'react';
+import { CheckCircle2, Cloud, Loader2 } from 'lucide-react';
+import type { CloudRuntime } from '../../cloud/runtime';
+import type { CloudAuthController } from '../../hooks/useCloudAuth';
 import { cn } from '../../lib/utils';
+import {
+  submitCloudAccountEmail,
+  submitCloudGoogleSignIn,
+  submitCloudPasswordRegistration,
+  submitCloudPasswordSignIn
+} from '../CloudAccountGate';
+import { Button } from './button';
+import { Input } from './input';
+import { Label } from './label';
+
+type AuthMode = 'create' | 'signIn' | 'link';
 
 export interface AuthSwitchProps {
   className?: string;
+  runtime?: CloudRuntime;
+  authController?: CloudAuthController;
+  returning?: boolean;
   onOpenApp?: () => void;
 }
 
-const fieldClass = 'h-11 w-full rounded-xl border border-white/12 bg-[#04091a]/70 px-3 text-sm font-semibold text-slate-100 outline-none transition placeholder:text-slate-500 focus:border-orange-300/70 focus:ring-2 focus:ring-orange-300/20';
+const fieldClass = 'h-11 w-full rounded-xl border border-white/12 bg-[#040b17]/88 px-3 text-sm font-semibold text-slate-100 shadow-inner shadow-black/15 outline-none transition placeholder:text-slate-500 focus:border-orange-300/70 focus:ring-2 focus:ring-orange-300/20';
 
-export function AuthSwitch({ className, onOpenApp }: AuthSwitchProps) {
-  const [isSignUp, setIsSignUp] = useState(false);
+const openApp = (onOpenApp?: () => void) => {
+  onOpenApp?.();
+  if (!onOpenApp && typeof window !== 'undefined') {
+    window.location.hash = '/app';
+  }
+};
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+export function AuthSwitch({
+  className,
+  runtime,
+  authController,
+  returning = false,
+  onOpenApp
+}: AuthSwitchProps) {
+  const [mode, setMode] = useState<AuthMode>(returning ? 'signIn' : 'create');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [submitState, setSubmitState] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle');
+  const [message, setMessage] = useState('');
+
+  useEffect(() => {
+    setMode(returning ? 'signIn' : 'create');
+  }, [returning]);
+
+  const resetMode = (nextMode: AuthMode) => {
+    setMode(nextMode);
+    setSubmitState('idle');
+    setMessage('');
+  };
+
+  if (runtime && !runtime.enabled) {
+    return (
+      <section
+        aria-labelledby="auth-switch-cloud-required-title"
+        className={cn(
+          'rounded-2xl border border-white/12 bg-[#071026]/88 p-4 shadow-2xl shadow-slate-950/35 backdrop-blur-xl',
+          className
+        )}
+      >
+        <div className="rounded-xl border border-white/10 bg-[#050b14]/72 p-4">
+          <div className="flex items-start gap-3">
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-orange-300/18 bg-orange-300/[0.08] text-orange-200">
+              <Cloud size={17} aria-hidden="true" />
+            </span>
+            <div>
+              <h2 id="auth-switch-cloud-required-title" className="text-sm font-black text-slate-100">Cloud account required</h2>
+              <p className="mt-1 text-xs leading-5 text-slate-400">
+                Account access is unavailable in this build. Enable Dumala Cloud to create or sign in before setting up a workspace.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  if (runtime?.enabled && (!authController || authController.state.status === 'loading')) {
+    return (
+      <section
+        aria-label="Cloud account"
+        className={cn(
+          'rounded-2xl border border-white/12 bg-[#071026]/88 p-4 shadow-2xl shadow-slate-950/35 backdrop-blur-xl',
+          className
+        )}
+      >
+        <div className="rounded-xl border border-white/10 bg-[#050b14]/72 p-4 text-xs font-semibold text-slate-300">
+          <span className="inline-flex items-center gap-2">
+            <Loader2 size={14} className="animate-spin" aria-hidden="true" />
+            Checking cloud account
+          </span>
+        </div>
+      </section>
+    );
+  }
+
+  if (authController?.state.status === 'signedIn') {
+    return (
+      <section
+        aria-label="Cloud account connected"
+        className={cn(
+          'rounded-2xl border border-white/12 bg-[#071026]/88 p-4 shadow-2xl shadow-slate-950/35 backdrop-blur-xl',
+          className
+        )}
+      >
+        <div className="rounded-xl border border-emerald-300/15 bg-emerald-300/[0.05] p-4">
+          <div className="flex items-center gap-3">
+            <span className="flex h-10 w-10 items-center justify-center rounded-xl border border-emerald-300/20 bg-emerald-300/[0.09] text-emerald-100">
+              <CheckCircle2 size={17} aria-hidden="true" />
+            </span>
+            <div>
+              <h2 className="text-sm font-black text-slate-100">Account connected</h2>
+              <p className="mt-1 text-xs text-slate-400">Create your club identity or start from a sample workspace.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  const hasLiveAuth = Boolean(authController);
+  const isCreateMode = mode === 'create';
+  const isSignInMode = mode === 'signIn';
+  const isLinkMode = mode === 'link';
+  const formTitle = isCreateMode ? 'Create account' : isSignInMode ? 'Sign in with email' : 'Email sign-in link';
+  const helperTone = submitState === 'error' || authController?.state.status === 'error' ? 'text-rose-300' : 'text-emerald-200';
+
+  const handleGoogle = async () => {
+    if (!authController) {
+      openApp(onOpenApp);
+      return;
+    }
+
+    setSubmitState('sending');
+    setMessage('');
+    try {
+      await submitCloudGoogleSignIn(authController.signInWithGoogle);
+      setSubmitState('sent');
+      setMessage('Redirecting to Google. Dumala will continue after sign-in.');
+    } catch (error) {
+      setSubmitState('error');
+      setMessage(error instanceof Error ? error.message : 'Could not start Google sign-in.');
+    }
+  };
+
+  const handlePasswordSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    onOpenApp?.();
-    if (!onOpenApp && typeof window !== 'undefined') {
-      window.location.hash = '/app';
+
+    if (!authController) {
+      openApp(onOpenApp);
+      return;
+    }
+
+    setSubmitState('sending');
+    setMessage('');
+    try {
+      if (isCreateMode) {
+        await submitCloudPasswordRegistration(email, password, authController.signUpWithPassword);
+        setMessage('Account created. Confirm your email if required, then sign in to continue.');
+      } else {
+        await submitCloudPasswordSignIn(email, password, authController.signInWithPassword);
+        setMessage('Signed in. Your workspace is being restored.');
+      }
+      setSubmitState('sent');
+    } catch (error) {
+      setSubmitState('error');
+      setMessage(error instanceof Error ? error.message : 'Could not complete account access.');
+    }
+  };
+
+  const handleLinkSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    if (!authController) {
+      openApp(onOpenApp);
+      return;
+    }
+
+    setSubmitState('sending');
+    setMessage('');
+    try {
+      await submitCloudAccountEmail(email, authController.requestOtp);
+      setSubmitState('sent');
+      setMessage('Check your email for the Dumala sign-in link.');
+    } catch (error) {
+      setSubmitState('error');
+      setMessage(error instanceof Error ? error.message : 'Could not send the sign-in link.');
     }
   };
 
@@ -23,123 +198,162 @@ export function AuthSwitch({ className, onOpenApp }: AuthSwitchProps) {
     <section
       aria-label="Dumala account access"
       className={cn(
-        'relative min-h-[34rem] overflow-hidden rounded-[1.4rem] border border-white/12 bg-[#071026]/88 shadow-2xl shadow-slate-950/35 backdrop-blur-xl',
+        'rounded-[1.35rem] border border-white/12 bg-[#071026]/88 p-3 shadow-2xl shadow-slate-950/35 backdrop-blur-xl sm:p-4',
         className
       )}
     >
-      <div
-        aria-hidden="true"
-        className={cn(
-          'absolute top-1/2 z-0 h-[62rem] w-[62rem] -translate-y-1/2 rounded-full bg-[radial-gradient(circle,#ffb37e_0%,#ff8a3d_32%,rgba(255,138,61,0.18)_58%,transparent_72%)] opacity-90 transition-all duration-700 ease-in-out',
-          isSignUp ? 'right-auto left-[48%] translate-x-0' : 'right-[48%]'
-        )}
-      />
+      <div className="grid gap-4 lg:grid-cols-[minmax(0,0.88fr)_minmax(18rem,1fr)]">
+        <div className="rounded-2xl border border-white/10 bg-[#050b14]/58 p-4">
+          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-orange-300">
+            {returning ? 'Welcome back' : 'Account first'}
+          </p>
+          <h2 className="mt-2 font-display text-2xl font-black leading-tight text-white">
+            {returning ? 'Welcome back' : 'Create your account'}
+          </h2>
+          <p className="mt-2 text-sm font-semibold leading-6 text-slate-400">
+            {returning
+              ? 'Sign in to reopen setup or restore your saved Dumala workspace.'
+              : 'Create a Dumala account first, then set up your club identity and offline-ready workspace.'}
+          </p>
 
-      <div className="absolute inset-0 z-10 grid grid-cols-1 md:grid-cols-2">
-        <div className={cn(
-          'flex items-center p-6 text-center transition-all duration-500 md:p-10',
-          isSignUp ? 'pointer-events-none -translate-x-8 opacity-0 md:-translate-x-16' : 'opacity-100'
-        )}>
-          <div className="max-w-xs text-white">
-            <p className="text-[11px] font-black uppercase tracking-[0.22em] text-slate-950/70 md:text-white/70">New coach?</p>
-            <h3 className="mt-3 font-display text-2xl font-black leading-tight text-slate-950 md:text-white">Build your club workspace first.</h3>
-            <p className="mt-3 text-sm font-semibold leading-6 text-slate-900/75 md:text-white/78">
-              Create your Dumala account, then set up the club identity and offline-ready workspace.
-            </p>
+          <div className="mt-5 grid gap-2">
             <button
               type="button"
-              onClick={() => setIsSignUp(true)}
-              className="mt-5 rounded-xl border-2 border-slate-950/35 px-5 py-2.5 text-xs font-black uppercase tracking-wide text-slate-950 transition hover:bg-slate-950/10 md:border-white md:text-white md:hover:bg-white/10"
+              onClick={() => resetMode('create')}
+              aria-pressed={isCreateMode}
+              className={cn(
+                'rounded-xl border p-3 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-300/45',
+                isCreateMode
+                  ? 'border-orange-300/50 bg-orange-300/[0.1] text-orange-100 shadow-lg shadow-orange-950/15'
+                  : 'border-white/10 bg-white/[0.035] text-slate-300 hover:border-orange-300/25 hover:bg-orange-300/[0.06]'
+              )}
             >
-              Create account
+              <span className="block text-sm font-black">Create Account</span>
+              <span className="mt-1 block text-xs font-semibold leading-5 text-slate-400">New account with Google or email.</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => resetMode('signIn')}
+              aria-pressed={isSignInMode}
+              className={cn(
+                'rounded-xl border p-3 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/45',
+                isSignInMode
+                  ? 'border-cyan-300/45 bg-cyan-300/[0.09] text-cyan-100 shadow-lg shadow-cyan-950/15'
+                  : 'border-white/10 bg-white/[0.035] text-slate-300 hover:border-cyan-300/25 hover:bg-cyan-300/[0.06]'
+              )}
+            >
+              <span className="block text-sm font-black">Sign in</span>
+              <span className="mt-1 block text-xs font-semibold leading-5 text-slate-400">Already have a Dumala account.</span>
             </button>
           </div>
         </div>
 
-        <div className={cn(
-          'flex items-center justify-end p-6 text-center transition-all duration-500 md:p-10',
-          isSignUp ? 'opacity-100' : 'pointer-events-none translate-x-8 opacity-0 md:translate-x-16'
-        )}>
-          <div className="ml-auto max-w-xs text-white">
-            <p className="text-[11px] font-black uppercase tracking-[0.22em] text-slate-950/70 md:text-white/70">Already started?</p>
-            <h3 className="mt-3 font-display text-2xl font-black leading-tight text-slate-950 md:text-white">Continue your match week.</h3>
-            <p className="mt-3 text-sm font-semibold leading-6 text-slate-900/75 md:text-white/78">
-              Sign in and reopen your team workspace, reports, tactics, and planning rhythm.
-            </p>
+        <div className="rounded-2xl border border-cyan-300/15 bg-[#050b14]/86 p-4 shadow-xl shadow-black/20">
+          <div className="rounded-xl border border-white/10 bg-white/[0.035] p-3">
+            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">Google account</p>
+            <Button
+              type="button"
+              onClick={() => void handleGoogle()}
+              disabled={submitState === 'sending'}
+              className="mt-2 h-11 w-full rounded-xl bg-white text-sm font-black text-slate-950 shadow-lg shadow-cyan-950/20 hover:bg-cyan-50 disabled:bg-slate-600 disabled:text-slate-300"
+            >
+              {submitState === 'sending' ? (
+                <span className="inline-flex items-center gap-2"><Loader2 size={15} className="animate-spin" aria-hidden="true" />Connecting</span>
+              ) : (
+                'Continue with Google'
+              )}
+            </Button>
+          </div>
+
+          <div className="my-4 flex items-center gap-3 text-[10px] font-black uppercase tracking-[0.18em] text-slate-500">
+            <span className="h-px flex-1 bg-white/10" />
+            Email
+            <span className="h-px flex-1 bg-white/10" />
+          </div>
+
+          {isLinkMode ? (
+            <form onSubmit={handleLinkSubmit} className="grid gap-3">
+              <div className="grid gap-1.5">
+                <Label htmlFor="auth-switch-email-link" className="text-[11px] font-bold uppercase tracking-wide text-slate-400">Email address</Label>
+                <Input
+                  id="auth-switch-email-link"
+                  type="email"
+                  value={email}
+                  onChange={event => setEmail(event.target.value)}
+                  placeholder="coach@example.com"
+                  autoComplete="email"
+                  className={fieldClass}
+                  required={hasLiveAuth}
+                />
+              </div>
+              <Button type="submit" disabled={submitState === 'sending'} className="h-11 rounded-xl bg-cyan-600 text-sm font-black text-white hover:bg-cyan-500 disabled:bg-slate-600">
+                {submitState === 'sending' ? 'Sending link' : 'Send email link'}
+              </Button>
+            </form>
+          ) : (
+            <form onSubmit={handlePasswordSubmit} className="grid gap-3">
+              <div>
+                <h3 className="text-base font-black text-slate-100">{formTitle}</h3>
+                <p className="mt-1 text-xs font-semibold leading-5 text-slate-500">
+                  {isCreateMode ? 'Use email if you prefer not to continue with Google.' : 'Use the email and password attached to your Dumala account.'}
+                </p>
+              </div>
+              <div className="grid gap-1.5">
+                <Label htmlFor="auth-switch-email" className="text-[11px] font-bold uppercase tracking-wide text-slate-400">Email address</Label>
+                <Input
+                  id="auth-switch-email"
+                  type="email"
+                  value={email}
+                  onChange={event => setEmail(event.target.value)}
+                  placeholder="coach@example.com"
+                  autoComplete="email"
+                  className={fieldClass}
+                  required={hasLiveAuth}
+                />
+              </div>
+              <div className="grid gap-1.5">
+                <Label htmlFor="auth-switch-password" className="text-[11px] font-bold uppercase tracking-wide text-slate-400">Password</Label>
+                <Input
+                  id="auth-switch-password"
+                  type="password"
+                  value={password}
+                  onChange={event => setPassword(event.target.value)}
+                  placeholder={isCreateMode ? 'Minimum 8 characters' : 'Your password'}
+                  autoComplete={isCreateMode ? 'new-password' : 'current-password'}
+                  minLength={isCreateMode ? 8 : undefined}
+                  className={fieldClass}
+                  required={hasLiveAuth}
+                />
+              </div>
+              <Button
+                type="submit"
+                disabled={submitState === 'sending'}
+                className={cn(
+                  'h-11 rounded-xl text-sm font-black shadow-lg disabled:bg-slate-600',
+                  isCreateMode
+                    ? 'bg-gradient-to-b from-[#ff9a52] to-[#ff8a3d] text-[#180a00] shadow-orange-950/20 hover:from-[#ffb06e] hover:to-[#ffa35f]'
+                    : 'bg-cyan-600 text-white shadow-cyan-950/20 hover:bg-cyan-500'
+                )}
+              >
+                {submitState === 'sending'
+                  ? isCreateMode ? 'Creating account' : 'Signing in'
+                  : isCreateMode ? 'Create account with email' : 'Sign in with email'}
+              </Button>
+            </form>
+          )}
+
+          <div className="mt-4 border-t border-white/[0.08] pt-3">
             <button
               type="button"
-              onClick={() => setIsSignUp(false)}
-              className="mt-5 rounded-xl border-2 border-slate-950/35 px-5 py-2.5 text-xs font-black uppercase tracking-wide text-slate-950 transition hover:bg-slate-950/10 md:border-white md:text-white md:hover:bg-white/10"
+              onClick={() => resetMode(isLinkMode ? (returning ? 'signIn' : 'create') : 'link')}
+              className="w-full rounded-xl px-3 py-2 text-xs font-black text-slate-400 transition hover:bg-white/[0.05] hover:text-cyan-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/40"
             >
-              Sign in
+              {isLinkMode ? 'Use password instead' : 'Send a passwordless email link'}
             </button>
           </div>
-        </div>
-      </div>
 
-      <div className="relative z-20 grid min-h-[34rem] grid-cols-1 md:grid-cols-2">
-        <div className={cn(
-          'flex items-center justify-center p-5 transition-all duration-700 md:p-8',
-          isSignUp ? 'md:translate-x-0' : 'md:translate-x-full'
-        )}>
-          <form
-            onSubmit={handleSubmit}
-            className={cn(
-              'grid w-full max-w-sm gap-3 rounded-2xl border border-white/10 bg-[#050b14]/86 p-5 shadow-xl shadow-slate-950/20 transition-opacity duration-300 sm:p-6',
-              isSignUp ? 'opacity-100' : 'opacity-0 md:pointer-events-none'
-            )}
-          >
-            <div>
-              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-orange-300">Account setup</p>
-              <h2 className="mt-2 font-display text-2xl font-black text-white">Create account</h2>
-              <p className="mt-1 text-xs font-medium leading-5 text-slate-400">Use this to start the account-required onboarding flow.</p>
-            </div>
-            <label className="grid gap-1.5 text-[11px] font-bold uppercase tracking-wide text-slate-400">
-              Coach name
-              <input className={fieldClass} type="text" name="name" placeholder="Alex Sterling" autoComplete="name" />
-            </label>
-            <label className="grid gap-1.5 text-[11px] font-bold uppercase tracking-wide text-slate-400">
-              Email
-              <input className={fieldClass} type="email" name="email" placeholder="coach@example.com" autoComplete="email" />
-            </label>
-            <label className="grid gap-1.5 text-[11px] font-bold uppercase tracking-wide text-slate-400">
-              Password
-              <input className={fieldClass} type="password" name="password" placeholder="Minimum 8 characters" autoComplete="new-password" />
-            </label>
-            <button type="submit" className="mt-1 h-11 rounded-xl bg-gradient-to-b from-[#ff9a52] to-[#ff8a3d] text-sm font-black text-[#180a00] shadow-lg shadow-orange-950/20 transition hover:from-[#ffb06e] hover:to-[#ffa35f]">
-              Start onboarding
-            </button>
-          </form>
-        </div>
-
-        <div className={cn(
-          'flex items-center justify-center p-5 transition-all duration-700 md:p-8',
-          isSignUp ? 'md:-translate-x-full' : 'md:translate-x-0'
-        )}>
-          <form
-            onSubmit={handleSubmit}
-            className={cn(
-              'grid w-full max-w-sm gap-3 rounded-2xl border border-white/10 bg-[#050b14]/86 p-5 shadow-xl shadow-slate-950/20 transition-opacity duration-300 sm:p-6',
-              isSignUp ? 'opacity-0 md:pointer-events-none' : 'opacity-100'
-            )}
-          >
-            <div>
-              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-cyan-200">Returning coach</p>
-              <h2 className="mt-2 font-display text-2xl font-black text-white">Sign in</h2>
-              <p className="mt-1 text-xs font-medium leading-5 text-slate-400">Continue to Dumala and use Google or email sign-in inside the app.</p>
-            </div>
-            <label className="grid gap-1.5 text-[11px] font-bold uppercase tracking-wide text-slate-400">
-              Email
-              <input className={fieldClass} type="email" name="email" placeholder="coach@example.com" autoComplete="email" />
-            </label>
-            <label className="grid gap-1.5 text-[11px] font-bold uppercase tracking-wide text-slate-400">
-              Password
-              <input className={fieldClass} type="password" name="password" placeholder="Your password" autoComplete="current-password" />
-            </label>
-            <button type="submit" className="mt-1 h-11 rounded-xl bg-white text-sm font-black text-slate-950 shadow-lg shadow-cyan-950/20 transition hover:bg-cyan-50">
-              Continue to app
-            </button>
-          </form>
+          {message && <p className={cn('mt-3 text-[11px] font-semibold leading-5', helperTone)}>{message}</p>}
+          {authController?.state.status === 'error' && <p className="mt-3 text-[11px] font-semibold leading-5 text-rose-300">{authController.state.message}</p>}
         </div>
       </div>
     </section>

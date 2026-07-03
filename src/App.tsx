@@ -80,9 +80,13 @@ import {
 import { findUserStanding } from './standings';
 import { useCloudRuntime } from './hooks/useCloudRuntime';
 import { useCloudAuth } from './hooks/useCloudAuth';
-import { shouldResetHomeTabAfterCloudWorkspaceReady } from './navigation/cloudWorkspaceNavigation';
+import {
+  shouldResetHomeTabAfterCloudWorkspaceReady,
+  shouldRestoreSavedCloudWorkspaceAfterAuth
+} from './navigation/cloudWorkspaceNavigation';
 import type { DayName } from './training/synchronization';
 import {
+  bootstrapSignedInCloudAccount,
   clearPendingAppAuthRedirect,
   getOrCreateCloudDeviceId,
   hasPendingAppAuthRedirect
@@ -246,6 +250,7 @@ export default function App() {
     auth: cloudRuntime.dataAccess?.auth ?? null
   });
   const analyticsSessionIdRef = useRef(getOrCreateAnalyticsSessionId());
+  const onboardingCloudBootstrapUserRef = useRef<string | null>(null);
   const [hashRoute, setHashRoute] = useState(getHashRoute);
   type IntegrityFocus = {
     playerId?: string | null;
@@ -1149,6 +1154,55 @@ export default function App() {
       handleNavigate({ primary: 'home', homeTab: 'overview' });
     }
   };
+
+  useEffect(() => {
+    if (startupRecoveryIssues.length > 0) return;
+    if (!cloudRuntime.enabled || cloudAuthController.state.status !== 'signedIn') {
+      onboardingCloudBootstrapUserRef.current = null;
+      return;
+    }
+
+    const hasSavedCloudWorkspace = workspaces.some(workspace => Boolean(workspace.cloudClubId));
+    const shouldRestore = shouldRestoreSavedCloudWorkspaceAfterAuth({
+      authStatus: cloudAuthController.state.status,
+      isOnboarded,
+      hasTeamInfo: teamInfo !== null,
+      hasSavedCloudWorkspace
+    });
+
+    if (!shouldRestore && (isOnboarded || teamInfo !== null)) return;
+
+    const signedInState = cloudAuthController.state;
+    const userId = cloudAuthController.state.session.userId;
+    if (onboardingCloudBootstrapUserRef.current === userId) return;
+    onboardingCloudBootstrapUserRef.current = userId;
+
+    const restoreExistingCloudWorkspace = async () => {
+      if (!shouldRestore) {
+        const hasExistingCloudWorkspace = await cloudRuntime.dataAccess.account.hasExistingWorkspace();
+        if (!hasExistingCloudWorkspace) return;
+      }
+
+      const result = await bootstrapSignedInCloudAccount(cloudRuntime, signedInState, undefined, '0.0.0');
+      handleCloudWorkspaceReady(result);
+    };
+
+    restoreExistingCloudWorkspace()
+      .then(result => {
+        onboardingCloudBootstrapUserRef.current = null;
+      })
+      .catch(error => {
+        onboardingCloudBootstrapUserRef.current = null;
+        console.warn('Cloud workspace could not restore after sign-in.', error);
+      });
+  }, [
+    cloudAuthController.state,
+    cloudRuntime,
+    isOnboarded,
+    startupRecoveryIssues.length,
+    teamInfo,
+    workspaces
+  ]);
 
   const handleCloudOnboardingComplete = (
     result: AccountBootstrapResult,
