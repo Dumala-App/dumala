@@ -375,9 +375,6 @@ export default function OnboardingView({
                 <h1 className="mt-2 font-display text-2xl font-black leading-[1.06] text-white sm:text-3xl">
                   Coach smarter.<br className="sm:hidden" /> Manage better.
                 </h1>
-                <p className="mx-auto mt-3 max-w-lg text-xs leading-5 text-slate-300 sm:text-sm">
-                  Create your account first, then set up a club workspace that stays useful online or offline.
-                </p>
               </div>
 
               {stage !== 'auth-intent' && (
@@ -544,6 +541,12 @@ export default function OnboardingView({
                   </motion.div>
                 )}
               </AnimatePresence>
+
+              {stage === 'auth-intent' && (
+                <p className="mx-auto mt-4 max-w-lg text-center text-xs leading-5 text-slate-400 sm:text-sm">
+                  Create your account first, then set up a club workspace that stays useful online or offline.
+                </p>
+              )}
 
               {stage === 'club-identity' && completionMessage && <p className="mx-auto mt-3 max-w-2xl text-xs font-semibold text-rose-300">{completionMessage}</p>}
             </div>
