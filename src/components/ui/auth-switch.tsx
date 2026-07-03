@@ -23,7 +23,7 @@ export interface AuthSwitchProps {
   onOpenApp?: () => void;
 }
 
-const fieldClass = 'h-11 w-full rounded-xl border border-white/12 bg-[#040b17]/88 px-3 text-sm font-semibold text-slate-100 shadow-inner shadow-black/15 outline-none transition placeholder:text-slate-500 focus:border-orange-300/70 focus:ring-2 focus:ring-orange-300/20';
+const fieldClass = 'h-10 w-full rounded-xl border border-white/12 bg-[#040b17]/88 px-3 text-sm font-semibold text-slate-100 shadow-inner shadow-black/15 outline-none transition placeholder:text-slate-500 focus:border-orange-300/70 focus:ring-2 focus:ring-orange-300/20';
 
 const openApp = (onOpenApp?: () => void) => {
   onOpenApp?.();
@@ -239,34 +239,27 @@ export function AuthSwitch({
           'rounded-2xl border bg-[#050b14]/86 p-4 shadow-xl shadow-black/20',
           isCreateMode ? 'border-orange-300/18' : 'border-cyan-300/15'
         )}>
-          {isSignInChoice && (
-            <>
-              <div className="rounded-xl border border-white/10 bg-white/[0.035] p-3">
-                <p className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">Google account</p>
+          {isLinkMode ? (
+            <form onSubmit={handleLinkSubmit} className="grid gap-3">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <h3 className="text-base font-black text-slate-100">{formTitle}</h3>
+                  <p className="mt-1 text-xs font-semibold leading-5 text-slate-500">Send a secure one-time link to your Dumala email.</p>
+                </div>
                 <Button
                   type="button"
                   onClick={() => void handleGoogle()}
                   disabled={submitState === 'sending'}
-                  className="mt-2 h-11 w-full rounded-xl bg-white text-sm font-black text-slate-950 shadow-lg shadow-cyan-950/20 hover:bg-cyan-50 disabled:bg-slate-600 disabled:text-slate-300"
+                  className="h-9 rounded-xl bg-white px-4 text-xs font-black text-slate-950 shadow-lg shadow-cyan-950/20 hover:bg-cyan-50 disabled:bg-slate-600 disabled:text-slate-300"
                 >
                   {submitState === 'sending' ? (
-                    <span className="inline-flex items-center gap-2"><Loader2 size={15} className="animate-spin" aria-hidden="true" />Connecting</span>
+                    <span className="inline-flex items-center gap-2"><Loader2 size={13} className="animate-spin" aria-hidden="true" />Connecting</span>
                   ) : (
                     'Continue with Google'
                   )}
                 </Button>
               </div>
-
-              <div className="my-4 flex items-center gap-3 text-[10px] font-black uppercase tracking-[0.18em] text-slate-500">
-                <span className="h-px flex-1 bg-white/10" />
-                Email
-                <span className="h-px flex-1 bg-white/10" />
-              </div>
-            </>
-          )}
-
-          {isLinkMode ? (
-            <form onSubmit={handleLinkSubmit} className="grid gap-3">
+              <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
               <div className="grid gap-1.5">
                 <Label htmlFor="auth-switch-email-link" className="text-[11px] font-bold uppercase tracking-wide text-slate-400">Email address</Label>
                 <Input
@@ -280,18 +273,36 @@ export function AuthSwitch({
                   required={hasLiveAuth}
                 />
               </div>
-              <Button type="submit" disabled={submitState === 'sending'} className="h-11 rounded-xl bg-cyan-600 text-sm font-black text-white hover:bg-cyan-500 disabled:bg-slate-600">
+              <Button type="submit" disabled={submitState === 'sending'} className="h-10 rounded-xl bg-cyan-600 px-5 text-sm font-black text-white hover:bg-cyan-500 disabled:bg-slate-600">
                 {submitState === 'sending' ? 'Sending link' : 'Send email link'}
               </Button>
+              </div>
             </form>
           ) : (
             <form onSubmit={handlePasswordSubmit} className="grid gap-3">
-              <div>
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
                 <h3 className="text-base font-black text-slate-100">{formTitle}</h3>
                 <p className="mt-1 text-xs font-semibold leading-5 text-slate-500">
                   {isCreateMode ? 'Create your cloud account first. Club setup comes next.' : 'Use the email and password attached to your Dumala account.'}
                 </p>
+                </div>
+                {isSignInChoice && (
+                  <Button
+                    type="button"
+                    onClick={() => void handleGoogle()}
+                    disabled={submitState === 'sending'}
+                    className="h-9 rounded-xl bg-white px-4 text-xs font-black text-slate-950 shadow-lg shadow-cyan-950/20 hover:bg-cyan-50 disabled:bg-slate-600 disabled:text-slate-300"
+                  >
+                    {submitState === 'sending' ? (
+                      <span className="inline-flex items-center gap-2"><Loader2 size={13} className="animate-spin" aria-hidden="true" />Connecting</span>
+                    ) : (
+                      'Continue with Google'
+                    )}
+                  </Button>
+                )}
               </div>
+              <div className="grid gap-3 sm:grid-cols-2">
               <div className="grid gap-1.5">
                 <Label htmlFor="auth-switch-email" className="text-[11px] font-bold uppercase tracking-wide text-slate-400">Email address</Label>
                 <Input
@@ -319,11 +330,13 @@ export function AuthSwitch({
                   required={hasLiveAuth}
                 />
               </div>
+              </div>
+              <div className="flex flex-wrap items-center gap-3 pt-1">
               <Button
                 type="submit"
                 disabled={submitState === 'sending'}
                 className={cn(
-                  'h-11 rounded-xl text-sm font-black shadow-lg disabled:bg-slate-600',
+                  'h-10 rounded-xl px-5 text-sm font-black shadow-lg disabled:bg-slate-600',
                   isCreateMode
                     ? 'bg-gradient-to-b from-[#ff9a52] to-[#ff8a3d] text-[#180a00] shadow-orange-950/20 hover:from-[#ffb06e] hover:to-[#ffa35f]'
                     : 'bg-cyan-600 text-white shadow-cyan-950/20 hover:bg-cyan-500'
@@ -333,15 +346,25 @@ export function AuthSwitch({
                   ? isCreateMode ? 'Creating account' : 'Signing in'
                   : isCreateMode ? 'Create account with email' : 'Sign in with email'}
               </Button>
+              {isSignInChoice && (
+                <button
+                  type="button"
+                  onClick={() => resetMode('link')}
+                  className="h-10 rounded-xl border border-white/10 px-4 text-xs font-black text-slate-400 transition hover:border-cyan-300/25 hover:bg-white/[0.05] hover:text-cyan-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/40"
+                >
+                  Email link
+                </button>
+              )}
+              </div>
             </form>
           )}
 
-          {isSignInChoice && (
-          <div className="mt-4 border-t border-white/[0.08] pt-3">
+          {isLinkMode && (
+          <div className="mt-3 border-t border-white/[0.08] pt-3">
             <button
               type="button"
               onClick={() => resetMode(isLinkMode ? 'signIn' : 'link')}
-              className="w-full rounded-xl px-3 py-2 text-xs font-black text-slate-400 transition hover:bg-white/[0.05] hover:text-cyan-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/40"
+              className="rounded-xl px-3 py-2 text-xs font-black text-slate-400 transition hover:bg-white/[0.05] hover:text-cyan-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/40"
             >
               {isLinkMode ? 'Use password instead' : 'Send a passwordless email link'}
             </button>
