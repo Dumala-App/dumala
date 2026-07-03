@@ -54,8 +54,8 @@ describe('OnboardingView account-first flow', () => {
     const html = renderOnboarding(runtime);
 
     expect(html).toContain('Create your account');
-    expect(html).toContain('Continue with Google');
     expect(html).toContain('Create account with email');
+    expect(html).not.toContain('Continue with Google');
     expect(html).not.toContain('Your club identity');
     expect(html).not.toContain('Official team name');
     expect(html).not.toContain('Continue locally');
@@ -64,7 +64,7 @@ describe('OnboardingView account-first flow', () => {
   it('shows the returning sign-in entry for returning users', () => {
     const html = renderOnboarding(runtime, signedOutAuth, true);
 
-    expect(html).toContain('Welcome back');
+    expect(html).not.toContain('Welcome back');
     expect(html).toContain('Continue with Google');
     expect(html).toContain('Sign in with email');
     expect(html).not.toContain('Your club identity');
