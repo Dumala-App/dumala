@@ -3,8 +3,11 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
 import {
   bootstrapSignedInCloudAccount,
+  clearPendingAppAuthRedirect,
   CloudAccountGate,
   getAppAuthRedirectUrl,
+  hasPendingAppAuthRedirect,
+  markPendingAppAuthRedirect,
   submitCloudAccountEmail,
   submitCloudGoogleSignIn,
   submitCloudPasswordRegistration,
@@ -23,15 +26,40 @@ const signedOutAuth = (): CloudAuthController => ({
   signOut: vi.fn()
 });
 
+const stubWindow = (href = 'https://dumala.test/#/app') => {
+  const values = new Map<string, string>();
+
+  vi.stubGlobal('window', {
+    location: { href },
+    localStorage: {
+      getItem: vi.fn((key: string) => values.get(key) ?? null),
+      setItem: vi.fn((key: string, value: string) => {
+        values.set(key, value);
+      }),
+      removeItem: vi.fn((key: string) => {
+        values.delete(key);
+      })
+    }
+  });
+};
+
 describe('CloudAccountGate', () => {
   it('builds app auth redirects without hash routing so OAuth can return to the coach app', () => {
-    vi.stubGlobal('window', {
-      location: {
-        href: 'https://dumala.test/#/app'
-      }
-    });
+    stubWindow();
 
     expect(getAppAuthRedirectUrl()).toBe('https://dumala.test/?dumalaAuth=app');
+
+    vi.unstubAllGlobals();
+  });
+
+  it('remembers pending app auth redirects as a fallback when OAuth returns to the site root', () => {
+    stubWindow();
+
+    markPendingAppAuthRedirect();
+    expect(hasPendingAppAuthRedirect()).toBe(true);
+
+    clearPendingAppAuthRedirect();
+    expect(hasPendingAppAuthRedirect()).toBe(false);
 
     vi.unstubAllGlobals();
   });
@@ -97,6 +125,18 @@ describe('CloudAccountGate', () => {
     await submitCloudGoogleSignIn(signInWithGoogle, 'https://dumala.test/auth');
 
     expect(signInWithGoogle).toHaveBeenCalledWith('https://dumala.test/auth');
+  });
+
+  it('defaults Google sign-in to the app callback and stores a fallback return marker', async () => {
+    stubWindow();
+    const signInWithGoogle = vi.fn().mockResolvedValue(undefined);
+
+    await submitCloudGoogleSignIn(signInWithGoogle);
+
+    expect(signInWithGoogle).toHaveBeenCalledWith('https://dumala.test/?dumalaAuth=app');
+    expect(hasPendingAppAuthRedirect()).toBe(true);
+
+    vi.unstubAllGlobals();
   });
 
   it('signs out before handing control back to the app shell', async () => {
