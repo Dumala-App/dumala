@@ -128,13 +128,14 @@ function FreeKickGameFrame() {
   }, [supabaseConfig]);
 
   return (
-    <div className="mt-5 overflow-hidden rounded-2xl border border-cyan-300/10 bg-[#050b14] shadow-2xl shadow-black/30">
+    <div className="!mt-4 h-[calc(100dvh-140px)] min-h-0 overflow-hidden rounded-2xl border border-cyan-300/10 bg-[#050b14] shadow-2xl shadow-black/30">
       <iframe
         ref={iframeRef}
         title="Dumala Free Kick Hero"
         src="/dumala-free-kick.html"
-        className="block h-[760px] w-full border-0"
+        className="block h-full w-full border-0"
         allow="autoplay; clipboard-write"
+        scrolling="no"
         onLoad={sendConfig}
       />
     </div>
