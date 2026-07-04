@@ -1078,14 +1078,14 @@ export default function PlayerProfileModal({ player, onClose, onUpdate, onRemove
                   <div className="mb-3 border-b border-white/[0.06] pb-3">
                     <span className="text-[9px] font-black uppercase tracking-widest text-slate-500">Player profile</span>
                     <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-2">
-                      <h2 id="player-profile-fullname" className="font-display text-2xl font-black tracking-tight text-white sm:text-3xl">
-                        {name}
-                      </h2>
-                      <div className="flex items-center gap-2.5">
-                        <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full border-2 border-amber-400 bg-slate-950 shadow-md shadow-amber-950/20">
-                          <span className="font-display text-xl font-black text-white">{overallRating}</span>
-                        </div>
-                        <span className="text-xs font-black text-slate-300">{player.position}</span>
+                      <div className="min-w-0">
+                        <h2 id="player-profile-fullname" className="font-display text-2xl font-black tracking-tight text-white sm:text-3xl">
+                          {name}
+                        </h2>
+                        <p className="mt-0.5 text-xs font-black text-slate-300">{player.position} model</p>
+                      </div>
+                      <div className="ml-auto flex h-14 w-14 shrink-0 items-center justify-center rounded-full border-2 border-amber-400 bg-slate-950 shadow-md shadow-amber-950/20">
+                        <span className="font-display text-xl font-black text-white">{overallRating}</span>
                       </div>
                     </div>
                     <p id="player-profile-bio-summary" className="mt-1 line-clamp-2 max-w-xl text-xs font-medium italic leading-relaxed text-slate-400">
