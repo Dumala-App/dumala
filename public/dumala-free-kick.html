@@ -35,6 +35,7 @@
   }
   .fk-app{
     width:100%;max-width:none;height:100vh;
+    position:relative;
     display:flex;flex-direction:column;
     background:linear-gradient(180deg,var(--night-2),var(--night));
     border:1px solid rgba(242,152,41,.25);
@@ -44,29 +45,29 @@
   }
   .fk-head{
     display:flex;align-items:center;justify-content:space-between;
-    gap:10px;padding:12px 18px;
+    gap:10px;padding:7px 16px;
     background:linear-gradient(90deg,var(--blue-deep),var(--blue) 55%,var(--blue-deep));
     border-bottom:2px solid var(--gold);
     flex:none;
   }
   .fk-title{
     font-family:'Archivo Black',sans-serif;
-    font-size:clamp(15px,2.6vw,21px);
+    font-size:clamp(14px,2vw,19px);
     letter-spacing:.06em;text-transform:uppercase;
     display:flex;align-items:center;gap:12px;
   }
-  .fk-logo{height:38px;width:auto;flex:none;filter:drop-shadow(0 2px 6px rgba(0,0,0,.4))}
+  .fk-logo{height:30px;width:auto;flex:none;filter:drop-shadow(0 2px 6px rgba(0,0,0,.4))}
   .fk-brand{display:flex;flex-direction:column;line-height:1.05}
   .fk-brand small{
     font-family:'Space Grotesk',sans-serif;font-weight:700;
-    font-size:10px;letter-spacing:.34em;color:var(--gold-hot);
+    font-size:9px;letter-spacing:.28em;color:var(--gold-hot);
   }
-  .fk-score{display:flex;gap:14px;font-size:12px;text-transform:uppercase;letter-spacing:.08em}
-  .fk-score b{display:block;font-family:'Archivo Black',sans-serif;font-size:18px;color:var(--gold-hot);text-align:center}
+  .fk-score{display:flex;gap:12px;font-size:11px;text-transform:uppercase;letter-spacing:.08em}
+  .fk-score b{display:block;font-family:'Archivo Black',sans-serif;font-size:16px;color:var(--gold-hot);text-align:center}
 
   .fk-toolbar{
     display:flex;align-items:center;justify-content:space-between;gap:10px;
-    padding:8px 14px;background:rgba(6,11,26,.5);border-bottom:1px solid rgba(242,152,41,.18);
+    padding:5px 12px;background:rgba(6,11,26,.5);border-bottom:1px solid rgba(242,152,41,.18);
     flex-wrap:wrap;
     flex:none;
   }
@@ -76,7 +77,7 @@
     font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:12px;
     letter-spacing:.05em;color:rgba(244,247,255,.85);
     background:rgba(20,62,138,.35);border:1px solid rgba(244,247,255,.18);
-    border-radius:999px;padding:6px 12px;cursor:pointer;transition:all .15s;
+    border-radius:999px;padding:5px 10px;cursor:pointer;transition:all .15s;
   }
   .tbtn:hover{border-color:var(--gold);background:rgba(20,62,138,.55)}
   .tbtn.on{background:var(--gold);color:#20180a;border-color:var(--gold)}
@@ -147,28 +148,28 @@
     padding:5px 12px;border-radius:999px;pointer-events:none;white-space:nowrap;
   }
   .fk-controls{
-    display:grid;gap:10px;padding:10px 16px 12px;
-    grid-template-columns:1fr auto;
-    align-items:end;
+    display:grid;gap:12px;padding:7px 14px 9px;
+    grid-template-columns:minmax(190px,1fr) auto minmax(280px,.75fr);
+    align-items:center;
     background:linear-gradient(180deg,rgba(20,62,138,.20),transparent);
     flex:none;
   }
   .ctl label{
     display:flex;justify-content:space-between;
     font-size:11px;letter-spacing:.12em;text-transform:uppercase;
-    color:rgba(244,247,255,.7);margin-bottom:7px;
+    color:rgba(244,247,255,.7);margin-bottom:3px;
   }
   .ctl label output{color:var(--gold-hot);font-weight:700;letter-spacing:.04em}
   input[type=range]{
-    -webkit-appearance:none;appearance:none;width:100%;height:26px;background:transparent;cursor:pointer;
+    -webkit-appearance:none;appearance:none;width:100%;height:20px;background:transparent;cursor:pointer;
   }
   input[type=range]::-webkit-slider-runnable-track{
-    height:8px;border-radius:999px;
+    height:6px;border-radius:999px;
     background:linear-gradient(90deg,var(--blue-deep),var(--blue));
     border:1px solid rgba(244,247,255,.18);
   }
   input[type=range]::-webkit-slider-thumb{
-    -webkit-appearance:none;width:20px;height:20px;margin-top:-7px;border-radius:50%;
+    -webkit-appearance:none;width:16px;height:16px;margin-top:-6px;border-radius:50%;
     background:var(--gold);border:2px solid #fff3;
     box-shadow:0 0 10px rgba(242,152,41,.7);
   }
@@ -182,12 +183,12 @@
     box-shadow:0 0 10px rgba(242,152,41,.7);
   }
   input[type=range]:disabled{opacity:.35;cursor:not-allowed}
-  .row2{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between}
-  .pills{display:flex;gap:8px;flex-wrap:wrap}
+  .row2{grid-column:3;display:grid;gap:5px;align-items:center;justify-content:stretch}
+  .pills{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;align-items:center}
   .pill{
-    font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:12px;
-    letter-spacing:.08em;text-transform:uppercase;
-    padding:8px 14px;border-radius:999px;cursor:pointer;
+    font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:10px;
+    letter-spacing:.06em;text-transform:uppercase;
+    padding:5px 10px;border-radius:999px;cursor:pointer;
     background:transparent;color:rgba(244,247,255,.7);
     border:1px solid rgba(244,247,255,.28);
     transition:all .15s;
@@ -199,7 +200,7 @@
   .strike{
     grid-row:1;grid-column:2;
     font-family:'Archivo Black',sans-serif;font-size:15px;letter-spacing:.08em;text-transform:uppercase;
-    padding:14px 22px;border-radius:14px;border:none;cursor:pointer;
+    padding:12px 22px;border-radius:13px;border:none;cursor:pointer;
     color:#20180a;background:linear-gradient(180deg,var(--gold-hot),var(--gold));
     box-shadow:0 6px 0 #a5641a,0 10px 24px rgba(242,152,41,.35);
     transition:transform .08s, box-shadow .08s;
@@ -211,7 +212,7 @@
     transform:translateY(3px);box-shadow:0 3px 0 #7d1b1b,0 6px 16px rgba(224,69,69,.5);
   }
   .strike:disabled{filter:grayscale(.7);opacity:.55;cursor:wait;transform:none}
-  .grouplabel{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:rgba(244,247,255,.5);margin-right:4px}
+  .grouplabel{font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:rgba(244,247,255,.5);margin-right:3px}
 
   .fk-powermeter{
     position:absolute;right:12px;top:50%;transform:translateY(-50%);
@@ -238,6 +239,8 @@
   @media (max-width:640px){
     .fk-controls{grid-template-columns:1fr}
     .strike{grid-column:1/-1;grid-row:auto;width:100%}
+    .row2{grid-column:1}
+    .pills{justify-content:flex-start}
     .fk-score{gap:10px}
     .fk-powermeter{right:6px}
     .fk-pm-track{width:18px;height:min(180px,36vh)}
@@ -333,15 +336,27 @@
   .fk-postrow button:hover{border-color:var(--gold)}
 
   .fk-shootout-bar{
-    display:flex;align-items:center;justify-content:center;gap:16px;
-    padding:8px;font-size:12px;letter-spacing:.08em;text-transform:uppercase;
-    background:rgba(6,11,26,.55);border-bottom:1px solid rgba(242,152,41,.18);
+    position:absolute;left:50%;z-index:8;transform:translateX(-50%);
+    display:flex;align-items:center;justify-content:center;gap:12px;
+    padding:6px 12px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;
+    background:rgba(6,11,26,.72);border:1px solid rgba(242,152,41,.18);
+    border-radius:999px;box-shadow:0 8px 22px rgba(0,0,0,.28);
   }
-  .fk-shootout-bar b{font-family:'Archivo Black',sans-serif;color:var(--gold-hot);font-size:16px}
+  #storyBar{top:83px}
+  #shootoutBar{top:118px}
+  .fk-shootout-bar[hidden]{display:none}
+  .fk-shootout-bar b{font-family:'Archivo Black',sans-serif;color:var(--gold-hot);font-size:14px}
   .fk-so-dots{display:flex;gap:4px}
   .fk-so-dot{width:9px;height:9px;border-radius:50%;background:rgba(244,247,255,.2)}
   .fk-so-dot.goal{background:var(--ok)}
   .fk-so-dot.miss{background:var(--danger)}
+
+  .fk-menu-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+  .fk-menu-grid .tbtn{
+    width:100%;border-radius:12px;padding:11px 12px;
+    justify-content:center;text-align:center;background:rgba(20,62,138,.42);
+  }
+  .fk-menu-grid .tbtn:first-child{grid-column:1/-1}
 
   .stage-card{
     display:flex;align-items:center;gap:12px;padding:12px;border-radius:12px;margin-bottom:10px;
@@ -385,11 +400,7 @@
       <button class="tbtn" id="btnMode" title="Toggle game mode">🎯 Free Play</button>
     </div>
     <div class="fk-tb-right">
-      <button class="tbtn" id="btnStory" title="Story Mode">📖 Story</button>
-      <button class="tbtn" id="btnBadges" title="Badges">🎖️<span class="tbtn-dot" id="badgeDot" hidden></span></button>
-      <button class="tbtn" id="btnStats" title="Stats">📊</button>
-      <button class="tbtn" id="btnLeaderboard" title="Leaderboard">🏆</button>
-      <button class="tbtn" id="btnChallenge" title="Challenge code">🔗</button>
+      <button class="tbtn" id="btnMenu" title="Game menu">☰ Menu</button>
     </div>
   </div>
 
@@ -425,6 +436,22 @@
       <div class="fk-pm-label" id="pmLabel">0%</div>
     </div>
     <div class="fk-toast-wrap" id="toastWrap"></div>
+
+    <!-- Game menu -->
+    <div class="fk-overlay" id="ovMenu">
+      <div class="fk-modal">
+        <div class="fk-modal-head"><h3>Menu</h3><button class="fk-modal-close" data-close="ovMenu">&times;</button></div>
+        <div class="fk-modal-body">
+          <div class="fk-menu-grid">
+            <button class="tbtn" id="btnStory" title="Story Mode">📖 Story Mode</button>
+            <button class="tbtn" id="btnStats" title="Stats">📊 Stats</button>
+            <button class="tbtn" id="btnLeaderboard" title="Leaderboard">🏆 Leaderboard</button>
+            <button class="tbtn" id="btnBadges" title="Badges">🎖️ Badges<span class="tbtn-dot" id="badgeDot" hidden></span></button>
+            <button class="tbtn" id="btnChallenge" title="Challenge code">🔗 Challenge</button>
+          </div>
+        </div>
+      </div>
+    </div>
 
     <!-- Story map -->
     <div class="fk-overlay" id="ovStory">
@@ -1028,10 +1055,11 @@ document.querySelectorAll('.fk-overlay').forEach(ov => {
   ov.addEventListener('click', e => { if (e.target === ov) ov.classList.remove('show'); });
 });
 
-document.getElementById('btnBadges').addEventListener('click', () => { renderBadges(); openModal('ovBadges'); document.getElementById('badgeDot').hidden = true; });
-document.getElementById('btnStats').addEventListener('click', () => { renderStats(); openModal('ovStats'); });
-document.getElementById('btnLeaderboard').addEventListener('click', () => { renderLeaderboard(lbTabIdx); openModal('ovLeaderboard'); });
-document.getElementById('btnChallenge').addEventListener('click', () => { updateChallengeCode(); openModal('ovChallenge'); });
+document.getElementById('btnMenu').addEventListener('click', () => openModal('ovMenu'));
+document.getElementById('btnBadges').addEventListener('click', () => { closeModal('ovMenu'); renderBadges(); openModal('ovBadges'); document.getElementById('badgeDot').hidden = true; });
+document.getElementById('btnStats').addEventListener('click', () => { closeModal('ovMenu'); renderStats(); openModal('ovStats'); });
+document.getElementById('btnLeaderboard').addEventListener('click', () => { closeModal('ovMenu'); renderLeaderboard(lbTabIdx); openModal('ovLeaderboard'); });
+document.getElementById('btnChallenge').addEventListener('click', () => { closeModal('ovMenu'); updateChallengeCode(); openModal('ovChallenge'); });
 
 /* ---- leaderboard rendering ---- */
 let lbTabIdx = 0;
@@ -1257,7 +1285,7 @@ function renderStoryMap(){
     b.addEventListener('click', () => { if (!b.disabled) startStage(+b.dataset.stage); });
   });
 }
-document.getElementById('btnStory').addEventListener('click', () => { renderStoryMap(); openModal('ovStory'); });
+document.getElementById('btnStory').addEventListener('click', () => { closeModal('ovMenu'); renderStoryMap(); openModal('ovStory'); });
 
 function startStage(idx){
   if (state === 'fly') return;
