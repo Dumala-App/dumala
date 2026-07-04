@@ -1,12 +1,19 @@
 import React, { type ReactNode, useEffect, useMemo, useState } from 'react';
 import { z } from 'zod';
-import { AssessmentSession, Game, Player, Standing, Announcement, TeamInfo } from '../types';
+import { AssessmentSession, Game, GamePlan, Player, Standing, Announcement, TeamInfo } from '../types';
 import {findUserStanding, sortStandings} from '../standings';
 import { Calendar, MapPin, Trophy, Shield, Megaphone, Star, Award, Zap, ArrowRight, CornerRightDown, TrendingUp, Edit, Upload, Link, Check, X, Image, Crown, Target, Flame, AlertCircle, Table, Users, ClipboardList, CloudSun, CloudRain, Wind, MoreHorizontal, Clock, Route, Package } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
 import { Badge } from './ui/badge';
 import { Button } from './ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle
+} from './ui/dialog';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
 import {
@@ -15,6 +22,7 @@ import {
   stringSchema,
   trainingSessionMetaMapSchema,
   weeklyScheduleSchema,
+  gamePlansSchema,
   tacticsLineupSchema
 } from '../persistence/schemas';
 import {
@@ -675,6 +683,8 @@ export default function DashboardView({
   const [weatherLocationSearchStatus, setWeatherLocationSearchStatus] = useState<'idle' | 'loading' | 'ready' | 'error'>('idle');
   const [dailyPrepPanel, setDailyPrepPanel] = useState<'training' | 'match'>('match');
   const [trainingStorageRefreshKey, setTrainingStorageRefreshKey] = useState(0);
+  const [gamePlanOpen, setGamePlanOpen] = useState(false);
+  const [gamePlanStorageRefreshKey, setGamePlanStorageRefreshKey] = useState(0);
 
   const presetLogos = [
     { key: 'shield', label: 'Classic Shield', icon: Shield },
@@ -870,6 +880,20 @@ export default function DashboardView({
     window.addEventListener('storage', handleStorageChange);
     return () => {
       window.removeEventListener('focus', refreshTrainingStorage);
+      window.removeEventListener('storage', handleStorageChange);
+    };
+  }, []);
+
+  useEffect(() => {
+    const refreshGamePlanStorage = () => setGamePlanStorageRefreshKey(key => key + 1);
+    const handleStorageChange = (event: StorageEvent) => {
+      if (event.key === STORAGE_KEYS.gamePlans) refreshGamePlanStorage();
+    };
+
+    window.addEventListener('focus', refreshGamePlanStorage);
+    window.addEventListener('storage', handleStorageChange);
+    return () => {
+      window.removeEventListener('focus', refreshGamePlanStorage);
       window.removeEventListener('storage', handleStorageChange);
     };
   }, []);
@@ -1150,6 +1174,16 @@ export default function DashboardView({
   const nextMatchChecklist = nextMatch ? getMatchPrepChecklist(nextMatch) : [];
   const nextMatchCountdown = nextMatch ? getCalendarEventCountdown(nextMatch) : '';
   const nextMatchDateTime = nextMatch ? formatCalendarEventDateTime(nextMatch) : '';
+  const savedGamePlans = useMemo(() => (
+    readJsonStorage(STORAGE_KEYS.gamePlans, gamePlansSchema, [], 'Tactics game plans') as GamePlan[]
+  ), [gamePlanStorageRefreshKey]);
+  const nextMatchGamePlan = nextMatch
+    ? savedGamePlans.find(plan => plan.gameId === nextMatch.id)
+      ?? savedGamePlans.find(plan => (
+        plan.opponent.trim().toLowerCase() === nextMatch.opponent.trim().toLowerCase()
+        && plan.gameDate === nextMatch.date
+      ))
+    : undefined;
   const nextMatchPrepTone = nextMatch && nextMatch.type !== 'Training' && nextMatch.type !== 'Meeting'
     ? nextOpponentStanding
       ? `Opponent sits #${nextOpponentStanding.rank} with ${nextOpponentStanding.points} pts`
@@ -1300,6 +1334,159 @@ export default function DashboardView({
     >
 
       {homeWorkspaceHeader}
+
+      <Dialog open={gamePlanOpen} onOpenChange={setGamePlanOpen}>
+        <DialogContent className="grid max-h-[90vh] w-[calc(100vw-1.5rem)] max-w-[1180px] grid-rows-[auto_minmax(0,1fr)_auto] gap-4 overflow-y-auto border-cyan-300/10 bg-[#07111f] p-4 text-slate-100 shadow-2xl shadow-black/40 sm:p-5 lg:h-[min(660px,88vh)] lg:overflow-hidden">
+          <DialogHeader className="pr-9">
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+              <div>
+                <DialogTitle className="flex items-center gap-2 text-white">
+                  <ClipboardList size={18} className="text-orange-300" aria-hidden="true" />
+                  {nextMatch ? `Game Plan: ${nextMatch.opponent}` : 'Game Plan'}
+                </DialogTitle>
+                <DialogDescription className="mt-1 text-slate-400">
+                  {nextMatch
+                    ? `${nextMatchDateTime} at ${nextMatch.location || 'venue to confirm'}`
+                    : 'Add an upcoming match to prepare an opponent-specific plan.'}
+                </DialogDescription>
+              </div>
+              {nextMatchGamePlan && (
+                <div className="flex max-w-full flex-wrap gap-1.5 lg:max-w-[34rem] lg:justify-end">
+                  {[
+                    { label: 'Shape', value: nextMatchGamePlan.formation },
+                    { label: 'Vs', value: nextMatchGamePlan.opponentFormation },
+                    { label: 'Attack', value: nextMatchGamePlan.playstyle },
+                    { label: 'Defense', value: nextMatchGamePlan.defensiveStyle }
+                  ].map(item => (
+                    <span key={item.label} className="inline-flex max-w-[10rem] items-center gap-1.5 rounded-full border border-cyan-300/10 bg-white/[0.035] px-2.5 py-1.5 text-[10px] font-black text-slate-100">
+                      <span className="text-slate-500">{item.label}</span>
+                      <span className="truncate">{item.value}</span>
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+          </DialogHeader>
+
+          {nextMatch && nextMatchGamePlan ? (
+            <div className="grid min-h-0 grid-cols-1 gap-4 lg:grid-cols-12">
+              <aside className="min-h-0 rounded-2xl border border-orange-300/12 bg-[linear-gradient(145deg,rgba(249,115,22,0.13),rgba(14,165,233,0.06)_44%,rgba(15,23,42,0.2))] p-4 lg:col-span-3">
+                <span className="text-[9px] font-black uppercase tracking-widest text-orange-100">Opponent briefing</span>
+                <h4 className="mt-2 font-display text-3xl font-black leading-tight text-white">{nextMatchGamePlan.opponent}</h4>
+                <p className="mt-1 line-clamp-2 text-xs font-semibold leading-relaxed text-slate-300">{nextMatchGamePlan.location || 'Venue to confirm'}</p>
+                <div className="mt-4 flex flex-wrap gap-1.5 text-[10px] font-bold text-slate-300">
+                  <span className="rounded-full border border-white/[0.08] bg-white/[0.035] px-2.5 py-1">{nextMatchGamePlan.gameType}</span>
+                  <span className="rounded-full border border-white/[0.08] bg-white/[0.035] px-2.5 py-1">{nextMatchGamePlan.matchFormat}</span>
+                  <span className="rounded-full border border-white/[0.08] bg-white/[0.035] px-2.5 py-1">{nextMatchGamePlan.phase}</span>
+                </div>
+
+                <div className="mt-6 space-y-3">
+                  <span className="text-[9px] font-black uppercase tracking-widest text-slate-500">Leaders</span>
+                  <div className="space-y-2">
+                    {[
+                      ['Captain', nextMatchGamePlan.roles.captain || 'Unassigned'],
+                      ['Free kick', nextMatchGamePlan.roles.freeKickTaker || 'Unassigned'],
+                      ['Corner', nextMatchGamePlan.roles.cornerTaker || 'Unassigned'],
+                      ['Penalty', nextMatchGamePlan.roles.penaltyTaker || 'Unassigned']
+                    ].map(([label, value]) => (
+                      <div key={label} className="flex min-w-0 items-center justify-between gap-3 border-b border-white/[0.06] pb-2 last:border-b-0">
+                        <span className="shrink-0 text-[8px] font-black uppercase tracking-widest text-slate-500">{label}</span>
+                        <span className="min-w-0 truncate text-[11px] font-bold text-slate-100">{value}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="mt-6 grid grid-cols-2 gap-2">
+                  <div className="rounded-xl border border-cyan-300/10 bg-[#07111f]/45 p-3">
+                    <span className="text-[8px] font-black uppercase tracking-widest text-slate-500">Board</span>
+                    <p className="mt-1 text-[11px] font-semibold leading-relaxed text-slate-300">
+                      {nextMatchGamePlan.board.drawingPaths.length} marking{nextMatchGamePlan.board.drawingPaths.length === 1 ? '' : 's'} / ball {nextMatchGamePlan.board.showBall ? 'on' : 'off'} / wall {nextMatchGamePlan.board.showWall ? 'on' : 'off'}
+                    </p>
+                  </div>
+                  <div className="rounded-xl border border-cyan-300/10 bg-[#07111f]/45 p-3">
+                    <span className="text-[8px] font-black uppercase tracking-widest text-slate-500">Notes</span>
+                    <p className="mt-1 line-clamp-2 text-[11px] font-semibold leading-relaxed text-slate-300">
+                      {nextMatchGamePlan.notes[0]?.title || 'No notes saved.'}
+                    </p>
+                  </div>
+                </div>
+              </aside>
+
+              <section className="relative min-h-0 overflow-hidden rounded-2xl border border-cyan-300/10 bg-[linear-gradient(135deg,rgba(99,102,241,0.1),rgba(16,185,129,0.08)_45%,rgba(7,17,31,0.86))] p-5 lg:col-span-5">
+                <div className="pointer-events-none absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-cyan-200/40 to-transparent" />
+                <span className="text-[9px] font-black uppercase tracking-widest text-cyan-100">Match strategy</span>
+                <div className="mt-4 grid gap-5">
+                  <div className="border-l-2 border-indigo-300/35 pl-4">
+                    <span className="text-[9px] font-black uppercase tracking-widest text-indigo-200">Attack</span>
+                    <h4 className="mt-1 text-xl font-black text-white">{nextMatchGamePlan.recommendation.attackTitle}</h4>
+                    <p className="mt-2 line-clamp-4 text-sm font-semibold leading-relaxed text-slate-300">{nextMatchGamePlan.recommendation.attackIntent}</p>
+                  </div>
+                  <div className="border-l-2 border-emerald-300/35 pl-4">
+                    <span className="text-[9px] font-black uppercase tracking-widest text-emerald-200">Defense</span>
+                    <h4 className="mt-1 text-xl font-black text-white">{nextMatchGamePlan.recommendation.defenseTitle}</h4>
+                    <p className="mt-2 line-clamp-4 text-sm font-semibold leading-relaxed text-slate-300">{nextMatchGamePlan.recommendation.defenseIntent}</p>
+                  </div>
+                </div>
+
+                <div className="mt-5 border-t border-cyan-300/10 pt-4">
+                  <div className="flex flex-wrap gap-1.5">
+                    {nextMatchGamePlan.recommendation.cues.slice(0, 6).map(cue => (
+                      <span key={cue} className="rounded-full border border-orange-300/15 bg-orange-300/10 px-2.5 py-1 text-[10px] font-bold text-orange-100">{cue}</span>
+                    ))}
+                  </div>
+                  <p className="mt-3 line-clamp-2 text-[11px] font-semibold leading-relaxed text-amber-100/85">
+                    Watch: {nextMatchGamePlan.recommendation.watchout}
+                  </p>
+                </div>
+              </section>
+
+              <aside className="min-h-0 rounded-2xl border border-cyan-300/10 bg-[#0b1726]/58 p-4 lg:col-span-4">
+                <div className="flex items-center justify-between gap-2 border-b border-cyan-300/10 pb-3">
+                  <span className="text-[9px] font-black uppercase tracking-widest text-slate-500">Starting lineup</span>
+                  <span className="rounded-full border border-orange-300/15 bg-orange-300/10 px-2.5 py-1 text-[9px] font-black text-orange-100">{nextMatchGamePlan.lineup.length} players</span>
+                </div>
+                <div className="mt-3 grid grid-cols-1 gap-x-3 gap-y-1.5 sm:grid-cols-2">
+                  {nextMatchGamePlan.lineup.slice(0, 12).map((player, index) => (
+                    <div key={`${player.slot}-${player.playerId}`} className="grid min-w-0 grid-cols-[1.5rem_minmax(0,1fr)_2.5rem] items-center gap-2 border-b border-white/[0.055] py-1.5 last:border-b-0">
+                      <span className="text-[9px] font-black text-slate-600">{String(index + 1).padStart(2, '0')}</span>
+                      <span className="min-w-0 truncate text-[11px] font-bold text-slate-100">{player.name}</span>
+                      <span className="text-right text-[8px] font-black uppercase text-orange-200">{player.role}</span>
+                    </div>
+                  ))}
+                  {nextMatchGamePlan.lineup.length === 0 && (
+                    <p className="text-xs font-semibold text-slate-500">No lineup saved yet.</p>
+                  )}
+                </div>
+              </aside>
+            </div>
+          ) : (
+            <div className="flex min-h-[20rem] flex-col items-center justify-center rounded-xl border border-dashed border-slate-700 bg-[#0b1726]/72 p-6 text-center">
+              <ClipboardList size={22} className="mx-auto text-slate-500" aria-hidden="true" />
+              <h4 className="mt-3 font-display text-base font-black text-white">No saved plan for this opponent yet</h4>
+              <p className="mx-auto mt-2 max-w-xl text-sm leading-relaxed text-slate-400">
+                Open the Tactical Board, choose the upcoming opponent from the dropdown, set the tactics, then save the Game Plan.
+              </p>
+            </div>
+          )}
+
+          <div className="flex flex-col gap-2 border-t border-cyan-300/10 pt-3 sm:flex-row sm:items-center sm:justify-between">
+            <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">
+              {nextMatchGamePlan ? `Saved ${new Date(nextMatchGamePlan.updatedAt).toLocaleString()}` : 'Opponent plan required'}
+            </span>
+            <Button
+              type="button"
+              onClick={() => {
+                setGamePlanOpen(false);
+                onNavigate({ primary: 'tactics' });
+              }}
+              className="h-9 rounded-xl bg-orange-300 px-3 text-xs font-black text-slate-950 hover:bg-orange-200"
+            >
+              Open Tactical Board <ArrowRight size={13} />
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Hero Header Banner */}
       <div
@@ -1606,149 +1793,204 @@ export default function DashboardView({
             </div>
 
             {activeDailyPrepPanel === 'training' && dashboardTrainingSummary ? (
-              <div className="mt-4 space-y-3">
-                <div className="rounded-xl border border-emerald-300/15 bg-[#0b1726]/72 p-3 shadow-sm shadow-black/15">
-                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="mt-4 overflow-hidden rounded-3xl border border-emerald-300/16 bg-[radial-gradient(circle_at_top_left,rgba(52,211,153,0.2),transparent_34%),linear-gradient(135deg,rgba(7,17,31,0.96),rgba(7,38,36,0.9)_54%,rgba(14,24,38,0.96))] shadow-lg shadow-black/20">
+                <div className="grid gap-4 px-4 py-3.5 sm:px-5 lg:grid-cols-[minmax(0,1fr)_18rem] lg:items-stretch">
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="rounded-full border border-emerald-300/20 bg-emerald-300/10 px-2 py-0.5 text-[9px] font-black uppercase text-emerald-100">
+                        {todayTrainingSummary ? 'Today' : dashboardTrainingSummary.day}
+                      </span>
+                      <span className="rounded-full border border-slate-500/15 bg-white/[0.035] px-2 py-0.5 text-[9px] font-black uppercase text-slate-300">
+                        {dashboardTrainingSummary.status === 'in_progress' ? 'In progress' : dashboardTrainingSummary.status}
+                      </span>
+                      <span className="text-[10px] font-bold uppercase tracking-wide text-slate-500">{dashboardTrainingSummary.dateStr}</span>
+                    </div>
+                    <div className="mt-4">
+                      <span className="text-[10px] font-black uppercase tracking-wider text-emerald-100/70">Training brief</span>
+                      <h4 className="mt-0.5 truncate font-display text-3xl font-black tracking-tight text-white">
+                        {dashboardTrainingSummary.day} Session
+                      </h4>
+                      <p className="mt-1 max-w-xl text-sm font-semibold leading-relaxed text-slate-300">
+                        {dashboardTrainingSummary.drills.length} drills, {dashboardTrainingSummary.duration} minutes, {dashboardTrainingSummary.loadPoints} load points
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex min-w-0 flex-col justify-between gap-3 border-t border-white/[0.07] pt-3 lg:border-l lg:border-t-0 lg:pl-4 lg:pt-0">
                     <div className="min-w-0">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className="rounded-full border border-emerald-300/20 bg-emerald-300/10 px-2 py-0.5 text-[9px] font-black uppercase text-emerald-100">
-                          {todayTrainingSummary ? 'Today' : dashboardTrainingSummary.day}
-                        </span>
-                        <span className="rounded-full border border-slate-500/15 bg-white/[0.035] px-2 py-0.5 text-[9px] font-black uppercase text-slate-300">
-                          {dashboardTrainingSummary.status === 'in_progress' ? 'In progress' : dashboardTrainingSummary.status}
-                        </span>
-                        <span className="text-[10px] font-bold uppercase tracking-wide text-slate-500">{dashboardTrainingSummary.dateStr}</span>
-                      </div>
-                      <div className="mt-1">
-                        <h4 className="truncate font-display text-xl font-black tracking-tight text-white">
-                          {dashboardTrainingSummary.day} Session
-                        </h4>
-                        <p className="hidden">
-                          {dashboardTrainingSummary.drills.length} drills · {dashboardTrainingSummary.duration} min · {dashboardTrainingSummary.loadPoints} load points
-                        </p>
-                      </div>
+                      <span className="text-[8px] font-black uppercase tracking-wider text-emerald-100/70">Start with</span>
+                      <strong className="mt-1 block line-clamp-2 text-sm font-black leading-tight text-slate-100">
+                        {dashboardTrainingSummary.drills[0]?.name || 'Open the session'}
+                      </strong>
+                      <span className="mt-1 block text-[10px] font-bold text-slate-500">
+                        {dashboardTrainingSummary.drills[0]?.durationMinutes ?? 10} min opening block
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-3 gap-2 border-t border-white/[0.07] pt-2.5">
+                      {[
+                        { label: 'Min', value: dashboardTrainingSummary.duration },
+                        { label: 'Load', value: dashboardTrainingSummary.loadPoints },
+                        { label: 'Done', value: `${dashboardTrainingSummary.completedCount}/${dashboardTrainingSummary.drills.length}` }
+                      ].map(item => (
+                        <div key={item.label} className="min-w-0">
+                          <span className="text-[8px] font-black uppercase tracking-wider text-slate-500">{item.label}</span>
+                          <strong className="mt-0.5 block truncate text-sm font-black text-slate-100">{item.value}</strong>
+                        </div>
+                      ))}
                     </div>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 gap-2 md:grid-cols-[minmax(0,1fr)_15rem]">
-                  <div className="rounded-xl border border-emerald-300/12 bg-emerald-300/8 p-3">
+                <div className="border-t border-white/[0.07] px-4 py-3 sm:px-5">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
                     <span className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider text-emerald-100">
-                      <ClipboardList size={13} aria-hidden="true" /> Key drills
+                      <ClipboardList size={13} aria-hidden="true" /> Order of work
                     </span>
-                    <div className="mt-2 space-y-1.5">
-                      {dashboardTrainingSummary.keyDrills.map(drill => (
-                        <div key={drill.id} className="flex items-center justify-between gap-3 rounded-md border border-white/[0.07] bg-white/[0.035] px-2.5 py-1.5">
-                          <span className="min-w-0 truncate text-[11px] font-bold text-slate-100">{drill.name}</span>
-                          <span className="shrink-0 text-[8px] font-black uppercase text-emerald-100">{drill.durationMinutes ?? 10} min</span>
-                        </div>
-                      ))}
-                      {dashboardTrainingSummary.overflowCount > 0 && (
-                        <p className="text-[10px] font-bold text-slate-400">+{dashboardTrainingSummary.overflowCount} more drills in the session builder</p>
-                      )}
-                    </div>
+                    <span className="max-w-[18rem] truncate text-[10px] font-bold text-slate-400">
+                      {dashboardTrainingSummary.equipment.slice(0, 5).join(', ') || 'No equipment listed.'}
+                    </span>
                   </div>
-
-                  <div className="grid gap-2">
-                    <div className="rounded-xl border border-violet-300/12 bg-violet-300/8 p-3">
-                      <span className="flex items-center gap-1.5 text-[9px] font-black uppercase tracking-wider text-violet-100">
-                        <Package size={12} aria-hidden="true" /> Equipment
-                      </span>
-                      <p className="mt-1 line-clamp-2 text-[11px] font-semibold leading-relaxed text-slate-300">
-                        {dashboardTrainingSummary.equipment.slice(0, 4).join(', ') || 'No equipment listed.'}
-                      </p>
-                    </div>
-                    <div className="rounded-xl border border-amber-300/12 bg-amber-300/8 p-3">
-                      <span className="flex items-center gap-1.5 text-[9px] font-black uppercase tracking-wider text-amber-100">
-                        <Megaphone size={12} aria-hidden="true" /> Cues
-                      </span>
-                      <p className="mt-1 line-clamp-2 text-[11px] font-semibold leading-relaxed text-slate-300">
-                        {dashboardTrainingSummary.coachCues.slice(0, 1).join(' | ') || dashboardTrainingSummary.warnings[0] || 'Add cues inside the session builder.'}
-                      </p>
-                    </div>
+                  <div className="mt-3 grid gap-2.5 sm:grid-cols-5">
+                    {dashboardTrainingSummary.drills.slice(0, 5).map((drill, index) => (
+                      <div key={drill.id} className="min-w-0 border-l border-emerald-300/20 pl-2.5">
+                        <span className="text-[9px] font-black text-emerald-100/75">{String(index + 1).padStart(2, '0')}</span>
+                        <span className="mt-1 block min-h-8 text-[11px] font-black leading-tight text-slate-100 line-clamp-2">{drill.name}</span>
+                        <span className="mt-1 block text-[8px] font-black uppercase text-slate-500">{drill.durationMinutes ?? 10} min</span>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="mt-3 flex items-start gap-2 border-t border-white/[0.07] pt-2.5">
+                    <Megaphone size={13} className="mt-0.5 shrink-0 text-amber-200" aria-hidden="true" />
+                    <p className="line-clamp-1 text-[11px] font-semibold leading-relaxed text-slate-300">
+                      {dashboardTrainingSummary.coachCues.slice(0, 1).join(' | ') || dashboardTrainingSummary.warnings[0] || 'Add cues inside the session builder.'}
+                    </p>
                   </div>
                 </div>
               </div>
             ) : nextMatch ? (
-              <div className="mt-5 space-y-4">
-                <div className="rounded-2xl border border-orange-300/20 bg-[linear-gradient(135deg,rgba(249,115,22,0.18),rgba(14,165,233,0.12)_48%,rgba(11,23,38,0.78))] p-4 shadow-lg shadow-black/20">
-                  <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-                    <div className="min-w-0">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <Badge variant="warning" className={dashboardWarningBadgeClass}>
-                          <Clock size={11} aria-hidden="true" /> T-{nextMatchCountdown}
-                        </Badge>
-                        <Badge variant="outline" className={dashboardBadgeClass}>
-                          {getEventTypeLabel(nextMatch)}
-                        </Badge>
-                      </div>
-                      <div className="mt-3">
-                        <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">
+              <div className="mt-4 overflow-hidden rounded-3xl border border-orange-300/16 bg-[radial-gradient(circle_at_top_left,rgba(251,146,60,0.2),transparent_34%),linear-gradient(135deg,rgba(7,17,31,0.96),rgba(8,28,42,0.9)_54%,rgba(14,24,38,0.96))] shadow-lg shadow-black/20">
+                <div className="grid lg:grid-cols-[minmax(0,1fr)_15.75rem]">
+                  <section className="relative min-w-0 px-4 py-3.5 sm:px-5">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Badge variant="warning" className={dashboardWarningBadgeClass}>
+                        <Clock size={11} aria-hidden="true" /> T-{nextMatchCountdown}
+                      </Badge>
+                      <Badge variant="outline" className={dashboardBadgeClass}>
+                        {getEventTypeLabel(nextMatch)}
+                      </Badge>
+                      <span className="hidden h-px flex-1 bg-gradient-to-r from-orange-200/25 to-transparent sm:block" />
+                    </div>
+
+                    <div className="mt-4 grid gap-4 md:grid-cols-[minmax(0,1fr)_auto] md:items-end">
+                      <div className="min-w-0">
+                        <span className="text-[10px] font-black uppercase tracking-wider text-orange-100/70">
                           {nextMatch.type === 'Training' || nextMatch.type === 'Meeting' ? 'Scheduled event' : 'Next opponent'}
                         </span>
-                        <h4 id="next-match-opponent-slug" className="mt-1 truncate font-display text-3xl font-black tracking-tight text-white">
+                        <h4 id="next-match-opponent-slug" className="mt-0.5 truncate font-display text-3xl font-black tracking-tight text-white">
                           {nextMatch.opponent}
                         </h4>
-                        <p className="mt-1 text-xs font-semibold text-slate-300">{nextMatchPrepTone}</p>
+                        <p className="mt-1 max-w-xl text-sm font-semibold leading-relaxed text-slate-300">{nextMatchPrepTone}</p>
                       </div>
+
+                      {nextMatch.type !== 'Training' && nextMatch.type !== 'Meeting' && (
+                        <div className="flex shrink-0 items-center gap-2 rounded-full border border-white/[0.08] bg-slate-950/36 px-2.5 py-2 text-xs shadow-inner shadow-black/20">
+                          <span className="max-w-[7rem] truncate font-black text-slate-100">{teamInfo?.name || 'Our Team'}</span>
+                          <span className="rounded-full bg-orange-300 px-2 py-0.5 text-[9px] font-black text-slate-950">VS</span>
+                          <span className="max-w-[7rem] truncate font-black text-orange-100">{nextMatch.opponent}</span>
+                        </div>
+                      )}
                     </div>
 
-                    {nextMatch.type !== 'Training' && nextMatch.type !== 'Meeting' && (
-                      <div className="flex shrink-0 items-center gap-2 rounded-xl border border-cyan-300/10 bg-[#07111f]/75 px-3 py-2 text-sm shadow-sm shadow-black/15">
-                        <span className="max-w-[7rem] truncate font-bold text-slate-100">{teamInfo?.name || 'Our Team'}</span>
-                        <span className="rounded-full bg-orange-300 px-2 py-0.5 text-[10px] font-black text-slate-950">VS</span>
-                        <span className="max-w-[7rem] truncate font-bold text-orange-100">{nextMatch.opponent}</span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-                  {[
-                    { label: 'Date & time', value: nextMatchDateTime, icon: Calendar, id: 'next-match-datetime' },
-                    { label: 'Venue', value: nextMatch.location, icon: MapPin, id: 'next-match-loc' },
-                    { label: 'Squad pool', value: `${activePlayersCount} active`, icon: Users },
-                    { label: 'Availability', value: unavailablePlayersCount > 0 ? `${unavailablePlayersCount} unavailable` : 'All clear', icon: AlertCircle }
-                  ].map(({ label, value, icon: Icon, id }) => (
-                    <div key={label} className="rounded-xl border border-cyan-300/10 bg-[#0b1726]/72 p-3 shadow-sm shadow-black/10">
-                      <span className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider text-slate-500">
-                        <Icon size={12} className="text-cyan-200" aria-hidden="true" /> {label}
-                      </span>
-                      <span id={id} className="mt-1 block truncate text-sm font-black text-slate-100">{value}</span>
-                    </div>
-                  ))}
-                </div>
-
-                <div className="grid grid-cols-1 gap-3 md:grid-cols-[minmax(0,1fr)_minmax(12rem,0.58fr)]">
-                  <div className="flex items-start gap-3 rounded-xl border border-emerald-300/15 bg-emerald-300/10 p-4 text-sm">
-                    <Megaphone size={16} className="mt-0.5 shrink-0 text-emerald-300" aria-hidden="true" />
-                    <div>
-                      <strong className="block text-foreground">{(teamInfo?.coach || 'Coach')}'s prep directive</strong>
-                      <p className="mt-1 leading-relaxed text-muted-foreground">
-                        {nextMatch.notes || (
-                          nextMatch.type === 'Training'
-                            ? 'Focus on high-intensity workloads, technical precision, and attendance discipline.'
-                            : nextMatch.type === 'Meeting'
-                              ? 'Review tactical clips, player assignments, and next-session responsibilities.'
-                              : 'Confirm squad readiness, review the opponent profile, and lock travel plus warm-up timing.'
-                        )}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="rounded-xl border border-cyan-300/10 bg-[#0b1726]/72 p-4">
-                    <span className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider text-slate-400">
-                      <ClipboardList size={13} className="text-orange-300" aria-hidden="true" /> Prep checklist
-                    </span>
-                    <div className="mt-3 space-y-2">
-                      {nextMatchChecklist.map(item => (
-                        <div key={item} className="flex items-center gap-2 text-xs font-semibold text-slate-200">
-                          <Check size={13} className="text-emerald-300" aria-hidden="true" />
-                          <span>{item}</span>
+                    <dl className="mt-4 grid gap-x-5 gap-y-2.5 border-y border-white/[0.07] py-3 sm:grid-cols-2">
+                      {[
+                        { label: 'Date & time', value: nextMatchDateTime, icon: Calendar, id: 'next-match-datetime' },
+                        { label: 'Venue', value: nextMatch.location, icon: MapPin, id: 'next-match-loc' },
+                        { label: 'Squad pool', value: `${activePlayersCount} active`, icon: Users },
+                        { label: 'Availability', value: unavailablePlayersCount > 0 ? `${unavailablePlayersCount} unavailable` : 'All clear', icon: AlertCircle }
+                      ].map(({ label, value, icon: Icon, id }) => (
+                        <div key={label} className="grid grid-cols-[auto_minmax(0,1fr)] gap-2">
+                          <Icon size={13} className="mt-0.5 text-cyan-200" aria-hidden="true" />
+                          <div className="min-w-0">
+                            <dt className="text-[9px] font-black uppercase tracking-wider text-slate-500">{label}</dt>
+                            <dd id={id} className="mt-0.5 truncate text-sm font-black text-slate-100">{value}</dd>
+                          </div>
                         </div>
                       ))}
+                    </dl>
+
+                    <div className="mt-3 flex items-start gap-3">
+                      <span className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-full bg-emerald-300/12 text-emerald-200">
+                        <Megaphone size={15} aria-hidden="true" />
+                      </span>
+                      <div className="min-w-0">
+                        <strong className="block text-sm font-black text-slate-50">{(teamInfo?.coach || 'Coach')}'s prep directive</strong>
+                        <p className="mt-1 line-clamp-1 text-sm font-semibold leading-relaxed text-slate-300">
+                          {nextMatch.notes || (
+                            nextMatch.type === 'Training'
+                              ? 'Focus on high-intensity workloads, technical precision, and attendance discipline.'
+                              : nextMatch.type === 'Meeting'
+                                ? 'Review tactical clips, player assignments, and next-session responsibilities.'
+                                : 'Confirm squad readiness, review the opponent profile, and lock travel plus warm-up timing.'
+                          )}
+                        </p>
+                      </div>
                     </div>
-                  </div>
+                  </section>
+
+                  <aside className="border-t border-white/[0.07] bg-slate-950/24 px-4 py-3.5 lg:border-l lg:border-t-0">
+                    <div>
+                      <span className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider text-orange-100/75">
+                        <ClipboardList size={13} aria-hidden="true" /> Prep flow
+                      </span>
+                      <div className="mt-3 grid gap-2">
+                        {nextMatchChecklist.map((item) => (
+                          <div key={item} className="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-2.5">
+                            <span className="flex size-5 items-center justify-center rounded-full bg-emerald-300 text-[10px] font-black text-slate-950">
+                              <Check size={12} aria-hidden="true" />
+                            </span>
+                            <span className="min-w-0 truncate text-xs font-bold leading-snug text-slate-200">{item}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="mt-3 grid grid-cols-2 gap-x-3 gap-y-2 border-y border-white/[0.07] py-3">
+                      <div>
+                        <span className="text-[8px] font-black uppercase tracking-wider text-slate-500">Plan</span>
+                        <strong className="mt-0.5 block truncate text-xs font-black text-slate-100">{nextMatchGamePlan ? 'Saved' : 'Needed'}</strong>
+                      </div>
+                      <div>
+                        <span className="text-[8px] font-black uppercase tracking-wider text-slate-500">Squad</span>
+                        <strong className="mt-0.5 block truncate text-xs font-black text-slate-100">{unavailablePlayersCount > 0 ? `${unavailablePlayersCount} out` : 'Ready'}</strong>
+                      </div>
+                      <div>
+                        <span className="text-[8px] font-black uppercase tracking-wider text-slate-500">Shape</span>
+                        <strong className="mt-0.5 block truncate text-xs font-black text-slate-100">{nextMatchGamePlan?.formation || 'Set tactics'}</strong>
+                      </div>
+                      <div>
+                        <span className="text-[8px] font-black uppercase tracking-wider text-slate-500">Focus</span>
+                        <strong className="mt-0.5 block truncate text-xs font-black text-slate-100">{nextMatchGamePlan?.playstyle || 'Match prep'}</strong>
+                      </div>
+                    </div>
+
+                    <div className="mt-3">
+                      <span className="text-[9px] font-black uppercase tracking-wider text-cyan-100/70">Match ops</span>
+                      <div className="mt-2 space-y-1.5 text-xs font-semibold text-slate-300">
+                        <div className="flex items-center justify-between gap-3">
+                          <span className="text-slate-500">Arrival</span>
+                          <span className="truncate text-right text-slate-100">90 min before KO</span>
+                        </div>
+                        <div className="flex items-center justify-between gap-3">
+                          <span className="text-slate-500">Warm-up</span>
+                          <span className="truncate text-right text-slate-100">35 min window</span>
+                        </div>
+                        <div className="flex items-center justify-between gap-3">
+                          <span className="text-slate-500">Briefing</span>
+                          <span className="truncate text-right text-slate-100">{nextMatchGamePlan ? 'Tactics locked' : 'Open board'}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </aside>
                 </div>
               </div>
             ) : (
@@ -1779,7 +2021,7 @@ export default function DashboardView({
                   onOpenTrainingSession(dashboardTrainingDay);
                   return;
                 }
-                onNavigate({ primary: 'home', homeTab: 'game_week' });
+                setGamePlanOpen(true);
               }}
               className={`h-9 rounded-xl px-3 text-xs font-black text-slate-950 shadow-lg ${
                 activeDailyPrepPanel === 'training'
@@ -1787,7 +2029,7 @@ export default function DashboardView({
                   : 'bg-orange-300 shadow-orange-950/20 hover:bg-orange-200'
               }`}
             >
-              {activeDailyPrepPanel === 'training' ? 'Open Session' : 'Open Game Week'} <ArrowRight size={13} />
+              {activeDailyPrepPanel === 'training' ? 'Open Session' : 'Game Plan'} <ArrowRight size={13} />
             </Button>
           </div>
         </div>

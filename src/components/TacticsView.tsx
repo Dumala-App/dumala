@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { Player, StaffMember } from '../types';
+import { Game, GamePlan, Player, StaffMember } from '../types';
 import { STAFF_PLACEHOLDER } from '../playerPlaceholders';
 import { Shield, Crown, Star, Flame, Target, Trophy, Zap, Search, RefreshCw, UserCheck, Play, Save, ChevronRight, HelpCircle, User, Info, BarChart2, Edit, Trash2, Plus, Check, Filter, Tag, BookOpen, Maximize2, Minimize2, ClipboardList, Users, SlidersHorizontal } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
@@ -8,6 +8,7 @@ import {
   drawingPathsSchema,
   matchFormatSchema,
   playerExtrasSchema,
+  gamePlansSchema,
   strategyContextSchema,
   stringSchema,
   tacticsBoardSnapshotsSchema,
@@ -292,6 +293,7 @@ const fromLandscapePoint = ({ left, top }: BoardPoint): BoardPoint => ({
 interface TacticsViewProps {
   players: Player[];
   staff: StaffMember[];
+  games?: Game[];
   teamCoach: string;
   teamName?: string;
   teamLogoUrl?: string;
@@ -302,6 +304,7 @@ interface TacticsViewProps {
 export default function TacticsView({
   players,
   staff,
+  games = [],
   teamCoach,
   teamName,
   teamLogoUrl,
@@ -757,6 +760,27 @@ export default function TacticsView({
     writeJsonStorage(STORAGE_KEYS.tacticsBoardSnapshots, boardSnapshots);
   }, [boardSnapshots]);
 
+  const upcomingMatchGames = useMemo(() => {
+    const today = new Date().toISOString().slice(0, 10);
+    return games
+      .filter(game => game.status === 'Upcoming' && game.type !== 'Training' && game.type !== 'Meeting' && game.date >= today)
+      .sort((a, b) => `${a.date}T${a.time || '00:00'}`.localeCompare(`${b.date}T${b.time || '00:00'}`));
+  }, [games]);
+  const [selectedGamePlanGameId, setSelectedGamePlanGameId] = useState<string>('');
+  const [gamePlans, setGamePlans] = useState<GamePlan[]>(() => (
+    readJsonStorage(STORAGE_KEYS.gamePlans, gamePlansSchema, [], 'Tactics game plans') as GamePlan[]
+  ));
+  const [gamePlanSaveStatus, setGamePlanSaveStatus] = useState<'idle' | 'saved'>('idle');
+
+  useEffect(() => {
+    if (selectedGamePlanGameId || upcomingMatchGames.length === 0) return;
+    setSelectedGamePlanGameId(upcomingMatchGames[0].id);
+  }, [selectedGamePlanGameId, upcomingMatchGames]);
+
+  useEffect(() => {
+    writeJsonStorage(STORAGE_KEYS.gamePlans, gamePlans);
+  }, [gamePlans]);
+
   // Coordinate positions mapper on soccer field container depending on selected formation
   const fieldPositions = useMemo(() => buildFormationPositions(formation, matchFormat), [formation, matchFormat]);
   const opponentShapePositions = useMemo(() => (
@@ -915,6 +939,85 @@ export default function TacticsView({
 
     setBoardSnapshots(prev => [snapshot, ...prev].slice(0, 12));
     setSnapshotName('');
+  };
+
+  const getLineupPlayerName = (playerId: string) => (
+    allEligiblePool.find(player => player.id === playerId)?.name
+  );
+
+  const handleSaveGamePlan = () => {
+    const game = upcomingMatchGames.find(item => item.id === selectedGamePlanGameId);
+    if (!game) return;
+
+    const lineupPlan = Array.from({ length: MATCH_FORMAT_CONFIG[matchFormat].size })
+      .map((_, index) => {
+        const player = lineup[index];
+        if (!player) return null;
+        return {
+          slot: index,
+          role: fieldPositions[index]?.role || player.position,
+          playerId: player.id,
+          name: player.name,
+          rating: player.rating,
+          position: player.position
+        };
+      })
+      .filter((item): item is GamePlan['lineup'][number] => item !== null);
+
+    const plan: GamePlan = {
+      id: `game-plan-${game.id}`,
+      gameId: game.id,
+      opponent: game.opponent,
+      gameDate: game.date,
+      gameTime: game.time,
+      gameType: game.type,
+      location: game.location,
+      updatedAt: new Date().toISOString(),
+      matchFormat,
+      formation,
+      opponentFormation,
+      playstyle,
+      defensiveStyle,
+      phase: activePhase,
+      strategyContext,
+      recommendation: {
+        attackTitle: matchupRecommendation.recommendedAttack.title,
+        attackIntent: matchupRecommendation.recommendedAttack.intent,
+        defenseTitle: matchupRecommendation.recommendedDefense.title,
+        defenseIntent: matchupRecommendation.recommendedDefense.intent,
+        cues: [
+          ...matchupRecommendation.recommendedAttack.cues.slice(0, 3),
+          ...matchupRecommendation.recommendedDefense.cues.slice(0, 3)
+        ],
+        watchout: matchupRecommendation.recommendedAttack.watchout
+      },
+      lineup: lineupPlan,
+      roles: {
+        captain: captainId ? getLineupPlayerName(captainId) : undefined,
+        penaltyTaker: penaltyTakerId ? getLineupPlayerName(penaltyTakerId) : undefined,
+        freeKickTaker: freeKickTakerId ? getLineupPlayerName(freeKickTakerId) : undefined,
+        cornerTaker: cornerTakerId ? getLineupPlayerName(cornerTakerId) : undefined
+      },
+      board: {
+        draggedPositions: Object.fromEntries(Object.entries(draggedPositions).map(([key, point]) => [key, point])),
+        drawingPaths: paths,
+        ballPos,
+        wallPos,
+        wallRotation,
+        showBall,
+        showWall
+      },
+      notes: quickNotes.slice(0, 8).map(note => ({
+        id: note.id,
+        title: note.title,
+        content: note.content,
+        category: note.category
+      }))
+    };
+
+    setGamePlans(prev => [plan, ...prev.filter(item => item.gameId !== game.id)]);
+    setGamePlanSaveStatus('saved');
+    window.setTimeout(() => setGamePlanSaveStatus('idle'), 2200);
   };
 
   const handleLoadBoardSnapshot = (snapshotId: string) => {
@@ -1408,6 +1511,40 @@ export default function TacticsView({
                 <SelectItem value="5-a-side">5-a-side</SelectItem>
               </SelectContent>
             </Select>
+          </div>
+          <div className="mt-3 border-t border-slate-800 pt-3">
+            <label className="mb-1.5 block px-1 text-[9px] font-black uppercase tracking-widest text-slate-500">Upcoming Opponent</label>
+            {upcomingMatchGames.length > 0 ? (
+              <div className="space-y-2">
+                <Select value={selectedGamePlanGameId} onValueChange={setSelectedGamePlanGameId}>
+                  <SelectTrigger id="select-game-plan-opponent" className="h-10 rounded-lg border-cyan-300/10 bg-[#0b1726]/85 text-xs font-bold text-slate-100 focus:ring-amber-400/30">
+                    <SelectValue placeholder="Choose match" />
+                  </SelectTrigger>
+                  <SelectContent className="border-slate-800 bg-slate-950 text-slate-100">
+                    {upcomingMatchGames.map((game) => (
+                      <SelectItem key={game.id} value={game.id} className="text-xs font-bold">
+                        {game.opponent} - {game.date}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Button
+                  type="button"
+                  onClick={handleSaveGamePlan}
+                  disabled={!selectedGamePlanGameId}
+                  className="h-9 w-full rounded-lg bg-orange-300 px-3 text-[10px] font-black uppercase tracking-wider text-slate-950 shadow-sm hover:bg-orange-200 disabled:opacity-50"
+                >
+                  <Save size={12} /> {gamePlanSaveStatus === 'saved' ? 'Game Plan Saved' : 'Save Game Plan'}
+                </Button>
+                <p className="px-1 text-[9px] font-semibold leading-snug text-slate-500">
+                  Saves the current tactics, board markings, roles, lineup, and notes for the selected opponent.
+                </p>
+              </div>
+            ) : (
+              <p className="rounded-lg border border-dashed border-slate-800 px-2 py-3 text-center text-[9px] font-semibold leading-snug text-slate-500">
+                Add an upcoming match in Game Week to save an opponent plan.
+              </p>
+            )}
           </div>
           {activeBoardPanel === 'squad' && (
             <div className="mt-3 grid grid-cols-1 gap-2 border-t border-slate-800 pt-3">

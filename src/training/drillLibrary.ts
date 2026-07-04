@@ -1502,6 +1502,47 @@ export const DRILL_INSTRUCTIONS: Record<string, DrillInstruction> = {
   },
 };
 
+const getDrillCoachingEmphasis = (drillId: string, drill?: TrainingDrill): string => {
+  const text = `${drillId} ${drill?.name ?? ''} ${drill?.category ?? ''}`.toLowerCase();
+
+  if (text.includes('warm')) {
+    return 'Build the tempo gradually, keep touches clean, and correct body shape before raising the intensity.';
+  }
+  if (text.includes('recovery') || text.includes('mobility') || text.includes('foam') || text.includes('yoga')) {
+    return 'Keep the work low intensity, prioritize breathing and range of motion, and stop any action that increases soreness.';
+  }
+  if (text.includes('gk') || text.includes('goalkeeper')) {
+    return 'Coach the goalkeeper to set early, call loudly, recover into position, and finish every save with a controlled distribution.';
+  }
+  if (text.includes('tactical') || text.includes('shape') || text.includes('midblock') || text.includes('backline')) {
+    return 'Freeze the picture when spacing breaks, correct distances between players, then restart from the same game cue.';
+  }
+  if (text.includes('cond') || text.includes('stamina') || text.includes('sprint') || text.includes('accel')) {
+    return 'Hold players to the work-rest timing, demand sharp technique while tired, and reduce load if sprint quality drops.';
+  }
+  if (text.includes('def')) {
+    return 'Focus on body angle, covering distance, communication, and the moment to delay, tackle, or clear.';
+  }
+  if (text.includes('fwd') || text.includes('shoot') || text.includes('finish') || text.includes('heading')) {
+    return 'Demand a scan before the action, a decisive first touch, and a finish or final action completed at match speed.';
+  }
+  if (text.includes('mid') || text.includes('pass') || text.includes('possession') || text.includes('rondo')) {
+    return 'Reward scanning, receiving on the back foot, clear passing angles, and immediate movement after each pass.';
+  }
+
+  return 'Coach the key technical detail every rep, keep the group moving, and pause briefly only to correct one clear habit.';
+};
+
+export const getDrillHowToRun = (drillId: string, fallback?: string): string => {
+  const instruction = DRILL_INSTRUCTIONS[drillId];
+  if (!instruction) return fallback || 'Run the drill according to the planner instructions.';
+
+  const drill = TRAINING_DRILLS.find(item => item.id === drillId);
+  const emphasis = getDrillCoachingEmphasis(drillId, drill);
+
+  return `Start from the planned setup: ${instruction.setup} Run the drill like this: ${instruction.execution} ${emphasis} Work to this load: ${instruction.setsReps}`;
+};
+
 export const inferDrillSessionBlock = (drill: TrainingDrill): SessionBlockId => {
   const category = drill.category.toLowerCase();
   const name = drill.name.toLowerCase();

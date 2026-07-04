@@ -6,7 +6,7 @@
       "runtimeExecutable": "npx",
       "runtimeArgs": ["vite", "--port", "3170", "--strictPort"],
       "port": 3170,
-      "autoPort": false
+      "autoPort": true
     }
   ]
 }

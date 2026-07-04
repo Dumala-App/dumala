@@ -8,6 +8,7 @@ import {
   draggedPositionsSchema,
   drawingPathsSchema,
   gamesSchema,
+  gamePlansSchema,
   matchFormatSchema,
   playerExtrasSchema,
   paymentLedgerSchema,
@@ -68,6 +69,7 @@ export const STORAGE_KEYS = {
   draggedPositions: 'stack_tactics_dragged_positions',
   drawingPaths: 'stack_tactics_draw_paths',
   tacticsBoardSnapshots: 'stack_tactics_board_snapshots',
+  gamePlans: 'stack_tactics_game_plans',
   preRestoreBackup: 'stack_pre_restore_backup'
 } as const;
 
@@ -116,7 +118,8 @@ export const storageSchemas = {
   [STORAGE_KEYS.tacticsNotes]: tacticsNotesSchema,
   [STORAGE_KEYS.draggedPositions]: draggedPositionsSchema,
   [STORAGE_KEYS.drawingPaths]: drawingPathsSchema,
-  [STORAGE_KEYS.tacticsBoardSnapshots]: tacticsBoardSnapshotsSchema
+  [STORAGE_KEYS.tacticsBoardSnapshots]: tacticsBoardSnapshotsSchema,
+  [STORAGE_KEYS.gamePlans]: gamePlansSchema
 } as const;
 
 export type RecoveryWarning = {
@@ -179,7 +182,8 @@ const STORAGE_SECTIONS: Record<string, string> = {
   [STORAGE_KEYS.tacticsNotes]: 'Tactics notes',
   [STORAGE_KEYS.draggedPositions]: 'Tactics positions',
   [STORAGE_KEYS.drawingPaths]: 'Tactics drawings',
-  [STORAGE_KEYS.tacticsBoardSnapshots]: 'Tactics board snapshots'
+  [STORAGE_KEYS.tacticsBoardSnapshots]: 'Tactics board snapshots',
+  [STORAGE_KEYS.gamePlans]: 'Tactics game plans'
 };
 
 const BOOLEAN_STORAGE_KEYS = new Set<string>([
