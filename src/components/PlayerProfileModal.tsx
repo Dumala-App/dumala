@@ -564,7 +564,7 @@ export default function PlayerProfileModal({ player, onClose, onUpdate, onRemove
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: 8 }}
-        className="relative grid max-h-[92vh] w-full max-w-[1180px] grid-rows-[auto_minmax(0,1fr)] gap-4 overflow-y-auto rounded-2xl border border-cyan-300/12 bg-[#07111f] p-4 shadow-2xl shadow-black/40 outline-none sm:p-5 lg:h-[min(700px,92vh)] lg:overflow-hidden"
+        className="relative grid max-h-[92vh] w-full max-w-[1180px] grid-rows-[auto_minmax(0,1fr)] gap-4 overflow-y-auto rounded-2xl border border-cyan-300/12 bg-[#07111f] p-4 shadow-2xl shadow-black/40 outline-none sm:p-5 lg:h-[min(660px,92vh)] lg:overflow-hidden"
         onClick={e => e.stopPropagation()}
       >
         <div className="pointer-events-none absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-indigo-300/40 to-transparent" />
@@ -917,15 +917,18 @@ export default function PlayerProfileModal({ player, onClose, onUpdate, onRemove
           </main>
         ) : (
           /* ATHLETE PROFILE LAYOUT — landscape two-pane */
-          <main className="grid min-h-0 grid-cols-1 gap-4 lg:grid-cols-12">
+          <main className="grid min-h-0 grid-cols-1 gap-3 lg:grid-cols-12">
             <section
               id="season-stats-ledger-card"
               aria-label="Player overview"
-              className="relative min-h-0 overflow-y-auto overflow-x-hidden rounded-2xl border border-cyan-300/12 bg-[linear-gradient(135deg,rgba(99,102,241,0.12),rgba(15,23,42,0.28)_38%,rgba(7,17,31,0.92))] p-5 lg:col-span-8"
+              className={cn(
+                'relative min-h-0 overflow-x-hidden rounded-2xl border border-cyan-300/12 bg-[linear-gradient(135deg,rgba(99,102,241,0.12),rgba(15,23,42,0.24)_36%,rgba(7,17,31,0.94))]',
+                isEditing ? 'overflow-y-auto p-5 lg:col-span-8' : 'overflow-hidden p-4 lg:col-span-9'
+              )}
             >
               <div className="pointer-events-none absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-indigo-200/40 to-transparent" />
-              <div className="grid gap-5 sm:grid-cols-[auto_minmax(0,1fr)]">
-                <div className="relative w-36 shrink-0 self-start sm:w-44">
+              <div className={cn('grid', isEditing ? 'gap-5 sm:grid-cols-[auto_minmax(0,1fr)]' : 'gap-4 sm:grid-cols-[132px_minmax(0,1fr)] lg:grid-cols-[150px_minmax(0,1fr)]')}>
+                <div className={cn('relative shrink-0 self-start', isEditing ? 'w-36 sm:w-44' : 'w-32 sm:w-[150px]')}>
                   <img
                     id="player-profile-img"
                     src={photoUrl}
@@ -1066,11 +1069,30 @@ export default function PlayerProfileModal({ player, onClose, onUpdate, onRemove
                 </div>
               ) : (
                 <>
+                  <div className="mb-3 flex flex-wrap items-center justify-between gap-3 border-b border-white/[0.06] pb-3">
+                    <div className="grid grid-cols-4 gap-x-4 gap-y-2">
+                      {seasonStatItems.slice(0, 4).map(item => (
+                        <div key={item.id} className="min-w-0">
+                          <div className={`font-mono text-lg font-black leading-none ${item.tone}`}>{item.value}</div>
+                          <div className="mt-1 truncate text-[8px] font-black uppercase tracking-widest text-slate-500">{item.label}</div>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="flex items-center gap-3 border-l border-white/[0.08] pl-4">
+                      <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full border-2 border-amber-400 bg-slate-950 shadow-md shadow-amber-950/20">
+                        <span className="font-display text-2xl font-black text-white">{overallRating}</span>
+                      </div>
+                      <div>
+                        <div className="text-[9px] font-black uppercase tracking-widest text-slate-500">Calculated OVR</div>
+                        <div className="mt-1 text-xs font-semibold text-slate-300">{player.position} model</div>
+                      </div>
+                    </div>
+                  </div>
                   <span className="text-[9px] font-black uppercase tracking-widest text-emerald-200">Coach's verdict</span>
-                  <p className="mt-2 line-clamp-5 whitespace-pre-wrap text-sm font-bold leading-relaxed text-slate-50 lg:text-[15px]">
+                  <p className="mt-2 line-clamp-3 whitespace-pre-wrap text-sm font-bold leading-relaxed text-slate-50 lg:text-[15px]">
                     {player.coachNotes || getDefaultVerdict()}
                   </p>
-                  <div className="mt-4">
+                  <div className="mt-3">
                     <span className="text-[9px] font-black uppercase tracking-widest text-cyan-100">Specialty traits</span>
                     <div className="mt-2 flex flex-wrap gap-1.5">
                       {player.specialtyTraits && player.specialtyTraits.length > 0 ? (
@@ -1088,7 +1110,7 @@ export default function PlayerProfileModal({ player, onClose, onUpdate, onRemove
                       )}
                     </div>
                   </div>
-                  <p className="mt-4 text-[11px] font-semibold text-slate-400">
+                  <p className="mt-3 text-[11px] font-semibold text-slate-400">
                     <span className="mr-2 text-[9px] font-black uppercase tracking-widest text-slate-500">Per match</span>
                     {goalsPerMatch} goals · {assistsPerMatch} assists · {contributionsPerMatch} G+A · {minutesPerContribution} per contribution · {mvpRate} MVP rate
                   </p>
@@ -1098,39 +1120,13 @@ export default function PlayerProfileModal({ player, onClose, onUpdate, onRemove
               </div>
 
               {!isEditing && (
-                <div className="mt-5 border-t border-white/[0.06] pt-4">
-                  <div className="flex flex-wrap items-center justify-between gap-3">
-                    <div className="flex items-center gap-3">
-                      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border-2 border-amber-400 bg-slate-950 shadow-md">
-                        <span className="font-display text-lg font-black text-white">{overallRating}</span>
-                      </div>
-                      <div>
-                        <div className="text-[9px] font-black uppercase tracking-widest text-slate-500">Calculated OVR</div>
-                        <div className="text-xs font-semibold text-slate-300">{player.position} model</div>
-                      </div>
-                    </div>
-                    {latestAssessment && (
-                      <div className="text-right">
-                        <div className="text-[9px] font-black uppercase tracking-widest text-indigo-200">FPRDS {latestAssessment.ovr}</div>
-                        <div className="text-[10px] font-semibold text-slate-500">
-                          {latestAssessment.labels.ovrTierLabel}
-                          {typeof latestAssessment.deltas.ovrDelta === 'number' && (
-                            <span className={latestAssessment.deltas.ovrDelta >= 0 ? ' text-emerald-300' : ' text-rose-300'}>
-                              {' '}{latestAssessment.deltas.ovrDelta >= 0 ? `+${latestAssessment.deltas.ovrDelta}` : latestAssessment.deltas.ovrDelta}
-                            </span>
-                          )}
-                          <span className="text-slate-600"> · {latestAssessment.assessmentDate}</span>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="mt-4 grid gap-x-8 gap-y-4 sm:grid-cols-2">
+                <div className="mt-4 border-t border-white/[0.06] pt-3">
+                  <div className="mt-0 grid gap-x-7 gap-y-3 sm:grid-cols-2">
                     <div>
                       <span className="flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest text-amber-200">
                         <Shield size={11} /> Base attributes
                       </span>
-                      <div className="mt-2 grid grid-cols-2 gap-x-4 gap-y-2">
+                      <div className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1.5">
                         {Object.entries(baseAttributes).map(([key, value]) => {
                           const label = key === 'shortPassing' ? 'Short Pass' : key === 'firstTouch' ? 'First Touch' : key;
                           const displayLabel = label.charAt(0).toUpperCase() + label.slice(1);
@@ -1157,7 +1153,7 @@ export default function PlayerProfileModal({ player, onClose, onUpdate, onRemove
                           <span className="flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest text-amber-200">
                             <Shield size={11} /> Position attributes
                           </span>
-                          <div className="mt-2 grid grid-cols-2 gap-x-4 gap-y-2">
+                          <div className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1.5">
                             {Object.entries(positionAttributes).map(([key, value]) => (
                               <div key={key} className="flex flex-col gap-1 text-[10px]">
                                 <div className="flex justify-between font-bold text-slate-300">
@@ -1180,11 +1176,11 @@ export default function PlayerProfileModal({ player, onClose, onUpdate, onRemove
                     </div>
                   </div>
 
-                  <p className="mt-3 text-[9px] font-bold uppercase tracking-wider text-slate-600">
+                  <p className="mt-2 text-[9px] font-bold uppercase tracking-wider text-slate-600">
                     Base avg {baseAttributeAverage} · Top tool {attributeLabels[strongestAttribute[0]] ?? strongestAttribute[0]} ({strongestAttribute[1]}){positionAttributeAverage !== undefined ? ` · Position avg ${positionAttributeAverage}` : ''}
                   </p>
 
-                  <div className="mt-3 flex flex-wrap items-center justify-between gap-3 border-l-2 border-amber-300/40 pl-3.5">
+                  <div className="mt-2 flex flex-wrap items-center justify-between gap-3 border-l-2 border-amber-300/40 pl-3.5">
                     <div className="min-w-0 flex-1">
                       <span className="flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest text-amber-200">
                         <Zap size={11} /> Development focus
@@ -1203,7 +1199,13 @@ export default function PlayerProfileModal({ player, onClose, onUpdate, onRemove
               )}
             </section>
 
-            <aside aria-label={isEditing ? 'Player attributes' : 'Season performance'} className="flex min-h-0 flex-col gap-4 overflow-y-auto px-1 py-1 lg:col-span-4">
+            <aside
+              aria-label={isEditing ? 'Player attributes' : 'Season performance'}
+              className={cn(
+                'flex min-h-0 flex-col px-1 py-1',
+                isEditing ? 'gap-4 overflow-y-auto lg:col-span-4' : 'gap-3 overflow-hidden lg:col-span-3'
+              )}
+            >
               {isEditing ? (
                 <>
                   <div>
@@ -1262,25 +1264,33 @@ export default function PlayerProfileModal({ player, onClose, onUpdate, onRemove
                 </>
               ) : (
                 <>
-                  <div>
+                  <div className="border-b border-white/[0.06] pb-3">
                     <h3 id="season-stats-ledger-title" className="text-[9px] font-black uppercase tracking-widest text-slate-500">
-                      Season ledger
+                      Secondary stats
                     </h3>
-                    <div className="mt-3 grid grid-cols-2 gap-x-4 gap-y-4">
-                      {seasonStatItems.map(item => (
-                        <div key={item.id} className="border-l border-white/10 pl-3">
-                          <div className={`font-mono text-lg font-black leading-none ${item.tone}`}>{item.value}</div>
-                          <div className="mt-1 text-[8px] font-black uppercase tracking-widest text-slate-500">{item.label}</div>
+                    <div className="mt-2.5 space-y-2.5">
+                      {seasonStatItems.slice(4).map(item => (
+                        <div key={item.id} className="flex items-baseline justify-between gap-3">
+                          <div className="min-w-0 truncate text-[9px] font-black uppercase tracking-widest text-slate-500">{item.label}</div>
+                          <div className={`font-mono text-base font-black leading-none ${item.tone}`}>{item.value}</div>
                         </div>
                       ))}
                     </div>
+                    {latestAssessment && (
+                      <div className="mt-3 flex items-center justify-between gap-3 border-t border-white/[0.06] pt-3">
+                        <span className="text-[9px] font-black uppercase tracking-widest text-slate-500">Latest FPRDS</span>
+                        <span className="text-xs font-black text-indigo-100">
+                          {latestAssessment.labels.ovrTierLabel} {latestAssessment.ovr}
+                        </span>
+                      </div>
+                    )}
                   </div>
 
-                  <div id="points-progression-chart-card" className="mt-auto border-t border-white/[0.06] pt-3">
+                  <div id="points-progression-chart-card" className="mt-auto pt-1">
                     <h3 className="text-[9px] font-black uppercase tracking-widest text-slate-500">
                       {position === 'Goalkeeper' ? '5-match clean sheets' : '5-match goals trend'}
                     </h3>
-                    <div id="recharts-wrapper-container" className="mt-2 h-[160px] w-full">
+                    <div id="recharts-wrapper-container" className="mt-2 h-[112px] w-full">
                       <ResponsiveContainer width="100%" height="100%">
                         <LineChart data={progressionData} margin={{ top: 5, right: 5, left: -28, bottom: -6 }}>
                           <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" vertical={false} />
