@@ -400,6 +400,90 @@ export interface Game {
   notes?: string;
 }
 
+export type GamePlanMatchFormat = '11-a-side' | '9-a-side' | '8-a-side' | '7-a-side' | '6-a-side' | '5-a-side';
+export type GamePlanTacticalPhase = 'In Possession' | 'Out of Possession' | 'Transition' | 'Set Piece';
+export type GamePlanDrawingLayer = 'Runs' | 'Passes' | 'Pressing' | 'Defensive Shape';
+export type GamePlanStrokeStyle = 'Solid' | 'Dashed' | 'Dotted';
+
+export interface GamePlanBoardPoint {
+  left: number;
+  top: number;
+}
+
+export interface GamePlanDrawingPath {
+  color: string;
+  width: number;
+  strokeStyle?: GamePlanStrokeStyle;
+  layer?: GamePlanDrawingLayer;
+  phase?: GamePlanTacticalPhase;
+  points: Array<[number, number]>;
+}
+
+export interface GamePlanLineupPlayer {
+  slot: number;
+  role: string;
+  playerId: string;
+  name: string;
+  rating: number;
+  position: string;
+}
+
+export interface GamePlanNote {
+  id: string;
+  title: string;
+  content: string;
+  category: 'Formation' | 'Set Pieces' | 'Strategy' | 'General';
+}
+
+export interface GamePlan {
+  id: string;
+  gameId: string;
+  opponent: string;
+  gameDate: string;
+  gameTime: string;
+  gameType: Game['type'];
+  location: string;
+  updatedAt: string;
+  matchFormat: GamePlanMatchFormat;
+  formation: string;
+  opponentFormation: string;
+  playstyle: string;
+  defensiveStyle: string;
+  phase: GamePlanTacticalPhase;
+  strategyContext: {
+    matchState: string;
+    matchPhase: string;
+    teamCondition: string;
+    opponentBehavior: string;
+    riskLevel: string;
+  };
+  recommendation: {
+    attackTitle: string;
+    attackIntent: string;
+    defenseTitle: string;
+    defenseIntent: string;
+    cues: string[];
+    watchout: string;
+  };
+  lineup: GamePlanLineupPlayer[];
+  roles: {
+    captain?: string;
+    penaltyTaker?: string;
+    freeKickTaker?: string;
+    cornerTaker?: string;
+  };
+  board: {
+    draggedPositions: Record<string, GamePlanBoardPoint>;
+    drawingPaths: GamePlanDrawingPath[];
+    ballPos: GamePlanBoardPoint;
+    wallPos: GamePlanBoardPoint;
+    wallRotation: number;
+    showBall: boolean;
+    showWall: boolean;
+  };
+  notes: GamePlanNote[];
+}
+
 export interface Standing {
   rank: number;
   teamName: string;

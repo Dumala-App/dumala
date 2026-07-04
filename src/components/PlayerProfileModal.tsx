@@ -1,6 +1,6 @@
 import React, { useMemo, useRef, useState } from 'react';
 import { AssessmentSession, Player, SPECIALTY_TRAITS, SpecialtyTrait, STAFF_POSITIONS } from '../types';
-import { X, Award, Shield, User, Zap, CircleDot, Activity, Save, Edit2, Briefcase, Calendar, Mail, Phone, AlertTriangle, Clock, Star, Trash2 } from 'lucide-react';
+import { Briefcase, Calendar, Edit2, Mail, Phone, Save, Shield, Trash2, User, X, Zap } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useDialogAccessibility } from '../hooks/useDialogAccessibility';
 import { FieldError, FormErrorSummary } from './FormValidation';
@@ -30,8 +30,7 @@ import {
   XAxis,
   YAxis,
   CartesianGrid,
-  Tooltip,
-  Legend
+  Tooltip
 } from 'recharts';
 
 type PlayerProgressPoint = {
@@ -67,10 +66,10 @@ const PLAYER_POSITIONS = ['Forward', 'Midfielder', 'Defender', 'Goalkeeper'] as 
 const REGISTRATION_STATUS_OPTIONS: Array<NonNullable<Player['registrationStatus']>> = ['Active', 'Pending', 'Suspended'];
 
 const profileInputClass = (hasError?: boolean) => cn(
-  'rounded-lg text-xs font-bold focus-visible:ring-2',
+  'rounded-lg border bg-white/[0.04] text-xs font-bold text-slate-100 placeholder:text-slate-500 focus-visible:ring-2',
   hasError
-    ? 'border-rose-300 focus-visible:ring-rose-500/30'
-    : 'border-slate-200 focus-visible:ring-indigo-500/30'
+    ? 'border-rose-400/40 focus-visible:ring-rose-500/30'
+    : 'border-white/10 focus-visible:ring-indigo-400/30'
 );
 
 const profileStatInputClass = (hasError?: boolean) => cn(
@@ -79,10 +78,10 @@ const profileStatInputClass = (hasError?: boolean) => cn(
 );
 
 const profileHeaderInputClass = (hasError?: boolean) => cn(
-  'rounded-lg border bg-white/15 text-white placeholder:text-white/45 focus-visible:ring-2',
+  'rounded-lg border bg-white/[0.06] text-white placeholder:text-white/45 focus-visible:ring-2',
   hasError
     ? 'border-rose-300 focus-visible:ring-rose-300/40'
-    : 'border-white/20 focus-visible:ring-amber-400/40'
+    : 'border-white/15 focus-visible:ring-amber-400/40'
 );
 
 const integerError = (result: ReturnType<typeof parseIntegerInput>): string | undefined => (
@@ -497,13 +496,65 @@ export default function PlayerProfileModal({ player, onClose, onUpdate, onRemove
     'Footwork': `Technically proficient with the ball at feet. Comfortable receiving back-passes under pressure and contributing to the team's build-up play with accurate short and medium-range passing.`
   };
 
+  const isKeeperOrDefender = position === 'Goalkeeper' || position === 'Defender';
+  const contributionStatLabel = isKeeperOrDefender ? 'Clean sheets' : 'Goal contributions';
+  const contributionStatValue = isKeeperOrDefender ? displayCleanSheets : displayPoints + displayAssists;
+  const ratioStatLabel = isKeeperOrDefender ? 'CS per match' : 'Mins per goal';
+  const ratioStatValue = isKeeperOrDefender
+    ? (displayGamesPlayed > 0 ? (displayCleanSheets / displayGamesPlayed).toFixed(1) : '0.0')
+    : `${displayPoints > 0 ? Math.round(displayMinutesPlayed / displayPoints) : displayMinutesPlayed}m`;
+  const disciplineStatValue = disciplineCount === 0
+    ? 'Clean'
+    : [
+        displayYellowCards > 0 ? `${displayYellowCards}Y` : '',
+        displayRedCards > 0 ? `${displayRedCards}R` : ''
+      ].filter(Boolean).join(' ');
+  const baseAttributeMean = baseAttributeEntries.reduce((total, [, value]) => total + value, 0) / Math.max(1, baseAttributeEntries.length);
+  const overallRating = Math.round(
+    baseAttributeMean * 0.6
+    + (positionAttributeValues.length > 0
+      ? positionAttributeValues.reduce((a, b) => a + b, 0) / positionAttributeValues.length
+      : baseAttributeMean) * 0.4
+  );
+  const seasonStatItems = [
+    { id: 'games', label: 'Games played', value: String(displayGamesPlayed), tone: 'text-white' },
+    { id: 'goals', label: 'Goals scored', value: String(displayPoints), tone: 'text-indigo-300' },
+    { id: 'assists', label: 'Assists made', value: String(displayAssists), tone: 'text-white' },
+    { id: 'contribution', label: contributionStatLabel, value: String(contributionStatValue), tone: 'text-emerald-300' },
+    { id: 'minutes', label: 'Total minutes', value: String(displayMinutesPlayed), tone: 'text-white' },
+    { id: 'mvp', label: 'Man of the match', value: displayMvpAwards > 0 ? String(displayMvpAwards) : '—', tone: 'text-amber-300' },
+    { id: 'discipline', label: 'Discipline', value: disciplineStatValue, tone: disciplineCount > 0 ? 'text-amber-300' : 'text-white' },
+    { id: 'ratio', label: ratioStatLabel, value: ratioStatValue, tone: 'text-white' }
+  ];
+  const editStatFields: Array<{
+    id: string;
+    field: ProfileField;
+    label: string;
+    value: string;
+    onChange: (value: string) => void;
+    min: string;
+    max?: string;
+  }> = [
+    { id: 'edit-games-played', field: 'gamesPlayed', label: 'Matches', value: gamesPlayed, onChange: setGamesPlayed, min: '0' },
+    { id: 'edit-stat-goals', field: 'points', label: 'Goals', value: points, onChange: setPoints, min: '0' },
+    { id: 'edit-stat-assists', field: 'assists', label: 'Assists', value: assists, onChange: setAssists, min: '0' },
+    { id: 'edit-stat-sheets', field: 'cleanSheetsOrRebounds', label: isKeeperOrDefender ? 'Clean sheets' : 'G+A combined', value: cleanSheetsOrRebounds, onChange: setCleanSheetsOrRebounds, min: '0' },
+    { id: 'edit-stat-mins', field: 'minutesPlayed', label: 'Total minutes', value: minutesPlayed, onChange: setMinutesPlayed, min: '0' },
+    { id: 'edit-stat-yellows', field: 'yellowCards', label: 'Yellow cards', value: yellowCards, onChange: setYellowCards, min: '0' },
+    { id: 'edit-stat-reds', field: 'redCards', label: 'Red cards', value: redCards, onChange: setRedCards, min: '0' },
+    { id: 'edit-stat-mvps', field: 'mvpAwards', label: 'MVP awards', value: mvpAwards, onChange: setMvpAwards, min: '0' },
+    { id: 'edit-player-age', field: 'age', label: 'Age', value: age, onChange: setAge, min: '10', max: '80' },
+    { id: 'edit-player-height', field: 'height', label: 'Height (cm)', value: height, onChange: setHeight, min: '100', max: '250' },
+    { id: 'edit-player-weight', field: 'weight', label: 'Weight (kg)', value: weight, onChange: setWeight, min: '30', max: '250' }
+  ];
+
   return (
-    <div 
+    <div
       id="player-profile-overlay"
-      className="fixed inset-0 bg-slate-950/85 flex justify-center items-start py-4 sm:py-6 px-4 z-[140] overflow-y-auto"
+      className="fixed inset-0 z-[140] flex items-center justify-center overflow-y-auto bg-slate-950/80 px-3 py-4 text-slate-100 backdrop-blur-xl lg:overflow-hidden"
       onClick={onClose}
     >
-      <motion.div 
+      <motion.div
         ref={dialogRef}
         tabIndex={-1}
         role="dialog"
@@ -513,252 +564,200 @@ export default function PlayerProfileModal({ player, onClose, onUpdate, onRemove
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: 8 }}
-        className="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[calc(100dvh-2rem)] sm:max-h-[calc(100dvh-3rem)] overflow-y-auto text-slate-800 border border-slate-100"
+        className="relative grid max-h-[92vh] w-full max-w-[1180px] grid-rows-[auto_minmax(0,1fr)] gap-4 overflow-y-auto rounded-2xl border border-cyan-300/12 bg-[#07111f] p-4 shadow-2xl shadow-black/40 outline-none sm:p-5 lg:h-[min(700px,92vh)] lg:overflow-hidden"
         onClick={e => e.stopPropagation()}
       >
-        {/* Modal Header Compact Banner */}
-        <div className="p-5.5 bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white relative border-b border-indigo-900/50">
-          <Button
-            id="close-profile-btn"
-            onClick={onClose}
-            variant="ghost"
-            size="icon"
-            className="absolute right-4.5 top-4.5 rounded-full bg-white/10 text-white/90 hover:bg-white/20 hover:text-white"
-          >
-            <X size={15} />
-          </Button>
-          
-          <div className="flex flex-col sm:flex-row items-center gap-5 mt-2">
-            <div className="relative group shrink-0">
-              <img 
-                id="player-profile-img"
-                src={photoUrl} 
-                alt={player.name}
-                className="w-20 h-20 rounded-full object-cover border-3 border-indigo-400/40 shadow-inner"
-                referrerPolicy="no-referrer"
-              />
-              {isEditing && (
-                <>
-                  <Input
-                    id="profile-photo-upload-input"
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      if (file) {
-                        const reader = new FileReader();
-                        reader.onloadend = () => {
-                          if (typeof reader.result === 'string') {
-                            setPhotoUrl(reader.result);
-                          }
-                        };
-                        reader.readAsDataURL(file);
-                      }
-                    }}
-                    className="hidden"
-                  />
-                  <Button
-                    type="button"
-                    onClick={() => document.getElementById('profile-photo-upload-input')?.click()}
-                    className="absolute inset-0 flex h-auto flex-col items-center justify-center rounded-full border border-indigo-500/30 bg-slate-950/75 text-[9px] font-black uppercase tracking-wider text-white hover:bg-slate-950/85"
-                  >
-                    <span>Upload</span>
-                    <span>Photo</span>
-                  </Button>
-                </>
-              )}
-            </div>
-            
-            <div className="text-center sm:text-left flex-1 min-w-0 space-y-2">
-              <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
-                {!isStaff && (
-                  <span id="player-profile-jersey" className="bg-amber-400 text-slate-950 font-mono font-black px-2 py-0.5 rounded text-[11px] tracking-tight">
-                    #{number}
-                  </span>
-                )}
-                <span id="player-profile-pos" className={`font-bold px-2 py-0.5 rounded text-[11px] border uppercase tracking-wider ${
-                  isStaff ? 'bg-amber-400/20 border-amber-400/30 text-amber-300' : 'bg-white/10 text-slate-100 border-white/10'
-                }`}>
-                  {isStaff && '👔 '}{position}
-                </span>
-                {!isStaff && (
-                  <span id="player-profile-status" className={`text-[10px] uppercase font-black px-2.5 py-0.5 rounded-full ${
-                    status === 'Active' ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' :
-                    status === 'Pending' ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30' :
-                    'bg-rose-500/20 text-rose-300 border border-rose-500/30'
-                  }`}>
-                    ● {status}
-                  </span>
-                )}
-              </div>
-              
-              {isEditing ? (
-                <div className="mt-2.5 space-y-2">
-                  <FormErrorSummary id="profile-error-summary" errors={profileErrors} />
-                  <div className="flex flex-col sm:flex-row gap-2">
-                    <div>
-                      <Input
-                        id="edit-player-name"
-                        data-validation-field="name"
-                        type="text" 
-                        value={name} 
-                        onChange={e => {
-                          setName(e.target.value);
-                          setProfileErrors(previous => ({ ...previous, name: undefined }));
-                        }}
-                        aria-invalid={Boolean(profileErrors.name)}
-                        aria-describedby={profileErrors.name ? 'edit-player-name-error' : undefined}
-                        className={cn(profileHeaderInputClass(Boolean(profileErrors.name)), 'h-10 w-full max-w-[240px] px-3 font-display text-lg')}
-                        placeholder={isStaff ? "Staff Name" : "Player Name"}
-                      />
-                      <FieldError id="edit-player-name-error" message={profileErrors.name} />
-                    </div>
-                    {isStaff ? (
-                      <Select
-                        value={position}
-                        onValueChange={setPosition}
-                      >
-                        <SelectTrigger id="edit-staff-role-select" className="h-9 rounded-lg bg-white text-xs font-bold text-slate-900">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {STAFF_POSITIONS.map((role) => (
-                            <SelectItem key={role} value={role}>{role}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    ) : (
-                      <div className="flex gap-2 text-slate-900 shrink-0">
-                        <div>
-                          <Input
-                            id="edit-player-number"
-                            data-validation-field="number"
-                            type="number" 
-                            min="1"
-                            max="99"
-                            step="1"
-                            inputMode="numeric"
-                            value={number} 
-                            placeholder="No."
-                            onChange={e => {
-                              setNumber(e.target.value);
-                              setProfileErrors(previous => ({ ...previous, number: undefined }));
-                            }}
-                            aria-invalid={Boolean(profileErrors.number)}
-                            aria-describedby={profileErrors.number ? 'edit-player-number-error' : undefined}
-                            className={cn(profileInputClass(Boolean(profileErrors.number)), 'h-9 w-16 bg-white px-2.5 font-mono')}
-                          />
-                          <FieldError id="edit-player-number-error" message={profileErrors.number} />
-                        </div>
-                        <div>
-                          <Select
-                            value={position}
-                            onValueChange={value => {
-                              setPosition(value);
-                              setProfileErrors(previous => ({ ...previous, position: undefined }));
-                            }}
-                          >
-                            <SelectTrigger
-                              id="edit-player-pos-select"
-                              data-validation-field="position"
-                              aria-invalid={Boolean(profileErrors.position)}
-                              aria-describedby={profileErrors.position ? 'edit-player-position-error' : undefined}
-                              className={cn(profileInputClass(Boolean(profileErrors.position)), 'h-9 bg-white text-xs')}
-                            >
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {PLAYER_POSITIONS.map(playerPosition => (
-                                <SelectItem key={playerPosition} value={playerPosition}>
-                                  {playerPosition}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <FieldError id="edit-player-position-error" message={profileErrors.position} />
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              ) : (
-                <h2 id="player-profile-fullname" className="text-xl sm:text-2xl font-display font-black tracking-tight text-white">{name}</h2>
-              )}
-              
-              {/* Physical Profile Chips beside name - only for athletes */}
-              {!isStaff && (player.age || player.height || player.weight) && (
-                <div className="flex flex-wrap items-center gap-1.5 mt-1">
-                  {player.age && (
-                    <span className="text-[10px] bg-white/10 border border-white/15 text-white/80 px-2 py-0.5 rounded-md font-mono font-bold">
-                      {player.age} yrs
-                    </span>
-                  )}
-                  {player.height && (
-                    <span className="text-[10px] bg-white/10 border border-white/15 text-white/80 px-2 py-0.5 rounded-md font-mono font-bold">
-                      {player.height} cm
-                    </span>
-                  )}
-                  {player.weight && (
-                    <span className="text-[10px] bg-white/10 border border-white/15 text-white/80 px-2 py-0.5 rounded-md font-mono font-bold">
-                      {player.weight} kg
-                    </span>
-                  )}
-                </div>
-              )}
-              
+        <div className="pointer-events-none absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-indigo-300/40 to-transparent" />
+
+        <header className="flex flex-wrap items-start gap-4 sm:flex-nowrap">
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-center gap-2">
               {!isStaff && (
-                <p id="player-profile-bio-summary" className="text-slate-300 text-xs mt-1.5 leading-relaxed max-w-lg italic font-medium">
-                  {isEditing ? (
-                    <Textarea
-                      id="edit-player-bio"
-                      value={bio}
-                      onChange={e => setBio(e.target.value)}
-                      rows={2}
-                      className="min-h-16 rounded-lg border-white/25 bg-white/10 p-2 text-xs font-normal leading-relaxed text-white not-italic focus-visible:ring-amber-400/40"
-                      placeholder="Enter athlete synopsis or personal bio..."
-                    />
-                  ) : (
-                    `"${bio || 'Highly motivated squad member.'}"`
-                  )}
-                </p>
+                <span id="player-profile-jersey" className="rounded bg-amber-400 px-2 py-0.5 font-mono text-[11px] font-black tracking-tight text-slate-950">
+                  #{number}
+                </span>
+              )}
+              <span id="player-profile-pos" className="rounded-full border border-cyan-300/18 bg-cyan-300/8 px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider text-cyan-100">
+                {isStaff && '👔 '}{position}
+              </span>
+              {!isStaff && (
+                <span id="player-profile-status" className={`rounded-full border px-2.5 py-0.5 text-[10px] font-black uppercase ${
+                  status === 'Active' ? 'border-emerald-300/25 bg-emerald-300/10 text-emerald-100' :
+                  status === 'Pending' ? 'border-amber-300/25 bg-amber-300/10 text-amber-100' :
+                  'border-rose-300/25 bg-rose-500/10 text-rose-100'
+                }`}>
+                  ● {status}
+                </span>
+              )}
+              {!isStaff && (player.age || player.height || player.weight) && (
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                  {[
+                    player.age ? `${player.age} yrs` : '',
+                    player.height ? `${player.height} cm` : '',
+                    player.weight ? `${player.weight} kg` : ''
+                  ].filter(Boolean).join(' · ')}
+                </span>
               )}
             </div>
 
-            <div className="shrink-0 self-center pt-2 sm:pt-0 flex flex-col items-center gap-1">
-              {isEditing ? (
-                <Button
-                  id="save-profile-btn"
-                  onClick={handleSave}
-                  size="sm"
-                  className="rounded-xl bg-amber-400 text-xs font-black uppercase tracking-wide text-slate-950 hover:bg-amber-500"
-                >
-                  <Save size={13} /> Save Data
-                </Button>
-              ) : (
+            {isEditing ? (
+              <div className="mt-2 space-y-2">
+                <FormErrorSummary id="profile-error-summary" errors={profileErrors} />
+                <div className="flex flex-col gap-2 sm:flex-row">
+                  <div>
+                    <Input
+                      id="edit-player-name"
+                      data-validation-field="name"
+                      type="text"
+                      value={name}
+                      onChange={e => {
+                        setName(e.target.value);
+                        setProfileErrors(previous => ({ ...previous, name: undefined }));
+                      }}
+                      aria-invalid={Boolean(profileErrors.name)}
+                      aria-describedby={profileErrors.name ? 'edit-player-name-error' : undefined}
+                      className={cn(profileHeaderInputClass(Boolean(profileErrors.name)), 'h-10 w-full max-w-[260px] px-3 font-display text-lg')}
+                      placeholder={isStaff ? 'Staff Name' : 'Player Name'}
+                    />
+                    <FieldError id="edit-player-name-error" message={profileErrors.name} />
+                  </div>
+                  {isStaff ? (
+                    <Select
+                      value={position}
+                      onValueChange={setPosition}
+                    >
+                      <SelectTrigger id="edit-staff-role-select" className={cn(profileInputClass(), 'h-9 w-48')}>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="border-white/10 bg-[#0b1726] text-slate-100">
+                        {STAFF_POSITIONS.map((role) => (
+                          <SelectItem key={role} value={role}>{role}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <div className="flex shrink-0 gap-2">
+                      <div>
+                        <Input
+                          id="edit-player-number"
+                          data-validation-field="number"
+                          type="number"
+                          min="1"
+                          max="99"
+                          step="1"
+                          inputMode="numeric"
+                          value={number}
+                          placeholder="No."
+                          onChange={e => {
+                            setNumber(e.target.value);
+                            setProfileErrors(previous => ({ ...previous, number: undefined }));
+                          }}
+                          aria-invalid={Boolean(profileErrors.number)}
+                          aria-describedby={profileErrors.number ? 'edit-player-number-error' : undefined}
+                          className={cn(profileInputClass(Boolean(profileErrors.number)), 'h-9 w-16 px-2.5 font-mono')}
+                        />
+                        <FieldError id="edit-player-number-error" message={profileErrors.number} />
+                      </div>
+                      <div>
+                        <Select
+                          value={position}
+                          onValueChange={value => {
+                            setPosition(value);
+                            setProfileErrors(previous => ({ ...previous, position: undefined }));
+                          }}
+                        >
+                          <SelectTrigger
+                            id="edit-player-pos-select"
+                            data-validation-field="position"
+                            aria-invalid={Boolean(profileErrors.position)}
+                            aria-describedby={profileErrors.position ? 'edit-player-position-error' : undefined}
+                            className={cn(profileInputClass(Boolean(profileErrors.position)), 'h-9 text-xs')}
+                          >
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent className="border-white/10 bg-[#0b1726] text-slate-100">
+                            {PLAYER_POSITIONS.map(playerPosition => (
+                              <SelectItem key={playerPosition} value={playerPosition}>
+                                {playerPosition}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FieldError id="edit-player-position-error" message={profileErrors.position} />
+                      </div>
+                    </div>
+                  )}
+                </div>
+                {!isStaff && (
+                  <Textarea
+                    id="edit-player-bio"
+                    value={bio}
+                    onChange={e => setBio(e.target.value)}
+                    rows={2}
+                    className="min-h-14 max-w-2xl rounded-lg border-white/15 bg-white/[0.06] p-2 text-xs font-normal leading-relaxed text-white placeholder:text-white/45 focus-visible:ring-amber-400/40"
+                    placeholder="Enter athlete synopsis or personal bio..."
+                  />
+                )}
+              </div>
+            ) : (
+              <>
+                <h2 id="player-profile-fullname" className="mt-1.5 font-display text-2xl font-black tracking-tight text-white sm:text-3xl">
+                  {name}
+                </h2>
+                {!isStaff && (
+                  <p id="player-profile-bio-summary" className="mt-1 line-clamp-2 max-w-2xl text-xs font-medium italic leading-relaxed text-slate-400">
+                    "{bio || 'Highly motivated squad member.'}"
+                  </p>
+                )}
+              </>
+            )}
+          </div>
+
+          <div className="flex shrink-0 items-center gap-2 self-start">
+            {isEditing ? (
+              <Button
+                id="save-profile-btn"
+                onClick={handleSave}
+                className="h-9 rounded-xl bg-amber-400 px-3 text-xs font-black uppercase tracking-wide text-slate-950 hover:bg-amber-300"
+              >
+                <Save size={13} /> Save
+              </Button>
+            ) : (
+              <>
                 <Button
                   id="edit-profile-btn"
                   onClick={() => setIsEditing(true)}
-                  variant="outline"
-                  className="h-6 rounded-md border-white/15 bg-white/10 px-1.5 py-1 text-[7px] font-black uppercase tracking-normal text-white hover:bg-white/20 hover:text-white"
+                  className="h-9 rounded-xl border border-emerald-300/25 bg-emerald-300/15 px-3 text-xs font-black text-emerald-50 hover:bg-emerald-300/22"
                 >
-                  <Edit2 size={8} /> Modify Profile
+                  <Edit2 size={12} /> Modify
                 </Button>
-              )}
-              {!isStaff && !isEditing && (
-                <Button
-                  type="button"
-                  id="remove-player-profile-btn"
-                  onClick={() => setShowRemoveConfirm(true)}
-                  variant="ghost"
-                  className="h-5 rounded px-1 py-0.5 text-[6px] font-bold uppercase tracking-normal text-rose-300 hover:bg-rose-500/10 hover:text-rose-200"
-                >
-                  <Trash2 size={7} />
-                  Remove Player
-                </Button>
-              )}
-            </div>
+                {!isStaff && (
+                  <Button
+                    type="button"
+                    id="remove-player-profile-btn"
+                    onClick={() => setShowRemoveConfirm(true)}
+                    variant="ghost"
+                    size="icon"
+                    aria-label="Remove player"
+                    className="size-9 rounded-xl text-rose-300/80 hover:bg-rose-500/10 hover:text-rose-200"
+                  >
+                    <Trash2 size={14} />
+                  </Button>
+                )}
+              </>
+            )}
+            <Button
+              id="close-profile-btn"
+              onClick={onClose}
+              variant="ghost"
+              size="icon"
+              aria-label="Close player profile"
+              className="size-9 rounded-xl text-slate-300 hover:bg-white/[0.08] hover:text-white"
+            >
+              <X size={17} />
+            </Button>
           </div>
-        </div>
+        </header>
 
         {showRemoveConfirm && (
           <div className="absolute inset-0 z-20 flex items-center justify-center bg-slate-950/70 p-4 backdrop-blur-sm">
@@ -766,15 +765,15 @@ export default function PlayerProfileModal({ player, onClose, onUpdate, onRemove
               role="dialog"
               aria-modal="true"
               aria-labelledby="remove-profile-player-title"
-              className="w-full max-w-sm rounded-2xl border border-slate-200 bg-white p-6 text-slate-800 shadow-2xl"
+              className="w-full max-w-sm rounded-2xl border border-white/10 bg-[#0b1726] p-6 text-slate-100 shadow-2xl"
             >
-              <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-xl bg-rose-100 text-rose-600">
+              <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-xl border border-rose-400/20 bg-rose-400/10 text-rose-300">
                 <Trash2 size={19} />
               </div>
-              <h3 id="remove-profile-player-title" className="font-display text-lg font-black text-slate-900">
+              <h3 id="remove-profile-player-title" className="font-display text-lg font-black text-white">
                 Remove {player.name}?
               </h3>
-              <p className="mt-2 text-xs font-medium leading-relaxed text-slate-600">
+              <p className="mt-2 text-xs font-medium leading-relaxed text-slate-400">
                 This permanently removes the player and their saved statistics from this browser.
               </p>
               <div className="mt-6 flex justify-end gap-2">
@@ -802,14 +801,12 @@ export default function PlayerProfileModal({ player, onClose, onUpdate, onRemove
           </div>
         )}
 
-        {/* Modal Body Info Sections */}
         {isStaff ? (
           /* STAFF PROFILE LAYOUT */
-          <div className="p-5 bg-slate-50/50 space-y-4">
-            {/* Staff Bio Card */}
-            <div className="bg-white p-5 rounded-xl shadow-sm border border-slate-200/50">
-              <h3 className="text-[10px] font-mono font-black uppercase tracking-wider text-slate-400 mb-3 flex items-center gap-1.5">
-                <Briefcase size={13} className="text-amber-500" /> Staff Profile
+          <main className="min-h-0 space-y-4 overflow-y-auto pr-1">
+            <section className="rounded-2xl border border-amber-300/12 bg-amber-300/[0.04] p-4.5">
+              <h3 className="mb-3 flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-amber-200">
+                <Briefcase size={13} /> Staff Profile
               </h3>
               {isEditing ? (
                 <Textarea
@@ -818,93 +815,91 @@ export default function PlayerProfileModal({ player, onClose, onUpdate, onRemove
                   onChange={e => setStaffBio(e.target.value)}
                   rows={5}
                   placeholder="Write a detailed staff bio covering their background, experience, philosophy, and key responsibilities within the club..."
-                  className="min-h-32 rounded-xl p-3 text-xs font-medium leading-relaxed text-slate-700 focus-visible:ring-indigo-500/30"
+                  className="min-h-32 rounded-xl border-white/10 bg-white/[0.04] p-3 text-xs font-medium leading-relaxed text-slate-100 placeholder:text-slate-500 focus-visible:ring-indigo-400/30"
                 />
               ) : (
-                <p className="text-xs text-slate-600 leading-relaxed whitespace-pre-wrap">
+                <p className="text-xs leading-relaxed text-slate-300 whitespace-pre-wrap">
                   {staffBio || 'No biography has been added for this staff member yet.'}
                 </p>
               )}
-            </div>
+            </section>
 
-            {/* Staff Info Card */}
-            <div className="bg-white p-5 rounded-xl shadow-sm border border-slate-200/50">
-              <h3 className="text-[10px] font-mono font-black uppercase tracking-wider text-slate-400 mb-3 flex items-center gap-1.5">
-                <User size={13} className="text-indigo-600" /> Contact & Details
+            <section className="rounded-2xl border border-indigo-300/12 bg-indigo-300/[0.04] p-4.5">
+              <h3 className="mb-3 flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-indigo-200">
+                <User size={13} /> Contact & Details
               </h3>
               <div className="space-y-3">
                 <div className="flex items-center gap-3 text-xs">
-                  <Briefcase size={13} className="text-slate-400 shrink-0" />
-                  <span className="text-slate-500 w-20 shrink-0 font-bold uppercase tracking-wider text-[10px]">Role</span>
-                  <span className="text-slate-700 font-bold">{position}</span>
+                  <Briefcase size={13} className="shrink-0 text-slate-500" />
+                  <span className="w-20 shrink-0 text-[10px] font-bold uppercase tracking-wider text-slate-500">Role</span>
+                  <span className="font-bold text-slate-100">{position}</span>
                 </div>
                 {isEditing ? (
                   <>
                     <div className="flex items-center gap-3 text-xs">
-                      <Mail size={13} className="text-slate-400 shrink-0" />
-                      <span className="text-slate-500 w-20 shrink-0 font-bold uppercase tracking-wider text-[10px]">Email</span>
+                      <Mail size={13} className="shrink-0 text-slate-500" />
+                      <span className="w-20 shrink-0 text-[10px] font-bold uppercase tracking-wider text-slate-500">Email</span>
                       <Input
                         id="edit-staff-email"
                         type="email"
                         value={staffEmail}
                         onChange={e => setStaffEmail(e.target.value)}
                         placeholder="coach@club.com"
-                        className="h-8 flex-1 rounded-lg text-xs focus-visible:ring-indigo-500/30"
+                        className={cn(profileInputClass(), 'h-8 flex-1')}
                       />
                     </div>
                     <div className="flex items-center gap-3 text-xs">
-                      <Phone size={13} className="text-slate-400 shrink-0" />
-                      <span className="text-slate-500 w-20 shrink-0 font-bold uppercase tracking-wider text-[10px]">Phone</span>
+                      <Phone size={13} className="shrink-0 text-slate-500" />
+                      <span className="w-20 shrink-0 text-[10px] font-bold uppercase tracking-wider text-slate-500">Phone</span>
                       <Input
                         id="edit-staff-phone"
                         type="text"
                         value={staffPhone}
                         onChange={e => setStaffPhone(e.target.value)}
                         placeholder="+1 234 567 890"
-                        className="h-8 flex-1 rounded-lg text-xs focus-visible:ring-indigo-500/30"
+                        className={cn(profileInputClass(), 'h-8 flex-1')}
                       />
                     </div>
                     <div className="flex items-center gap-3 text-xs">
-                      <Calendar size={13} className="text-slate-400 shrink-0" />
-                      <span className="text-slate-500 w-20 shrink-0 font-bold uppercase tracking-wider text-[10px]">Since</span>
+                      <Calendar size={13} className="shrink-0 text-slate-500" />
+                      <span className="w-20 shrink-0 text-[10px] font-bold uppercase tracking-wider text-slate-500">Since</span>
                       <Input
                         id="edit-staff-since"
                         type="text"
                         value={staffSince}
                         onChange={e => setStaffSince(e.target.value)}
                         placeholder="e.g. Jan 2025"
-                        className="h-8 flex-1 rounded-lg text-xs focus-visible:ring-indigo-500/30"
+                        className={cn(profileInputClass(), 'h-8 flex-1')}
                       />
                     </div>
                   </>
                 ) : (
                   <>
                     <div className="flex items-center gap-3 text-xs">
-                      <Mail size={13} className="text-slate-400 shrink-0" />
-                      <span className="text-slate-500 w-20 shrink-0 font-bold uppercase tracking-wider text-[10px]">Email</span>
-                      <span className="text-slate-400 italic">{staffEmail || '—'}</span>
+                      <Mail size={13} className="shrink-0 text-slate-500" />
+                      <span className="w-20 shrink-0 text-[10px] font-bold uppercase tracking-wider text-slate-500">Email</span>
+                      <span className="italic text-slate-500">{staffEmail || '—'}</span>
                     </div>
                     <div className="flex items-center gap-3 text-xs">
-                      <Phone size={13} className="text-slate-400 shrink-0" />
-                      <span className="text-slate-500 w-20 shrink-0 font-bold uppercase tracking-wider text-[10px]">Phone</span>
-                      <span className="text-slate-400 italic">{staffPhone || '—'}</span>
+                      <Phone size={13} className="shrink-0 text-slate-500" />
+                      <span className="w-20 shrink-0 text-[10px] font-bold uppercase tracking-wider text-slate-500">Phone</span>
+                      <span className="italic text-slate-500">{staffPhone || '—'}</span>
                     </div>
                     <div className="flex items-center gap-3 text-xs">
-                      <Calendar size={13} className="text-slate-400 shrink-0" />
-                      <span className="text-slate-500 w-20 shrink-0 font-bold uppercase tracking-wider text-[10px]">Since</span>
-                      <span className="text-slate-400 italic">{staffSince || '—'}</span>
+                      <Calendar size={13} className="shrink-0 text-slate-500" />
+                      <span className="w-20 shrink-0 text-[10px] font-bold uppercase tracking-wider text-slate-500">Since</span>
+                      <span className="italic text-slate-500">{staffSince || '—'}</span>
                     </div>
                   </>
                 )}
               </div>
-            </div>
+            </section>
 
-            {/* Staff Coaching Verdict */}
             {!isEditing && (
-              <div className="bg-slate-50 rounded-xl p-4 border border-slate-100">
-                <div className="text-[10px] text-slate-400 uppercase tracking-widest font-black mb-1.5 font-mono">Club Stature</div>
-                <p className="text-[11px] text-slate-600 leading-relaxed">
-                  {position.includes('Coach') 
+              <div className="border-l-2 border-amber-300/40 pl-4">
+                <div className="text-[9px] font-black uppercase tracking-widest text-amber-200">Club Stature</div>
+                <p className="mt-1.5 text-[11px] leading-relaxed text-slate-300">
+                  {position.includes('Coach')
                     ? 'An integral part of the technical staff, shaping the tactical identity and player development standards of the club.'
                     : position.includes('Manager')
                     ? 'A key figure in the operational leadership of the club, ensuring smooth coordination across all departments.'
@@ -919,288 +914,108 @@ export default function PlayerProfileModal({ player, onClose, onUpdate, onRemove
                 </p>
               </div>
             )}
-          </div>
+          </main>
         ) : (
-          /* ATHLETE PROFILE LAYOUT */
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 p-5 bg-slate-50/50">
-          
-          {/* Section A: Season Statistics (Compact layout) */}
-          <section
-            id="season-stats-ledger-card"
-            aria-labelledby="season-stats-ledger-title"
-            className="relative order-1 min-h-[360px] bg-white p-4.5 rounded-xl shadow-sm border border-slate-200/50"
-          >
-            <div className="space-y-3.5">
-              <h3 id="season-stats-ledger-title" className="text-[10px] font-mono font-black uppercase tracking-wider text-slate-400 mb-2 flex items-center gap-1.5">
-                <Activity size={13} className="text-indigo-600" /> Season Stats Ledger
-              </h3>
+          /* ATHLETE PROFILE LAYOUT — landscape two-pane */
+          <main className="grid min-h-0 grid-cols-1 gap-4 lg:grid-cols-12">
+            <section
+              id="season-stats-ledger-card"
+              aria-label="Player overview"
+              className="relative min-h-0 overflow-y-auto overflow-x-hidden rounded-2xl border border-cyan-300/12 bg-[linear-gradient(135deg,rgba(99,102,241,0.12),rgba(15,23,42,0.28)_38%,rgba(7,17,31,0.92))] p-5 lg:col-span-8"
+            >
+              <div className="pointer-events-none absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-indigo-200/40 to-transparent" />
+              <div className="grid gap-5 sm:grid-cols-[auto_minmax(0,1fr)]">
+                <div className="relative w-36 shrink-0 self-start sm:w-44">
+                  <img
+                    id="player-profile-img"
+                    src={photoUrl}
+                    alt={player.name}
+                    className="aspect-[3/4] w-full rounded-xl border border-white/10 object-cover object-top shadow-lg shadow-black/30"
+                    referrerPolicy="no-referrer"
+                  />
+                  {isEditing && (
+                    <>
+                      <Input
+                        id="profile-photo-upload-input"
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            const reader = new FileReader();
+                            reader.onloadend = () => {
+                              if (typeof reader.result === 'string') {
+                                setPhotoUrl(reader.result);
+                              }
+                            };
+                            reader.readAsDataURL(file);
+                          }
+                        }}
+                        className="hidden"
+                      />
+                      <Button
+                        type="button"
+                        onClick={() => document.getElementById('profile-photo-upload-input')?.click()}
+                        className="absolute inset-0 flex h-auto flex-col items-center justify-center rounded-xl border border-indigo-400/30 bg-slate-950/78 text-[9px] font-black uppercase tracking-wider text-white hover:bg-slate-950/88"
+                      >
+                        <span>Upload</span>
+                        <span>Photo</span>
+                      </Button>
+                    </>
+                  )}
+                </div>
 
+                <div className="min-w-0">
               {isEditing ? (
-                <div className="grid grid-cols-2 gap-2.5 text-xs text-slate-600">
-                  <div>
-                    <Label className="mb-1 block text-[9px] text-slate-400">Matches Played</Label>
-                    <Input
-                      id="edit-games-played"
-                      data-validation-field="gamesPlayed"
-                      type="number" 
-                      min="0"
-                      step="1"
-                      inputMode="numeric"
-                      value={gamesPlayed} 
-                      onChange={e => {
-                        setGamesPlayed(e.target.value);
-                        setProfileErrors(previous => ({ ...previous, gamesPlayed: undefined }));
-                      }}
-                      aria-invalid={Boolean(profileErrors.gamesPlayed)}
-                      aria-describedby={profileErrors.gamesPlayed ? 'edit-games-played-error' : undefined}
-                      className={profileStatInputClass(Boolean(profileErrors.gamesPlayed))}
-                    />
-                    <FieldError id="edit-games-played-error" message={profileErrors.gamesPlayed} />
-                  </div>
-                  <div>
-                    <Label className="mb-1 block text-[9px] text-slate-400">Goals Scored</Label>
-                    <Input
-                      id="edit-stat-goals"
-                      data-validation-field="points"
-                      type="number" 
-                      min="0"
-                      step="1"
-                      inputMode="numeric"
-                      value={points} 
-                      onChange={e => {
-                        setPoints(e.target.value);
-                        setProfileErrors(previous => ({ ...previous, points: undefined }));
-                      }}
-                      aria-invalid={Boolean(profileErrors.points)}
-                      aria-describedby={profileErrors.points ? 'edit-stat-goals-error' : undefined}
-                      className={profileStatInputClass(Boolean(profileErrors.points))}
-                    />
-                    <FieldError id="edit-stat-goals-error" message={profileErrors.points} />
-                  </div>
-                  <div>
-                    <Label className="mb-1 block text-[9px] text-slate-400">Assists</Label>
-                    <Input
-                      id="edit-stat-assists"
-                      data-validation-field="assists"
-                      type="number" 
-                      min="0"
-                      step="1"
-                      inputMode="numeric"
-                      value={assists} 
-                      onChange={e => {
-                        setAssists(e.target.value);
-                        setProfileErrors(previous => ({ ...previous, assists: undefined }));
-                      }}
-                      aria-invalid={Boolean(profileErrors.assists)}
-                      aria-describedby={profileErrors.assists ? 'edit-stat-assists-error' : undefined}
-                      className={profileStatInputClass(Boolean(profileErrors.assists))}
-                    />
-                    <FieldError id="edit-stat-assists-error" message={profileErrors.assists} />
-                  </div>
-                  <div>
-                    <Label className="mb-1 block text-[9px] text-slate-400">
-                      {position === 'Goalkeeper' ? 'Clean Sheets' : position === 'Defender' ? 'Clean Sheets' : 'G+A Combined'}
-                    </Label>
-                    <Input
-                      id="edit-stat-sheets"
-                      data-validation-field="cleanSheetsOrRebounds"
-                      type="number" 
-                      min="0"
-                      step="1"
-                      inputMode="numeric"
-                      value={cleanSheetsOrRebounds} 
-                      onChange={e => {
-                        setCleanSheetsOrRebounds(e.target.value);
-                        setProfileErrors(previous => ({ ...previous, cleanSheetsOrRebounds: undefined }));
-                      }}
-                      aria-invalid={Boolean(profileErrors.cleanSheetsOrRebounds)}
-                      aria-describedby={profileErrors.cleanSheetsOrRebounds ? 'edit-stat-sheets-error' : undefined}
-                      className={profileStatInputClass(Boolean(profileErrors.cleanSheetsOrRebounds))}
-                    />
-                    <FieldError id="edit-stat-sheets-error" message={profileErrors.cleanSheetsOrRebounds} />
-                  </div>
-                  <div>
-                    <Label className="mb-1 block text-[9px] text-slate-400">Mins Played</Label>
-                    <Input
-                      id="edit-stat-mins"
-                      data-validation-field="minutesPlayed"
-                      type="number" 
-                      min="0"
-                      step="1"
-                      inputMode="numeric"
-                      value={minutesPlayed} 
-                      onChange={e => {
-                        setMinutesPlayed(e.target.value);
-                        setProfileErrors(previous => ({ ...previous, minutesPlayed: undefined }));
-                      }}
-                      aria-invalid={Boolean(profileErrors.minutesPlayed)}
-                      aria-describedby={profileErrors.minutesPlayed ? 'edit-stat-mins-error' : undefined}
-                      className={profileStatInputClass(Boolean(profileErrors.minutesPlayed))}
-                    />
-                    <FieldError id="edit-stat-mins-error" message={profileErrors.minutesPlayed} />
-                  </div>
-                  <div>
-                    <Label className="mb-1 block text-[9px] text-slate-400">Total Minutes</Label>
-                    <Input
-                      id="edit-stat-mins-total"
-                      data-validation-field="minutesPlayed"
-                      type="number" 
-                      min="0"
-                      step="1"
-                      inputMode="numeric"
-                      value={minutesPlayed} 
-                      onChange={e => {
-                        setMinutesPlayed(e.target.value);
-                        setProfileErrors(previous => ({ ...previous, minutesPlayed: undefined }));
-                      }}
-                      aria-invalid={Boolean(profileErrors.minutesPlayed)}
-                      aria-describedby={profileErrors.minutesPlayed ? 'edit-stat-mins-total-error' : undefined}
-                      className={profileStatInputClass(Boolean(profileErrors.minutesPlayed))}
-                    />
-                    <FieldError id="edit-stat-mins-total-error" message={profileErrors.minutesPlayed} />
-                  </div>
-                  <div>
-                    <Label className="mb-1 block text-[9px] text-slate-400">Yellow Cards</Label>
-                    <Input
-                      id="edit-stat-yellows"
-                      data-validation-field="yellowCards"
-                      type="number" 
-                      min="0"
-                      step="1"
-                      inputMode="numeric"
-                      value={yellowCards} 
-                      onChange={e => {
-                        setYellowCards(e.target.value);
-                        setProfileErrors(previous => ({ ...previous, yellowCards: undefined }));
-                      }}
-                      aria-invalid={Boolean(profileErrors.yellowCards)}
-                      aria-describedby={profileErrors.yellowCards ? 'edit-stat-yellows-error' : undefined}
-                      className={profileStatInputClass(Boolean(profileErrors.yellowCards))}
-                    />
-                    <FieldError id="edit-stat-yellows-error" message={profileErrors.yellowCards} />
-                  </div>
-                  <div>
-                    <Label className="mb-1 block text-[9px] text-slate-400">Red Cards</Label>
-                    <Input
-                      id="edit-stat-reds"
-                      data-validation-field="redCards"
-                      type="number" 
-                      min="0"
-                      step="1"
-                      inputMode="numeric"
-                      value={redCards} 
-                      onChange={e => {
-                        setRedCards(e.target.value);
-                        setProfileErrors(previous => ({ ...previous, redCards: undefined }));
-                      }}
-                      aria-invalid={Boolean(profileErrors.redCards)}
-                      aria-describedby={profileErrors.redCards ? 'edit-stat-reds-error' : undefined}
-                      className={profileStatInputClass(Boolean(profileErrors.redCards))}
-                    />
-                    <FieldError id="edit-stat-reds-error" message={profileErrors.redCards} />
-                  </div>
-                  <div>
-                    <Label className="mb-1 block text-[9px] text-slate-400">MVP Awards</Label>
-                    <Input
-                      id="edit-stat-mvps"
-                      data-validation-field="mvpAwards"
-                      type="number" 
-                      min="0"
-                      step="1"
-                      inputMode="numeric"
-                      value={mvpAwards} 
-                      onChange={e => {
-                        setMvpAwards(e.target.value);
-                        setProfileErrors(previous => ({ ...previous, mvpAwards: undefined }));
-                      }}
-                      aria-invalid={Boolean(profileErrors.mvpAwards)}
-                      aria-describedby={profileErrors.mvpAwards ? 'edit-stat-mvps-error' : undefined}
-                      className={profileStatInputClass(Boolean(profileErrors.mvpAwards))}
-                    />
-                    <FieldError id="edit-stat-mvps-error" message={profileErrors.mvpAwards} />
-                  </div>
-                  <div className="col-span-2">
-                    <Label className="mb-1 block text-[9px] text-slate-400">Squad Status</Label>
-                    <Select
-                      value={status}
-                      onValueChange={value => setStatus(value as Player['registrationStatus'])}
-                    >
-                      <SelectTrigger id="edit-reg-status" className="h-9 rounded-lg font-bold focus:ring-indigo-500/30">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {REGISTRATION_STATUS_OPTIONS.map(option => (
-                          <SelectItem key={option} value={option}>
-                            {option}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="col-span-2 grid grid-cols-3 gap-2">
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-4">
+                    {editStatFields.map(field => (
+                      <div key={field.id}>
+                        <Label htmlFor={field.id} className="mb-1 block text-[9px] font-black uppercase tracking-wider text-slate-500">
+                          {field.label}
+                        </Label>
+                        <Input
+                          id={field.id}
+                          data-validation-field={field.field}
+                          type="number"
+                          min={field.min}
+                          max={field.max}
+                          step="1"
+                          inputMode="numeric"
+                          value={field.value}
+                          onChange={e => {
+                            field.onChange(e.target.value);
+                            setProfileErrors(previous => ({ ...previous, [field.field]: undefined }));
+                          }}
+                          aria-invalid={Boolean(profileErrors[field.field])}
+                          aria-describedby={profileErrors[field.field] ? `${field.id}-error` : undefined}
+                          className={profileStatInputClass(Boolean(profileErrors[field.field]))}
+                        />
+                        <FieldError id={`${field.id}-error`} message={profileErrors[field.field]} />
+                      </div>
+                    ))}
                     <div>
-                      <Label className="mb-1 block text-[9px] text-slate-400">Age</Label>
-                      <Input
-                        id="edit-player-age"
-                        data-validation-field="age"
-                        type="number" 
-                        min="10" max="80"
-                        step="1"
-                        inputMode="numeric"
-                        value={age} 
-                        onChange={e => {
-                          setAge(e.target.value);
-                          setProfileErrors(previous => ({ ...previous, age: undefined }));
-                        }}
-                        aria-invalid={Boolean(profileErrors.age)}
-                        aria-describedby={profileErrors.age ? 'edit-player-age-error' : undefined}
-                        className={profileStatInputClass(Boolean(profileErrors.age))}
-                      />
-                      <FieldError id="edit-player-age-error" message={profileErrors.age} />
-                    </div>
-                    <div>
-                      <Label className="mb-1 block text-[9px] text-slate-400">Height (cm)</Label>
-                      <Input
-                        id="edit-player-height"
-                        data-validation-field="height"
-                        type="number" 
-                        min="100" max="250"
-                        step="1"
-                        inputMode="numeric"
-                        value={height} 
-                        onChange={e => {
-                          setHeight(e.target.value);
-                          setProfileErrors(previous => ({ ...previous, height: undefined }));
-                        }}
-                        aria-invalid={Boolean(profileErrors.height)}
-                        aria-describedby={profileErrors.height ? 'edit-player-height-error' : undefined}
-                        className={profileStatInputClass(Boolean(profileErrors.height))}
-                      />
-                      <FieldError id="edit-player-height-error" message={profileErrors.height} />
-                    </div>
-                    <div>
-                      <Label className="mb-1 block text-[9px] text-slate-400">Weight (kg)</Label>
-                      <Input
-                        id="edit-player-weight"
-                        data-validation-field="weight"
-                        type="number" 
-                        min="30" max="250"
-                        step="1"
-                        inputMode="numeric"
-                        value={weight} 
-                        onChange={e => {
-                          setWeight(e.target.value);
-                          setProfileErrors(previous => ({ ...previous, weight: undefined }));
-                        }}
-                        aria-invalid={Boolean(profileErrors.weight)}
-                        aria-describedby={profileErrors.weight ? 'edit-player-weight-error' : undefined}
-                        className={profileStatInputClass(Boolean(profileErrors.weight))}
-                      />
-                      <FieldError id="edit-player-weight-error" message={profileErrors.weight} />
+                      <Label className="mb-1 block text-[9px] font-black uppercase tracking-wider text-slate-500">Squad status</Label>
+                      <Select
+                        value={status}
+                        onValueChange={value => setStatus(value as Player['registrationStatus'])}
+                      >
+                        <SelectTrigger id="edit-reg-status" className={cn(profileInputClass(), 'h-9')}>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent className="border-white/10 bg-[#0b1726] text-slate-100">
+                          {REGISTRATION_STATUS_OPTIONS.map(option => (
+                            <SelectItem key={option} value={option}>
+                              {option}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
                   </div>
-                  <div className="col-span-2">
-                    <Label className="mb-1.5 block text-[9px] text-slate-400">
+
+                  <div className="border-t border-white/[0.06] pt-4">
+                    <Label className="mb-1.5 block text-[9px] font-black uppercase tracking-wider text-slate-500">
                       Specialty Traits ({specialtyTraits.length}/4)
                     </Label>
                     <div className="flex flex-wrap gap-1">
@@ -1213,10 +1028,10 @@ export default function PlayerProfileModal({ player, onClose, onUpdate, onRemove
                             onClick={() => handleToggleTrait(trait.label)}
                             variant="outline"
                             size="sm"
-                            className={`h-7 rounded-md px-2 py-1 text-[10px] ${
+                            className={`h-7 rounded-full px-2.5 py-1 text-[10px] ${
                               isSelected
-                                ? 'border-indigo-600 bg-indigo-600 text-white hover:bg-indigo-700 hover:text-white'
-                                : 'bg-white border-slate-200 text-slate-500 hover:border-indigo-300 hover:text-indigo-600'
+                                ? 'border-indigo-400 bg-indigo-500 text-white hover:bg-indigo-500 hover:text-white'
+                                : 'border-white/10 bg-white/[0.03] text-slate-400 hover:border-indigo-300/40 hover:text-indigo-200'
                             }`}
                           >
                             <span className="text-xs">{trait.icon}</span>
@@ -1226,431 +1041,289 @@ export default function PlayerProfileModal({ player, onClose, onUpdate, onRemove
                       })}
                     </div>
                   </div>
+
+                  <div className="border-t border-white/[0.06] pt-4">
+                    <div className="mb-2 flex items-center justify-between">
+                      <Label htmlFor="edit-coach-notes" className="block text-[9px] font-black uppercase tracking-wider text-slate-500">
+                        Coach's Notes
+                      </Label>
+                      <span className="text-[8px] text-slate-500">Editable — select traits to auto-populate</span>
+                    </div>
+                    <Textarea
+                      id="edit-coach-notes"
+                      value={coachNotes}
+                      onChange={e => setCoachNotes(e.target.value)}
+                      rows={4}
+                      placeholder="Write your coaching assessment, tactical observations, and development notes for this athlete..."
+                      className="min-h-24 resize-none rounded-xl border-white/10 bg-white/[0.04] p-2.5 text-xs font-medium leading-relaxed text-slate-100 placeholder:text-slate-500 focus-visible:ring-indigo-400/30"
+                    />
+                    {specialtyTraits.length === 0 && !coachNotes && (
+                      <p className="mt-1.5 text-[9px] font-medium text-indigo-300">
+                        Select traits to auto-populate the notes, or write your own.
+                      </p>
+                    )}
+                  </div>
                 </div>
               ) : (
-                <div className="space-y-2 font-medium">
-                  <div id="stat-row-games" className="flex justify-between items-center py-2 border-b border-slate-100 text-xs">
-                    <span className="text-slate-500 flex items-center gap-1.5"><CircleDot size={13} className="text-slate-400" /> Games Played</span>
-                    <span className="font-mono font-bold text-slate-800 text-sm">{gamesPlayed}</span>
+                <>
+                  <span className="text-[9px] font-black uppercase tracking-widest text-emerald-200">Coach's verdict</span>
+                  <p className="mt-2 line-clamp-5 whitespace-pre-wrap text-sm font-bold leading-relaxed text-slate-50 lg:text-[15px]">
+                    {player.coachNotes || getDefaultVerdict()}
+                  </p>
+                  <div className="mt-4">
+                    <span className="text-[9px] font-black uppercase tracking-widest text-cyan-100">Specialty traits</span>
+                    <div className="mt-2 flex flex-wrap gap-1.5">
+                      {player.specialtyTraits && player.specialtyTraits.length > 0 ? (
+                        player.specialtyTraits.map((traitLabel) => {
+                          const traitDef = SPECIALTY_TRAITS[player.position]?.find(t => t.label === traitLabel);
+                          return (
+                            <span key={traitLabel} className="flex items-center gap-1 rounded-full border border-indigo-300/20 bg-indigo-300/8 px-2.5 py-1 text-[10px] font-black text-indigo-100">
+                              {traitDef?.icon && <span className="text-xs">{traitDef.icon}</span>}
+                              {traitLabel}
+                            </span>
+                          );
+                        })
+                      ) : (
+                        <p className="text-[11px] font-medium text-slate-500">No specialty traits assigned yet.</p>
+                      )}
+                    </div>
                   </div>
-                  <div id="stat-row-goals" className="flex justify-between items-center py-2 border-b border-slate-100 text-xs">
-                    <span className="text-slate-500 flex items-center gap-1.5"><Zap size={13} className="text-amber-500 fill-amber-500/10" /> Goals Scored</span>
-                    <span className="font-mono font-extrabold text-indigo-600 text-sm">{points}</span>
+                  <p className="mt-4 text-[11px] font-semibold text-slate-400">
+                    <span className="mr-2 text-[9px] font-black uppercase tracking-widest text-slate-500">Per match</span>
+                    {goalsPerMatch} goals · {assistsPerMatch} assists · {contributionsPerMatch} G+A · {minutesPerContribution} per contribution · {mvpRate} MVP rate
+                  </p>
+                </>
+              )}
+                </div>
+              </div>
+
+              {!isEditing && (
+                <div className="mt-5 border-t border-white/[0.06] pt-4">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border-2 border-amber-400 bg-slate-950 shadow-md">
+                        <span className="font-display text-lg font-black text-white">{overallRating}</span>
+                      </div>
+                      <div>
+                        <div className="text-[9px] font-black uppercase tracking-widest text-slate-500">Calculated OVR</div>
+                        <div className="text-xs font-semibold text-slate-300">{player.position} model</div>
+                      </div>
+                    </div>
+                    {latestAssessment && (
+                      <div className="text-right">
+                        <div className="text-[9px] font-black uppercase tracking-widest text-indigo-200">FPRDS {latestAssessment.ovr}</div>
+                        <div className="text-[10px] font-semibold text-slate-500">
+                          {latestAssessment.labels.ovrTierLabel}
+                          {typeof latestAssessment.deltas.ovrDelta === 'number' && (
+                            <span className={latestAssessment.deltas.ovrDelta >= 0 ? ' text-emerald-300' : ' text-rose-300'}>
+                              {' '}{latestAssessment.deltas.ovrDelta >= 0 ? `+${latestAssessment.deltas.ovrDelta}` : latestAssessment.deltas.ovrDelta}
+                            </span>
+                          )}
+                          <span className="text-slate-600"> · {latestAssessment.assessmentDate}</span>
+                        </div>
+                      </div>
+                    )}
                   </div>
-                  <div id="stat-row-assists" className="flex justify-between items-center py-2 border-b border-slate-100 text-xs">
-                    <span className="text-slate-500 flex items-center gap-1.5"><Award size={13} className="text-blue-500" /> Assists Made</span>
-                    <span className="font-mono font-bold text-slate-800 text-sm">{assists}</span>
+
+                  <div className="mt-4 grid gap-x-8 gap-y-4 sm:grid-cols-2">
+                    <div>
+                      <span className="flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest text-amber-200">
+                        <Shield size={11} /> Base attributes
+                      </span>
+                      <div className="mt-2 grid grid-cols-2 gap-x-4 gap-y-2">
+                        {Object.entries(baseAttributes).map(([key, value]) => {
+                          const label = key === 'shortPassing' ? 'Short Pass' : key === 'firstTouch' ? 'First Touch' : key;
+                          const displayLabel = label.charAt(0).toUpperCase() + label.slice(1);
+                          return (
+                            <div key={key} className="flex flex-col gap-1 text-[10px]">
+                              <div className="flex justify-between font-bold text-slate-300">
+                                <span className="uppercase tracking-wider">{displayLabel}</span>
+                                <span className="font-mono">{value}</span>
+                              </div>
+                              <div className="h-1.5 w-full overflow-hidden rounded-full bg-white/[0.06]">
+                                <div
+                                  className="h-1.5 rounded-full bg-indigo-400 transition-all duration-500"
+                                  style={{ width: `${value}%` }}
+                                />
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                    <div className="min-w-0">
+                      {Object.keys(positionAttributes).length > 0 ? (
+                        <>
+                          <span className="flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest text-amber-200">
+                            <Shield size={11} /> Position attributes
+                          </span>
+                          <div className="mt-2 grid grid-cols-2 gap-x-4 gap-y-2">
+                            {Object.entries(positionAttributes).map(([key, value]) => (
+                              <div key={key} className="flex flex-col gap-1 text-[10px]">
+                                <div className="flex justify-between font-bold text-slate-300">
+                                  <span className="mr-1 truncate uppercase tracking-wider">{key}</span>
+                                  <span className="font-mono">{value}</span>
+                                </div>
+                                <div className="h-1.5 w-full overflow-hidden rounded-full bg-white/[0.06]">
+                                  <div
+                                    className="h-1.5 rounded-full bg-amber-400 transition-all duration-500"
+                                    style={{ width: `${value}%` }}
+                                  />
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </>
+                      ) : (
+                        <p className="text-[10px] font-medium text-slate-500">No position attributes recorded yet.</p>
+                      )}
+                    </div>
                   </div>
-                  <div id="stat-row-sheets" className="flex justify-between items-center py-2 border-b border-slate-100 text-xs">
-                    <span className="text-slate-500 flex items-center gap-1.5">
-                      <Shield size={13} className="text-emerald-500" />
-                      {position === 'Goalkeeper' ? 'Clean Sheets' : position === 'Defender' ? 'Clean Sheets' : 'Goal Contributions'}
-                    </span>
-                    <span className="font-mono font-bold text-slate-800 text-sm">
-                      {position === 'Goalkeeper' || position === 'Defender' ? displayCleanSheets : displayPoints + displayAssists}
-                    </span>
-                  </div>
-                  <div id="stat-row-mvps" className="flex justify-between items-center py-2 border-b border-slate-100 text-xs">
-                    <span className="text-slate-500 flex items-center gap-1.5"><Clock size={13} className="text-slate-400" /> Total Minutes</span>
-                    <span className="font-mono font-bold text-slate-800 text-sm">{minutesPlayed}</span>
-                  </div>
-                  <div id="stat-row-motm" className="flex justify-between items-center py-2 border-b border-slate-100 text-xs">
-                    <span className="text-slate-500 flex items-center gap-1.5"><Star size={13} className="text-amber-500" /> Man of the Match</span>
-                    <span className="font-mono font-extrabold text-amber-600 text-sm">{displayMvpAwards > 0 ? `⭐ ${displayMvpAwards}` : '—'}</span>
-                  </div>
-                  <div id="stat-row-cards" className="flex justify-between items-center py-2 border-b border-slate-100 text-xs">
-                    <span className="text-slate-500 flex items-center gap-1.5"><AlertTriangle size={13} className="text-slate-400" /> Discipline</span>
-                    <span className="font-mono font-bold text-sm">
-                      {displayYellowCards > 0 && <span className="text-amber-600">{displayYellowCards} 🟨</span>}
-                      {displayYellowCards > 0 && displayRedCards > 0 && <span className="text-slate-300 mx-1">·</span>}
-                      {displayRedCards > 0 && <span className="text-red-600">{displayRedCards} 🟥</span>}
-                      {displayYellowCards === 0 && displayRedCards === 0 && <span className="text-slate-400">Clean</span>}
-                    </span>
-                  </div>
-                  <div id="stat-row-ratio" className="flex justify-between items-center py-2 text-xs">
-                    <span className="text-slate-500 flex items-center gap-1.5"><User size={13} className="text-slate-400" /> 
-                      {position === 'Goalkeeper' ? 'Saves per Match' : position === 'Defender' ? 'CS per Match' : 'Mins per Goal'}
-                    </span>
-                    <span className="font-mono font-bold text-slate-800 text-sm">
-                      {position === 'Goalkeeper' 
-                        ? (displayGamesPlayed > 0 ? (displayCleanSheets / displayGamesPlayed).toFixed(1) : '0.0')
-                        : position === 'Defender'
-                        ? (displayGamesPlayed > 0 ? (displayCleanSheets / displayGamesPlayed).toFixed(1) : '0.0')
-                        : displayPoints > 0 ? Math.round(displayMinutesPlayed / displayPoints) : displayMinutesPlayed
-                      }{position === 'Goalkeeper' || position === 'Defender' ? '' : 'm'}
-                    </span>
+
+                  <p className="mt-3 text-[9px] font-bold uppercase tracking-wider text-slate-600">
+                    Base avg {baseAttributeAverage} · Top tool {attributeLabels[strongestAttribute[0]] ?? strongestAttribute[0]} ({strongestAttribute[1]}){positionAttributeAverage !== undefined ? ` · Position avg ${positionAttributeAverage}` : ''}
+                  </p>
+
+                  <div className="mt-3 flex flex-wrap items-center justify-between gap-3 border-l-2 border-amber-300/40 pl-3.5">
+                    <div className="min-w-0 flex-1">
+                      <span className="flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest text-amber-200">
+                        <Zap size={11} /> Development focus
+                      </span>
+                      <p className="mt-1 line-clamp-2 text-[11px] font-semibold leading-relaxed text-slate-300">{suggestedTrainingFocus}</p>
+                    </div>
+                    <Button
+                      type="button"
+                      onClick={() => onOpenAssessments(player.id)}
+                      className="h-8 shrink-0 rounded-xl border border-indigo-300/25 bg-indigo-300/12 px-3 text-[10px] font-black uppercase tracking-wider text-indigo-100 hover:bg-indigo-300/20"
+                    >
+                      <Shield size={11} /> Open Assessment Center
+                    </Button>
                   </div>
                 </div>
               )}
-            </div>
+            </section>
 
-            {/* Specialty Traits display only */}
-            {!isEditing && player.specialtyTraits && player.specialtyTraits.length > 0 && (
-              <div className="mt-3 space-y-2.5">
-                <div className="flex items-start gap-3 text-[10px]">
-                  <span className="font-mono font-bold text-slate-400 uppercase tracking-widest shrink-0 mt-0.5">Traits</span>
-                  <div className="flex flex-wrap gap-1">
-                    {player.specialtyTraits.map((traitLabel) => {
-                      const traitDef = SPECIALTY_TRAITS[player.position]?.find(t => t.label === traitLabel);
-                      return (
-                        <span key={traitLabel} className="bg-indigo-50 text-indigo-700 border border-indigo-100 px-2 py-0.5 rounded-md font-bold text-[10px] flex items-center gap-1">
-                          {traitDef?.icon && <span className="text-xs">{traitDef.icon}</span>}
-                          {traitLabel}
-                        </span>
-                      );
-                    })}
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {!isEditing ? (
-              <div className="bg-slate-50 rounded-xl p-3 border border-slate-100 mt-4.5">
-                <div className="text-[10px] text-slate-400 uppercase tracking-widest font-black mb-1 font-mono">Coach's Notes</div>
-                <p className="text-[11px] text-slate-600 leading-relaxed whitespace-pre-wrap">
-                  {player.coachNotes || (
-                    position === 'Goalkeeper' 
-                      ? 'Strong last-line presence with commanding box control. Shot-stopping reflex work remains vital to clean sheet consistency across fixtures.'
-                      : position === 'Defender' 
-                      ? 'Solid defensive anchor with disciplined positional awareness. Key contributor to the backline structure and pressing coordination.'
-                      : position === 'Midfielder'
-                      ? 'Creative engine in the middle third. Dictates tempo, links phases of play, and provides consistent progressive distribution.'
-                      : 'Clinical in the final third with intelligent movement off the ball. Reliable goal threat and key catalyst for attacking transition play.'
-                  )}
-                </p>
-              </div>
-            ) : (
-              <div className="bg-slate-50 rounded-xl p-3 border border-slate-100 mt-4.5">
-                <div className="flex items-center justify-between mb-2">
-                  <div className="text-[10px] text-slate-400 uppercase tracking-widest font-black font-mono">Coach's Notes</div>
-                  <span className="text-[8px] text-slate-400 font-mono">Editable — select traits to auto-populate</span>
-                </div>
-                <Textarea
-                  id="edit-coach-notes"
-                  value={coachNotes}
-                  onChange={e => setCoachNotes(e.target.value)}
-                  rows={4}
-                  placeholder="Write your coaching assessment, tactical observations, and development notes for this athlete..."
-                  className="min-h-28 resize-none rounded-xl p-2.5 text-xs font-medium leading-relaxed text-slate-700 focus-visible:ring-indigo-500/30"
-                />
-                {specialtyTraits.length === 0 && !coachNotes && (
-                  <p className="text-[9px] text-indigo-500 mt-1.5 font-medium">
-                    Select traits to auto-populate the notes, or write your own.
-                  </p>
-                )}
-              </div>
-            )}
-          </section>
-
-            {/* Section B: Base & Positional Attributes */}
-            <div className="order-2 bg-white p-4.5 rounded-xl shadow-sm border border-slate-200/50 flex flex-col justify-between">
-              <div className="space-y-3.5">
-                <h3 className="text-[10px] font-mono font-black uppercase tracking-wider text-slate-400 mb-2 flex items-center gap-1.5">
-                  <Shield size={13} className="text-indigo-600" /> Base Attributes
-                </h3>
-
-                {latestAssessment && (
-                  <div className="bg-indigo-50 rounded-xl p-3 border border-indigo-200">
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <div className="text-[10px] font-black text-indigo-700 uppercase tracking-widest">FPRDS OVR</div>
-                        <div className="text-xs font-semibold text-slate-700 mt-0.5">
-                          Latest: <span className="font-black text-slate-900">{latestAssessment.ovr}</span>{' '}
-                          <span className="text-slate-400">({latestAssessment.labels.ovrTierLabel})</span>
-                        </div>
-                        {typeof latestAssessment.deltas.ovrDelta === 'number' && (
-                          <div className="text-[11px] font-bold mt-1">
-                            <span className="text-slate-500">Delta:</span>{' '}
-                            <span className={latestAssessment.deltas.ovrDelta >= 0 ? 'text-emerald-600' : 'text-rose-600'}>
-                              {latestAssessment.deltas.ovrDelta >= 0 ? `+${latestAssessment.deltas.ovrDelta}` : `${latestAssessment.deltas.ovrDelta}`}
-                            </span>
-                          </div>
-                        )}
-                        <div className="text-[10px] text-slate-500 font-semibold mt-1">
-                          {latestAssessment.assessmentDate} • {latestAssessment.role} • {latestAssessment.assessmentType}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* Overall Rating - top of attributes */}
-                <div className="flex items-center justify-between bg-slate-50 rounded-xl p-3 border border-slate-100">
-                  <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 bg-slate-900 rounded-full flex items-center justify-center border-2 border-amber-400 shadow-md shrink-0">
-                      <span className="text-xl font-display font-black text-white">
-                        {Math.round((
-                          baseAttributes.pace + 
-                          baseAttributes.stamina + 
-                          baseAttributes.agility + 
-                          baseAttributes.strength + 
-                          baseAttributes.firstTouch + 
-                          baseAttributes.shortPassing
-                        ) / 6 * 0.6 + 
-                        (Object.keys(positionAttributes).length > 0 
-                          ? (Object.values(positionAttributes) as number[]).reduce((a: number, b: number) => a + b, 0) / Object.keys(positionAttributes).length * 0.4 
-                          : (baseAttributes.pace + baseAttributes.stamina + baseAttributes.agility + baseAttributes.strength + baseAttributes.firstTouch + baseAttributes.shortPassing) / 6 * 0.4)
-                        )}
-                      </span>
-                    </div>
-                    <div>
-                      <div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Calculated OVR</div>
-                      <div className="text-xs font-semibold text-slate-700">Algorithm Rating</div>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-[10px] font-bold text-indigo-500 bg-indigo-50 px-2 py-0.5 rounded uppercase tracking-widest inline-block">
-                      {player.position} Model
-                    </div>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-2 text-[10px]">
-                  <div className="rounded-lg border border-slate-100 bg-slate-50 p-2">
-                    <div className="text-slate-400 font-bold mb-0.5">Base Avg</div>
-                    <div className="font-mono font-black text-slate-800">{baseAttributeAverage}</div>
-                  </div>
-                  <div className="rounded-lg border border-slate-100 bg-slate-50 p-2">
-                    <div className="text-slate-400 font-bold mb-0.5">Position Avg</div>
-                    <div className="font-mono font-black text-slate-800">{positionAttributeAverage ?? 'N/A'}</div>
-                  </div>
-                  <div className="rounded-lg border border-slate-100 bg-slate-50 p-2">
-                    <div className="text-slate-400 font-bold mb-0.5">Top Tool</div>
-                    <div className="font-mono font-black text-slate-800 text-[9px] leading-tight">
-                      {attributeLabels[strongestAttribute[0]] ?? strongestAttribute[0]} ({strongestAttribute[1]})
-                    </div>
-                  </div>
-                  <div className="rounded-lg border border-slate-100 bg-slate-50 p-2">
-                    <div className="text-slate-400 font-bold mb-0.5">Focus Area</div>
-                    <div className="font-mono font-black text-slate-800 text-[9px] leading-tight">
-                      {attributeLabels[developmentFocusAttribute[0]] ?? developmentFocusAttribute[0]} ({developmentFocusAttribute[1]})
-                    </div>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-x-5 gap-y-2.5">
-                  {Object.entries(baseAttributes).map(([key, value]) => {
-                    const label = key === 'shortPassing' ? 'Short Pass' : key === 'firstTouch' ? 'First Touch' : key;
-                    const displayLabel = label.charAt(0).toUpperCase() + label.slice(1);
-                    return (
-                      <div key={key} className="flex flex-col gap-1 text-[10px]">
-                        <div className="flex justify-between font-bold text-slate-600">
-                          <span className="uppercase tracking-wider">{displayLabel}</span>
-                          <span className="font-mono">{value}</span>
-                        </div>
-                        {isEditing ? (
-                          <Input
-                            type="range" 
-                            min="1" max="99" 
-                            value={value} 
-                            onChange={(e) => handleBaseAttrChange(key as keyof Player['baseAttributes'], Number(e.target.value))}
-                            className="h-1 cursor-pointer appearance-none rounded-lg border-0 bg-slate-200 p-0 accent-indigo-600 focus-visible:ring-indigo-500/30"
-                            aria-label={`${displayLabel} rating`}
-                          />
-                        ) : (
-                          <div className="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
-                            <div 
-                              className="bg-indigo-500 h-1.5 rounded-full transition-all duration-500" 
-                              style={{ width: `${value}%` }} 
+            <aside aria-label={isEditing ? 'Player attributes' : 'Season performance'} className="flex min-h-0 flex-col gap-4 overflow-y-auto px-1 py-1 lg:col-span-4">
+              {isEditing ? (
+                <>
+                  <div>
+                    <span className="flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest text-amber-200">
+                      <Shield size={11} /> Base attributes
+                    </span>
+                    <div className="mt-2.5 grid grid-cols-2 gap-x-4 gap-y-2.5">
+                      {Object.entries(baseAttributes).map(([key, value]) => {
+                        const label = key === 'shortPassing' ? 'Short Pass' : key === 'firstTouch' ? 'First Touch' : key;
+                        const displayLabel = label.charAt(0).toUpperCase() + label.slice(1);
+                        return (
+                          <div key={key} className="flex flex-col gap-1 text-[10px]">
+                            <div className="flex justify-between font-bold text-slate-300">
+                              <span className="uppercase tracking-wider">{displayLabel}</span>
+                              <span className="font-mono">{value}</span>
+                            </div>
+                            <Input
+                              type="range"
+                              min="1" max="99"
+                              value={value}
+                              onChange={(e) => handleBaseAttrChange(key as keyof Player['baseAttributes'], Number(e.target.value))}
+                              className="h-1 cursor-pointer appearance-none rounded-lg border-0 bg-white/10 p-0 accent-indigo-400 focus-visible:ring-indigo-400/30"
+                              aria-label={`${displayLabel} rating`}
                             />
                           </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
+                        );
+                      })}
+                    </div>
+                  </div>
 
-                {Object.keys(positionAttributes).length > 0 && (
-                  <>
-                    <h3 className="text-[10px] font-mono font-black uppercase tracking-wider text-slate-400 mt-4 mb-2 flex items-center gap-1.5 pt-4 border-t border-slate-100">
-                      <Shield size={13} className="text-amber-500" /> Position Attributes
-                    </h3>
-                    <div className="grid grid-cols-2 gap-x-5 gap-y-2.5">
-                      {Object.entries(positionAttributes).map(([key, value]) => (
-                        <div key={key} className="flex flex-col gap-1 text-[10px]">
-                          <div className="flex justify-between font-bold text-slate-600">
-                            <span className="uppercase tracking-wider truncate mr-1">{key}</span>
-                            <span className="font-mono">{value}</span>
-                          </div>
-                          {isEditing ? (
+                  {Object.keys(positionAttributes).length > 0 && (
+                    <div className="border-t border-white/[0.06] pt-3">
+                      <span className="flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest text-amber-200">
+                        <Shield size={11} /> Position attributes
+                      </span>
+                      <div className="mt-2.5 grid grid-cols-2 gap-x-4 gap-y-2.5">
+                        {Object.entries(positionAttributes).map(([key, value]) => (
+                          <div key={key} className="flex flex-col gap-1 text-[10px]">
+                            <div className="flex justify-between font-bold text-slate-300">
+                              <span className="mr-1 truncate uppercase tracking-wider">{key}</span>
+                              <span className="font-mono">{value}</span>
+                            </div>
                             <Input
-                              type="range" 
-                              min="1" max="99" 
-                              value={value} 
+                              type="range"
+                              min="1" max="99"
+                              value={value}
                               onChange={(e) => handlePosAttrChange(key, Number(e.target.value))}
-                              className="h-1 cursor-pointer appearance-none rounded-lg border-0 bg-slate-200 p-0 accent-amber-500 focus-visible:ring-amber-500/30"
+                              className="h-1 cursor-pointer appearance-none rounded-lg border-0 bg-white/10 p-0 accent-amber-400 focus-visible:ring-amber-400/30"
                               aria-label={`${key} rating`}
                             />
-                          ) : (
-                            <div className="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
-                              <div 
-                                className="bg-amber-500 h-1.5 rounded-full transition-all duration-500" 
-                                style={{ width: `${value}%` }} 
-                              />
-                            </div>
-                          )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <>
+                  <div>
+                    <h3 id="season-stats-ledger-title" className="text-[9px] font-black uppercase tracking-widest text-slate-500">
+                      Season ledger
+                    </h3>
+                    <div className="mt-3 grid grid-cols-2 gap-x-4 gap-y-4">
+                      {seasonStatItems.map(item => (
+                        <div key={item.id} className="border-l border-white/10 pl-3">
+                          <div className={`font-mono text-lg font-black leading-none ${item.tone}`}>{item.value}</div>
+                          <div className="mt-1 text-[8px] font-black uppercase tracking-widest text-slate-500">{item.label}</div>
                         </div>
                       ))}
                     </div>
-                  </>
-                )}
-              </div>
-            </div>
+                  </div>
 
-            {/* Match Impact Profile */}
-            <div className="order-3 bg-white p-4.5 rounded-xl shadow-sm border border-slate-200/50 space-y-3">
-              <div className="flex items-center justify-between gap-3">
-                <span className="text-[9px] font-mono text-slate-400 uppercase tracking-wider font-black">Match Impact Profile</span>
-                <Activity size={14} className="text-indigo-600" aria-hidden="true" />
-              </div>
-              <div className="grid grid-cols-2 gap-2 text-[10px]">
-                <div className="bg-slate-50 rounded-lg p-2 border border-slate-100">
-                  <div className="text-slate-400 font-bold mb-0.5">Goals / Match</div>
-                  <div className="font-mono font-black text-slate-700">{goalsPerMatch}</div>
-                </div>
-                <div className="bg-slate-50 rounded-lg p-2 border border-slate-100">
-                  <div className="text-slate-400 font-bold mb-0.5">Assists / Match</div>
-                  <div className="font-mono font-black text-slate-700">{assistsPerMatch}</div>
-                </div>
-                <div className="bg-slate-50 rounded-lg p-2 border border-slate-100">
-                  <div className="text-slate-400 font-bold mb-0.5">G+A / Match</div>
-                  <div className="font-mono font-black text-slate-700">{contributionsPerMatch}</div>
-                </div>
-                <div className="bg-slate-50 rounded-lg p-2 border border-slate-100">
-                  <div className="text-slate-400 font-bold mb-0.5">Mins / G+A</div>
-                  <div className="font-mono font-black text-slate-700">{minutesPerContribution}</div>
-                </div>
-                <div className="bg-slate-50 rounded-lg p-2 border border-slate-100">
-                  <div className="text-slate-400 font-bold mb-0.5">MVP Rate</div>
-                  <div className="font-mono font-black text-slate-700">{mvpRate}</div>
-                </div>
-                <div className="bg-slate-50 rounded-lg p-2 border border-slate-100">
-                  <div className="text-slate-400 font-bold mb-0.5">Discipline</div>
-                  <div className={`font-mono font-black ${disciplineCount > 0 ? 'text-amber-700' : 'text-slate-700'}`}>
-                    {disciplineCount} cards
+                  <div id="points-progression-chart-card" className="mt-auto border-t border-white/[0.06] pt-3">
+                    <h3 className="text-[9px] font-black uppercase tracking-widest text-slate-500">
+                      {position === 'Goalkeeper' ? '5-match clean sheets' : '5-match goals trend'}
+                    </h3>
+                    <div id="recharts-wrapper-container" className="mt-2 h-[160px] w-full">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <LineChart data={progressionData} margin={{ top: 5, right: 5, left: -28, bottom: -6 }}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" vertical={false} />
+                          <XAxis
+                            dataKey="name"
+                            tick={{ fill: '#64748b', fontSize: 8, fontWeight: 500 }}
+                            axisLine={false}
+                            tickLine={false}
+                          />
+                          <YAxis
+                            tick={{ fill: '#64748b', fontSize: 8, fontWeight: 500 }}
+                            axisLine={false}
+                            tickLine={false}
+                            allowDecimals={false}
+                          />
+                          <Tooltip content={<CustomTooltip />} />
+                          <Line
+                            name={position === 'Goalkeeper' ? 'Clean Sheets' : 'Fixture Goals'}
+                            type="monotone"
+                            dataKey="points"
+                            stroke="#818cf8"
+                            strokeWidth={2}
+                            dot={{ r: 3, strokeWidth: 1, fill: '#07111f', stroke: '#818cf8' }}
+                            activeDot={{ r: 4, strokeWidth: 0 }}
+                          />
+                          <Line
+                            name="Running Sum"
+                            type="monotone"
+                            dataKey="cumulative"
+                            stroke="#fbbf24"
+                            strokeWidth={1.5}
+                            strokeDasharray="3 3"
+                            dot={{ r: 2.5, strokeWidth: 1, fill: '#07111f', stroke: '#fbbf24' }}
+                            activeDot={{ r: 3.5, strokeWidth: 0 }}
+                          />
+                        </LineChart>
+                      </ResponsiveContainer>
+                    </div>
                   </div>
-                </div>
-                <div className="hidden">
-                  <div className="text-slate-400 font-bold mb-0.5">Form</div>
-                  <div className="font-mono font-black text-slate-700 text-[9px] leading-tight">
-                    {displayGamesPlayed > 0 
-                      ? displayPoints >= displayGamesPlayed * 0.5 ? '🔥 In-form'
-                      : displayMvpAwards > 0 ? '⭐ Rising'
-                      : 'Active'
-                    : 'No games'}
-                  </div>
-                </div>
-                <div className="hidden">
-                  <div className="text-slate-400 font-bold mb-0.5">Avg Mins/Game</div>
-                  <div className="font-mono font-black text-slate-700">
-                    {displayGamesPlayed > 0 ? Math.round(displayMinutesPlayed / displayGamesPlayed) : '—'}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Areas for Improvement */}
-            <div className="order-4 bg-white p-4.5 rounded-xl shadow-sm border border-slate-200/50 space-y-3">
-              <div className="flex items-center justify-between gap-3">
-                <span className="text-[9px] font-mono text-slate-400 uppercase tracking-wider font-black">Areas for Improvement</span>
-                <Zap size={14} className="text-amber-500" aria-hidden="true" />
-              </div>
-              <div className="grid grid-cols-2 gap-2 text-[10px]">
-                <div className="bg-amber-50 rounded-lg p-2 border border-amber-100">
-                  <div className="text-amber-600 font-bold mb-0.5">Primary Focus</div>
-                  <div className="font-mono font-black text-amber-800 text-[9px] leading-tight">
-                    {developmentPriorityLabel}
-                  </div>
-                </div>
-                <div className="bg-slate-50 rounded-lg p-2 border border-slate-100">
-                  <div className="text-slate-400 font-bold mb-0.5">Source</div>
-                  <div className="font-mono font-black text-slate-700 text-[9px] leading-tight">{developmentPrioritySource}</div>
-                </div>
-                <div className="bg-slate-50 rounded-lg p-2 border border-slate-100">
-                  <div className="text-slate-400 font-bold mb-0.5">Focus Score</div>
-                  <div className="font-mono font-black text-slate-700">{developmentPriorityScore ?? 'N/A'}</div>
-                </div>
-                <div className="bg-slate-50 rounded-lg p-2 border border-slate-100">
-                  <div className="text-slate-400 font-bold mb-0.5">Strongest Tool</div>
-                  <div className="font-mono font-black text-slate-700 text-[9px] leading-tight">
-                    {attributeLabels[strongestAttribute[0]] ?? strongestAttribute[0]} ({strongestAttribute[1]})
-                  </div>
-                </div>
-              </div>
-              <div className="rounded-xl border border-indigo-100 bg-indigo-50/60 p-3">
-                <div className="text-[9px] font-black uppercase tracking-widest text-indigo-700">Recommended Training Focus</div>
-                <div className="mt-1 text-[11px] font-semibold leading-relaxed text-slate-700">{suggestedTrainingFocus}</div>
-              </div>
-              <Button
-                type="button"
-                onClick={() => onOpenAssessments(player.id)}
-                size="sm"
-                className="h-7 w-fit rounded-md px-2 py-1 text-[8px] font-black uppercase tracking-wider"
-              >
-                <Shield size={9} /> Open Assessment Center
-              </Button>
-            </div>
-
-          {/* Points Progression Chart - Fullwidth footer span */}
-          <div id="points-progression-chart-card" className="order-5 col-span-1 lg:col-span-2 bg-white p-4.5 rounded-xl shadow-sm border border-slate-200/50">
-            <div className="flex justify-between items-center pb-2.5 border-b border-slate-100">
-              <div>
-                <h3 className="font-display font-black text-slate-700 text-xs flex items-center gap-1.5">
-                  <Activity className="text-indigo-600" size={13} /> {position === 'Goalkeeper' ? 'Five-Match Clean Sheets Trend' : 'Five-Match Goals Trend'}
-                </h3>
-              </div>
-              <span className="text-[9px] uppercase font-mono font-black px-2 py-0.5 rounded bg-indigo-50/50 text-indigo-700 border border-indigo-100/50">Season Live Track</span>
-            </div>
-            
-            <div id="recharts-wrapper-container" className="h-[180px] w-full mt-4">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={progressionData} margin={{ top: 10, right: 10, left: -25, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
-                  <XAxis 
-                    dataKey="name" 
-                    tick={{ fill: '#64748b', fontSize: 10, fontWeight: 500 }} 
-                    axisLine={false} 
-                    tickLine={false}
-                  />
-                  <YAxis 
-                    tick={{ fill: '#64748b', fontSize: 10, fontWeight: 500 }} 
-                    axisLine={false} 
-                    tickLine={false}
-                    allowDecimals={false}
-                  />
-                  <Tooltip content={<CustomTooltip />} />
-                  <Legend 
-                    verticalAlign="top" 
-                    height={25} 
-                    iconType="circle"
-                    iconSize={6}
-                    wrapperStyle={{ fontSize: 9, fontWeight: 600, color: '#475569', paddingBottom: 5 }}
-                  />
-                  <Line 
-                    name={position === 'Goalkeeper' ? "Clean Sheets" : "Fixture Goals"} 
-                    type="monotone" 
-                    dataKey="points" 
-                    stroke="#4f46e5" 
-                    strokeWidth={2.5} 
-                    dot={{ r: 4, strokeWidth: 1.5, fill: '#ffffff', stroke: '#4f46e5' }} 
-                    activeDot={{ r: 5, strokeWidth: 0 }} 
-                  />
-                  <Line 
-                    name="Running Sum" 
-                    type="monotone" 
-                    dataKey="cumulative" 
-                    stroke="#f59e0b" 
-                    strokeWidth={2} 
-                    strokeDasharray="3 3"
-                    dot={{ r: 3, strokeWidth: 1, fill: '#ffffff', stroke: '#f59e0b' }} 
-                    activeDot={{ r: 4, strokeWidth: 0 }} 
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-
-        </div>
+                </>
+              )}
+            </aside>
+          </main>
         )}
       </motion.div>
     </div>

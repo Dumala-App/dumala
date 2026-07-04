@@ -1669,6 +1669,7 @@ export default function App() {
                 <TacticsView
                   players={players}
                   staff={staff}
+                  games={games}
                   teamCoach={teamInfo?.coach || ''}
                   teamName={teamInfo?.name || 'Apex Rangers'}
                   teamLogoUrl={teamInfo?.logoUrl}
