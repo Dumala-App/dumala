@@ -1011,55 +1011,47 @@ export default function TrainingView({
         </div>
 
         {/* Intensity Distribution Trend Graph */}
-        <div className="grid grid-cols-1 gap-5 rounded-xl border border-cyan-300/10 bg-[#0b1726]/72 p-4 text-slate-100 shadow-inner shadow-black/10 md:grid-cols-4">
-          <div className="md:col-span-1 space-y-2 flex flex-col justify-center">
-            <span className="text-[9px] font-semibold tracking-widest text-slate-500 uppercase">Load overview</span>
-            <h4 className="font-display text-sm font-black text-slate-50">Intensity Distribution</h4>
-            <p className="text-[10px] text-slate-400 leading-normal">
-              Estimated load points across the seven-day cycle, calculated from each drill's duration and intensity.
-            </p>
-            
-            {/* Distribution Index info */}
-            <div className="mt-2 space-y-1.5 rounded-lg border border-cyan-300/10 bg-[#07111f]/80 p-2 text-[10px] font-mono">
-              <div className="flex items-center justify-between gap-2 font-semibold text-emerald-200">
-                <span className="flex items-center gap-1.5"><span className="size-1.5 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.65)]" />Light (0-{SESSION_LOAD_THRESHOLDS.optimal - 1} pts):</span>
-                <span>{DAYS_OF_WEEK.filter(d => getSessionLoadPoints(weeklySchedule[d]) < SESSION_LOAD_THRESHOLDS.optimal).length} Days</span>
-              </div>
-              <div className="flex items-center justify-between gap-2 font-semibold text-amber-200">
-                <span className="flex items-center gap-1.5"><span className="size-1.5 rounded-full bg-amber-300 shadow-[0_0_8px_rgba(252,211,77,0.65)]" />Training ({SESSION_LOAD_THRESHOLDS.optimal}-{SESSION_LOAD_THRESHOLDS.high - 8} pts):</span>
-                <span>{DAYS_OF_WEEK.filter(d => {
+        <div className="rounded-2xl border border-cyan-300/10 bg-[#0b1726]/72 p-4 text-slate-100 shadow-inner shadow-black/10">
+          <div className="flex flex-col gap-3 border-b border-cyan-300/10 pb-3 lg:flex-row lg:items-start lg:justify-between">
+            <div className="min-w-0">
+              <span className="text-[9px] font-semibold uppercase tracking-widest text-slate-500">Load overview</span>
+              <h4 className="mt-1 font-display text-base font-black text-slate-50">Intensity Distribution</h4>
+              <p className="mt-1 max-w-2xl text-[10px] leading-normal text-slate-400">
+                Read the week by date: each bar sits over its day and reflects planned session load.
+              </p>
+            </div>
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-[9px] font-black uppercase tracking-wider">
+              {[
+                { label: 'Light', count: DAYS_OF_WEEK.filter(d => getSessionLoadPoints(weeklySchedule[d]) < SESSION_LOAD_THRESHOLDS.optimal).length, dot: 'bg-emerald-400', tone: 'text-emerald-200' },
+                { label: 'Training', count: DAYS_OF_WEEK.filter(d => {
                   const sum = getSessionLoadPoints(weeklySchedule[d]);
                   return sum >= SESSION_LOAD_THRESHOLDS.optimal && sum < SESSION_LOAD_THRESHOLDS.high - 7;
-                }).length} Days</span>
-              </div>
-              <div className="flex items-center justify-between gap-2 font-semibold text-orange-200">
-                <span className="flex items-center gap-1.5"><span className="size-1.5 rounded-full bg-orange-400 shadow-[0_0_8px_rgba(251,146,60,0.65)]" />Heavy ({SESSION_LOAD_THRESHOLDS.high - 7}-{SESSION_LOAD_THRESHOLDS.high - 1} pts):</span>
-                <span>{DAYS_OF_WEEK.filter(d => {
+                }).length, dot: 'bg-amber-300', tone: 'text-amber-200' },
+                { label: 'Heavy', count: DAYS_OF_WEEK.filter(d => {
                   const sum = getSessionLoadPoints(weeklySchedule[d]);
                   return sum >= SESSION_LOAD_THRESHOLDS.high - 7 && sum < SESSION_LOAD_THRESHOLDS.high;
-                }).length} Days</span>
-              </div>
-              <div className="flex items-center justify-between gap-2 font-semibold text-red-200">
-                <span className="flex items-center gap-1.5"><span className="size-1.5 rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.65)]" />High ({SESSION_LOAD_THRESHOLDS.high}+ pts):</span>
-                <span>{DAYS_OF_WEEK.filter(d => getSessionLoadPoints(weeklySchedule[d]) >= SESSION_LOAD_THRESHOLDS.high).length} Days</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Mini Chart of weekly Load Curve */}
-          <div className="md:col-span-3 flex h-36 flex-col">
-            <div className="flex items-center justify-end">
+                }).length, dot: 'bg-orange-400', tone: 'text-orange-200' },
+                { label: 'High', count: DAYS_OF_WEEK.filter(d => getSessionLoadPoints(weeklySchedule[d]) >= SESSION_LOAD_THRESHOLDS.high).length, dot: 'bg-red-500', tone: 'text-red-200' }
+              ].map(item => (
+                <span key={item.label} className={`inline-flex items-center gap-1.5 ${item.tone}`}>
+                  <span className={`size-1.5 rounded-full ${item.dot}`} />
+                  {item.label} {item.count}
+                </span>
+              ))}
               <Button
                 type="button"
                 variant="outline"
                 size="sm"
                 onClick={handleClearAllWeekly}
-                className="h-7 shrink-0 rounded-lg border-slate-500/20 bg-white/[0.035] px-3 text-[10px] font-semibold text-slate-300 hover:border-slate-300/25 hover:bg-white/[0.07] hover:text-white"
+                className="h-7 rounded-lg border-slate-500/20 bg-white/[0.035] px-3 text-[10px] font-semibold text-slate-300 hover:border-slate-300/25 hover:bg-white/[0.07] hover:text-white"
               >
                 Reset
               </Button>
             </div>
-            <div className="flex flex-1 items-end justify-between px-2 pt-5">
+          </div>
+
+          <div className="pt-4">
+            <div className="grid grid-cols-7 items-end gap-2">
               {DAYS_OF_WEEK.map((day) => {
                 const load = getSessionLoadPoints(weeklySchedule[day]);
                 const maxPossibleLoad = 60;
@@ -1086,22 +1078,20 @@ export default function TrainingView({
                 }
                 
                 return (
-                  <div key={day} className="flex flex-col items-center flex-1 group">
-                    {/* Load indicator badge on hover / top */}
+                  <div key={day} className="group flex min-w-0 flex-col items-center">
                     <span className={`mb-1.5 text-[10px] font-mono font-bold transition-colors ${loadText}`}>
                       {load} pts
                     </span>
-                    
-                    {/* Vertical Bar */}
-                    <div className={`w-6 md:w-8 bg-[#07111f] rounded-t-lg overflow-hidden h-24 flex items-end border border-cyan-300/10 transition-colors ${trackRing}`}>
+                    <div className={`flex h-24 w-full max-w-11 items-end overflow-hidden rounded-t-lg border border-cyan-300/10 bg-[#07111f] transition-colors ${trackRing}`}>
                       <div 
                         style={{ height: `${heightPercent}%` }}
                         className={`w-full rounded-t-md transition-all duration-300 ${barBg}`}
                       />
                     </div>
-
-                    {/* Day Name */}
-                    <span className="text-[9px] font-sans font-bold text-slate-500 uppercase tracking-widest mt-2">{day.substring(0, 3)}</span>
+                    <div className="mt-2 min-w-0 text-center">
+                      <span className="block text-[9px] font-black uppercase tracking-widest text-slate-500">{day.substring(0, 3)}</span>
+                      <span className="mt-0.5 block truncate text-[9px] font-semibold text-slate-600">{weekDaysMap[day].monthDate}</span>
+                    </div>
                   </div>
                 );
               })}
@@ -1173,6 +1163,8 @@ export default function TrainingView({
             const dayMatches = games.filter(g => (g.type === 'League' || g.type === 'Cup' || g.type === 'Friendly') && g.date === dateStr);
             const isUsualTrainingDay = activeTrainingDaySet.has(day);
             const hasSession = scheduledList.length > 0;
+            const previewDrills = sessionSummary.keyDrills.slice(0, 2);
+            const hiddenDrillCount = Math.max(0, scheduledList.length - previewDrills.length);
             const stateLabel = hasSession ? 'Train' : isUsualTrainingDay ? 'Planned' : 'Rest';
             const dayAccentClass = hasSession
               ? 'from-emerald-300/22 via-transparent'
@@ -1216,7 +1208,7 @@ export default function TrainingView({
                   e.currentTarget.classList.remove('border-cyan-300/40', 'bg-cyan-300/10');
                   handleDropDrill(day, e);
                 }}
-                className={`group/day relative flex min-h-[220px] flex-col justify-between overflow-hidden p-3 transition-colors hover:bg-white/[0.025] ${hasSession ? 'bg-white/[0.018]' : ''}`}
+                className={`group/day relative flex min-h-[192px] flex-col justify-between overflow-hidden p-3 transition-colors hover:bg-white/[0.025] ${hasSession ? 'bg-white/[0.018]' : ''}`}
               >
                 <div className={`pointer-events-none absolute inset-x-3 top-0 h-px bg-gradient-to-r ${dayAccentClass} to-transparent`} />
                 <div className="space-y-3">
@@ -1266,7 +1258,8 @@ export default function TrainingView({
                       </div>
                     ) : (
                       <>
-                      {sessionSummary.keyDrills.map((item) => (
+                      <span className="block text-[8px] font-black uppercase tracking-widest text-slate-500">Session preview</span>
+                      {previewDrills.map((item) => (
                         <div 
                           id={`scheduled-item-${item.id}`}
                           key={item.id}
@@ -1295,9 +1288,9 @@ export default function TrainingView({
                           </Button>
                         </div>
                       ))}
-                      {sessionSummary.overflowCount > 0 && (
+                      {hiddenDrillCount > 0 && (
                         <div className="text-[8px] font-bold uppercase tracking-wider text-slate-500">
-                          +{sessionSummary.overflowCount} more drills in builder
+                          +{hiddenDrillCount} more in builder
                         </div>
                       )}
                       </>
@@ -1308,7 +1301,7 @@ export default function TrainingView({
                 {/* Day footer helper text */}
                 <div className="mt-3 space-y-2 border-t border-slate-500/12 pt-2">
                   <div className="flex items-center justify-between gap-2">
-                  <span className="inline-flex min-w-0 items-center gap-1 truncate text-[8px] font-bold uppercase tracking-wide text-slate-500">
+                  <span className="hidden">
                     <Gauge size={10} aria-hidden="true" />
                     {scheduledList.length} {scheduledList.length === 1 ? 'drill' : 'drills'} · {totalLoad} pts
                   </span>
@@ -1324,7 +1317,7 @@ export default function TrainingView({
                       {sessionSummary.readiness === 'needs_structure' ? 'Needs prep' : sessionSummary.readiness.replace('_', ' ')}
                     </span>
                   </div>
-                  {hasSession && (
+                  {false && hasSession && (
                     <div className="flex items-center justify-between gap-2">
                       <span className="min-w-0 truncate text-[8px] font-semibold text-slate-500">
                         {getSessionEquipment(scheduledList).slice(0, 2).join(', ') || 'No equipment listed'}
