@@ -110,6 +110,7 @@ import { AnimatePresence } from 'motion/react';
 
 const RosterView = lazy(() => import('./components/RosterView'));
 const PlayerProfileModal = lazy(() => import('./components/PlayerProfileModal'));
+const TrainingSessionDetailModal = lazy(() => import('./components/TrainingSessionDetailModal'));
 const StaffProfileModal = lazy(() => import('./components/StaffProfileModal'));
 const TacticsView = lazy(() => import('./components/TacticsView'));
 const OnboardingView = lazy(() => import('./components/OnboardingView'));
@@ -330,6 +331,7 @@ export default function App() {
 
   const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
   const [selectedStaff, setSelectedStaff] = useState<StaffMember | null>(null);
+  const [selectedTrainingSessionDay, setSelectedTrainingSessionDay] = useState<DayName | null>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [preselectedAssessmentsPlayerId, setPreselectedAssessmentsPlayerId] = useState<string | null>(null);
 
@@ -346,6 +348,7 @@ export default function App() {
     setIsOnboarded(next.isOnboarded);
     setSelectedPlayer(null);
     setSelectedStaff(null);
+    setSelectedTrainingSessionDay(null);
     setPreselectedAssessmentsPlayerId(null);
     setIntegrityFocus(null);
     setIntegrityDismissed(false);
@@ -1008,6 +1011,7 @@ export default function App() {
     leagueUpdatesTab?: LeagueUpdatesTab;
   }) => {
     setPrimaryTab(target.primary);
+    setSelectedTrainingSessionDay(null);
 
     if (target.primary === 'home') {
       setHomeTab(current => target.homeTab ?? current);
@@ -1027,6 +1031,7 @@ export default function App() {
 
   const handleOpenIntegritySection = (section: IntegritySection) => {
     setSelectedPlayer(null);
+    setSelectedTrainingSessionDay(null);
     if (section === 'games') {
       setIntegrityFocus({ playerId: null, gameId: null, standingTeamName: null });
       handleNavigate({ primary: 'home', homeTab: 'game_week' });
@@ -1056,11 +1061,13 @@ export default function App() {
       });
       handleNavigate({ primary: 'squad' });
       if (player) setSelectedPlayer(player);
+      setSelectedTrainingSessionDay(null);
       return;
     }
 
     if (finding.section === 'games') {
       setSelectedPlayer(null);
+      setSelectedTrainingSessionDay(null);
       setIntegrityFocus({
         playerId: null,
         gameId: finding.focusId ?? finding.relatedIds[0] ?? null,
@@ -1083,6 +1090,7 @@ export default function App() {
 
     const player = finding.focusId ? players.find(item => item.id === finding.focusId) ?? null : null;
     setSelectedPlayer(null);
+    setSelectedTrainingSessionDay(null);
     setIntegrityFocus({
       playerId: player?.id ?? null,
       gameId: null,
@@ -1621,6 +1629,7 @@ export default function App() {
                   announcements={announcements}
                   assessments={assessments}
                   onSelectPlayer={setSelectedPlayer}
+                  onOpenTrainingSession={setSelectedTrainingSessionDay}
                   onUpdateTeamInfo={handleUpdateTeamInfo}
                   onAddAnnouncement={handleAddAnnouncement}
                   onDeleteAnnouncement={handleDeleteAnnouncement}
@@ -1727,6 +1736,24 @@ export default function App() {
                 setPrimaryTab('development');
                 setDevelopmentTab('assessments');
                 setSelectedPlayer(null);
+              }}
+            />
+          </Suspense>
+        )}
+      </AnimatePresence>
+      <AnimatePresence>
+        {selectedTrainingSessionDay && (
+          <Suspense fallback={null}>
+            <TrainingSessionDetailModal
+              day={selectedTrainingSessionDay}
+              teamInfo={teamInfo}
+              players={players}
+              games={games}
+              assessments={assessments}
+              onClose={() => setSelectedTrainingSessionDay(null)}
+              onOpenPlanner={(day: DayName) => {
+                setSelectedTrainingSessionDay(null);
+                handleNavigate({ primary: 'development', developmentTab: 'training', trainingDay: day });
               }}
             />
           </Suspense>
