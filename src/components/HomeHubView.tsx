@@ -27,6 +27,7 @@ interface HomeHubViewProps {
   activeTab: HomeTab;
   onTabChange: (tab: HomeTab) => void;
   onNavigate: (target: HubNavigateTarget) => void;
+  onOpenTrainingSession: (day: DayName) => void;
   workspaceControls?: ReactNode;
 
   // Overview (Dashboard)
@@ -87,6 +88,7 @@ export default function HomeHubView(props: HomeHubViewProps) {
             announcements={props.announcements}
             assessments={props.assessments}
             onNavigate={props.onNavigate}
+            onOpenTrainingSession={props.onOpenTrainingSession}
             onSelectPlayer={props.onSelectPlayer}
             onUpdateTeamInfo={props.onUpdateTeamInfo}
           />

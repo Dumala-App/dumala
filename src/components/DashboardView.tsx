@@ -630,6 +630,7 @@ interface DashboardViewProps {
     trainingDay?: DayName;
     leagueUpdatesTab?: 'league' | 'updates';
   }) => void;
+  onOpenTrainingSession: (day: DayName) => void;
   onSelectPlayer: (player: Player) => void;
   onUpdateTeamInfo: (updated: TeamInfo) => void;
 }
@@ -643,6 +644,7 @@ export default function DashboardView({
   announcements, 
   assessments,
   onNavigate,
+  onOpenTrainingSession,
   onSelectPlayer,
   onUpdateTeamInfo
 }: DashboardViewProps) {
@@ -1774,7 +1776,7 @@ export default function DashboardView({
               type="button"
               onClick={() => {
                 if (activeDailyPrepPanel === 'training' && dashboardTrainingDay) {
-                  onNavigate({ primary: 'development', developmentTab: 'training', trainingDay: dashboardTrainingDay });
+                  onOpenTrainingSession(dashboardTrainingDay);
                   return;
                 }
                 onNavigate({ primary: 'home', homeTab: 'game_week' });

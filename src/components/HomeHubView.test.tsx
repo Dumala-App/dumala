@@ -18,6 +18,7 @@ const renderHome = () => renderToStaticMarkup(
     activeTab="overview"
     onTabChange={vi.fn()}
     onNavigate={vi.fn()}
+    onOpenTrainingSession={vi.fn()}
     teamInfo={teamInfo}
     players={[]}
     games={[]}
