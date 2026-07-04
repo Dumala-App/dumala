@@ -21,53 +21,24 @@
     --ok:#3DC96B;
   }
   *{box-sizing:border-box;margin:0;padding:0}
-  html,body{background:var(--night)}
+  html,body{height:100%;overflow:hidden;background:var(--night)}
   body{
     font-family:'Space Grotesk',system-ui,sans-serif;
     color:var(--chalk);
     display:flex;justify-content:center;
-    padding:14px;
+    min-height:100%;
+    padding:0;
   }
   .fk-layout{
-    display:flex;gap:16px;align-items:flex-start;
-    width:100%;max-width:1200px;
-  }
-  .fk-sidepanel{
-    width:300px;flex:none;
-    display:flex;flex-direction:column;gap:14px;
-  }
-  .fk-side-card{
-    background:linear-gradient(180deg,var(--night-2),var(--night));
-    border:1px solid rgba(242,152,41,.25);
-    border-radius:16px;
-    overflow:hidden;
-    box-shadow:0 14px 40px rgba(0,0,0,.4);
-  }
-  .fk-side-head{
-    padding:12px 14px;
-    background:linear-gradient(90deg,var(--blue-deep),var(--blue));
-    border-bottom:1px solid rgba(242,152,41,.25);
-  }
-  .fk-side-head h3{
-    font-family:'Archivo Black',sans-serif;font-size:13px;letter-spacing:.06em;text-transform:uppercase;
-  }
-  .fk-side-body{padding:14px}
-  .fk-side-placeholder .fk-side-body{
-    color:rgba(244,247,255,.55);font-size:12px;line-height:1.5;text-align:center;padding:22px 14px;
-  }
-  @media (max-width:960px){
-    .fk-layout{flex-direction:column;align-items:stretch;max-width:880px;margin:0 auto}
-    .fk-sidepanel{width:100%;flex-direction:row;flex-wrap:wrap}
-    .fk-side-card{flex:1;min-width:260px}
-  }
-  @media (max-width:640px){
-    .fk-sidepanel{flex-direction:column}
+    display:flex;align-items:stretch;
+    width:100%;height:100vh;max-width:none;
   }
   .fk-app{
-    width:100%;max-width:880px;
+    width:100%;max-width:none;height:100vh;
+    display:flex;flex-direction:column;
     background:linear-gradient(180deg,var(--night-2),var(--night));
     border:1px solid rgba(242,152,41,.25);
-    border-radius:18px;
+    border-radius:0;
     overflow:hidden;
     box-shadow:0 20px 60px rgba(0,0,0,.55);
   }
@@ -76,6 +47,7 @@
     gap:10px;padding:12px 18px;
     background:linear-gradient(90deg,var(--blue-deep),var(--blue) 55%,var(--blue-deep));
     border-bottom:2px solid var(--gold);
+    flex:none;
   }
   .fk-title{
     font-family:'Archivo Black',sans-serif;
@@ -96,6 +68,7 @@
     display:flex;align-items:center;justify-content:space-between;gap:10px;
     padding:8px 14px;background:rgba(6,11,26,.5);border-bottom:1px solid rgba(242,152,41,.18);
     flex-wrap:wrap;
+    flex:none;
   }
   .fk-tb-left,.fk-tb-right{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
   .tbtn{
@@ -111,8 +84,18 @@
     position:absolute;top:-3px;right:-3px;width:9px;height:9px;border-radius:50%;
     background:var(--danger);box-shadow:0 0 6px var(--danger);
   }
-  .fk-stage{position:relative;background:var(--night)}
-  canvas{display:block;width:100%;height:auto;cursor:crosshair;touch-action:none}
+  .fk-stage{
+    position:relative;background:var(--night);flex:1;min-height:0;
+    display:flex;align-items:center;justify-content:center;overflow:hidden;
+    container-type:size;
+  }
+  canvas{
+    display:block;
+    width:min(100cqw, calc(100cqh * 1.5714285714));
+    height:auto;
+    aspect-ratio:880 / 560;
+    cursor:crosshair;touch-action:none;
+  }
 
   .fk-banner{
     position:absolute;top:42px;left:50%;transform:translateX(-50%);
@@ -164,10 +147,11 @@
     padding:5px 12px;border-radius:999px;pointer-events:none;white-space:nowrap;
   }
   .fk-controls{
-    display:grid;gap:14px;padding:16px 18px 18px;
+    display:grid;gap:10px;padding:10px 16px 12px;
     grid-template-columns:1fr auto;
     align-items:end;
     background:linear-gradient(180deg,rgba(20,62,138,.20),transparent);
+    flex:none;
   }
   .ctl label{
     display:flex;justify-content:space-between;
@@ -404,6 +388,7 @@
       <button class="tbtn" id="btnStory" title="Story Mode">📖 Story</button>
       <button class="tbtn" id="btnBadges" title="Badges">🎖️<span class="tbtn-dot" id="badgeDot" hidden></span></button>
       <button class="tbtn" id="btnStats" title="Stats">📊</button>
+      <button class="tbtn" id="btnLeaderboard" title="Leaderboard">🏆</button>
       <button class="tbtn" id="btnChallenge" title="Challenge code">🔗</button>
     </div>
   </div>
@@ -466,6 +451,20 @@
     </div>
 
     <!-- Leaderboard -->
+    <div class="fk-overlay" id="ovLeaderboard">
+      <div class="fk-modal">
+        <div class="fk-modal-head"><h3>🏆 Leaderboard</h3><button class="fk-modal-close" data-close="ovLeaderboard">&times;</button></div>
+        <div class="fk-modal-body">
+          <div class="fk-lb-tabs" id="lbTabs">
+            <div class="fk-lb-tab on" data-lb="0">Amateur</div>
+            <div class="fk-lb-tab" data-lb="1">Pro</div>
+            <div class="fk-lb-tab" data-lb="2">Legend</div>
+          </div>
+          <div id="lbList"></div>
+        </div>
+      </div>
+    </div>
+
     <!-- Badges -->
     <div class="fk-overlay" id="ovBadges">
       <div class="fk-modal">
@@ -541,27 +540,6 @@
     </div>
   </div>
 </div>
-
-<aside class="fk-sidepanel">
-  <div class="fk-side-card">
-    <div class="fk-side-head"><h3>🏆 Leaderboard</h3></div>
-    <div class="fk-side-body">
-      <div class="fk-lb-tabs" id="lbTabs">
-        <div class="fk-lb-tab on" data-lb="0">Amateur</div>
-        <div class="fk-lb-tab" data-lb="1">Pro</div>
-        <div class="fk-lb-tab" data-lb="2">Legend</div>
-      </div>
-      <div id="lbList"></div>
-    </div>
-  </div>
-
-  <div class="fk-side-card fk-side-placeholder">
-    <div class="fk-side-head"><h3>💬 Live Chat</h3></div>
-    <div class="fk-side-body">
-      <p>Coming soon — chat with other players while you play.</p>
-    </div>
-  </div>
-</aside>
 </div>
 
 <script>
@@ -650,9 +628,9 @@ function unproject(sx, sy, z){ // screen -> world at plane z
 
 /* ---------------- difficulty ---------------- */
 const DIFFS = [
-  { name:'Amateur', reaction:0.42, kSpeed:2.4, err:0.85, wallN:3, jumpChance:0.25, jumpSkill:0.5, chargeRate:95 },
-  { name:'Pro',     reaction:0.28, kSpeed:3.2, err:0.48, wallN:4, jumpChance:0.7,  jumpSkill:0.75, chargeRate:135 },
-  { name:'Legend',  reaction:0.16, kSpeed:3.8, err:0.24, wallN:5, jumpChance:1.0,  jumpSkill:0.95, chargeRate:180 },
+  { name:'Amateur', reaction:0.42, kSpeed:2.4, err:0.85, wallN:3, jumpChance:0.25, jumpSkill:0.5, chargeRate:180 },
+  { name:'Pro',     reaction:0.28, kSpeed:3.2, err:0.48, wallN:4, jumpChance:0.7,  jumpSkill:0.75, chargeRate:240 },
+  { name:'Legend',  reaction:0.16, kSpeed:3.8, err:0.24, wallN:5, jumpChance:1.0,  jumpSkill:0.95, chargeRate:300 },
 ];
 let diff = 0;
 
@@ -1052,6 +1030,7 @@ document.querySelectorAll('.fk-overlay').forEach(ov => {
 
 document.getElementById('btnBadges').addEventListener('click', () => { renderBadges(); openModal('ovBadges'); document.getElementById('badgeDot').hidden = true; });
 document.getElementById('btnStats').addEventListener('click', () => { renderStats(); openModal('ovStats'); });
+document.getElementById('btnLeaderboard').addEventListener('click', () => { renderLeaderboard(lbTabIdx); openModal('ovLeaderboard'); });
 document.getElementById('btnChallenge').addEventListener('click', () => { updateChallengeCode(); openModal('ovChallenge'); });
 
 /* ---- leaderboard rendering ---- */
