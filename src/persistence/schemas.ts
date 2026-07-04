@@ -417,6 +417,62 @@ export const tacticsBoardSnapshotsSchema = z.array(z.object({
   showWall: z.boolean()
 }));
 
+export const gamePlanSchema = z.object({
+  id: z.string().min(1),
+  gameId: z.string().min(1),
+  opponent: z.string(),
+  gameDate: z.string(),
+  gameTime: z.string(),
+  gameType: z.enum(['League', 'Cup', 'Friendly', 'Training', 'Meeting']),
+  location: z.string(),
+  updatedAt: z.string(),
+  matchFormat: matchFormatSchema,
+  formation: z.string(),
+  opponentFormation: z.string(),
+  playstyle: z.string(),
+  defensiveStyle: z.string(),
+  phase: z.enum(['In Possession', 'Out of Possession', 'Transition', 'Set Piece']),
+  strategyContext: strategyContextSchema,
+  recommendation: z.object({
+    attackTitle: z.string(),
+    attackIntent: z.string(),
+    defenseTitle: z.string(),
+    defenseIntent: z.string(),
+    cues: z.array(z.string()),
+    watchout: z.string()
+  }),
+  lineup: z.array(z.object({
+    slot: finiteNumber,
+    role: z.string(),
+    playerId: z.string(),
+    name: z.string(),
+    rating: finiteNumber,
+    position: z.string()
+  })),
+  roles: z.object({
+    captain: z.string().optional(),
+    penaltyTaker: z.string().optional(),
+    freeKickTaker: z.string().optional(),
+    cornerTaker: z.string().optional()
+  }),
+  board: z.object({
+    draggedPositions: draggedPositionsSchema,
+    drawingPaths: drawingPathsSchema,
+    ballPos: z.object({ left: finiteNumber, top: finiteNumber }),
+    wallPos: z.object({ left: finiteNumber, top: finiteNumber }),
+    wallRotation: finiteNumber,
+    showBall: z.boolean(),
+    showWall: z.boolean()
+  }),
+  notes: z.array(z.object({
+    id: z.string(),
+    title: z.string(),
+    content: z.string(),
+    category: z.enum(['Formation', 'Set Pieces', 'Strategy', 'General'])
+  }))
+});
+export const gamePlansSchema = z.array(gamePlanSchema);
+
 export const playerExtrasSchema = z.record(z.string(), z.object({
   status: z.enum(['starting', 'substitute', 'injured']),
   yellowCards: nonNegativeNumber,

@@ -22,7 +22,7 @@ import {
   getWeekStartDate,
   toDateKey
 } from '../training/synchronization';
-import { DRILL_INSTRUCTIONS, getDrillEquipment } from '../training/drillLibrary';
+import { DRILL_INSTRUCTIONS, getDrillEquipment, getDrillHowToRun } from '../training/drillLibrary';
 import { trainingSessionMetaMapSchema, weeklyScheduleSchema } from '../persistence/schemas';
 import { readJsonStorage, STORAGE_KEYS, writeJsonStorage } from '../persistence/storage';
 import { useDialogAccessibility } from '../hooks/useDialogAccessibility';
@@ -221,10 +221,9 @@ export default function TrainingSessionDetailModal({ day, teamInfo, players, gam
     const metaMap = readTrainingSessionMeta();
     return metaMap[sessionWeek.weekKey]?.[day] ?? {};
   });
-  const [activeTimerBlock, setActiveTimerBlock] = useState<SessionBlockId | null>(null);
-  const [blockTimerSeconds, setBlockTimerSeconds] = useState<Record<SessionBlockId, number>>(() => (
-    createBlockTimerSeconds(weeklySchedule[day] ?? [])
-  ));
+  const [activeDrillId, setActiveDrillId] = useState<string>('');
+  const [activeDrillTimerSeconds, setActiveDrillTimerSeconds] = useState(0);
+  const [isActiveDrillTimerRunning, setIsActiveDrillTimerRunning] = useState(false);
 
   const summary = useMemo(() => buildTrainingSessionSummary({
     day,
@@ -290,35 +289,56 @@ export default function TrainingSessionDetailModal({ day, teamInfo, players, gam
     });
   };
 
-  useEffect(() => {
-    setBlockTimerSeconds(createBlockTimerSeconds(weeklySchedule[day] ?? []));
-    setActiveTimerBlock(null);
-  }, [day, timerPlanSignature]);
+  const activeDrillIndex = Math.max(0, summary.drills.findIndex(drill => drill.id === activeDrillId));
+  const activeDrill = summary.drills[activeDrillIndex] ?? summary.drills[0] ?? null;
+  const activeDrillInstruction = activeDrill ? DRILL_INSTRUCTIONS[activeDrill.drillId] : undefined;
+  const activeDrillEquipment = activeDrill ? getDrillEquipmentList(activeDrill) : [];
+  const activeDrillHowToRun = activeDrill ? getDrillHowToRun(activeDrill.drillId, activeDrill.notes) : 'Run the drill according to the planner instructions.';
+  const nextDrills = activeDrill
+    ? summary.drills.filter(drill => drill.id !== activeDrill.id)
+    : summary.drills.slice(1);
 
   useEffect(() => {
-    if (!activeTimerBlock) return;
+    const firstDrill = weeklySchedule[day]?.[0];
+    if (!firstDrill) {
+      setActiveDrillId('');
+      setActiveDrillTimerSeconds(0);
+      setIsActiveDrillTimerRunning(false);
+      return;
+    }
+
+    setActiveDrillId(current => (
+      weeklySchedule[day]?.some(drill => drill.id === current) ? current : firstDrill.id
+    ));
+  }, [day, timerPlanSignature, weeklySchedule]);
+
+  useEffect(() => {
+    if (!activeDrill) return;
+    setActiveDrillTimerSeconds(getScheduledDrillDuration(activeDrill) * 60);
+    setIsActiveDrillTimerRunning(false);
+  }, [activeDrill?.id]);
+
+  useEffect(() => {
+    if (!isActiveDrillTimerRunning) return;
 
     const intervalId = window.setInterval(() => {
-      setBlockTimerSeconds(current => {
-        const remaining = current[activeTimerBlock];
-        if (remaining <= 1) {
+      setActiveDrillTimerSeconds(current => {
+        if (current <= 1) {
           window.clearInterval(intervalId);
-          setActiveTimerBlock(null);
-          return { ...current, [activeTimerBlock]: 0 };
+          setIsActiveDrillTimerRunning(false);
+          return 0;
         }
-        return { ...current, [activeTimerBlock]: remaining - 1 };
+        return current - 1;
       });
     }, 1000);
 
     return () => window.clearInterval(intervalId);
-  }, [activeTimerBlock]);
+  }, [isActiveDrillTimerRunning]);
 
-  const resetBlockTimer = (blockId: SessionBlockId, drills: readonly ScheduledDrill[]) => {
-    if (activeTimerBlock === blockId) setActiveTimerBlock(null);
-    setBlockTimerSeconds(current => ({
-      ...current,
-      [blockId]: drills.reduce((total, drill) => total + getScheduledDrillDuration(drill) * 60, 0)
-    }));
+  const resetActiveDrillTimer = () => {
+    if (!activeDrill) return;
+    setIsActiveDrillTimerRunning(false);
+    setActiveDrillTimerSeconds(getScheduledDrillDuration(activeDrill) * 60);
   };
 
   const drillsByBlock = SESSION_BLOCKS.map(block => ({
@@ -326,10 +346,9 @@ export default function TrainingSessionDetailModal({ day, teamInfo, players, gam
     drills: summary.drills.filter(drill => getScheduledDrillBlock(drill) === block.id)
   }));
   const readinessTone = getReadinessTone(summary);
-  const targetedPlayers = [...new Set(summary.drills.flatMap(drill => drill.playerName ? [drill.playerName] : []))];
 
   return (
-    <div className="fixed inset-0 z-[70] flex items-start justify-center overflow-y-auto bg-slate-950/78 px-3 py-4 text-slate-100 backdrop-blur-xl sm:px-5 sm:py-7" role="presentation" onMouseDown={(event) => {
+    <div className="fixed inset-0 z-[70] flex items-center justify-center overflow-y-auto bg-slate-950/78 px-3 py-4 text-slate-100 backdrop-blur-xl lg:overflow-hidden" role="presentation" onMouseDown={(event) => {
       if (event.target === event.currentTarget) onClose();
     }}>
       <div
@@ -338,34 +357,45 @@ export default function TrainingSessionDetailModal({ day, teamInfo, players, gam
         aria-modal="true"
         aria-labelledby="training-session-detail-title"
         tabIndex={-1}
-        className="w-full max-w-6xl overflow-hidden rounded-2xl border border-cyan-300/12 bg-[#07111f] shadow-2xl shadow-black/40 outline-none"
+        className="grid max-h-[92vh] w-full max-w-[1180px] grid-rows-[auto_minmax(0,1fr)] gap-3 overflow-y-auto rounded-2xl border border-cyan-300/12 bg-[#07111f] p-4 shadow-2xl shadow-black/40 outline-none sm:p-5 lg:h-[min(700px,90vh)] lg:overflow-hidden"
       >
-        <header className="border-b border-cyan-300/10 bg-[linear-gradient(135deg,rgba(16,185,129,0.18),rgba(14,165,233,0.12)_48%,rgba(7,17,31,0.95))] p-4 sm:p-5">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-            <div className="min-w-0">
-              <div className="flex flex-wrap items-center gap-2">
-                <Badge variant="outline" className="border-emerald-300/25 bg-emerald-300/10 text-emerald-100">
-                  <CalendarDays size={12} aria-hidden="true" /> {summary.dateStr}
-                </Badge>
-                <Badge variant="outline" className={readinessTone}>
-                  {summary.readiness === 'needs_structure' ? 'Needs structure' : summary.readiness.replace('_', ' ')}
-                </Badge>
-                <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">{sessionWeek.weekLabel}</span>
-              </div>
-              <h2 id="training-session-detail-title" className="mt-3 font-display text-2xl font-black tracking-tight text-white sm:text-3xl">
-                {day} Training Session
-              </h2>
-              <p className="mt-2 max-w-3xl text-sm font-medium leading-relaxed text-slate-300">
-                Coach execution sheet with session order, load, equipment, cues, and drill instructions for today.
-              </p>
+        <header className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto]">
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <Badge variant="outline" className="border-emerald-300/25 bg-emerald-300/10 text-emerald-100">
+                <CalendarDays size={12} aria-hidden="true" /> {summary.dateStr}
+              </Badge>
+              <Badge variant="outline" className={readinessTone}>
+                {summary.readiness === 'needs_structure' ? 'Needs structure' : summary.readiness.replace('_', ' ')}
+              </Badge>
+              <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">{sessionWeek.weekLabel}</span>
             </div>
-            <div className="flex shrink-0 items-center gap-2">
+            <h2 id="training-session-detail-title" className="mt-2 font-display text-2xl font-black tracking-tight text-white sm:text-3xl">
+              {day} Training Session
+            </h2>
+          </div>
+          <div className="flex shrink-0 items-start justify-between gap-2 lg:justify-end">
+            <section aria-label="Session metrics" className="hidden grid-cols-4 gap-1.5 md:grid">
+              {[
+                { label: 'Min', value: String(summary.duration), icon: Clock, className: 'border-cyan-300/15 bg-cyan-300/8 text-cyan-100' },
+                { label: 'Load', value: String(summary.loadPoints), icon: Gauge, className: summary.loadPoints >= SESSION_LOAD_THRESHOLDS.high ? 'border-red-300/20 bg-red-500/10 text-red-100' : 'border-amber-300/15 bg-amber-300/8 text-amber-100' },
+                { label: 'Drills', value: String(summary.drills.length), icon: Dumbbell, className: 'border-emerald-300/15 bg-emerald-300/8 text-emerald-100' },
+                { label: 'Active', value: `${activeDrillIndex + 1}/${summary.drills.length}`, icon: CheckCircle2, className: 'border-indigo-300/15 bg-indigo-300/8 text-indigo-100' }
+              ].map(({ label, value, icon: Icon, className }) => (
+                <div key={label} className={`min-w-[4.4rem] rounded-lg border px-2.5 py-2 ${className}`}>
+                  <Icon size={12} aria-hidden="true" />
+                  <strong className="mt-1 block text-base font-black text-slate-50">{value}</strong>
+                  <span className="text-[8px] font-black uppercase tracking-wider text-current">{label}</span>
+                </div>
+              ))}
+            </section>
+            <div className="flex items-center gap-2">
               <Button
                 type="button"
                 onClick={() => onOpenPlanner(day)}
-                className="h-10 rounded-xl border border-emerald-300/25 bg-emerald-300/15 px-3 text-xs font-black text-emerald-50 hover:bg-emerald-300/22"
+                className="h-9 rounded-xl border border-emerald-300/25 bg-emerald-300/15 px-3 text-xs font-black text-emerald-50 hover:bg-emerald-300/22"
               >
-                Edit in Planner <ArrowRight size={14} aria-hidden="true" />
+                Open Planner <ArrowRight size={13} aria-hidden="true" />
               </Button>
               <Button
                 ref={closeButtonRef}
@@ -374,7 +404,7 @@ export default function TrainingSessionDetailModal({ day, teamInfo, players, gam
                 size="icon"
                 onClick={onClose}
                 aria-label="Close training session"
-                className="size-10 rounded-xl text-slate-300 hover:bg-white/[0.08] hover:text-white"
+                className="size-9 rounded-xl text-slate-300 hover:bg-white/[0.08] hover:text-white"
               >
                 <X size={18} aria-hidden="true" />
               </Button>
@@ -382,213 +412,157 @@ export default function TrainingSessionDetailModal({ day, teamInfo, players, gam
           </div>
         </header>
 
-        <div className="grid gap-0 lg:grid-cols-[minmax(0,1fr)_20rem]">
-          <main className="space-y-4 p-4 sm:p-5">
-            <section aria-label="Session metrics" className="grid grid-cols-2 gap-3 md:grid-cols-4">
-              {[
-                { label: 'Duration', value: `${summary.duration} min`, icon: Clock, className: 'border-cyan-300/15 bg-cyan-300/8 text-cyan-100' },
-                { label: 'Load', value: `${summary.loadPoints} pts`, icon: Gauge, className: summary.loadPoints >= SESSION_LOAD_THRESHOLDS.high ? 'border-red-300/20 bg-red-500/10 text-red-100' : 'border-amber-300/15 bg-amber-300/8 text-amber-100' },
-                { label: 'Drills', value: String(summary.drills.length), icon: Dumbbell, className: 'border-emerald-300/15 bg-emerald-300/8 text-emerald-100' },
-                { label: 'Completed', value: `${summary.completedCount}/${summary.drills.length}`, icon: CheckCircle2, className: 'border-indigo-300/15 bg-indigo-300/8 text-indigo-100' }
-              ].map(({ label, value, icon: Icon, className }) => (
-                <div key={label} className={`rounded-xl border p-3 ${className}`}>
-                  <Icon size={15} aria-hidden="true" />
-                  <strong className="mt-2 block text-lg font-black text-slate-50">{value}</strong>
-                  <span className="text-[9px] font-black uppercase tracking-wider text-current">{label}</span>
-                </div>
-              ))}
-            </section>
-
-            {summary.drills.length === 0 ? (
-              <section className="rounded-xl border border-dashed border-cyan-300/18 bg-white/[0.035] p-8 text-center">
-                <Dumbbell size={24} className="mx-auto text-slate-500" aria-hidden="true" />
-                <h3 className="mt-3 text-sm font-black text-slate-100">No drills planned for {day}</h3>
-                <p className="mt-1 text-xs font-medium text-slate-400">Open the planner to build a coach-ready session structure.</p>
-                <Button type="button" onClick={() => onOpenPlanner(day)} className="mt-4 h-9 rounded-xl bg-emerald-300 px-3 text-xs font-black text-slate-950 hover:bg-emerald-200">
-                  Build Session
-                </Button>
-              </section>
-            ) : (
-              <section aria-label="Session delivery order" className="space-y-3">
-                {drillsByBlock.map((block, blockIndex) => {
-                  const blockDuration = block.drills.reduce((total, drill) => total + getScheduledDrillDuration(drill), 0);
-                  return (
-                    <section key={block.id} className={`overflow-hidden rounded-xl border ${getBlockTone(block.id)}`}>
-                      <div className="flex flex-col gap-3 border-b border-white/[0.08] bg-white/[0.035] p-3 lg:flex-row lg:items-center lg:justify-between">
-                        <div className="flex items-center gap-2.5">
-                          <span className="flex size-7 items-center justify-center rounded-full border border-white/[0.12] bg-slate-950/30 text-[10px] font-black">{blockIndex + 1}</span>
-                          <div>
-                            <h3 className="text-xs font-black text-slate-50">{block.label}</h3>
-                            <p className="text-[10px] font-semibold text-slate-400">{block.drills.length} drills - {blockDuration} min</p>
-                          </div>
-                        </div>
-                        {block.drills.length === 0 ? (
-                          <span className="text-[10px] font-semibold text-slate-500">No planned work</span>
-                        ) : (
-                          <div className="flex flex-wrap items-center gap-2 rounded-xl border border-white/[0.08] bg-slate-950/24 p-1.5">
-                            <span className="min-w-16 px-2 text-center font-mono text-sm font-black text-white">
-                              {formatTimer(blockTimerSeconds[block.id] ?? 0)}
-                            </span>
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => setActiveTimerBlock(current => current === block.id ? null : block.id)}
-                              disabled={(blockTimerSeconds[block.id] ?? 0) <= 0}
-                              aria-label={activeTimerBlock === block.id ? `Pause ${block.label} timer` : `Start ${block.label} timer`}
-                              className="size-7 rounded-lg border border-cyan-300/12 bg-cyan-300/8 text-cyan-50 hover:bg-cyan-300/14"
-                            >
-                              {activeTimerBlock === block.id ? <Pause size={13} aria-hidden="true" /> : <Play size={13} aria-hidden="true" />}
-                            </Button>
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => resetBlockTimer(block.id, block.drills)}
-                              aria-label={`Reset ${block.label} timer`}
-                              className="size-7 rounded-lg border border-slate-500/12 bg-white/[0.035] text-slate-300 hover:bg-white/[0.07] hover:text-slate-50"
-                            >
-                              <RotateCcw size={13} aria-hidden="true" />
-                            </Button>
-                          </div>
-                        )}
-                      </div>
-
-                      {block.drills.length > 0 && (
-                        <div className="space-y-2 p-3">
-                          {block.drills.map((drill, drillIndex) => {
-                            const instruction = DRILL_INSTRUCTIONS[drill.drillId];
-                            const equipment = getDrillEquipmentList(drill);
-                            return (
-                              <article key={drill.id} className="rounded-xl border border-white/[0.08] bg-[#07111f]/78 p-3 text-slate-100 shadow-sm shadow-black/10">
-                                <div className="flex items-start gap-3">
-                                  <span className="flex size-9 shrink-0 items-center justify-center rounded-xl border border-cyan-300/10 bg-white/[0.045] text-slate-300">
-                                    {getDrillIcon(drill.drillId)}
-                                  </span>
-                                  <div className="min-w-0 flex-1">
-                                    <div className="flex flex-col gap-2 lg:flex-row lg:items-start lg:justify-between">
-                                      <div className="min-w-0 flex-1">
-                                        <p className="text-[10px] font-black uppercase tracking-wider text-slate-500">Drill {drillIndex + 1}</p>
-                                        <h4 className="mt-0.5 text-sm font-black text-white">{drill.name}</h4>
-                                      </div>
-                                      <div className="flex shrink-0 flex-wrap items-center gap-1.5">
-                                        <span className="rounded-full border border-cyan-300/15 bg-cyan-300/8 px-2 py-1 text-[9px] font-black text-cyan-100">
-                                          <Timer size={10} className="inline" aria-hidden="true" /> {getScheduledDrillDuration(drill)} min
-                                        </span>
-                                        <span className="rounded-full border border-amber-300/15 bg-amber-300/8 px-2 py-1 text-[9px] font-black text-amber-100">
-                                          {getScheduledDrillLoadPoints(drill)} load
-                                        </span>
-                                        <div className="grid grid-cols-3 gap-1.5 rounded-lg border border-white/[0.07] bg-white/[0.035] p-1">
-                                        {[
-                                          { status: 'planned' as const, label: 'Planned' },
-                                          { status: 'done' as const, label: 'Done' },
-                                          { status: 'skipped' as const, label: 'Skip' }
-                                        ].map(option => (
-                                          <Button
-                                            key={option.status}
-                                            type="button"
-                                            variant="ghost"
-                                            size="sm"
-                                            onClick={() => updateDrillStatus(drill.id, option.status)}
-                                            aria-pressed={(drill.status ?? 'planned') === option.status}
-                                            className={`h-7 rounded-md border px-2 text-[9px] font-black ${
-                                              (drill.status ?? 'planned') === option.status
-                                                ? option.status === 'done'
-                                                  ? 'border-emerald-300/25 bg-emerald-300/15 text-emerald-50 hover:bg-emerald-300/18'
-                                                  : option.status === 'skipped'
-                                                    ? 'border-amber-300/25 bg-amber-300/15 text-amber-50 hover:bg-amber-300/18'
-                                                    : 'border-cyan-300/20 bg-cyan-300/10 text-cyan-50 hover:bg-cyan-300/14'
-                                                : 'border-slate-500/12 bg-white/[0.025] text-slate-400 hover:bg-white/[0.06] hover:text-slate-100'
-                                            }`}
-                                          >
-                                            {option.label}
-                                          </Button>
-                                        ))}
-                                        </div>
-                                      </div>
-                                    </div>
-                                    {drill.playerName && (
-                                      <p className="mt-2 text-[10px] font-bold text-emerald-100">Individual development: {drill.playerName}</p>
-                                    )}
-                                    {drill.notes && (
-                                      <p className="mt-2 rounded-lg border border-amber-300/15 bg-amber-300/8 px-3 py-2 text-[11px] font-semibold leading-relaxed text-amber-50">
-                                        {drill.notes}
-                                      </p>
-                                    )}
-                                    {instruction && (
-                                      <div className="mt-3 grid gap-2 text-[10px] leading-relaxed text-slate-300 md:grid-cols-2">
-                                        <div>
-                                          <span className="font-black uppercase text-slate-500">Setup</span>
-                                          <p className="mt-1">{instruction.setup}</p>
-                                        </div>
-                                        <div>
-                                          <span className="font-black uppercase text-slate-500">Execution</span>
-                                          <p className="mt-1">{instruction.execution}</p>
-                                        </div>
-                                        <div>
-                                          <span className="font-black uppercase text-slate-500">Sets / reps</span>
-                                          <p className="mt-1">{instruction.setsReps}</p>
-                                        </div>
-                                        <div>
-                                          <span className="font-black uppercase text-slate-500">Equipment</span>
-                                          <p className="mt-1">{equipment.length > 0 ? equipment.join(', ') : instruction.equipment}</p>
-                                        </div>
-                                      </div>
-                                    )}
-                                  </div>
-                                </div>
-                              </article>
-                            );
-                          })}
-                        </div>
-                      )}
-                    </section>
-                  );
-                })}
-              </section>
-            )}
-          </main>
-
-          <aside className="border-t border-cyan-300/10 bg-[#0b1726]/72 p-4 sm:p-5 lg:border-l lg:border-t-0">
-            <div className="lg:sticky lg:top-5">
-              <h3 className="text-xs font-black uppercase tracking-wider text-slate-400">Coach Brief</h3>
-              <div className="mt-3 space-y-3">
-                <TeamStatusSummary
-                  teamInfo={teamInfo}
-                  players={players}
-                  games={games}
-                  assessments={assessments}
-                  summary={summary}
-                  targetedPlayers={targetedPlayers}
-                />
-
-                <label className="block rounded-xl border border-slate-500/15 bg-white/[0.035] p-3">
-                  <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">Coach notes</span>
-                  <textarea
-                    value={summary.reflection}
-                    onChange={(event) => persistSessionMeta({ ...sessionMeta, reflection: event.target.value })}
-                    placeholder="Attendance, player response, changes made, reminders for next session..."
-                    className="mt-2 min-h-28 w-full resize-y rounded-lg border border-cyan-300/10 bg-[#07111f] px-3 py-2 text-xs font-medium normal-case tracking-normal text-slate-100 outline-none placeholder:text-slate-500 focus:ring-2 focus:ring-cyan-300/25"
-                  />
-                </label>
-
-                {summary.warnings.length > 0 && (
-                  <div className="rounded-xl border border-amber-300/20 bg-amber-300/10 p-3" role="status">
-                    <span className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider text-amber-100">
-                      <AlertTriangle size={13} aria-hidden="true" /> Structure checks
+        {summary.drills.length === 0 ? (
+          <section className="flex min-h-[20rem] flex-col items-center justify-center rounded-xl border border-dashed border-cyan-300/18 bg-white/[0.035] p-8 text-center">
+            <Dumbbell size={24} className="mx-auto text-slate-500" aria-hidden="true" />
+            <h3 className="mt-3 text-sm font-black text-slate-100">No drills planned for {day}</h3>
+            <p className="mt-1 text-xs font-medium text-slate-400">Open the planner to build a coach-ready session structure.</p>
+            <Button type="button" onClick={() => onOpenPlanner(day)} className="mt-4 h-9 rounded-xl bg-emerald-300 px-3 text-xs font-black text-slate-950 hover:bg-emerald-200">
+              Build Session
+            </Button>
+          </section>
+        ) : (
+          <main className="grid min-h-0 grid-cols-1 gap-4 lg:grid-cols-12">
+            <section aria-label="Active drill" className="relative min-h-0 overflow-hidden rounded-2xl border border-cyan-300/12 bg-[linear-gradient(135deg,rgba(20,184,166,0.12),rgba(15,23,42,0.28)_38%,rgba(7,17,31,0.92))] p-5 lg:col-span-8">
+              <div className="pointer-events-none absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-emerald-200/40 to-transparent" />
+              <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_12.5rem]">
+                <div className="min-w-0">
+                  <span className="text-[10px] font-black uppercase tracking-widest text-emerald-200">Current drill</span>
+                  <h3 className="mt-2 max-w-2xl font-display text-3xl font-black leading-tight tracking-tight text-white">
+                    {activeDrill?.name}
+                  </h3>
+                  <div className="mt-3 flex flex-wrap items-center gap-2">
+                    <span className="rounded-full border border-cyan-300/18 bg-cyan-300/8 px-2.5 py-1 text-[10px] font-black uppercase text-cyan-100">
+                      Drill {activeDrillIndex + 1} of {summary.drills.length}
                     </span>
-                    <div className="mt-2 space-y-1.5">
-                      {summary.warnings.map(warning => (
-                        <p key={warning} className="text-[11px] font-semibold leading-relaxed text-amber-50">{warning}</p>
-                      ))}
+                    <span className="rounded-full border border-amber-300/18 bg-amber-300/8 px-2.5 py-1 text-[10px] font-black uppercase text-amber-100">
+                      {activeDrill ? getScheduledDrillBlock(activeDrill) : 'technical'}
+                    </span>
+                    <span className="rounded-full border border-slate-500/14 bg-white/[0.035] px-2.5 py-1 text-[10px] font-black uppercase text-slate-300">
+                      {activeDrill ? getScheduledDrillDuration(activeDrill) : 0} min
+                    </span>
+                  </div>
+                </div>
+
+                <div className="rounded-2xl border border-emerald-300/16 bg-[#07111f]/72 p-3 text-center shadow-inner shadow-black/10">
+                  <span className="flex items-center justify-center gap-1 text-[9px] font-black uppercase tracking-widest text-emerald-100">
+                    <Timer size={12} aria-hidden="true" /> Timer
+                  </span>
+                  <strong className="mt-1 block font-mono text-4xl font-black tracking-tight text-white">
+                    {formatTimer(activeDrillTimerSeconds)}
+                  </strong>
+                  <div className="mt-3 grid grid-cols-[1fr_auto] gap-2">
+                    <Button
+                      type="button"
+                      onClick={() => setIsActiveDrillTimerRunning(value => !value)}
+                      disabled={!activeDrill || activeDrillTimerSeconds <= 0}
+                      className="h-9 rounded-xl bg-emerald-300 px-3 text-xs font-black text-slate-950 hover:bg-emerald-200 disabled:opacity-50"
+                    >
+                      {isActiveDrillTimerRunning ? <Pause size={13} aria-hidden="true" /> : <Play size={13} aria-hidden="true" />}
+                      {isActiveDrillTimerRunning ? 'Pause' : 'Start'}
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      onClick={resetActiveDrillTimer}
+                      disabled={!activeDrill}
+                      aria-label="Reset drill timer"
+                      className="size-9 rounded-xl border border-slate-600 bg-slate-900 text-slate-200 hover:bg-slate-800"
+                    >
+                      <RotateCcw size={14} aria-hidden="true" />
+                    </Button>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-6 grid min-h-0 gap-5 lg:grid-cols-[minmax(0,1.25fr)_minmax(16rem,0.75fr)]">
+                <div className="min-w-0">
+                  <div className="border-l-2 border-emerald-300/35 pl-4">
+                    <span className="text-[9px] font-black uppercase tracking-widest text-emerald-200">How to run it</span>
+                    <p className="mt-2 text-sm font-bold leading-relaxed text-slate-50 lg:text-[15px]">
+                      {activeDrillHowToRun}
+                    </p>
+                  </div>
+                  <div className="mt-5 grid gap-4 text-sm font-semibold leading-relaxed text-slate-300 sm:grid-cols-2">
+                    <div className="min-w-0">
+                      <span className="text-[9px] font-black uppercase tracking-widest text-slate-500">Setup</span>
+                      <p className="mt-1 line-clamp-5">{activeDrillInstruction?.setup || activeDrill?.notes || 'Use the field space and equipment listed for this drill.'}</p>
+                    </div>
+                    <div className="min-w-0">
+                      <span className="text-[9px] font-black uppercase tracking-widest text-slate-500">Sets / reps</span>
+                      <p className="mt-1">{activeDrillInstruction?.setsReps || `${activeDrill ? getScheduledDrillDuration(activeDrill) : 0} minutes`}</p>
                     </div>
                   </div>
-                )}
+                </div>
 
+                <div className="grid content-start gap-4">
+                  <div>
+                    <span className="text-[9px] font-black uppercase tracking-widest text-cyan-100">Equipment</span>
+                    <p className="mt-2 rounded-xl border border-cyan-300/10 bg-cyan-300/6 px-3 py-2 text-sm font-bold leading-relaxed text-slate-100">
+                      {activeDrillEquipment.length > 0 ? activeDrillEquipment.join(', ') : activeDrillInstruction?.equipment || 'No equipment listed.'}
+                    </p>
+                  </div>
+                  <label className="block">
+                    <span className="text-[9px] font-black uppercase tracking-wider text-slate-400">Coach notes</span>
+                    <textarea
+                      value={summary.reflection}
+                      onChange={(event) => persistSessionMeta({ ...sessionMeta, reflection: event.target.value })}
+                      placeholder="Attendance, player response, changes made..."
+                      className="mt-2 min-h-24 w-full resize-none rounded-xl border border-cyan-300/10 bg-[#07111f]/88 px-3 py-2 text-sm font-medium normal-case tracking-normal text-slate-100 outline-none placeholder:text-slate-500 focus:ring-2 focus:ring-cyan-300/25"
+                    />
+                  </label>
+                </div>
               </div>
+            </section>
+
+            <aside aria-label="Next drills" className="grid min-h-0 gap-2 lg:col-span-4 lg:grid-rows-[auto_minmax(0,1fr)]">
+              <div className="flex items-center justify-between gap-2 border-b border-cyan-300/10 px-1 pb-2">
+                <span className="text-[9px] font-black uppercase tracking-widest text-slate-500">Next drills</span>
+                <span className="rounded-md border border-emerald-300/15 bg-emerald-300/10 px-2 py-1 text-[9px] font-black text-emerald-100">{nextDrills.length} queued</span>
+              </div>
+
+              <div className="grid min-h-0 content-start gap-1.5">
+                {nextDrills.map((drill) => {
+                  const instruction = DRILL_INSTRUCTIONS[drill.drillId];
+                  return (
+                    <button
+                      key={drill.id}
+                      type="button"
+                      onClick={() => setActiveDrillId(drill.id)}
+                      className="group grid min-h-0 grid-cols-[auto_minmax(0,1fr)_auto] items-start gap-3 rounded-xl border border-transparent px-2.5 py-2.5 text-left transition-colors hover:border-emerald-300/18 hover:bg-white/[0.035]"
+                    >
+                      <span className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-cyan-300/10 bg-white/[0.035] text-slate-300 group-hover:border-emerald-300/20 group-hover:text-emerald-100">
+                        {getDrillIcon(drill.drillId)}
+                      </span>
+                      <span className="min-w-0">
+                        <span className="block text-[8px] font-black uppercase tracking-wider text-slate-500">{getScheduledDrillBlock(drill)}</span>
+                        <span className="mt-0.5 block truncate text-xs font-black text-white">{drill.name}</span>
+                        <span className="mt-1 line-clamp-2 text-[10px] font-semibold leading-relaxed text-slate-400">
+                          {drill.notes || getDrillHowToRun(drill.drillId) || instruction?.execution || instruction?.setup || 'Open as current drill for details.'}
+                        </span>
+                      </span>
+                      <span className="shrink-0 rounded-full border border-cyan-300/12 bg-cyan-300/6 px-2 py-1 text-[8px] font-black text-cyan-100">
+                        {getScheduledDrillDuration(drill)} min
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </aside>
+          </main>
+        )}
+
+        {summary.warnings.length > 0 && (
+        <footer className="grid gap-2 border-t border-cyan-300/10 pt-3 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
+          {summary.warnings.length > 0 ? (
+            <div className="flex min-w-0 items-center gap-2 rounded-xl border border-amber-300/20 bg-amber-300/10 px-3 py-2" role="status">
+              <AlertTriangle size={13} className="shrink-0 text-amber-100" aria-hidden="true" />
+              <p className="truncate text-[11px] font-semibold text-amber-50">{summary.warnings[0]}{summary.warnings.length > 1 ? ` +${summary.warnings.length - 1} more` : ''}</p>
             </div>
-          </aside>
-        </div>
+          ) : null}
+        </footer>
+        )}
       </div>
     </div>
   );

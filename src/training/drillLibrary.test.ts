@@ -3,6 +3,7 @@ import {
   DRILL_INSTRUCTIONS,
   TRAINING_DRILLS,
   getDrillEquipment,
+  getDrillHowToRun,
   inferDrillSessionBlock
 } from './drillLibrary';
 
@@ -20,6 +21,18 @@ describe('training drill library', () => {
     expect(TRAINING_DRILLS.every(drill => drill.targetAttributes.length > 0)).toBe(true);
     expect(TRAINING_DRILLS.every(drill => Object.keys(drill.developmentFocus).length > 0)).toBe(true);
     expect(TRAINING_DRILLS.every(drill => drill.fatigueIncrease > 0)).toBe(true);
+  });
+
+  it('provides detailed how-to guidance for every drill', () => {
+    expect(TRAINING_DRILLS.every(drill => {
+      const instruction = DRILL_INSTRUCTIONS[drill.id];
+      const howToRun = getDrillHowToRun(drill.id);
+
+      return howToRun.length > instruction.execution.length
+        && howToRun.includes(instruction.setup)
+        && howToRun.includes(instruction.execution)
+        && howToRun.includes(instruction.setsReps);
+    })).toBe(true);
   });
 
   it('derives structured session defaults from the drill library', () => {
