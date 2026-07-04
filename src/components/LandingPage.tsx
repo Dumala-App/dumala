@@ -275,12 +275,12 @@ export default function LandingPage() {
             badge="The team management app for football coaches"
             title={
               <>
-                <span style={{ background: 'linear-gradient(180deg,#fff,rgba(255,255,255,.62))', WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent' }}>One app to manage</span>
+                <span style={{ background: 'linear-gradient(180deg,#fff,rgba(255,255,255,.62))', WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent' }}>The operating system</span>
                 <br />
-                <span style={{ background: 'linear-gradient(180deg,#FFB37E,#FF8A3D)', WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent' }}>your entire team.</span>
+                <span style={{ background: 'linear-gradient(180deg,#FFB37E,#FF8A3D)', WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent' }}>for your football team.</span>
               </>
             }
-            description="Roster, schedule, tactics, and player development — connected in one workspace, not scattered across chats and spreadsheets."
+            description="Roster, schedule, tactics, and player development — all connected, so nothing lives in a separate app anymore."
             actions={
               <>
                 <a href="#/app" className="dc-cta-primary">Start free →</a>
