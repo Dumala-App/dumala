@@ -30,6 +30,7 @@ import {
   type TacticsLineup,
   type TacticsPlayer
 } from '../tactics/lineup';
+import { toDateKey } from '../training/synchronization';
 import {
   getDefaultFormation,
   isFormationValidForFormat,
@@ -761,7 +762,7 @@ export default function TacticsView({
   }, [boardSnapshots]);
 
   const upcomingMatchGames = useMemo(() => {
-    const today = new Date().toISOString().slice(0, 10);
+    const today = toDateKey(new Date());
     return games
       .filter(game => game.status === 'Upcoming' && game.type !== 'Training' && game.type !== 'Meeting' && game.date >= today)
       .sort((a, b) => `${a.date}T${a.time || '00:00'}`.localeCompare(`${b.date}T${b.time || '00:00'}`));
