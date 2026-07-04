@@ -293,7 +293,7 @@ export default function App() {
   type PrimaryTab = 'home' | 'squad' | 'tactics' | 'development' | 'league_updates';
   type HomeTab = 'overview' | 'bulletins' | 'game_week';
   type DevelopmentTab = 'assessments' | 'training' | 'assessment_guide';
-  type LeagueUpdatesTab = 'league' | 'updates';
+  type LeagueUpdatesTab = 'league' | 'updates' | 'game';
   const primaryTabs: Array<{ id: PrimaryTab; label: string; icon: LucideIcon }> = [
     { id: 'home', label: 'Home', icon: Shield },
     { id: 'squad', label: 'Squad', icon: Users },
@@ -1690,7 +1690,7 @@ export default function App() {
             )}
 
             {primaryTab === 'league_updates' && (
-              <ViewErrorBoundary viewName={leagueUpdatesTab === 'league' ? 'League' : 'Updates'} onReturnHome={handleReturnHomeFromError} resetKeys={[primaryTab, leagueUpdatesTab]}>
+              <ViewErrorBoundary viewName={leagueUpdatesTab === 'league' ? 'League' : leagueUpdatesTab === 'updates' ? 'Updates' : 'Game'} onReturnHome={handleReturnHomeFromError} resetKeys={[primaryTab, leagueUpdatesTab]}>
                 <LeagueUpdatesHubView
                   activeTab={leagueUpdatesTab}
                   onTabChange={setLeagueUpdatesTab}

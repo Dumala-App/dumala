@@ -1,4 +1,4 @@
-import React, { lazy, Suspense } from 'react';
+import React, { lazy, Suspense, useCallback, useMemo, useRef } from 'react';
 import type { Player, Standing, TeamInfo } from '../types';
 import {
   DARK_GLASS_CLASSES,
@@ -11,11 +11,12 @@ import { SegmentedTabs, type SegmentedTabOption } from './ui/segmented-tabs';
 const StandingsView = lazy(() => import('./StandingsView'));
 const UpdatesView = lazy(() => import('./UpdatesView'));
 
-export type LeagueUpdatesTab = 'league' | 'updates';
+export type LeagueUpdatesTab = 'league' | 'updates' | 'game';
 
 const LEAGUE_UPDATES_TAB_OPTIONS: Array<SegmentedTabOption<LeagueUpdatesTab>> = [
   { value: 'league', label: 'League' },
-  { value: 'updates', label: 'Updates' }
+  { value: 'updates', label: 'Updates' },
+  { value: 'game', label: 'Game' }
 ];
 
 const LEAGUE_UPDATES_GLASS_CLASS = [
@@ -103,6 +104,43 @@ interface LeagueUpdatesHubViewProps {
 
 }
 
+function FreeKickGameFrame() {
+  const iframeRef = useRef<HTMLIFrameElement | null>(null);
+  const supabaseConfig = useMemo(() => ({
+    enabled: import.meta.env.VITE_DUMALA_CLOUD_ENABLED === 'true'
+      || (
+        import.meta.env.VITE_DUMALA_CLOUD_ENABLED !== 'false'
+        && import.meta.env.DEV
+        && Boolean(import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY)
+      ),
+    url: import.meta.env.VITE_SUPABASE_URL || null,
+    publishableKey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || null
+  }), []);
+
+  const sendConfig = useCallback(() => {
+    iframeRef.current?.contentWindow?.postMessage(
+      {
+        type: 'dumala-free-kick-config',
+        supabase: supabaseConfig
+      },
+      window.location.origin
+    );
+  }, [supabaseConfig]);
+
+  return (
+    <div className="mt-5 overflow-hidden rounded-2xl border border-cyan-300/10 bg-[#050b14] shadow-2xl shadow-black/30">
+      <iframe
+        ref={iframeRef}
+        title="Dumala Free Kick Hero"
+        src="/dumala-free-kick.html"
+        className="block h-[760px] w-full border-0"
+        allow="autoplay; clipboard-write"
+        onLoad={sendConfig}
+      />
+    </div>
+  );
+}
+
 export default function LeagueUpdatesHubView(props: LeagueUpdatesHubViewProps) {
   return (
     <div
@@ -134,6 +172,10 @@ export default function LeagueUpdatesHubView(props: LeagueUpdatesHubViewProps) {
 
         {props.activeTab === 'updates' && (
           <UpdatesView />
+        )}
+
+        {props.activeTab === 'game' && (
+          <FreeKickGameFrame />
         )}
       </Suspense>
     </div>
