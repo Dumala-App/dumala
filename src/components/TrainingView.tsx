@@ -1157,7 +1157,8 @@ export default function TrainingView({
         </div>
 
         {/* Weekly Drop Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
+        <div className="overflow-hidden rounded-2xl border border-cyan-300/10 bg-[#0b1726]/62 shadow-inner shadow-black/10">
+          <div className="grid grid-cols-1 divide-y divide-cyan-300/10 sm:grid-cols-2 sm:divide-x sm:divide-y-0 md:grid-cols-4 lg:grid-cols-7">
           {DAYS_OF_WEEK.map((day) => {
             const scheduledList = getOrderedSessionDrills(weeklySchedule[day]);
             const sessionSummary = buildTrainingSessionSummary({
@@ -1173,35 +1174,30 @@ export default function TrainingView({
             const isUsualTrainingDay = activeTrainingDaySet.has(day);
             const hasSession = scheduledList.length > 0;
             const stateLabel = hasSession ? 'Train' : isUsualTrainingDay ? 'Planned' : 'Rest';
-            const sessionStateClass = hasSession
-              ? 'border-emerald-300/25 bg-emerald-400/12 text-emerald-100'
+            const dayAccentClass = hasSession
+              ? 'from-emerald-300/22 via-transparent'
               : isUsualTrainingDay
-                ? 'border-amber-300/25 bg-amber-300/12 text-amber-100'
-                : 'border-slate-500/20 bg-slate-700/20 text-slate-400';
-            const cardToneClass = hasSession
-              ? 'border-emerald-300/12 bg-[#0d1620]/82 hover:border-emerald-300/25'
+                ? 'from-amber-300/20 via-transparent'
+                : 'from-slate-400/10 via-transparent';
+            const stateTextClass = hasSession
+              ? 'text-emerald-100'
               : isUsualTrainingDay
-                ? 'border-amber-300/12 bg-[#0e1722]/78 hover:border-amber-300/25'
-                : 'border-slate-500/12 bg-[#0b1220]/66 hover:border-slate-400/20';
+                ? 'text-amber-100'
+                : 'text-slate-500';
             
             let loadLabel = "LIGHT";
-            let loadColor = "bg-emerald-500/12 text-emerald-100 border-emerald-300/25";
             let loadDot = "bg-emerald-300 shadow-[0_0_8px_rgba(52,211,153,0.55)]";
             if (totalLoad >= SESSION_LOAD_THRESHOLDS.high) {
               loadLabel = "HIGH LOAD";
-              loadColor = "bg-red-500/15 text-red-100 border-red-300/30";
               loadDot = "bg-red-400 shadow-[0_0_8px_rgba(248,113,113,0.6)]";
             } else if (totalLoad >= SESSION_LOAD_THRESHOLDS.high - 3) {
               loadLabel = "PEAK";
-              loadColor = "bg-orange-600/20 text-orange-50 border-orange-300/30";
               loadDot = "bg-orange-500 shadow-[0_0_8px_rgba(249,115,22,0.6)]";
             } else if (totalLoad >= SESSION_LOAD_THRESHOLDS.high - 7) {
               loadLabel = "HEAVY";
-              loadColor = "bg-orange-400/15 text-orange-100 border-orange-300/25";
               loadDot = "bg-orange-300 shadow-[0_0_8px_rgba(251,146,60,0.55)]";
             } else if (totalLoad >= SESSION_LOAD_THRESHOLDS.optimal) {
               loadLabel = "TRAINING";
-              loadColor = "bg-amber-400/15 text-amber-100 border-amber-300/25";
               loadDot = "bg-amber-300 shadow-[0_0_8px_rgba(252,211,77,0.55)]";
             }
 
@@ -1220,56 +1216,53 @@ export default function TrainingView({
                   e.currentTarget.classList.remove('border-cyan-300/40', 'bg-cyan-300/10');
                   handleDropDrill(day, e);
                 }}
-                className={`relative flex min-h-[226px] flex-col justify-between rounded-xl border p-3 shadow-sm shadow-black/15 transition-all group/day ${cardToneClass}`}
+                className={`group/day relative flex min-h-[220px] flex-col justify-between overflow-hidden p-3 transition-colors hover:bg-white/[0.025] ${hasSession ? 'bg-white/[0.018]' : ''}`}
               >
-                {/* Day block top layout */}
-                <div className="space-y-2.5">
+                <div className={`pointer-events-none absolute inset-x-3 top-0 h-px bg-gradient-to-r ${dayAccentClass} to-transparent`} />
+                <div className="space-y-3">
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
-                      <span className="block truncate font-display text-[13px] font-black uppercase tracking-wide text-slate-100">{day}</span>
-                      <span className="mt-0.5 block text-[10px] font-semibold text-slate-400">{weekDaysMap[day].monthDate}</span>
+                      <span className="block truncate font-display text-sm font-black text-slate-50">{day}</span>
+                      <span className="mt-0.5 block text-[10px] font-semibold uppercase tracking-wider text-slate-500">{weekDaysMap[day].monthDate}</span>
                     </div>
-                    <div className="flex shrink-0 flex-col items-end gap-1">
-                      <span className={`rounded-full border px-2 py-0.5 text-[8px] font-black uppercase tracking-wide ${sessionStateClass}`}>
+                    <div className="flex shrink-0 flex-col items-end gap-1 text-right">
+                      <span className={`text-[9px] font-black uppercase tracking-widest ${stateTextClass}`}>
                         {stateLabel}
                       </span>
                       {sessionSummary.status !== 'planned' && hasSession && (
-                        <span className="rounded-full border border-indigo-300/20 bg-indigo-300/10 px-1.5 py-0.5 text-[7px] font-bold uppercase text-indigo-100">
+                        <span className="text-[8px] font-bold uppercase tracking-wider text-indigo-200">
                           {sessionSummary.status === 'in_progress' ? 'Live' : 'Done'}
                         </span>
                       )}
                     </div>
                   </div>
 
-                  {/* Load indicator tag */}
-                  <div className="grid grid-cols-2 gap-1.5">
-                    <div className={`flex items-center justify-center gap-1 rounded-lg border px-1.5 py-1 text-[8px] font-mono font-bold leading-none ${loadColor}`}>
-                      <span className={`size-1 rounded-full ${loadDot}`}></span>
-                      <span>{loadLabel}</span>
-                    </div>
-                    <div className="flex items-center justify-center gap-1 rounded-lg border border-violet-300/15 bg-violet-300/8 px-1.5 py-1 text-[8px] font-mono font-bold leading-none text-violet-100">
-                      <Timer size={9} aria-hidden="true" />
-                      <span>{totalDuration} min</span>
-                    </div>
+                  <div className="flex items-center justify-between gap-2 border-y border-white/[0.06] py-2">
+                    <span className="inline-flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest text-slate-400">
+                      <span className={`size-1.5 rounded-full ${loadDot}`} />
+                      {loadLabel}
+                    </span>
+                    <span className="inline-flex items-center gap-1 font-mono text-[10px] font-black text-slate-200">
+                      <Timer size={10} aria-hidden="true" />
+                      {totalDuration} min
+                    </span>
                   </div>
 
-                  {/* Match badge if there's a scheduled game */}
                   {dayMatches.length > 0 && dayMatches.map(m => (
-                    <div key={m.id} className="flex items-center gap-1 rounded-lg border border-amber-300/20 bg-amber-300/10 p-1.5 text-[8px] font-semibold leading-none text-amber-100">
+                    <div key={m.id} className="flex items-center gap-1 text-[9px] font-bold leading-none text-amber-100">
                       <Trophy size={9} />
                       <span className="truncate">{m.type === 'League' ? 'LEAGUE' : m.type === 'Cup' ? 'CUP' : 'FRIENDLY'} vs {m.opponent.substring(0, 12)}</span>
                     </div>
                   ))}
 
-                  {/* Scheduled drills list */}
-                  <div className="space-y-1.5 pt-1.5">
+                  <div className="space-y-2">
                     {scheduledList.length === 0 ? (
-                      <div className="flex min-h-[72px] select-none flex-col items-center justify-center gap-1.5 rounded-lg border border-dashed border-slate-500/18 bg-slate-950/18 p-3 text-center text-[9px] text-slate-500">
-                        <Hand size={14} className={isUsualTrainingDay ? 'text-amber-200/75' : 'text-slate-500'} aria-hidden="true" />
-                        <span className="font-semibold leading-tight text-slate-400">
+                      <div className="flex min-h-[76px] select-none flex-col justify-center gap-1 text-[10px]">
+                        <span className="inline-flex items-center gap-1.5 font-black uppercase tracking-wider text-slate-400">
+                          <Hand size={12} className={isUsualTrainingDay ? 'text-amber-200/75' : 'text-slate-500'} aria-hidden="true" />
                           {isUsualTrainingDay ? 'Planned day, no drills yet' : 'Rest day'}
                         </span>
-                        <span className="leading-tight text-slate-500">Drop drills here</span>
+                        <span className="leading-tight text-slate-500">Drop drills here or open builder.</span>
                       </div>
                     ) : (
                       <>
@@ -1277,15 +1270,15 @@ export default function TrainingView({
                         <div 
                           id={`scheduled-item-${item.id}`}
                           key={item.id}
-                          className="flex items-center justify-between rounded-lg border border-slate-500/14 bg-white/[0.045] p-1.5 text-[10px] transition-all hover:border-emerald-300/25 hover:bg-emerald-300/8"
+                          className="flex items-start justify-between gap-2 text-[10px]"
                         >
-                          <div className="flex min-w-0 items-center gap-1 truncate pr-1">
-                            <span className="text-slate-400 shrink-0">{getDrillIcon(item.drillId)}</span>
+                          <div className="flex min-w-0 items-start gap-1.5 truncate pr-1">
+                            <span className="mt-0.5 shrink-0 text-slate-400">{getDrillIcon(item.drillId)}</span>
                             <span className="min-w-0 truncate">
                               <span className="block truncate font-semibold leading-tight text-slate-100">
                                 {item.name.replace("Challenge", "").replace("Workout", "").replace("Walkthrough", "").replace("Sprints", "")}
                               </span>
-                              <span className="block text-[7px] uppercase tracking-wide text-slate-400">
+                              <span className="block text-[8px] uppercase tracking-wide text-slate-500">
                                 {getScheduledDrillBlock(item)} · {getScheduledDrillDuration(item)} min
                               </span>
                             </span>
@@ -1295,7 +1288,7 @@ export default function TrainingView({
                             variant="ghost"
                             size="icon"
                             onClick={() => handleRemoveDrill(day, item.id)}
-                            className="size-4 rounded bg-white/[0.04] text-slate-500 hover:bg-rose-300/10 hover:text-rose-200"
+                            className="size-4 rounded text-slate-500 hover:bg-rose-300/10 hover:text-rose-200"
                             title="Remove Drill"
                           >
                             <X size={10} aria-hidden="true" />
@@ -1303,7 +1296,7 @@ export default function TrainingView({
                         </div>
                       ))}
                       {sessionSummary.overflowCount > 0 && (
-                        <div className="rounded-lg border border-slate-500/12 bg-slate-950/18 px-2 py-1 text-center text-[8px] font-bold uppercase text-slate-400">
+                        <div className="text-[8px] font-bold uppercase tracking-wider text-slate-500">
                           +{sessionSummary.overflowCount} more drills in builder
                         </div>
                       )}
@@ -1319,14 +1312,14 @@ export default function TrainingView({
                     <Gauge size={10} aria-hidden="true" />
                     {scheduledList.length} {scheduledList.length === 1 ? 'drill' : 'drills'} · {totalLoad} pts
                   </span>
-                    <span className={`rounded-full border px-1.5 py-0.5 text-[7px] font-bold uppercase ${
+                    <span className={`text-[8px] font-bold uppercase ${
                       sessionSummary.readiness === 'ready'
-                        ? 'border-emerald-300/20 bg-emerald-400/10 text-emerald-100'
+                        ? 'text-emerald-100'
                         : sessionSummary.readiness === 'high_load'
-                          ? 'border-red-300/25 bg-red-500/12 text-red-100'
+                          ? 'text-red-100'
                           : sessionSummary.readiness === 'needs_structure'
-                            ? 'border-amber-300/25 bg-amber-300/12 text-amber-100'
-                            : 'border-slate-500/15 bg-white/[0.025] text-slate-500'
+                            ? 'text-amber-100'
+                            : 'text-slate-500'
                     }`}>
                       {sessionSummary.readiness === 'needs_structure' ? 'Needs prep' : sessionSummary.readiness.replace('_', ' ')}
                     </span>
@@ -1346,7 +1339,7 @@ export default function TrainingView({
                     variant="ghost"
                     size="sm"
                     onClick={() => setBuilderDay(day)}
-                    className="h-7 w-full shrink-0 rounded-lg border border-slate-500/14 bg-white/[0.035] px-2 text-[9px] font-semibold text-slate-200 hover:border-emerald-300/25 hover:bg-emerald-300/10 hover:text-emerald-50"
+                    className="h-7 w-full shrink-0 rounded-lg border border-slate-500/14 bg-white/[0.025] px-2 text-[9px] font-semibold text-slate-200 hover:border-emerald-300/25 hover:bg-emerald-300/10 hover:text-emerald-50"
                     aria-label={`Open ${day} training session`}
                     title={`Open ${day} session`}
                   >
@@ -1357,6 +1350,7 @@ export default function TrainingView({
               </div>
             );
           })}
+          </div>
         </div>
 
         {builderDay && (
