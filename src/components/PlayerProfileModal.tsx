@@ -1075,25 +1075,22 @@ export default function PlayerProfileModal({ player, onClose, onUpdate, onRemove
                 </div>
               ) : (
                 <>
-                  <div className="mb-3 flex flex-wrap items-center justify-between gap-3 border-b border-white/[0.06] pb-3">
-                    <div className="min-w-0">
-                      <span className="text-[9px] font-black uppercase tracking-widest text-slate-500">Player profile</span>
-                      <h2 id="player-profile-fullname" className="mt-1 font-display text-2xl font-black tracking-tight text-white sm:text-3xl">
+                  <div className="mb-3 border-b border-white/[0.06] pb-3">
+                    <span className="text-[9px] font-black uppercase tracking-widest text-slate-500">Player profile</span>
+                    <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-2">
+                      <h2 id="player-profile-fullname" className="font-display text-2xl font-black tracking-tight text-white sm:text-3xl">
                         {name}
                       </h2>
-                      <p id="player-profile-bio-summary" className="mt-1 line-clamp-2 max-w-xl text-xs font-medium italic leading-relaxed text-slate-400">
-                        "{bio || 'Highly motivated squad member.'}"
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-3 border-l border-white/[0.08] pl-4">
-                      <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full border-2 border-amber-400 bg-slate-950 shadow-md shadow-amber-950/20">
-                        <span className="font-display text-2xl font-black text-white">{overallRating}</span>
-                      </div>
-                      <div>
-                        <div className="text-[9px] font-black uppercase tracking-widest text-slate-500">Calculated OVR</div>
-                        <div className="mt-1 text-xs font-semibold text-slate-300">{player.position} model</div>
+                      <div className="flex items-center gap-2.5">
+                        <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full border-2 border-amber-400 bg-slate-950 shadow-md shadow-amber-950/20">
+                          <span className="font-display text-xl font-black text-white">{overallRating}</span>
+                        </div>
+                        <span className="text-xs font-black text-slate-300">{player.position}</span>
                       </div>
                     </div>
+                    <p id="player-profile-bio-summary" className="mt-1 line-clamp-2 max-w-xl text-xs font-medium italic leading-relaxed text-slate-400">
+                      "{bio || 'Highly motivated squad member.'}"
+                    </p>
                   </div>
                   <span className="text-[9px] font-black uppercase tracking-widest text-emerald-200">Coach's verdict</span>
                   <p className="mt-2 line-clamp-3 whitespace-pre-wrap text-sm font-bold leading-relaxed text-slate-50 lg:text-[15px]">
