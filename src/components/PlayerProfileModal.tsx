@@ -701,13 +701,19 @@ export default function PlayerProfileModal({ player, onClose, onUpdate, onRemove
               </div>
             ) : (
               <>
-                <h2 id="player-profile-fullname" className="mt-1.5 font-display text-2xl font-black tracking-tight text-white sm:text-3xl">
-                  {name}
-                </h2>
-                {!isStaff && (
-                  <p id="player-profile-bio-summary" className="mt-1 line-clamp-2 max-w-2xl text-xs font-medium italic leading-relaxed text-slate-400">
-                    "{bio || 'Highly motivated squad member.'}"
-                  </p>
+                {!isStaff ? (
+                  <div className="mt-2 grid max-w-xl grid-cols-4 gap-x-5 gap-y-2">
+                    {seasonStatItems.slice(0, 4).map(item => (
+                      <div key={item.id} className="min-w-0">
+                        <div className={`font-mono text-lg font-black leading-none ${item.tone}`}>{item.value}</div>
+                        <div className="mt-1 truncate text-[8px] font-black uppercase tracking-widest text-slate-500">{item.label}</div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <h2 id="player-profile-fullname" className="mt-1.5 font-display text-2xl font-black tracking-tight text-white sm:text-3xl">
+                    {name}
+                  </h2>
                 )}
               </>
             )}
@@ -1070,13 +1076,14 @@ export default function PlayerProfileModal({ player, onClose, onUpdate, onRemove
               ) : (
                 <>
                   <div className="mb-3 flex flex-wrap items-center justify-between gap-3 border-b border-white/[0.06] pb-3">
-                    <div className="grid grid-cols-4 gap-x-4 gap-y-2">
-                      {seasonStatItems.slice(0, 4).map(item => (
-                        <div key={item.id} className="min-w-0">
-                          <div className={`font-mono text-lg font-black leading-none ${item.tone}`}>{item.value}</div>
-                          <div className="mt-1 truncate text-[8px] font-black uppercase tracking-widest text-slate-500">{item.label}</div>
-                        </div>
-                      ))}
+                    <div className="min-w-0">
+                      <span className="text-[9px] font-black uppercase tracking-widest text-slate-500">Player profile</span>
+                      <h2 id="player-profile-fullname" className="mt-1 font-display text-2xl font-black tracking-tight text-white sm:text-3xl">
+                        {name}
+                      </h2>
+                      <p id="player-profile-bio-summary" className="mt-1 line-clamp-2 max-w-xl text-xs font-medium italic leading-relaxed text-slate-400">
+                        "{bio || 'Highly motivated squad member.'}"
+                      </p>
                     </div>
                     <div className="flex items-center gap-3 border-l border-white/[0.08] pl-4">
                       <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full border-2 border-amber-400 bg-slate-950 shadow-md shadow-amber-950/20">
@@ -1179,22 +1186,6 @@ export default function PlayerProfileModal({ player, onClose, onUpdate, onRemove
                   <p className="mt-2 text-[9px] font-bold uppercase tracking-wider text-slate-600">
                     Base avg {baseAttributeAverage} · Top tool {attributeLabels[strongestAttribute[0]] ?? strongestAttribute[0]} ({strongestAttribute[1]}){positionAttributeAverage !== undefined ? ` · Position avg ${positionAttributeAverage}` : ''}
                   </p>
-
-                  <div className="mt-2 flex flex-wrap items-center justify-between gap-3 border-l-2 border-amber-300/40 pl-3.5">
-                    <div className="min-w-0 flex-1">
-                      <span className="flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest text-amber-200">
-                        <Zap size={11} /> Development focus
-                      </span>
-                      <p className="mt-1 line-clamp-2 text-[11px] font-semibold leading-relaxed text-slate-300">{suggestedTrainingFocus}</p>
-                    </div>
-                    <Button
-                      type="button"
-                      onClick={() => onOpenAssessments(player.id)}
-                      className="h-8 shrink-0 rounded-xl border border-indigo-300/25 bg-indigo-300/12 px-3 text-[10px] font-black uppercase tracking-wider text-indigo-100 hover:bg-indigo-300/20"
-                    >
-                      <Shield size={11} /> Open Assessment Center
-                    </Button>
-                  </div>
                 </div>
               )}
             </section>
@@ -1284,6 +1275,19 @@ export default function PlayerProfileModal({ player, onClose, onUpdate, onRemove
                         </span>
                       </div>
                     )}
+                    <div className="mt-3 border-t border-white/[0.06] pt-3">
+                      <span className="flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest text-amber-200">
+                        <Zap size={11} /> Development focus
+                      </span>
+                      <p className="mt-1.5 line-clamp-3 text-[11px] font-semibold leading-relaxed text-slate-300">{suggestedTrainingFocus}</p>
+                      <Button
+                        type="button"
+                        onClick={() => onOpenAssessments(player.id)}
+                        className="mt-3 h-8 w-full rounded-xl border border-indigo-300/25 bg-indigo-300/12 px-3 text-[10px] font-black uppercase tracking-wider text-indigo-100 hover:bg-indigo-300/20"
+                      >
+                        <Shield size={11} /> Open Assessment Center
+                      </Button>
+                    </div>
                   </div>
 
                   <div id="points-progression-chart-card" className="mt-auto pt-1">
