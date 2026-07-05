@@ -1165,17 +1165,11 @@ export default function TrainingView({
             const hasSession = scheduledList.length > 0;
             const previewDrills = sessionSummary.keyDrills.slice(0, 2);
             const hiddenDrillCount = Math.max(0, scheduledList.length - previewDrills.length);
-            const stateLabel = hasSession ? 'Train' : isUsualTrainingDay ? 'Planned' : 'Rest';
             const dayAccentClass = hasSession
               ? 'from-emerald-300/22 via-transparent'
               : isUsualTrainingDay
                 ? 'from-amber-300/20 via-transparent'
                 : 'from-slate-400/10 via-transparent';
-            const stateTextClass = hasSession
-              ? 'text-emerald-100'
-              : isUsualTrainingDay
-                ? 'text-amber-100'
-                : 'text-slate-500';
             
             let loadLabel = "LIGHT";
             let loadDot = "bg-emerald-300 shadow-[0_0_8px_rgba(52,211,153,0.55)]";
@@ -1208,18 +1202,17 @@ export default function TrainingView({
                   e.currentTarget.classList.remove('border-cyan-300/40', 'bg-cyan-300/10');
                   handleDropDrill(day, e);
                 }}
-                className={`group/day relative flex min-h-[226px] flex-col justify-between overflow-hidden rounded-xl border border-cyan-300/10 p-4 transition-colors hover:border-cyan-300/18 hover:bg-white/[0.025] ${hasSession ? 'bg-white/[0.025]' : 'bg-[#07111f]/42'}`}
+                className={`group/day relative flex min-h-[226px] flex-col justify-between overflow-hidden rounded-xl border border-cyan-300/10 p-4 transition-colors hover:border-cyan-300/18 hover:bg-white/[0.025] ${hasSession ? 'bg-[#0b1726]/82' : 'bg-[#07111f]/46'}`}
               >
                 <div className={`pointer-events-none absolute inset-x-3 top-0 h-px bg-gradient-to-r ${dayAccentClass} to-transparent`} />
                 <div className="space-y-3">
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
                       <span className="block truncate font-display text-sm font-black text-slate-50">{day}</span>
-                      <span className="mt-0.5 block text-[10px] font-semibold uppercase tracking-wider text-slate-500">{weekDaysMap[day].monthDate}</span>
                     </div>
                     <div className="flex shrink-0 flex-col items-end gap-1 text-right">
-                      <span className={`text-[9px] font-black uppercase tracking-widest ${stateTextClass}`}>
-                        {stateLabel}
+                      <span className="rounded-full border border-cyan-300/10 bg-white/[0.035] px-2 py-0.5 text-[9px] font-black uppercase tracking-wider text-slate-400">
+                        {weekDaysMap[day].monthDate}
                       </span>
                       {sessionSummary.status !== 'planned' && hasSession && (
                         <span className="text-[8px] font-bold uppercase tracking-wider text-indigo-200">
@@ -1249,16 +1242,14 @@ export default function TrainingView({
 
                   <div className="space-y-2">
                     {scheduledList.length === 0 ? (
-                      <div className="flex min-h-[76px] select-none flex-col justify-center gap-1 text-[10px]">
-                        <span className="inline-flex items-center gap-1.5 font-black uppercase tracking-wider text-slate-400">
-                          <Hand size={12} className={isUsualTrainingDay ? 'text-amber-200/75' : 'text-slate-500'} aria-hidden="true" />
-                          {isUsualTrainingDay ? 'Planned day, no drills yet' : 'Rest day'}
+                      <div className="flex min-h-[76px] select-none items-center rounded-lg border border-dashed border-cyan-300/10 px-3 text-[10px] text-slate-500">
+                        <span className="inline-flex items-center gap-1.5 leading-tight">
+                          <Hand size={12} className={isUsualTrainingDay ? 'text-amber-200/70' : 'text-slate-500'} aria-hidden="true" />
+                          Drop drills here
                         </span>
-                        <span className="leading-tight text-slate-500">Drop drills here or open builder.</span>
                       </div>
                     ) : (
                       <>
-                      <span className="block text-[8px] font-black uppercase tracking-widest text-slate-500">Session preview</span>
                       {previewDrills.map((item) => (
                         <div 
                           id={`scheduled-item-${item.id}`}
@@ -1298,35 +1289,7 @@ export default function TrainingView({
                   </div>
                 </div>
                 
-                {/* Day footer helper text */}
                 <div className="mt-3 space-y-2 border-t border-slate-500/12 pt-2">
-                  <div className="flex items-center justify-between gap-2">
-                  <span className="hidden">
-                    <Gauge size={10} aria-hidden="true" />
-                    {scheduledList.length} {scheduledList.length === 1 ? 'drill' : 'drills'} · {totalLoad} pts
-                  </span>
-                    <span className={`text-[8px] font-bold uppercase ${
-                      sessionSummary.readiness === 'ready'
-                        ? 'text-emerald-100'
-                        : sessionSummary.readiness === 'high_load'
-                          ? 'text-red-100'
-                          : sessionSummary.readiness === 'needs_structure'
-                            ? 'text-amber-100'
-                            : 'text-slate-500'
-                    }`}>
-                      {sessionSummary.readiness === 'needs_structure' ? 'Needs prep' : sessionSummary.readiness.replace('_', ' ')}
-                    </span>
-                  </div>
-                  {false && hasSession && (
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="min-w-0 truncate text-[8px] font-semibold text-slate-500">
-                        {getSessionEquipment(scheduledList).slice(0, 2).join(', ') || 'No equipment listed'}
-                      </span>
-                      {sessionSummary.warnings.length > 0 && (
-                        <span className="shrink-0 text-[8px] font-bold text-amber-200">{sessionSummary.warnings.length} warning</span>
-                      )}
-                    </div>
-                  )}
                   <Button
                     type="button"
                     variant="ghost"
