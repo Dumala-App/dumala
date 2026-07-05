@@ -1490,30 +1490,18 @@ export default function App() {
       
       {/* Dynamic Navigation Topbar */}
       {!isMatchLayoutFullscreen && (
-        <header id="app-topbar" className="sticky top-0 z-40 border-b border-white/10 bg-[var(--shell)]/95 text-[var(--shell-foreground)] shadow-lg shadow-slate-950/10 backdrop-blur-xl">
+        <header id="app-topbar" className="sticky top-0 z-40 border-b border-white/[0.06] bg-[#04091a]/80 text-[#F5F7FB] backdrop-blur-xl">
           <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex justify-between items-center h-[72px]">
-              
-              {/* Logo Brand Icon */}
-              <div className="flex min-w-0 items-center">
-                <img
-                  id="brand-logo"
-                  src="/Dumala_logo.png"
-                  alt="Dumala"
-                  onClick={() => handleSelectPrimaryTab('home')}
-                  className="h-[4.75rem] w-[4.75rem] cursor-pointer rounded-xl object-contain drop-shadow-sm transition-all hover:-translate-y-0.5 active:translate-y-0"
-                />
-              </div>
+            <div className="flex justify-between items-center h-16">
 
               {/* Desktop Navigation Link Tabs */}
-              <nav id="desktop-nav" aria-label="Primary navigation" className="hidden lg:flex items-center gap-1 rounded-2xl border border-white/[0.08] bg-white/[0.06] p-1.5">
+              <nav id="desktop-nav" aria-label="Primary navigation" className="hidden lg:flex items-center gap-1">
                 {primaryTabs.map((tab) => {
                   return (
                     <ShellNavItem
                       id={`nav-tab-btn-${tab.id}`}
                       key={tab.id}
                       label={tab.label}
-                      icon={tab.icon}
                       isActive={primaryTab === tab.id}
                       onSelect={() => handleSelectPrimaryTab(tab.id)}
                       layout="desktop"
@@ -1543,7 +1531,7 @@ export default function App() {
                   onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
                   aria-label={mobileMenuOpen ? 'Close navigation' : 'Open navigation'}
                   aria-expanded={mobileMenuOpen}
-                  className="size-10 rounded-xl bg-white/10 text-white hover:bg-white/15 hover:text-white active:scale-95 lg:hidden [&_svg]:size-5"
+                  className="size-10 rounded-xl border border-white/[0.14] bg-white/[0.04] text-[#DDE4EF] shadow-[inset_0_1px_0_rgba(255,255,255,.10)] hover:border-white/[0.26] hover:bg-white/[0.07] hover:text-white active:scale-95 lg:hidden [&_svg]:size-5"
                 >
                   {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
                 </Button>
@@ -1554,14 +1542,13 @@ export default function App() {
 
           {/* Expandable Mobile Dropdown Menu */}
           {mobileMenuOpen && (
-            <div id="mobile-nav-panel" className="grid grid-cols-2 gap-2 border-t border-white/10 bg-[var(--shell)] p-3 lg:hidden">
+            <div id="mobile-nav-panel" className="grid grid-cols-2 gap-2 border-t border-white/[0.06] bg-[#04091a]/95 p-3 backdrop-blur-xl lg:hidden">
               {primaryTabs.map((tab) => {
                 return (
                   <ShellNavItem
                     id={`mobile-nav-btn-${tab.id}`}
                     key={tab.id}
                     label={tab.label}
-                    icon={tab.icon}
                     isActive={primaryTab === tab.id}
                     onSelect={() => handleSelectPrimaryTab(tab.id)}
                     layout="mobile"

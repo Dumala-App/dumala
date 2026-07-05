@@ -418,140 +418,150 @@ export default function RosterView({
         </div>
       </nav>
 
-      {/* Dynamic Header banner */}
-      <div className="relative overflow-hidden rounded-2xl border border-cyan-300/10 bg-[#07111f]/88 p-6 text-white shadow-lg shadow-black/20 backdrop-blur-xl">
-        <div className="pointer-events-none absolute right-0 top-0 p-4 opacity-10">
-          <Shield size={180} className="stroke-[3]" />
-        </div>
-        
-        <div className="relative z-10 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          <div className="space-y-1.5">
-            <div className="flex items-center gap-2">
-              <span className="bg-amber-400 text-slate-950 text-[10px] font-black uppercase px-2 py-0.5 rounded tracking-widest">SQUAD WORKSHOP</span>
-              <span className="text-slate-400 text-xs font-mono">Real-time Administration</span>
-            </div>
-            <h2 className="text-2xl font-display font-black tracking-tight">Team Roster & Player Directory</h2>
-            <p className="text-slate-300 text-xs max-w-2xl leading-relaxed">
-              Synthesize your squad metrics, register athletes, and protect the complete browser workspace below.
-            </p>
-          </div>
-        </div>
-      </div>
+      {/* Roster command bar (Players tab only) */}
+      {activeSection === 'players' && (
+      <div className="relative overflow-hidden rounded-2xl border border-white/[0.12] bg-[#081026]/70 text-white shadow-[inset_0_1px_0_rgba(255,255,255,.08),0_14px_30px_-20px_rgba(0,0,0,.65)] backdrop-blur-xl">
+        <div className="pointer-events-none absolute -right-24 -top-24 h-64 w-64 rounded-full bg-[radial-gradient(circle,rgba(255,138,61,.14),transparent_70%)]" />
 
-      <div className="space-y-6">
-        {activeSection === 'players' && (
-        <div className={`${rosterGlassPanelClass} px-3 py-3 font-medium`}>
-          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-            <div className="relative w-full lg:max-w-sm">
-              <Search className="absolute left-3 top-2.5 text-slate-400" size={14} />
+        <div className="relative z-10 flex flex-col gap-4 p-5">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div className="min-w-0">
+              <div className="flex items-center gap-2.5">
+                <span className="rounded-md bg-[linear-gradient(180deg,#FF9A52,#FF8A3D)] px-2.5 py-1 text-[10px] font-black uppercase tracking-widest text-[#180A00] shadow-[inset_0_1px_0_rgba(255,255,255,.32)]">Squad Workshop</span>
+                <span className="text-xs font-medium text-[#8A96AD]">Real-time administration</span>
+              </div>
+              <h2 className="mt-2 font-display text-xl font-black tracking-tight text-[#F5F7FB]">Team Roster & Player Directory</h2>
+              <p className="mt-0.5 text-xs text-[#8A96AD]">
+                {activeRoster.length === players.length
+                  ? `${players.length} registered athlete${players.length === 1 ? '' : 's'}`
+                  : `Showing ${activeRoster.length} of ${players.length} athletes`}
+              </p>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-1.5">
+              <Button
+                id="toggle-compare-widget-btn"
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setShowCompareWidget(!showCompareWidget)}
+                aria-pressed={showCompareWidget}
+                className={`gap-1.5 rounded-xl px-2.5 text-[10px] shadow-[inset_0_1px_0_rgba(255,255,255,.10),0_1px_2px_rgba(0,0,0,.3)] ${
+                  showCompareWidget
+                    ? 'border-orange-300/40 bg-orange-400/10 text-[#FFB37E] hover:border-orange-300/55 hover:bg-orange-400/15 hover:text-[#FFB37E]'
+                    : 'border-white/[0.14] bg-white/[0.04] text-[#DDE4EF] hover:border-white/[0.26] hover:bg-white/[0.07] hover:text-white'
+                }`}
+                title="Toggle Athlete Comparison Matchup Board"
+              >
+                <ArrowLeftRight size={12} className="stroke-[2.5]" />
+                <span>{showCompareWidget ? 'Comparing' : 'Compare'}</span>
+              </Button>
+
+              <Button
+                id="btn-export-backup"
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={onExportBackup}
+                className="gap-1.5 rounded-xl border-white/[0.14] bg-white/[0.04] px-2.5 text-[10px] text-[#DDE4EF] shadow-[inset_0_1px_0_rgba(255,255,255,.10),0_1px_2px_rgba(0,0,0,.3)] hover:border-white/[0.26] hover:bg-white/[0.07] hover:text-white"
+                title="Export roster, assessments, tactics, training, notes, availability, payments, and standings history"
+              >
+                <Download size={12} className="stroke-[2.5]" />
+                <span>Export</span>
+              </Button>
+
+              <Input
+                ref={importInputRef}
+                type="file"
+                accept="application/json,.json"
+                className="hidden"
+                onChange={(event) => void handleImportFile(event.target.files?.[0])}
+                aria-label="Restore team backup file"
+              />
+              <Button
+                id="btn-import-backup"
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => importInputRef.current?.click()}
+                className="gap-1.5 rounded-xl border-white/[0.14] bg-white/[0.04] px-2.5 text-[10px] text-[#DDE4EF] shadow-[inset_0_1px_0_rgba(255,255,255,.10),0_1px_2px_rgba(0,0,0,.3)] hover:border-white/[0.26] hover:bg-white/[0.07] hover:text-white"
+                title="Restore a Dumala full-workspace or legacy JSON backup"
+              >
+                <Upload size={12} className="stroke-[2.5]" />
+                <span>Restore</span>
+              </Button>
+
+              <Button
+                id="toggle-add-player-form-btn"
+                type="button"
+                size="sm"
+                onClick={() => {
+                  setIsAdding(!isAdding);
+                  setIsAddingStaff(false);
+                }}
+                aria-expanded={isAdding}
+                className="gap-1.5 rounded-xl bg-[linear-gradient(180deg,#FF9A52,#FF8A3D)] px-3.5 text-[11px] font-bold text-[#180A00] shadow-[inset_0_1px_0_rgba(255,255,255,.32),0_1px_2px_rgba(0,0,0,.35),0_6px_14px_-7px_rgba(255,138,61,.5)] transition-all hover:bg-[linear-gradient(180deg,#FFB06E,#FFA35F)] hover:text-[#180A00]"
+              >
+                {isAdding ? <Plus size={12} className="rotate-45" /> : <UserPlus size={12} />}
+                <span>{isAdding ? 'Cancel' : 'Add Player'}</span>
+              </Button>
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+            <div className="relative w-full sm:max-w-xs">
+              <Search className="absolute left-3 top-2.5 text-[#8A96AD]" size={14} />
               <Input
                 id="search-roster-input"
                 type="text"
                 placeholder="Search squad..."
                 value={searchTerm}
                 onChange={e => setSearchTerm(e.target.value)}
-                className={`h-9 pl-9 text-xs font-medium ${rosterGlassFieldClass}`}
+                className="h-9 rounded-xl border-white/[0.13] bg-[#04091a]/72 pl-9 text-xs font-medium text-[#F5F7FB] placeholder:text-[#5C6880] focus-visible:border-orange-300/70 focus-visible:ring-orange-300/20"
                 aria-label="Search squad"
               />
             </div>
-
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between lg:justify-end">
-              <div className="flex max-w-full overflow-x-auto rounded-lg border border-cyan-300/10 bg-[#0b1726]/72 p-0.5 shadow-inner shadow-black/10" role="group" aria-label="Filter roster by position">
-                {["All", "Forward", "Midfielder", "Defender", "Goalkeeper"].map((pos) => (
-                  <Button
-                    id={`filter-pos-${pos.toLowerCase()}`}
-                    key={pos}
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setFilterPos(pos)}
-                    aria-pressed={filterPos === pos}
-                    className={`rounded-md px-2.5 text-[10px] ${
-                      filterPos === pos
-                        ? 'bg-orange-400 text-slate-950 shadow-sm ring-1 ring-orange-300/30'
-                        : 'text-slate-400 hover:bg-orange-300/10 hover:text-orange-100'
-                    }`}
-                  >
-                    {pos === 'All' ? 'All' : pos}
-                  </Button>
-                ))}
-              </div>
-
-              <div className="flex items-center gap-1.5">
+            <div className="flex max-w-full overflow-x-auto rounded-xl border border-white/[0.10] bg-white/[0.025] p-0.5" role="group" aria-label="Filter roster by position">
+              {["All", "Forward", "Midfielder", "Defender", "Goalkeeper"].map((pos) => (
                 <Button
-                  id="toggle-compare-widget-btn"
+                  id={`filter-pos-${pos.toLowerCase()}`}
+                  key={pos}
                   type="button"
-                  variant="outline"
+                  variant="ghost"
                   size="sm"
-                  onClick={() => setShowCompareWidget(!showCompareWidget)}
-                  aria-pressed={showCompareWidget}
-                  className={`gap-1.5 px-2.5 text-[10px] ${
-                    showCompareWidget
-                      ? 'border-orange-300/35 bg-orange-300/10 text-orange-100'
-                      : 'border-cyan-300/15 bg-[#0b1726]/85 text-slate-400 hover:border-orange-300/30 hover:bg-orange-300/10 hover:text-orange-100'
+                  onClick={() => setFilterPos(pos)}
+                  aria-pressed={filterPos === pos}
+                  className={`rounded-lg px-2.5 text-[10px] transition-all ${
+                    filterPos === pos
+                      ? 'bg-[linear-gradient(180deg,#FF9A52,#FF8A3D)] font-bold text-[#180A00] shadow-[inset_0_1px_0_rgba(255,255,255,.32),0_4px_10px_-6px_rgba(255,138,61,.5)] hover:bg-[linear-gradient(180deg,#FFB06E,#FFA35F)] hover:text-[#180A00]'
+                      : 'text-[#8A96AD] hover:bg-white/[0.04] hover:text-[#F5F7FB]'
                   }`}
-                  title="Toggle Athlete Comparison Matchup Board"
                 >
-                  <ArrowLeftRight size={12} className="stroke-[2.5]" />
-                  <span>{showCompareWidget ? 'Comparing' : 'Compare'}</span>
+                  {pos === 'All' ? 'All' : pos}
                 </Button>
-
-                <Button
-                  id="btn-export-backup"
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={onExportBackup}
-                  className="gap-1.5 border-cyan-300/15 bg-[#0b1726]/85 px-2.5 text-[10px] text-slate-400 hover:border-orange-300/30 hover:bg-orange-300/10 hover:text-orange-100"
-                  title="Export roster, assessments, tactics, training, notes, availability, payments, and standings history"
-                >
-                  <Download size={12} className="stroke-[2.5]" />
-                  <span>Export</span>
-                </Button>
-
-                <Input
-                  ref={importInputRef}
-                  type="file"
-                  accept="application/json,.json"
-                  className="hidden"
-                  onChange={(event) => void handleImportFile(event.target.files?.[0])}
-                  aria-label="Restore team backup file"
-                />
-                <Button
-                  id="btn-import-backup"
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => importInputRef.current?.click()}
-                  className="gap-1.5 border-cyan-300/15 bg-[#0b1726]/85 px-2.5 text-[10px] text-slate-400 hover:border-orange-300/30 hover:bg-orange-300/10 hover:text-orange-100"
-                  title="Restore a Dumala full-workspace or legacy JSON backup"
-                >
-                  <Upload size={12} className="stroke-[2.5]" />
-                  <span>Restore</span>
-                </Button>
-              </div>
+              ))}
             </div>
-
           </div>
+
           {backupMessage && (
             <p
-              className={`mt-2 rounded-lg border px-3 py-2 text-[10px] font-bold ${
+              className={`rounded-lg border px-3 py-2 text-[10px] font-bold ${
                 backupMessageType === 'error'
-                  ? 'border-rose-200 bg-rose-50 text-rose-700'
+                  ? 'border-rose-400/30 bg-rose-500/10 text-rose-200'
                   : backupMessageType === 'success'
-                    ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
-                    : 'border-cyan-300/10 bg-[#0b1726]/66 text-slate-300'
+                    ? 'border-emerald-400/30 bg-emerald-500/10 text-emerald-200'
+                    : 'border-white/[0.10] bg-white/[0.03] text-[#8A96AD]'
               }`}
               role={backupMessageType === 'error' ? 'alert' : 'status'}
             >
               {backupMessage}
             </p>
           )}
-          <p className="mt-2 text-[10px] leading-relaxed text-slate-400">
-            Full Workspace V4 includes players, staff, payments, schedule, league, bulletins, assessments, tactics, training, availability, coach notes, and standings history.
-          </p>
         </div>
-        )}
+      </div>
+      )}
+
+      <div className="space-y-6">
 
         {/* Section Layouts */}
         {activeSection === 'staff' && <div id="management-staff-section" className="space-y-4">
@@ -840,26 +850,6 @@ export default function RosterView({
 
         {/* Grid Layout of Upgraded Cards */}
         {activeSection === 'players' && <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h3 className="flex items-center gap-2 font-display text-lg font-black uppercase tracking-wider text-slate-100">
-              <UserPlus className="text-indigo-500" size={20} />
-              Active Roster
-            </h3>
-            <Button
-              id="toggle-add-player-form-btn"
-              type="button"
-              onClick={() => {
-                setIsAdding(!isAdding);
-                setIsAddingStaff(false);
-              }}
-              aria-expanded={isAdding}
-              className="h-8 rounded-lg border border-indigo-650/10 bg-indigo-600 px-3.5 text-[10px] font-black uppercase tracking-wider text-white shadow-sm hover:bg-indigo-700"
-            >
-              {isAdding ? <Plus size={12} className="rotate-45" /> : <UserPlus size={12} />}
-              <span>{isAdding ? 'Cancel' : 'Add Player'}</span>
-            </Button>
-          </div>
-
           {/* Add Player Form (Expands inline) */}
           {isAdding && (
             <motion.div 
@@ -869,8 +859,8 @@ export default function RosterView({
               className={rosterGlassFormClass}
             >
               <div className="flex items-center gap-2 border-b border-cyan-300/10 pb-2">
-                <UserPlus className="text-indigo-600" size={18} />
-                <h3 className="font-display text-sm font-black uppercase tracking-wider text-slate-100">Register New athlete</h3>
+                <UserPlus className="text-[#FFB37E]" size={18} />
+                <h3 className="font-display text-sm font-black uppercase tracking-wider text-slate-100">Register New Athlete</h3>
               </div>
 
               <form ref={addPlayerFormRef} onSubmit={handleAddSubmit} className="grid grid-cols-1 lg:grid-cols-4 gap-4" noValidate>
@@ -999,7 +989,7 @@ export default function RosterView({
                       className={`h-10 rounded-xl text-xs ${
                         playerFormErrors.position
                           ? 'border-rose-300 focus:ring-rose-500/30'
-                          : 'border-cyan-300/10 bg-[#0b1726]/85 text-slate-100 focus:ring-indigo-500/30'
+                          : 'border-cyan-300/10 bg-[#0b1726]/85 text-slate-100 focus:ring-orange-300/25'
                       }`}
                     >
                       <SelectValue />
@@ -1124,7 +1114,7 @@ export default function RosterView({
                           onClick={() => handleToggleTrait(trait.label)}
                           className={`h-auto rounded-lg px-2.5 py-1.5 text-[10px] ${
                             isSelected
-                              ? 'border-indigo-500 bg-indigo-600 text-white shadow-sm'
+                              ? 'border-orange-300/40 bg-[linear-gradient(180deg,#FF9A52,#FF8A3D)] font-bold text-[#180A00] shadow-[inset_0_1px_0_rgba(255,255,255,.32)] hover:text-[#180A00]'
                               : 'border-cyan-300/15 bg-[#0b1726]/85 text-slate-300 hover:border-orange-300/30 hover:bg-orange-300/10 hover:text-orange-100'
                           }`}
                         >
@@ -1144,7 +1134,7 @@ export default function RosterView({
                     value={newPlayerBio}
                     onChange={e => setNewPlayerBio(e.target.value)}
                     rows={2}
-                    className="min-h-20 rounded-xl text-xs focus-visible:ring-indigo-500/30"
+                    className="min-h-20 rounded-xl text-xs focus-visible:ring-orange-300/25"
                   />
                 </div>
 
@@ -1161,9 +1151,9 @@ export default function RosterView({
                   </Button>
                   <Button
                     id="submit-add-player-btn"
-                    type="submit" 
+                    type="submit"
                     size="sm"
-                    className="rounded-xl bg-indigo-600 text-white hover:bg-indigo-700"
+                    className="rounded-xl bg-[linear-gradient(180deg,#FF9A52,#FF8A3D)] font-bold text-[#180A00] shadow-[inset_0_1px_0_rgba(255,255,255,.32),0_6px_14px_-7px_rgba(255,138,61,.5)] hover:bg-[linear-gradient(180deg,#FFB06E,#FFA35F)] hover:text-[#180A00]"
                   >
                     Register Athlete
                   </Button>
@@ -1173,7 +1163,7 @@ export default function RosterView({
           )}
 
           {activeRoster.length > 0 ? (
-            <div id="roster-grid" className="grid grid-cols-1 items-stretch sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div id="roster-grid" className="grid grid-cols-1 items-stretch gap-3 sm:grid-cols-2 xl:grid-cols-3">
               {activeRoster.map((player) => {
                 const isIntegrityHighlighted = highlightPlayerId === player.id;
                 const ovr = calculateOVR(player.baseAttributes, player.positionAttributes);
@@ -1182,12 +1172,12 @@ export default function RosterView({
 
                 // Position-aware colors
                 const posColors: Record<string, string> = {
-                  'Forward': 'bg-rose-600/90 text-rose-100 border-rose-400/30',
-                  'Midfielder': 'bg-emerald-600/90 text-emerald-100 border-emerald-400/30',
-                  'Defender': 'bg-sky-600/90 text-sky-100 border-sky-400/30',
-                  'Goalkeeper': 'bg-amber-500/90 text-amber-950 border-amber-300/30'
+                  'Forward': 'border-rose-400/30 bg-rose-500/15 text-rose-200',
+                  'Midfielder': 'border-emerald-400/30 bg-emerald-500/15 text-emerald-200',
+                  'Defender': 'border-sky-400/30 bg-sky-500/15 text-sky-200',
+                  'Goalkeeper': 'border-orange-300/35 bg-orange-400/15 text-[#FFB37E]'
                 };
-                const posColor = posColors[player.position] || 'bg-slate-600/90 text-slate-100 border-slate-400/30';
+                const posColor = posColors[player.position] || 'border-white/[0.14] bg-white/[0.06] text-slate-200';
                 const shortPos = player.position === 'Forward' ? 'FWD' : player.position === 'Midfielder' ? 'MID' : player.position === 'Defender' ? 'DEF' : 'GK';
 
                 // Pick 4 most relevant attributes by position
@@ -1228,128 +1218,82 @@ export default function RosterView({
                   <motion.div
                     id={`player-${player.id}-card`}
                     key={player.id}
-                    whileHover={{ y: -6, scale: 1.02 }}
-                    className={`h-full rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition-all cursor-pointer group flex flex-col ${
-                      isIntegrityHighlighted ? 'ring-4 ring-amber-300 ring-offset-2 ring-offset-[#020713]' : ''
+                    whileHover={{ y: -3 }}
+                    className={`group flex h-full cursor-pointer flex-col rounded-2xl border border-white/[0.12] bg-[#081026]/70 p-3.5 shadow-[inset_0_1px_0_rgba(255,255,255,.08),0_14px_30px_-20px_rgba(0,0,0,.65)] backdrop-blur-xl transition-all hover:border-orange-300/35 hover:bg-[#081026]/80 ${
+                      isIntegrityHighlighted ? 'ring-2 ring-[#FFB37E] ring-offset-2 ring-offset-[#020713]' : ''
                     }`}
-                    style={{
-                      background: '#1a1a2e'
-                    }}
                     onClick={() => onSelectPlayer(player)}
                   >
-                    {/* Photo area with gradient fade */}
-                    <div className="relative w-full aspect-[3/4] overflow-hidden">
-                      <img 
-                        src={player.photoUrl} 
-                        alt={player.name}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                        referrerPolicy="no-referrer"
-                      />
-                      {/* Bottom gradient fade into dark card */}
-                      <div className="absolute inset-x-0 bottom-0 h-3/4 bg-gradient-to-t from-[#1a1a2e] via-[#1a1a2e]/60 to-transparent" />
-                      {/* Top subtle fade for badges */}
-                      <div className="absolute inset-x-0 top-0 h-20 bg-gradient-to-b from-black/40 to-transparent" />
-
-                      {/* Position badge - top left */}
-                      <div className="absolute top-3 left-3">
-                        <span className={`text-[11px] font-black uppercase tracking-[0.15em] px-3 py-1 rounded-md border ${posColor}`}>
-                          {shortPos}
-                        </span>
+                    {/* Identity row: avatar / name / OVR */}
+                    <div className="flex items-center gap-3">
+                      <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-xl border border-white/[0.12]">
+                        <img
+                          src={player.photoUrl}
+                          alt={player.name}
+                          className="h-full w-full object-cover object-top transition-transform duration-500 group-hover:scale-110"
+                          referrerPolicy="no-referrer"
+                        />
                       </div>
-                      {isIntegrityHighlighted && (
-                        <div className="absolute top-3 right-16">
-                          <span className="rounded-md border border-amber-200 bg-amber-100 px-2 py-1 text-[10px] font-black uppercase tracking-wider text-amber-900">
-                            Review
-                          </span>
-                        </div>
-                      )}
-
-                      {/* Jersey number - top right */}
-                      <div className="absolute top-3 right-3">
-                        <span className="text-[15px] font-black text-white/90 drop-shadow-md tracking-wide">
-                          #{player.number}
-                        </span>
-                      </div>
-
-                      {/* OVR Rating - bottom left, large */}
-                      <div className="absolute bottom-3 left-3">
-                        <div className="flex items-end gap-1">
-                          <span className="text-[38px] font-black text-white leading-none drop-shadow-lg tracking-tighter">{ovr}</span>
-                          <span className="text-[12px] font-black text-amber-400 uppercase tracking-widest mb-1">OVR</span>
-                        </div>
-                      </div>
-
-                      {/* Player name - bottom */}
-                      <div className="absolute bottom-3 right-3 text-right max-w-[60%]">
-                        <h4 className="text-[13px] font-black text-white leading-tight drop-shadow-lg">
-                          {player.name.split(' ').map((part, i) => (
-                            <span key={i} className="block">{part}</span>
-                          ))}
+                      <div className="min-w-0 flex-1">
+                        <h4 className="truncate font-display text-sm font-bold text-[#F5F7FB] transition-colors group-hover:text-[#FFB37E]">
+                          {player.name}
                         </h4>
+                        <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                          <span className={`rounded border px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-[0.12em] ${posColor}`}>
+                            {shortPos}
+                          </span>
+                          <span className="text-[11px] font-black text-[#8A96AD]">#{player.number}</span>
+                          {player.age && <span className="text-[10px] font-medium text-[#5C6880]">{player.age} yrs</span>}
+                          {isIntegrityHighlighted && (
+                            <span className="rounded border border-orange-300/40 bg-orange-400/15 px-1.5 py-0.5 text-[9px] font-black uppercase tracking-wider text-[#FFB37E]">
+                              Review
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      <div className="shrink-0 text-right">
+                        <div className="text-2xl font-black leading-none tracking-tighter text-[#F5F7FB]">{ovr}</div>
+                        <div className="mt-0.5 text-[9px] font-black uppercase tracking-widest text-[#FFB37E]">OVR</div>
                       </div>
                     </div>
 
-                    {/* Stats row - GP / G / A */}
-                    <div className="px-3.5 pt-3 pb-1 flex items-center justify-between bg-[#1a1a2e]">
-                      <div className="flex-1 text-center">
-                        <div className="text-[9px] font-black text-slate-500 uppercase tracking-widest">GP</div>
-                        <div className="text-sm font-black text-white mt-0.5">{player.gamesPlayed}</div>
-                      </div>
-                      <div className="w-px h-8 bg-white/10" />
-                      <div className="flex-1 text-center">
-                        <div className="text-[9px] font-black text-rose-400/60 uppercase tracking-widest">G</div>
-                        <div className="text-sm font-black text-white mt-0.5">{player.points}</div>
-                      </div>
-                      <div className="w-px h-8 bg-white/10" />
-                      <div className="flex-1 text-center">
-                        <div className="text-[9px] font-black text-emerald-400/60 uppercase tracking-widest">A</div>
-                        <div className="text-sm font-black text-white mt-0.5">{player.assists}</div>
-                      </div>
-                    </div>
-
-                    {/* Separator */}
-                    <div className="px-3.5"><div className="border-b border-white/10" /></div>
-
-                    {/* Attribute bars section - 4 max */}
-                    <div className="px-3.5 py-2 flex flex-col gap-1 bg-[#1a1a2e]">
+                    {/* Attribute bars: 2x2 compact grid */}
+                    <div className="mt-3 grid grid-cols-2 gap-x-3 gap-y-1.5">
                       {topAttrs.map((attr) => (
-                        <div key={attr.label} className="flex items-center gap-2">
-                          <span className="text-[8px] font-black text-slate-400 w-6 text-right tracking-wider">{attr.label}</span>
-                          <div className="flex-1 h-1.5 bg-white/10 rounded-full overflow-hidden">
-                            <div 
-                              className={`h-full ${attr.color} rounded-full transition-all duration-500`}
+                        <div key={attr.label} className="flex items-center gap-1.5">
+                          <span className="w-6 shrink-0 text-right text-[8px] font-black tracking-wider text-[#8A96AD]">{attr.label}</span>
+                          <div className="h-1 flex-1 overflow-hidden rounded-full bg-white/[0.08]">
+                            <div
+                              className={`h-full rounded-full ${attr.color} transition-all duration-500`}
                               style={{ width: `${attr.value}%` }}
                             />
                           </div>
-                          <span className="text-[9px] font-bold text-white/60 w-6 text-right tabular-nums">{attr.value}</span>
+                          <span className="w-5 shrink-0 text-right text-[9px] font-bold tabular-nums text-[#DDE4EF]">{attr.value}</span>
                         </div>
                       ))}
                     </div>
 
-                    {/* Traits + age footer */}
-                    <div className="mt-auto min-h-10 px-3.5 pb-3 flex items-end justify-between gap-2 bg-[#1a1a2e]">
-                      <div className="flex flex-wrap gap-1 max-w-[60%]">
-                        {player.specialtyTraits && player.specialtyTraits.length > 0 ? (
-                          player.specialtyTraits.slice(0, 2).map(trait => (
-                            <span key={trait} className="text-[10px] font-bold bg-white/15 text-white/80 px-2 py-0.5 rounded border border-white/10">
-                              {trait}
-                            </span>
-                          ))
-                        ) : (
-                          <span className="text-[10px] font-medium text-white/25 italic">
-                            {player.position === 'Forward' ? 'Attacker' : player.position === 'Midfielder' ? 'Midfielder' : player.position === 'Defender' ? 'Defender' : 'Goalkeeper'}
-                          </span>
-                        )}
+                    {/* Footer: season stats + traits */}
+                    <div className="mt-3 flex items-center justify-between gap-2 border-t border-white/[0.08] pt-2.5">
+                      <div className="flex items-center gap-3 text-[10px] font-bold text-[#8A96AD]">
+                        <span><span className="text-[#F5F7FB]">{player.gamesPlayed}</span> GP</span>
+                        <span><span className="text-[#F5F7FB]">{player.points}</span> G</span>
+                        <span><span className="text-[#F5F7FB]">{player.assists}</span> A</span>
                         {(player.yellowCards > 0 || player.redCards > 0) && (
-                          <span className="text-[9px] font-bold bg-amber-400/20 text-amber-300 px-1.5 py-0.5 rounded flex items-center gap-0.5">
+                          <span className="flex items-center gap-0.5 text-[9px]">
                             {player.yellowCards > 0 && <span>🟨{player.yellowCards}</span>}
                             {player.redCards > 0 && <span>🟥{player.redCards}</span>}
                           </span>
                         )}
                       </div>
-                      <div className="flex items-center gap-1.5 shrink-0">
-                        {player.age && <span className="text-[10px] font-bold text-white/50">{player.age} yrs</span>}
-                        {player.height && <span className="text-[10px] font-bold text-white/50">{player.height} cm</span>}
+                      <div className="flex min-w-0 flex-wrap justify-end gap-1">
+                        {player.specialtyTraits && player.specialtyTraits.length > 0 && (
+                          player.specialtyTraits.slice(0, 2).map(trait => (
+                            <span key={trait} className="truncate rounded border border-white/[0.12] bg-white/[0.05] px-1.5 py-0.5 text-[9px] font-bold text-[#DDE4EF]">
+                              {trait}
+                            </span>
+                          ))
+                        )}
                       </div>
                     </div>
 
