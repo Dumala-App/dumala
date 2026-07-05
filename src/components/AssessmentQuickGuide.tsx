@@ -269,6 +269,9 @@ export default function AssessmentQuickGuide({
                 </div>
 
                 <Section title="Equipment" items={selectedEntry.equipment} />
+                <Section title="People needed" items={selectedEntry.personnel} />
+                <Section title="Goalkeeper" items={[selectedEntry.goalkeeper.note]} />
+                <Section title="Where the player starts" items={[selectedEntry.playerStart]} />
                 <Section title="Setup" items={selectedEntry.setup} />
                 <Section title="Procedure" items={selectedEntry.procedure} />
                 <Section title="Attempts" items={selectedEntry.attempts} />
