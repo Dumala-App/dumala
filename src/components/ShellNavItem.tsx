@@ -1,11 +1,9 @@
-import type { LucideIcon } from 'lucide-react';
 import { cn } from '@/src/lib/utils';
 import { Button } from './ui/button';
 
 interface ShellNavItemProps {
   id: string;
   label: string;
-  icon: LucideIcon;
   isActive: boolean;
   onSelect: () => void;
   layout: 'desktop' | 'mobile';
@@ -14,7 +12,6 @@ interface ShellNavItemProps {
 export default function ShellNavItem({
   id,
   label,
-  icon: Icon,
   isActive,
   onSelect,
   layout
@@ -27,16 +24,15 @@ export default function ShellNavItem({
       onClick={onSelect}
       aria-current={isActive ? 'page' : undefined}
       className={cn(
-        'h-auto items-center border font-bold transition-all focus-visible:ring-white/25',
+        'h-auto items-center justify-center rounded-xl transition-all duration-150 focus-visible:ring-orange-300/40',
         layout === 'desktop'
-          ? 'gap-2 rounded-xl px-3 py-2 text-[11px] [&_svg]:size-3.5'
-          : 'min-h-11 w-full gap-3 rounded-xl px-4 py-3 text-xs [&_svg]:size-4',
+          ? 'px-4 py-2 text-sm'
+          : 'min-h-11 w-full py-3 text-sm',
         isActive
-          ? 'border-accent/70 bg-accent text-accent-foreground shadow-md shadow-orange-950/20 hover:bg-accent hover:text-accent-foreground'
-          : 'border-transparent text-white/72 hover:bg-white/10 hover:text-white'
+          ? 'bg-[linear-gradient(180deg,#FF9A52,#FF8A3D)] font-bold text-[#180A00] shadow-[inset_0_1px_0_rgba(255,255,255,.32),0_1px_2px_rgba(0,0,0,.35),0_6px_14px_-7px_rgba(255,138,61,.5)] hover:bg-[linear-gradient(180deg,#FFB06E,#FFA35F)] hover:text-[#180A00]'
+          : 'font-medium text-[#8A96AD] hover:bg-white/[0.04] hover:text-[#F5F7FB]'
       )}
     >
-      <Icon size={layout === 'desktop' ? 14 : 16} aria-hidden="true" />
       {label}
     </Button>
   );

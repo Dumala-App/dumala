@@ -167,7 +167,7 @@ export default function TeamWorkspaceMenu({
           onClick={() => setMenuOpen(open => !open)}
           aria-haspopup="menu"
           aria-expanded={menuOpen}
-          className="h-10 max-w-[13rem] rounded-xl border border-cyan-300/15 bg-[#0b1726] px-3 text-left text-slate-100 shadow-sm shadow-black/20 hover:border-orange-300/30 hover:bg-[#132238] hover:text-orange-100"
+          className="h-10 max-w-[13rem] rounded-xl border border-white/[0.14] bg-white/[0.04] px-3 text-left text-[#DDE4EF] shadow-[inset_0_1px_0_rgba(255,255,255,.10),0_1px_2px_rgba(0,0,0,.3)] backdrop-blur-md hover:border-white/[0.26] hover:bg-white/[0.07] hover:text-white"
         >
           <Users size={15} aria-hidden="true" />
           <span className="min-w-0 flex-1 truncate text-xs font-bold">{activeTeamName || 'Team workspace'}</span>

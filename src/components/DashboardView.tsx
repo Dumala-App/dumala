@@ -617,12 +617,6 @@ const selectWeeklyTrainingSummaries = (today = new Date()): TrainingSessionSumma
     .filter(summary => summary.drills.length > 0);
 };
 
-const getWeekEndDateKey = (date: Date) => {
-  const end = getWeekStartDate(date);
-  end.setDate(end.getDate() + 6);
-  return toDateKey(end);
-};
-
 interface DashboardViewProps {
   homeWorkspaceHeader?: ReactNode;
   teamInfo: TeamInfo;
@@ -841,7 +835,6 @@ export default function DashboardView({
   
   const nextMatch = useMemo(() => selectMatchDayPrepEvent(games), [games]);
   const todayDateKey = useMemo(() => toDateKey(new Date()), []);
-  const currentWeekEndKey = useMemo(() => getWeekEndDateKey(new Date()), []);
   const weeklyTrainingSummaries = useMemo(
     () => selectWeeklyTrainingSummaries(new Date()),
     [games, trainingStorageRefreshKey]
@@ -850,12 +843,6 @@ export default function DashboardView({
   const nextTrainingSummary = weeklyTrainingSummaries.find(summary => summary.dateStr >= todayDateKey);
   const dashboardTrainingSummary = todayTrainingSummary ?? nextTrainingSummary;
   const dashboardTrainingDay = dashboardTrainingSummary?.day ?? null;
-  const weekMatchPrepEvent = useMemo(() => (
-    games
-      .filter(game => game.status === 'Upcoming' && game.type !== 'Training' && game.date >= todayDateKey && game.date <= currentWeekEndKey)
-      .sort((a, b) => getCalendarEventStartMs(a) - getCalendarEventStartMs(b))[0]
-  ), [currentWeekEndKey, games, todayDateKey]);
-  const showDailyPrepSwitcher = Boolean(todayTrainingSummary && weekMatchPrepEvent);
   const activeDailyPrepPanel = dashboardTrainingSummary && (dailyPrepPanel === 'training' || !nextMatch)
     ? 'training'
     : 'match';
@@ -1766,29 +1753,28 @@ export default function DashboardView({
                 </p>
               </div>
               <div className="flex shrink-0 items-center gap-2">
-                {showDailyPrepSwitcher && (
-                  <div className="flex rounded-full border border-slate-500/15 bg-[#07111f]/80 p-1">
-                    {[
-                      { id: 'training' as const, label: 'Training' },
-                      { id: 'match' as const, label: 'Match Prep' }
-                    ].map(option => (
-                      <button
-                        key={option.id}
-                        type="button"
-                        onClick={() => setDailyPrepPanel(option.id)}
-                        className={`rounded-full px-2.5 py-1 text-[10px] font-black transition-colors ${
-                          dailyPrepPanel === option.id
-                            ? option.id === 'training'
-                              ? 'bg-emerald-300 text-slate-950'
-                              : 'bg-orange-300 text-slate-950'
-                            : 'text-slate-400 hover:text-slate-100'
-                        }`}
-                      >
-                        {option.label}
-                      </button>
-                    ))}
-                  </div>
-                )}
+                <div className="flex rounded-full border border-slate-500/15 bg-[#07111f]/80 p-1">
+                  {[
+                    { id: 'training' as const, label: 'Training' },
+                    { id: 'match' as const, label: 'Match Prep' }
+                  ].map(option => (
+                    <button
+                      key={option.id}
+                      type="button"
+                      aria-pressed={activeDailyPrepPanel === option.id}
+                      onClick={() => setDailyPrepPanel(option.id)}
+                      className={`rounded-full px-2.5 py-1 text-[10px] font-black transition-colors ${
+                        activeDailyPrepPanel === option.id
+                          ? option.id === 'training'
+                            ? 'bg-emerald-300 text-slate-950'
+                            : 'bg-orange-300 text-slate-950'
+                          : 'text-slate-400 hover:text-slate-100'
+                      }`}
+                    >
+                      {option.label}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
 
