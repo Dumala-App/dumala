@@ -1438,7 +1438,7 @@ export default function TrainingView({
                     <p className="mt-2 text-[11px] leading-relaxed text-slate-300">{selectedScheduleDrillInstructions.setsReps}</p>
                   </div>
 
-                  <div className="relative border-b border-cyan-300/10 p-4 md:border-b-0 md:border-r">
+                  <div className="relative border-b border-cyan-300/20 bg-cyan-300/[0.075] p-4 shadow-inner shadow-cyan-950/10 md:border-b-0 md:border-r">
                     <span className="absolute right-4 top-4 text-xl font-black leading-none text-cyan-100/20">01</span>
                     <div className="flex items-center gap-2">
                       <span className="flex size-7 shrink-0 items-center justify-center rounded-full border border-cyan-300/25 bg-cyan-300/12 text-cyan-100">
@@ -1448,7 +1448,7 @@ export default function TrainingView({
                     </div>
                     <p className="mt-2 text-[11px] leading-relaxed text-slate-200">{selectedScheduleDrillInstructions.setup}</p>
                   </div>
-                  <div className="relative p-4">
+                  <div className="relative bg-indigo-300/[0.075] p-4 shadow-inner shadow-indigo-950/10">
                     <span className="absolute right-4 top-4 text-xl font-black leading-none text-indigo-100/20">02</span>
                     <div className="flex items-center gap-2">
                       <span className="flex size-7 shrink-0 items-center justify-center rounded-full border border-indigo-300/25 bg-indigo-300/12 text-indigo-100">
