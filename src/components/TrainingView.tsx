@@ -541,19 +541,26 @@ export default function TrainingView({
 
     const fillDays = (template: Partial<Record<DayName, Array<{ id: string; drillId: string; name: string; fatigueIncrease: number }>>>) => {
       const base: WeeklySchedule = { Monday:[], Tuesday:[], Wednesday:[], Thursday:[], Friday:[], Saturday:[], Sunday:[] };
-      DAYS_OF_WEEK.forEach(day => {
-        if (!template[day]) return;
-        base[day] = template[day].map((item) => {
+      const sessions = DAYS_OF_WEEK
+        .map(day => template[day] ?? [])
+        .filter(session => session.length > 0);
+
+      if (sessions.length === 0) return base;
+
+      activeTrainingDays.forEach((day, dayIndex) => {
+        const session = sessions[dayIndex % sessions.length];
+        base[day] = session.map((item, drillIndex) => {
           const source = TRAINING_DRILLS.find(drill => drill.id === item.drillId);
           return {
             ...item,
+            id: `${item.id}-${day}-${drillIndex}`,
             name: source?.name ?? item.name,
             fatigueIncrease: source?.fatigueIncrease ?? item.fatigueIncrease,
             intensityRating: source?.fatigueIncrease ?? item.fatigueIncrease
           };
         });
       });
-      return normalizeWeeklySchedule(filterScheduleToTrainingDays(base, activeTrainingDays));
+      return normalizeWeeklySchedule(base);
     };
 
     if (mode === 'heavy') {
