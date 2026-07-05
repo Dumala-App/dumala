@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { BookOpen, ClipboardCheck, Gauge, Image as ImageIcon, ShieldAlert, SlidersHorizontal, TrendingDown, TrendingUp, Volume2 } from 'lucide-react';
+import { BookOpen, ClipboardCheck, Gauge, Image as ImageIcon, ListChecks, Repeat, ShieldAlert, SlidersHorizontal, Target, TrendingDown, TrendingUp, Volume2, Wrench } from 'lucide-react';
 import { DRILL_GUIDE_CATEGORIES, DRILL_GUIDE_ENTRIES, type DrillGuideAudio, type DrillGuideEntry } from '../fprds/drillGuide';
 import {
   BALL_RETENTION_SECONDS,
@@ -13,6 +13,7 @@ import {
   SHOT_POWER_DISTANCE_M,
   SPRINT_10M,
   SPRINT_30M,
+  TIER_SCORE_RANGES,
   YOYO_DISTANCE,
   type AgeGroup,
   type BenchmarkTable,
@@ -103,13 +104,18 @@ const attributeLabels: Record<FprdsAttributeId, string> = {
 };
 
 // Tier ranking drives the scoring colour hierarchy: strongest (emerald) -> weakest (rose).
-const TIER_STYLES: Record<TierLabel, { chip: string; dot: string }> = {
-  Elite: { chip: 'border-emerald-300/25 bg-emerald-300/12 text-emerald-100', dot: 'bg-emerald-300' },
-  Advanced: { chip: 'border-cyan-300/25 bg-cyan-300/12 text-cyan-100', dot: 'bg-cyan-300' },
-  Developing: { chip: 'border-amber-300/25 bg-amber-300/12 text-amber-100', dot: 'bg-amber-300' },
-  'Below Average': { chip: 'border-orange-300/25 bg-orange-400/12 text-orange-100', dot: 'bg-orange-400' },
-  Beginner: { chip: 'border-rose-300/25 bg-rose-400/12 text-rose-100', dot: 'bg-rose-300' }
+const TIER_STYLES: Record<TierLabel, { chip: string; dot: string; bar: string }> = {
+  Elite: { chip: 'border-emerald-300/25 bg-emerald-300/12 text-emerald-100', dot: 'bg-emerald-300', bar: 'bg-emerald-400/70' },
+  Advanced: { chip: 'border-cyan-300/25 bg-cyan-300/12 text-cyan-100', dot: 'bg-cyan-300', bar: 'bg-cyan-400/70' },
+  Developing: { chip: 'border-amber-300/25 bg-amber-300/12 text-amber-100', dot: 'bg-amber-300', bar: 'bg-amber-400/70' },
+  'Below Average': { chip: 'border-orange-300/25 bg-orange-400/12 text-orange-100', dot: 'bg-orange-400', bar: 'bg-orange-400/70' },
+  Beginner: { chip: 'border-rose-300/25 bg-rose-400/12 text-rose-100', dot: 'bg-rose-300', bar: 'bg-rose-400/70' }
 };
+
+// Ascending (weakest -> strongest) for the score-scale legend.
+const TIER_ORDER: TierLabel[] = ['Beginner', 'Below Average', 'Developing', 'Advanced', 'Elite'];
+const SCORE_SCALE_MIN = 10;
+const SCORE_SCALE_MAX = 99;
 
 type SectionAccent = 'cyan' | 'orange' | 'amber' | 'emerald' | 'rose';
 
@@ -313,7 +319,7 @@ const InstructionSection = (props: { label: string; items: string[]; accent: Sec
 };
 
 const DrillIllustration = (props: { drill: DrillGuideEntry }) => (
-  <div className="relative aspect-[16/7] overflow-hidden rounded-2xl border border-cyan-300/12 bg-[radial-gradient(circle_at_30%_20%,rgba(34,211,238,0.12),transparent_45%),radial-gradient(circle_at_80%_90%,rgba(251,146,60,0.1),transparent_45%),linear-gradient(140deg,#0b1a2c,#081120)]">
+  <div className="relative aspect-video overflow-hidden rounded-2xl border border-cyan-300/25 bg-[radial-gradient(circle_at_30%_20%,rgba(34,211,238,0.14),transparent_45%),radial-gradient(circle_at_80%_90%,rgba(251,146,60,0.1),transparent_45%),linear-gradient(140deg,#0b1a2c,#081120)] shadow-lg shadow-cyan-950/25 ring-1 ring-cyan-300/15">
     {props.drill.illustration ? (
       <img
         src={props.drill.illustration}
@@ -362,11 +368,66 @@ const AudioBlock = (props: { audio: DrillGuideAudio }) => (
         )}
       </div>
     </div>
-    <audio controls preload="none" src={props.audio.src} className="mt-3 w-full">
+    <audio controls preload="none" src={props.audio.src} className="mt-3 h-9 w-full max-w-[320px]">
       Your browser does not support the audio element.
     </audio>
   </div>
 );
+
+const ProcedureSteps = (props: { steps: string[] }) => (
+  <div className="flex h-full flex-col rounded-2xl border border-cyan-300/25 bg-cyan-300/[0.06] p-4 shadow-lg shadow-cyan-950/15 ring-1 ring-cyan-300/10">
+    <p className={`flex items-center gap-1.5 text-cyan-100 ${eyebrowClass}`}>
+      <ListChecks size={13} className="text-cyan-300" /> Procedure · how to run it
+    </p>
+    <ol className="mt-3 space-y-2.5">
+      {props.steps.map((step, index) => (
+        <li key={step} className="flex gap-3">
+          <span className="flex size-6 shrink-0 items-center justify-center rounded-full border border-cyan-300/30 bg-cyan-300/15 text-[11px] font-black text-cyan-50">
+            {index + 1}
+          </span>
+          <span className="text-[12.5px] font-semibold leading-relaxed text-slate-100">{step}</span>
+        </li>
+      ))}
+    </ol>
+  </div>
+);
+
+// Universal FPRDS rating scale — a legend that helps interpret every scoring table.
+const ScoreScale = () => {
+  const span = SCORE_SCALE_MAX - SCORE_SCALE_MIN + 1;
+  return (
+    <div className="rounded-xl border border-cyan-300/10 bg-white/[0.02] p-3">
+      <div className="flex items-center justify-between">
+        <p className={`text-slate-400 ${eyebrowClass}`}>FPRDS score scale</p>
+        <span className="text-[9px] font-black uppercase tracking-wider text-slate-500">10 – 99</span>
+      </div>
+      <div className="mt-2 flex h-5 overflow-hidden rounded-md">
+        {TIER_ORDER.map((tier) => {
+          const range = TIER_SCORE_RANGES[tier];
+          const width = ((range.scoreMax - range.scoreMin + 1) / span) * 100;
+          return (
+            <div
+              key={tier}
+              className={`${TIER_STYLES[tier].bar} flex items-center justify-center`}
+              style={{ width: `${width}%` }}
+              title={`${tier}: ${range.scoreMin}-${range.scoreMax}`}
+            >
+              <span className="text-[8px] font-black text-slate-950/70">{range.scoreMin}</span>
+            </div>
+          );
+        })}
+      </div>
+      <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1">
+        {[...TIER_ORDER].reverse().map((tier) => (
+          <span key={tier} className="inline-flex items-center gap-1 text-[9px] font-black uppercase tracking-wide text-slate-400">
+            <span className={`size-2 rounded-full ${TIER_STYLES[tier].dot}`} aria-hidden="true" />
+            {tier} {TIER_SCORE_RANGES[tier].scoreMin}-{TIER_SCORE_RANGES[tier].scoreMax}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+};
 
 const ScoringHeader = (props: { title: string; unit: string; badge?: React.ReactNode }) => (
   <div className="flex items-start justify-between gap-3">
@@ -526,6 +587,8 @@ export default function AssessmentDrillGuideView() {
     .filter(([, weight]) => weight > 0)
     .sort((a, b) => b[1] - a[1]);
   const maxRoleWeight = activeRoleWeights[0]?.[1] ?? 1;
+  const primaryWeight = activeRoleWeights[0];
+  const topThreeShare = activeRoleWeights.slice(0, 3).reduce((sum, [, weight]) => sum + weight, 0);
   const categoryLabel = selectedDrill
     ? DRILL_GUIDE_CATEGORIES.find((category) => category.id === selectedDrill.category)?.label ?? selectedDrill.category
     : '';
@@ -603,7 +666,7 @@ export default function AssessmentDrillGuideView() {
           {toolbar}
           {selectedDrill && (
             <section className={panelClass}>
-              <div className="flex items-start justify-between gap-3 border-b border-cyan-300/10 pb-4">
+              <div className="flex flex-col gap-3 border-b border-cyan-300/10 pb-4 sm:flex-row sm:items-start sm:justify-between">
                 <div className="min-w-0">
                   <p className={`flex items-center gap-1.5 ${eyebrowClass} ${CATEGORY_ACCENTS[selectedDrill.category]}`}>
                     {selectedDrill.attributeCode && (
@@ -618,30 +681,42 @@ export default function AssessmentDrillGuideView() {
                 </span>
               </div>
 
-              {/* Illustration is the priority focus */}
-              <div className="mt-5 grid gap-4 lg:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)] lg:items-stretch">
+              {/* Quick facts */}
+              <div className="mt-4 flex flex-wrap gap-2">
+                <span className="inline-flex items-center gap-1.5 rounded-lg border border-cyan-300/12 bg-white/[0.03] px-2.5 py-1.5 text-[10px] font-bold text-slate-300">
+                  <Repeat size={12} className="text-cyan-300" /> {selectedDrill.attempts[0] ?? 'See attempts'}
+                </span>
+                <span className="inline-flex items-center gap-1.5 rounded-lg border border-cyan-300/12 bg-white/[0.03] px-2.5 py-1.5 text-[10px] font-bold text-slate-300">
+                  <Wrench size={12} className="text-cyan-300" /> {selectedDrill.equipment.length} equipment item{selectedDrill.equipment.length === 1 ? '' : 's'}
+                </span>
+                <span className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-300/18 bg-emerald-300/[0.06] px-2.5 py-1.5 text-[10px] font-bold text-emerald-100">
+                  <Target size={12} className="text-emerald-300" /> {selectedDrill.dataToRecord.length} metric{selectedDrill.dataToRecord.length === 1 ? '' : 's'} to record
+                </span>
+              </div>
+
+              {/* Highlighted priority: illustration (16:9) + procedure with drill audio below it */}
+              <div className="mt-4 grid gap-4 md:grid-cols-2 md:items-start">
                 <DrillIllustration drill={selectedDrill} />
                 <div className="flex flex-col gap-3">
+                  <ProcedureSteps steps={selectedDrill.procedure} />
                   {selectedDrill.audio && <AudioBlock audio={selectedDrill.audio} />}
-                  <div className="flex-1 rounded-2xl border border-emerald-300/18 bg-emerald-300/[0.05] p-4">
-                    <p className={`text-emerald-200/85 ${eyebrowClass}`}>Data to record</p>
-                    <ul className="mt-2 space-y-1.5">
-                      {selectedDrill.dataToRecord.map((item) => (
-                        <li key={item} className="flex gap-2 text-[12px] font-bold leading-relaxed text-emerald-50">
-                          <span className="mt-[3px] shrink-0 text-emerald-300/80" aria-hidden="true">▸</span>
-                          <span>{item}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
                 </div>
               </div>
 
-              {/* Full instruction set flows below in balanced columns */}
+              {/* Compact data to record */}
+              <div className="mt-4 flex flex-wrap items-center gap-2 rounded-xl border border-emerald-300/18 bg-emerald-300/[0.05] px-3 py-2.5">
+                <span className={`text-emerald-200/85 ${eyebrowClass}`}>Data to record</span>
+                {selectedDrill.dataToRecord.map((item) => (
+                  <span key={item} className="inline-flex items-center rounded-md border border-emerald-300/25 bg-emerald-300/10 px-2 py-0.5 text-[11px] font-bold text-emerald-50">
+                    {item}
+                  </span>
+                ))}
+              </div>
+
+              {/* Supporting detail flows below in balanced columns */}
               <div className="mt-5 gap-x-7 border-t border-cyan-300/10 pt-5 sm:columns-2 xl:columns-3">
                 <InstructionSection label="Equipment" items={selectedDrill.equipment} accent="cyan" />
                 <InstructionSection label="Setup" items={selectedDrill.setup} accent="cyan" />
-                <InstructionSection label="Procedure" items={selectedDrill.procedure} accent="orange" />
                 <InstructionSection label="Attempts" items={selectedDrill.attempts} accent="amber" />
                 <InstructionSection label="Common mistakes" items={selectedDrill.commonMistakes ?? []} accent="rose" />
                 <InstructionSection label="Safety" items={selectedDrill.safety ?? []} accent="amber" />
@@ -651,33 +726,52 @@ export default function AssessmentDrillGuideView() {
         </>
       ) : (
         <>
-          {toolbar}
           <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
             {/* Scoring benchmark */}
             <div className={panelClass}>
-              <div className="flex flex-col gap-3 border-b border-cyan-300/10 pb-4 sm:flex-row sm:items-end sm:justify-between">
-                <div className="min-w-0">
-                  <p className={`flex items-center gap-1.5 text-emerald-200/80 ${eyebrowClass}`}>
-                    <SlidersHorizontal size={13} className="text-emerald-300" /> Scoring benchmark
-                  </p>
-                  <h3 className="mt-1 truncate font-display text-lg font-black text-white">
-                    {selectedDrill ? selectedDrill.title : 'Select a drill'}
-                  </h3>
+              <div className="border-b border-cyan-300/10 pb-4">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                  <div className="min-w-0 flex-1">
+                    <p className={`flex items-center gap-1.5 text-emerald-200/80 ${eyebrowClass}`}>
+                      <SlidersHorizontal size={13} className="text-emerald-300" /> Scoring benchmark
+                    </p>
+                    <Select value={selectedDrill?.id ?? ''} onValueChange={setSelectedDrillId}>
+                      <SelectTrigger aria-label="Select drill for benchmark" className={`mt-1.5 w-full sm:max-w-xs ${SELECT_TRIGGER_CLASS}`}>
+                        <SelectValue placeholder="Select a drill" />
+                      </SelectTrigger>
+                      <SelectContent className={SELECT_CONTENT_CLASS}>
+                        {groupedDrills.map((group) => (
+                          <SelectGroup key={group.category.id}>
+                            <SelectLabel className={SELECT_LABEL_CLASS}>{group.category.label}</SelectLabel>
+                            {group.drills.map((entry) => (
+                              <SelectItem key={entry.id} value={entry.id} className={SELECT_ITEM_CLASS}>
+                                {entry.title}
+                              </SelectItem>
+                            ))}
+                          </SelectGroup>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <Select
+                    value={selectedAgeGroup}
+                    onValueChange={(value) => setSelectedAgeGroup(value as AgeGroup)}
+                    disabled={!hasAgeBandedBenchmark}
+                  >
+                    <SelectTrigger aria-label="Select benchmark age group" className={`w-full shrink-0 sm:w-28 ${SELECT_TRIGGER_CLASS}`}>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className={SELECT_CONTENT_CLASS}>
+                      {ageGroups.map((ageGroup) => (
+                        <SelectItem key={ageGroup} value={ageGroup} className={SELECT_ITEM_CLASS}>{ageGroup}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
-                <Select
-                  value={selectedAgeGroup}
-                  onValueChange={(value) => setSelectedAgeGroup(value as AgeGroup)}
-                  disabled={!hasAgeBandedBenchmark}
-                >
-                  <SelectTrigger aria-label="Select benchmark age group" className={`w-28 ${SELECT_TRIGGER_CLASS}`}>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className={SELECT_CONTENT_CLASS}>
-                    {ageGroups.map((ageGroup) => (
-                      <SelectItem key={ageGroup} value={ageGroup} className={SELECT_ITEM_CLASS}>{ageGroup}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+              </div>
+
+              <div className="mt-4">
+                <ScoreScale />
               </div>
 
               {hasAgeBandedBenchmark && (
@@ -722,6 +816,26 @@ export default function AssessmentDrillGuideView() {
                   </SelectContent>
                 </Select>
               </div>
+
+              {primaryWeight && (
+                <div className="mt-4 grid grid-cols-3 gap-2">
+                  <div className="rounded-lg border border-cyan-300/10 bg-white/[0.02] px-2.5 py-2">
+                    <p className={`text-slate-500 ${eyebrowClass}`}>Primary focus</p>
+                    <p className="mt-1 truncate text-[12px] font-black text-orange-100" title={attributeLabels[primaryWeight[0]]}>{attributeLabels[primaryWeight[0]]}</p>
+                    <p className="text-[10px] font-bold text-slate-500">{Math.round(primaryWeight[1] * 100)}% weight</p>
+                  </div>
+                  <div className="rounded-lg border border-cyan-300/10 bg-white/[0.02] px-2.5 py-2">
+                    <p className={`text-slate-500 ${eyebrowClass}`}>Top 3 share</p>
+                    <p className="mt-1 text-sm font-black text-orange-100">{Math.round(topThreeShare * 100)}%</p>
+                    <p className="text-[10px] font-bold text-slate-500">of the rating</p>
+                  </div>
+                  <div className="rounded-lg border border-cyan-300/10 bg-white/[0.02] px-2.5 py-2">
+                    <p className={`text-slate-500 ${eyebrowClass}`}>Attributes</p>
+                    <p className="mt-1 text-sm font-black text-slate-100">{activeRoleWeights.length}</p>
+                    <p className="text-[10px] font-bold text-slate-500">weighted</p>
+                  </div>
+                </div>
+              )}
 
               <div className="mt-4 space-y-2.5">
                 {activeRoleWeights.map(([attributeId, weight]) => (
