@@ -235,12 +235,12 @@ export const selectMatchDayPrepEvent = (
   games: Game[],
   now = new Date()
 ): Game | undefined => {
-  const nowMs = now.getTime();
+  const todayKey = toDateKey(now);
 
   return games
     .filter(game => game.status === 'Upcoming')
     .map(game => ({ game, startsAt: getCalendarEventStartMs(game) }))
-    .filter(item => item.startsAt >= nowMs)
+    .filter(item => item.game.date >= todayKey)
     .sort((a, b) => a.startsAt - b.startsAt)[0]?.game;
 };
 

@@ -13,7 +13,6 @@ import {
   getWeekDaysMap,
   getOrderedSessionDrills,
   getScheduledDrillBlock,
-  getScheduledDrillDuration,
   getSessionDuration,
   getSessionLoadPoints,
   synchronizeTrainingCalendar,
@@ -35,7 +34,6 @@ import { getDrillIcon } from './TrainingDrillCard';
 import TrainingSessionBuilder from './TrainingSessionBuilder';
 import { Badge } from '@/src/components/ui/badge';
 import { Button } from '@/src/components/ui/button';
-import { Tabs, TabsList, TabsTrigger } from '@/src/components/ui/tabs';
 import {
   Select,
   SelectContent,
@@ -273,13 +271,16 @@ const normalizeWeeklySchedule = (schedule: WeeklySchedule): WeeklySchedule => {
       const block = drill.block ?? (source ? inferDrillSessionBlock(source) : 'technical');
       const blockDefinition = SESSION_BLOCKS.find(item => item.id === block);
       const order = drill.order ?? (blockCounts.get(block) ?? 0);
+      const libraryIntensity = source?.fatigueIncrease ?? drill.fatigueIncrease;
+      const hasCustomIntensity = drill.intensityRating !== undefined && drill.intensityRating !== drill.fatigueIncrease;
       blockCounts.set(block, order + 1);
       return {
         ...drill,
+        fatigueIncrease: libraryIntensity,
         block,
         order,
         durationMinutes: drill.durationMinutes ?? blockDefinition?.defaultDurationMinutes ?? 15,
-        intensityRating: drill.intensityRating ?? drill.fatigueIncrease,
+        intensityRating: hasCustomIntensity ? drill.intensityRating : libraryIntensity,
         equipment: drill.equipment ?? getDrillEquipment(drill.drillId)
       };
     });
@@ -539,8 +540,26 @@ export default function TrainingView({
 
     const fillDays = (template: Partial<Record<DayName, Array<{ id: string; drillId: string; name: string; fatigueIncrease: number }>>>) => {
       const base: WeeklySchedule = { Monday:[], Tuesday:[], Wednesday:[], Thursday:[], Friday:[], Saturday:[], Sunday:[] };
-      DAYS_OF_WEEK.forEach(day => { if (template[day]) base[day] = template[day]; });
-      return normalizeWeeklySchedule(filterScheduleToTrainingDays(base, activeTrainingDays));
+      const sessions = DAYS_OF_WEEK
+        .map(day => template[day] ?? [])
+        .filter(session => session.length > 0);
+
+      if (sessions.length === 0) return base;
+
+      activeTrainingDays.forEach((day, dayIndex) => {
+        const session = sessions[dayIndex % sessions.length];
+        base[day] = session.map((item, drillIndex) => {
+          const source = TRAINING_DRILLS.find(drill => drill.id === item.drillId);
+          return {
+            ...item,
+            id: `${item.id}-${day}-${drillIndex}`,
+            name: source?.name ?? item.name,
+            fatigueIncrease: source?.fatigueIncrease ?? item.fatigueIncrease,
+            intensityRating: source?.fatigueIncrease ?? item.fatigueIncrease
+          };
+        });
+      });
+      return normalizeWeeklySchedule(base);
     };
 
     if (mode === 'heavy') {
@@ -1010,105 +1029,6 @@ export default function TrainingView({
           </div>
         </div>
 
-        {/* Intensity Distribution Trend Graph */}
-        <div className="grid grid-cols-1 gap-5 rounded-xl border border-cyan-300/10 bg-[#0b1726]/72 p-4 text-slate-100 shadow-inner shadow-black/10 md:grid-cols-4">
-          <div className="md:col-span-1 space-y-2 flex flex-col justify-center">
-            <span className="text-[9px] font-semibold tracking-widest text-slate-500 uppercase">Load overview</span>
-            <h4 className="font-display text-sm font-black text-slate-50">Intensity Distribution</h4>
-            <p className="text-[10px] text-slate-400 leading-normal">
-              Estimated load points across the seven-day cycle, calculated from each drill's duration and intensity.
-            </p>
-            
-            {/* Distribution Index info */}
-            <div className="mt-2 space-y-1.5 rounded-lg border border-cyan-300/10 bg-[#07111f]/80 p-2 text-[10px] font-mono">
-              <div className="flex items-center justify-between gap-2 font-semibold text-emerald-200">
-                <span className="flex items-center gap-1.5"><span className="size-1.5 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.65)]" />Light (0-{SESSION_LOAD_THRESHOLDS.optimal - 1} pts):</span>
-                <span>{DAYS_OF_WEEK.filter(d => getSessionLoadPoints(weeklySchedule[d]) < SESSION_LOAD_THRESHOLDS.optimal).length} Days</span>
-              </div>
-              <div className="flex items-center justify-between gap-2 font-semibold text-amber-200">
-                <span className="flex items-center gap-1.5"><span className="size-1.5 rounded-full bg-amber-300 shadow-[0_0_8px_rgba(252,211,77,0.65)]" />Training ({SESSION_LOAD_THRESHOLDS.optimal}-{SESSION_LOAD_THRESHOLDS.high - 8} pts):</span>
-                <span>{DAYS_OF_WEEK.filter(d => {
-                  const sum = getSessionLoadPoints(weeklySchedule[d]);
-                  return sum >= SESSION_LOAD_THRESHOLDS.optimal && sum < SESSION_LOAD_THRESHOLDS.high - 7;
-                }).length} Days</span>
-              </div>
-              <div className="flex items-center justify-between gap-2 font-semibold text-orange-200">
-                <span className="flex items-center gap-1.5"><span className="size-1.5 rounded-full bg-orange-400 shadow-[0_0_8px_rgba(251,146,60,0.65)]" />Heavy ({SESSION_LOAD_THRESHOLDS.high - 7}-{SESSION_LOAD_THRESHOLDS.high - 1} pts):</span>
-                <span>{DAYS_OF_WEEK.filter(d => {
-                  const sum = getSessionLoadPoints(weeklySchedule[d]);
-                  return sum >= SESSION_LOAD_THRESHOLDS.high - 7 && sum < SESSION_LOAD_THRESHOLDS.high;
-                }).length} Days</span>
-              </div>
-              <div className="flex items-center justify-between gap-2 font-semibold text-red-200">
-                <span className="flex items-center gap-1.5"><span className="size-1.5 rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.65)]" />High ({SESSION_LOAD_THRESHOLDS.high}+ pts):</span>
-                <span>{DAYS_OF_WEEK.filter(d => getSessionLoadPoints(weeklySchedule[d]) >= SESSION_LOAD_THRESHOLDS.high).length} Days</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Mini Chart of weekly Load Curve */}
-          <div className="md:col-span-3 flex h-36 flex-col">
-            <div className="flex items-center justify-end">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={handleClearAllWeekly}
-                className="h-7 shrink-0 rounded-lg border-slate-500/20 bg-white/[0.035] px-3 text-[10px] font-semibold text-slate-300 hover:border-slate-300/25 hover:bg-white/[0.07] hover:text-white"
-              >
-                Reset
-              </Button>
-            </div>
-            <div className="flex flex-1 items-end justify-between px-2 pt-5">
-              {DAYS_OF_WEEK.map((day) => {
-                const load = getSessionLoadPoints(weeklySchedule[day]);
-                const maxPossibleLoad = 60;
-                const heightPercent = Math.min(100, Math.max(8, (load / maxPossibleLoad) * 100));
-                let barBg = 'bg-gradient-to-t from-emerald-600 to-emerald-300 shadow-[0_0_14px_rgba(16,185,129,0.34)]';
-                let loadText = 'text-emerald-200 group-hover:text-emerald-100';
-                let trackRing = 'group-hover:border-emerald-300/40';
-                if (load >= SESSION_LOAD_THRESHOLDS.high) {
-                  barBg = 'bg-gradient-to-t from-red-700 via-red-500 to-rose-300 shadow-[0_0_16px_rgba(239,68,68,0.5)]';
-                  loadText = 'text-red-200 group-hover:text-red-100';
-                  trackRing = 'group-hover:border-red-300/50';
-                } else if (load >= SESSION_LOAD_THRESHOLDS.high - 3) {
-                  barBg = 'bg-gradient-to-t from-orange-700 via-orange-500 to-red-300 shadow-[0_0_15px_rgba(249,115,22,0.46)]';
-                  loadText = 'text-orange-100 group-hover:text-orange-50';
-                  trackRing = 'group-hover:border-orange-300/50';
-                } else if (load >= SESSION_LOAD_THRESHOLDS.high - 7) {
-                  barBg = 'bg-gradient-to-t from-orange-600 to-orange-300 shadow-[0_0_14px_rgba(251,146,60,0.4)]';
-                  loadText = 'text-orange-200 group-hover:text-orange-100';
-                  trackRing = 'group-hover:border-orange-300/40';
-                } else if (load >= SESSION_LOAD_THRESHOLDS.optimal) {
-                  barBg = 'bg-gradient-to-t from-amber-600 to-yellow-300 shadow-[0_0_14px_rgba(245,158,11,0.38)]';
-                  loadText = 'text-amber-200 group-hover:text-amber-100';
-                  trackRing = 'group-hover:border-amber-300/40';
-                }
-                
-                return (
-                  <div key={day} className="flex flex-col items-center flex-1 group">
-                    {/* Load indicator badge on hover / top */}
-                    <span className={`mb-1.5 text-[10px] font-mono font-bold transition-colors ${loadText}`}>
-                      {load} pts
-                    </span>
-                    
-                    {/* Vertical Bar */}
-                    <div className={`w-6 md:w-8 bg-[#07111f] rounded-t-lg overflow-hidden h-24 flex items-end border border-cyan-300/10 transition-colors ${trackRing}`}>
-                      <div 
-                        style={{ height: `${heightPercent}%` }}
-                        className={`w-full rounded-t-md transition-all duration-300 ${barBg}`}
-                      />
-                    </div>
-
-                    {/* Day Name */}
-                    <span className="text-[9px] font-sans font-bold text-slate-500 uppercase tracking-widest mt-2">{day.substring(0, 3)}</span>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </div>
-
         {/* Week Navigation */}
         <div className="grid grid-cols-1 items-stretch gap-3 rounded-2xl border border-cyan-300/10 bg-[#0b1726]/72 p-2.5 shadow-inner shadow-black/10 sm:grid-cols-[9rem_minmax(15rem,1fr)_9rem] sm:items-center">
           <Button
@@ -1156,8 +1076,100 @@ export default function TrainingView({
           </div>
         </div>
 
+        {/* Intensity Distribution Trend Graph */}
+        <div className="rounded-2xl border border-cyan-300/10 bg-[#0b1726]/72 p-4 text-slate-100 shadow-inner shadow-black/10">
+          <div className="flex flex-col gap-3 border-b border-cyan-300/10 pb-3 lg:flex-row lg:items-start lg:justify-between">
+            <div className="min-w-0">
+              <span className="text-[9px] font-semibold uppercase tracking-widest text-slate-500">Load overview</span>
+              <h4 className="mt-1 font-display text-base font-black text-slate-50">Intensity Distribution</h4>
+              <p className="mt-1 max-w-2xl text-[10px] leading-normal text-slate-400">
+                Read the week by date: each bar sits over its day and reflects planned session load.
+              </p>
+            </div>
+            <div className="flex flex-col items-start gap-2 lg:items-end">
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-[9px] font-black uppercase tracking-wider">
+                {[
+                  { label: 'Light', count: DAYS_OF_WEEK.filter(d => getSessionLoadPoints(weeklySchedule[d]) < SESSION_LOAD_THRESHOLDS.optimal).length, dot: 'bg-emerald-400', tone: 'text-emerald-200' },
+                  { label: 'Training', count: DAYS_OF_WEEK.filter(d => {
+                    const sum = getSessionLoadPoints(weeklySchedule[d]);
+                    return sum >= SESSION_LOAD_THRESHOLDS.optimal && sum < SESSION_LOAD_THRESHOLDS.high - 7;
+                  }).length, dot: 'bg-amber-300', tone: 'text-amber-200' },
+                  { label: 'Heavy', count: DAYS_OF_WEEK.filter(d => {
+                    const sum = getSessionLoadPoints(weeklySchedule[d]);
+                    return sum >= SESSION_LOAD_THRESHOLDS.high - 7 && sum < SESSION_LOAD_THRESHOLDS.high;
+                  }).length, dot: 'bg-orange-400', tone: 'text-orange-200' },
+                  { label: 'High', count: DAYS_OF_WEEK.filter(d => getSessionLoadPoints(weeklySchedule[d]) >= SESSION_LOAD_THRESHOLDS.high).length, dot: 'bg-red-500', tone: 'text-red-200' }
+                ].map(item => (
+                  <span key={item.label} className={`inline-flex items-center gap-1.5 ${item.tone}`}>
+                    <span className={`size-1.5 rounded-full ${item.dot}`} />
+                    {item.label} {item.count}
+                  </span>
+                ))}
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleClearAllWeekly}
+                className="h-9 rounded-xl border-slate-500/20 bg-white/[0.045] px-4 text-[11px] font-bold text-slate-200 hover:border-slate-300/25 hover:bg-white/[0.08] hover:text-white"
+              >
+                Reset Week
+              </Button>
+            </div>
+          </div>
+
+          <div className="pt-4">
+            <div className="grid grid-cols-7 items-end gap-2">
+              {DAYS_OF_WEEK.map((day) => {
+                const load = getSessionLoadPoints(weeklySchedule[day]);
+                const duration = getSessionDuration(weeklySchedule[day]);
+                const maxPossibleLoad = 60;
+                const heightPercent = Math.min(100, Math.max(8, (load / maxPossibleLoad) * 100));
+                let barBg = 'bg-gradient-to-t from-emerald-600 to-emerald-300 shadow-[0_0_14px_rgba(16,185,129,0.34)]';
+                let loadText = 'text-emerald-200 group-hover:text-emerald-100';
+                let trackRing = 'group-hover:border-emerald-300/40';
+                if (load >= SESSION_LOAD_THRESHOLDS.high) {
+                  barBg = 'bg-gradient-to-t from-red-700 via-red-500 to-rose-300 shadow-[0_0_16px_rgba(239,68,68,0.5)]';
+                  loadText = 'text-red-200 group-hover:text-red-100';
+                  trackRing = 'group-hover:border-red-300/50';
+                } else if (load >= SESSION_LOAD_THRESHOLDS.high - 3) {
+                  barBg = 'bg-gradient-to-t from-orange-700 via-orange-500 to-red-300 shadow-[0_0_15px_rgba(249,115,22,0.46)]';
+                  loadText = 'text-orange-100 group-hover:text-orange-50';
+                  trackRing = 'group-hover:border-orange-300/50';
+                } else if (load >= SESSION_LOAD_THRESHOLDS.high - 7) {
+                  barBg = 'bg-gradient-to-t from-orange-600 to-orange-300 shadow-[0_0_14px_rgba(251,146,60,0.4)]';
+                  loadText = 'text-orange-200 group-hover:text-orange-100';
+                  trackRing = 'group-hover:border-orange-300/40';
+                } else if (load >= SESSION_LOAD_THRESHOLDS.optimal) {
+                  barBg = 'bg-gradient-to-t from-amber-600 to-yellow-300 shadow-[0_0_14px_rgba(245,158,11,0.38)]';
+                  loadText = 'text-amber-200 group-hover:text-amber-100';
+                  trackRing = 'group-hover:border-amber-300/40';
+                }
+                
+                return (
+                  <div key={day} className="group flex min-w-0 flex-col items-center">
+                    <span className={`mb-1.5 text-[10px] font-mono font-bold transition-colors ${loadText}`}>
+                      {load} pts
+                    </span>
+                    <div className={`flex h-24 w-full max-w-11 items-end overflow-hidden rounded-t-lg border border-cyan-300/10 bg-[#07111f] transition-colors ${trackRing}`}>
+                      <div 
+                        style={{ height: `${heightPercent}%` }}
+                        className={`w-full rounded-t-md transition-all duration-300 ${barBg}`}
+                      />
+                    </div>
+                    <div className="mt-2 min-w-0 text-center">
+                      <span className="block text-[9px] font-black uppercase tracking-widest text-slate-500">{day.substring(0, 3)}</span>
+                      <span className="mt-0.5 block truncate text-[9px] font-semibold text-slate-400">{duration} min</span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+
         {/* Weekly Drop Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
+        <div className="rounded-2xl border border-cyan-300/10 bg-[#0b1726]/52 p-3 shadow-inner shadow-black/10">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4 2xl:grid-cols-7">
           {DAYS_OF_WEEK.map((day) => {
             const scheduledList = getOrderedSessionDrills(weeklySchedule[day]);
             const sessionSummary = buildTrainingSessionSummary({
@@ -1167,42 +1179,40 @@ export default function TrainingView({
               meta: selectedWeekSessionMeta[day]
             });
             const totalLoad = getSessionLoadPoints(scheduledList);
-            const totalDuration = getSessionDuration(scheduledList);
             const dateStr = weekDaysMap[day].dateStr;
             const dayMatches = games.filter(g => (g.type === 'League' || g.type === 'Cup' || g.type === 'Friendly') && g.date === dateStr);
             const isUsualTrainingDay = activeTrainingDaySet.has(day);
             const hasSession = scheduledList.length > 0;
-            const stateLabel = hasSession ? 'Train' : isUsualTrainingDay ? 'Planned' : 'Rest';
-            const sessionStateClass = hasSession
-              ? 'border-emerald-300/25 bg-emerald-400/12 text-emerald-100'
-              : isUsualTrainingDay
-                ? 'border-amber-300/25 bg-amber-300/12 text-amber-100'
-                : 'border-slate-500/20 bg-slate-700/20 text-slate-400';
-            const cardToneClass = hasSession
-              ? 'border-emerald-300/12 bg-[#0d1620]/82 hover:border-emerald-300/25'
-              : isUsualTrainingDay
-                ? 'border-amber-300/12 bg-[#0e1722]/78 hover:border-amber-300/25'
-                : 'border-slate-500/12 bg-[#0b1220]/66 hover:border-slate-400/20';
-            
+            const previewDrills = sessionSummary.keyDrills.slice(0, 3);
+            const hiddenDrillCount = Math.max(0, scheduledList.length - previewDrills.length);
             let loadLabel = "LIGHT";
-            let loadColor = "bg-emerald-500/12 text-emerald-100 border-emerald-300/25";
             let loadDot = "bg-emerald-300 shadow-[0_0_8px_rgba(52,211,153,0.55)]";
+            let cardSurface = "border-emerald-300/[0.18] bg-[radial-gradient(circle_at_12%_0%,rgba(52,211,153,0.18),transparent_38%),linear-gradient(135deg,rgba(6,78,59,0.78),rgba(7,17,31,0.94)_68%)] hover:border-emerald-200/[0.34] hover:shadow-[0_18px_45px_rgba(16,185,129,0.16)]";
+            let datePill = "border-emerald-300/[0.18] bg-emerald-300/10 text-emerald-100";
             if (totalLoad >= SESSION_LOAD_THRESHOLDS.high) {
               loadLabel = "HIGH LOAD";
-              loadColor = "bg-red-500/15 text-red-100 border-red-300/30";
               loadDot = "bg-red-400 shadow-[0_0_8px_rgba(248,113,113,0.6)]";
+              cardSurface = "border-red-300/[0.18] bg-[radial-gradient(circle_at_12%_0%,rgba(248,113,113,0.18),transparent_38%),linear-gradient(135deg,rgba(69,26,3,0.72),rgba(7,17,31,0.94)_68%)] hover:border-red-200/[0.34] hover:shadow-[0_18px_45px_rgba(248,113,113,0.14)]";
+              datePill = "border-red-300/[0.18] bg-red-300/10 text-red-100";
             } else if (totalLoad >= SESSION_LOAD_THRESHOLDS.high - 3) {
               loadLabel = "PEAK";
-              loadColor = "bg-orange-600/20 text-orange-50 border-orange-300/30";
               loadDot = "bg-orange-500 shadow-[0_0_8px_rgba(249,115,22,0.6)]";
+              cardSurface = "border-orange-300/[0.18] bg-[radial-gradient(circle_at_12%_0%,rgba(251,146,60,0.2),transparent_38%),linear-gradient(135deg,rgba(67,36,12,0.76),rgba(7,17,31,0.94)_68%)] hover:border-orange-200/[0.34] hover:shadow-[0_18px_45px_rgba(251,146,60,0.15)]";
+              datePill = "border-orange-300/20 bg-orange-300/10 text-orange-100";
             } else if (totalLoad >= SESSION_LOAD_THRESHOLDS.high - 7) {
               loadLabel = "HEAVY";
-              loadColor = "bg-orange-400/15 text-orange-100 border-orange-300/25";
               loadDot = "bg-orange-300 shadow-[0_0_8px_rgba(251,146,60,0.55)]";
+              cardSurface = "border-orange-300/[0.18] bg-[radial-gradient(circle_at_12%_0%,rgba(251,191,36,0.18),transparent_38%),linear-gradient(135deg,rgba(69,42,12,0.72),rgba(7,17,31,0.94)_68%)] hover:border-orange-200/[0.34] hover:shadow-[0_18px_45px_rgba(251,191,36,0.14)]";
+              datePill = "border-amber-300/20 bg-amber-300/10 text-amber-100";
             } else if (totalLoad >= SESSION_LOAD_THRESHOLDS.optimal) {
               loadLabel = "TRAINING";
-              loadColor = "bg-amber-400/15 text-amber-100 border-amber-300/25";
               loadDot = "bg-amber-300 shadow-[0_0_8px_rgba(252,211,77,0.55)]";
+              cardSurface = "border-amber-300/[0.18] bg-[radial-gradient(circle_at_12%_0%,rgba(252,211,77,0.2),transparent_38%),linear-gradient(135deg,rgba(64,51,13,0.72),rgba(7,17,31,0.94)_68%)] hover:border-amber-200/[0.34] hover:shadow-[0_18px_45px_rgba(252,211,77,0.14)]";
+              datePill = "border-amber-300/20 bg-amber-300/10 text-amber-100";
+            }
+            if (!hasSession) {
+              cardSurface = "border-cyan-300/10 bg-[radial-gradient(circle_at_12%_0%,rgba(148,163,184,0.12),transparent_36%),linear-gradient(135deg,rgba(15,23,42,0.72),rgba(7,17,31,0.96)_70%)] hover:border-cyan-300/[0.22] hover:shadow-[0_18px_45px_rgba(34,211,238,0.1)]";
+              datePill = "border-cyan-300/12 bg-cyan-300/[0.08] text-slate-300";
             }
 
             return (
@@ -1220,73 +1230,64 @@ export default function TrainingView({
                   e.currentTarget.classList.remove('border-cyan-300/40', 'bg-cyan-300/10');
                   handleDropDrill(day, e);
                 }}
-                className={`relative flex min-h-[226px] flex-col justify-between rounded-xl border p-3 shadow-sm shadow-black/15 transition-all group/day ${cardToneClass}`}
+                className={`group/day relative flex min-h-[226px] flex-col justify-between overflow-hidden rounded-xl border p-4 shadow-inner shadow-white/[0.025] transition-all duration-200 hover:-translate-y-0.5 ${cardSurface}`}
               >
-                {/* Day block top layout */}
-                <div className="space-y-2.5">
+                <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-white/[0.075] via-transparent to-transparent opacity-0 transition-opacity duration-200 group-hover/day:opacity-100" />
+                <div className="relative space-y-3">
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
-                      <span className="block truncate font-display text-[13px] font-black uppercase tracking-wide text-slate-100">{day}</span>
-                      <span className="mt-0.5 block text-[10px] font-semibold text-slate-400">{weekDaysMap[day].monthDate}</span>
+                      <span className="block truncate font-display text-sm font-black text-slate-50">{day}</span>
                     </div>
-                    <div className="flex shrink-0 flex-col items-end gap-1">
-                      <span className={`rounded-full border px-2 py-0.5 text-[8px] font-black uppercase tracking-wide ${sessionStateClass}`}>
-                        {stateLabel}
+                    <div className="flex shrink-0 flex-col items-end gap-1 text-right">
+                      <span className={`rounded-full border px-2 py-0.5 text-[9px] font-black uppercase tracking-wider ${datePill}`}>
+                        {weekDaysMap[day].monthDate}
                       </span>
                       {sessionSummary.status !== 'planned' && hasSession && (
-                        <span className="rounded-full border border-indigo-300/20 bg-indigo-300/10 px-1.5 py-0.5 text-[7px] font-bold uppercase text-indigo-100">
+                        <span className="text-[8px] font-bold uppercase tracking-wider text-indigo-200">
                           {sessionSummary.status === 'in_progress' ? 'Live' : 'Done'}
                         </span>
                       )}
                     </div>
                   </div>
 
-                  {/* Load indicator tag */}
-                  <div className="grid grid-cols-2 gap-1.5">
-                    <div className={`flex items-center justify-center gap-1 rounded-lg border px-1.5 py-1 text-[8px] font-mono font-bold leading-none ${loadColor}`}>
-                      <span className={`size-1 rounded-full ${loadDot}`}></span>
-                      <span>{loadLabel}</span>
-                    </div>
-                    <div className="flex items-center justify-center gap-1 rounded-lg border border-violet-300/15 bg-violet-300/8 px-1.5 py-1 text-[8px] font-mono font-bold leading-none text-violet-100">
-                      <Timer size={9} aria-hidden="true" />
-                      <span>{totalDuration} min</span>
-                    </div>
+                  <div className="flex items-center justify-between gap-2 border-y border-white/[0.08] py-2">
+                    <span className="inline-flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest text-slate-400">
+                      <span className={`size-1.5 rounded-full ${loadDot}`} />
+                      {loadLabel}
+                    </span>
                   </div>
 
-                  {/* Match badge if there's a scheduled game */}
                   {dayMatches.length > 0 && dayMatches.map(m => (
-                    <div key={m.id} className="flex items-center gap-1 rounded-lg border border-amber-300/20 bg-amber-300/10 p-1.5 text-[8px] font-semibold leading-none text-amber-100">
+                    <div key={m.id} className="flex items-center gap-1 text-[9px] font-bold leading-none text-amber-100">
                       <Trophy size={9} />
                       <span className="truncate">{m.type === 'League' ? 'LEAGUE' : m.type === 'Cup' ? 'CUP' : 'FRIENDLY'} vs {m.opponent.substring(0, 12)}</span>
                     </div>
                   ))}
 
-                  {/* Scheduled drills list */}
-                  <div className="space-y-1.5 pt-1.5">
+                  <div className="space-y-2">
                     {scheduledList.length === 0 ? (
-                      <div className="flex min-h-[72px] select-none flex-col items-center justify-center gap-1.5 rounded-lg border border-dashed border-slate-500/18 bg-slate-950/18 p-3 text-center text-[9px] text-slate-500">
-                        <Hand size={14} className={isUsualTrainingDay ? 'text-amber-200/75' : 'text-slate-500'} aria-hidden="true" />
-                        <span className="font-semibold leading-tight text-slate-400">
-                          {isUsualTrainingDay ? 'Planned day, no drills yet' : 'Rest day'}
+                      <div className="flex min-h-[76px] select-none items-center rounded-lg border border-dashed border-cyan-300/[0.14] bg-black/10 px-3 text-[10px] text-slate-500 transition-colors group-hover/day:border-cyan-200/[0.24] group-hover/day:text-slate-400">
+                        <span className="inline-flex items-center gap-1.5 leading-tight">
+                          <Hand size={12} className={isUsualTrainingDay ? 'text-amber-200/70' : 'text-slate-500'} aria-hidden="true" />
+                          Drop drills here
                         </span>
-                        <span className="leading-tight text-slate-500">Drop drills here</span>
                       </div>
                     ) : (
                       <>
-                      {sessionSummary.keyDrills.map((item) => (
+                      {previewDrills.map((item) => (
                         <div 
                           id={`scheduled-item-${item.id}`}
                           key={item.id}
-                          className="flex items-center justify-between rounded-lg border border-slate-500/14 bg-white/[0.045] p-1.5 text-[10px] transition-all hover:border-emerald-300/25 hover:bg-emerald-300/8"
+                          className="flex items-start justify-between gap-2 rounded-lg border border-white/[0.055] bg-black/10 px-2 py-1.5 text-[10px] transition-colors group-hover/day:border-white/[0.09] group-hover/day:bg-white/[0.035]"
                         >
-                          <div className="flex min-w-0 items-center gap-1 truncate pr-1">
-                            <span className="text-slate-400 shrink-0">{getDrillIcon(item.drillId)}</span>
+                          <div className="flex min-w-0 items-start gap-1.5 truncate pr-1">
+                            <span className="mt-0.5 shrink-0 text-cyan-100/80">{getDrillIcon(item.drillId)}</span>
                             <span className="min-w-0 truncate">
                               <span className="block truncate font-semibold leading-tight text-slate-100">
                                 {item.name.replace("Challenge", "").replace("Workout", "").replace("Walkthrough", "").replace("Sprints", "")}
                               </span>
-                              <span className="block text-[7px] uppercase tracking-wide text-slate-400">
-                                {getScheduledDrillBlock(item)} · {getScheduledDrillDuration(item)} min
+                              <span className="block text-[8px] uppercase tracking-wide text-slate-400/80">
+                                {getScheduledDrillBlock(item)}
                               </span>
                             </span>
                           </div>
@@ -1295,16 +1296,16 @@ export default function TrainingView({
                             variant="ghost"
                             size="icon"
                             onClick={() => handleRemoveDrill(day, item.id)}
-                            className="size-4 rounded bg-white/[0.04] text-slate-500 hover:bg-rose-300/10 hover:text-rose-200"
+                            className="size-4 rounded text-slate-500 hover:bg-rose-300/10 hover:text-rose-200"
                             title="Remove Drill"
                           >
                             <X size={10} aria-hidden="true" />
                           </Button>
                         </div>
                       ))}
-                      {sessionSummary.overflowCount > 0 && (
-                        <div className="rounded-lg border border-slate-500/12 bg-slate-950/18 px-2 py-1 text-center text-[8px] font-bold uppercase text-slate-400">
-                          +{sessionSummary.overflowCount} more drills in builder
+                      {hiddenDrillCount > 0 && (
+                        <div className="text-[8px] font-bold uppercase tracking-wider text-slate-500">
+                          +{hiddenDrillCount} more in builder
                         </div>
                       )}
                       </>
@@ -1312,41 +1313,13 @@ export default function TrainingView({
                   </div>
                 </div>
                 
-                {/* Day footer helper text */}
-                <div className="mt-3 space-y-2 border-t border-slate-500/12 pt-2">
-                  <div className="flex items-center justify-between gap-2">
-                  <span className="inline-flex min-w-0 items-center gap-1 truncate text-[8px] font-bold uppercase tracking-wide text-slate-500">
-                    <Gauge size={10} aria-hidden="true" />
-                    {scheduledList.length} {scheduledList.length === 1 ? 'drill' : 'drills'} · {totalLoad} pts
-                  </span>
-                    <span className={`rounded-full border px-1.5 py-0.5 text-[7px] font-bold uppercase ${
-                      sessionSummary.readiness === 'ready'
-                        ? 'border-emerald-300/20 bg-emerald-400/10 text-emerald-100'
-                        : sessionSummary.readiness === 'high_load'
-                          ? 'border-red-300/25 bg-red-500/12 text-red-100'
-                          : sessionSummary.readiness === 'needs_structure'
-                            ? 'border-amber-300/25 bg-amber-300/12 text-amber-100'
-                            : 'border-slate-500/15 bg-white/[0.025] text-slate-500'
-                    }`}>
-                      {sessionSummary.readiness === 'needs_structure' ? 'Needs prep' : sessionSummary.readiness.replace('_', ' ')}
-                    </span>
-                  </div>
-                  {hasSession && (
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="min-w-0 truncate text-[8px] font-semibold text-slate-500">
-                        {getSessionEquipment(scheduledList).slice(0, 2).join(', ') || 'No equipment listed'}
-                      </span>
-                      {sessionSummary.warnings.length > 0 && (
-                        <span className="shrink-0 text-[8px] font-bold text-amber-200">{sessionSummary.warnings.length} warning</span>
-                      )}
-                    </div>
-                  )}
+                <div className="relative mt-3 space-y-2 border-t border-white/[0.08] pt-2">
                   <Button
                     type="button"
                     variant="ghost"
                     size="sm"
                     onClick={() => setBuilderDay(day)}
-                    className="h-7 w-full shrink-0 rounded-lg border border-slate-500/14 bg-white/[0.035] px-2 text-[9px] font-semibold text-slate-200 hover:border-emerald-300/25 hover:bg-emerald-300/10 hover:text-emerald-50"
+                    className="h-7 w-full shrink-0 rounded-lg border border-white/[0.09] bg-white/[0.045] px-2 text-[9px] font-semibold text-slate-100 hover:border-emerald-300/28 hover:bg-emerald-300/12 hover:text-emerald-50"
                     aria-label={`Open ${day} training session`}
                     title={`Open ${day} session`}
                   >
@@ -1357,6 +1330,7 @@ export default function TrainingView({
               </div>
             );
           })}
+          </div>
         </div>
 
         {builderDay && (
@@ -1379,52 +1353,52 @@ export default function TrainingView({
         <div className="lg:col-span-2 space-y-6">
           
           {/* Drills Catalog */}
-          <div className="rounded-2xl border border-cyan-300/10 bg-[#07111f]/88 p-4 text-slate-100 shadow-lg shadow-black/20 backdrop-blur-xl sm:p-5">
+          <div className="overflow-hidden rounded-2xl border border-cyan-300/10 bg-[radial-gradient(circle_at_16%_0%,rgba(45,212,191,0.16),transparent_34%),linear-gradient(135deg,rgba(8,47,73,0.72),rgba(7,17,31,0.94)_58%)] p-4 text-slate-100 shadow-lg shadow-black/20 backdrop-blur-xl sm:p-5">
             <div className="flex flex-col gap-3 border-b border-cyan-300/10 pb-4 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex items-center gap-2.5">
-                <div className="flex size-9 shrink-0 items-center justify-center rounded-xl border border-cyan-300/10 bg-cyan-300/10 text-cyan-100">
+                <div className="flex size-9 shrink-0 items-center justify-center rounded-full border border-cyan-300/15 bg-cyan-300/12 text-cyan-100 shadow-[0_0_18px_rgba(34,211,238,0.12)]">
                   <Dumbbell size={16} />
                 </div>
                 <div>
-                  <h3 className="font-display text-sm font-black uppercase tracking-wider text-slate-50">Tactical & Technical Drill Selector</h3>
+                  <h3 className="font-display text-base font-black tracking-tight text-slate-50">Tactical & Technical Drill Selector</h3>
                   <p className="mt-0.5 text-[11px] text-slate-400">Find a drill, review its load, then add it to your training week.</p>
                 </div>
               </div>
 
-              <span aria-live="polite" className="w-fit rounded-full border border-cyan-300/10 bg-white/[0.04] px-2.5 py-1 text-[10px] font-bold text-slate-300">
+              <span aria-live="polite" className="w-fit rounded-full border border-cyan-300/10 bg-white/[0.05] px-3 py-1.5 text-[10px] font-bold text-slate-300">
                 {filteredDrills.length} {filteredDrills.length === 1 ? 'drill' : 'drills'}
               </span>
             </div>
 
-            <div className="mt-4 overflow-hidden rounded-xl border border-cyan-300/10 bg-[#07111f]/86 shadow-sm shadow-black/15 backdrop-blur-xl">
-              <div className="border-b border-cyan-300/10 bg-[#0b1726]/78 p-3">
-                <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
+            <div className="mt-4 overflow-hidden rounded-2xl border border-cyan-300/10 bg-[#07111f]/54 shadow-inner shadow-black/10 backdrop-blur-xl">
+              <div className="bg-[linear-gradient(135deg,rgba(6,78,59,0.5),rgba(11,23,38,0.72)_54%,rgba(7,17,31,0.86))] p-4">
+                <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_9.5rem] xl:items-start">
                   <div className="flex min-w-0 gap-3">
-                    <div className={`flex size-11 shrink-0 items-center justify-center rounded-xl border shadow-sm shadow-black/10 ${TRAINING_DRILL_ICON_CLASS}`}>
+                    <div className={`flex size-12 shrink-0 items-center justify-center rounded-full border shadow-sm shadow-black/10 ${TRAINING_DRILL_ICON_CLASS}`}>
                       {getDrillIcon(selectedScheduleDrill.id)}
                     </div>
                     <div className="min-w-0">
-                      <span className="text-[9px] font-semibold uppercase tracking-[0.16em] text-slate-500">Selected drill</span>
-                      <h4 className="mt-0.5 truncate text-sm font-black text-slate-50">{selectedScheduleDrill.name}</h4>
-                      <p className="mt-1 line-clamp-2 text-[11px] leading-relaxed text-slate-300">{selectedScheduleDrill.description}</p>
+                      <span className="text-[9px] font-semibold uppercase tracking-[0.16em] text-emerald-200">Selected drill</span>
+                      <h4 className="mt-0.5 truncate font-display text-lg font-black tracking-tight text-slate-50">{selectedScheduleDrill.name}</h4>
+                      <p className="mt-1 max-w-2xl text-[11px] leading-relaxed text-slate-300">{selectedScheduleDrill.description}</p>
                       <div className="mt-2 flex flex-wrap gap-1.5">
-                        <span className={`rounded-full border px-2 py-1 text-[9px] font-black uppercase shadow-sm shadow-black/10 ${selectedScheduleDrillCategoryClass}`}>
+                        <span className={`rounded-full border px-2.5 py-1 text-[9px] font-black uppercase shadow-sm shadow-black/10 ${selectedScheduleDrillCategoryClass}`}>
                           {selectedScheduleDrill.category}
                         </span>
-                        <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-1 text-[9px] font-black uppercase shadow-sm shadow-black/10 ${selectedScheduleDrillLoadStyle.badge}`}>
+                        <span className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[9px] font-black uppercase shadow-sm shadow-black/10 ${selectedScheduleDrillLoadStyle.badge}`}>
                           <span className={`size-1.5 rounded-full ${selectedScheduleDrillLoadStyle.dot}`} />
                           <Gauge size={10} aria-hidden="true" /> Intensity {selectedScheduleDrill.fatigueIncrease}/10
                         </span>
-                        <span className="inline-flex items-center gap-1 rounded-full border border-indigo-300/20 bg-indigo-300/10 px-2 py-1 text-[9px] font-black uppercase text-indigo-100 shadow-sm shadow-black/10">
+                        <span className="inline-flex items-center gap-1 rounded-full border border-indigo-300/20 bg-indigo-300/10 px-2.5 py-1 text-[9px] font-black uppercase text-indigo-100 shadow-sm shadow-black/10">
                           <Target size={10} aria-hidden="true" /> {formatTrainingFocusList(selectedScheduleDrill.developmentFocus)}
                         </span>
                       </div>
                     </div>
                   </div>
 
-                  <div className="flex flex-wrap items-center gap-2 xl:justify-end">
+                  <div className="grid w-full grid-cols-2 gap-2 xl:grid-cols-1">
                     <Select value={developmentDay} onValueChange={(value) => setDevelopmentDay(value as DayName)}>
-                      <SelectTrigger aria-label="Day to add selected drill" className="h-9 w-32 flex-none border-cyan-300/10 bg-[#0b1726]/85 text-xs text-slate-100 sm:w-36">
+                      <SelectTrigger aria-label="Day to add selected drill" className="h-9 w-full rounded-xl border-emerald-300/20 bg-[#0b1726]/85 px-3 text-xs font-bold text-slate-100 shadow-inner shadow-black/10">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent className={TRAINING_SELECT_CONTENT_CLASS}>
@@ -1434,7 +1408,7 @@ export default function TrainingView({
                     <Button
                       type="button"
                       onClick={() => addDrillsToDay([selectedScheduleDrill], developmentDay)}
-                      className="h-9 rounded-lg border border-cyan-300/15 bg-cyan-300/12 px-3 text-cyan-50 hover:bg-cyan-300/18"
+                      className="h-9 w-full rounded-xl border border-emerald-300/20 bg-emerald-300/15 px-3 text-emerald-50 hover:bg-emerald-300/22"
                     >
                       <CalendarPlus size={14} /> Add to day
                     </Button>
@@ -1443,51 +1417,45 @@ export default function TrainingView({
               </div>
 
               {selectedScheduleDrillInstructions ? (
-                <div className="grid gap-3 p-3 lg:grid-cols-[0.78fr_1.22fr]">
-                  <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-1">
-                    <div className="rounded-lg border border-emerald-300/20 bg-emerald-400/10 p-3 shadow-sm shadow-emerald-950/10">
-                      <div className="flex items-center gap-2">
-                        <span className="flex size-7 shrink-0 items-center justify-center rounded-lg border border-emerald-300/25 bg-emerald-400/12 text-emerald-100">
-                          <Dumbbell size={13} aria-hidden="true" />
-                        </span>
-                        <span className="text-[9px] font-black uppercase tracking-wider text-emerald-100">Equipment</span>
-                      </div>
-                      <p className="mt-2 text-[11px] leading-relaxed text-slate-300">{selectedScheduleDrillInstructions.equipment}</p>
+                <div className="grid gap-0 border-t border-cyan-300/10 md:grid-cols-2 xl:grid-cols-[0.9fr_0.9fr_1.1fr_1.1fr]">
+                  <div className="border-b border-cyan-300/10 p-4 md:border-r xl:border-b-0">
+                    <div className="flex items-center gap-2">
+                      <span className="flex size-7 shrink-0 items-center justify-center rounded-full border border-emerald-300/25 bg-emerald-400/12 text-emerald-100">
+                        <Dumbbell size={13} aria-hidden="true" />
+                      </span>
+                      <span className="text-[9px] font-black uppercase tracking-wider text-emerald-100">Equipment</span>
                     </div>
-                    <div className="rounded-lg border border-amber-300/20 bg-amber-300/10 p-3 shadow-sm shadow-amber-950/10">
-                      <div className="flex items-center gap-2">
-                        <span className="flex size-7 shrink-0 items-center justify-center rounded-lg border border-amber-300/25 bg-amber-300/12 text-amber-100">
-                          <Timer size={13} aria-hidden="true" />
-                        </span>
-                        <span className="text-[9px] font-black uppercase tracking-wider text-amber-100">Sets / reps</span>
-                      </div>
-                      <p className="mt-2 text-[11px] leading-relaxed text-slate-300">{selectedScheduleDrillInstructions.setsReps}</p>
+                    <p className="mt-2 text-[11px] leading-relaxed text-slate-300">{selectedScheduleDrillInstructions.equipment}</p>
+                  </div>
+                  <div className="border-b border-cyan-300/10 p-4 xl:border-b-0 xl:border-r">
+                    <div className="flex items-center gap-2">
+                      <span className="flex size-7 shrink-0 items-center justify-center rounded-full border border-amber-300/25 bg-amber-300/12 text-amber-100">
+                        <Timer size={13} aria-hidden="true" />
+                      </span>
+                      <span className="text-[9px] font-black uppercase tracking-wider text-amber-100">Sets / reps</span>
                     </div>
+                    <p className="mt-2 text-[11px] leading-relaxed text-slate-300">{selectedScheduleDrillInstructions.setsReps}</p>
                   </div>
 
-                  <div className="rounded-lg border border-cyan-300/10 bg-white/[0.035] p-3 shadow-sm shadow-black/10">
-                    <div className="grid gap-3 md:grid-cols-2">
-                      <div className="relative rounded-lg border border-cyan-300/20 bg-cyan-300/10 p-3">
-                        <span className="absolute right-3 top-3 text-xl font-black leading-none text-cyan-100/20">01</span>
-                        <div className="flex items-center gap-2">
-                          <span className="flex size-7 shrink-0 items-center justify-center rounded-lg border border-cyan-300/25 bg-cyan-300/12 text-cyan-100">
-                            <Route size={13} aria-hidden="true" />
-                          </span>
-                          <span className="text-[9px] font-black uppercase tracking-wider text-cyan-100">Setup</span>
-                        </div>
-                        <p className="mt-2 text-[11px] leading-relaxed text-slate-200">{selectedScheduleDrillInstructions.setup}</p>
-                      </div>
-                      <div className="relative rounded-lg border border-indigo-300/20 bg-indigo-300/10 p-3">
-                        <span className="absolute right-3 top-3 text-xl font-black leading-none text-indigo-100/20">02</span>
-                        <div className="flex items-center gap-2">
-                          <span className="flex size-7 shrink-0 items-center justify-center rounded-lg border border-indigo-300/25 bg-indigo-300/12 text-indigo-100">
-                            <CheckCircle size={13} aria-hidden="true" />
-                          </span>
-                          <span className="text-[9px] font-black uppercase tracking-wider text-indigo-100">Execution</span>
-                        </div>
-                        <p className="mt-2 text-[11px] leading-relaxed text-slate-200">{selectedScheduleDrillInstructions.execution}</p>
-                      </div>
+                  <div className="relative border-b border-cyan-300/20 bg-cyan-300/[0.075] p-4 shadow-inner shadow-cyan-950/10 md:border-b-0 md:border-r">
+                    <span className="absolute right-4 top-4 text-xl font-black leading-none text-cyan-100/20">01</span>
+                    <div className="flex items-center gap-2">
+                      <span className="flex size-7 shrink-0 items-center justify-center rounded-full border border-cyan-300/25 bg-cyan-300/12 text-cyan-100">
+                        <Route size={13} aria-hidden="true" />
+                      </span>
+                      <span className="text-[9px] font-black uppercase tracking-wider text-cyan-100">Setup</span>
                     </div>
+                    <p className="mt-2 text-[11px] leading-relaxed text-slate-200">{selectedScheduleDrillInstructions.setup}</p>
+                  </div>
+                  <div className="relative bg-indigo-300/[0.075] p-4 shadow-inner shadow-indigo-950/10">
+                    <span className="absolute right-4 top-4 text-xl font-black leading-none text-indigo-100/20">02</span>
+                    <div className="flex items-center gap-2">
+                      <span className="flex size-7 shrink-0 items-center justify-center rounded-full border border-indigo-300/25 bg-indigo-300/12 text-indigo-100">
+                        <CheckCircle size={13} aria-hidden="true" />
+                      </span>
+                      <span className="text-[9px] font-black uppercase tracking-wider text-indigo-100">Execution</span>
+                    </div>
+                    <p className="mt-2 text-[11px] leading-relaxed text-slate-200">{selectedScheduleDrillInstructions.execution}</p>
                   </div>
                 </div>
               ) : (
@@ -1499,10 +1467,10 @@ export default function TrainingView({
 
             {/* Compact drill browser */}
             <div className="mt-5">
-              <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
-                <div>
+              <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto] md:items-end">
+                <div className="min-w-0">
                   <p className="text-[10px] font-black uppercase tracking-wider text-slate-500">Browse library</p>
-                  <p className="mt-0.5 text-[10px] text-slate-400">
+                  <p className="mt-0.5 max-w-2xl text-[10px] leading-relaxed text-slate-400">
                     {activeDrillLibraryTab === 'recommended' && growthNeeds
                       ? 'Recommended drills match the selected player development need.'
                       : activeDrillLibraryTab === 'recommended'
@@ -1510,13 +1478,13 @@ export default function TrainingView({
                         : 'Select a drill row or drag it onto the calendar.'}
                   </p>
                 </div>
-                <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-end">
-                  <div className="sm:w-56">
+                <div className="grid grid-cols-[minmax(0,1fr)_auto] items-end gap-2 sm:min-w-[22rem]">
+                  <div className="min-w-0">
                     <label className="mb-1.5 flex items-center gap-1 text-[10px] font-black uppercase tracking-wider text-slate-500">
                       <Filter size={12} aria-hidden="true" /> Filter by focus
                     </label>
                     <Select value={selectedAttributeFilter} onValueChange={setSelectedAttributeFilter}>
-                      <SelectTrigger aria-label="Filter drills by focus" className="h-9 rounded-lg border-cyan-300/10 bg-[#0b1726]/85 text-xs text-slate-100">
+                      <SelectTrigger aria-label="Filter drills by focus" className="h-9 rounded-xl border-cyan-300/10 bg-[#0b1726]/85 text-xs text-slate-100">
                         <SelectValue>{DRILL_FILTER_LABELS[selectedAttributeFilter] ?? 'All drills'}</SelectValue>
                       </SelectTrigger>
                       <SelectContent className={TRAINING_SELECT_CONTENT_CLASS}>
@@ -1534,28 +1502,36 @@ export default function TrainingView({
                       </SelectContent>
                     </Select>
                   </div>
-                  <Badge variant="outline" className="h-9 w-fit border-cyan-300/10 bg-white/[0.04] px-3 text-[10px] font-black text-slate-300 sm:mb-0">
+                  <Badge variant="outline" className="h-9 shrink-0 rounded-xl border-cyan-300/10 bg-white/[0.04] px-3 text-[10px] font-black text-slate-300">
                     {visibleLibraryDrills.length} shown
                   </Badge>
                 </div>
               </div>
 
-              <Tabs value={activeDrillLibraryTab} onValueChange={(value) => setActiveDrillLibraryTab(value as DrillLibraryTab)} className="mt-3">
-                <TabsList aria-label="Drill library categories" className="w-full justify-start overflow-x-auto rounded-xl border border-cyan-300/10 bg-[#0b1726]/72 p-1">
-                  {DRILL_LIBRARY_TABS.map(tab => (
-                    <TabsTrigger
+              <div role="tablist" aria-label="Drill library categories" className="mt-3 flex w-full gap-1 overflow-x-auto rounded-full border border-white/[0.08] bg-white/[0.035] p-1">
+                {DRILL_LIBRARY_TABS.map(tab => {
+                  const isActive = activeDrillLibraryTab === tab.id;
+                  return (
+                    <button
                       key={tab.id}
-                      value={tab.id}
-                      className="min-h-8 shrink-0 gap-1.5 rounded-lg px-2.5 text-[10px] text-slate-400 data-[state=active]:bg-cyan-300/12 data-[state=active]:text-cyan-50"
+                      type="button"
+                      role="tab"
+                      aria-selected={isActive}
+                      onClick={() => setActiveDrillLibraryTab(tab.id)}
+                      className={`flex min-h-8 shrink-0 items-center justify-center gap-1.5 rounded-full border px-3 text-[10px] font-black transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/25 ${
+                        isActive
+                          ? 'border-white/10 bg-white/[0.08] text-slate-50'
+                          : 'border-transparent text-slate-400 hover:bg-white/[0.045] hover:text-slate-200'
+                      }`}
                     >
                       {tab.label}
-                      <span className="rounded-full bg-white/[0.06] px-1.5 py-0.5 text-[9px] text-slate-400">
+                      <span className={`rounded-full px-1.5 py-0.5 text-[9px] ${isActive ? 'bg-white/[0.10] text-slate-300' : 'bg-white/[0.06] text-slate-500'}`}>
                         {drillLibraryTabCounts[tab.id]}
                       </span>
-                    </TabsTrigger>
-                  ))}
-                </TabsList>
-              </Tabs>
+                    </button>
+                  );
+                })}
+              </div>
 
               {visibleLibraryDrills.length === 0 ? (
                 <div className="mt-3 rounded-xl border border-dashed border-cyan-300/10 p-8 text-center text-slate-400">
@@ -1564,8 +1540,8 @@ export default function TrainingView({
                   <p className="mt-1 text-xs text-slate-400">Try another tab or focus filter.</p>
                 </div>
               ) : (
-                <div className="mt-3 max-h-[28rem] overflow-y-auto rounded-xl border border-cyan-300/10 bg-[#0b1726]/72 p-2">
-                  <div className="grid grid-cols-1 gap-2 xl:grid-cols-2">
+                <div className="mt-3 rounded-2xl border border-cyan-300/10 bg-[#07111f]/42 p-2">
+                  <div className="grid grid-cols-1 gap-2 md:grid-cols-2 2xl:grid-cols-3">
                     {visibleLibraryDrills.map((drill) => {
                       const isSelected = selectedDrillId === drill.id;
                       const isRecommended = growthNeeds?.isBeneficial(drill);
@@ -1589,35 +1565,41 @@ export default function TrainingView({
                           tabIndex={0}
                           aria-pressed={isSelected}
                           aria-label={`Select ${drill.name}`}
-                          className={`group flex cursor-grab items-start gap-3 rounded-lg border bg-white/[0.035] p-2.5 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/25 active:cursor-grabbing ${
+                          className={`group flex min-h-[132px] cursor-grab flex-col justify-between rounded-xl border p-3 text-left transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/25 active:cursor-grabbing ${
                             isSelected
-                              ? 'border-cyan-300/35 bg-cyan-300/10 shadow-[0_0_18px_rgba(34,211,238,0.12)]'
+                              ? 'border-emerald-300/34 bg-[linear-gradient(135deg,rgba(16,185,129,0.12),rgba(15,23,42,0.52))] shadow-[0_0_16px_rgba(16,185,129,0.10)]'
                               : isRecommended
-                                ? 'border-emerald-300/20 bg-emerald-500/[0.045] hover:border-emerald-300/35 hover:bg-emerald-500/10'
-                                : 'border-cyan-300/10 hover:border-cyan-300/22 hover:bg-white/[0.055]'
+                                ? 'border-emerald-300/18 bg-[linear-gradient(135deg,rgba(16,185,129,0.07),rgba(15,23,42,0.42))] hover:border-emerald-300/34 hover:bg-emerald-300/[0.075]'
+                                : 'border-white/[0.075] bg-white/[0.035] hover:border-white/[0.13] hover:bg-white/[0.06]'
                           }`}
                         >
-                          <span className={`flex size-9 shrink-0 items-center justify-center rounded-lg border ${isSelected ? 'border-cyan-300/30 bg-cyan-300/12 text-cyan-100' : TRAINING_DRILL_ICON_CLASS}`}>
-                            {getDrillIcon(drill.id)}
-                          </span>
-                          <span className="min-w-0 flex-1">
-                            <span className="flex items-center gap-1.5">
-                              <span className="truncate text-xs font-black text-slate-100">{drill.name}</span>
-                              {isRecommended && (
-                                <span className="shrink-0 rounded-full border border-emerald-300/25 bg-emerald-500/12 px-1.5 py-0.5 text-[7px] font-black uppercase text-emerald-100">
-                                  Recommended
-                                </span>
-                              )}
+                          <div className="flex min-w-0 items-start gap-2.5">
+                            <span className={`flex size-8 shrink-0 items-center justify-center rounded-full border ${isSelected ? 'border-emerald-300/30 bg-emerald-300/12 text-emerald-100' : TRAINING_DRILL_ICON_CLASS}`}>
+                              {getDrillIcon(drill.id)}
                             </span>
-                            <span className="mt-1 line-clamp-1 text-[10px] leading-relaxed text-slate-400">{drill.description}</span>
-                            <span className="mt-1.5 flex flex-wrap items-center gap-1.5 text-[9px] font-bold text-slate-400">
-                              <span className={`rounded-md border px-1.5 py-0.5 uppercase ${categoryStyle}`}>{drill.category}</span>
-                              <span className={`inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5 ${loadStyle.badge}`}>
+                            <span className="min-w-0 flex-1 overflow-hidden">
+                              <span className="flex min-w-0 items-center gap-1.5">
+                                <span className="min-w-0 flex-1 truncate text-xs font-black text-slate-100">{drill.name}</span>
+                                {isRecommended && (
+                                  <span className="shrink-0 rounded-full border border-emerald-300/25 bg-emerald-500/12 px-1.5 py-0.5 text-[7px] font-black uppercase text-emerald-100">
+                                    Rec
+                                  </span>
+                                )}
+                              </span>
+                              <span className="mt-1 line-clamp-2 text-[10px] leading-relaxed text-slate-400">{drill.description}</span>
+                            </span>
+                          </div>
+                          <div className="mt-3 min-w-0">
+                            <span className="flex flex-wrap items-center gap-1.5 text-[9px] font-bold text-slate-400">
+                              <span className={`max-w-full truncate rounded-md border px-1.5 py-0.5 uppercase ${categoryStyle}`}>{drill.category}</span>
+                              <span className={`inline-flex max-w-full items-center gap-1 rounded-md border px-1.5 py-0.5 ${loadStyle.badge}`}>
                                 <span className={`size-1 rounded-full ${loadStyle.dot}`} />Intensity {drill.fatigueIncrease}/10
                               </span>
-                              <span className="hidden sm:inline">Focus: {formatTrainingFocusList(drill.developmentFocus)}</span>
                             </span>
-                          </span>
+                            <span className="mt-1.5 block truncate text-[9px] font-bold text-slate-500">
+                              Focus: {formatTrainingFocusList(drill.developmentFocus)}
+                            </span>
+                          </div>
                         </div>
                       );
                     })}

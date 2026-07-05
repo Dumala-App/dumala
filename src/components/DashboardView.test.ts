@@ -33,4 +33,13 @@ describe('selectMatchDayPrepEvent', () => {
 
     expect(selected?.id).toBe('upcoming');
   });
+
+  it('keeps same-day upcoming events visible for match prep after kickoff time', () => {
+    const selected = selectMatchDayPrepEvent([
+      game({ id: 'today', opponent: 'Today FC', date: '2026-07-05', time: '08:00' }),
+      game({ id: 'tomorrow', opponent: 'Tomorrow FC', date: '2026-07-06', time: '08:00' })
+    ], new Date('2026-07-05T20:00:00'));
+
+    expect(selected?.id).toBe('today');
+  });
 });
