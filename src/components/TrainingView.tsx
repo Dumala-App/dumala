@@ -13,7 +13,6 @@ import {
   getWeekDaysMap,
   getOrderedSessionDrills,
   getScheduledDrillBlock,
-  getScheduledDrillDuration,
   getSessionDuration,
   getSessionLoadPoints,
   synchronizeTrainingCalendar,
@@ -1101,6 +1100,7 @@ export default function TrainingView({
             <div className="grid grid-cols-7 items-end gap-2">
               {DAYS_OF_WEEK.map((day) => {
                 const load = getSessionLoadPoints(weeklySchedule[day]);
+                const duration = getSessionDuration(weeklySchedule[day]);
                 const maxPossibleLoad = 60;
                 const heightPercent = Math.min(100, Math.max(8, (load / maxPossibleLoad) * 100));
                 let barBg = 'bg-gradient-to-t from-emerald-600 to-emerald-300 shadow-[0_0_14px_rgba(16,185,129,0.34)]';
@@ -1137,7 +1137,7 @@ export default function TrainingView({
                     </div>
                     <div className="mt-2 min-w-0 text-center">
                       <span className="block text-[9px] font-black uppercase tracking-widest text-slate-500">{day.substring(0, 3)}</span>
-                      <span className="mt-0.5 block truncate text-[9px] font-semibold text-slate-600">{weekDaysMap[day].monthDate}</span>
+                      <span className="mt-0.5 block truncate text-[9px] font-semibold text-slate-400">{duration} min</span>
                     </div>
                   </div>
                 );
@@ -1158,12 +1158,11 @@ export default function TrainingView({
               meta: selectedWeekSessionMeta[day]
             });
             const totalLoad = getSessionLoadPoints(scheduledList);
-            const totalDuration = getSessionDuration(scheduledList);
             const dateStr = weekDaysMap[day].dateStr;
             const dayMatches = games.filter(g => (g.type === 'League' || g.type === 'Cup' || g.type === 'Friendly') && g.date === dateStr);
             const isUsualTrainingDay = activeTrainingDaySet.has(day);
             const hasSession = scheduledList.length > 0;
-            const previewDrills = sessionSummary.keyDrills.slice(0, 2);
+            const previewDrills = sessionSummary.keyDrills.slice(0, 3);
             const hiddenDrillCount = Math.max(0, scheduledList.length - previewDrills.length);
             let loadLabel = "LIGHT";
             let loadDot = "bg-emerald-300 shadow-[0_0_8px_rgba(52,211,153,0.55)]";
@@ -1236,10 +1235,6 @@ export default function TrainingView({
                       <span className={`size-1.5 rounded-full ${loadDot}`} />
                       {loadLabel}
                     </span>
-                    <span className="inline-flex items-center gap-1 font-mono text-[10px] font-black text-slate-200">
-                      <Timer size={10} aria-hidden="true" />
-                      {totalDuration} min
-                    </span>
                   </div>
 
                   {dayMatches.length > 0 && dayMatches.map(m => (
@@ -1272,7 +1267,7 @@ export default function TrainingView({
                                 {item.name.replace("Challenge", "").replace("Workout", "").replace("Walkthrough", "").replace("Sprints", "")}
                               </span>
                               <span className="block text-[8px] uppercase tracking-wide text-slate-400/80">
-                                {getScheduledDrillBlock(item)} · {getScheduledDrillDuration(item)} min
+                                {getScheduledDrillBlock(item)}
                               </span>
                             </span>
                           </div>
