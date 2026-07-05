@@ -1173,18 +1173,32 @@ export default function TrainingView({
             
             let loadLabel = "LIGHT";
             let loadDot = "bg-emerald-300 shadow-[0_0_8px_rgba(52,211,153,0.55)]";
+            let cardSurface = "border-emerald-300/[0.18] bg-[radial-gradient(circle_at_12%_0%,rgba(52,211,153,0.18),transparent_38%),linear-gradient(135deg,rgba(6,78,59,0.78),rgba(7,17,31,0.94)_68%)] hover:border-emerald-200/[0.34] hover:shadow-[0_18px_45px_rgba(16,185,129,0.16)]";
+            let datePill = "border-emerald-300/[0.18] bg-emerald-300/10 text-emerald-100";
             if (totalLoad >= SESSION_LOAD_THRESHOLDS.high) {
               loadLabel = "HIGH LOAD";
               loadDot = "bg-red-400 shadow-[0_0_8px_rgba(248,113,113,0.6)]";
+              cardSurface = "border-red-300/[0.18] bg-[radial-gradient(circle_at_12%_0%,rgba(248,113,113,0.18),transparent_38%),linear-gradient(135deg,rgba(69,26,3,0.72),rgba(7,17,31,0.94)_68%)] hover:border-red-200/[0.34] hover:shadow-[0_18px_45px_rgba(248,113,113,0.14)]";
+              datePill = "border-red-300/[0.18] bg-red-300/10 text-red-100";
             } else if (totalLoad >= SESSION_LOAD_THRESHOLDS.high - 3) {
               loadLabel = "PEAK";
               loadDot = "bg-orange-500 shadow-[0_0_8px_rgba(249,115,22,0.6)]";
+              cardSurface = "border-orange-300/[0.18] bg-[radial-gradient(circle_at_12%_0%,rgba(251,146,60,0.2),transparent_38%),linear-gradient(135deg,rgba(67,36,12,0.76),rgba(7,17,31,0.94)_68%)] hover:border-orange-200/[0.34] hover:shadow-[0_18px_45px_rgba(251,146,60,0.15)]";
+              datePill = "border-orange-300/20 bg-orange-300/10 text-orange-100";
             } else if (totalLoad >= SESSION_LOAD_THRESHOLDS.high - 7) {
               loadLabel = "HEAVY";
               loadDot = "bg-orange-300 shadow-[0_0_8px_rgba(251,146,60,0.55)]";
+              cardSurface = "border-orange-300/[0.18] bg-[radial-gradient(circle_at_12%_0%,rgba(251,191,36,0.18),transparent_38%),linear-gradient(135deg,rgba(69,42,12,0.72),rgba(7,17,31,0.94)_68%)] hover:border-orange-200/[0.34] hover:shadow-[0_18px_45px_rgba(251,191,36,0.14)]";
+              datePill = "border-amber-300/20 bg-amber-300/10 text-amber-100";
             } else if (totalLoad >= SESSION_LOAD_THRESHOLDS.optimal) {
               loadLabel = "TRAINING";
               loadDot = "bg-amber-300 shadow-[0_0_8px_rgba(252,211,77,0.55)]";
+              cardSurface = "border-amber-300/[0.18] bg-[radial-gradient(circle_at_12%_0%,rgba(252,211,77,0.2),transparent_38%),linear-gradient(135deg,rgba(64,51,13,0.72),rgba(7,17,31,0.94)_68%)] hover:border-amber-200/[0.34] hover:shadow-[0_18px_45px_rgba(252,211,77,0.14)]";
+              datePill = "border-amber-300/20 bg-amber-300/10 text-amber-100";
+            }
+            if (!hasSession) {
+              cardSurface = "border-cyan-300/10 bg-[radial-gradient(circle_at_12%_0%,rgba(148,163,184,0.12),transparent_36%),linear-gradient(135deg,rgba(15,23,42,0.72),rgba(7,17,31,0.96)_70%)] hover:border-cyan-300/[0.22] hover:shadow-[0_18px_45px_rgba(34,211,238,0.1)]";
+              datePill = "border-cyan-300/12 bg-cyan-300/[0.08] text-slate-300";
             }
 
             return (
@@ -1202,16 +1216,18 @@ export default function TrainingView({
                   e.currentTarget.classList.remove('border-cyan-300/40', 'bg-cyan-300/10');
                   handleDropDrill(day, e);
                 }}
-                className={`group/day relative flex min-h-[226px] flex-col justify-between overflow-hidden rounded-xl border border-cyan-300/10 p-4 transition-colors hover:border-cyan-300/18 hover:bg-white/[0.025] ${hasSession ? 'bg-[#0b1726]/82' : 'bg-[#07111f]/46'}`}
+                className={`group/day relative flex min-h-[226px] flex-col justify-between overflow-hidden rounded-xl border p-4 shadow-inner shadow-white/[0.025] transition-all duration-200 hover:-translate-y-0.5 ${cardSurface}`}
               >
+                <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-white/[0.075] via-transparent to-transparent opacity-0 transition-opacity duration-200 group-hover/day:opacity-100" />
                 <div className={`pointer-events-none absolute inset-x-3 top-0 h-px bg-gradient-to-r ${dayAccentClass} to-transparent`} />
-                <div className="space-y-3">
+                <div className="relative space-y-3">
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
                       <span className="block truncate font-display text-sm font-black text-slate-50">{day}</span>
+                      <span className="mt-0.5 block text-[9px] font-semibold uppercase tracking-wider text-slate-400">{weekDaysMap[day].dateStr}</span>
                     </div>
                     <div className="flex shrink-0 flex-col items-end gap-1 text-right">
-                      <span className="rounded-full border border-cyan-300/10 bg-white/[0.035] px-2 py-0.5 text-[9px] font-black uppercase tracking-wider text-slate-400">
+                      <span className={`rounded-full border px-2 py-0.5 text-[9px] font-black uppercase tracking-wider ${datePill}`}>
                         {weekDaysMap[day].monthDate}
                       </span>
                       {sessionSummary.status !== 'planned' && hasSession && (
@@ -1222,7 +1238,7 @@ export default function TrainingView({
                     </div>
                   </div>
 
-                  <div className="flex items-center justify-between gap-2 border-y border-white/[0.06] py-2">
+                  <div className="flex items-center justify-between gap-2 border-y border-white/[0.08] py-2">
                     <span className="inline-flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest text-slate-400">
                       <span className={`size-1.5 rounded-full ${loadDot}`} />
                       {loadLabel}
@@ -1242,7 +1258,7 @@ export default function TrainingView({
 
                   <div className="space-y-2">
                     {scheduledList.length === 0 ? (
-                      <div className="flex min-h-[76px] select-none items-center rounded-lg border border-dashed border-cyan-300/10 px-3 text-[10px] text-slate-500">
+                      <div className="flex min-h-[76px] select-none items-center rounded-lg border border-dashed border-cyan-300/[0.14] bg-black/10 px-3 text-[10px] text-slate-500 transition-colors group-hover/day:border-cyan-200/[0.24] group-hover/day:text-slate-400">
                         <span className="inline-flex items-center gap-1.5 leading-tight">
                           <Hand size={12} className={isUsualTrainingDay ? 'text-amber-200/70' : 'text-slate-500'} aria-hidden="true" />
                           Drop drills here
@@ -1254,15 +1270,15 @@ export default function TrainingView({
                         <div 
                           id={`scheduled-item-${item.id}`}
                           key={item.id}
-                          className="flex items-start justify-between gap-2 text-[10px]"
+                          className="flex items-start justify-between gap-2 rounded-lg border border-white/[0.055] bg-black/10 px-2 py-1.5 text-[10px] transition-colors group-hover/day:border-white/[0.09] group-hover/day:bg-white/[0.035]"
                         >
                           <div className="flex min-w-0 items-start gap-1.5 truncate pr-1">
-                            <span className="mt-0.5 shrink-0 text-slate-400">{getDrillIcon(item.drillId)}</span>
+                            <span className="mt-0.5 shrink-0 text-cyan-100/80">{getDrillIcon(item.drillId)}</span>
                             <span className="min-w-0 truncate">
                               <span className="block truncate font-semibold leading-tight text-slate-100">
                                 {item.name.replace("Challenge", "").replace("Workout", "").replace("Walkthrough", "").replace("Sprints", "")}
                               </span>
-                              <span className="block text-[8px] uppercase tracking-wide text-slate-500">
+                              <span className="block text-[8px] uppercase tracking-wide text-slate-400/80">
                                 {getScheduledDrillBlock(item)} · {getScheduledDrillDuration(item)} min
                               </span>
                             </span>
@@ -1289,13 +1305,13 @@ export default function TrainingView({
                   </div>
                 </div>
                 
-                <div className="mt-3 space-y-2 border-t border-slate-500/12 pt-2">
+                <div className="relative mt-3 space-y-2 border-t border-white/[0.08] pt-2">
                   <Button
                     type="button"
                     variant="ghost"
                     size="sm"
                     onClick={() => setBuilderDay(day)}
-                    className="h-7 w-full shrink-0 rounded-lg border border-slate-500/14 bg-white/[0.025] px-2 text-[9px] font-semibold text-slate-200 hover:border-emerald-300/25 hover:bg-emerald-300/10 hover:text-emerald-50"
+                    className="h-7 w-full shrink-0 rounded-lg border border-white/[0.09] bg-white/[0.045] px-2 text-[9px] font-semibold text-slate-100 hover:border-emerald-300/28 hover:bg-emerald-300/12 hover:text-emerald-50"
                     aria-label={`Open ${day} training session`}
                     title={`Open ${day} session`}
                   >
