@@ -272,13 +272,16 @@ const normalizeWeeklySchedule = (schedule: WeeklySchedule): WeeklySchedule => {
       const block = drill.block ?? (source ? inferDrillSessionBlock(source) : 'technical');
       const blockDefinition = SESSION_BLOCKS.find(item => item.id === block);
       const order = drill.order ?? (blockCounts.get(block) ?? 0);
+      const libraryIntensity = source?.fatigueIncrease ?? drill.fatigueIncrease;
+      const hasCustomIntensity = drill.intensityRating !== undefined && drill.intensityRating !== drill.fatigueIncrease;
       blockCounts.set(block, order + 1);
       return {
         ...drill,
+        fatigueIncrease: libraryIntensity,
         block,
         order,
         durationMinutes: drill.durationMinutes ?? blockDefinition?.defaultDurationMinutes ?? 15,
-        intensityRating: drill.intensityRating ?? drill.fatigueIncrease,
+        intensityRating: hasCustomIntensity ? drill.intensityRating : libraryIntensity,
         equipment: drill.equipment ?? getDrillEquipment(drill.drillId)
       };
     });
@@ -538,7 +541,18 @@ export default function TrainingView({
 
     const fillDays = (template: Partial<Record<DayName, Array<{ id: string; drillId: string; name: string; fatigueIncrease: number }>>>) => {
       const base: WeeklySchedule = { Monday:[], Tuesday:[], Wednesday:[], Thursday:[], Friday:[], Saturday:[], Sunday:[] };
-      DAYS_OF_WEEK.forEach(day => { if (template[day]) base[day] = template[day]; });
+      DAYS_OF_WEEK.forEach(day => {
+        if (!template[day]) return;
+        base[day] = template[day].map((item) => {
+          const source = TRAINING_DRILLS.find(drill => drill.id === item.drillId);
+          return {
+            ...item,
+            name: source?.name ?? item.name,
+            fatigueIncrease: source?.fatigueIncrease ?? item.fatigueIncrease,
+            intensityRating: source?.fatigueIncrease ?? item.fatigueIncrease
+          };
+        });
+      });
       return normalizeWeeklySchedule(filterScheduleToTrainingDays(base, activeTrainingDays));
     };
 

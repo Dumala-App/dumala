@@ -22,8 +22,42 @@ export type DrillInstruction = {
   setsReps: string;
 };
 
+const inferRealisticDrillIntensity = (drill: Pick<TrainingDrill, 'id' | 'name' | 'category' | 'description'>): number => {
+  const text = `${drill.id} ${drill.name} ${drill.category} ${drill.description}`.toLowerCase();
+
+  if (text.includes('recovery') || text.includes('mobility') || text.includes('foam') || text.includes('yoga') || text.includes('regeneration') || text.includes('pool')) {
+    return 1;
+  }
+  if (text.includes('warm-up') || text.includes('warm up') || text.includes('activation')) {
+    return text.includes('speed') || text.includes('reaction') ? 3 : 2;
+  }
+  if (text.includes('hiit') || text.includes('repeated sprint') || text.includes('sprint capacity') || text.includes('speed-endurance')) {
+    return 8;
+  }
+  if (text.includes('shuttle') || text.includes('cooper') || text.includes('acceleration-deceleration') || text.includes('tempo possession conditioning')) {
+    return 7;
+  }
+  if (text.includes('small-sided') || text.includes('counter-press') || text.includes('pressing') || text.includes('transition wave') || text.includes('overlap & recovery')) {
+    return 6;
+  }
+  if (text.includes('1v1') || text.includes('under pressure') || text.includes('finishing') || text.includes('volley') || text.includes('rebound') || text.includes('aerial') || text.includes('duel')) {
+    return 5;
+  }
+  if (text.includes('positional') || text.includes('rondo') || text.includes('press-resistant') || text.includes('overload') || text.includes('rotation') || text.includes('build-up')) {
+    return 4;
+  }
+  if (text.includes('tactical') || text.includes('shadow') || text.includes('mid-block') || text.includes('back-line') || text.includes('rest-defense') || text.includes('set-piece') || text.includes('switching play')) {
+    return 3;
+  }
+  if (text.includes('passing') || text.includes('scanning') || text.includes('distribution') || text.includes('walkthrough')) {
+    return 3;
+  }
+
+  return Math.max(2, Math.min(6, drill.name.length % 5 + 2));
+};
+
 // Technical, tactical, and conditioning drill library.
-export const TRAINING_DRILLS = [
+const TRAINING_DRILL_DEFINITIONS = [
   {
     id: "drill-agility",
     name: "Shuttle Run Sprints",
@@ -986,6 +1020,11 @@ export const TRAINING_DRILLS = [
     color: "from-green-400 to-teal-500"
   }
 ] satisfies readonly TrainingDrill[];
+
+export const TRAINING_DRILLS = TRAINING_DRILL_DEFINITIONS.map(drill => ({
+  ...drill,
+  fatigueIncrease: inferRealisticDrillIntensity(drill)
+})) satisfies readonly TrainingDrill[];
 
 // ===== DRILL ICON MAPPINGS (Lucide components) =====
 // ===== DRILL HOW-TO INSTRUCTIONS =====

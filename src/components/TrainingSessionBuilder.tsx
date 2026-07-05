@@ -211,7 +211,6 @@ export default function TrainingSessionBuilder({
     duration > 120 ? 'This session is longer than two hours.' : null
   ].filter((warning): warning is string => Boolean(warning));
   const readiness = getReadinessStyle(loadPoints, warnings.length, drills.length);
-  const sessionStatus = meta?.status ?? 'planned';
   const reflection = meta?.reflection ?? '';
 
   const addDrill = (block: SessionBlockId, drillId: string) => {
@@ -299,19 +298,6 @@ export default function TrainingSessionBuilder({
           <p className="mt-1 text-[11px] text-slate-400">Build the session in delivery order. Changes save automatically.</p>
         </div>
         <div className="flex items-center gap-1.5">
-          <select
-            value={sessionStatus}
-            onChange={(event) => updateMeta({
-              status: event.target.value as TrainingSessionMeta['status'],
-              completedAt: event.target.value === 'completed' ? new Date().toISOString() : meta?.completedAt
-            })}
-            className="h-8 rounded-full border border-emerald-300/20 bg-[#07111f] px-2 text-[9px] font-black text-emerald-100 outline-none focus:ring-2 focus:ring-emerald-300/25"
-            aria-label="Session status"
-          >
-            <option value="planned">Planned</option>
-            <option value="in_progress">In progress</option>
-            <option value="completed">Completed</option>
-          </select>
           <span className={`rounded-full border px-2.5 py-1 text-[9px] font-black ${readiness.className}`}>{readiness.label}</span>
           {drills.length > 0 && (
             <AlertDialog>
