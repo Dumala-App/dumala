@@ -1,5 +1,14 @@
 export type DrillGuideCategory = 'Base' | 'ForwardsWingers' | 'Midfielders' | 'Defenders' | 'Goalkeepers';
 
+export interface DrillGuideAudio {
+  /** Public path to the audio file (e.g. `/yoyo.m4a`). */
+  src: string;
+  /** Short label shown on the player. */
+  label: string;
+  /** One-line explanation of what the audio is for. */
+  description?: string;
+}
+
 export interface DrillGuideEntry {
   id: string;
   title: string;
@@ -13,6 +22,10 @@ export interface DrillGuideEntry {
   commonMistakes?: string[];
   safety?: string[];
   tags: string[];
+  /** Optional public path to an illustration image showing how the drill is run. */
+  illustration?: string;
+  /** Optional audio track required to run the drill (e.g. the Yo-Yo beep track). */
+  audio?: DrillGuideAudio;
 }
 
 export const DRILL_GUIDE_CATEGORIES: Array<{ id: DrillGuideCategory; label: string }> = [
@@ -74,7 +87,12 @@ export const DRILL_GUIDE_ENTRIES: DrillGuideEntry[] = [
     dataToRecord: ['Total distance achieved (meters)'],
     commonMistakes: ['Inaccurate distance measurement (not exactly 20m)', 'Starting too hard without pacing', 'Poor audio quality'],
     safety: ['Hydrate and cool-down after the test.', 'Stop immediately if dizziness or sharp pain occurs.'],
-    tags: ['yoyo', 'yo-yo', 'endurance', 'stamina', 'distance', 'beep']
+    tags: ['yoyo', 'yo-yo', 'endurance', 'stamina', 'distance', 'beep'],
+    audio: {
+      src: '/yoyo.m4a',
+      label: 'Yo-Yo beep track',
+      description: 'Play through a loud speaker. Athletes match each shuttle to the beep timing.'
+    }
   },
   {
     id: 'base_illinois',
