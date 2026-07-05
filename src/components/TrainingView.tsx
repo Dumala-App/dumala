@@ -1354,43 +1354,43 @@ export default function TrainingView({
         <div className="lg:col-span-2 space-y-6">
           
           {/* Drills Catalog */}
-          <div className="rounded-2xl border border-cyan-300/10 bg-[#07111f]/88 p-4 text-slate-100 shadow-lg shadow-black/20 backdrop-blur-xl sm:p-5">
+          <div className="overflow-hidden rounded-2xl border border-cyan-300/10 bg-[radial-gradient(circle_at_16%_0%,rgba(45,212,191,0.16),transparent_34%),linear-gradient(135deg,rgba(8,47,73,0.72),rgba(7,17,31,0.94)_58%)] p-4 text-slate-100 shadow-lg shadow-black/20 backdrop-blur-xl sm:p-5">
             <div className="flex flex-col gap-3 border-b border-cyan-300/10 pb-4 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex items-center gap-2.5">
-                <div className="flex size-9 shrink-0 items-center justify-center rounded-xl border border-cyan-300/10 bg-cyan-300/10 text-cyan-100">
+                <div className="flex size-9 shrink-0 items-center justify-center rounded-full border border-cyan-300/15 bg-cyan-300/12 text-cyan-100 shadow-[0_0_18px_rgba(34,211,238,0.12)]">
                   <Dumbbell size={16} />
                 </div>
                 <div>
-                  <h3 className="font-display text-sm font-black uppercase tracking-wider text-slate-50">Tactical & Technical Drill Selector</h3>
+                  <h3 className="font-display text-base font-black tracking-tight text-slate-50">Tactical & Technical Drill Selector</h3>
                   <p className="mt-0.5 text-[11px] text-slate-400">Find a drill, review its load, then add it to your training week.</p>
                 </div>
               </div>
 
-              <span aria-live="polite" className="w-fit rounded-full border border-cyan-300/10 bg-white/[0.04] px-2.5 py-1 text-[10px] font-bold text-slate-300">
+              <span aria-live="polite" className="w-fit rounded-full border border-cyan-300/10 bg-white/[0.05] px-3 py-1.5 text-[10px] font-bold text-slate-300">
                 {filteredDrills.length} {filteredDrills.length === 1 ? 'drill' : 'drills'}
               </span>
             </div>
 
-            <div className="mt-4 overflow-hidden rounded-xl border border-cyan-300/10 bg-[#07111f]/86 shadow-sm shadow-black/15 backdrop-blur-xl">
-              <div className="border-b border-cyan-300/10 bg-[#0b1726]/78 p-3">
+            <div className="mt-4 overflow-hidden rounded-2xl border border-cyan-300/10 bg-[#07111f]/54 shadow-inner shadow-black/10 backdrop-blur-xl">
+              <div className="bg-[linear-gradient(135deg,rgba(6,78,59,0.5),rgba(11,23,38,0.72)_54%,rgba(7,17,31,0.86))] p-4">
                 <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
                   <div className="flex min-w-0 gap-3">
-                    <div className={`flex size-11 shrink-0 items-center justify-center rounded-xl border shadow-sm shadow-black/10 ${TRAINING_DRILL_ICON_CLASS}`}>
+                    <div className={`flex size-12 shrink-0 items-center justify-center rounded-full border shadow-sm shadow-black/10 ${TRAINING_DRILL_ICON_CLASS}`}>
                       {getDrillIcon(selectedScheduleDrill.id)}
                     </div>
                     <div className="min-w-0">
-                      <span className="text-[9px] font-semibold uppercase tracking-[0.16em] text-slate-500">Selected drill</span>
-                      <h4 className="mt-0.5 truncate text-sm font-black text-slate-50">{selectedScheduleDrill.name}</h4>
-                      <p className="mt-1 line-clamp-2 text-[11px] leading-relaxed text-slate-300">{selectedScheduleDrill.description}</p>
+                      <span className="text-[9px] font-semibold uppercase tracking-[0.16em] text-emerald-200">Selected drill</span>
+                      <h4 className="mt-0.5 truncate font-display text-lg font-black tracking-tight text-slate-50">{selectedScheduleDrill.name}</h4>
+                      <p className="mt-1 max-w-2xl text-[11px] leading-relaxed text-slate-300">{selectedScheduleDrill.description}</p>
                       <div className="mt-2 flex flex-wrap gap-1.5">
-                        <span className={`rounded-full border px-2 py-1 text-[9px] font-black uppercase shadow-sm shadow-black/10 ${selectedScheduleDrillCategoryClass}`}>
+                        <span className={`rounded-full border px-2.5 py-1 text-[9px] font-black uppercase shadow-sm shadow-black/10 ${selectedScheduleDrillCategoryClass}`}>
                           {selectedScheduleDrill.category}
                         </span>
-                        <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-1 text-[9px] font-black uppercase shadow-sm shadow-black/10 ${selectedScheduleDrillLoadStyle.badge}`}>
+                        <span className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[9px] font-black uppercase shadow-sm shadow-black/10 ${selectedScheduleDrillLoadStyle.badge}`}>
                           <span className={`size-1.5 rounded-full ${selectedScheduleDrillLoadStyle.dot}`} />
                           <Gauge size={10} aria-hidden="true" /> Intensity {selectedScheduleDrill.fatigueIncrease}/10
                         </span>
-                        <span className="inline-flex items-center gap-1 rounded-full border border-indigo-300/20 bg-indigo-300/10 px-2 py-1 text-[9px] font-black uppercase text-indigo-100 shadow-sm shadow-black/10">
+                        <span className="inline-flex items-center gap-1 rounded-full border border-indigo-300/20 bg-indigo-300/10 px-2.5 py-1 text-[9px] font-black uppercase text-indigo-100 shadow-sm shadow-black/10">
                           <Target size={10} aria-hidden="true" /> {formatTrainingFocusList(selectedScheduleDrill.developmentFocus)}
                         </span>
                       </div>
@@ -1399,7 +1399,7 @@ export default function TrainingView({
 
                   <div className="flex flex-wrap items-center gap-2 xl:justify-end">
                     <Select value={developmentDay} onValueChange={(value) => setDevelopmentDay(value as DayName)}>
-                      <SelectTrigger aria-label="Day to add selected drill" className="h-9 w-32 flex-none border-cyan-300/10 bg-[#0b1726]/85 text-xs text-slate-100 sm:w-36">
+                      <SelectTrigger aria-label="Day to add selected drill" className="h-9 w-32 flex-none rounded-xl border-cyan-300/10 bg-[#0b1726]/85 text-xs text-slate-100 sm:w-36">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent className={TRAINING_SELECT_CONTENT_CLASS}>
@@ -1409,7 +1409,7 @@ export default function TrainingView({
                     <Button
                       type="button"
                       onClick={() => addDrillsToDay([selectedScheduleDrill], developmentDay)}
-                      className="h-9 rounded-lg border border-cyan-300/15 bg-cyan-300/12 px-3 text-cyan-50 hover:bg-cyan-300/18"
+                      className="h-9 rounded-xl border border-emerald-300/20 bg-emerald-300/15 px-3 text-emerald-50 hover:bg-emerald-300/22"
                     >
                       <CalendarPlus size={14} /> Add to day
                     </Button>
@@ -1418,20 +1418,20 @@ export default function TrainingView({
               </div>
 
               {selectedScheduleDrillInstructions ? (
-                <div className="grid gap-3 p-3 lg:grid-cols-[0.78fr_1.22fr]">
-                  <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-1">
-                    <div className="rounded-lg border border-emerald-300/20 bg-emerald-400/10 p-3 shadow-sm shadow-emerald-950/10">
+                <div className="grid gap-0 border-t border-cyan-300/10 lg:grid-cols-[0.82fr_1.18fr]">
+                  <div className="grid border-b border-cyan-300/10 sm:grid-cols-2 lg:grid-cols-1 lg:border-b-0 lg:border-r lg:border-cyan-300/10">
+                    <div className="p-4">
                       <div className="flex items-center gap-2">
-                        <span className="flex size-7 shrink-0 items-center justify-center rounded-lg border border-emerald-300/25 bg-emerald-400/12 text-emerald-100">
+                        <span className="flex size-7 shrink-0 items-center justify-center rounded-full border border-emerald-300/25 bg-emerald-400/12 text-emerald-100">
                           <Dumbbell size={13} aria-hidden="true" />
                         </span>
                         <span className="text-[9px] font-black uppercase tracking-wider text-emerald-100">Equipment</span>
                       </div>
                       <p className="mt-2 text-[11px] leading-relaxed text-slate-300">{selectedScheduleDrillInstructions.equipment}</p>
                     </div>
-                    <div className="rounded-lg border border-amber-300/20 bg-amber-300/10 p-3 shadow-sm shadow-amber-950/10">
+                    <div className="border-t border-cyan-300/10 p-4 sm:border-l sm:border-t-0 lg:border-l-0 lg:border-t">
                       <div className="flex items-center gap-2">
-                        <span className="flex size-7 shrink-0 items-center justify-center rounded-lg border border-amber-300/25 bg-amber-300/12 text-amber-100">
+                        <span className="flex size-7 shrink-0 items-center justify-center rounded-full border border-amber-300/25 bg-amber-300/12 text-amber-100">
                           <Timer size={13} aria-hidden="true" />
                         </span>
                         <span className="text-[9px] font-black uppercase tracking-wider text-amber-100">Sets / reps</span>
@@ -1440,22 +1440,22 @@ export default function TrainingView({
                     </div>
                   </div>
 
-                  <div className="rounded-lg border border-cyan-300/10 bg-white/[0.035] p-3 shadow-sm shadow-black/10">
-                    <div className="grid gap-3 md:grid-cols-2">
-                      <div className="relative rounded-lg border border-cyan-300/20 bg-cyan-300/10 p-3">
-                        <span className="absolute right-3 top-3 text-xl font-black leading-none text-cyan-100/20">01</span>
+                  <div className="p-4">
+                    <div className="grid gap-4 md:grid-cols-2">
+                      <div className="relative border-b border-cyan-300/10 pb-4 md:border-b-0 md:border-r md:pb-0 md:pr-4">
+                        <span className="absolute right-0 top-0 text-xl font-black leading-none text-cyan-100/20 md:right-4">01</span>
                         <div className="flex items-center gap-2">
-                          <span className="flex size-7 shrink-0 items-center justify-center rounded-lg border border-cyan-300/25 bg-cyan-300/12 text-cyan-100">
+                          <span className="flex size-7 shrink-0 items-center justify-center rounded-full border border-cyan-300/25 bg-cyan-300/12 text-cyan-100">
                             <Route size={13} aria-hidden="true" />
                           </span>
                           <span className="text-[9px] font-black uppercase tracking-wider text-cyan-100">Setup</span>
                         </div>
                         <p className="mt-2 text-[11px] leading-relaxed text-slate-200">{selectedScheduleDrillInstructions.setup}</p>
                       </div>
-                      <div className="relative rounded-lg border border-indigo-300/20 bg-indigo-300/10 p-3">
-                        <span className="absolute right-3 top-3 text-xl font-black leading-none text-indigo-100/20">02</span>
+                      <div className="relative">
+                        <span className="absolute right-0 top-0 text-xl font-black leading-none text-indigo-100/20">02</span>
                         <div className="flex items-center gap-2">
-                          <span className="flex size-7 shrink-0 items-center justify-center rounded-lg border border-indigo-300/25 bg-indigo-300/12 text-indigo-100">
+                          <span className="flex size-7 shrink-0 items-center justify-center rounded-full border border-indigo-300/25 bg-indigo-300/12 text-indigo-100">
                             <CheckCircle size={13} aria-hidden="true" />
                           </span>
                           <span className="text-[9px] font-black uppercase tracking-wider text-indigo-100">Execution</span>
@@ -1491,7 +1491,7 @@ export default function TrainingView({
                       <Filter size={12} aria-hidden="true" /> Filter by focus
                     </label>
                     <Select value={selectedAttributeFilter} onValueChange={setSelectedAttributeFilter}>
-                      <SelectTrigger aria-label="Filter drills by focus" className="h-9 rounded-lg border-cyan-300/10 bg-[#0b1726]/85 text-xs text-slate-100">
+                      <SelectTrigger aria-label="Filter drills by focus" className="h-9 rounded-xl border-cyan-300/10 bg-[#0b1726]/85 text-xs text-slate-100">
                         <SelectValue>{DRILL_FILTER_LABELS[selectedAttributeFilter] ?? 'All drills'}</SelectValue>
                       </SelectTrigger>
                       <SelectContent className={TRAINING_SELECT_CONTENT_CLASS}>
@@ -1509,19 +1509,19 @@ export default function TrainingView({
                       </SelectContent>
                     </Select>
                   </div>
-                  <Badge variant="outline" className="h-9 w-fit border-cyan-300/10 bg-white/[0.04] px-3 text-[10px] font-black text-slate-300 sm:mb-0">
+                  <Badge variant="outline" className="h-9 w-fit rounded-xl border-cyan-300/10 bg-white/[0.04] px-3 text-[10px] font-black text-slate-300 sm:mb-0">
                     {visibleLibraryDrills.length} shown
                   </Badge>
                 </div>
               </div>
 
               <Tabs value={activeDrillLibraryTab} onValueChange={(value) => setActiveDrillLibraryTab(value as DrillLibraryTab)} className="mt-3">
-                <TabsList aria-label="Drill library categories" className="w-full justify-start overflow-x-auto rounded-xl border border-cyan-300/10 bg-[#0b1726]/72 p-1">
+                <TabsList aria-label="Drill library categories" className="w-full justify-start overflow-x-auto rounded-full border border-cyan-300/10 bg-[#0b1726]/72 p-1">
                   {DRILL_LIBRARY_TABS.map(tab => (
                     <TabsTrigger
                       key={tab.id}
                       value={tab.id}
-                      className="min-h-8 shrink-0 gap-1.5 rounded-lg px-2.5 text-[10px] text-slate-400 data-[state=active]:bg-cyan-300/12 data-[state=active]:text-cyan-50"
+                      className="min-h-8 shrink-0 gap-1.5 rounded-full px-2.5 text-[10px] text-slate-400 data-[state=active]:bg-cyan-300/12 data-[state=active]:text-cyan-50"
                     >
                       {tab.label}
                       <span className="rounded-full bg-white/[0.06] px-1.5 py-0.5 text-[9px] text-slate-400">
@@ -1539,7 +1539,7 @@ export default function TrainingView({
                   <p className="mt-1 text-xs text-slate-400">Try another tab or focus filter.</p>
                 </div>
               ) : (
-                <div className="mt-3 max-h-[28rem] overflow-y-auto rounded-xl border border-cyan-300/10 bg-[#0b1726]/72 p-2">
+                <div className="mt-3 rounded-2xl border border-cyan-300/10 bg-[#0b1726]/38 p-2">
                   <div className="grid grid-cols-1 gap-2 xl:grid-cols-2">
                     {visibleLibraryDrills.map((drill) => {
                       const isSelected = selectedDrillId === drill.id;
@@ -1564,15 +1564,15 @@ export default function TrainingView({
                           tabIndex={0}
                           aria-pressed={isSelected}
                           aria-label={`Select ${drill.name}`}
-                          className={`group flex cursor-grab items-start gap-3 rounded-lg border bg-white/[0.035] p-2.5 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/25 active:cursor-grabbing ${
+                          className={`group flex cursor-grab items-start gap-3 rounded-xl border p-3 text-left transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/25 active:cursor-grabbing ${
                             isSelected
-                              ? 'border-cyan-300/35 bg-cyan-300/10 shadow-[0_0_18px_rgba(34,211,238,0.12)]'
+                              ? 'border-cyan-300/35 bg-[linear-gradient(135deg,rgba(34,211,238,0.14),rgba(7,17,31,0.82))] shadow-[0_0_18px_rgba(34,211,238,0.12)]'
                               : isRecommended
-                                ? 'border-emerald-300/20 bg-emerald-500/[0.045] hover:border-emerald-300/35 hover:bg-emerald-500/10'
-                                : 'border-cyan-300/10 hover:border-cyan-300/22 hover:bg-white/[0.055]'
+                                ? 'border-emerald-300/20 bg-[linear-gradient(135deg,rgba(16,185,129,0.08),rgba(7,17,31,0.72))] hover:-translate-y-0.5 hover:border-emerald-300/35 hover:bg-emerald-500/10'
+                                : 'border-cyan-300/10 bg-white/[0.025] hover:-translate-y-0.5 hover:border-cyan-300/22 hover:bg-white/[0.055]'
                           }`}
                         >
-                          <span className={`flex size-9 shrink-0 items-center justify-center rounded-lg border ${isSelected ? 'border-cyan-300/30 bg-cyan-300/12 text-cyan-100' : TRAINING_DRILL_ICON_CLASS}`}>
+                          <span className={`flex size-9 shrink-0 items-center justify-center rounded-full border ${isSelected ? 'border-cyan-300/30 bg-cyan-300/12 text-cyan-100' : TRAINING_DRILL_ICON_CLASS}`}>
                             {getDrillIcon(drill.id)}
                           </span>
                           <span className="min-w-0 flex-1">
