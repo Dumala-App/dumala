@@ -1165,12 +1165,6 @@ export default function TrainingView({
             const hasSession = scheduledList.length > 0;
             const previewDrills = sessionSummary.keyDrills.slice(0, 2);
             const hiddenDrillCount = Math.max(0, scheduledList.length - previewDrills.length);
-            const dayAccentClass = hasSession
-              ? 'from-emerald-300/22 via-transparent'
-              : isUsualTrainingDay
-                ? 'from-amber-300/20 via-transparent'
-                : 'from-slate-400/10 via-transparent';
-            
             let loadLabel = "LIGHT";
             let loadDot = "bg-emerald-300 shadow-[0_0_8px_rgba(52,211,153,0.55)]";
             let cardSurface = "border-emerald-300/[0.18] bg-[radial-gradient(circle_at_12%_0%,rgba(52,211,153,0.18),transparent_38%),linear-gradient(135deg,rgba(6,78,59,0.78),rgba(7,17,31,0.94)_68%)] hover:border-emerald-200/[0.34] hover:shadow-[0_18px_45px_rgba(16,185,129,0.16)]";
@@ -1219,7 +1213,6 @@ export default function TrainingView({
                 className={`group/day relative flex min-h-[226px] flex-col justify-between overflow-hidden rounded-xl border p-4 shadow-inner shadow-white/[0.025] transition-all duration-200 hover:-translate-y-0.5 ${cardSurface}`}
               >
                 <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-white/[0.075] via-transparent to-transparent opacity-0 transition-opacity duration-200 group-hover/day:opacity-100" />
-                <div className={`pointer-events-none absolute inset-x-3 top-0 h-px bg-gradient-to-r ${dayAccentClass} to-transparent`} />
                 <div className="relative space-y-3">
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
