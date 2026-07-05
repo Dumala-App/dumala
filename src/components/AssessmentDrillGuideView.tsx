@@ -712,7 +712,10 @@ export default function AssessmentDrillGuideView() {
 
               {/* Highlighted priority: illustration (16:9) + procedure with drill audio below it */}
               <div className="mt-4 grid gap-4 md:grid-cols-2 md:items-start">
-                <DrillIllustration drill={selectedDrill} />
+                <div className="flex flex-col gap-3">
+                  <DrillIllustration drill={selectedDrill} />
+                  {selectedDrill.audio && <AudioBlock audio={selectedDrill.audio} />}
+                </div>
                 <div className="flex flex-col gap-3">
                   <div className="rounded-2xl border border-amber-300/25 bg-amber-300/[0.06] p-4">
                     <p className={`flex items-center gap-1.5 text-amber-100 ${eyebrowClass}`}>
@@ -727,7 +730,6 @@ export default function AssessmentDrillGuideView() {
                     </p>
                     <p className="mt-2 text-[11.5px] font-semibold leading-relaxed text-slate-200">{selectedDrill.goalkeeper.note}</p>
                   </div>
-                  {selectedDrill.audio && <AudioBlock audio={selectedDrill.audio} />}
                 </div>
               </div>
 
