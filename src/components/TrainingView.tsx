@@ -1373,7 +1373,7 @@ export default function TrainingView({
 
             <div className="mt-4 overflow-hidden rounded-2xl border border-cyan-300/10 bg-[#07111f]/54 shadow-inner shadow-black/10 backdrop-blur-xl">
               <div className="bg-[linear-gradient(135deg,rgba(6,78,59,0.5),rgba(11,23,38,0.72)_54%,rgba(7,17,31,0.86))] p-4">
-                <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
+                <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_9.5rem] xl:items-start">
                   <div className="flex min-w-0 gap-3">
                     <div className={`flex size-12 shrink-0 items-center justify-center rounded-full border shadow-sm shadow-black/10 ${TRAINING_DRILL_ICON_CLASS}`}>
                       {getDrillIcon(selectedScheduleDrill.id)}
@@ -1397,9 +1397,9 @@ export default function TrainingView({
                     </div>
                   </div>
 
-                  <div className="flex flex-wrap items-center gap-2 xl:justify-end">
+                  <div className="grid w-full grid-cols-2 gap-2 xl:grid-cols-1">
                     <Select value={developmentDay} onValueChange={(value) => setDevelopmentDay(value as DayName)}>
-                      <SelectTrigger aria-label="Day to add selected drill" className="h-9 w-32 flex-none rounded-xl border-cyan-300/10 bg-[#0b1726]/85 text-xs text-slate-100 sm:w-36">
+                      <SelectTrigger aria-label="Day to add selected drill" className="h-9 w-full rounded-xl border-emerald-300/20 bg-[#0b1726]/85 px-3 text-xs font-bold text-slate-100 shadow-inner shadow-black/10">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent className={TRAINING_SELECT_CONTENT_CLASS}>
@@ -1409,7 +1409,7 @@ export default function TrainingView({
                     <Button
                       type="button"
                       onClick={() => addDrillsToDay([selectedScheduleDrill], developmentDay)}
-                      className="h-9 rounded-xl border border-emerald-300/20 bg-emerald-300/15 px-3 text-emerald-50 hover:bg-emerald-300/22"
+                      className="h-9 w-full rounded-xl border border-emerald-300/20 bg-emerald-300/15 px-3 text-emerald-50 hover:bg-emerald-300/22"
                     >
                       <CalendarPlus size={14} /> Add to day
                     </Button>
@@ -1418,51 +1418,45 @@ export default function TrainingView({
               </div>
 
               {selectedScheduleDrillInstructions ? (
-                <div className="grid gap-0 border-t border-cyan-300/10 lg:grid-cols-[0.82fr_1.18fr]">
-                  <div className="grid border-b border-cyan-300/10 sm:grid-cols-2 lg:grid-cols-1 lg:border-b-0 lg:border-r lg:border-cyan-300/10">
-                    <div className="p-4">
-                      <div className="flex items-center gap-2">
-                        <span className="flex size-7 shrink-0 items-center justify-center rounded-full border border-emerald-300/25 bg-emerald-400/12 text-emerald-100">
-                          <Dumbbell size={13} aria-hidden="true" />
-                        </span>
-                        <span className="text-[9px] font-black uppercase tracking-wider text-emerald-100">Equipment</span>
-                      </div>
-                      <p className="mt-2 text-[11px] leading-relaxed text-slate-300">{selectedScheduleDrillInstructions.equipment}</p>
+                <div className="grid gap-0 border-t border-cyan-300/10 md:grid-cols-2 xl:grid-cols-[0.9fr_0.9fr_1.1fr_1.1fr]">
+                  <div className="border-b border-cyan-300/10 p-4 md:border-r xl:border-b-0">
+                    <div className="flex items-center gap-2">
+                      <span className="flex size-7 shrink-0 items-center justify-center rounded-full border border-emerald-300/25 bg-emerald-400/12 text-emerald-100">
+                        <Dumbbell size={13} aria-hidden="true" />
+                      </span>
+                      <span className="text-[9px] font-black uppercase tracking-wider text-emerald-100">Equipment</span>
                     </div>
-                    <div className="border-t border-cyan-300/10 p-4 sm:border-l sm:border-t-0 lg:border-l-0 lg:border-t">
-                      <div className="flex items-center gap-2">
-                        <span className="flex size-7 shrink-0 items-center justify-center rounded-full border border-amber-300/25 bg-amber-300/12 text-amber-100">
-                          <Timer size={13} aria-hidden="true" />
-                        </span>
-                        <span className="text-[9px] font-black uppercase tracking-wider text-amber-100">Sets / reps</span>
-                      </div>
-                      <p className="mt-2 text-[11px] leading-relaxed text-slate-300">{selectedScheduleDrillInstructions.setsReps}</p>
+                    <p className="mt-2 text-[11px] leading-relaxed text-slate-300">{selectedScheduleDrillInstructions.equipment}</p>
+                  </div>
+                  <div className="border-b border-cyan-300/10 p-4 xl:border-b-0 xl:border-r">
+                    <div className="flex items-center gap-2">
+                      <span className="flex size-7 shrink-0 items-center justify-center rounded-full border border-amber-300/25 bg-amber-300/12 text-amber-100">
+                        <Timer size={13} aria-hidden="true" />
+                      </span>
+                      <span className="text-[9px] font-black uppercase tracking-wider text-amber-100">Sets / reps</span>
                     </div>
+                    <p className="mt-2 text-[11px] leading-relaxed text-slate-300">{selectedScheduleDrillInstructions.setsReps}</p>
                   </div>
 
-                  <div className="p-4">
-                    <div className="grid gap-4 md:grid-cols-2">
-                      <div className="relative border-b border-cyan-300/10 pb-4 md:border-b-0 md:border-r md:pb-0 md:pr-4">
-                        <span className="absolute right-0 top-0 text-xl font-black leading-none text-cyan-100/20 md:right-4">01</span>
-                        <div className="flex items-center gap-2">
-                          <span className="flex size-7 shrink-0 items-center justify-center rounded-full border border-cyan-300/25 bg-cyan-300/12 text-cyan-100">
-                            <Route size={13} aria-hidden="true" />
-                          </span>
-                          <span className="text-[9px] font-black uppercase tracking-wider text-cyan-100">Setup</span>
-                        </div>
-                        <p className="mt-2 text-[11px] leading-relaxed text-slate-200">{selectedScheduleDrillInstructions.setup}</p>
-                      </div>
-                      <div className="relative">
-                        <span className="absolute right-0 top-0 text-xl font-black leading-none text-indigo-100/20">02</span>
-                        <div className="flex items-center gap-2">
-                          <span className="flex size-7 shrink-0 items-center justify-center rounded-full border border-indigo-300/25 bg-indigo-300/12 text-indigo-100">
-                            <CheckCircle size={13} aria-hidden="true" />
-                          </span>
-                          <span className="text-[9px] font-black uppercase tracking-wider text-indigo-100">Execution</span>
-                        </div>
-                        <p className="mt-2 text-[11px] leading-relaxed text-slate-200">{selectedScheduleDrillInstructions.execution}</p>
-                      </div>
+                  <div className="relative border-b border-cyan-300/10 p-4 md:border-b-0 md:border-r">
+                    <span className="absolute right-4 top-4 text-xl font-black leading-none text-cyan-100/20">01</span>
+                    <div className="flex items-center gap-2">
+                      <span className="flex size-7 shrink-0 items-center justify-center rounded-full border border-cyan-300/25 bg-cyan-300/12 text-cyan-100">
+                        <Route size={13} aria-hidden="true" />
+                      </span>
+                      <span className="text-[9px] font-black uppercase tracking-wider text-cyan-100">Setup</span>
                     </div>
+                    <p className="mt-2 text-[11px] leading-relaxed text-slate-200">{selectedScheduleDrillInstructions.setup}</p>
+                  </div>
+                  <div className="relative p-4">
+                    <span className="absolute right-4 top-4 text-xl font-black leading-none text-indigo-100/20">02</span>
+                    <div className="flex items-center gap-2">
+                      <span className="flex size-7 shrink-0 items-center justify-center rounded-full border border-indigo-300/25 bg-indigo-300/12 text-indigo-100">
+                        <CheckCircle size={13} aria-hidden="true" />
+                      </span>
+                      <span className="text-[9px] font-black uppercase tracking-wider text-indigo-100">Execution</span>
+                    </div>
+                    <p className="mt-2 text-[11px] leading-relaxed text-slate-200">{selectedScheduleDrillInstructions.execution}</p>
                   </div>
                 </div>
               ) : (
