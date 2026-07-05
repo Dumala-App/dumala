@@ -1010,6 +1010,53 @@ export default function TrainingView({
           </div>
         </div>
 
+        {/* Week Navigation */}
+        <div className="grid grid-cols-1 items-stretch gap-3 rounded-2xl border border-cyan-300/10 bg-[#0b1726]/72 p-2.5 shadow-inner shadow-black/10 sm:grid-cols-[9rem_minmax(15rem,1fr)_9rem] sm:items-center">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => handleNavigateWeek(-1)}
+            className="h-10 w-full rounded-xl border border-cyan-300/10 bg-white/[0.04] px-3 text-slate-300 hover:border-cyan-300/20 hover:bg-cyan-300/10 hover:text-cyan-50 transition-colors flex items-center justify-center gap-2 text-xs font-semibold"
+            aria-label="Open previous week's training schedule"
+            title="Previous week"
+          >
+            <ChevronLeft size={16} aria-hidden="true" />
+            Previous
+          </Button>
+
+          <div className="flex min-h-12 flex-col items-center justify-center text-center px-3">
+            <span className="text-[9px] font-semibold uppercase tracking-widest text-slate-500">Training Week</span>
+            <span className="min-w-[14rem] text-sm font-display font-black text-slate-50">{weekRangeLabel}</span>
+            <span className="text-[10px] font-semibold text-cyan-200">
+              {isCurrentWeek ? 'Current week' : selectedWeekStart > getWeekStartDate(new Date()) ? 'Future week' : 'Past week'}
+            </span>
+          </div>
+
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-1">
+            {!isCurrentWeek && (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleReturnToCurrentWeek}
+                className="h-10 w-full rounded-xl border border-cyan-300/10 bg-cyan-300/10 px-3 text-cyan-100 hover:bg-cyan-300/15 transition-colors text-xs font-semibold"
+              >
+                This Week
+              </Button>
+            )}
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => handleNavigateWeek(1)}
+              className={`${isCurrentWeek ? 'col-span-2 sm:col-span-1' : ''} h-10 w-full rounded-xl border border-cyan-300/10 bg-white/[0.04] px-3 text-slate-300 hover:border-cyan-300/20 hover:bg-cyan-300/10 hover:text-cyan-50 transition-colors flex items-center justify-center gap-2 text-xs font-semibold`}
+              aria-label="Open next week's training schedule"
+              title="Next week"
+            >
+              Next
+              <ChevronRight size={16} aria-hidden="true" />
+            </Button>
+          </div>
+        </div>
+
         {/* Intensity Distribution Trend Graph */}
         <div className="rounded-2xl border border-cyan-300/10 bg-[#0b1726]/72 p-4 text-slate-100 shadow-inner shadow-black/10">
           <div className="flex flex-col gap-3 border-b border-cyan-300/10 pb-3 lg:flex-row lg:items-start lg:justify-between">
@@ -1099,56 +1146,9 @@ export default function TrainingView({
           </div>
         </div>
 
-        {/* Week Navigation */}
-        <div className="grid grid-cols-1 items-stretch gap-3 rounded-2xl border border-cyan-300/10 bg-[#0b1726]/72 p-2.5 shadow-inner shadow-black/10 sm:grid-cols-[9rem_minmax(15rem,1fr)_9rem] sm:items-center">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => handleNavigateWeek(-1)}
-            className="h-10 w-full rounded-xl border border-cyan-300/10 bg-white/[0.04] px-3 text-slate-300 hover:border-cyan-300/20 hover:bg-cyan-300/10 hover:text-cyan-50 transition-colors flex items-center justify-center gap-2 text-xs font-semibold"
-            aria-label="Open previous week's training schedule"
-            title="Previous week"
-          >
-            <ChevronLeft size={16} aria-hidden="true" />
-            Previous
-          </Button>
-
-          <div className="flex min-h-12 flex-col items-center justify-center text-center px-3">
-            <span className="text-[9px] font-semibold uppercase tracking-widest text-slate-500">Training Week</span>
-            <span className="min-w-[14rem] text-sm font-display font-black text-slate-50">{weekRangeLabel}</span>
-            <span className="text-[10px] font-semibold text-cyan-200">
-              {isCurrentWeek ? 'Current week' : selectedWeekStart > getWeekStartDate(new Date()) ? 'Future week' : 'Past week'}
-            </span>
-          </div>
-
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-1">
-            {!isCurrentWeek && (
-              <Button
-                type="button"
-                variant="outline"
-                onClick={handleReturnToCurrentWeek}
-                className="h-10 w-full rounded-xl border border-cyan-300/10 bg-cyan-300/10 px-3 text-cyan-100 hover:bg-cyan-300/15 transition-colors text-xs font-semibold"
-              >
-                This Week
-              </Button>
-            )}
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => handleNavigateWeek(1)}
-              className={`${isCurrentWeek ? 'col-span-2 sm:col-span-1' : ''} h-10 w-full rounded-xl border border-cyan-300/10 bg-white/[0.04] px-3 text-slate-300 hover:border-cyan-300/20 hover:bg-cyan-300/10 hover:text-cyan-50 transition-colors flex items-center justify-center gap-2 text-xs font-semibold`}
-              aria-label="Open next week's training schedule"
-              title="Next week"
-            >
-              Next
-              <ChevronRight size={16} aria-hidden="true" />
-            </Button>
-          </div>
-        </div>
-
         {/* Weekly Drop Grid */}
-        <div className="overflow-hidden rounded-2xl border border-cyan-300/10 bg-[#0b1726]/62 shadow-inner shadow-black/10">
-          <div className="grid grid-cols-1 divide-y divide-cyan-300/10 sm:grid-cols-2 sm:divide-x sm:divide-y-0 md:grid-cols-4 lg:grid-cols-7">
+        <div className="rounded-2xl border border-cyan-300/10 bg-[#0b1726]/52 p-3 shadow-inner shadow-black/10">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4 2xl:grid-cols-7">
           {DAYS_OF_WEEK.map((day) => {
             const scheduledList = getOrderedSessionDrills(weeklySchedule[day]);
             const sessionSummary = buildTrainingSessionSummary({
@@ -1208,7 +1208,7 @@ export default function TrainingView({
                   e.currentTarget.classList.remove('border-cyan-300/40', 'bg-cyan-300/10');
                   handleDropDrill(day, e);
                 }}
-                className={`group/day relative flex min-h-[192px] flex-col justify-between overflow-hidden p-3 transition-colors hover:bg-white/[0.025] ${hasSession ? 'bg-white/[0.018]' : ''}`}
+                className={`group/day relative flex min-h-[226px] flex-col justify-between overflow-hidden rounded-xl border border-cyan-300/10 p-4 transition-colors hover:border-cyan-300/18 hover:bg-white/[0.025] ${hasSession ? 'bg-white/[0.025]' : 'bg-[#07111f]/42'}`}
               >
                 <div className={`pointer-events-none absolute inset-x-3 top-0 h-px bg-gradient-to-r ${dayAccentClass} to-transparent`} />
                 <div className="space-y-3">
