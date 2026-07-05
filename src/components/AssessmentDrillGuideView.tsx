@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
-import { BookOpen, ClipboardCheck, Gauge, Image as ImageIcon, ListChecks, Repeat, ShieldAlert, SlidersHorizontal, Target, TrendingDown, TrendingUp, Volume2, Wrench } from 'lucide-react';
-import { DRILL_GUIDE_CATEGORIES, DRILL_GUIDE_ENTRIES, type DrillGuideAudio, type DrillGuideEntry } from '../fprds/drillGuide';
+import { BookOpen, ClipboardCheck, Gauge, Hand, Image as ImageIcon, ListChecks, MapPin, Repeat, ShieldAlert, SlidersHorizontal, Target, TrendingDown, TrendingUp, Users, Volume2, Wrench } from 'lucide-react';
+import { DRILL_GUIDE_CATEGORIES, DRILL_GUIDE_ENTRIES, type DrillGuideAudio, type DrillGuideEntry, type GoalkeeperRequirement } from '../fprds/drillGuide';
 import {
   BALL_RETENTION_SECONDS,
   BROAD_JUMP_CM,
@@ -139,6 +139,13 @@ const SELECT_CONTENT_CLASS = 'z-[90] border-cyan-300/15 bg-[#07111f] text-slate-
 const SELECT_ITEM_CLASS = 'text-slate-200 focus:bg-orange-300/12 focus:text-orange-50 data-[state=checked]:bg-orange-300/10 data-[state=checked]:text-orange-50';
 const SELECT_LABEL_CLASS = 'text-[10px] font-black uppercase tracking-[0.14em] text-slate-500';
 const SELECT_TRIGGER_CLASS = 'h-9 rounded-lg border-cyan-300/15 bg-[#0b1726]/85 text-xs font-bold text-slate-100 focus:ring-orange-300/25 disabled:opacity-60';
+
+const GK_CHIP_STYLES: Record<GoalkeeperRequirement, { label: string; chip: string; icon: string }> = {
+  required: { label: 'Goalkeeper required', chip: 'border-violet-300/35 bg-violet-300/12 text-violet-100', icon: 'text-violet-300' },
+  optional: { label: 'Goalkeeper optional', chip: 'border-amber-300/25 bg-amber-300/[0.08] text-amber-100', icon: 'text-amber-300' },
+  none: { label: 'No goalkeeper needed', chip: 'border-cyan-300/12 bg-white/[0.03] text-slate-300', icon: 'text-slate-400' },
+  athlete: { label: 'Athlete is the goalkeeper', chip: 'border-violet-300/35 bg-violet-300/12 text-violet-100', icon: 'text-violet-300' }
+};
 
 const eyebrowClass = 'text-[10px] font-black uppercase tracking-[0.16em]';
 const panelClass = 'rounded-2xl border border-cyan-300/10 bg-[#07111f]/80 p-5 shadow-lg shadow-black/20 backdrop-blur-xl';
@@ -692,13 +699,34 @@ export default function AssessmentDrillGuideView() {
                 <span className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-300/18 bg-emerald-300/[0.06] px-2.5 py-1.5 text-[10px] font-bold text-emerald-100">
                   <Target size={12} className="text-emerald-300" /> {selectedDrill.dataToRecord.length} metric{selectedDrill.dataToRecord.length === 1 ? '' : 's'} to record
                 </span>
+                <span className="inline-flex items-center gap-1.5 rounded-lg border border-cyan-300/12 bg-white/[0.03] px-2.5 py-1.5 text-[10px] font-bold text-slate-300">
+                  <Users size={12} className="text-cyan-300" /> {selectedDrill.personnel.length} people / role{selectedDrill.personnel.length === 1 ? '' : 's'} needed
+                </span>
+                <span
+                  className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-[10px] font-bold ${GK_CHIP_STYLES[selectedDrill.goalkeeper.requirement].chip}`}
+                  title={selectedDrill.goalkeeper.note}
+                >
+                  <Hand size={12} className={GK_CHIP_STYLES[selectedDrill.goalkeeper.requirement].icon} /> {GK_CHIP_STYLES[selectedDrill.goalkeeper.requirement].label}
+                </span>
               </div>
 
               {/* Highlighted priority: illustration (16:9) + procedure with drill audio below it */}
               <div className="mt-4 grid gap-4 md:grid-cols-2 md:items-start">
                 <DrillIllustration drill={selectedDrill} />
                 <div className="flex flex-col gap-3">
+                  <div className="rounded-2xl border border-amber-300/25 bg-amber-300/[0.06] p-4">
+                    <p className={`flex items-center gap-1.5 text-amber-100 ${eyebrowClass}`}>
+                      <MapPin size={13} className="text-amber-300" /> Where the player starts
+                    </p>
+                    <p className="mt-2 text-[12px] font-semibold leading-relaxed text-slate-100">{selectedDrill.playerStart}</p>
+                  </div>
                   <ProcedureSteps steps={selectedDrill.procedure} />
+                  <div className={`rounded-2xl border p-4 ${GK_CHIP_STYLES[selectedDrill.goalkeeper.requirement].chip}`}>
+                    <p className={`flex items-center gap-1.5 ${eyebrowClass}`}>
+                      <Hand size={13} className={GK_CHIP_STYLES[selectedDrill.goalkeeper.requirement].icon} /> {GK_CHIP_STYLES[selectedDrill.goalkeeper.requirement].label}
+                    </p>
+                    <p className="mt-2 text-[11.5px] font-semibold leading-relaxed text-slate-200">{selectedDrill.goalkeeper.note}</p>
+                  </div>
                   {selectedDrill.audio && <AudioBlock audio={selectedDrill.audio} />}
                 </div>
               </div>
@@ -715,6 +743,7 @@ export default function AssessmentDrillGuideView() {
 
               {/* Supporting detail flows below in balanced columns */}
               <div className="mt-5 gap-x-7 border-t border-cyan-300/10 pt-5 sm:columns-2 xl:columns-3">
+                <InstructionSection label="People needed" items={selectedDrill.personnel} accent="emerald" />
                 <InstructionSection label="Equipment" items={selectedDrill.equipment} accent="cyan" />
                 <InstructionSection label="Setup" items={selectedDrill.setup} accent="cyan" />
                 <InstructionSection label="Attempts" items={selectedDrill.attempts} accent="amber" />
