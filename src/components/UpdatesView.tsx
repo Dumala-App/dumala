@@ -4,6 +4,8 @@ import { Button } from './ui/button';
 
 export default function UpdatesView() {
   const [openEntries, setOpenEntries] = useState<Record<string, boolean>>({
+    july_5_game_plan_session_dashboard_overhaul: true,
+    july_4_ui_game_and_coaching_tools_overhaul: true,
     landing_page_saas_launch_routing: true,
     july_product_coaching_overhaul: true,
     major_cloud_and_product_milestone: true,
@@ -54,6 +56,158 @@ export default function UpdatesView() {
     changelogBadgeStyles[badge] ?? 'border-slate-400/40 bg-slate-400/15 text-slate-100';
 
   const changelogEntries = [
+    {
+      id: 'july_5_game_plan_session_dashboard_overhaul',
+      date: '2026-07-05',
+      title: 'Game Plan Workflow, Session Dashboard Summary, and Coaching Command Center',
+      badge: 'New Features Added',
+      summary: 'Dumala now connects match preparation and training delivery more tightly with saved Game Plans, dashboard game-plan summaries, richer daily session summaries, clearer training readiness signals, and a stronger coach command-center flow.',
+      accent: 'border-emerald-400/20 bg-slate-950/90 text-slate-100',
+      renderContent: () => (
+        <div className="space-y-4">
+          <p className="text-sm text-slate-300 leading-relaxed">
+            July 5 focuses on turning Dumala into a working command center for the week. Coaches can move from the dashboard into a saved Game Plan, check the next match context, review today&apos;s training session, and keep tactical preparation connected to actual squad work.
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {[
+              {
+                icon: Target,
+                title: 'Saved Game Plan workflow',
+                desc: 'Tactics now supports opponent-linked Game Plans so coaches can save the formation, match format, opponent shape, strategy context, set-piece assignments, and notes for an upcoming game.'
+              },
+              {
+                icon: Brain,
+                title: 'Dashboard game-plan summary',
+                desc: 'The dashboard now surfaces the next-match Game Plan with opponent, formation, opponent formation, tactical intent, and a direct path back into the tactical board.'
+              },
+              {
+                icon: FlaskConical,
+                title: 'Session dashboard summary',
+                desc: 'Training-day cards now summarize the active session with duration, load, drill count, completion state, key drills, equipment, coach cues, warnings, and reflection status.'
+              },
+              {
+                icon: TrendingUp,
+                title: 'Daily prep panels',
+                desc: 'The main dashboard better separates match prep and training prep so coaches can scan what matters today without opening every module.'
+              },
+              {
+                icon: Award,
+                title: 'Training session detail modal',
+                desc: 'Coaches can open a session, step through drills, inspect block structure, review readiness warnings, mark drill progress, and keep a concise reflection tied to the day.'
+              },
+              {
+                icon: Users,
+                title: 'Squad context stays attached',
+                desc: 'Game Plans and daily summaries use the active team workspace, roster, upcoming fixtures, and saved training schedule so the plan reflects the actual squad instead of a generic template.'
+              },
+              {
+                icon: Cloud,
+                title: 'Persistent planning data',
+                desc: 'Game Plans are stored as workspace data and included in the local-to-cloud migration path, preparing the feature for durable continuity as cloud sync matures.'
+              },
+              {
+                icon: Hash,
+                title: 'Coach workflow polish',
+                desc: 'Buttons, panels, empty states, and compact summary language were tightened so daily review, match planning, and session delivery feel like one connected coaching loop.'
+              }
+            ].map(item => {
+              const Icon = item.icon;
+
+              return (
+                <div key={item.title} className="rounded-xl border border-emerald-400/20 bg-slate-900/80 p-4 shadow-sm shadow-black/20">
+                  <div className="mb-2 flex items-center gap-2">
+                    <span className="flex h-8 w-8 items-center justify-center rounded-lg border border-emerald-400/30 bg-emerald-400/10 text-emerald-200">
+                      <Icon size={16} aria-hidden="true" />
+                    </span>
+                    <h5 className="text-xs font-black uppercase tracking-wider text-emerald-100">{item.title}</h5>
+                  </div>
+                  <p className="text-xs text-slate-400 leading-relaxed">{item.desc}</p>
+                </div>
+              );
+            })}
+          </div>
+          <p className="rounded-xl border border-emerald-400/20 bg-emerald-400/10 p-3 text-xs font-semibold leading-relaxed text-emerald-100">
+            This pass makes the dashboard more useful as the first screen after launch: it now points coaches toward the next practical action, whether that is saving the Game Plan, opening today&apos;s session, or reviewing readiness before training.
+          </p>
+        </div>
+      )
+    },
+    {
+      id: 'july_4_ui_game_and_coaching_tools_overhaul',
+      date: '2026-07-04',
+      title: 'Major UI Overhaul, Free Kick Game, and Match-Prep Product Expansion',
+      badge: 'UX Polish',
+      summary: 'Dumala received a broad UI overhaul across the coach workspace, League & Updates gained the Dumala Free Kick game, and recent match-prep, tactics, training, cloud, landing, and app-launch upgrades were consolidated into a more polished beta experience.',
+      accent: 'border-sky-400/20 bg-slate-950/90 text-slate-100',
+      renderContent: () => (
+        <div className="space-y-4">
+          <p className="text-sm text-slate-300 leading-relaxed">
+            July 4 was a broad product polish and expansion pass. The app now feels more complete across the dark shell, navigation, tactical surfaces, training panels, update content, install flow, and coach-facing launch story, with a new Free Kick game added inside League &amp; Updates.
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {[
+              {
+                icon: Hash,
+                title: 'Major UI overhaul',
+                desc: 'The main workspace, cards, badges, overlays, buttons, compact controls, and dark product surfaces were tightened for a cleaner, more consistent coaching interface.'
+              },
+              {
+                icon: Target,
+                title: 'Dumala Free Kick game',
+                desc: 'League & Updates now includes a dedicated Game tab with the Dumala Free Kick Hero experience embedded directly in the app.'
+              },
+              {
+                icon: Brain,
+                title: 'Tactical board improvements',
+                desc: 'Fullscreen match layout controls, opponent dots, formation controls, ball tools, wall tools, scenario presets, captain and set-piece selectors, and strategy context all received practical match-prep polish.'
+              },
+              {
+                icon: Award,
+                title: 'Match-day preparation',
+                desc: 'Upcoming match planning now has clearer routes through opponent shape, playstyle, weather-aware preparation, tactical notes, snapshots, and saved planning context.'
+              },
+              {
+                icon: FlaskConical,
+                title: 'Training planning upgrades',
+                desc: 'Training received richer drill variety, stronger daily-prep context, better session structure, and summary language that helps coaches understand load and readiness faster.'
+              },
+              {
+                icon: Megaphone,
+                title: 'Product story and launch routing',
+                desc: 'The public landing page, Free/Premium beta positioning, app route, installed-app start URL, and cloud sign-in return path now present Dumala as a clearer coach product.'
+              },
+              {
+                icon: Cloud,
+                title: 'Cloud and backup hardening',
+                desc: 'Google-first cloud entry, Supabase migration foundations, multi-team workspace support, cloud backup duplicate handling, and local-first protections continued moving toward beta readiness.'
+              },
+              {
+                icon: Download,
+                title: 'Installable app polish',
+                desc: 'The PWA and installed app flow now better respect the coach workspace route, offline shell expectations, tablet layouts, and update-ready app behavior.'
+              }
+            ].map(item => {
+              const Icon = item.icon;
+
+              return (
+                <div key={item.title} className="rounded-xl border border-sky-400/20 bg-slate-900/80 p-4 shadow-sm shadow-black/20">
+                  <div className="mb-2 flex items-center gap-2">
+                    <span className="flex h-8 w-8 items-center justify-center rounded-lg border border-sky-400/30 bg-sky-400/10 text-sky-200">
+                      <Icon size={16} aria-hidden="true" />
+                    </span>
+                    <h5 className="text-xs font-black uppercase tracking-wider text-sky-100">{item.title}</h5>
+                  </div>
+                  <p className="text-xs text-slate-400 leading-relaxed">{item.desc}</p>
+                </div>
+              );
+            })}
+          </div>
+          <p className="rounded-xl border border-sky-400/20 bg-sky-400/10 p-3 text-xs font-semibold leading-relaxed text-sky-100">
+            This update is both polish and personality: the serious coaching tools became more cohesive, while the Free Kick game gives League &amp; Updates a playful football moment inside the same workspace.
+          </p>
+        </div>
+      )
+    },
     {
       id: 'landing_page_saas_launch_routing',
       date: '2026-07-03',
