@@ -178,7 +178,7 @@ export default function OnboardingView({
             <GlowingEffect {...ORANGE_NEW_GLOW_PROPS.shell} />
             <div className="relative z-10 flex max-h-full w-full flex-col overflow-hidden rounded-[1.6rem] border border-white/10 bg-[#07111f]/90 p-5 shadow-2xl shadow-black/45 backdrop-blur-xl sm:p-6">
               <div className="mb-5 text-center">
-                <img src="/Dumala_logo.png" alt="Dumala" className="mx-auto h-[8.1rem] w-[12.15rem] object-contain sm:h-[9.45rem] sm:w-[14.85rem]" />
+                <img src="/dumalaglass.png" alt="Dumala" className="mx-auto h-[8.5rem] w-[13.5rem] object-contain sm:h-[10rem] sm:w-[16rem]" />
                 <p className="mt-[-0.2rem] text-[10px] font-black uppercase tracking-normal text-orange-300">Football management system</p>
                 <h1 className="mt-2 font-display text-2xl font-black leading-[1.06] text-white sm:text-3xl">
                   Coach smarter.<br className="sm:hidden" /> Manage better.

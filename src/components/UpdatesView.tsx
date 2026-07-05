@@ -3,27 +3,7 @@ import { Award, Brain, Calculator, ChevronDown, ChevronRight, Cloud, Download, F
 import { Button } from './ui/button';
 
 export default function UpdatesView() {
-  const [openEntries, setOpenEntries] = useState<Record<string, boolean>>({
-    july_5_game_plan_session_dashboard_overhaul: true,
-    july_4_ui_game_and_coaching_tools_overhaul: true,
-    landing_page_saas_launch_routing: true,
-    july_product_coaching_overhaul: true,
-    major_cloud_and_product_milestone: true,
-    assessment_feedback_reports_and_polish: true,
-    multi_team_supabase_migration_setup: true,
-    coaching_library_redesigned: true,
-    assessment_team_history_notes: true,
-    fprds_comparison_reports: true,
-    fprds_historical_progress_charts: true,
-    fprds_benchmark_review_package: true,
-    cloud_collaboration_foundation_completed: true,
-    squad_payments_ledger_added: true,
-    reliability_foundation_upgraded: true,
-    offline_app_shell_released: true,
-    assessment_center_implemented: true,
-    fprds_vision_announced: false,
-    roadmap_snapshot: false
-  });
+  const [openEntries, setOpenEntries] = useState<Record<string, boolean>>({});
 
   const handleToggleEntry = (entryId: string) => {
     setOpenEntries((current) => ({
@@ -1209,10 +1189,10 @@ export default function UpdatesView() {
     },
     {
       id: 'roadmap_snapshot',
-      date: '2026-05-04',
+      date: '2026-07-05',
       title: 'Roadmap Snapshot',
       badge: 'Roadmap',
-      summary: 'A practical development sequence covering reliability, offline access, tablets, collaboration, public profiles, drafting, objective player development, and Philippine coach education.',
+      summary: 'A practical development sequence covering the active beta, saved Game Plans, dashboard/session summaries, cloud-ready planning data, objective player development, SaaS validation, and longer-term public profile and club operations work.',
       accent: 'border-slate-700/70 bg-slate-950/90 text-slate-100',
       renderContent: () => (
         <div className="space-y-5">
@@ -1230,10 +1210,12 @@ export default function UpdatesView() {
                 'Fix workflow and display defects across the main coaching tools.',
                 'Validate standings calculations and the full match-result update flow.',
                 'Improve backup import validation, recovery guidance, and malformed-data handling.',
-                'Standardize roster, tactics, training, schedule, and assessment data behavior.'
+                'Standardize roster, tactics, training, schedule, and assessment data behavior.',
+                'Connect match preparation and training delivery with saved Game Plans, dashboard game-plan summaries, daily session summaries, and readiness signals.',
+                'Keep the beta feedback loop visible so real coach testing can steer what gets refined next.'
               ],
-              benefit: 'Coaches can trust the app during normal weekly use and recover their workspace when something goes wrong.',
-              completion: 'Core workflows pass desktop and mobile testing without unexpected data loss.',
+              benefit: 'Coaches can trust Dumala as a weekly command center that points them toward the next useful match, training, or squad action.',
+              completion: 'Core workflows, planning summaries, and recovery paths work without unexpected data loss.',
               color: 'border-l-amber-400 bg-amber-400/10',
               badge: 'border-amber-400/30 bg-amber-400/15 text-amber-100'
             },
@@ -1245,6 +1227,7 @@ export default function UpdatesView() {
                 'Complete standardized assessments for every supported position and age group.',
                 'Finalize benchmark tables through qualified practitioner review, scoring validation, and explainable rating calculations.',
                 'Add historical progress charts, comparison reports, and measurable development plans.',
+                'Keep training evidence, rating confidence, and verified assessment results clearly separated.',
                 'Produce downloadable player assessment and progress reports.'
               ],
               benefit: 'Coaches gain consistent evidence for player evaluation, training priorities, and development conversations.',
@@ -1290,7 +1273,8 @@ export default function UpdatesView() {
                 'Add secure user accounts, club workspaces, and durable cloud storage.',
                 'Provide a guided migration from existing browser data without deleting local records.',
                 'Synchronize approved changes across devices after connectivity returns.',
-                'Handle interrupted uploads, duplicate updates, and recovery from failed synchronization.'
+                'Handle interrupted uploads, duplicate updates, and recovery from failed synchronization.',
+                'Carry newer planning records, including saved Game Plans, through the local-to-cloud migration path.'
               ],
               benefit: 'Users can move between devices without manually transferring backups or losing their club workspace.',
               completion: 'A user can sign in on another device and safely access the same club data.',
@@ -1369,6 +1353,7 @@ export default function UpdatesView() {
               deliverables: [
                 'Lead the public offer with weekly admin relief, match-week preparation, and clearer player development.',
                 'Package pricing as two clear choices: Free during beta and a Premium monthly subscription, with Coach, Club, and Academy value framed inside Premium.',
+                'Keep the public landing page, installed app route, and cloud sign-in return path aligned around the coach workspace.',
                 'Validate whether solo coaches will pay roughly USD 9-15 per month before introducing any future club-scale pricing.',
                 'Build a first-week success flow that gets a coach to value after adding 8-12 players and one upcoming match.',
                 'Prepare a demo/sample workspace so coaches can evaluate the product before full setup.',
@@ -1416,6 +1401,8 @@ export default function UpdatesView() {
       )
     }
   ];
+  const roadmapSnapshotEntry = changelogEntries.find((entry) => entry.id === 'roadmap_snapshot');
+  const productChangelogEntries = changelogEntries.filter((entry) => entry.id !== 'roadmap_snapshot');
 
   return (
     <div className="space-y-6">
@@ -1482,6 +1469,21 @@ export default function UpdatesView() {
             </p>
           </div>
         </div>
+        {roadmapSnapshotEntry ? (
+          <div className="rounded-2xl border border-slate-800 bg-slate-950 p-4 shadow-sm shadow-black/20 md:p-5">
+            <div className="mb-4 flex flex-wrap items-start justify-between gap-3 border-b border-slate-800 pb-3">
+              <div>
+                <span className="text-[10px] font-black uppercase tracking-widest text-amber-300">Roadmap Snapshot</span>
+                <h4 className="mt-1 text-lg font-black text-slate-100">{roadmapSnapshotEntry.title}</h4>
+                <p className="mt-1 max-w-3xl text-xs leading-relaxed text-slate-400">{roadmapSnapshotEntry.summary}</p>
+              </div>
+              <span className="rounded border border-cyan-300/25 bg-slate-900 px-2 py-1 text-[10px] font-black uppercase tracking-widest text-slate-100 shadow-sm shadow-black/30">
+                Updated {roadmapSnapshotEntry.date}
+              </span>
+            </div>
+            {roadmapSnapshotEntry.renderContent()}
+          </div>
+        ) : null}
       </div>
 
       {/* Product Changelog */}
@@ -1495,7 +1497,7 @@ export default function UpdatesView() {
         </div>
 
         <div className="space-y-4">
-          {changelogEntries.map((entry) => {
+          {productChangelogEntries.map((entry) => {
             const isOpen = openEntries[entry.id];
             const isDarkEntry = entry.id === 'fprds_vision_announced';
 
