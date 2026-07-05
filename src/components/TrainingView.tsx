@@ -34,7 +34,6 @@ import { getDrillIcon } from './TrainingDrillCard';
 import TrainingSessionBuilder from './TrainingSessionBuilder';
 import { Badge } from '@/src/components/ui/badge';
 import { Button } from '@/src/components/ui/button';
-import { Tabs, TabsList, TabsTrigger } from '@/src/components/ui/tabs';
 import {
   Select,
   SelectContent,
@@ -1509,22 +1508,30 @@ export default function TrainingView({
                 </div>
               </div>
 
-              <Tabs value={activeDrillLibraryTab} onValueChange={(value) => setActiveDrillLibraryTab(value as DrillLibraryTab)} className="mt-3">
-                <TabsList aria-label="Drill library categories" className="w-full justify-start overflow-x-auto rounded-full border border-white/[0.08] bg-white/[0.035] p-1">
-                  {DRILL_LIBRARY_TABS.map(tab => (
-                    <TabsTrigger
+              <div role="tablist" aria-label="Drill library categories" className="mt-3 flex w-full gap-1 overflow-x-auto rounded-full border border-white/[0.08] bg-white/[0.035] p-1">
+                {DRILL_LIBRARY_TABS.map(tab => {
+                  const isActive = activeDrillLibraryTab === tab.id;
+                  return (
+                    <button
                       key={tab.id}
-                      value={tab.id}
-                      className="group min-h-8 shrink-0 gap-1.5 rounded-full border border-transparent !bg-transparent px-2.5 text-[10px] text-slate-400 shadow-none data-[state=active]:!border-white/10 data-[state=active]:!bg-white/[0.08] data-[state=active]:!text-slate-50 data-[state=active]:!shadow-none data-[state=inactive]:hover:!bg-white/[0.045]"
+                      type="button"
+                      role="tab"
+                      aria-selected={isActive}
+                      onClick={() => setActiveDrillLibraryTab(tab.id)}
+                      className={`flex min-h-8 shrink-0 items-center justify-center gap-1.5 rounded-full border px-3 text-[10px] font-black transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/25 ${
+                        isActive
+                          ? 'border-white/10 bg-white/[0.08] text-slate-50'
+                          : 'border-transparent text-slate-400 hover:bg-white/[0.045] hover:text-slate-200'
+                      }`}
                     >
                       {tab.label}
-                      <span className="rounded-full bg-white/[0.06] px-1.5 py-0.5 text-[9px] text-slate-400 group-data-[state=active]:bg-white/[0.10]">
+                      <span className={`rounded-full px-1.5 py-0.5 text-[9px] ${isActive ? 'bg-white/[0.10] text-slate-300' : 'bg-white/[0.06] text-slate-500'}`}>
                         {drillLibraryTabCounts[tab.id]}
                       </span>
-                    </TabsTrigger>
-                  ))}
-                </TabsList>
-              </Tabs>
+                    </button>
+                  );
+                })}
+              </div>
 
               {visibleLibraryDrills.length === 0 ? (
                 <div className="mt-3 rounded-xl border border-dashed border-cyan-300/10 p-8 text-center text-slate-400">
@@ -1533,8 +1540,8 @@ export default function TrainingView({
                   <p className="mt-1 text-xs text-slate-400">Try another tab or focus filter.</p>
                 </div>
               ) : (
-                <div className="mt-3 rounded-2xl border border-white/[0.075] bg-white/[0.018] p-1.5">
-                  <div className="grid grid-cols-1 gap-1.5 md:grid-cols-2 2xl:grid-cols-3">
+                <div className="mt-3 rounded-2xl border border-cyan-300/10 bg-[#07111f]/42 p-2">
+                  <div className="grid grid-cols-1 gap-2 md:grid-cols-2 2xl:grid-cols-3">
                     {visibleLibraryDrills.map((drill) => {
                       const isSelected = selectedDrillId === drill.id;
                       const isRecommended = growthNeeds?.isBeneficial(drill);
@@ -1558,37 +1565,41 @@ export default function TrainingView({
                           tabIndex={0}
                           aria-pressed={isSelected}
                           aria-label={`Select ${drill.name}`}
-                          className={`group flex cursor-grab items-start gap-2.5 rounded-xl border px-2.5 py-2.5 text-left transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/25 active:cursor-grabbing ${
+                          className={`group flex min-h-[132px] cursor-grab flex-col justify-between rounded-xl border p-3 text-left transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/25 active:cursor-grabbing ${
                             isSelected
-                              ? 'border-emerald-300/30 bg-white/[0.07] shadow-[0_0_14px_rgba(16,185,129,0.08)]'
+                              ? 'border-emerald-300/34 bg-[linear-gradient(135deg,rgba(16,185,129,0.12),rgba(15,23,42,0.52))] shadow-[0_0_16px_rgba(16,185,129,0.10)]'
                               : isRecommended
-                                ? 'border-emerald-300/14 bg-emerald-300/[0.035] hover:border-emerald-300/30 hover:bg-emerald-300/[0.075]'
-                                : 'border-transparent bg-transparent hover:border-white/[0.08] hover:bg-white/[0.045]'
+                                ? 'border-emerald-300/18 bg-[linear-gradient(135deg,rgba(16,185,129,0.07),rgba(15,23,42,0.42))] hover:border-emerald-300/34 hover:bg-emerald-300/[0.075]'
+                                : 'border-white/[0.075] bg-white/[0.035] hover:border-white/[0.13] hover:bg-white/[0.06]'
                           }`}
                         >
-                          <span className={`flex size-8 shrink-0 items-center justify-center rounded-full border ${isSelected ? 'border-emerald-300/30 bg-emerald-300/12 text-emerald-100' : TRAINING_DRILL_ICON_CLASS}`}>
-                            {getDrillIcon(drill.id)}
-                          </span>
-                          <span className="min-w-0 flex-1 overflow-hidden">
-                            <span className="flex min-w-0 items-center gap-1.5">
-                              <span className="min-w-0 flex-1 truncate text-xs font-black text-slate-100">{drill.name}</span>
-                              {isRecommended && (
-                                <span className="shrink-0 rounded-full border border-emerald-300/25 bg-emerald-500/12 px-1.5 py-0.5 text-[7px] font-black uppercase text-emerald-100">
-                                  Rec
-                                </span>
-                              )}
+                          <div className="flex min-w-0 items-start gap-2.5">
+                            <span className={`flex size-8 shrink-0 items-center justify-center rounded-full border ${isSelected ? 'border-emerald-300/30 bg-emerald-300/12 text-emerald-100' : TRAINING_DRILL_ICON_CLASS}`}>
+                              {getDrillIcon(drill.id)}
                             </span>
-                            <span className="mt-0.5 line-clamp-1 text-[10px] leading-relaxed text-slate-400">{drill.description}</span>
-                            <span className="mt-1.5 flex flex-wrap items-center gap-1.5 text-[9px] font-bold text-slate-400">
+                            <span className="min-w-0 flex-1 overflow-hidden">
+                              <span className="flex min-w-0 items-center gap-1.5">
+                                <span className="min-w-0 flex-1 truncate text-xs font-black text-slate-100">{drill.name}</span>
+                                {isRecommended && (
+                                  <span className="shrink-0 rounded-full border border-emerald-300/25 bg-emerald-500/12 px-1.5 py-0.5 text-[7px] font-black uppercase text-emerald-100">
+                                    Rec
+                                  </span>
+                                )}
+                              </span>
+                              <span className="mt-1 line-clamp-2 text-[10px] leading-relaxed text-slate-400">{drill.description}</span>
+                            </span>
+                          </div>
+                          <div className="mt-3 min-w-0">
+                            <span className="flex flex-wrap items-center gap-1.5 text-[9px] font-bold text-slate-400">
                               <span className={`max-w-full truncate rounded-md border px-1.5 py-0.5 uppercase ${categoryStyle}`}>{drill.category}</span>
                               <span className={`inline-flex max-w-full items-center gap-1 rounded-md border px-1.5 py-0.5 ${loadStyle.badge}`}>
                                 <span className={`size-1 rounded-full ${loadStyle.dot}`} />Intensity {drill.fatigueIncrease}/10
                               </span>
                             </span>
-                            <span className="mt-1 hidden truncate text-[9px] font-bold text-slate-500 lg:block">
+                            <span className="mt-1.5 block truncate text-[9px] font-bold text-slate-500">
                               Focus: {formatTrainingFocusList(drill.developmentFocus)}
                             </span>
-                          </span>
+                          </div>
                         </div>
                       );
                     })}
