@@ -1066,32 +1066,33 @@ export default function TrainingView({
                 Read the week by date: each bar sits over its day and reflects planned session load.
               </p>
             </div>
-            <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-[9px] font-black uppercase tracking-wider">
-              {[
-                { label: 'Light', count: DAYS_OF_WEEK.filter(d => getSessionLoadPoints(weeklySchedule[d]) < SESSION_LOAD_THRESHOLDS.optimal).length, dot: 'bg-emerald-400', tone: 'text-emerald-200' },
-                { label: 'Training', count: DAYS_OF_WEEK.filter(d => {
-                  const sum = getSessionLoadPoints(weeklySchedule[d]);
-                  return sum >= SESSION_LOAD_THRESHOLDS.optimal && sum < SESSION_LOAD_THRESHOLDS.high - 7;
-                }).length, dot: 'bg-amber-300', tone: 'text-amber-200' },
-                { label: 'Heavy', count: DAYS_OF_WEEK.filter(d => {
-                  const sum = getSessionLoadPoints(weeklySchedule[d]);
-                  return sum >= SESSION_LOAD_THRESHOLDS.high - 7 && sum < SESSION_LOAD_THRESHOLDS.high;
-                }).length, dot: 'bg-orange-400', tone: 'text-orange-200' },
-                { label: 'High', count: DAYS_OF_WEEK.filter(d => getSessionLoadPoints(weeklySchedule[d]) >= SESSION_LOAD_THRESHOLDS.high).length, dot: 'bg-red-500', tone: 'text-red-200' }
-              ].map(item => (
-                <span key={item.label} className={`inline-flex items-center gap-1.5 ${item.tone}`}>
-                  <span className={`size-1.5 rounded-full ${item.dot}`} />
-                  {item.label} {item.count}
-                </span>
-              ))}
+            <div className="flex flex-col items-start gap-2 lg:items-end">
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-[9px] font-black uppercase tracking-wider">
+                {[
+                  { label: 'Light', count: DAYS_OF_WEEK.filter(d => getSessionLoadPoints(weeklySchedule[d]) < SESSION_LOAD_THRESHOLDS.optimal).length, dot: 'bg-emerald-400', tone: 'text-emerald-200' },
+                  { label: 'Training', count: DAYS_OF_WEEK.filter(d => {
+                    const sum = getSessionLoadPoints(weeklySchedule[d]);
+                    return sum >= SESSION_LOAD_THRESHOLDS.optimal && sum < SESSION_LOAD_THRESHOLDS.high - 7;
+                  }).length, dot: 'bg-amber-300', tone: 'text-amber-200' },
+                  { label: 'Heavy', count: DAYS_OF_WEEK.filter(d => {
+                    const sum = getSessionLoadPoints(weeklySchedule[d]);
+                    return sum >= SESSION_LOAD_THRESHOLDS.high - 7 && sum < SESSION_LOAD_THRESHOLDS.high;
+                  }).length, dot: 'bg-orange-400', tone: 'text-orange-200' },
+                  { label: 'High', count: DAYS_OF_WEEK.filter(d => getSessionLoadPoints(weeklySchedule[d]) >= SESSION_LOAD_THRESHOLDS.high).length, dot: 'bg-red-500', tone: 'text-red-200' }
+                ].map(item => (
+                  <span key={item.label} className={`inline-flex items-center gap-1.5 ${item.tone}`}>
+                    <span className={`size-1.5 rounded-full ${item.dot}`} />
+                    {item.label} {item.count}
+                  </span>
+                ))}
+              </div>
               <Button
                 type="button"
                 variant="outline"
-                size="sm"
                 onClick={handleClearAllWeekly}
-                className="h-7 rounded-lg border-slate-500/20 bg-white/[0.035] px-3 text-[10px] font-semibold text-slate-300 hover:border-slate-300/25 hover:bg-white/[0.07] hover:text-white"
+                className="h-9 rounded-xl border-slate-500/20 bg-white/[0.045] px-4 text-[11px] font-bold text-slate-200 hover:border-slate-300/25 hover:bg-white/[0.08] hover:text-white"
               >
-                Reset
+                Reset Week
               </Button>
             </div>
           </div>
@@ -1216,7 +1217,6 @@ export default function TrainingView({
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
                       <span className="block truncate font-display text-sm font-black text-slate-50">{day}</span>
-                      <span className="mt-0.5 block text-[9px] font-semibold uppercase tracking-wider text-slate-400">{weekDaysMap[day].dateStr}</span>
                     </div>
                     <div className="flex shrink-0 flex-col items-end gap-1 text-right">
                       <span className={`rounded-full border px-2 py-0.5 text-[9px] font-black uppercase tracking-wider ${datePill}`}>
