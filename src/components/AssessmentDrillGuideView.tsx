@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
-import { BookOpen, ClipboardCheck, FlaskConical, SlidersHorizontal } from 'lucide-react';
-import { DRILL_GUIDE_CATEGORIES, DRILL_GUIDE_ENTRIES, type DrillGuideEntry } from '../fprds/drillGuide';
+import { BookOpen, ClipboardCheck, Gauge, Image as ImageIcon, ShieldAlert, SlidersHorizontal, TrendingDown, TrendingUp, Volume2 } from 'lucide-react';
+import { DRILL_GUIDE_CATEGORIES, DRILL_GUIDE_ENTRIES, type DrillGuideAudio, type DrillGuideEntry } from '../fprds/drillGuide';
 import {
   BALL_RETENTION_SECONDS,
   BROAD_JUMP_CM,
@@ -15,19 +15,23 @@ import {
   SPRINT_30M,
   YOYO_DISTANCE,
   type AgeGroup,
-  type BenchmarkTable
+  type BenchmarkTable,
+  type TierLabel
 } from '../fprds/benchmarks';
 import { QUICK_ROLE_POSITION_ATTRIBUTES, ROLE_LABELS, ROLE_WEIGHTS } from '../fprds/weights';
 import type { FprdsAttributeId, FprdsRole } from '../types';
-import { Button } from './ui/button';
+import { SegmentedTabs, type SegmentedTabOption } from './ui/segmented-tabs';
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
+  SelectLabel,
   SelectTrigger,
   SelectValue
 } from './ui/select';
 
+type GuideSection = 'drills' | 'benchmark';
 type ActiveGuideCategory = 'All' | DrillGuideEntry['category'];
 
 type BenchmarkCard = {
@@ -65,6 +69,11 @@ type BenchmarkPanel =
       title: string;
     };
 
+const SECTION_OPTIONS: Array<SegmentedTabOption<GuideSection>> = [
+  { value: 'drills', label: 'Drills' },
+  { value: 'benchmark', label: 'Benchmark' }
+];
+
 const ageGroups: AgeGroup[] = ['U12', 'U15', 'U18', 'Adult'];
 const roles: FprdsRole[] = ['ST', 'W', 'CM', 'CDM', 'FB', 'CB', 'GK'];
 
@@ -92,6 +101,41 @@ const attributeLabels: Record<FprdsAttributeId, string> = {
   divingReach: 'Diving / reach',
   distribution: 'Distribution'
 };
+
+// Tier ranking drives the scoring colour hierarchy: strongest (emerald) -> weakest (rose).
+const TIER_STYLES: Record<TierLabel, { chip: string; dot: string }> = {
+  Elite: { chip: 'border-emerald-300/25 bg-emerald-300/12 text-emerald-100', dot: 'bg-emerald-300' },
+  Advanced: { chip: 'border-cyan-300/25 bg-cyan-300/12 text-cyan-100', dot: 'bg-cyan-300' },
+  Developing: { chip: 'border-amber-300/25 bg-amber-300/12 text-amber-100', dot: 'bg-amber-300' },
+  'Below Average': { chip: 'border-orange-300/25 bg-orange-400/12 text-orange-100', dot: 'bg-orange-400' },
+  Beginner: { chip: 'border-rose-300/25 bg-rose-400/12 text-rose-100', dot: 'bg-rose-300' }
+};
+
+type SectionAccent = 'cyan' | 'orange' | 'amber' | 'emerald' | 'rose';
+
+const SECTION_ACCENTS: Record<SectionAccent, { border: string; label: string; marker: string }> = {
+  cyan: { border: 'border-cyan-300/35', label: 'text-cyan-200/80', marker: 'text-cyan-300/70' },
+  orange: { border: 'border-orange-300/35', label: 'text-orange-200/80', marker: 'text-orange-300/70' },
+  amber: { border: 'border-amber-300/35', label: 'text-amber-200/80', marker: 'text-amber-300/70' },
+  emerald: { border: 'border-emerald-300/35', label: 'text-emerald-200/80', marker: 'text-emerald-300/70' },
+  rose: { border: 'border-rose-300/35', label: 'text-rose-200/80', marker: 'text-rose-300/70' }
+};
+
+const CATEGORY_ACCENTS: Record<DrillGuideEntry['category'], string> = {
+  Base: 'text-cyan-200',
+  ForwardsWingers: 'text-orange-200',
+  Midfielders: 'text-emerald-200',
+  Defenders: 'text-sky-200',
+  Goalkeepers: 'text-violet-200'
+};
+
+const SELECT_CONTENT_CLASS = 'z-[90] border-cyan-300/15 bg-[#07111f] text-slate-100 shadow-2xl shadow-black/35';
+const SELECT_ITEM_CLASS = 'text-slate-200 focus:bg-orange-300/12 focus:text-orange-50 data-[state=checked]:bg-orange-300/10 data-[state=checked]:text-orange-50';
+const SELECT_LABEL_CLASS = 'text-[10px] font-black uppercase tracking-[0.14em] text-slate-500';
+const SELECT_TRIGGER_CLASS = 'h-9 rounded-lg border-cyan-300/15 bg-[#0b1726]/85 text-xs font-bold text-slate-100 focus:ring-orange-300/25 disabled:opacity-60';
+
+const eyebrowClass = 'text-[10px] font-black uppercase tracking-[0.16em]';
+const panelClass = 'rounded-2xl border border-cyan-300/10 bg-[#07111f]/80 p-5 shadow-lg shadow-black/20 backdrop-blur-xl';
 
 const benchmarkCards: BenchmarkCard[] = [
   { title: '30m Sprint', unit: 'seconds', source: SPRINT_30M },
@@ -250,15 +294,17 @@ const formatTierRange = (table: BenchmarkTable, rawBest: number | null, rawWorst
   return `${rawWorst}-${rawBest}`;
 };
 
-const SectionCard = (props: { title: string; items: string[] }) => {
+const InstructionSection = (props: { label: string; items: string[]; accent: SectionAccent }) => {
   if (props.items.length === 0) return null;
+  const accent = SECTION_ACCENTS[props.accent];
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-4">
-      <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">{props.title}</p>
-      <ul className="mt-3 list-disc space-y-1.5 pl-5">
+    <div className={`mb-5 break-inside-avoid border-l-2 ${accent.border} pl-3.5`}>
+      <p className={`${eyebrowClass} ${accent.label}`}>{props.label}</p>
+      <ul className="mt-2 space-y-1.5">
         {props.items.map((item) => (
-          <li key={item} className="text-xs font-semibold leading-relaxed text-slate-600">
-            {item}
+          <li key={item} className="flex gap-2 text-[11.5px] font-semibold leading-relaxed text-slate-300">
+            <span className={`mt-[3px] shrink-0 ${accent.marker}`} aria-hidden="true">•</span>
+            <span>{item}</span>
           </li>
         ))}
       </ul>
@@ -266,379 +312,444 @@ const SectionCard = (props: { title: string; items: string[] }) => {
   );
 };
 
+const DrillIllustration = (props: { drill: DrillGuideEntry }) => (
+  <div className="relative aspect-[16/7] overflow-hidden rounded-2xl border border-cyan-300/12 bg-[radial-gradient(circle_at_30%_20%,rgba(34,211,238,0.12),transparent_45%),radial-gradient(circle_at_80%_90%,rgba(251,146,60,0.1),transparent_45%),linear-gradient(140deg,#0b1a2c,#081120)]">
+    {props.drill.illustration ? (
+      <img
+        src={props.drill.illustration}
+        alt={`Illustration for ${props.drill.title}`}
+        className="h-full w-full object-cover"
+        loading="lazy"
+      />
+    ) : (
+      <>
+        <div
+          className="absolute inset-0 opacity-[0.14]"
+          style={{
+            backgroundImage:
+              'linear-gradient(rgba(148,163,184,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(148,163,184,0.5) 1px, transparent 1px)',
+            backgroundSize: '28px 28px'
+          }}
+          aria-hidden="true"
+        />
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 px-4 text-center">
+          <span className="flex size-11 items-center justify-center rounded-full border border-cyan-300/20 bg-cyan-300/10 text-cyan-200">
+            <ImageIcon size={20} />
+          </span>
+          <p className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-300">Drill illustration</p>
+          <p className="max-w-xs text-[11px] font-semibold leading-relaxed text-slate-500">
+            A visual step-by-step guide for this drill will appear here.
+          </p>
+        </div>
+      </>
+    )}
+    <span className="absolute left-3 top-3 inline-flex items-center gap-1 rounded-full border border-white/10 bg-black/40 px-2.5 py-1 text-[9px] font-black uppercase tracking-wider text-slate-100 backdrop-blur-sm">
+      How to run this drill
+    </span>
+  </div>
+);
+
+const AudioBlock = (props: { audio: DrillGuideAudio }) => (
+  <div className="rounded-2xl border border-emerald-300/22 bg-emerald-300/[0.06] p-4">
+    <div className="flex items-start gap-2.5">
+      <span className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-full bg-emerald-300/12 text-emerald-200">
+        <Volume2 size={16} />
+      </span>
+      <div className="min-w-0">
+        <p className={`text-emerald-200/90 ${eyebrowClass}`}>Required audio · {props.audio.label}</p>
+        {props.audio.description && (
+          <p className="mt-1 text-[11.5px] font-semibold leading-relaxed text-emerald-100/85">{props.audio.description}</p>
+        )}
+      </div>
+    </div>
+    <audio controls preload="none" src={props.audio.src} className="mt-3 w-full">
+      Your browser does not support the audio element.
+    </audio>
+  </div>
+);
+
+const ScoringHeader = (props: { title: string; unit: string; badge?: React.ReactNode }) => (
+  <div className="flex items-start justify-between gap-3">
+    <div className="min-w-0">
+      <h4 className="font-display text-sm font-black text-slate-100">{props.title}</h4>
+      <p className="mt-0.5 text-[11px] font-semibold text-slate-400">{props.unit}</p>
+    </div>
+    {props.badge}
+  </div>
+);
+
+const framedListClass = 'mt-3 overflow-hidden rounded-xl border border-cyan-300/10 bg-white/[0.02]';
+const rowClass = 'grid items-center gap-3 px-3 py-2 text-[11.5px]';
+
 const TableBenchmark = (props: { panel: Extract<BenchmarkPanel, { kind: 'table' }>; ageGroup: AgeGroup }) => {
   const benchmarkTable = getBenchmarkForAge(props.panel, props.ageGroup);
+  const lowerIsBetter = benchmarkTable.direction === 'lower_is_better';
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-4">
-      <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <h4 className="font-display text-base font-black text-slate-950">{props.panel.title}</h4>
-          <p className="text-[11px] font-semibold text-slate-500">{props.panel.unit}</p>
+    <div>
+      <ScoringHeader
+        title={props.panel.title}
+        unit={props.panel.unit}
+        badge={(
+          <span className="inline-flex shrink-0 items-center gap-1 rounded-full border border-cyan-300/15 bg-white/[0.04] px-2.5 py-1 text-[9px] font-black uppercase tracking-wider text-slate-300">
+            {lowerIsBetter ? <TrendingDown size={11} /> : <TrendingUp size={11} />}
+            {lowerIsBetter ? 'Lower is better' : 'Higher is better'}
+          </span>
+        )}
+      />
+      <div className={framedListClass}>
+        <div className={`${rowClass} grid-cols-[6.5rem_1fr_auto] border-b border-cyan-300/10 bg-white/[0.03] py-1.5 text-[9px] font-black uppercase tracking-widest text-slate-500`}>
+          <span>Tier</span>
+          <span>Raw result</span>
+          <span>Score</span>
         </div>
-        <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-[10px] font-black uppercase tracking-wider text-slate-500">
-          {benchmarkTable.direction === 'lower_is_better' ? 'Lower is better' : 'Higher is better'}
-        </span>
-      </div>
-      <div className="mt-3 overflow-x-auto">
-        <table className="w-full min-w-[520px] text-left text-xs">
-          <thead>
-            <tr className="border-y border-slate-100 bg-slate-50 text-[10px] uppercase tracking-widest text-slate-400">
-              <th className="px-3 py-2 font-black">Tier</th>
-              <th className="px-3 py-2 font-black">Raw result</th>
-              <th className="px-3 py-2 font-black">Score range</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100">
-            {benchmarkTable.tiers.map((tier) => (
-              <tr key={`${props.panel.title}-${props.ageGroup}-${tier.label}`} className="text-slate-700">
-                <td className="px-3 py-3 font-black text-slate-900">{tier.label}</td>
-                <td className="px-3 py-3 font-semibold">{formatTierRange(benchmarkTable, tier.rawBest, tier.rawWorst)}</td>
-                <td className="px-3 py-3 font-semibold">{tier.scoreMin}-{tier.scoreMax}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <div className="divide-y divide-cyan-300/8">
+          {benchmarkTable.tiers.map((tier) => (
+            <div key={`${props.panel.title}-${props.ageGroup}-${tier.label}`} className={`${rowClass} grid-cols-[6.5rem_1fr_auto]`}>
+              <span className={`inline-flex w-fit items-center rounded-md border px-2 py-0.5 text-[9px] font-black uppercase tracking-wide ${TIER_STYLES[tier.label].chip}`}>
+                {tier.label}
+              </span>
+              <span className="font-bold text-slate-200">{formatTierRange(benchmarkTable, tier.rawBest, tier.rawWorst)}</span>
+              <span className="font-black text-slate-100">{tier.scoreMin}-{tier.scoreMax}</span>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );
 };
 
 const BandsBenchmark = (props: { panel: Extract<BenchmarkPanel, { kind: 'bands' }> }) => (
-  <div className="rounded-2xl border border-slate-200 bg-white p-4">
-    <h4 className="font-display text-base font-black text-slate-950">{props.panel.title}</h4>
-    <p className="mt-1 text-[11px] font-semibold text-slate-500">{props.panel.unit}</p>
-    {props.panel.note && <p className="mt-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] font-semibold text-amber-900">{props.panel.note}</p>}
-    <div className="mt-3 overflow-x-auto">
-      <table className="w-full min-w-[420px] text-left text-xs">
-        <thead>
-          <tr className="border-y border-slate-100 bg-slate-50 text-[10px] uppercase tracking-widest text-slate-400">
-            <th className="px-3 py-2 font-black">Raw result</th>
-            <th className="px-3 py-2 font-black">Score range</th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-slate-100">
-          {props.panel.bands.map((band) => (
-            <tr key={`${props.panel.title}-${band.min}-${band.max}`} className="text-slate-700">
-              <td className="px-3 py-3 font-semibold">{band.min === band.max ? band.min : `${band.min}-${band.max}`}</td>
-              <td className="px-3 py-3 font-semibold">{band.scoreMin}-{band.scoreMax}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+  <div>
+    <ScoringHeader title={props.panel.title} unit={props.panel.unit} />
+    {props.panel.note && (
+      <p className="mt-2 border-l-2 border-amber-300/40 pl-3 text-[11px] font-semibold leading-relaxed text-amber-100/90">{props.panel.note}</p>
+    )}
+    <div className={framedListClass}>
+      <div className={`${rowClass} grid-cols-2 border-b border-cyan-300/10 bg-white/[0.03] py-1.5 text-[9px] font-black uppercase tracking-widest text-slate-500`}>
+        <span>Raw result</span>
+        <span>Score</span>
+      </div>
+      <div className="divide-y divide-cyan-300/8">
+        {props.panel.bands.map((band) => (
+          <div key={`${props.panel.title}-${band.min}-${band.max}`} className={`${rowClass} grid-cols-2`}>
+            <span className="font-bold text-slate-200">{band.min === band.max ? band.min : `${band.min}-${band.max}`}</span>
+            <span className="font-black text-slate-100">{band.scoreMin}-{band.scoreMax}</span>
+          </div>
+        ))}
+      </div>
     </div>
   </div>
 );
 
 const DirectBenchmark = (props: { panel: Extract<BenchmarkPanel, { kind: 'direct' }> }) => (
-  <div className="rounded-2xl border border-slate-200 bg-white p-4">
-    <h4 className="font-display text-base font-black text-slate-950">{props.panel.title}</h4>
-    <p className="mt-1 text-[11px] font-semibold text-slate-500">{props.panel.unit}</p>
-    {props.panel.note && <p className="mt-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] font-semibold text-amber-900">{props.panel.note}</p>}
-    <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-5">
+  <div>
+    <ScoringHeader title={props.panel.title} unit={props.panel.unit} />
+    {props.panel.note && (
+      <p className="mt-2 border-l-2 border-amber-300/40 pl-3 text-[11px] font-semibold leading-relaxed text-amber-100/90">{props.panel.note}</p>
+    )}
+    <div className="mt-3 grid grid-cols-3 gap-1.5 sm:grid-cols-5">
       {props.panel.values.map((value) => (
-        <div key={`${props.panel.title}-${value}`} className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
-          <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Raw {value}</p>
-          <p className="mt-1 text-sm font-black text-slate-900">{props.panel.mapping[value]}</p>
+        <div key={`${props.panel.title}-${value}`} className="rounded-lg border border-cyan-300/10 bg-white/[0.03] px-2 py-1.5 text-center">
+          <p className="text-[8px] font-black uppercase tracking-widest text-slate-500">Raw {value}</p>
+          <p className="mt-0.5 text-sm font-black text-cyan-100">{props.panel.mapping[value]}</p>
         </div>
       ))}
     </div>
   </div>
 );
 
-const FinishingBenchmark = (props: { panel: Extract<BenchmarkPanel, { kind: 'finishing' }> }) => (
-  <div className="rounded-2xl border border-slate-200 bg-white p-4">
-    <h4 className="font-display text-base font-black text-slate-950">{props.panel.title}</h4>
-    <p className="mt-1 text-[11px] font-semibold text-slate-500">
-      Uses both goals scored and shots on target from the 6-ball finishing drill.
-    </p>
-    <div className="mt-3 overflow-x-auto">
-      <table className="w-full min-w-[520px] text-left text-xs">
-        <thead>
-          <tr className="border-y border-slate-100 bg-slate-50 text-[10px] uppercase tracking-widest text-slate-400">
-            <th className="px-3 py-2 font-black">Result quality</th>
-            <th className="px-3 py-2 font-black">Base score range</th>
-            <th className="px-3 py-2 font-black">Final adjustment</th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-slate-100">
-          {[
-            ['6 on target and at least 5 goals', '95-99', 'Adjusted by goals / on-target ratio'],
-            ['5 on target and at least 4 goals', '80-94', 'Adjusted by goals / on-target ratio'],
-            ['4 on target and at least 3 goals', '65-79', 'Adjusted by goals / on-target ratio'],
-            ['3 on target and at least 2 goals', '50-64', 'Adjusted by goals / on-target ratio'],
-            ['2 on target', '35-49', 'Adjusted by goals / on-target ratio'],
-            ['0-1 on target', '10-34', 'Low or no on-target finishing output']
-          ].map(([quality, range, adjustment]) => (
-            <tr key={quality} className="text-slate-700">
-              <td className="px-3 py-3 font-semibold">{quality}</td>
-              <td className="px-3 py-3 font-semibold">{range}</td>
-              <td className="px-3 py-3 font-semibold">{adjustment}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+const FinishingBenchmark = () => (
+  <div>
+    <ScoringHeader
+      title="Finishing Goals + On-Target Score"
+      unit="Uses both goals scored and shots on target from the 6-ball finishing drill."
+    />
+    <div className={framedListClass}>
+      <div className={`${rowClass} grid-cols-[1fr_auto_auto] border-b border-cyan-300/10 bg-white/[0.03] py-1.5 text-[9px] font-black uppercase tracking-widest text-slate-500`}>
+        <span>Result quality</span>
+        <span>Base</span>
+        <span className="hidden sm:block">Adjustment</span>
+      </div>
+      <div className="divide-y divide-cyan-300/8">
+        {[
+          ['6 on target and at least 5 goals', '95-99', 'Goals / on-target ratio'],
+          ['5 on target and at least 4 goals', '80-94', 'Goals / on-target ratio'],
+          ['4 on target and at least 3 goals', '65-79', 'Goals / on-target ratio'],
+          ['3 on target and at least 2 goals', '50-64', 'Goals / on-target ratio'],
+          ['2 on target', '35-49', 'Goals / on-target ratio'],
+          ['0-1 on target', '10-34', 'Low on-target output']
+        ].map(([quality, range, adjustment]) => (
+          <div key={quality} className={`${rowClass} grid-cols-[1fr_auto_auto]`}>
+            <span className="font-bold text-slate-200">{quality}</span>
+            <span className="font-black text-slate-100">{range}</span>
+            <span className="hidden font-semibold text-slate-400 sm:block">{adjustment}</span>
+          </div>
+        ))}
+      </div>
     </div>
   </div>
 );
 
 export default function AssessmentDrillGuideView() {
+  const [activeSection, setActiveSection] = useState<GuideSection>('drills');
   const [activeCategory, setActiveCategory] = useState<ActiveGuideCategory>('All');
   const [selectedDrillId, setSelectedDrillId] = useState(DRILL_GUIDE_ENTRIES[0]?.id ?? '');
   const [selectedAgeGroup, setSelectedAgeGroup] = useState<AgeGroup>('U15');
   const [selectedRole, setSelectedRole] = useState<FprdsRole>('CM');
 
-  const filteredDrills = useMemo(() => {
-    return DRILL_GUIDE_ENTRIES.filter((entry) => {
-      if (activeCategory !== 'All' && entry.category !== activeCategory) return false;
-      return true;
-    });
-  }, [activeCategory]);
+  const filteredDrills = useMemo(() => (
+    DRILL_GUIDE_ENTRIES.filter((entry) => activeCategory === 'All' || entry.category === activeCategory)
+  ), [activeCategory]);
+
+  const groupedDrills = useMemo(() => (
+    DRILL_GUIDE_CATEGORIES
+      .map((category) => ({ category, drills: filteredDrills.filter((entry) => entry.category === category.id) }))
+      .filter((group) => group.drills.length > 0)
+  ), [filteredDrills]);
 
   const selectedDrill = useMemo(
     () => DRILL_GUIDE_ENTRIES.find((entry) => entry.id === selectedDrillId) ?? filteredDrills[0] ?? null,
     [filteredDrills, selectedDrillId]
   );
 
+  const handleCategoryChange = (category: ActiveGuideCategory) => {
+    setActiveCategory(category);
+    const next = DRILL_GUIDE_ENTRIES.filter((entry) => category === 'All' || entry.category === category);
+    if (next.length > 0 && !next.some((entry) => entry.id === selectedDrillId)) {
+      setSelectedDrillId(next[0].id);
+    }
+  };
+
   const selectedBenchmarkPanels = selectedDrill ? drillBenchmarkPanels[selectedDrill.id] ?? [] : [];
   const hasAgeBandedBenchmark = selectedBenchmarkPanels.some((panel) => panel.kind === 'table');
-  const activeRoleWeights = Object.entries(ROLE_WEIGHTS[selectedRole])
+  const activeRoleWeights = (Object.entries(ROLE_WEIGHTS[selectedRole]) as Array<[FprdsAttributeId, number]>)
     .filter(([, weight]) => weight > 0)
-    .sort((a, b) => b[1] - a[1]) as Array<[FprdsAttributeId, number]>;
+    .sort((a, b) => b[1] - a[1]);
+  const maxRoleWeight = activeRoleWeights[0]?.[1] ?? 1;
+  const categoryLabel = selectedDrill
+    ? DRILL_GUIDE_CATEGORIES.find((category) => category.id === selectedDrill.category)?.label ?? selectedDrill.category
+    : '';
 
-  return (
-    <div className="space-y-6">
-      <section className="rounded-2xl border border-indigo-200 bg-indigo-50 p-5 shadow-sm">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-          <div className="max-w-3xl">
-            <p className="inline-flex items-center gap-2 rounded-full border border-indigo-200 bg-white px-3 py-1 text-[10px] font-black uppercase tracking-widest text-indigo-700">
-              <FlaskConical size={13} /> Private beta guide
-            </p>
-            <h2 className="mt-3 font-display text-2xl font-black tracking-tight text-slate-950">
-              Assessment Drill Guide
-            </h2>
-            <p className="mt-2 text-sm font-semibold leading-relaxed text-slate-600">
-              Use this tab to run FPRDS drills consistently during private beta testing. It combines field setup,
-              scoring data to record, benchmark bands, role weights, and reviewer prompts from the benchmark review package.
-            </p>
-          </div>
-          <div className="rounded-2xl border border-white bg-white/80 p-4 text-xs font-semibold leading-relaxed text-slate-600 lg:max-w-sm">
-            <p className="font-black uppercase tracking-wider text-slate-900">Beta reminder</p>
-            <p className="mt-1">
-              FPRDS benchmarks are coach-supporting beta references until qualified practitioner review is completed.
-              Do not present them as official federation ratings.
-            </p>
-          </div>
-        </div>
-      </section>
+  const categoryPills: Array<{ id: ActiveGuideCategory; label: string }> = [
+    { id: 'All', label: 'All' },
+    ...DRILL_GUIDE_CATEGORIES
+  ];
 
-      <section className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(300px,0.45fr)_minmax(0,1fr)]">
-        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-          <div className="flex items-start justify-between gap-3">
-            <div className="flex items-center gap-2">
-              <BookOpen size={16} className="text-indigo-600" />
-              <h3 className="font-display text-sm font-black uppercase tracking-wider text-slate-900">Drill instructions</h3>
-            </div>
-            <span className="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[9px] font-black uppercase tracking-wider text-slate-500">
-              {filteredDrills.length} drills
-            </span>
-          </div>
-
-          <div className="mt-4 flex flex-wrap gap-1 rounded-lg border border-slate-200 bg-slate-50 p-1" role="group" aria-label="Filter drills by category">
-            <Button
+  const toolbar = (
+    <section className="flex flex-col gap-3 rounded-2xl border border-cyan-300/10 bg-[#07111f]/70 p-3 backdrop-blur-xl lg:flex-row lg:items-center lg:justify-between">
+      <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label="Filter drills by category">
+        {categoryPills.map((pill) => {
+          const isActive = activeCategory === pill.id;
+          return (
+            <button
+              key={pill.id}
               type="button"
-              variant="ghost"
-              size="sm"
-              onClick={() => setActiveCategory('All')}
-              aria-pressed={activeCategory === 'All'}
-              className={`h-6 rounded-md px-2 text-[8px] font-black uppercase leading-none tracking-wide ${
-                activeCategory === 'All' ? 'bg-slate-900 text-white shadow-sm' : 'text-slate-500 hover:bg-white hover:text-slate-800'
+              onClick={() => handleCategoryChange(pill.id)}
+              aria-pressed={isActive}
+              className={`rounded-full border px-3 py-1.5 text-[10px] font-black uppercase tracking-wide transition-colors ${
+                isActive
+                  ? 'border-orange-300/40 bg-orange-400 text-slate-950 shadow-sm shadow-orange-950/25'
+                  : 'border-cyan-300/12 bg-white/[0.03] text-slate-400 hover:border-orange-300/25 hover:bg-orange-300/10 hover:text-orange-100'
               }`}
             >
-              All
-            </Button>
-            {DRILL_GUIDE_CATEGORIES.map((category) => (
-              <Button
-                key={category.id}
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={() => setActiveCategory(category.id)}
-                aria-pressed={activeCategory === category.id}
-                className={`h-6 rounded-md px-2 text-[8px] font-black uppercase leading-none tracking-wide ${
-                  activeCategory === category.id ? 'bg-slate-900 text-white shadow-sm' : 'text-slate-500 hover:bg-white hover:text-slate-800'
-                }`}
-              >
-                {category.label}
-              </Button>
+              {pill.label}
+            </button>
+          );
+        })}
+      </div>
+      <div className="flex items-center gap-2">
+        <BookOpen size={15} className="shrink-0 text-cyan-300" aria-hidden="true" />
+        <Select value={selectedDrill?.id ?? ''} onValueChange={setSelectedDrillId}>
+          <SelectTrigger aria-label="Select drill" className={`w-full sm:w-80 ${SELECT_TRIGGER_CLASS}`}>
+            <SelectValue placeholder="Select a drill" />
+          </SelectTrigger>
+          <SelectContent className={SELECT_CONTENT_CLASS}>
+            {groupedDrills.map((group) => (
+              <SelectGroup key={group.category.id}>
+                <SelectLabel className={SELECT_LABEL_CLASS}>{group.category.label}</SelectLabel>
+                {group.drills.map((entry) => (
+                  <SelectItem key={entry.id} value={entry.id} className={SELECT_ITEM_CLASS}>
+                    {entry.title}
+                  </SelectItem>
+                ))}
+              </SelectGroup>
             ))}
-          </div>
+          </SelectContent>
+        </Select>
+      </div>
+    </section>
+  );
 
-          <div className="mt-4 max-h-[560px] space-y-3 overflow-y-auto pr-1">
-            {filteredDrills.map((entry) => {
-              const isSelected = selectedDrill?.id === entry.id;
-              return (
-              <Button
-                key={entry.id}
-                type="button"
-                variant="outline"
-                onClick={() => setSelectedDrillId(entry.id)}
-                aria-pressed={isSelected}
-                className={`group h-auto w-full flex-col items-stretch gap-0 overflow-hidden rounded-2xl p-0 text-left whitespace-normal ${
-                  isSelected
-                    ? 'border-indigo-300 bg-white shadow-md shadow-indigo-100/70 ring-1 ring-indigo-100'
-                    : 'border-slate-200 bg-white hover:border-indigo-200 hover:shadow-sm'
-                }`}
-              >
-                <div className={`h-1 w-full ${isSelected ? 'bg-indigo-600' : 'bg-slate-100 group-hover:bg-indigo-200'}`} />
-                <div className="p-3">
-                  <div className="flex items-start justify-between gap-3">
-                    <p className="text-sm font-black leading-snug text-slate-900">{entry.title}</p>
-                    {entry.attributeCode && (
-                      <span className={`shrink-0 rounded-md px-2 py-0.5 text-[9px] font-black uppercase tracking-widest ${
-                        isSelected ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-500 group-hover:bg-indigo-50 group-hover:text-indigo-700'
-                      }`}>
-                        {entry.attributeCode}
-                      </span>
-                    )}
-                  </div>
-                  <div className="mt-2 flex flex-wrap items-center gap-1.5">
-                    <span className="rounded-md bg-slate-50 px-2 py-0.5 text-[9px] font-black uppercase tracking-wider text-slate-500">
-                      {DRILL_GUIDE_CATEGORIES.find(category => category.id === entry.category)?.label ?? entry.category}
-                    </span>
-                    <span className="rounded-md bg-slate-50 px-2 py-0.5 text-[9px] font-black uppercase tracking-wider text-slate-500">
-                      {entry.dataToRecord.length} records
-                    </span>
-                  </div>
-                  <p className="mt-2 line-clamp-2 text-[11px] font-semibold leading-relaxed text-slate-500">
-                    {entry.dataToRecord.join(' | ')}
-                  </p>
-                </div>
-              </Button>
-              );
-            })}
-          </div>
+  return (
+    <div className="space-y-5">
+      {/* Section switcher + beta compliance note */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <SegmentedTabs
+          value={activeSection}
+          options={SECTION_OPTIONS}
+          onValueChange={(value) => setActiveSection(value)}
+          label="Assessment guide sections"
+        />
+        <div className="inline-flex items-start gap-2 rounded-xl border border-amber-300/20 bg-amber-300/[0.06] px-3 py-2 sm:max-w-md">
+          <ShieldAlert size={14} className="mt-0.5 shrink-0 text-amber-200" aria-hidden="true" />
+          <p className="text-[11px] font-semibold leading-relaxed text-amber-100/90">
+            Beta references support coaching only until practitioner review completes — not official federation ratings.
+          </p>
         </div>
+      </div>
 
-        <div className="space-y-5">
+      {activeSection === 'drills' ? (
+        <>
+          {toolbar}
           {selectedDrill && (
-            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-              <div className="flex flex-col gap-3 border-b border-slate-100 pb-4 md:flex-row md:items-start md:justify-between">
-                <div>
-                  <p className="text-[10px] font-black uppercase tracking-widest text-indigo-600">
-                    {selectedDrill.attributeCode ? `${selectedDrill.attributeCode} | ` : ''}
-                    {selectedDrill.category}
+            <section className={panelClass}>
+              <div className="flex items-start justify-between gap-3 border-b border-cyan-300/10 pb-4">
+                <div className="min-w-0">
+                  <p className={`flex items-center gap-1.5 ${eyebrowClass} ${CATEGORY_ACCENTS[selectedDrill.category]}`}>
+                    {selectedDrill.attributeCode && (
+                      <span className="rounded-md bg-white/[0.06] px-1.5 py-0.5 tracking-widest">{selectedDrill.attributeCode}</span>
+                    )}
+                    {categoryLabel}
                   </p>
-                  <h3 className="mt-1 font-display text-xl font-black text-slate-950">{selectedDrill.title}</h3>
+                  <h3 className="mt-1.5 font-display text-2xl font-black tracking-tight text-white">{selectedDrill.title}</h3>
                 </div>
-                <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-slate-500">
-                  Record consistently
+                <span className="inline-flex shrink-0 items-center gap-1 rounded-full border border-cyan-300/15 bg-white/[0.04] px-2.5 py-1 text-[9px] font-black uppercase tracking-wider text-slate-300">
+                  <ClipboardCheck size={11} /> Record consistently
                 </span>
               </div>
 
-              <div className="mt-4 grid grid-cols-1 gap-3 lg:grid-cols-2">
-                <SectionCard title="Equipment" items={selectedDrill.equipment} />
-                <SectionCard title="Setup" items={selectedDrill.setup} />
-                <SectionCard title="Procedure" items={selectedDrill.procedure} />
-                <SectionCard title="Attempts" items={selectedDrill.attempts} />
-                <SectionCard title="Data to record" items={selectedDrill.dataToRecord} />
-                <SectionCard title="Common mistakes" items={selectedDrill.commonMistakes ?? []} />
-                <SectionCard title="Safety" items={selectedDrill.safety ?? []} />
+              {/* Illustration is the priority focus */}
+              <div className="mt-5 grid gap-4 lg:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)] lg:items-stretch">
+                <DrillIllustration drill={selectedDrill} />
+                <div className="flex flex-col gap-3">
+                  {selectedDrill.audio && <AudioBlock audio={selectedDrill.audio} />}
+                  <div className="flex-1 rounded-2xl border border-emerald-300/18 bg-emerald-300/[0.05] p-4">
+                    <p className={`text-emerald-200/85 ${eyebrowClass}`}>Data to record</p>
+                    <ul className="mt-2 space-y-1.5">
+                      {selectedDrill.dataToRecord.map((item) => (
+                        <li key={item} className="flex gap-2 text-[12px] font-bold leading-relaxed text-emerald-50">
+                          <span className="mt-[3px] shrink-0 text-emerald-300/80" aria-hidden="true">▸</span>
+                          <span>{item}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
               </div>
-            </div>
-          )}
 
-          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-            <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
-              <div>
-                <p className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-500">
-                  <SlidersHorizontal size={14} className="text-indigo-600" /> Benchmark bands
-                </p>
-                <h3 className="mt-1 font-display text-lg font-black text-slate-950">
-                  {selectedDrill ? selectedDrill.title : 'Select a drill'}
-                </h3>
-                <p className="mt-1 text-xs font-semibold text-slate-500">
-                  Benchmarks update automatically from the selected drill. Adjust the age group only when the drill uses age-banded tables.
-                </p>
+              {/* Full instruction set flows below in balanced columns */}
+              <div className="mt-5 gap-x-7 border-t border-cyan-300/10 pt-5 sm:columns-2 xl:columns-3">
+                <InstructionSection label="Equipment" items={selectedDrill.equipment} accent="cyan" />
+                <InstructionSection label="Setup" items={selectedDrill.setup} accent="cyan" />
+                <InstructionSection label="Procedure" items={selectedDrill.procedure} accent="orange" />
+                <InstructionSection label="Attempts" items={selectedDrill.attempts} accent="amber" />
+                <InstructionSection label="Common mistakes" items={selectedDrill.commonMistakes ?? []} accent="rose" />
+                <InstructionSection label="Safety" items={selectedDrill.safety ?? []} accent="amber" />
               </div>
-              <div className="grid grid-cols-1 gap-2">
+            </section>
+          )}
+        </>
+      ) : (
+        <>
+          {toolbar}
+          <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+            {/* Scoring benchmark */}
+            <div className={panelClass}>
+              <div className="flex flex-col gap-3 border-b border-cyan-300/10 pb-4 sm:flex-row sm:items-end sm:justify-between">
+                <div className="min-w-0">
+                  <p className={`flex items-center gap-1.5 text-emerald-200/80 ${eyebrowClass}`}>
+                    <SlidersHorizontal size={13} className="text-emerald-300" /> Scoring benchmark
+                  </p>
+                  <h3 className="mt-1 truncate font-display text-lg font-black text-white">
+                    {selectedDrill ? selectedDrill.title : 'Select a drill'}
+                  </h3>
+                </div>
                 <Select
                   value={selectedAgeGroup}
                   onValueChange={(value) => setSelectedAgeGroup(value as AgeGroup)}
                   disabled={!hasAgeBandedBenchmark}
                 >
-                  <SelectTrigger aria-label="Select benchmark age group" className="w-32 rounded-xl text-xs font-bold text-slate-700 focus:ring-indigo-100 disabled:bg-slate-100 disabled:text-slate-400">
+                  <SelectTrigger aria-label="Select benchmark age group" className={`w-28 ${SELECT_TRIGGER_CLASS}`}>
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className={SELECT_CONTENT_CLASS}>
                     {ageGroups.map((ageGroup) => (
-                      <SelectItem key={ageGroup} value={ageGroup}>{ageGroup}</SelectItem>
+                      <SelectItem key={ageGroup} value={ageGroup} className={SELECT_ITEM_CLASS}>{ageGroup}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
-            </div>
 
-            <div className="mt-4 space-y-3">
-              {selectedBenchmarkPanels.map((panel) => {
-                if (panel.kind === 'table') return <TableBenchmark key={`${selectedDrill?.id}-${panel.title}`} panel={panel} ageGroup={selectedAgeGroup} />;
-                if (panel.kind === 'bands') return <BandsBenchmark key={`${selectedDrill?.id}-${panel.title}`} panel={panel} />;
-                if (panel.kind === 'direct') return <DirectBenchmark key={`${selectedDrill?.id}-${panel.title}`} panel={panel} />;
-                return <FinishingBenchmark key={`${selectedDrill?.id}-${panel.title}`} panel={panel} />;
-              })}
-              {selectedBenchmarkPanels.length === 0 && (
-                <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 p-4 text-sm font-semibold text-slate-500">
-                  Select a drill to view its scoring benchmark.
-                </div>
+              {hasAgeBandedBenchmark && (
+                <p className="mt-3 text-[11px] font-semibold text-slate-400">
+                  Age group applies only to age-banded tables. Other scoring maps are fixed.
+                </p>
               )}
-            </div>
-          </div>
 
-          <div className="grid grid-cols-1 gap-5">
-            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-                <div>
-                  <p className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-500">
-                    <ClipboardCheck size={14} className="text-indigo-600" /> Role weights
+              <div className="mt-4 space-y-5">
+                {selectedBenchmarkPanels.map((panel, index) => {
+                  const key = `${selectedDrill?.id}-${panel.kind}-${index}`;
+                  if (panel.kind === 'table') return <TableBenchmark key={key} panel={panel} ageGroup={selectedAgeGroup} />;
+                  if (panel.kind === 'bands') return <BandsBenchmark key={key} panel={panel} />;
+                  if (panel.kind === 'direct') return <DirectBenchmark key={key} panel={panel} />;
+                  return <FinishingBenchmark key={key} />;
+                })}
+                {selectedBenchmarkPanels.length === 0 && (
+                  <div className="border-l-2 border-cyan-300/30 pl-3 text-sm font-semibold text-slate-400">
+                    Select a drill to view its scoring benchmark.
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Role weights */}
+            <div className={panelClass}>
+              <div className="flex flex-col gap-3 border-b border-cyan-300/10 pb-4 sm:flex-row sm:items-end sm:justify-between">
+                <div className="min-w-0">
+                  <p className={`flex items-center gap-1.5 text-orange-200/80 ${eyebrowClass}`}>
+                    <Gauge size={13} className="text-orange-300" /> Role weights
                   </p>
-                  <h3 className="mt-1 font-display text-lg font-black text-slate-950">{ROLE_LABELS[selectedRole]}</h3>
+                  <h3 className="mt-1 font-display text-lg font-black text-white">{ROLE_LABELS[selectedRole]}</h3>
                 </div>
-                <Select
-                  value={selectedRole}
-                  onValueChange={(value) => setSelectedRole(value as FprdsRole)}
-                >
-                  <SelectTrigger aria-label="Select FPRDS role" className="w-full rounded-xl text-xs font-bold text-slate-700 focus:ring-indigo-100 sm:w-64">
+                <Select value={selectedRole} onValueChange={(value) => setSelectedRole(value as FprdsRole)}>
+                  <SelectTrigger aria-label="Select FPRDS role" className={`w-full sm:w-56 ${SELECT_TRIGGER_CLASS}`}>
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className={SELECT_CONTENT_CLASS}>
                     {roles.map((role) => (
-                      <SelectItem key={role} value={role}>{role} - {ROLE_LABELS[role]}</SelectItem>
+                      <SelectItem key={role} value={role} className={SELECT_ITEM_CLASS}>{role} - {ROLE_LABELS[role]}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
 
-              <div className="mt-4 space-y-2">
+              <div className="mt-4 space-y-2.5">
                 {activeRoleWeights.map(([attributeId, weight]) => (
-                  <div key={`${selectedRole}-${attributeId}`} className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
-                    <div className="flex items-center justify-between gap-3 text-xs">
-                      <span className="font-black text-slate-800">{attributeLabels[attributeId]}</span>
-                      <span className="font-black text-indigo-700">{Math.round(weight * 100)}%</span>
+                  <div key={`${selectedRole}-${attributeId}`}>
+                    <div className="flex items-center justify-between gap-3 text-[11.5px]">
+                      <span className="truncate font-bold text-slate-200">{attributeLabels[attributeId]}</span>
+                      <span className="shrink-0 font-black text-orange-200">{Math.round(weight * 100)}%</span>
+                    </div>
+                    <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-white/[0.05]">
+                      <div
+                        className="h-full rounded-full bg-gradient-to-r from-orange-400/80 to-amber-300/80"
+                        style={{ width: `${Math.max(8, Math.round((weight / maxRoleWeight) * 100))}%` }}
+                      />
                     </div>
                   </div>
                 ))}
               </div>
 
-              <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-3">
-                <p className="text-[10px] font-black uppercase tracking-widest text-amber-800">Quick assessment fields</p>
-                <p className="mt-1 text-xs font-semibold text-amber-900">
+              <div className="mt-4 border-l-2 border-amber-300/40 pl-3">
+                <p className={`text-amber-200/80 ${eyebrowClass}`}>Quick assessment fields</p>
+                <p className="mt-1 text-[11.5px] font-semibold leading-relaxed text-amber-100/90">
                   {QUICK_ROLE_POSITION_ATTRIBUTES[selectedRole].map((attributeId) => attributeLabels[attributeId]).join(', ')}
                 </p>
               </div>
             </div>
           </div>
-
-        </div>
-      </section>
+        </>
+      )}
     </div>
   );
 }
