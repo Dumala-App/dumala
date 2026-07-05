@@ -1,6 +1,6 @@
 # Dumala Product Roadmap
 
-Updated: 2026-07-03
+Updated: 2026-07-05
 
 ## Source of truth
 
@@ -18,12 +18,14 @@ Status: **Complete**
 - Standardize roster, tactics, training, schedule, and assessment data behavior.
 - Polish the Home dashboard hero and remove outdated promotional surfaces from the operational overview.
 - Support week-by-week training planning from the Development planner.
+- Connect match preparation and training delivery with saved Game Plans, dashboard game-plan summaries, daily session summaries, and readiness signals.
+- Keep the beta feedback loop visible beside the roadmap so real coach testing can steer what gets refined next.
 - Support multiple local team workspaces from the navbar while keeping cloud club switching as a later capability.
 - Keep the Tactics page focused on pitch planning, curated strategy cards, opponent-shape recommendations, and fullscreen board controls instead of free-form custom-plan editing.
 
 ### Completion criteria
 
-Core workflows pass desktop and mobile testing without unexpected data loss.
+Core workflows, planning summaries, and recovery paths work without unexpected data loss.
 
 ## FPRDS Beta: Development system
 
@@ -81,6 +83,7 @@ Status: **Complete**
 - Migrate existing browser data without deleting local records.
 - Synchronize approved changes across devices after reconnection.
 - Handle interrupted uploads, duplicates, and failed synchronization.
+- Carry newer planning records, including saved Game Plans, through the local-to-cloud migration path.
 
 ### Completion criteria
 
@@ -160,6 +163,7 @@ Status: **In Progress**
 - Shipped a coach-facing landing page that leads with weekly admin relief, match-week preparation, and clearer player development.
 - Packaged the public offer as two choices: Free during beta and a Premium monthly subscription, with Coach, Club, and Academy value framed inside Premium rather than as separate visible tiers.
 - Separated the marketing landing page from the coach workspace with a dedicated `#/app` route, made the installed app open straight into the workspace, and returned cloud sign-in redirects cleanly to the app.
+- Refined the landing page copy, glow treatment, hero-to-How-it-Works flow, installed app route, and cloud sign-in return path around the coach workspace.
 
 ### Planned deliverables
 

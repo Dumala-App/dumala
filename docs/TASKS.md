@@ -1,6 +1,6 @@
 # Dumala Delivery Tasks
 
-Updated: 2026-07-03
+Updated: 2026-07-05
 
 Status values: **Done**, **In Progress**, **Next**, **Planned**, **Long Term**.
 
@@ -45,6 +45,28 @@ Release validation              [##########] 100%  14 / 14
 The FPRDS total includes sixteen completed capabilities: the five shipped assessment features plus interpolation, role-weighting, age-transition, required-field validation coverage, true historical progress charts, player/session comparison reports, the evidence-based development doctrine, training evidence naming, removal of direct training-to-rating mutation, reassessment recommendations, and rating confidence labels. Practitioner benchmark review is deferred until qualified external reviewers are available.
 
 ## Recent changes
+
+### Completed: 2026-07-05
+
+- [x] Added saved Tactics Game Plans tied to upcoming opponents, including formation, match format, opponent shape, strategy context, set-piece assignments, and notes.
+- [x] Added dashboard Game Plan summaries for the next match with a direct path back into the tactical board.
+- [x] Upgraded the dashboard daily-prep flow with clearer separation between match preparation and training preparation.
+- [x] Added richer active-session summaries with duration, load, drill count, completion state, key drills, equipment, coach cues, readiness warnings, and reflection status.
+- [x] Improved the Training Session detail modal so coaches can inspect drill blocks, track progress, review warnings, and keep concise reflections.
+- [x] Persisted Game Plan data as workspace data and included it in the local-to-cloud migration path.
+- [x] Refined dashboard buttons, panels, empty states, and summary language so Dumala behaves more like a connected weekly coaching command center.
+- [x] Moved the in-app Roadmap Snapshot into the Beta Phase feedback section so the roadmap sits beside the active beta feedback loop instead of inside the dated Product Changelog.
+- [x] Set Product Changelog entries to start minimized by default so coaches can scan update titles before expanding details.
+
+### Completed: 2026-07-04
+
+- [x] Added the Dumala Free Kick Hero game inside the League & Updates Game tab.
+- [x] Polished the dark product shell, workspace cards, badges, overlays, compact controls, and update surfaces for a more consistent beta UI.
+- [x] Improved fullscreen match-layout controls, opponent dots, formation controls, ball tools, wall tools, scenario presets, captain and set-piece selectors, and strategy context.
+- [x] Consolidated recent match-prep, tactics, training, cloud, landing, app-launch, install, and backup reliability improvements into the Product Changelog.
+- [x] Refreshed player profile and drill browser presentation for cleaner scanning during squad and training workflows.
+- [x] Shipped dashboard switcher and navigation UI refinements.
+- [x] Refined the landing page copy and glow treatment, including cleaner hero-to-How-it-Works flow.
 
 ### Completed: 2026-07-03
 
