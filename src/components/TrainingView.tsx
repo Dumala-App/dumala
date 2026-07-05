@@ -1510,15 +1510,15 @@ export default function TrainingView({
               </div>
 
               <Tabs value={activeDrillLibraryTab} onValueChange={(value) => setActiveDrillLibraryTab(value as DrillLibraryTab)} className="mt-3">
-                <TabsList aria-label="Drill library categories" className="w-full justify-start overflow-x-auto rounded-2xl border border-cyan-300/10 bg-[#07111f]/72 p-1">
+                <TabsList aria-label="Drill library categories" className="w-full justify-start overflow-x-auto rounded-full border border-white/[0.08] bg-white/[0.035] p-1">
                   {DRILL_LIBRARY_TABS.map(tab => (
                     <TabsTrigger
                       key={tab.id}
                       value={tab.id}
-                      className="group min-h-8 shrink-0 gap-1.5 rounded-xl border border-transparent bg-transparent px-2.5 text-[10px] text-slate-400 shadow-none data-[state=active]:border-white/10 data-[state=active]:bg-white/[0.075] data-[state=active]:text-slate-50 data-[state=active]:shadow-none data-[state=inactive]:hover:bg-white/[0.045]"
+                      className="group min-h-8 shrink-0 gap-1.5 rounded-full border border-transparent !bg-transparent px-2.5 text-[10px] text-slate-400 shadow-none data-[state=active]:!border-white/10 data-[state=active]:!bg-white/[0.08] data-[state=active]:!text-slate-50 data-[state=active]:!shadow-none data-[state=inactive]:hover:!bg-white/[0.045]"
                     >
                       {tab.label}
-                      <span className="rounded-full bg-white/[0.06] px-1.5 py-0.5 text-[9px] text-slate-400 group-data-[state=active]:bg-white/[0.09]">
+                      <span className="rounded-full bg-white/[0.06] px-1.5 py-0.5 text-[9px] text-slate-400 group-data-[state=active]:bg-white/[0.10]">
                         {drillLibraryTabCounts[tab.id]}
                       </span>
                     </TabsTrigger>
@@ -1533,8 +1533,8 @@ export default function TrainingView({
                   <p className="mt-1 text-xs text-slate-400">Try another tab or focus filter.</p>
                 </div>
               ) : (
-                <div className="mt-3 rounded-2xl border border-cyan-300/10 bg-[#07111f]/34 p-2">
-                  <div className="grid grid-cols-1 gap-2 md:grid-cols-2 2xl:grid-cols-3">
+                <div className="mt-3 rounded-2xl border border-white/[0.075] bg-white/[0.018] p-1.5">
+                  <div className="grid grid-cols-1 gap-1.5 md:grid-cols-2 2xl:grid-cols-3">
                     {visibleLibraryDrills.map((drill) => {
                       const isSelected = selectedDrillId === drill.id;
                       const isRecommended = growthNeeds?.isBeneficial(drill);
@@ -1558,19 +1558,19 @@ export default function TrainingView({
                           tabIndex={0}
                           aria-pressed={isSelected}
                           aria-label={`Select ${drill.name}`}
-                          className={`group flex min-h-[118px] cursor-grab items-start gap-3 rounded-xl border p-3 text-left transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/25 active:cursor-grabbing ${
+                          className={`group flex cursor-grab items-start gap-2.5 rounded-xl border px-2.5 py-2.5 text-left transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/25 active:cursor-grabbing ${
                             isSelected
-                              ? 'border-emerald-300/32 bg-[linear-gradient(135deg,rgba(16,185,129,0.12),rgba(7,17,31,0.82))] shadow-[0_0_18px_rgba(16,185,129,0.10)]'
+                              ? 'border-emerald-300/30 bg-white/[0.07] shadow-[0_0_14px_rgba(16,185,129,0.08)]'
                               : isRecommended
-                                ? 'border-emerald-300/20 bg-[linear-gradient(135deg,rgba(16,185,129,0.08),rgba(7,17,31,0.72))] hover:-translate-y-0.5 hover:border-emerald-300/35 hover:bg-emerald-500/10'
-                                : 'border-cyan-300/10 bg-white/[0.025] hover:-translate-y-0.5 hover:border-slate-300/18 hover:bg-white/[0.055]'
+                                ? 'border-emerald-300/14 bg-emerald-300/[0.035] hover:border-emerald-300/30 hover:bg-emerald-300/[0.075]'
+                                : 'border-transparent bg-transparent hover:border-white/[0.08] hover:bg-white/[0.045]'
                           }`}
                         >
-                          <span className={`flex size-9 shrink-0 items-center justify-center rounded-full border ${isSelected ? 'border-emerald-300/30 bg-emerald-300/12 text-emerald-100' : TRAINING_DRILL_ICON_CLASS}`}>
+                          <span className={`flex size-8 shrink-0 items-center justify-center rounded-full border ${isSelected ? 'border-emerald-300/30 bg-emerald-300/12 text-emerald-100' : TRAINING_DRILL_ICON_CLASS}`}>
                             {getDrillIcon(drill.id)}
                           </span>
                           <span className="min-w-0 flex-1 overflow-hidden">
-                            <span className="flex min-w-0 flex-wrap items-center gap-1.5">
+                            <span className="flex min-w-0 items-center gap-1.5">
                               <span className="min-w-0 flex-1 truncate text-xs font-black text-slate-100">{drill.name}</span>
                               {isRecommended && (
                                 <span className="shrink-0 rounded-full border border-emerald-300/25 bg-emerald-500/12 px-1.5 py-0.5 text-[7px] font-black uppercase text-emerald-100">
@@ -1578,14 +1578,14 @@ export default function TrainingView({
                                 </span>
                               )}
                             </span>
-                            <span className="mt-1 line-clamp-2 min-h-[2.5em] text-[10px] leading-relaxed text-slate-400">{drill.description}</span>
-                            <span className="mt-2 flex flex-wrap items-center gap-1.5 text-[9px] font-bold text-slate-400">
+                            <span className="mt-0.5 line-clamp-1 text-[10px] leading-relaxed text-slate-400">{drill.description}</span>
+                            <span className="mt-1.5 flex flex-wrap items-center gap-1.5 text-[9px] font-bold text-slate-400">
                               <span className={`max-w-full truncate rounded-md border px-1.5 py-0.5 uppercase ${categoryStyle}`}>{drill.category}</span>
                               <span className={`inline-flex max-w-full items-center gap-1 rounded-md border px-1.5 py-0.5 ${loadStyle.badge}`}>
                                 <span className={`size-1 rounded-full ${loadStyle.dot}`} />Intensity {drill.fatigueIncrease}/10
                               </span>
                             </span>
-                            <span className="mt-1 block truncate text-[9px] font-bold text-slate-500">
+                            <span className="mt-1 hidden truncate text-[9px] font-bold text-slate-500 lg:block">
                               Focus: {formatTrainingFocusList(drill.developmentFocus)}
                             </span>
                           </span>
