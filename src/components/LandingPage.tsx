@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState, type FormEvent } from 'react';
-import { BarChart3, BrainCircuit, CalendarDays, CheckCircle2, CloudSun, Dumbbell, FileText, Loader2, Presentation, Send, ShieldCheck, Users } from 'lucide-react';
+import { ArrowLeftRight, BarChart3, Banknote, BrainCircuit, CalendarDays, CheckCircle2, CloudSun, Dumbbell, FileText, Loader2, Presentation, Send, ShieldCheck, Trophy, Users } from 'lucide-react';
 import AetherFlowHero, { AetherFlowBackdrop } from './ui/aether-flow-hero';
 import { GlowingEffect } from './ui/glowing-effect';
 import {
@@ -23,10 +23,34 @@ import {
 } from '../landing/premiumLeadCapture';
 
 const steps = [
-  { n: '01', when: 'Mon–Wed', title: 'Plan the week', text: 'Fixtures, training and availability on one calendar.' },
-  { n: '02', when: 'Thu–Fri', title: 'Prepare the match', text: 'Lineup, formation and set plays on the match board.' },
-  { n: '03', when: 'Matchday', title: 'Track development', text: 'FPRDS ratings for every player, every match.' },
-  { n: '04', when: 'Sunday', title: 'Show the value', text: 'Development reports players and parents can see.' }
+  {
+    n: '01',
+    when: 'Training',
+    title: 'Plan training in minutes',
+    text: 'Pick drills from the built-in library and drop them onto your weekly schedule. Warm-ups, conditioning, tactical work — sorted in a few clicks, not a few hours.',
+    detail: 'Drill library · Weekly planner'
+  },
+  {
+    n: '02',
+    when: 'Match prep',
+    title: 'Build your tactics like a pro',
+    text: 'Tell it how you want to play, and the smart strategy engine suggests your formation, player roles and set pieces — like having a tactics assistant beside you on the touchline.',
+    detail: 'Tactics board · Smart strategy engine'
+  },
+  {
+    n: '03',
+    when: 'Matchday',
+    title: 'Rate players the easy way',
+    text: 'Give every player a simple rating right after the match — effort, performance, attitude — while it is still fresh in your mind. No spreadsheets, no jargon.',
+    detail: 'Simple player ratings · Match notes'
+  },
+  {
+    n: '04',
+    when: 'After the match',
+    title: 'Share real progress',
+    text: 'Turn the week into a clear, easy-to-read update for players and parents — actual progress they can see, not just "he\'s improving."',
+    detail: 'Progress reports · Season trends'
+  }
 ];
 
 const features = [
@@ -75,6 +99,12 @@ const features = [
     title: 'Offline workspace backups',
     text: 'Installable app that keeps working offline, with full workspace backup, restore and multiple team support.'
   }
+];
+
+const moreFeatures = [
+  { Icon: Banknote, label: 'Squad payments & dues tracking' },
+  { Icon: Trophy, label: 'League standings & club announcements' },
+  { Icon: ArrowLeftRight, label: 'Side-by-side player comparison' }
 ];
 
 const wins = [
@@ -253,12 +283,8 @@ export default function LandingPage() {
 
       {/* header */}
       <header style={{ position: 'fixed', left: 0, right: 0, top: 0, zIndex: 40, borderBottom: '1px solid rgba(255,255,255,.06)', background: 'rgba(4,9,26,.78)', backdropFilter: 'blur(18px)', WebkitBackdropFilter: 'blur(18px)' }}>
-        <div style={{ maxWidth: 1160, margin: '0 auto', height: 66, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, padding: '0 24px' }}>
-          <a href="#top" onClick={goTop} style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none', color: '#F5F7FB' }}>
-            <img src="/Dumala_logo.png" alt="Dumala" style={{ width: 34, height: 34, objectFit: 'contain' }} />
-            <span style={{ fontFamily: "'Manrope', sans-serif", fontWeight: 800, fontSize: 18, letterSpacing: '-.02em' }}>Dumala</span>
-          </a>
-          <nav className="dc-header-nav">
+        <div style={{ maxWidth: 1160, margin: '0 auto', height: 66, display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 16, padding: '0 24px' }}>
+          <nav className="dc-header-nav" style={{ marginRight: 'auto' }}>
             <button type="button" onClick={() => scrollToId('value')} className="dc-nav-link">How it works</button>
             <button type="button" onClick={() => scrollToId('features')} className="dc-nav-link">Features</button>
             <button type="button" onClick={scrollToPricingPlans} className="dc-nav-link">Pricing</button>
@@ -272,6 +298,7 @@ export default function LandingPage() {
         {/* HERO — Aether Flow particle network in the brand palette */}
         <section style={{ position: 'relative' }}>
           <AetherFlowHero
+            className="h-[90vh]"
             badge="The team management app for football coaches"
             title={
               <>
@@ -293,15 +320,16 @@ export default function LandingPage() {
         </section>
 
         {/* HOW IT WORKS — compact weekly rhythm strip */}
-        <section id="value" style={{ padding: '80px 24px 0' }}>
+        <section id="value" style={{ padding: '56px 24px 0' }}>
           <div style={{ maxWidth: 1160, margin: '0 auto' }}>
-            <div data-reveal="1" style={{ maxWidth: 620, margin: '0 auto', textAlign: 'center', opacity: 1 }}>
+            <div data-reveal="1" style={{ maxWidth: 640, margin: '0 auto', textAlign: 'center', opacity: 1 }}>
               <p style={{ margin: 0, fontSize: 11, fontWeight: 700, letterSpacing: '.22em', textTransform: 'uppercase', color: '#FF9E5E' }}>How it works</p>
-              <h2 style={{ fontFamily: "'Manrope', sans-serif", fontWeight: 800, letterSpacing: '-.03em', fontSize: 'clamp(1.9rem,3.4vw,2.6rem)', lineHeight: 1.15, margin: '16px 0 0', color: '#F5F7FB' }}>From Monday's plan to Sunday's proof.</h2>
+              <h2 style={{ fontFamily: "'Manrope', sans-serif", fontWeight: 800, letterSpacing: '-.03em', fontSize: 'clamp(1.9rem,3.4vw,2.6rem)', lineHeight: 1.15, margin: '16px 0 0', color: '#F5F7FB' }}>Like having an assistant coach in your pocket.</h2>
+              <p style={{ margin: '16px auto 0', fontSize: 15.5, lineHeight: 1.7, color: '#8A96AD' }}>Dumala plans your training, helps you build your tactics, rates your players in plain language, and shares the progress — so you spend less time on admin and more time coaching.</p>
             </div>
 
             <div style={{ marginTop: 36, display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(min(230px,100%),1fr))', gap: 12 }}>
-              {steps.map(({ n, when, title, text }) => (
+              {steps.map(({ n, when, title, text, detail }) => (
                 <article key={n} data-reveal="1" className="dc-glow-shell" style={{ opacity: 1 }}>
                   <GlowingEffect spread={34} glow disabled={false} proximity={58} inactiveZone={0.01} borderWidth={2} />
                   <div className="dc-glow-card" style={{ padding: '18px 20px' }}>
@@ -311,6 +339,7 @@ export default function LandingPage() {
                     </div>
                     <h3 style={{ fontFamily: "'Manrope', sans-serif", fontWeight: 800, letterSpacing: '-.01em', fontSize: 15.5, margin: '10px 0 0', color: '#F5F7FB' }}>{title}</h3>
                     <p style={{ margin: '6px 0 0', fontSize: 12.5, lineHeight: 1.55, color: '#8A96AD' }}>{text}</p>
+                    <p style={{ margin: '10px 0 0', paddingTop: 10, borderTop: '1px solid rgba(255,255,255,.07)', fontSize: 11, fontWeight: 600, color: '#5C6880' }}>{detail}</p>
                   </div>
                 </article>
               ))}
@@ -341,6 +370,19 @@ export default function LandingPage() {
                 </article>
               ))}
             </div>
+
+            <div data-reveal="1" style={{ opacity: 1, marginTop: 28, display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
+              <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.14em', textTransform: 'uppercase', color: '#5C6880', whiteSpace: 'nowrap' }}>Also in the workspace</span>
+              <span style={{ height: 1, flex: 1, minWidth: 24, background: 'rgba(255,255,255,.07)' }} />
+              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                {moreFeatures.map(({ Icon, label }) => (
+                  <span key={label} style={{ display: 'inline-flex', alignItems: 'center', gap: 7, border: '1px solid rgba(255,255,255,.10)', background: 'rgba(255,255,255,.03)', borderRadius: 999, padding: '7px 14px 7px 10px', fontSize: 12.5, fontWeight: 600, color: '#B9C2D4' }}>
+                    <Icon size={14} style={{ color: '#FFB37E' }} aria-hidden="true" />
+                    {label}
+                  </span>
+                ))}
+              </div>
+            </div>
           </div>
         </section>
 
@@ -355,79 +397,85 @@ export default function LandingPage() {
 
             <div id="pricing-plans" style={{ margin: '40px auto 0', maxWidth: 920, display: 'flex', flexDirection: 'column', gap: 20 }}>
               {/* Free — Matchday pass ticket */}
-              <article data-reveal="1" className="dc-ticket" style={{ opacity: 1, position: 'relative', display: 'grid', gridTemplateColumns: 'minmax(0,1fr) 264px', border: '1px solid rgba(255,255,255,.14)', background: 'rgba(8,16,38,.68)', borderRadius: 20, overflow: 'hidden', backdropFilter: 'blur(14px)', WebkitBackdropFilter: 'blur(14px)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,.08),0 1px 2px rgba(0,0,0,.3),0 22px 46px -30px rgba(0,0,0,.75)' }}>
+              <div data-reveal="1" className="dc-glow-shell" style={{ opacity: 1, borderRadius: 26 }}>
                 <GlowingEffect spread={42} glow disabled={false} proximity={82} inactiveZone={0.01} borderWidth={3} />
-                <div style={{ padding: '30px 34px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-                    <span style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '.2em', textTransform: 'uppercase', color: '#5C6880' }}>Matchday pass</span>
-                    <span style={{ height: 1, flex: 1, background: 'rgba(255,255,255,.07)', minWidth: 40 }} />
-                    <span style={{ border: '1px solid rgba(255,255,255,.09)', background: 'rgba(255,255,255,.03)', borderRadius: 999, padding: '3px 11px', fontSize: 10.5, fontWeight: 600, color: '#8A96AD' }}>Beta</span>
+                <article className="dc-ticket" style={{ position: 'relative', zIndex: 1, display: 'grid', gridTemplateColumns: 'minmax(0,1fr) 264px', border: '1px solid rgba(255,255,255,.14)', background: 'rgba(8,16,38,.68)', borderRadius: 20, overflow: 'hidden', backdropFilter: 'blur(14px)', WebkitBackdropFilter: 'blur(14px)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,.08),0 1px 2px rgba(0,0,0,.3),0 22px 46px -30px rgba(0,0,0,.75)' }}>
+                  <div aria-hidden="true" style={{ position: 'absolute', left: '28%', top: 0, width: '26rem', height: '13rem', transform: 'translate(-50%,-55%)', borderRadius: '50%', background: 'rgba(52,211,153,.14)', filter: 'blur(70px)' }} />
+                  <div style={{ position: 'relative', padding: '30px 34px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+                      <span style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '.2em', textTransform: 'uppercase', color: '#5C6880' }}>Matchday pass</span>
+                      <span style={{ height: 1, flex: 1, background: 'rgba(255,255,255,.07)', minWidth: 40 }} />
+                      <span style={{ border: '1px solid rgba(255,255,255,.09)', background: 'rgba(255,255,255,.03)', borderRadius: 999, padding: '3px 11px', fontSize: 10.5, fontWeight: 600, color: '#8A96AD' }}>Beta</span>
+                    </div>
+                    <h3 style={{ fontFamily: "'Manrope', sans-serif", fontWeight: 800, letterSpacing: '-.02em', fontSize: 26, margin: '16px 0 0', color: '#F5F7FB' }}>Free</h3>
+                    <p style={{ margin: '8px 0 0', fontSize: 13.5, lineHeight: 1.6, color: '#8A96AD' }}>For coaches getting Dumala into a real match week.</p>
+                    <div style={{ marginTop: 22, display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(220px,1fr))', gap: '10px 24px' }}>
+                      {['One local team workspace', 'Roster, schedule, tactics, training basics', 'Full workspace backup and restore', 'Real match weeks, zero commitment'].map((f) => (
+                        <div key={f} style={{ display: 'flex', gap: 10, fontSize: 13.5, lineHeight: 1.55, color: '#B9C2D4' }}>
+                          <span style={{ color: '#34D399', fontWeight: 700 }}>✓</span>
+                          <span>{f}</span>
+                        </div>
+                      ))}
+                    </div>
+                    <p style={{ margin: '20px 0 0', fontSize: 12, lineHeight: 1.6, color: '#5C6880' }}>
+                      <span style={{ fontWeight: 700, letterSpacing: '.12em', textTransform: 'uppercase', fontSize: 10, color: '#5C6880' }}>Premium unlocks · </span>
+                      Downloadable reports · Guided match-week planning · Cloud sync
+                    </p>
                   </div>
-                  <h3 style={{ fontFamily: "'Manrope', sans-serif", fontWeight: 800, letterSpacing: '-.02em', fontSize: 26, margin: '16px 0 0', color: '#F5F7FB' }}>Free</h3>
-                  <p style={{ margin: '8px 0 0', fontSize: 13.5, lineHeight: 1.6, color: '#8A96AD' }}>For coaches getting Dumala into a real match week.</p>
-                  <div style={{ marginTop: 22, display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(220px,1fr))', gap: '10px 24px' }}>
-                    {['One local team workspace', 'Roster, schedule, tactics, training basics', 'Full workspace backup and restore', 'Real match weeks, zero commitment'].map((f) => (
-                      <div key={f} style={{ display: 'flex', gap: 10, fontSize: 13.5, lineHeight: 1.55, color: '#B9C2D4' }}>
-                        <span style={{ color: '#34D399', fontWeight: 700 }}>✓</span>
-                        <span>{f}</span>
-                      </div>
-                    ))}
+                  <div className="dc-ticket-stub" style={{ position: 'relative', borderLeft: '2px dashed rgba(255,255,255,.12)', padding: '30px 26px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 6, textAlign: 'center' }}>
+                    <span aria-hidden="true" style={{ position: 'absolute', left: -12, top: -11, width: 22, height: 22, borderRadius: '50%', background: '#04091A', border: '1px solid rgba(255,255,255,.09)' }} />
+                    <span aria-hidden="true" style={{ position: 'absolute', left: -12, bottom: -11, width: 22, height: 22, borderRadius: '50%', background: '#04091A', border: '1px solid rgba(255,255,255,.09)' }} />
+                    <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.24em', textTransform: 'uppercase', color: '#5C6880' }}>Admit one team</span>
+                    <div style={{ display: 'flex', alignItems: 'baseline', gap: 5, marginTop: 4 }}>
+                      <span style={{ fontFamily: "'Manrope', sans-serif", fontWeight: 800, fontSize: 44, letterSpacing: '-.03em', color: '#F5F7FB' }}>₱0</span>
+                    </div>
+                    <span style={{ fontSize: 12, color: '#5C6880' }}>forever, while in beta</span>
+                    <a href="#/app" className="dc-startfree" style={{ marginTop: 16 }}>Start free</a>
+                    <div aria-hidden="true" style={{ marginTop: 16, width: 110, height: 26, background: 'repeating-linear-gradient(90deg,rgba(221,228,239,.35) 0 2px,transparent 2px 5px,rgba(221,228,239,.35) 5px 6px,transparent 6px 10px)', borderRadius: 2, opacity: 0.5 }} />
                   </div>
-                  <p style={{ margin: '20px 0 0', fontSize: 12, lineHeight: 1.6, color: '#5C6880' }}>
-                    <span style={{ fontWeight: 700, letterSpacing: '.12em', textTransform: 'uppercase', fontSize: 10, color: '#5C6880' }}>Premium unlocks · </span>
-                    Downloadable reports · Guided match-week planning · Cloud sync
-                  </p>
-                </div>
-                <div className="dc-ticket-stub" style={{ position: 'relative', borderLeft: '2px dashed rgba(255,255,255,.12)', padding: '30px 26px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 6, textAlign: 'center' }}>
-                  <span aria-hidden="true" style={{ position: 'absolute', left: -12, top: -11, width: 22, height: 22, borderRadius: '50%', background: '#04091A', border: '1px solid rgba(255,255,255,.09)' }} />
-                  <span aria-hidden="true" style={{ position: 'absolute', left: -12, bottom: -11, width: 22, height: 22, borderRadius: '50%', background: '#04091A', border: '1px solid rgba(255,255,255,.09)' }} />
-                  <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.24em', textTransform: 'uppercase', color: '#5C6880' }}>Admit one team</span>
-                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 5, marginTop: 4 }}>
-                    <span style={{ fontFamily: "'Manrope', sans-serif", fontWeight: 800, fontSize: 44, letterSpacing: '-.03em', color: '#F5F7FB' }}>₱0</span>
-                  </div>
-                  <span style={{ fontSize: 12, color: '#5C6880' }}>forever, while in beta</span>
-                  <a href="#/app" className="dc-startfree" style={{ marginTop: 16 }}>Start free</a>
-                  <div aria-hidden="true" style={{ marginTop: 16, width: 110, height: 26, background: 'repeating-linear-gradient(90deg,rgba(221,228,239,.35) 0 2px,transparent 2px 5px,rgba(221,228,239,.35) 5px 6px,transparent 6px 10px)', borderRadius: 2, opacity: 0.5 }} />
-                </div>
-              </article>
+                </article>
+              </div>
 
               {/* Premium — Season pass ticket */}
-              <article data-reveal="1" className="dc-ticket" style={{ opacity: 1, position: 'relative', display: 'grid', gridTemplateColumns: 'minmax(0,1fr) 264px', border: '1px solid rgba(255,138,61,.42)', background: 'linear-gradient(120deg,rgba(255,138,61,.10),rgba(8,16,38,0) 45%),rgba(8,16,38,.70)', borderRadius: 20, overflow: 'hidden', backdropFilter: 'blur(14px)', WebkitBackdropFilter: 'blur(14px)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,.08),0 1px 2px rgba(0,0,0,.35),0 22px 48px -30px rgba(255,138,61,.4),0 30px 60px -34px rgba(0,0,0,.7)' }}>
+              <div data-reveal="1" className="dc-glow-shell" style={{ opacity: 1, borderRadius: 26 }}>
                 <GlowingEffect spread={42} glow disabled={false} proximity={82} inactiveZone={0.01} borderWidth={3} />
-                <span style={{ position: 'absolute', top: 0, left: 34, background: '#FF8A3D', color: '#180A00', fontSize: 10, fontWeight: 800, letterSpacing: '.14em', textTransform: 'uppercase', padding: '5px 12px', borderRadius: '0 0 8px 8px' }}>Recommended</span>
-                <div style={{ padding: '38px 34px 30px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-                    <span style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '.2em', textTransform: 'uppercase', color: '#FFB37E' }}>Season pass</span>
-                    <span style={{ height: 1, flex: 1, background: 'rgba(255,138,61,.18)', minWidth: 40 }} />
-                    <span style={{ border: '1px solid rgba(255,138,61,.3)', background: 'rgba(255,138,61,.1)', borderRadius: 999, padding: '3px 11px', fontSize: 10.5, fontWeight: 700, color: '#FFB37E' }}>Full squad access</span>
+                <article className="dc-ticket" style={{ position: 'relative', zIndex: 1, display: 'grid', gridTemplateColumns: 'minmax(0,1fr) 264px', border: '1px solid rgba(255,138,61,.42)', background: 'linear-gradient(120deg,rgba(255,138,61,.10),rgba(8,16,38,0) 45%),rgba(8,16,38,.70)', borderRadius: 20, overflow: 'hidden', backdropFilter: 'blur(14px)', WebkitBackdropFilter: 'blur(14px)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,.08),0 1px 2px rgba(0,0,0,.35),0 22px 48px -30px rgba(255,138,61,.4),0 30px 60px -34px rgba(0,0,0,.7)' }}>
+                  <div aria-hidden="true" style={{ position: 'absolute', left: '28%', top: 0, width: '26rem', height: '13rem', transform: 'translate(-50%,-55%)', borderRadius: '50%', background: 'rgba(255,138,61,.18)', filter: 'blur(70px)' }} />
+                  <span style={{ position: 'absolute', top: 0, left: 34, zIndex: 1, background: '#FF8A3D', color: '#180A00', fontSize: 10, fontWeight: 800, letterSpacing: '.14em', textTransform: 'uppercase', padding: '5px 12px', borderRadius: '0 0 8px 8px' }}>Recommended</span>
+                  <div style={{ position: 'relative', padding: '38px 34px 30px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+                      <span style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '.2em', textTransform: 'uppercase', color: '#FFB37E' }}>Season pass</span>
+                      <span style={{ height: 1, flex: 1, background: 'rgba(255,138,61,.18)', minWidth: 40 }} />
+                      <span style={{ border: '1px solid rgba(255,138,61,.3)', background: 'rgba(255,138,61,.1)', borderRadius: 999, padding: '3px 11px', fontSize: 10.5, fontWeight: 700, color: '#FFB37E' }}>Full squad access</span>
+                    </div>
+                    <h3 style={{ fontFamily: "'Manrope', sans-serif", fontWeight: 800, letterSpacing: '-.02em', fontSize: 26, margin: '16px 0 0', color: '#FFD9BC' }}>Premium</h3>
+                    <p style={{ margin: '8px 0 0', fontSize: 13.5, lineHeight: 1.6, color: '#B9C2D4' }}>For serious coaches, clubs, and academies that use Dumala every week.</p>
+                    <div style={{ marginTop: 22, display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(220px,1fr))', gap: '10px 24px' }}>
+                      {['Advanced assessment & development reporting', 'Guided training & match preparation', 'Cloud sync and staff workflows', 'Premium support for coach, club & academy'].map((f) => (
+                        <div key={f} style={{ display: 'flex', gap: 10, fontSize: 13.5, lineHeight: 1.55, color: '#B9C2D4' }}>
+                          <span style={{ color: '#FFB37E', fontWeight: 700 }}>✓</span>
+                          <span>{f}</span>
+                        </div>
+                      ))}
+                    </div>
+                    <p style={{ margin: '20px 0 0', fontSize: 12, lineHeight: 1.6, color: '#8A96AD' }}>
+                      <span style={{ fontWeight: 700, letterSpacing: '.12em', textTransform: 'uppercase', fontSize: 10, color: '#FFB37E' }}>Best fit · </span>
+                      Serious coach workflow · Club-ready reports · Academy development records
+                    </p>
                   </div>
-                  <h3 style={{ fontFamily: "'Manrope', sans-serif", fontWeight: 800, letterSpacing: '-.02em', fontSize: 26, margin: '16px 0 0', color: '#FFD9BC' }}>Premium</h3>
-                  <p style={{ margin: '8px 0 0', fontSize: 13.5, lineHeight: 1.6, color: '#B9C2D4' }}>For serious coaches, clubs, and academies that use Dumala every week.</p>
-                  <div style={{ marginTop: 22, display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(220px,1fr))', gap: '10px 24px' }}>
-                    {['Advanced assessment & development reporting', 'Guided training & match preparation', 'Cloud sync and staff workflows', 'Premium support for coach, club & academy'].map((f) => (
-                      <div key={f} style={{ display: 'flex', gap: 10, fontSize: 13.5, lineHeight: 1.55, color: '#B9C2D4' }}>
-                        <span style={{ color: '#FFB37E', fontWeight: 700 }}>✓</span>
-                        <span>{f}</span>
-                      </div>
-                    ))}
+                  <div className="dc-ticket-stub-premium" style={{ position: 'relative', borderLeft: '2px dashed rgba(255,138,61,.32)', background: 'repeating-linear-gradient(-45deg,rgba(255,138,61,.045) 0 10px,transparent 10px 20px)', padding: '30px 26px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 6, textAlign: 'center' }}>
+                    <span aria-hidden="true" style={{ position: 'absolute', left: -12, top: -11, width: 22, height: 22, borderRadius: '50%', background: '#04091A', border: '1px solid rgba(255,138,61,.4)' }} />
+                    <span aria-hidden="true" style={{ position: 'absolute', left: -12, bottom: -11, width: 22, height: 22, borderRadius: '50%', background: '#04091A', border: '1px solid rgba(255,138,61,.4)' }} />
+                    <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.24em', textTransform: 'uppercase', color: '#FFB37E' }}>Whole season</span>
+                    <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginTop: 4 }}>
+                      <span style={{ fontFamily: "'Manrope', sans-serif", fontWeight: 800, fontSize: 44, letterSpacing: '-.03em', color: '#F5F7FB' }}>₱499</span>
+                    </div>
+                    <span style={{ fontSize: 12, color: '#8A96AD' }}>per month · <span style={{ textDecoration: 'line-through', color: '#5C6880' }}>₱800</span> early-bird</span>
+                    <button type="button" onClick={openPremiumLeadModal} className="dc-joinbeta" style={{ marginTop: 16 }}>Join the beta list</button>
+                    <div aria-hidden="true" style={{ marginTop: 16, width: 110, height: 26, background: 'repeating-linear-gradient(90deg,rgba(255,179,126,.5) 0 2px,transparent 2px 5px,rgba(255,179,126,.5) 5px 6px,transparent 6px 10px)', borderRadius: 2, opacity: 0.6 }} />
                   </div>
-                  <p style={{ margin: '20px 0 0', fontSize: 12, lineHeight: 1.6, color: '#8A96AD' }}>
-                    <span style={{ fontWeight: 700, letterSpacing: '.12em', textTransform: 'uppercase', fontSize: 10, color: '#FFB37E' }}>Best fit · </span>
-                    Serious coach workflow · Club-ready reports · Academy development records
-                  </p>
-                </div>
-                <div className="dc-ticket-stub-premium" style={{ position: 'relative', borderLeft: '2px dashed rgba(255,138,61,.32)', background: 'repeating-linear-gradient(-45deg,rgba(255,138,61,.045) 0 10px,transparent 10px 20px)', padding: '30px 26px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 6, textAlign: 'center' }}>
-                  <span aria-hidden="true" style={{ position: 'absolute', left: -12, top: -11, width: 22, height: 22, borderRadius: '50%', background: '#04091A', border: '1px solid rgba(255,138,61,.4)' }} />
-                  <span aria-hidden="true" style={{ position: 'absolute', left: -12, bottom: -11, width: 22, height: 22, borderRadius: '50%', background: '#04091A', border: '1px solid rgba(255,138,61,.4)' }} />
-                  <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.24em', textTransform: 'uppercase', color: '#FFB37E' }}>Whole season</span>
-                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginTop: 4 }}>
-                    <span style={{ fontFamily: "'Manrope', sans-serif", fontWeight: 800, fontSize: 44, letterSpacing: '-.03em', color: '#F5F7FB' }}>₱499</span>
-                  </div>
-                  <span style={{ fontSize: 12, color: '#8A96AD' }}>per month · <span style={{ textDecoration: 'line-through', color: '#5C6880' }}>₱800</span> early-bird</span>
-                  <button type="button" onClick={openPremiumLeadModal} className="dc-joinbeta" style={{ marginTop: 16 }}>Join the beta list</button>
-                  <div aria-hidden="true" style={{ marginTop: 16, width: 110, height: 26, background: 'repeating-linear-gradient(90deg,rgba(255,179,126,.5) 0 2px,transparent 2px 5px,rgba(255,179,126,.5) 5px 6px,transparent 6px 10px)', borderRadius: 2, opacity: 0.6 }} />
-                </div>
-              </article>
+                </article>
+              </div>
             </div>
           </div>
         </section>
