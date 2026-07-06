@@ -715,6 +715,14 @@ export default function AssessmentDrillGuideView() {
                 <div className="flex flex-col gap-3">
                   <DrillIllustration drill={selectedDrill} />
                   {selectedDrill.audio && <AudioBlock audio={selectedDrill.audio} />}
+                  {(selectedDrill.goalkeeper.requirement === 'required' || selectedDrill.goalkeeper.requirement === 'optional') && (
+                    <div className={`rounded-2xl border p-4 ${GK_CHIP_STYLES[selectedDrill.goalkeeper.requirement].chip}`}>
+                      <p className={`flex items-center gap-1.5 ${eyebrowClass}`}>
+                        <Hand size={13} className={GK_CHIP_STYLES[selectedDrill.goalkeeper.requirement].icon} /> {GK_CHIP_STYLES[selectedDrill.goalkeeper.requirement].label}
+                      </p>
+                      <p className="mt-2 text-[11.5px] font-semibold leading-relaxed text-slate-200">{selectedDrill.goalkeeper.note}</p>
+                    </div>
+                  )}
                 </div>
                 <div className="flex flex-col gap-3">
                   <div className="rounded-2xl border border-amber-300/25 bg-amber-300/[0.06] p-4">
@@ -724,12 +732,6 @@ export default function AssessmentDrillGuideView() {
                     <p className="mt-2 text-[12px] font-semibold leading-relaxed text-slate-100">{selectedDrill.playerStart}</p>
                   </div>
                   <ProcedureSteps steps={selectedDrill.procedure} />
-                  <div className={`rounded-2xl border p-4 ${GK_CHIP_STYLES[selectedDrill.goalkeeper.requirement].chip}`}>
-                    <p className={`flex items-center gap-1.5 ${eyebrowClass}`}>
-                      <Hand size={13} className={GK_CHIP_STYLES[selectedDrill.goalkeeper.requirement].icon} /> {GK_CHIP_STYLES[selectedDrill.goalkeeper.requirement].label}
-                    </p>
-                    <p className="mt-2 text-[11.5px] font-semibold leading-relaxed text-slate-200">{selectedDrill.goalkeeper.note}</p>
-                  </div>
                 </div>
               </div>
 
