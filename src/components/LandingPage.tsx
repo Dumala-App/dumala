@@ -109,25 +109,22 @@ const moreFeatures = [
 
 const wins = [
   {
-    title: 'Squad admin',
-    benefit: 'Know who is available without chasing replies.',
-    before: 'Availability and fixtures chased through group chats all week.',
-    after: 'Roster, availability and schedule answered in one workspace.',
-    note: 'Ask once. See who’s in for Saturday at a glance.'
+    title: 'One coaching workspace',
+    benefit: 'Your whole week in one place, not five apps.',
+    after: 'Installable app that keeps working offline, with full backup and restore.',
+    note: 'Roster, fixtures, training sessions and your drill library stay tied to the week instead of scattered across notes and chats.'
   },
   {
-    title: 'Match preparation',
-    benefit: 'Arrive with the plan already built.',
-    before: 'Lineups rebuilt from memory an hour before kickoff.',
-    after: 'Formations, set plays and roles saved and reused every match week.',
-    note: 'Your match plan survives the bus ride to the pitch.'
+    title: 'Match prep',
+    benefit: 'Walk onto the pitch with the plan already built.',
+    after: 'Lineups, set plays and opponent shape ready on a fullscreen touchline board.',
+    note: 'Pick how you want to play and the strategy engine builds the formation, roles and tactics for you — saved and reusable every match week.'
   },
   {
     title: 'Player development',
-    benefit: 'Turn progress into evidence.',
-    before: '“He’s improving” — with nothing to show for it.',
-    after: 'FPRDS records and reports that prove progress over the season.',
-    note: 'Development conversations backed by real data.'
+    benefit: 'Show real progress, not just a gut feeling.',
+    after: 'FPRDS ratings you can compare match after match, season after season.',
+    note: 'Score players with structured assessments and turn the history into clear reports for players, parents and staff.'
   }
 ];
 
