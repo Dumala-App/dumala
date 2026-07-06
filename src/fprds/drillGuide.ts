@@ -93,7 +93,8 @@ export const DRILL_GUIDE_ENTRIES: DrillGuideEntry[] = [
       'Too little recovery, causing slower second/third attempts'
     ],
     safety: ['Do a full sprint warm-up first (mobility + progressive accelerations).', 'Avoid slippery or uneven surfaces.', 'Keep the run-off zone clear of balls, bags, and other players.'],
-    tags: ['sprint', '10m', '30m', 'pace', 'acceleration', 'time', 'cones']
+    tags: ['sprint', '10m', '30m', 'pace', 'acceleration', 'time', 'cones'],
+    illustration: '/illustrations/base_sprint_10_30.webp'
   },
   {
     id: 'base_yoyo',
@@ -137,6 +138,7 @@ export const DRILL_GUIDE_ENTRIES: DrillGuideEntry[] = [
     ],
     safety: ['Hydrate before and after; cool down after the test.', 'Stop immediately if dizziness, chest pain, or sharp pain occurs.'],
     tags: ['yoyo', 'yo-yo', 'endurance', 'stamina', 'distance', 'beep'],
+    illustration: '/illustrations/base_yoyo.webp',
     audio: {
       src: '/yoyo.m4a',
       label: 'Yo-Yo beep track',
@@ -178,7 +180,8 @@ export const DRILL_GUIDE_ENTRIES: DrillGuideEntry[] = [
       'Inconsistent start position (standing vs prone) between athletes'
     ],
     safety: ['Use a non-slip surface and proper footwear.', 'Warm up hips/ankles/knees before testing.', 'Keep the area around the course clear.'],
-    tags: ['illinois', 'agility', 'change of direction', 'cones', 'time']
+    tags: ['illinois', 'agility', 'change of direction', 'cones', 'time'],
+    illustration: '/illustrations/base_illinois.webp'
   },
   {
     id: 'base_power',
@@ -215,7 +218,8 @@ export const DRILL_GUIDE_ENTRIES: DrillGuideEntry[] = [
       'Measuring from the toes or the front of the foot instead of the nearest heel mark'
     ],
     safety: ['Emphasize soft, controlled landing mechanics to reduce joint stress.', 'Use an appropriate ball weight for the age group.', 'Nobody stands in the throwing lane.'],
-    tags: ['broad jump', 'medicine ball', 'power', 'strength', 'distance']
+    tags: ['broad jump', 'medicine ball', 'power', 'strength', 'distance'],
+    illustration: '/illustrations/base_power.webp'
   },
   {
     id: 'base_first_touch',
@@ -251,7 +255,8 @@ export const DRILL_GUIDE_ENTRIES: DrillGuideEntry[] = [
       'Letting the athlete drift out of the grid before the serve'
     ],
     safety: ['Keep the area clear of loose balls to avoid slips.'],
-    tags: ['first touch', 'control', 'rebound', 'wall', 'grid', 'out of 10']
+    tags: ['first touch', 'control', 'rebound', 'wall', 'grid', 'out of 10'],
+    illustration: '/illustrations/base_first_touch.webp'
   },
   {
     id: 'base_short_passing',
@@ -286,7 +291,8 @@ export const DRILL_GUIDE_ENTRIES: DrillGuideEntry[] = [
       'Allowing moving balls or long run-ups for some athletes and not others'
     ],
     safety: ['Ensure the athlete is warmed up to reduce groin/hip strain.'],
-    tags: ['short passing', 'gate', '10m', 'accuracy', 'out of 10']
+    tags: ['short passing', 'gate', '10m', 'accuracy', 'out of 10'],
+    illustration: '/illustrations/base_short_passing.webp'
   },
 
   // Forwards / Wingers
@@ -326,7 +332,8 @@ export const DRILL_GUIDE_ENTRIES: DrillGuideEntry[] = [
       'Unclear definition of “on target”'
     ],
     safety: ['Check the shooting lane is clear of other players before every run.', 'GK should be warmed up before facing rapid-fire shots.'],
-    tags: ['finishing', 'box', 'shooting', '6-ball', 'on target', 'goals']
+    tags: ['finishing', 'box', 'shooting', '6-ball', 'on target', 'goals'],
+    illustration: '/illustrations/fw_finishing_box.webp'
   },
   {
     id: 'fw_shot_power',
@@ -362,7 +369,8 @@ export const DRILL_GUIDE_ENTRIES: DrillGuideEntry[] = [
       'Uneven attempt counts per distance'
     ],
     safety: ['Cap total strikes (~15) for younger athletes to avoid overuse.', 'Full lower-body warm-up before max striking.'],
-    tags: ['shot power', 'long shots', 'distance', 'meters']
+    tags: ['shot power', 'long shots', 'distance', 'meters'],
+    illustration: '/illustrations/fw_shot_power.webp'
   },
   {
     id: 'fw_offensive_1v1',
@@ -399,7 +407,8 @@ export const DRILL_GUIDE_ENTRIES: DrillGuideEntry[] = [
       'No recovery between reps — later reps measure stamina, not 1v1 skill'
     ],
     safety: ['Enforce controlled defending (no slide tackles) to reduce contact injury.'],
-    tags: ['1v1', 'take-on', 'dribbling', 'channel', 'out of 10']
+    tags: ['1v1', 'take-on', 'dribbling', 'channel', 'out of 10'],
+    illustration: '/illustrations/fw_offensive_1v1.webp'
   },
   {
     id: 'fw_attacking_heading',
@@ -435,7 +444,8 @@ export const DRILL_GUIDE_ENTRIES: DrillGuideEntry[] = [
       'Athlete starting flat-footed on the spot instead of attacking the ball'
     ],
     safety: ['Limit heading volume for younger age groups and follow your local safeguarding policy.', 'Use a properly inflated (not overinflated) ball.'],
-    tags: ['heading', 'attacking heading', 'cross', 'out of 10']
+    tags: ['heading', 'attacking heading', 'cross', 'out of 10'],
+    illustration: '/illustrations/fw_attacking_heading.webp'
   },
 
   // Midfielders
@@ -472,7 +482,8 @@ export const DRILL_GUIDE_ENTRIES: DrillGuideEntry[] = [
       'Judging landings from the pass line instead of beside the zone'
     ],
     safety: ['Warm up groin and hamstrings before repeated long striking.'],
-    tags: ['long passing', '30m', '40m', 'target zone', 'out of 5']
+    tags: ['long passing', '30m', '40m', 'target zone', 'out of 5'],
+    illustration: '/illustrations/mid_long_passing.webp'
   },
   {
     id: 'mid_vision_rondo',
@@ -508,7 +519,8 @@ export const DRILL_GUIDE_ENTRIES: DrillGuideEntry[] = [
       'Sending the assessed player into the middle, wasting the scoring window'
     ],
     safety: ['Keep intensity appropriate; pause if fatigue degrades technique.'],
-    tags: ['vision', 'playmaking', 'rondo', '4v2', 'coach score']
+    tags: ['vision', 'playmaking', 'rondo', '4v2', 'coach score'],
+    illustration: '/illustrations/mid_vision_rondo.webp'
   },
   {
     id: 'mid_ball_retention',
@@ -541,7 +553,8 @@ export const DRILL_GUIDE_ENTRIES: DrillGuideEntry[] = [
       'Grid drifting larger than 3×3m, which makes retention far easier'
     ],
     safety: ['No slide tackles or shirt-pulling; stop the rep on any fall.', 'Rest the defender too — their fatigue changes later athletes\' scores.'],
-    tags: ['ball retention', 'shielding', '3x3', 'seconds']
+    tags: ['ball retention', 'shielding', '3x3', 'seconds'],
+    illustration: '/illustrations/mid_ball_retention.webp'
   },
   {
     id: 'mid_pressing_cage',
@@ -577,7 +590,8 @@ export const DRILL_GUIDE_ENTRIES: DrillGuideEntry[] = [
       'Insufficient rest, so rounds 4–5 measure fatigue instead of pressing skill'
     ],
     safety: ['Monitor fatigue; pressing is high-intensity.', 'Controlled challenges only inside the tight grid.'],
-    tags: ['pressing', 'interceptions', '3v1', 'wins', 'out of 5']
+    tags: ['pressing', 'interceptions', '3v1', 'wins', 'out of 5'],
+    illustration: '/illustrations/mid_pressing_cage.webp'
   },
 
   // Defenders
@@ -612,7 +626,8 @@ export const DRILL_GUIDE_ENTRIES: DrillGuideEntry[] = [
       'Skipping the standard entry pass so closing distance varies every rep'
     ],
     safety: ['Controlled tackling rules — no slide tackles from behind, no lunging.', 'Stop the rep immediately on any tangle of legs.'],
-    tags: ['tackling', '1v1', 'defending', 'out of 10']
+    tags: ['tackling', '1v1', 'defending', 'out of 10'],
+    illustration: '/illustrations/def_tackling_1v1.webp'
   },
   {
     id: 'def_heading_clearance',
@@ -647,7 +662,8 @@ export const DRILL_GUIDE_ENTRIES: DrillGuideEntry[] = [
       'Counting weak flick-ons that land centrally as clearances'
     ],
     safety: ['Limit heading volume for younger age groups; follow safeguarding policy.', 'Properly inflated ball; no other players in the landing area.'],
-    tags: ['defensive heading', 'clearance', 'safe zone', 'out of 10']
+    tags: ['defensive heading', 'clearance', 'safe zone', 'out of 10'],
+    illustration: '/illustrations/def_heading_clearance.webp'
   },
   {
     id: 'def_positioning_clearances',
@@ -684,7 +700,8 @@ export const DRILL_GUIDE_ENTRIES: DrillGuideEntry[] = [
       'Letting the optional attacker contest at full intensity — this becomes a duel test, not a positioning test'
     ],
     safety: ['Control aerial situations — the optional attacker never jumps into the defender.', 'Keep the crossing lane clear.'],
-    tags: ['positioning', 'clearances', 'cross defense', 'coach score']
+    tags: ['positioning', 'clearances', 'cross defense', 'coach score'],
+    illustration: '/illustrations/def_positioning_clearances.webp'
   },
   {
     id: 'def_crossing_target',
@@ -720,7 +737,8 @@ export const DRILL_GUIDE_ENTRIES: DrillGuideEntry[] = [
       'Counting balls that bounce outside and roll through the box'
     ],
     safety: ['Warm up hips/groin before repeated crossing.', 'Keep the landing area clear of other players.'],
-    tags: ['crossing', 'fullback', 'target box', 'out of 10']
+    tags: ['crossing', 'fullback', 'target box', 'out of 10'],
+    illustration: '/illustrations/def_crossing_target.webp'
   },
 
   // Goalkeepers
@@ -758,7 +776,8 @@ export const DRILL_GUIDE_ENTRIES: DrillGuideEntry[] = [
       'Firing the next ball before the GK is set — that tests scrambling, not reflexes'
     ],
     safety: ['Warm up hands, wrists, and shoulders before rapid-fire work.', 'Keep pace age-appropriate; prioritize safe landings.'],
-    tags: ['goalkeeper', 'reflexes', 'rapid fire', 'out of 10']
+    tags: ['goalkeeper', 'reflexes', 'rapid fire', 'out of 10'],
+    illustration: '/illustrations/gk_reflexes.webp'
   },
   {
     id: 'gk_handling',
@@ -794,7 +813,8 @@ export const DRILL_GUIDE_ENTRIES: DrillGuideEntry[] = [
       'Crosses delivered too close to the goal line, becoming unwinnable'
     ],
     safety: ['Warm up shoulders and wrists before high-volume handling.', 'No attackers challenging the GK during catches.'],
-    tags: ['goalkeeper', 'handling', 'crosses', 'shots', 'out of 10']
+    tags: ['goalkeeper', 'handling', 'crosses', 'shots', 'out of 10'],
+    illustration: '/illustrations/gk_handling.webp'
   },
   {
     id: 'gk_diving',
@@ -831,7 +851,8 @@ export const DRILL_GUIDE_ENTRIES: DrillGuideEntry[] = [
       'Server pace varying wildly — a thrower is often more consistent than a shooter'
     ],
     safety: ['Ensure a safe landing surface and proper diving mechanics before testing.', 'Adequate rest between dives; stop on any shoulder/hip pain.'],
-    tags: ['goalkeeper', 'diving', 'reach', 'out of 10']
+    tags: ['goalkeeper', 'diving', 'reach', 'out of 10'],
+    illustration: '/illustrations/gk_diving.webp'
   },
   {
     id: 'gk_distribution',
@@ -867,6 +888,7 @@ export const DRILL_GUIDE_ENTRIES: DrillGuideEntry[] = [
       'Judging landings from behind the GK instead of beside the grid'
     ],
     safety: ['Warm up the kicking leg and throwing shoulder before max-distance distribution.', 'Retrievers stay wide of the ball flight until it lands.'],
-    tags: ['goalkeeper', 'distribution', 'drop-kick', 'throw', 'out of 10']
+    tags: ['goalkeeper', 'distribution', 'drop-kick', 'throw', 'out of 10'],
+    illustration: '/illustrations/gk_distribution.webp'
   }
 ];
