@@ -1579,7 +1579,9 @@ export const getDrillHowToRun = (drillId: string, fallback?: string): string => 
   const drill = TRAINING_DRILLS.find(item => item.id === drillId);
   const emphasis = getDrillCoachingEmphasis(drillId, drill);
 
-  return `Start from the planned setup: ${instruction.setup} Run the drill like this: ${instruction.execution} ${emphasis} Work to this load: ${instruction.setsReps}`;
+  // Setup and sets/reps render in their own labelled sections, so the how-to text
+  // states the drill execution directly and closes with the coaching emphasis.
+  return `${instruction.execution} ${emphasis}`;
 };
 
 export const inferDrillSessionBlock = (drill: TrainingDrill): SessionBlockId => {

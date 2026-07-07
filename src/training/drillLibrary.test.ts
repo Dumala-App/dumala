@@ -23,15 +23,16 @@ describe('training drill library', () => {
     expect(TRAINING_DRILLS.every(drill => drill.fatigueIncrease > 0)).toBe(true);
   });
 
-  it('provides detailed how-to guidance for every drill', () => {
+  it('states the drill execution directly without repeating setup or load details', () => {
     expect(TRAINING_DRILLS.every(drill => {
       const instruction = DRILL_INSTRUCTIONS[drill.id];
       const howToRun = getDrillHowToRun(drill.id);
 
-      return howToRun.length > instruction.execution.length
-        && howToRun.includes(instruction.setup)
-        && howToRun.includes(instruction.execution)
-        && howToRun.includes(instruction.setsReps);
+      return howToRun.startsWith(instruction.execution)
+        && howToRun.length > instruction.execution.length
+        && !howToRun.includes('Start from the planned setup')
+        && !howToRun.includes('Run the drill like this')
+        && !howToRun.includes('Work to this load');
     })).toBe(true);
   });
 
