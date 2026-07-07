@@ -125,7 +125,7 @@ const ATTRIBUTE_LABELS: Record<FprdsAttributeId, string> = {
   distribution: 'Distribution'
 };
 
-const ATTRIBUTE_LINE_COLORS = ['#4f46e5', '#059669', '#f59e0b', '#dc2626'];
+const ATTRIBUTE_LINE_COLORS = ['#22d3ee', '#059669', '#f59e0b', '#dc2626'];
 
 type ProgressTooltipPayload = Array<{
   name?: string;
@@ -145,16 +145,16 @@ const AssessmentProgressTooltip = ({
   const point = payload[0].payload;
 
   return (
-    <div className="rounded-xl border border-slate-200 bg-white px-3 py-2 shadow-lg">
-      <p className="text-[10px] font-black uppercase tracking-wider text-slate-500">{point.assessmentDate}</p>
-      <p className="text-xs font-black text-slate-900">
+    <div className="rounded-xl border border-cyan-300/15 bg-[#07111f] px-3 py-2 shadow-2xl shadow-black/40">
+      <p className="text-[10px] font-black uppercase tracking-wider text-slate-400">{point.assessmentDate}</p>
+      <p className="text-xs font-black text-slate-100">
         {ROLE_LABELS[point.role]} • {point.assessmentType} • {point.ageGroup}
       </p>
       <div className="mt-2 space-y-1">
         {payload.map((entry) => (
           <div key={entry.name} className="flex items-center justify-between gap-4 text-[11px] font-semibold">
             <span style={{ color: entry.color }}>{entry.name}</span>
-            <span className="text-slate-800">{entry.value}</span>
+            <span className="text-slate-100">{entry.value}</span>
           </div>
         ))}
       </div>
@@ -193,11 +193,11 @@ type FieldRating = { label: string; className: string };
 
 const rateScore = (score: number): FieldRating => {
   const s = clampScore(score);
-  if (s >= 90) return { label: 'Elite', className: 'border-amber-200 bg-amber-50 text-amber-700' };
-  if (s >= 75) return { label: 'Advanced', className: 'border-emerald-200 bg-emerald-50 text-emerald-700' };
-  if (s >= 55) return { label: 'Developing', className: 'border-sky-200 bg-sky-50 text-sky-700' };
-  if (s >= 35) return { label: 'Needs work', className: 'border-orange-200 bg-orange-50 text-orange-700' };
-  return { label: 'Beginner', className: 'border-rose-200 bg-rose-50 text-rose-700' };
+  if (s >= 90) return { label: 'Elite', className: 'border-amber-300/25 bg-amber-300/[0.08] text-amber-200' };
+  if (s >= 75) return { label: 'Advanced', className: 'border-emerald-300/25 bg-emerald-300/[0.08] text-emerald-200' };
+  if (s >= 55) return { label: 'Developing', className: 'border-sky-300/25 bg-sky-300/[0.08] text-sky-200' };
+  if (s >= 35) return { label: 'Needs work', className: 'border-orange-300/25 bg-orange-300/[0.08] text-orange-200' };
+  return { label: 'Beginner', className: 'border-rose-400/25 bg-rose-400/[0.08] text-rose-200' };
 };
 
 type NumberInputProps = {
@@ -219,7 +219,7 @@ const NumberInput: React.FC<NumberInputProps> = (props) => {
   return (
     <div className="space-y-1.5">
       <div className="flex items-center justify-between gap-2">
-        <label htmlFor={props.id} className="text-[11px] font-black uppercase tracking-wider text-slate-500">
+        <label htmlFor={props.id} className="text-[11px] font-black uppercase tracking-wider text-slate-400">
           {props.label}
         </label>
         {props.rating && (
@@ -242,13 +242,13 @@ const NumberInput: React.FC<NumberInputProps> = (props) => {
         aria-label={props.label}
         aria-invalid={Boolean(props.error)}
         aria-describedby={props.error ? `${props.id}-error` : undefined}
-        className={`rounded-xl text-sm font-semibold text-slate-800 shadow-sm ${
+        className={`rounded-xl bg-[#07111f]/70 text-sm font-semibold text-slate-100 placeholder:text-slate-500 shadow-sm ${
           props.error
-            ? 'border-rose-300 focus-visible:ring-rose-200'
-            : 'border-slate-200 focus-visible:ring-indigo-100'
+            ? 'border-rose-400/40 focus-visible:ring-rose-400/25'
+            : 'border-cyan-300/10 focus-visible:ring-cyan-300/20'
         }`}
       />
-      {props.hint && !props.error && <p className="text-[11px] text-slate-400 font-medium">{props.hint}</p>}
+      {props.hint && !props.error && <p className="text-[11px] text-slate-500 font-medium">{props.hint}</p>}
       <FieldError id={`${props.id}-error`} message={props.error} />
     </div>
   );
@@ -995,15 +995,15 @@ export default function AssessmentsView({
 
   return (
     <div id="assessments-view-container" ref={assessmentContainerRef} className="space-y-6">
-      <div className="bg-white border border-slate-200/70 rounded-2xl shadow-md shadow-slate-100/30 p-5 sm:p-6">
+      <div className="rounded-2xl border border-cyan-300/10 bg-[#07111f]/88 text-slate-100 shadow-lg shadow-black/20 backdrop-blur-xl p-5 sm:p-6">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
           <div className="flex items-start gap-3">
-            <div className="w-11 h-11 rounded-2xl bg-indigo-600/10 border border-indigo-200 flex items-center justify-center shrink-0">
-              <ClipboardList className="text-indigo-700" size={20} />
+            <div className="w-11 h-11 rounded-2xl bg-cyan-300/10 border border-cyan-300/20 flex items-center justify-center shrink-0">
+              <ClipboardList className="text-cyan-100" size={20} />
             </div>
             <div>
-              <h2 className="font-display font-black tracking-tight text-slate-900 text-lg">Assessment Center</h2>
-              <p className="text-xs text-slate-500 font-medium">
+              <h2 className="font-display font-black tracking-tight text-slate-100 text-lg">Assessment Center</h2>
+              <p className="text-xs text-slate-400 font-medium">
                 Run objective drill-based assessments through the FPRDS rating system, with role-weighted scores, progress deltas, coach feedback, and development plans.
               </p>
             </div>
@@ -1015,7 +1015,7 @@ export default function AssessmentsView({
             size="sm"
             onClick={handleOpenTeamHistory}
             aria-label="Open team assessment history"
-            className="h-8 shrink-0 rounded-lg border-indigo-200 bg-indigo-50 px-3 py-1 text-[9px] font-black uppercase tracking-wider text-indigo-700 hover:bg-indigo-100 hover:text-indigo-800"
+            className="h-8 shrink-0 rounded-lg border-cyan-300/20 bg-cyan-300/10 px-3 py-1 text-[9px] font-black uppercase tracking-wider text-cyan-100 hover:bg-cyan-300/15 hover:text-cyan-50"
           >
             <History size={12} /> Team history
           </Button>
@@ -1037,27 +1037,27 @@ export default function AssessmentsView({
                       aria-current={isCurrent ? 'step' : undefined}
                       aria-label={`Step ${s.id}: ${s.label}`}
                       className={`inline-flex items-center gap-1.5 rounded-full px-2 py-1 transition ${
-                        clickable && !isCurrent ? 'hover:bg-muted' : 'cursor-default'
+                        clickable && !isCurrent ? 'hover:bg-white/[0.06]' : 'cursor-default'
                       }`}
                     >
                       <span
                         className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-black ${
                           isCurrent
-                            ? 'bg-primary text-primary-foreground'
+                            ? 'border border-cyan-300/40 bg-cyan-300/15 text-cyan-100'
                             : isComplete
-                              ? 'bg-success text-success-foreground'
-                              : 'border border-border text-muted-foreground'
+                              ? 'border border-emerald-300/30 bg-emerald-300/15 text-emerald-200'
+                              : 'border border-cyan-300/10 text-slate-500'
                         }`}
                       >
                         {isComplete ? <Check size={12} strokeWidth={3} /> : s.id}
                       </span>
-                      <span className={`font-bold ${isCurrent ? 'text-foreground' : 'text-muted-foreground'}`}>
+                      <span className={`font-bold ${isCurrent ? 'text-slate-100' : 'text-slate-500'}`}>
                         {s.label}
                       </span>
                     </button>
                   </li>
                   {idx < ASSESSMENT_STEPS.length - 1 && (
-                    <li aria-hidden="true" className="h-px w-3 shrink-0 bg-border" />
+                    <li aria-hidden="true" className="h-px w-3 shrink-0 bg-cyan-300/10" />
                   )}
                 </React.Fragment>
               );
@@ -1066,7 +1066,7 @@ export default function AssessmentsView({
         </nav>
 
         {saveError && (
-          <div className="mt-4 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700 flex items-center gap-2">
+          <div className="mt-4 rounded-xl border border-rose-400/25 bg-rose-400/[0.08] px-4 py-3 text-sm font-semibold text-rose-200 flex items-center gap-2">
             <AlertCircle size={16} /> {saveError}
           </div>
         )}
@@ -1078,7 +1078,7 @@ export default function AssessmentsView({
               variant="outline"
               onClick={handlePrevStep}
               aria-label="Previous step"
-              className="rounded-xl border-slate-200 bg-white px-4 py-2 text-xs font-black text-slate-700 hover:bg-slate-50"
+              className="rounded-xl border-cyan-300/10 bg-white/[0.03] px-4 py-2 text-xs font-black text-slate-300 hover:bg-white/[0.03]"
             >
               <ChevronLeft size={14} /> Back
             </Button>
@@ -1094,8 +1094,8 @@ export default function AssessmentsView({
               aria-label="Next step"
               className={`rounded-xl border px-4 py-2 text-xs font-black ${
                 canGoNext
-                  ? 'border-indigo-200 bg-indigo-600 text-white hover:bg-indigo-700'
-                  : 'border-slate-200 bg-slate-50 text-slate-300'
+                  ? 'border-cyan-300/20 bg-cyan-300/15 text-white hover:bg-cyan-300/25'
+                  : 'border-cyan-300/10 bg-white/[0.03] text-slate-300'
               }`}
             >
               Next <ChevronRight size={14} />
@@ -1126,7 +1126,7 @@ export default function AssessmentsView({
                 setSaveError(null);
               }}
               aria-label="Start new assessment"
-              className="rounded-xl border-slate-200 bg-white px-4 py-2 text-xs font-black text-slate-700 hover:bg-slate-50"
+              className="rounded-xl border-cyan-300/10 bg-white/[0.03] px-4 py-2 text-xs font-black text-slate-300 hover:bg-white/[0.03]"
             >
               <Sparkles size={14} /> New assessment
             </Button>
@@ -1139,19 +1139,19 @@ export default function AssessmentsView({
       <div className={`grid grid-cols-1 gap-6 ${showSidebar ? 'xl:grid-cols-[1.1fr_0.9fr]' : ''}`}>
         <div className="space-y-6">
           {step === 1 && (
-            <div className="bg-white border border-slate-200/70 rounded-2xl shadow-md shadow-slate-100/30 p-5 sm:p-6">
+            <div className="rounded-2xl border border-cyan-300/10 bg-[#07111f]/88 text-slate-100 shadow-lg shadow-black/20 backdrop-blur-xl p-5 sm:p-6">
               <div className="flex items-center justify-between gap-3">
-                <h3 className="font-display font-black text-slate-900 text-sm uppercase tracking-wide flex items-center gap-2">
-                  <User size={16} className="text-indigo-600" /> Select Player
+                <h3 className="font-display font-black text-slate-100 text-sm uppercase tracking-wide flex items-center gap-2">
+                  <User size={16} className="text-cyan-300" /> Select Player
                 </h3>
                 <div className="relative w-full max-w-xs">
-                  <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                  <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
                   <Input
                     value={playerSearch}
                     onChange={(e) => setPlayerSearch(e.target.value)}
                     placeholder="Search name or number"
                     aria-label="Search players"
-                    className="rounded-xl border-slate-200 bg-white pl-9 pr-3 text-sm font-semibold text-slate-800 focus-visible:ring-indigo-100"
+                    className="rounded-xl border-cyan-300/10 bg-white/[0.03] pl-9 pr-3 text-sm font-semibold text-slate-100 focus-visible:ring-cyan-300/20"
                   />
                 </div>
               </div>
@@ -1169,29 +1169,29 @@ export default function AssessmentsView({
                       aria-label={`Select ${p.name}`}
                       className={`h-auto justify-start whitespace-normal rounded-2xl p-4 text-left ${
                         isActive
-                          ? 'border-indigo-300 bg-indigo-50 shadow-md'
-                          : 'border-slate-200 bg-white hover:bg-slate-50'
+                          ? 'border-cyan-300/30 bg-cyan-300/10 shadow-md'
+                          : 'border-cyan-300/10 bg-white/[0.03] hover:bg-white/[0.03]'
                       }`}
                     >
                       <div className="flex items-center gap-3">
                         <img
                           src={p.photoUrl}
                           alt=""
-                          className="w-10 h-10 rounded-xl object-cover border border-slate-200"
+                          className="w-10 h-10 rounded-xl object-cover border border-cyan-300/10"
                           referrerPolicy="no-referrer"
                         />
                         <div className="min-w-0">
                           <div className="flex items-center gap-2">
-                            <span className="font-black text-slate-900 text-sm truncate">{p.name}</span>
-                            <span className="text-[10px] font-black text-slate-500 bg-slate-100 border border-slate-200 rounded-lg px-2 py-0.5">
+                            <span className="font-black text-slate-100 text-sm truncate">{p.name}</span>
+                            <span className="text-[10px] font-black text-slate-300 bg-white/[0.06] border border-cyan-300/10 rounded-lg px-2 py-0.5">
                               #{p.number || '—'}
                             </span>
                           </div>
-                          <p className="text-xs text-slate-500 font-semibold truncate">{p.position}</p>
+                          <p className="text-xs text-slate-400 font-semibold truncate">{p.position}</p>
                         </div>
                       </div>
                       {isActive && (
-                        <div className="mt-3 text-xs font-black text-indigo-700 flex items-center gap-1">
+                        <div className="mt-3 text-xs font-black text-cyan-100 flex items-center gap-1">
                           <CheckCircle2 size={14} /> Selected
                         </div>
                       )}
@@ -1201,7 +1201,7 @@ export default function AssessmentsView({
               </div>
 
               {filteredPlayers.length === 0 && (
-                <div className="text-center py-10 text-slate-400 text-sm font-semibold">
+                <div className="text-center py-10 text-slate-500 text-sm font-semibold">
                   No players match your search.
                 </div>
               )}
@@ -1209,21 +1209,21 @@ export default function AssessmentsView({
           )}
 
           {step === 2 && (
-            <div className="bg-white border border-slate-200/70 rounded-2xl shadow-md shadow-slate-100/30 p-5 sm:p-6 space-y-6">
+            <div className="rounded-2xl border border-cyan-300/10 bg-[#07111f]/88 text-slate-100 shadow-lg shadow-black/20 backdrop-blur-xl p-5 sm:p-6 space-y-6">
               <div>
-                <h3 className="font-display font-black text-slate-900 text-sm uppercase tracking-wide flex items-center gap-2">
-                  <SlidersHorizontal size={16} className="text-indigo-600" /> Setup
+                <h3 className="font-display font-black text-slate-100 text-sm uppercase tracking-wide flex items-center gap-2">
+                  <SlidersHorizontal size={16} className="text-cyan-300" /> Setup
                 </h3>
-                <p className="mt-1 text-xs font-semibold text-slate-500">
+                <p className="mt-1 text-xs font-semibold text-slate-400">
                   Role and age group are pre-filled from the player profile — adjust only if needed, then move on to record results.
                 </p>
               </div>
 
               <div>
                 <div className="flex items-center justify-between gap-2">
-                  <p className="text-[11px] font-black uppercase tracking-wider text-slate-500">Assessment role</p>
+                  <p className="text-[11px] font-black uppercase tracking-wider text-slate-400">Assessment role</p>
                   {selectedPlayer && getDefaultRoleForPlayer(selectedPlayer) === role && (
-                    <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[9px] font-black uppercase tracking-wider text-emerald-700">
+                    <span className="rounded-full border border-emerald-300/25 bg-emerald-300/[0.08] px-2 py-0.5 text-[9px] font-black uppercase tracking-wider text-emerald-200">
                       Auto from profile
                     </span>
                   )}
@@ -1239,14 +1239,14 @@ export default function AssessmentsView({
                         onClick={() => setRole(r)}
                         aria-label={`Select role ${ROLE_LABELS[r]}`}
                         className={`h-auto justify-start whitespace-normal rounded-xl px-3 py-2.5 text-left ${
-                          active ? 'border-indigo-300 bg-indigo-50 shadow-sm' : 'border-slate-200 bg-white hover:bg-slate-50'
+                          active ? 'border-cyan-300/30 bg-cyan-300/10 shadow-sm' : 'border-cyan-300/10 bg-white/[0.03] hover:bg-white/[0.03]'
                         }`}
                       >
                         <div className="flex w-full items-center justify-between gap-2">
-                          <span className="text-sm font-black text-slate-900">{ROLE_LABELS[r]}</span>
+                          <span className="text-sm font-black text-slate-100">{ROLE_LABELS[r]}</span>
                           {active
-                            ? <CheckCircle2 size={16} className="shrink-0 text-indigo-700" />
-                            : <span className="shrink-0 text-[10px] font-black uppercase tracking-wider text-slate-400">{r}</span>}
+                            ? <CheckCircle2 size={16} className="shrink-0 text-cyan-100" />
+                            : <span className="shrink-0 text-[10px] font-black uppercase tracking-wider text-slate-500">{r}</span>}
                         </div>
                       </Button>
                     );
@@ -1256,7 +1256,7 @@ export default function AssessmentsView({
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
-                  <label className="text-[11px] font-black uppercase tracking-wider text-slate-500">Assessment type</label>
+                  <label className="text-[11px] font-black uppercase tracking-wider text-slate-400">Assessment type</label>
                   <div className="grid grid-cols-2 gap-2">
                     {(['Full', 'Quick'] as AssessmentType[]).map(t => {
                       const active = assessmentType === t;
@@ -1268,7 +1268,7 @@ export default function AssessmentsView({
                           onClick={() => setAssessmentType(t)}
                           aria-label={`Select ${t} assessment`}
                           className={`rounded-xl px-4 py-2 text-xs font-black ${
-                            active ? 'border-indigo-300 bg-indigo-600 text-white' : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
+                            active ? 'border-cyan-300/30 bg-cyan-300/15 text-white' : 'border-cyan-300/10 bg-white/[0.03] text-slate-300 hover:bg-white/[0.03]'
                           }`}
                         >
                           {t}
@@ -1276,36 +1276,36 @@ export default function AssessmentsView({
                       );
                     })}
                   </div>
-                  <p className="text-[11px] text-slate-400 font-medium">
+                  <p className="text-[11px] text-slate-500 font-medium">
                     Full runs base + all role attributes. Quick runs base + top role attributes only.
                   </p>
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="flex items-center gap-1.5 text-[11px] font-black uppercase tracking-wider text-slate-500">
-                    <Calendar size={12} className="text-indigo-600" /> Assessment date
+                  <label className="flex items-center gap-1.5 text-[11px] font-black uppercase tracking-wider text-slate-400">
+                    <Calendar size={12} className="text-cyan-300" /> Assessment date
                   </label>
                   <Input
                     type="date"
                     value={assessmentDate}
                     onChange={(e) => setAssessmentDate(e.target.value)}
                     aria-label="Assessment date"
-                    className="rounded-xl border-slate-200 bg-white text-sm font-semibold text-slate-800 focus-visible:ring-indigo-100"
+                    className="rounded-xl border-cyan-300/10 bg-[#07111f]/70 text-sm font-semibold text-slate-100 focus-visible:ring-cyan-300/20 [color-scheme:dark]"
                   />
                 </div>
               </div>
 
               <div>
                 <div className="flex items-center justify-between gap-2">
-                  <p className="text-[11px] font-black uppercase tracking-wider text-slate-500">Age group</p>
+                  <p className="text-[11px] font-black uppercase tracking-wider text-slate-400">Age group</p>
                   {selectedPlayer?.dateOfBirth && assessmentDate && ageGroup !== ''
                     && computeAgeGroupFromDob(selectedPlayer.dateOfBirth, assessmentDate) === ageGroup && (
-                    <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[9px] font-black uppercase tracking-wider text-emerald-700">
+                    <span className="rounded-full border border-emerald-300/25 bg-emerald-300/[0.08] px-2 py-0.5 text-[9px] font-black uppercase tracking-wider text-emerald-200">
                       Auto from date of birth
                     </span>
                   )}
                 </div>
-                <p className="mt-1 text-[11px] font-medium text-slate-400">
+                <p className="mt-1 text-[11px] font-medium text-slate-500">
                   Benchmarks are age-grouped. Set this manually if the player has no saved date of birth.
                 </p>
                 <div className="mt-3 grid grid-cols-2 sm:grid-cols-4 gap-2">
@@ -1320,7 +1320,7 @@ export default function AssessmentsView({
                         onClick={() => setAgeGroup(g)}
                         aria-label={`Select age group ${g}`}
                         className={`rounded-xl px-4 py-2 text-xs font-black ${
-                          active ? 'border-indigo-300 bg-indigo-600 text-white' : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
+                          active ? 'border-cyan-300/30 bg-cyan-300/15 text-white' : 'border-cyan-300/10 bg-white/[0.03] text-slate-300 hover:bg-white/[0.03]'
                         }`}
                       >
                         {g}
@@ -1333,35 +1333,35 @@ export default function AssessmentsView({
           )}
 
           {step === 3 && (
-            <div className="bg-white border border-slate-200/70 rounded-2xl shadow-md shadow-slate-100/30 p-5 sm:p-6 space-y-6">
+            <div className="rounded-2xl border border-cyan-300/10 bg-[#07111f]/88 text-slate-100 shadow-lg shadow-black/20 backdrop-blur-xl p-5 sm:p-6 space-y-6">
               <div className="flex items-center justify-between gap-3">
-                <h3 className="font-display font-black text-slate-900 text-sm uppercase tracking-wide flex items-center gap-2">
-                  <Gauge size={16} className="text-indigo-600" /> Enter Results
+                <h3 className="font-display font-black text-slate-100 text-sm uppercase tracking-wide flex items-center gap-2">
+                  <Gauge size={16} className="text-cyan-300" /> Enter Results
                 </h3>
-                <span className="hidden text-[11px] font-semibold text-slate-400 sm:inline">
+                <span className="hidden text-[11px] font-semibold text-slate-500 sm:inline">
                   Ratings update live against age-group benchmarks
                 </span>
               </div>
 
               {selectedPlayer && (
-                <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-slate-50/70 px-4 py-3">
+                <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-cyan-300/10 bg-[#0b1726]/70 px-4 py-3">
                   <div className="flex min-w-0 items-center gap-3">
                     <img
                       src={selectedPlayer.photoUrl}
                       alt=""
-                      className="h-10 w-10 shrink-0 rounded-xl border border-slate-200 object-cover"
+                      className="h-10 w-10 shrink-0 rounded-xl border border-cyan-300/10 object-cover"
                       referrerPolicy="no-referrer"
                     />
                     <div className="min-w-0">
-                      <p className="truncate text-sm font-black text-slate-900">{selectedPlayer.name}</p>
-                      <p className="mt-0.5 truncate text-[11px] font-semibold text-slate-500">
+                      <p className="truncate text-sm font-black text-slate-100">{selectedPlayer.name}</p>
+                      <p className="mt-0.5 truncate text-[11px] font-semibold text-slate-400">
                         #{selectedPlayer.number || '—'} · {ROLE_LABELS[role]} · {ageGroup || 'No age group'} · {assessmentType}
                       </p>
                     </div>
                   </div>
-                  <div className="rounded-xl border border-indigo-100 bg-white px-3 py-1.5 text-center">
-                    <p className="text-[8px] font-black uppercase tracking-widest text-slate-400">Projected OVR</p>
-                    <p className="text-lg font-display font-black leading-none text-indigo-700">
+                  <div className="rounded-xl border border-cyan-300/15 bg-white/[0.03] px-3 py-1.5 text-center">
+                    <p className="text-[8px] font-black uppercase tracking-widest text-slate-500">Projected OVR</p>
+                    <p className="text-lg font-display font-black leading-none text-cyan-100">
                       {scorePreview && scorePreview.ok ? scorePreview.ovr : '—'}
                     </p>
                   </div>
@@ -1373,8 +1373,8 @@ export default function AssessmentsView({
                 errors={showAssessmentSubmitErrors ? assessmentSubmitErrors : {}}
               />
 
-              <div className="rounded-2xl border border-slate-200 bg-slate-50/50 p-4">
-                <p className="text-[11px] font-black uppercase tracking-wider text-slate-500">Base attributes (all players)</p>
+              <div className="rounded-2xl border border-cyan-300/10 bg-[#0b1726]/60 p-4">
+                <p className="text-[11px] font-black uppercase tracking-wider text-slate-400">Base attributes (all players)</p>
                 <div className="mt-3 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
                   <NumberInput
                     id="base-sprint10"
@@ -1487,8 +1487,8 @@ export default function AssessmentsView({
                 </div>
               </div>
 
-              <div className="rounded-2xl border border-slate-200 bg-white p-4">
-                <p className="text-[11px] font-black uppercase tracking-wider text-slate-500">Role attributes ({ROLE_LABELS[role]})</p>
+              <div className="rounded-2xl border border-cyan-300/10 bg-white/[0.03] p-4">
+                <p className="text-[11px] font-black uppercase tracking-wider text-slate-400">Role attributes ({ROLE_LABELS[role]})</p>
                 <div className="mt-3 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
                   {requiredRoleFields.map(f => (
                     <NumberInput
@@ -1519,8 +1519,8 @@ export default function AssessmentsView({
                   aria-label="Save assessment"
                   className={`rounded-xl border px-4 py-2 text-xs font-black ${
                     scorePreview && scorePreview.ok
-                      ? 'border-emerald-200 bg-emerald-600 text-white hover:bg-emerald-700'
-                      : 'border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100'
+                      ? 'border-emerald-300/25 bg-emerald-500/80 text-white hover:bg-emerald-500'
+                      : 'border-rose-400/25 bg-rose-400/[0.08] text-rose-200 hover:bg-rose-400/12'
                   }`}
                 >
                   <Save size={14} /> Save assessment
@@ -1530,13 +1530,13 @@ export default function AssessmentsView({
           )}
 
           {step === 4 && (
-            <div className="bg-white border border-slate-200/70 rounded-2xl shadow-md shadow-slate-100/30 p-5 sm:p-6 space-y-4">
+            <div className="rounded-2xl border border-cyan-300/10 bg-[#07111f]/88 text-slate-100 shadow-lg shadow-black/20 backdrop-blur-xl p-5 sm:p-6 space-y-4">
               <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                 <div>
-                  <h3 className="font-display font-black text-slate-900 text-sm uppercase tracking-wide flex items-center gap-2">
-                    <Sparkles size={16} className="text-indigo-600" /> {selectedPlayer ? 'Assessment History' : 'Team Assessment History'}
+                  <h3 className="font-display font-black text-slate-100 text-sm uppercase tracking-wide flex items-center gap-2">
+                    <Sparkles size={16} className="text-cyan-300" /> {selectedPlayer ? 'Assessment History' : 'Team Assessment History'}
                   </h3>
-                  <p className="mt-1 text-xs font-semibold text-slate-500">
+                  <p className="mt-1 text-xs font-semibold text-slate-400">
                     {selectedPlayer
                       ? `Review saved sessions, reports, and notes for ${selectedPlayer.name}.`
                       : 'Choose an assessed player to view organized history, reports, and notes.'}
@@ -1546,71 +1546,71 @@ export default function AssessmentsView({
 
               <div className="flex flex-col gap-3">
                   {!selectedPlayer && assessedPlayerSummaries.length === 0 && (
-                    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5 text-sm text-slate-500 font-semibold">
+                    <div className="rounded-2xl border border-cyan-300/10 bg-white/[0.03] p-5 text-sm text-slate-400 font-semibold">
                       No team assessments saved yet. Start a new assessment from the player roster to build history.
                     </div>
                   )}
 
                   {!selectedPlayer && assessedPlayerSummaries.length > 0 && (
                     <div className="space-y-4">
-                      <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
+                      <div className="rounded-2xl border border-cyan-300/10 bg-[#0b1726]/70 p-4">
                         <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
                           <div>
-                            <p className="text-[11px] font-black uppercase tracking-wider text-slate-500">Assessment center</p>
-                            <h4 className="mt-1 text-base font-display font-black text-slate-900">Team assessment overview</h4>
-                            <p className="mt-1 max-w-2xl text-xs font-semibold text-slate-500">
+                            <p className="text-[11px] font-black uppercase tracking-wider text-slate-400">Assessment center</p>
+                            <h4 className="mt-1 text-base font-display font-black text-slate-100">Team assessment overview</h4>
+                            <p className="mt-1 max-w-2xl text-xs font-semibold text-slate-400">
                               Scan latest FPRDS results, filter by role, then open a player for reports, notes, and session history.
                             </p>
                           </div>
 
                           <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 xl:min-w-[520px]">
-                            <div className="rounded-xl border border-slate-200 bg-white px-3 py-3">
-                              <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Players</p>
-                              <p className="mt-1 text-xl font-display font-black leading-none text-slate-900">{teamAssessmentStats.assessedPlayers}</p>
+                            <div className="rounded-xl border border-cyan-300/10 bg-white/[0.03] px-3 py-3">
+                              <p className="text-[9px] font-black uppercase tracking-widest text-slate-500">Players</p>
+                              <p className="mt-1 text-xl font-display font-black leading-none text-slate-100">{teamAssessmentStats.assessedPlayers}</p>
                             </div>
-                            <div className="rounded-xl border border-slate-200 bg-white px-3 py-3">
-                              <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Sessions</p>
-                              <p className="mt-1 text-xl font-display font-black leading-none text-slate-900">{teamAssessmentStats.totalSessions}</p>
+                            <div className="rounded-xl border border-cyan-300/10 bg-white/[0.03] px-3 py-3">
+                              <p className="text-[9px] font-black uppercase tracking-widest text-slate-500">Sessions</p>
+                              <p className="mt-1 text-xl font-display font-black leading-none text-slate-100">{teamAssessmentStats.totalSessions}</p>
                             </div>
-                            <div className="rounded-xl border border-slate-200 bg-white px-3 py-3">
-                              <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Avg OVR</p>
-                              <p className="mt-1 text-xl font-display font-black leading-none text-slate-900">{teamAssessmentStats.averageLatestOvr ?? '-'}</p>
+                            <div className="rounded-xl border border-cyan-300/10 bg-white/[0.03] px-3 py-3">
+                              <p className="text-[9px] font-black uppercase tracking-widest text-slate-500">Avg OVR</p>
+                              <p className="mt-1 text-xl font-display font-black leading-none text-slate-100">{teamAssessmentStats.averageLatestOvr ?? '-'}</p>
                             </div>
-                            <div className="rounded-xl border border-slate-200 bg-white px-3 py-3">
-                              <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Latest</p>
-                              <p className="mt-1 text-sm font-black leading-tight text-slate-900">{teamAssessmentStats.latestDate ?? '-'}</p>
+                            <div className="rounded-xl border border-cyan-300/10 bg-white/[0.03] px-3 py-3">
+                              <p className="text-[9px] font-black uppercase tracking-widest text-slate-500">Latest</p>
+                              <p className="mt-1 text-sm font-black leading-tight text-slate-100">{teamAssessmentStats.latestDate ?? '-'}</p>
                             </div>
                           </div>
                         </div>
                       </div>
 
-                      <div className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-4 md:flex-row md:items-end md:justify-between">
+                      <div className="flex flex-col gap-3 rounded-2xl border border-cyan-300/10 bg-white/[0.03] p-4 md:flex-row md:items-end md:justify-between">
                         <div className="relative w-full md:max-w-sm">
-                          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
                           <Input
                             value={teamHistorySearch}
                             onChange={(e) => setTeamHistorySearch(e.target.value)}
                             placeholder="Search player, number, position, or role"
                             aria-label="Search assessed players"
-                            className="rounded-xl border-slate-200 bg-white pl-9 pr-3 text-sm font-semibold text-slate-800 focus-visible:ring-indigo-100"
+                            className="rounded-xl border-cyan-300/10 bg-white/[0.03] pl-9 pr-3 text-sm font-semibold text-slate-100 focus-visible:ring-cyan-300/20"
                           />
                         </div>
                         <label className="w-full space-y-1 md:max-w-[220px]">
-                          <span className="block text-[10px] font-black uppercase tracking-wider text-slate-500">Latest role</span>
+                          <span className="block text-[10px] font-black uppercase tracking-wider text-slate-400">Latest role</span>
                           <Select
                             value={teamHistoryRoleFilter}
                             onValueChange={(value) => setTeamHistoryRoleFilter(value as FprdsRole | 'all')}
                           >
                             <SelectTrigger
                               aria-label="Filter assessment history by latest role"
-                              className="h-10 rounded-xl border-slate-200 bg-white text-xs font-bold text-slate-700 focus:ring-indigo-100"
+                              className="h-10 rounded-xl border-cyan-300/10 bg-[#07111f]/70 text-xs font-bold text-slate-200 focus:ring-cyan-300/20"
                             >
                               <SelectValue />
                             </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="all">All roles</SelectItem>
+                            <SelectContent className="border-cyan-300/15 bg-[#07111f] text-slate-100 shadow-2xl shadow-black/35">
+                              <SelectItem value="all" className="text-slate-200 focus:bg-cyan-300/12 focus:text-cyan-50 data-[state=checked]:bg-cyan-300/10 data-[state=checked]:text-cyan-50">All roles</SelectItem>
                               {(['ST', 'W', 'CM', 'CDM', 'FB', 'CB', 'GK'] as FprdsRole[]).map((roleOption) => (
-                                <SelectItem key={roleOption} value={roleOption}>{ROLE_LABELS[roleOption]}</SelectItem>
+                                <SelectItem key={roleOption} value={roleOption} className="text-slate-200 focus:bg-cyan-300/12 focus:text-cyan-50 data-[state=checked]:bg-cyan-300/10 data-[state=checked]:text-cyan-50">{ROLE_LABELS[roleOption]}</SelectItem>
                               ))}
                             </SelectContent>
                           </Select>
@@ -1618,12 +1618,12 @@ export default function AssessmentsView({
                       </div>
 
                       {filteredAssessedPlayerSummaries.length === 0 ? (
-                        <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-5 text-sm font-semibold text-slate-500">
+                        <div className="rounded-2xl border border-dashed border-cyan-300/10 bg-white/[0.03] p-5 text-sm font-semibold text-slate-400">
                           No assessed players match the current search or role filter.
                         </div>
                       ) : (
-                        <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
-                          <div className="hidden grid-cols-[minmax(220px,1.6fr)_120px_120px_130px_110px] gap-3 border-b border-slate-200 bg-slate-50 px-4 py-3 text-[10px] font-black uppercase tracking-wider text-slate-500 md:grid">
+                        <div className="overflow-hidden rounded-2xl border border-cyan-300/10 bg-white/[0.03]">
+                          <div className="hidden grid-cols-[minmax(220px,1.6fr)_120px_120px_130px_110px] gap-3 border-b border-cyan-300/10 bg-white/[0.03] px-4 py-3 text-[10px] font-black uppercase tracking-wider text-slate-400 md:grid">
                             <span>Player</span>
                             <span>Latest OVR</span>
                             <span>Role</span>
@@ -1631,50 +1631,50 @@ export default function AssessmentsView({
                             <span className="text-right">Sessions</span>
                           </div>
 
-                          <div className="divide-y divide-slate-200">
+                          <div className="divide-y divide-cyan-300/10">
                             {filteredAssessedPlayerSummaries.map(({ player, latest, sessionCount }) => (
                               <button
                                 key={player.id}
                                 type="button"
                                 onClick={() => setSelectedPlayerId(player.id)}
                                 aria-label={`Open assessment history for ${player.name}`}
-                                className="grid w-full grid-cols-1 gap-3 px-4 py-4 text-left transition hover:bg-indigo-50/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-indigo-200 md:grid-cols-[minmax(220px,1.6fr)_120px_120px_130px_110px] md:items-center"
+                                className="grid w-full grid-cols-1 gap-3 px-4 py-4 text-left transition hover:bg-cyan-300/[0.05] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-cyan-300/25 md:grid-cols-[minmax(220px,1.6fr)_120px_120px_130px_110px] md:items-center"
                               >
                                 <div className="flex min-w-0 items-center gap-3">
                                   <img
                                     src={player.photoUrl}
                                     alt=""
-                                    className="h-11 w-11 shrink-0 rounded-xl border border-slate-200 object-cover"
+                                    className="h-11 w-11 shrink-0 rounded-xl border border-cyan-300/10 object-cover"
                                     referrerPolicy="no-referrer"
                                   />
                                   <div className="min-w-0">
-                                    <p className="truncate text-sm font-black text-slate-900">{player.name}</p>
-                                    <p className="mt-0.5 truncate text-xs font-semibold text-slate-500">
+                                    <p className="truncate text-sm font-black text-slate-100">{player.name}</p>
+                                    <p className="mt-0.5 truncate text-xs font-semibold text-slate-400">
                                       #{player.number || '-'} - {player.position}
                                     </p>
                                   </div>
                                 </div>
 
                                 <div className="flex items-center justify-between gap-3 md:block">
-                                  <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 md:hidden">Latest OVR</span>
-                                  <span className="inline-flex min-w-14 justify-center rounded-xl border border-indigo-100 bg-indigo-50 px-3 py-2 text-lg font-display font-black leading-none text-indigo-700">
+                                  <span className="text-[10px] font-black uppercase tracking-wider text-slate-500 md:hidden">Latest OVR</span>
+                                  <span className="inline-flex min-w-14 justify-center rounded-xl border border-cyan-300/15 bg-cyan-300/10 px-3 py-2 text-lg font-display font-black leading-none text-cyan-100">
                                     {latest.ovr}
                                   </span>
                                 </div>
 
                                 <div className="flex items-center justify-between gap-3 md:block">
-                                  <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 md:hidden">Role</span>
-                                  <span className="text-xs font-black text-slate-800">{ROLE_LABELS[latest.role]}</span>
+                                  <span className="text-[10px] font-black uppercase tracking-wider text-slate-500 md:hidden">Role</span>
+                                  <span className="text-xs font-black text-slate-100">{ROLE_LABELS[latest.role]}</span>
                                 </div>
 
                                 <div className="flex items-center justify-between gap-3 md:block">
-                                  <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 md:hidden">Last assessed</span>
-                                  <span className="text-xs font-black text-slate-800">{latest.assessmentDate}</span>
+                                  <span className="text-[10px] font-black uppercase tracking-wider text-slate-500 md:hidden">Last assessed</span>
+                                  <span className="text-xs font-black text-slate-100">{latest.assessmentDate}</span>
                                 </div>
 
                                 <div className="flex items-center justify-between gap-3 md:justify-end">
-                                  <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 md:hidden">Sessions</span>
-                                  <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-black text-slate-700">
+                                  <span className="text-[10px] font-black uppercase tracking-wider text-slate-500 md:hidden">Sessions</span>
+                                  <span className="rounded-full border border-cyan-300/10 bg-white/[0.03] px-3 py-1 text-xs font-black text-slate-300">
                                     {sessionCount}
                                   </span>
                                 </div>
@@ -1687,38 +1687,38 @@ export default function AssessmentsView({
                   )}
 
                   {selectedPlayer && playerAssessments.length === 0 && (
-                    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-500 font-semibold">
+                    <div className="rounded-2xl border border-cyan-300/10 bg-white/[0.03] p-4 text-sm text-slate-400 font-semibold">
                       No assessments saved for this player yet.
                     </div>
                   )}
 
                   {selectedPlayer && assessmentProgressSeries.length > 0 && (
-                    <div className="order-3 rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
+                    <div className="order-3 rounded-2xl border border-cyan-300/10 bg-[#0b1726]/70 p-4">
                       <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                         <div>
-                          <p className="text-[11px] font-black uppercase tracking-wider text-slate-500">Historical progress</p>
-                          <h4 className="mt-1 text-sm font-black text-slate-900">Saved assessment trend</h4>
-                          <p className="mt-1 text-xs font-semibold text-slate-500">
+                          <p className="text-[11px] font-black uppercase tracking-wider text-slate-400">Historical progress</p>
+                          <h4 className="mt-1 text-sm font-black text-slate-100">Saved assessment trend</h4>
+                          <p className="mt-1 text-xs font-semibold text-slate-400">
                             Built from actual saved assessment sessions for {selectedPlayer.name}.
                           </p>
                         </div>
                         <div className="grid grid-cols-3 gap-2 text-center">
-                          <div className="rounded-xl border border-slate-200 bg-white px-3 py-2">
-                            <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Sessions</p>
-                            <p className="text-lg font-display font-black text-slate-900 leading-none">{assessmentProgressSeries.length}</p>
+                          <div className="rounded-xl border border-cyan-300/10 bg-white/[0.03] px-3 py-2">
+                            <p className="text-[9px] font-black uppercase tracking-widest text-slate-500">Sessions</p>
+                            <p className="text-lg font-display font-black text-slate-100 leading-none">{assessmentProgressSeries.length}</p>
                           </div>
-                          <div className="rounded-xl border border-slate-200 bg-white px-3 py-2">
-                            <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Latest OVR</p>
-                            <p className="text-lg font-display font-black text-slate-900 leading-none">
+                          <div className="rounded-xl border border-cyan-300/10 bg-white/[0.03] px-3 py-2">
+                            <p className="text-[9px] font-black uppercase tracking-widest text-slate-500">Latest OVR</p>
+                            <p className="text-lg font-display font-black text-slate-100 leading-none">
                               {assessmentProgressSeries[assessmentProgressSeries.length - 1].ovr}
                             </p>
                           </div>
-                          <div className="rounded-xl border border-slate-200 bg-white px-3 py-2">
-                            <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Change</p>
+                          <div className="rounded-xl border border-cyan-300/10 bg-white/[0.03] px-3 py-2">
+                            <p className="text-[9px] font-black uppercase tracking-widest text-slate-500">Change</p>
                             <p className={`text-lg font-display font-black leading-none ${
                               progressDelta === null
-                                ? 'text-slate-400'
-                                : progressDelta >= 0 ? 'text-emerald-600' : 'text-rose-600'
+                                ? 'text-slate-500'
+                                : progressDelta >= 0 ? 'text-emerald-300' : 'text-rose-300'
                             }`}>
                               {progressDelta === null ? '-' : progressDelta >= 0 ? `+${progressDelta}` : progressDelta}
                             </p>
@@ -1727,27 +1727,27 @@ export default function AssessmentsView({
                       </div>
 
                       <div className="mt-4 grid grid-cols-1 xl:grid-cols-2 gap-4">
-                        <div className="rounded-2xl border border-white bg-white p-4">
+                        <div className="rounded-2xl border border-cyan-300/10 bg-white/[0.03] p-4">
                           <div className="flex items-center justify-between gap-3">
-                            <p className="text-[10px] font-black uppercase tracking-wider text-slate-500">OVR timeline</p>
-                            <span className="text-[9px] font-black uppercase tracking-widest text-indigo-700 bg-indigo-50 border border-indigo-100 rounded-full px-2 py-1">
+                            <p className="text-[10px] font-black uppercase tracking-wider text-slate-400">OVR timeline</p>
+                            <span className="text-[9px] font-black uppercase tracking-widest text-cyan-100 bg-cyan-300/10 border border-cyan-300/15 rounded-full px-2 py-1">
                               All roles
                             </span>
                           </div>
                           <div className="mt-3 h-[220px] w-full">
                             <ResponsiveContainer width="100%" height="100%">
                               <LineChart data={assessmentProgressSeries} margin={{ top: 10, right: 12, left: -25, bottom: 0 }}>
-                                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
-                                <XAxis dataKey="label" tick={{ fill: '#64748b', fontSize: 10, fontWeight: 700 }} axisLine={false} tickLine={false} />
-                                <YAxis domain={[10, 99]} tick={{ fill: '#64748b', fontSize: 10, fontWeight: 700 }} axisLine={false} tickLine={false} allowDecimals={false} />
+                                <CartesianGrid strokeDasharray="3 3" stroke="#1e2b3d" vertical={false} />
+                                <XAxis dataKey="label" tick={{ fill: '#94a3b8', fontSize: 10, fontWeight: 700 }} axisLine={false} tickLine={false} />
+                                <YAxis domain={[10, 99]} tick={{ fill: '#94a3b8', fontSize: 10, fontWeight: 700 }} axisLine={false} tickLine={false} allowDecimals={false} />
                                 <Tooltip content={<AssessmentProgressTooltip />} />
                                 <Line
                                   name="OVR"
                                   type="monotone"
                                   dataKey="ovr"
-                                  stroke="#4f46e5"
+                                  stroke="#22d3ee"
                                   strokeWidth={3}
-                                  dot={{ r: 4, strokeWidth: 2, fill: '#ffffff', stroke: '#4f46e5' }}
+                                  dot={{ r: 4, strokeWidth: 2, fill: '#0b1726', stroke: '#22d3ee' }}
                                   activeDot={{ r: 5, strokeWidth: 0 }}
                                 />
                               </LineChart>
@@ -1755,16 +1755,16 @@ export default function AssessmentsView({
                           </div>
                         </div>
 
-                        <div className="rounded-2xl border border-white bg-white p-4">
+                        <div className="rounded-2xl border border-cyan-300/10 bg-white/[0.03] p-4">
                           <div className="flex items-center justify-between gap-3">
-                            <p className="text-[10px] font-black uppercase tracking-wider text-slate-500">Role attribute trend</p>
-                            <span className="text-[9px] font-black uppercase tracking-widest text-emerald-700 bg-emerald-50 border border-emerald-100 rounded-full px-2 py-1">
+                            <p className="text-[10px] font-black uppercase tracking-wider text-slate-400">Role attribute trend</p>
+                            <span className="text-[9px] font-black uppercase tracking-widest text-emerald-200 bg-emerald-300/[0.08] border border-emerald-300/20 rounded-full px-2 py-1">
                               {latestProgressRole ? ROLE_LABELS[latestProgressRole] : 'No role'}
                             </span>
                           </div>
                           {roleAttributeTrendData.length < 2 ? (
-                            <div className="mt-3 flex min-h-[220px] items-center justify-center rounded-xl border border-dashed border-slate-200 bg-slate-50 p-4 text-center">
-                              <p className="max-w-xs text-xs font-semibold text-slate-500">
+                            <div className="mt-3 flex min-h-[220px] items-center justify-center rounded-xl border border-dashed border-cyan-300/10 bg-white/[0.03] p-4 text-center">
+                              <p className="max-w-xs text-xs font-semibold text-slate-400">
                                 Save at least two assessments with the same latest role to compare role-weighted attributes over time.
                               </p>
                             </div>
@@ -1772,9 +1772,9 @@ export default function AssessmentsView({
                             <div className="mt-3 h-[220px] w-full">
                               <ResponsiveContainer width="100%" height="100%">
                                 <LineChart data={roleAttributeTrendData} margin={{ top: 10, right: 12, left: -25, bottom: 0 }}>
-                                  <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
-                                  <XAxis dataKey="label" tick={{ fill: '#64748b', fontSize: 10, fontWeight: 700 }} axisLine={false} tickLine={false} />
-                                  <YAxis domain={[10, 99]} tick={{ fill: '#64748b', fontSize: 10, fontWeight: 700 }} axisLine={false} tickLine={false} allowDecimals={false} />
+                                  <CartesianGrid strokeDasharray="3 3" stroke="#1e2b3d" vertical={false} />
+                                  <XAxis dataKey="label" tick={{ fill: '#94a3b8', fontSize: 10, fontWeight: 700 }} axisLine={false} tickLine={false} />
+                                  <YAxis domain={[10, 99]} tick={{ fill: '#94a3b8', fontSize: 10, fontWeight: 700 }} axisLine={false} tickLine={false} allowDecimals={false} />
                                   <Tooltip content={<AssessmentProgressTooltip />} />
                                   {weightedProgressAttributes.map((attributeId, index) => (
                                     <Line
@@ -1784,7 +1784,7 @@ export default function AssessmentsView({
                                       dataKey={attributeId}
                                       stroke={ATTRIBUTE_LINE_COLORS[index % ATTRIBUTE_LINE_COLORS.length]}
                                       strokeWidth={2.5}
-                                      dot={{ r: 3, strokeWidth: 1.5, fill: '#ffffff', stroke: ATTRIBUTE_LINE_COLORS[index % ATTRIBUTE_LINE_COLORS.length] }}
+                                      dot={{ r: 3, strokeWidth: 1.5, fill: '#0b1726', stroke: ATTRIBUTE_LINE_COLORS[index % ATTRIBUTE_LINE_COLORS.length] }}
                                       activeDot={{ r: 5, strokeWidth: 0 }}
                                     />
                                   ))}
@@ -1798,54 +1798,54 @@ export default function AssessmentsView({
                   )}
 
                   {selectedPlayer && playerFeedbackReport && (
-                    <div className="order-4 rounded-2xl border border-slate-200 bg-white p-4">
+                    <div className="order-4 rounded-2xl border border-cyan-300/10 bg-white/[0.03] p-4">
                       <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                         <div>
-                          <p className="flex items-center gap-2 text-[11px] font-black uppercase tracking-wider text-slate-500">
-                            <MessageSquareText size={14} className="text-indigo-600" /> Coach feedback report
+                          <p className="flex items-center gap-2 text-[11px] font-black uppercase tracking-wider text-slate-400">
+                            <MessageSquareText size={14} className="text-cyan-300" /> Coach feedback report
                           </p>
-                          <h4 className="mt-1 text-sm font-black text-slate-900">What to tell {selectedPlayer.name}</h4>
-                          <p className="mt-1 text-xs font-semibold text-slate-500">
+                          <h4 className="mt-1 text-sm font-black text-slate-100">What to tell {selectedPlayer.name}</h4>
+                          <p className="mt-1 text-xs font-semibold text-slate-400">
                             A player-facing summary built from the latest assessment, trend, role priorities, and development plan.
                           </p>
                         </div>
                       </div>
 
                       <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-3">
-                        <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-3">
-                          <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Trend</p>
+                        <div className="rounded-xl border border-cyan-300/10 bg-white/[0.03] px-3 py-3">
+                          <p className="text-[9px] font-black uppercase tracking-widest text-slate-500">Trend</p>
                           <p className={`mt-1 text-sm font-black leading-tight ${
                             playerFeedbackReport.trendTone === 'positive'
-                              ? 'text-emerald-600'
-                              : playerFeedbackReport.trendTone === 'negative' ? 'text-rose-600' : 'text-slate-800'
+                              ? 'text-emerald-300'
+                              : playerFeedbackReport.trendTone === 'negative' ? 'text-rose-300' : 'text-slate-100'
                           }`}>
                             {playerFeedbackReport.trendLabel}
                           </p>
                         </div>
-                        <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-3">
-                          <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Role</p>
-                          <p className="mt-1 text-sm font-black leading-tight text-slate-900">{ROLE_LABELS[playerFeedbackReport.role]}</p>
+                        <div className="rounded-xl border border-cyan-300/10 bg-white/[0.03] px-3 py-3">
+                          <p className="text-[9px] font-black uppercase tracking-widest text-slate-500">Role</p>
+                          <p className="mt-1 text-sm font-black leading-tight text-slate-100">{ROLE_LABELS[playerFeedbackReport.role]}</p>
                         </div>
-                        <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-3">
-                          <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Latest date</p>
-                          <p className="mt-1 text-sm font-black leading-tight text-slate-900">{playerFeedbackReport.latestSession.assessmentDate}</p>
+                        <div className="rounded-xl border border-cyan-300/10 bg-white/[0.03] px-3 py-3">
+                          <p className="text-[9px] font-black uppercase tracking-widest text-slate-500">Latest date</p>
+                          <p className="mt-1 text-sm font-black leading-tight text-slate-100">{playerFeedbackReport.latestSession.assessmentDate}</p>
                         </div>
                       </div>
 
                       <div className="mt-4">
-                        <div className="rounded-2xl border border-indigo-100 bg-indigo-50/60 p-4">
-                          <p className="flex items-center gap-2 text-[10px] font-black uppercase tracking-wider text-indigo-700">
+                        <div className="rounded-2xl border border-cyan-300/15 bg-cyan-300/[0.06] p-4">
+                          <p className="flex items-center gap-2 text-[10px] font-black uppercase tracking-wider text-cyan-100">
                             <MessageSquareText size={14} /> What to tell the player
                           </p>
-                          <h5 className="mt-2 text-sm font-bold text-slate-900">{playerFeedbackReport.feedback.headline}</h5>
-                          <div className="mt-3 space-y-3 rounded-xl border border-indigo-100 bg-white/75 p-4">
+                          <h5 className="mt-2 text-sm font-bold text-slate-100">{playerFeedbackReport.feedback.headline}</h5>
+                          <div className="mt-3 space-y-3 rounded-xl border border-cyan-300/15 bg-white/[0.03]/75 p-4">
                             {[
                               playerFeedbackReport.feedback.opening,
                               playerFeedbackReport.feedback.praise,
                               playerFeedbackReport.feedback.correction,
                               playerFeedbackReport.feedback.focus
                             ].map((line) => (
-                              <p key={line} className="text-sm font-normal leading-6 text-slate-700">
+                              <p key={line} className="text-sm font-normal leading-6 text-slate-300">
                                 {line}
                               </p>
                             ))}
@@ -1854,38 +1854,38 @@ export default function AssessmentsView({
                       </div>
 
                       <div className="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-2">
-                        <div className="rounded-2xl border border-slate-200 bg-white p-4">
-                          <p className="text-[10px] font-black uppercase tracking-wider text-slate-500">Keep building</p>
+                        <div className="rounded-2xl border border-cyan-300/10 bg-white/[0.03] p-4">
+                          <p className="text-[10px] font-black uppercase tracking-wider text-slate-400">Keep building</p>
                           <div className="mt-3 space-y-2">
                             {playerFeedbackReport.strengths.map((item) => (
-                              <div key={`feedback-strength-${item.attributeId}`} className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
+                              <div key={`feedback-strength-${item.attributeId}`} className="flex items-center justify-between gap-3 rounded-xl border border-cyan-300/10 bg-white/[0.03] px-3 py-2">
                                 <div className="min-w-0">
-                                  <p className="truncate text-xs font-black text-slate-900">{item.displayName}</p>
-                                  <p className="mt-0.5 text-[11px] font-semibold text-slate-500">{item.coachPhrase}</p>
+                                  <p className="truncate text-xs font-black text-slate-100">{item.displayName}</p>
+                                  <p className="mt-0.5 text-[11px] font-semibold text-slate-400">{item.coachPhrase}</p>
                                   <p className={`mt-0.5 text-[10px] font-black ${item.color}`}>{item.label}</p>
                                 </div>
-                                <span className="shrink-0 text-base font-display font-black text-slate-900">{item.score}</span>
+                                <span className="shrink-0 text-base font-display font-black text-slate-100">{item.score}</span>
                               </div>
                             ))}
                           </div>
                         </div>
 
-                        <div className="rounded-2xl border border-slate-200 bg-white p-4">
-                          <p className="flex items-center gap-2 text-[10px] font-black uppercase tracking-wider text-slate-500">
-                            <Target size={14} className="text-amber-600" /> Priority focus
+                        <div className="rounded-2xl border border-cyan-300/10 bg-white/[0.03] p-4">
+                          <p className="flex items-center gap-2 text-[10px] font-black uppercase tracking-wider text-slate-400">
+                            <Target size={14} className="text-amber-300" /> Priority focus
                           </p>
                           <div className="mt-3 space-y-2">
                             {playerFeedbackReport.priorities.map((item) => (
-                              <div key={`feedback-priority-${item.attributeId}`} className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2">
+                              <div key={`feedback-priority-${item.attributeId}`} className="rounded-xl border border-amber-300/25 bg-amber-300/[0.08] px-3 py-2">
                                 <div className="flex items-center justify-between gap-3">
                                   <div className="min-w-0">
-                                    <p className="truncate text-xs font-black text-slate-900">{item.displayName}</p>
-                                    <p className="mt-0.5 text-[11px] font-semibold text-amber-800">{item.coachPhrase}</p>
+                                    <p className="truncate text-xs font-black text-slate-100">{item.displayName}</p>
+                                    <p className="mt-0.5 text-[11px] font-semibold text-amber-100">{item.coachPhrase}</p>
                                     <p className={`mt-0.5 text-[10px] font-black ${item.color}`}>{item.label}</p>
                                   </div>
-                                  <span className="shrink-0 text-base font-display font-black text-slate-900">{item.score}</span>
+                                  <span className="shrink-0 text-base font-display font-black text-slate-100">{item.score}</span>
                                 </div>
-                                <p className="mt-1 text-[11px] font-semibold leading-relaxed text-amber-800">
+                                <p className="mt-1 text-[11px] font-semibold leading-relaxed text-amber-100">
                                   {item.reason}
                                 </p>
                               </div>
@@ -1894,13 +1894,13 @@ export default function AssessmentsView({
                         </div>
                       </div>
 
-                      <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
-                        <p className="text-[10px] font-black uppercase tracking-wider text-slate-500">Next conversation prompts</p>
+                      <div className="mt-4 rounded-2xl border border-cyan-300/10 bg-[#0b1726]/70 p-4">
+                        <p className="text-[10px] font-black uppercase tracking-wider text-slate-400">Next conversation prompts</p>
                         <div className="mt-3 grid grid-cols-1 gap-2 md:grid-cols-3">
                           {playerFeedbackReport.conversationPrompts.map((prompt, index) => (
-                            <div key={`feedback-prompt-${prompt}`} className="rounded-xl border border-slate-200 bg-white p-3">
-                              <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Prompt {index + 1}</p>
-                              <p className="mt-1 text-xs font-semibold leading-relaxed text-slate-700">{prompt}</p>
+                            <div key={`feedback-prompt-${prompt}`} className="rounded-xl border border-cyan-300/10 bg-white/[0.03] p-3">
+                              <p className="text-[9px] font-black uppercase tracking-widest text-slate-500">Prompt {index + 1}</p>
+                              <p className="mt-1 text-xs font-semibold leading-relaxed text-slate-300">{prompt}</p>
                             </div>
                           ))}
                         </div>
@@ -1910,13 +1910,13 @@ export default function AssessmentsView({
 
                   {selectedPlayer && playerAssessments.map((s) => {
                     return (
-                    <div key={s.id} className="order-2 rounded-2xl border border-slate-200 bg-white p-4">
+                    <div key={s.id} className="order-2 rounded-2xl border border-cyan-300/10 bg-white/[0.03] p-4">
                       <div className="flex items-start justify-between gap-3">
                         <div>
-                          <p className="text-xs font-black text-slate-900">
+                          <p className="text-xs font-black text-slate-100">
                             {s.assessmentDate} • {ROLE_LABELS[s.role]} • {s.assessmentType}
                           </p>
-                          <p className="mt-1 text-[11px] text-slate-500 font-semibold">
+                          <p className="mt-1 text-[11px] text-slate-400 font-semibold">
                             Age group: {s.ageGroup} • OVR tier: {s.labels.ovrTierLabel}
                           </p>
                         </div>
@@ -1928,8 +1928,8 @@ export default function AssessmentsView({
                             onClick={() => setBetaSubmissionSession(s)}
                             aria-label={`Share assessment from ${s.assessmentDate} with the FPRDS beta`}
                             className={submittedBetaAssessmentIds.has(s.id)
-                              ? 'border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
-                              : 'border-indigo-200 bg-indigo-50 text-indigo-700 hover:bg-indigo-100'}
+                              ? 'border-emerald-300/25 bg-emerald-300/[0.08] text-emerald-200 hover:bg-emerald-300/15'
+                              : 'border-cyan-300/20 bg-cyan-300/10 text-cyan-100 hover:bg-cyan-300/15'}
                           >
                             {submittedBetaAssessmentIds.has(s.id) ? <CheckCircle2 size={14} /> : <FlaskConical size={14} />}
                             <span className="hidden sm:inline">{submittedBetaAssessmentIds.has(s.id) ? 'Shared' : 'Beta'}</span>
@@ -1944,7 +1944,7 @@ export default function AssessmentsView({
                               onDeleteAssessment(s.id);
                             }}
                             aria-label="Delete assessment"
-                            className="rounded-xl border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100 hover:text-rose-800"
+                            className="rounded-xl border-rose-400/25 bg-rose-400/[0.08] text-rose-200 hover:bg-rose-400/12 hover:text-rose-100"
                           >
                             <Trash2 size={16} />
                           </Button>
@@ -1960,19 +1960,19 @@ export default function AssessmentsView({
                             <div
                               key={`${s.id}-${attrId}`}
                               className={`rounded-xl border px-3 py-2 ${
-                                isWeakest ? 'border-amber-200 bg-amber-50' : 'border-slate-200 bg-slate-50'
+                                isWeakest ? 'border-amber-300/25 bg-amber-300/[0.08]' : 'border-cyan-300/10 bg-white/[0.03]'
                               }`}
                             >
                               <div className="flex items-center justify-between gap-2">
-                                <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 truncate">{String(attrId)}</p>
+                                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 truncate">{String(attrId)}</p>
                                 {isWeakest && (
-                                  <Badge className="rounded-full border-amber-200 bg-amber-100 px-2 py-0.5 text-[9px] text-amber-700">
+                                  <Badge className="rounded-full border-amber-300/25 bg-amber-300/15 px-2 py-0.5 text-[9px] text-amber-200">
                                     Weakest
                                   </Badge>
                                 )}
                               </div>
                               <div className="mt-1 flex items-baseline justify-between gap-2">
-                                <span className="text-sm font-display font-black text-slate-900">{val}</span>
+                                <span className="text-sm font-display font-black text-slate-100">{val}</span>
                                 <span className={`text-[10px] font-black ${meta.color}`}>{meta.label}</span>
                               </div>
                             </div>
@@ -1981,25 +1981,25 @@ export default function AssessmentsView({
                       </div>
 
                       {false && s.developmentPlan && (
-                        <div className="mt-4 rounded-2xl border border-indigo-200 bg-indigo-50/60 p-4">
-                          <p className="text-[11px] font-black uppercase tracking-wider text-indigo-700 flex items-center gap-2">
+                        <div className="mt-4 rounded-2xl border border-cyan-300/20 bg-cyan-300/[0.06] p-4">
+                          <p className="text-[11px] font-black uppercase tracking-wider text-cyan-100 flex items-center gap-2">
                             <Sparkles size={14} /> 4-week development plan
                           </p>
-                          <p className="mt-1 text-xs text-slate-600 font-semibold">
+                          <p className="mt-1 text-xs text-slate-300 font-semibold">
                             Focus: <span className="font-black">{String(s.developmentPlan.focusAttributeId)}</span> • Priority score:{' '}
                             <span className="font-black">{s.developmentPlan.priorityScore}</span>
                           </p>
                           <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-3">
                             {s.developmentPlan.weeks.map(w => (
-                              <div key={`${s.id}-wk-${w.weekNumber}`} className="rounded-2xl border border-white/60 bg-white p-4">
-                                <p className="text-xs font-black text-slate-900">Week {w.weekNumber}</p>
-                                <p className="text-xs text-slate-600 font-semibold mt-1">{w.focus}</p>
+                              <div key={`${s.id}-wk-${w.weekNumber}`} className="rounded-2xl border border-cyan-300/10 bg-white/[0.03] p-4">
+                                <p className="text-xs font-black text-slate-100">Week {w.weekNumber}</p>
+                                <p className="text-xs text-slate-300 font-semibold mt-1">{w.focus}</p>
                                 {w.drillIds.length > 0 && (
-                                  <p className="mt-2 text-[11px] text-slate-500 font-semibold">
+                                  <p className="mt-2 text-[11px] text-slate-400 font-semibold">
                                     Drills: <span className="font-mono">{w.drillIds.join(', ')}</span>
                                   </p>
                                 )}
-                                <p className="mt-2 text-[11px] text-slate-500 font-medium">{w.notes}</p>
+                                <p className="mt-2 text-[11px] text-slate-400 font-medium">{w.notes}</p>
                               </div>
                             ))}
                           </div>
@@ -2015,13 +2015,13 @@ export default function AssessmentsView({
 
         {showSidebar && (
         <div className="space-y-6">
-          <div className="bg-white border border-slate-200/70 rounded-2xl shadow-md shadow-slate-100/30 p-5 sm:p-6">
-            <h3 className="font-display font-black text-slate-900 text-sm uppercase tracking-wide flex items-center gap-2">
-              <Sparkles size={16} className="text-indigo-600" /> Live Player Card Preview
+          <div className="rounded-2xl border border-cyan-300/10 bg-[#07111f]/88 text-slate-100 shadow-lg shadow-black/20 backdrop-blur-xl p-5 sm:p-6">
+            <h3 className="font-display font-black text-slate-100 text-sm uppercase tracking-wide flex items-center gap-2">
+              <Sparkles size={16} className="text-cyan-300" /> Live Player Card Preview
             </h3>
 
             {!selectedPlayer && (
-              <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-500 font-semibold">
+              <div className="mt-4 rounded-2xl border border-cyan-300/10 bg-white/[0.03] p-4 text-sm text-slate-400 font-semibold">
                 Select a player to begin.
               </div>
             )}
@@ -2038,16 +2038,16 @@ export default function AssessmentsView({
           </div>
 
           {selectedPlayer && (
-            <div className="bg-white border border-slate-200/70 rounded-2xl shadow-md shadow-slate-100/30 p-5 sm:p-6">
-              <h3 className="font-display font-black text-slate-900 text-sm uppercase tracking-wide flex items-center gap-2">
-                <NotebookPen size={16} className="text-indigo-600" /> Assessment follow-up
+            <div className="rounded-2xl border border-cyan-300/10 bg-[#07111f]/88 text-slate-100 shadow-lg shadow-black/20 backdrop-blur-xl p-5 sm:p-6">
+              <h3 className="font-display font-black text-slate-100 text-sm uppercase tracking-wide flex items-center gap-2">
+                <NotebookPen size={16} className="text-cyan-300" /> Assessment follow-up
               </h3>
-              <p className="mt-1 text-xs font-semibold text-slate-500">
+              <p className="mt-1 text-xs font-semibold text-slate-400">
                 Latest-session notes and development work for {selectedPlayer.name}.
               </p>
 
               {!selectedPlayerLatestAssessment ? (
-                <div className="mt-4 rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-4 text-sm font-semibold text-slate-500">
+                <div className="mt-4 rounded-2xl border border-dashed border-cyan-300/10 bg-white/[0.03] p-4 text-sm font-semibold text-slate-400">
                   Save an assessment to unlock coach notes and a development plan here.
                 </div>
               ) : (
@@ -2061,13 +2061,13 @@ export default function AssessmentsView({
 
                     return (
                       <>
-                        <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
+                        <div className="rounded-2xl border border-cyan-300/10 bg-[#0b1726]/70 p-4">
                           <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                             <div>
-                              <p className="flex items-center gap-2 text-[11px] font-black uppercase tracking-wider text-slate-500">
-                                <NotebookPen size={14} className="text-indigo-600" /> Coach notes
+                              <p className="flex items-center gap-2 text-[11px] font-black uppercase tracking-wider text-slate-400">
+                                <NotebookPen size={14} className="text-cyan-300" /> Coach notes
                               </p>
-                              <p className="mt-1 text-xs font-semibold text-slate-500">
+                              <p className="mt-1 text-xs font-semibold text-slate-400">
                                 {latestSession.assessmentDate} - {ROLE_LABELS[latestSession.role]} - {latestSession.assessmentType}
                               </p>
                             </div>
@@ -2080,8 +2080,8 @@ export default function AssessmentsView({
                               aria-label={`Save coach notes for ${sessionPlayerName} assessment on ${latestSession.assessmentDate}`}
                               className={`rounded-xl px-3 py-2 text-[10px] font-black uppercase tracking-wider ${
                                 noteChanged
-                                  ? 'border-indigo-200 bg-indigo-600 text-white hover:bg-indigo-700'
-                                  : 'border-slate-200 bg-white text-slate-300'
+                                  ? 'border-cyan-300/20 bg-cyan-300/15 text-white hover:bg-cyan-300/25'
+                                  : 'border-cyan-300/10 bg-white/[0.03] text-slate-300'
                               }`}
                             >
                               <Save size={12} /> Save note
@@ -2094,40 +2094,40 @@ export default function AssessmentsView({
                             placeholder="Add the message you want to remember before the next training block or player check-in."
                             aria-label={`Coach notes for ${sessionPlayerName} latest assessment on ${latestSession.assessmentDate}`}
                             rows={4}
-                            className="mt-3 resize-y rounded-xl border-slate-200 bg-white text-sm font-medium text-slate-700 focus-visible:ring-indigo-100"
+                            className="mt-3 resize-y rounded-xl border-cyan-300/10 bg-white/[0.03] text-sm font-medium text-slate-300 focus-visible:ring-cyan-300/20"
                           />
                         </div>
 
                         {latestSession.developmentPlan ? (
-                          <div className="rounded-2xl border border-indigo-200 bg-indigo-50/60 p-4">
-                            <p className="flex items-center gap-2 text-[11px] font-black uppercase tracking-wider text-indigo-700">
+                          <div className="rounded-2xl border border-cyan-300/20 bg-cyan-300/[0.06] p-4">
+                            <p className="flex items-center gap-2 text-[11px] font-black uppercase tracking-wider text-cyan-100">
                               <Sparkles size={14} /> 4-week development plan
                             </p>
-                            <p className="mt-1 text-xs font-semibold text-slate-600">
+                            <p className="mt-1 text-xs font-semibold text-slate-300">
                               Focus: <span className="font-black">{String(latestSession.developmentPlan.focusAttributeId)}</span> - Priority score:{' '}
                               <span className="font-black">{latestSession.developmentPlan.priorityScore}</span>
                             </p>
                             <div className="mt-3 space-y-3">
                               {latestSession.developmentPlan.weeks.map(w => (
-                                <div key={`latest-${latestSession.id}-wk-${w.weekNumber}`} className="rounded-2xl border border-white/60 bg-white p-4">
-                                  <p className="text-xs font-black text-slate-900">Week {w.weekNumber}</p>
-                                  <p className="mt-1 text-xs font-semibold text-slate-600">{w.focus}</p>
+                                <div key={`latest-${latestSession.id}-wk-${w.weekNumber}`} className="rounded-2xl border border-cyan-300/10 bg-white/[0.03] p-4">
+                                  <p className="text-xs font-black text-slate-100">Week {w.weekNumber}</p>
+                                  <p className="mt-1 text-xs font-semibold text-slate-300">{w.focus}</p>
                                   {w.drillIds.length > 0 && (
-                                    <p className="mt-2 text-[11px] font-semibold text-slate-500">
+                                    <p className="mt-2 text-[11px] font-semibold text-slate-400">
                                       Drills: <span className="font-mono">{w.drillIds.join(', ')}</span>
                                     </p>
                                   )}
-                                  <p className="mt-2 text-[11px] font-medium leading-relaxed text-slate-500">{w.notes}</p>
+                                  <p className="mt-2 text-[11px] font-medium leading-relaxed text-slate-400">{w.notes}</p>
                                 </div>
                               ))}
                             </div>
                           </div>
                         ) : (
-                          <div className="rounded-2xl border border-dashed border-indigo-200 bg-indigo-50/50 p-4">
-                            <p className="flex items-center gap-2 text-[11px] font-black uppercase tracking-wider text-indigo-700">
+                          <div className="rounded-2xl border border-dashed border-cyan-300/20 bg-cyan-300/[0.05] p-4">
+                            <p className="flex items-center gap-2 text-[11px] font-black uppercase tracking-wider text-cyan-100">
                               <Sparkles size={14} /> 4-week development plan
                             </p>
-                            <p className="mt-2 text-xs font-semibold leading-relaxed text-slate-600">
+                            <p className="mt-2 text-xs font-semibold leading-relaxed text-slate-300">
                               This latest assessment does not include a generated plan. Run a Full assessment to create weekly focus work here.
                             </p>
                           </div>
