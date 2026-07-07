@@ -87,11 +87,11 @@ type AssessmentStep = 1 | 2 | 3 | 4;
 
 const TOTAL_STEPS = 4;
 
-const ASSESSMENT_STEPS: Array<{ id: AssessmentStep; label: string; icon: typeof User }> = [
-  { id: 1, label: 'Player', icon: User },
-  { id: 2, label: 'Setup', icon: SlidersHorizontal },
-  { id: 3, label: 'Record', icon: Gauge },
-  { id: 4, label: 'Review', icon: History }
+const ASSESSMENT_STEPS: Array<{ id: AssessmentStep; label: string }> = [
+  { id: 1, label: 'Player' },
+  { id: 2, label: 'Setup' },
+  { id: 3, label: 'Record' },
+  { id: 4, label: 'Review' }
 ];
 
 const nextAssessmentStep = (step: AssessmentStep): AssessmentStep => (step < TOTAL_STEPS ? ((step + 1) as AssessmentStep) : step);
@@ -1021,58 +1021,43 @@ export default function AssessmentsView({
           </Button>
         </div>
 
-        <nav aria-label="Assessment progress" className="mt-5">
-          <ol className="flex flex-col gap-2 sm:flex-row sm:items-center">
+        <nav aria-label="Assessment progress" className="mt-4">
+          <ol className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-xs">
             {ASSESSMENT_STEPS.map((s, idx) => {
-              const StepIcon = s.icon;
               const isComplete = step > s.id;
               const isCurrent = step === s.id;
               const clickable = s.id < step || (s.id === nextAssessmentStep(step) && canGoNext);
               return (
                 <React.Fragment key={s.id}>
-                  <li className="sm:flex-1">
+                  <li>
                     <button
                       type="button"
                       onClick={() => goToStep(s.id)}
                       disabled={!clickable && !isCurrent}
                       aria-current={isCurrent ? 'step' : undefined}
                       aria-label={`Step ${s.id}: ${s.label}`}
-                      className={`flex w-full items-center gap-2.5 rounded-2xl border px-3 py-2.5 text-left transition ${
-                        isCurrent
-                          ? 'border-indigo-300 bg-indigo-50'
-                          : isComplete
-                            ? 'border-emerald-200 bg-emerald-50/60 hover:bg-emerald-50'
-                            : 'border-slate-200 bg-white'
-                      } ${clickable && !isCurrent ? 'cursor-pointer hover:border-slate-300' : ''} ${!clickable && !isCurrent ? 'opacity-70' : ''}`}
+                      className={`inline-flex items-center gap-1.5 rounded-full px-2 py-1 transition ${
+                        clickable && !isCurrent ? 'hover:bg-muted' : 'cursor-default'
+                      }`}
                     >
                       <span
-                        className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border text-xs font-black ${
+                        className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-black ${
                           isCurrent
-                            ? 'border-indigo-300 bg-indigo-600 text-white'
+                            ? 'bg-primary text-primary-foreground'
                             : isComplete
-                              ? 'border-emerald-300 bg-emerald-500 text-white'
-                              : 'border-slate-200 bg-slate-50 text-slate-400'
+                              ? 'bg-success text-success-foreground'
+                              : 'border border-border text-muted-foreground'
                         }`}
                       >
-                        {isComplete ? <Check size={15} /> : <StepIcon size={15} />}
+                        {isComplete ? <Check size={12} strokeWidth={3} /> : s.id}
                       </span>
-                      <span className="min-w-0">
-                        <span className="block text-[9px] font-black uppercase tracking-widest text-slate-400">Step {s.id}</span>
-                        <span
-                          className={`block truncate text-xs font-black ${
-                            isCurrent ? 'text-indigo-700' : isComplete ? 'text-emerald-700' : 'text-slate-500'
-                          }`}
-                        >
-                          {s.label}
-                        </span>
+                      <span className={`font-bold ${isCurrent ? 'text-foreground' : 'text-muted-foreground'}`}>
+                        {s.label}
                       </span>
                     </button>
                   </li>
                   {idx < ASSESSMENT_STEPS.length - 1 && (
-                    <li
-                      aria-hidden="true"
-                      className={`hidden h-0.5 w-5 shrink-0 rounded-full sm:block ${isComplete ? 'bg-emerald-300' : 'bg-slate-200'}`}
-                    />
+                    <li aria-hidden="true" className="h-px w-3 shrink-0 bg-border" />
                   )}
                 </React.Fragment>
               );
