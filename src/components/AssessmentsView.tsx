@@ -3,16 +3,19 @@ import type { AgeGroup, AssessmentRawResults, AssessmentSession, FprdsAttributeI
 import {
   AlertCircle,
   Calendar,
+  Check,
   CheckCircle2,
   ChevronLeft,
   ChevronRight,
   ClipboardList,
   FlaskConical,
+  Gauge,
   History,
   MessageSquareText,
   NotebookPen,
   Save,
   Search,
+  SlidersHorizontal,
   Sparkles,
   Target,
   Trash2,
@@ -42,10 +45,29 @@ import { Textarea } from '@/src/components/ui/textarea';
 import { FieldErrors, focusFirstInvalidField, hasFieldErrors } from '../forms/validation';
 import { generateFourWeekPlan } from '../fprds/development';
 import {
+  clampInt,
+  clampScore,
   computeAgeGroupFromDob,
+  computeFinishingBoxScore,
   computeScoresForSession,
-  getAttributeLabel
+  getAttributeLabel,
+  scoreFromBands,
+  scoreFromBenchmarkTable,
+  scoreFromCoach1to10,
+  scoreFromOutOf10Direct
 } from '../fprds/scoring';
+import {
+  BALL_RETENTION_SECONDS,
+  BROAD_JUMP_CM,
+  ILLINOIS_AGILITY,
+  MED_BALL_THROW_CM,
+  OUT_OF_5_BANDS,
+  OUT_OF_10_BANDS,
+  SHOT_POWER_DISTANCE_M,
+  SPRINT_10M,
+  SPRINT_30M,
+  YOYO_DISTANCE
+} from '../fprds/benchmarks';
 import { ROLE_LABELS, ROLE_WEIGHTS } from '../fprds/weights';
 import {
   buildAssessmentProgressSeries,
@@ -61,9 +83,18 @@ import AssessmentPlayerCardPreview from './AssessmentPlayerCardPreview';
 import FprdsBetaSubmissionDialog from './FprdsBetaSubmissionDialog';
 
 type AssessmentType = 'Full' | 'Quick';
-type AssessmentStep = 1 | 2 | 3 | 4 | 5 | 6;
+type AssessmentStep = 1 | 2 | 3 | 4;
 
-const nextAssessmentStep = (step: AssessmentStep): AssessmentStep => (step < 6 ? ((step + 1) as AssessmentStep) : step);
+const TOTAL_STEPS = 4;
+
+const ASSESSMENT_STEPS: Array<{ id: AssessmentStep; label: string; icon: typeof User }> = [
+  { id: 1, label: 'Player', icon: User },
+  { id: 2, label: 'Setup', icon: SlidersHorizontal },
+  { id: 3, label: 'Record', icon: Gauge },
+  { id: 4, label: 'Review', icon: History }
+];
+
+const nextAssessmentStep = (step: AssessmentStep): AssessmentStep => (step < TOTAL_STEPS ? ((step + 1) as AssessmentStep) : step);
 const previousAssessmentStep = (step: AssessmentStep): AssessmentStep => (step > 1 ? ((step - 1) as AssessmentStep) : step);
 const weightedAttributeIdsForRole = (role: FprdsRole): FprdsAttributeId[] => (
   (Object.keys(ROLE_WEIGHTS[role]) as FprdsAttributeId[]).filter(attrId => ROLE_WEIGHTS[role][attrId] > 0)
@@ -158,6 +189,17 @@ const todayIsoDate = (): string => {
   return `${yyyy}-${mm}-${dd}`;
 };
 
+type FieldRating = { label: string; className: string };
+
+const rateScore = (score: number): FieldRating => {
+  const s = clampScore(score);
+  if (s >= 90) return { label: 'Elite', className: 'border-amber-200 bg-amber-50 text-amber-700' };
+  if (s >= 75) return { label: 'Advanced', className: 'border-emerald-200 bg-emerald-50 text-emerald-700' };
+  if (s >= 55) return { label: 'Developing', className: 'border-sky-200 bg-sky-50 text-sky-700' };
+  if (s >= 35) return { label: 'Needs work', className: 'border-orange-200 bg-orange-50 text-orange-700' };
+  return { label: 'Beginner', className: 'border-rose-200 bg-rose-50 text-rose-700' };
+};
+
 type NumberInputProps = {
   id: string;
   fieldName: string;
@@ -169,15 +211,23 @@ type NumberInputProps = {
   max?: number;
   step?: number;
   error?: string;
+  rating?: FieldRating | null;
   onChange: (val: string) => void;
 };
 
 const NumberInput: React.FC<NumberInputProps> = (props) => {
   return (
     <div className="space-y-1.5">
-      <label htmlFor={props.id} className="text-[11px] font-black uppercase tracking-wider text-slate-500">
-        {props.label}
-      </label>
+      <div className="flex items-center justify-between gap-2">
+        <label htmlFor={props.id} className="text-[11px] font-black uppercase tracking-wider text-slate-500">
+          {props.label}
+        </label>
+        {props.rating && (
+          <span className={`shrink-0 rounded-full border px-2 py-0.5 text-[9px] font-black uppercase tracking-wider ${props.rating.className}`}>
+            {props.rating.label}
+          </span>
+        )}
+      </div>
       <Input
         id={props.id}
         data-validation-field={props.fieldName}
@@ -255,7 +305,7 @@ export default function AssessmentsView({
     if (!exists) return;
     setSelectedPlayerId(preselectedPlayerId);
     onClearPreselectedPlayer();
-    setStep(assessments.some((session) => session.playerId === preselectedPlayerId) ? 6 : 2);
+    setStep(assessments.some((session) => session.playerId === preselectedPlayerId) ? 4 : 2);
   }, [assessments, eligiblePlayers, onClearPreselectedPlayer, preselectedPlayerId]);
 
   useEffect(() => {
@@ -557,6 +607,66 @@ export default function AssessmentsView({
   }, [scorePreview]);
   const showAssessmentSubmitErrors = hasFieldErrors(assessmentSubmitErrors);
 
+  // Live, per-field benchmark rating shown while the coach records results.
+  // Each raw metric is scored with the same primitives the FPRDS engine uses,
+  // so the chip a coach sees matches how the value ultimately grades.
+  const fieldRatings = useMemo(() => {
+    const ratings: Record<string, FieldRating> = {};
+    if (!ageGroup) return ratings;
+
+    const b = parsedBase;
+    if (Number.isFinite(b.sprint10mSeconds)) ratings.sprint10mSeconds = rateScore(scoreFromBenchmarkTable(b.sprint10mSeconds, SPRINT_10M[ageGroup]));
+    if (Number.isFinite(b.sprint30mSeconds)) ratings.sprint30mSeconds = rateScore(scoreFromBenchmarkTable(b.sprint30mSeconds, SPRINT_30M[ageGroup]));
+    if (Number.isFinite(b.yoyoMeters)) ratings.yoyoMeters = rateScore(scoreFromBenchmarkTable(b.yoyoMeters, YOYO_DISTANCE[ageGroup]));
+    if (Number.isFinite(b.illinoisSeconds)) ratings.illinoisSeconds = rateScore(scoreFromBenchmarkTable(b.illinoisSeconds, ILLINOIS_AGILITY[ageGroup]));
+    if (Number.isFinite(b.broadJumpCm)) ratings.broadJumpCm = rateScore(scoreFromBenchmarkTable(b.broadJumpCm, BROAD_JUMP_CM[ageGroup]));
+    if (Number.isFinite(b.medicineBallThrowCm)) ratings.medicineBallThrowCm = rateScore(scoreFromBenchmarkTable(b.medicineBallThrowCm, MED_BALL_THROW_CM[ageGroup]));
+    if (Number.isFinite(b.firstTouchSuccessesOutOf10)) ratings.firstTouchSuccessesOutOf10 = rateScore(scoreFromOutOf10Direct(b.firstTouchSuccessesOutOf10));
+    if (Number.isFinite(b.shortPassingSuccessesOutOf10)) ratings.shortPassingSuccessesOutOf10 = rateScore(scoreFromOutOf10Direct(b.shortPassingSuccessesOutOf10));
+
+    const r = parsedRoleSpecific;
+    const has = (key: string) => Number.isFinite(r[key]);
+    const single = (key: string, score: number) => {
+      if (has(key)) ratings[key] = rateScore(score);
+    };
+
+    single('shotPowerMaxControlledDistanceMeters', scoreFromBenchmarkTable(r.shotPowerMaxControlledDistanceMeters, SHOT_POWER_DISTANCE_M[ageGroup]));
+    single('offensive1v1TakeonsOutOf10', scoreFromBands(r.offensive1v1TakeonsOutOf10, OUT_OF_10_BANDS));
+    single('attackingHeadingOnTargetOutOf10', scoreFromOutOf10Direct(r.attackingHeadingOnTargetOutOf10));
+    single('visionCoachScore1to10', scoreFromCoach1to10(r.visionCoachScore1to10));
+    single('ballRetentionBestSeconds', scoreFromBenchmarkTable(r.ballRetentionBestSeconds, BALL_RETENTION_SECONDS));
+    single('pressingWinsOutOf5', scoreFromBands(r.pressingWinsOutOf5, OUT_OF_5_BANDS));
+    single('tacklingWinsOutOf10', scoreFromBands(r.tacklingWinsOutOf10, OUT_OF_10_BANDS));
+    single('defensiveHeadingClearancesOutOf10', scoreFromOutOf10Direct(r.defensiveHeadingClearancesOutOf10));
+    single('crossingSuccessesOutOf10', scoreFromOutOf10Direct(r.crossingSuccessesOutOf10));
+    single('gkReflexesSavesOutOf10', scoreFromOutOf10Direct(r.gkReflexesSavesOutOf10));
+    single('gkHandlingCleanCatchesOutOf10', scoreFromOutOf10Direct(r.gkHandlingCleanCatchesOutOf10));
+    single('gkDivingSavesOutOf10', scoreFromOutOf10Direct(r.gkDivingSavesOutOf10));
+    single('gkDistributionSuccessesOutOf10', scoreFromOutOf10Direct(r.gkDistributionSuccessesOutOf10));
+
+    // Combined metrics rate once both contributing inputs are present.
+    if (has('finishingGoalsOutOf6') && has('finishingOnTargetOutOf6')) {
+      const rating = rateScore(computeFinishingBoxScore(r.finishingGoalsOutOf6, r.finishingOnTargetOutOf6));
+      ratings.finishingGoalsOutOf6 = rating;
+      ratings.finishingOnTargetOutOf6 = rating;
+    }
+    if (has('longPassing30mSuccessesOutOf5') && has('longPassing40mSuccessesOutOf5')) {
+      const weighted = clampInt(r.longPassing30mSuccessesOutOf5, 0, 5) + clampInt(r.longPassing40mSuccessesOutOf5, 0, 5) * 1.5;
+      const rating = rateScore(scoreFromBands((weighted / 12.5) * 10, OUT_OF_10_BANDS));
+      ratings.longPassing30mSuccessesOutOf5 = rating;
+      ratings.longPassing40mSuccessesOutOf5 = rating;
+    }
+    if (has('positioningCoachScore1to10') && has('positioningClearancesToSafeZoneOutOf10')) {
+      const coachPart = clampInt(r.positioningCoachScore1to10, 1, 10) * 10 * 0.6;
+      const clearPart = (clampInt(r.positioningClearancesToSafeZoneOutOf10, 0, 10) / 10) * 100 * 0.4;
+      const rating = rateScore(coachPart + clearPart);
+      ratings.positioningCoachScore1to10 = rating;
+      ratings.positioningClearancesToSafeZoneOutOf10 = rating;
+    }
+
+    return ratings;
+  }, [ageGroup, parsedBase, parsedRoleSpecific]);
+
   const handleSelectPlayer = (playerId: string) => {
     setSelectedPlayerId(playerId);
     setSaveError(null);
@@ -569,7 +679,7 @@ export default function AssessmentsView({
     setPlayerSearch('');
     setSaveError(null);
     setAssessmentSubmitErrors({});
-    setStep(6);
+    setStep(4);
   };
 
   const handleSaveSessionNote = (sessionId: string) => {
@@ -853,7 +963,7 @@ export default function AssessmentsView({
 
     onAddAssessment(session);
 
-    setStep(6);
+    setStep(4);
   };
 
   const filteredPlayers = useMemo(() => {
@@ -862,24 +972,26 @@ export default function AssessmentsView({
     return eligiblePlayers.filter(p => p.name.toLowerCase().includes(q) || String(p.number).includes(q));
   }, [eligiblePlayers, playerSearch]);
 
-  const stepTitle = useMemo(() => {
-    if (step === 1) return 'Select Player';
-    if (step === 2) return 'Select Role';
-    if (step === 3) return 'Assessment Settings';
-    if (step === 4) return 'Age Group';
-    if (step === 5) return 'Enter Results';
-    if (!selectedPlayer) return 'Team History';
-    return 'Review & History';
-  }, [selectedPlayer, step]);
-
   const canGoNext = useMemo(() => {
     if (step === 1) return !!selectedPlayerId;
-    if (step === 2) return !!role;
-    if (step === 3) return !!assessmentType && !!assessmentDate;
-    if (step === 4) return !!ageGroup;
-    if (step === 5) return !!scorePreview && scorePreview.ok;
+    if (step === 2) return !!role && !!assessmentType && !!assessmentDate && !!ageGroup;
+    if (step === 3) return !!scorePreview && scorePreview.ok;
     return false;
   }, [ageGroup, assessmentDate, assessmentType, role, scorePreview, selectedPlayerId, step]);
+
+  // The sidebar (player card preview + follow-up) helps while scanning and
+  // reviewing, but is hidden on the Record step so results entry runs full-width.
+  const showSidebar = step !== 3;
+
+  const goToStep = (target: AssessmentStep) => {
+    if (target === step) return;
+    // Allow jumping back freely; only advance one step and only when allowed.
+    if (target < step || (target === nextAssessmentStep(step) && canGoNext)) {
+      setSaveError(null);
+      setAssessmentSubmitErrors({});
+      setStep(target);
+    }
+  };
 
   return (
     <div id="assessments-view-container" ref={assessmentContainerRef} className="space-y-6">
@@ -897,22 +1009,76 @@ export default function AssessmentsView({
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={handleOpenTeamHistory}
-              aria-label="Open team assessment history"
-              className="h-7 rounded-lg border-indigo-200 bg-indigo-50 px-2 py-1 text-[8px] font-black uppercase tracking-wider text-indigo-700 hover:bg-indigo-100 hover:text-indigo-800"
-            >
-              <History size={10} /> Team history
-            </Button>
-            <div className="text-[10px] font-black uppercase tracking-widest text-slate-400 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2">
-              Step {step} / 6: {stepTitle}
-            </div>
-          </div>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={handleOpenTeamHistory}
+            aria-label="Open team assessment history"
+            className="h-8 shrink-0 rounded-lg border-indigo-200 bg-indigo-50 px-3 py-1 text-[9px] font-black uppercase tracking-wider text-indigo-700 hover:bg-indigo-100 hover:text-indigo-800"
+          >
+            <History size={12} /> Team history
+          </Button>
         </div>
+
+        <nav aria-label="Assessment progress" className="mt-5">
+          <ol className="flex flex-col gap-2 sm:flex-row sm:items-center">
+            {ASSESSMENT_STEPS.map((s, idx) => {
+              const StepIcon = s.icon;
+              const isComplete = step > s.id;
+              const isCurrent = step === s.id;
+              const clickable = s.id < step || (s.id === nextAssessmentStep(step) && canGoNext);
+              return (
+                <React.Fragment key={s.id}>
+                  <li className="sm:flex-1">
+                    <button
+                      type="button"
+                      onClick={() => goToStep(s.id)}
+                      disabled={!clickable && !isCurrent}
+                      aria-current={isCurrent ? 'step' : undefined}
+                      aria-label={`Step ${s.id}: ${s.label}`}
+                      className={`flex w-full items-center gap-2.5 rounded-2xl border px-3 py-2.5 text-left transition ${
+                        isCurrent
+                          ? 'border-indigo-300 bg-indigo-50'
+                          : isComplete
+                            ? 'border-emerald-200 bg-emerald-50/60 hover:bg-emerald-50'
+                            : 'border-slate-200 bg-white'
+                      } ${clickable && !isCurrent ? 'cursor-pointer hover:border-slate-300' : ''} ${!clickable && !isCurrent ? 'opacity-70' : ''}`}
+                    >
+                      <span
+                        className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border text-xs font-black ${
+                          isCurrent
+                            ? 'border-indigo-300 bg-indigo-600 text-white'
+                            : isComplete
+                              ? 'border-emerald-300 bg-emerald-500 text-white'
+                              : 'border-slate-200 bg-slate-50 text-slate-400'
+                        }`}
+                      >
+                        {isComplete ? <Check size={15} /> : <StepIcon size={15} />}
+                      </span>
+                      <span className="min-w-0">
+                        <span className="block text-[9px] font-black uppercase tracking-widest text-slate-400">Step {s.id}</span>
+                        <span
+                          className={`block truncate text-xs font-black ${
+                            isCurrent ? 'text-indigo-700' : isComplete ? 'text-emerald-700' : 'text-slate-500'
+                          }`}
+                        >
+                          {s.label}
+                        </span>
+                      </span>
+                    </button>
+                  </li>
+                  {idx < ASSESSMENT_STEPS.length - 1 && (
+                    <li
+                      aria-hidden="true"
+                      className={`hidden h-0.5 w-5 shrink-0 rounded-full sm:block ${isComplete ? 'bg-emerald-300' : 'bg-slate-200'}`}
+                    />
+                  )}
+                </React.Fragment>
+              );
+            })}
+          </ol>
+        </nav>
 
         {saveError && (
           <div className="mt-4 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700 flex items-center gap-2">
@@ -921,18 +1087,13 @@ export default function AssessmentsView({
         )}
 
         <div className="mt-5 flex items-center justify-between gap-3">
-          {step < 6 ? (
+          {step === 2 || step === 3 ? (
             <Button
               type="button"
               variant="outline"
               onClick={handlePrevStep}
-              disabled={step === 1}
               aria-label="Previous step"
-              className={`rounded-xl px-4 py-2 text-xs font-black ${
-                step === 1
-                  ? 'border-slate-200 bg-slate-50 text-slate-300'
-                  : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
-              }`}
+              className="rounded-xl border-slate-200 bg-white px-4 py-2 text-xs font-black text-slate-700 hover:bg-slate-50"
             >
               <ChevronLeft size={14} /> Back
             </Button>
@@ -940,7 +1101,7 @@ export default function AssessmentsView({
             <div aria-hidden="true" />
           )}
 
-          {step < 6 ? (
+          {step === 1 || step === 2 ? (
             <Button
               type="button"
               onClick={handleNextStep}
@@ -954,7 +1115,7 @@ export default function AssessmentsView({
             >
               Next <ChevronRight size={14} />
             </Button>
-          ) : (
+          ) : step === 4 ? (
             <Button
               type="button"
               variant="outline"
@@ -984,11 +1145,13 @@ export default function AssessmentsView({
             >
               <Sparkles size={14} /> New assessment
             </Button>
+          ) : (
+            <div aria-hidden="true" />
           )}
         </div>
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-[1.1fr_0.9fr] gap-6">
+      <div className={`grid grid-cols-1 gap-6 ${showSidebar ? 'xl:grid-cols-[1.1fr_0.9fr]' : ''}`}>
         <div className="space-y-6">
           {step === 1 && (
             <div className="bg-white border border-slate-200/70 rounded-2xl shadow-md shadow-slate-100/30 p-5 sm:p-6">
@@ -1061,44 +1224,50 @@ export default function AssessmentsView({
           )}
 
           {step === 2 && (
-            <div className="bg-white border border-slate-200/70 rounded-2xl shadow-md shadow-slate-100/30 p-5 sm:p-6">
-              <h3 className="font-display font-black text-slate-900 text-sm uppercase tracking-wide flex items-center gap-2">
-                <Sparkles size={16} className="text-indigo-600" /> Select Role
-              </h3>
-
-              <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {(['ST', 'W', 'CM', 'CDM', 'FB', 'CB', 'GK'] as FprdsRole[]).map(r => {
-                  const active = role === r;
-                  return (
-                    <Button
-                      key={r}
-                      type="button"
-                      variant="outline"
-                      onClick={() => setRole(r)}
-                      aria-label={`Select role ${ROLE_LABELS[r]}`}
-                      className={`h-auto justify-start whitespace-normal rounded-2xl p-4 text-left ${
-                        active ? 'border-indigo-300 bg-indigo-50 shadow-md' : 'border-slate-200 bg-white hover:bg-slate-50'
-                      }`}
-                    >
-                      <div className="flex items-center justify-between gap-3">
-                        <div>
-                          <p className="text-sm font-black text-slate-900">{ROLE_LABELS[r]}</p>
-                          <p className="text-xs text-slate-500 font-semibold">Role code: {r}</p>
-                        </div>
-                        {active && <CheckCircle2 size={18} className="text-indigo-700" />}
-                      </div>
-                    </Button>
-                  );
-                })}
+            <div className="bg-white border border-slate-200/70 rounded-2xl shadow-md shadow-slate-100/30 p-5 sm:p-6 space-y-6">
+              <div>
+                <h3 className="font-display font-black text-slate-900 text-sm uppercase tracking-wide flex items-center gap-2">
+                  <SlidersHorizontal size={16} className="text-indigo-600" /> Setup
+                </h3>
+                <p className="mt-1 text-xs font-semibold text-slate-500">
+                  Role and age group are pre-filled from the player profile — adjust only if needed, then move on to record results.
+                </p>
               </div>
-            </div>
-          )}
 
-          {step === 3 && (
-            <div className="bg-white border border-slate-200/70 rounded-2xl shadow-md shadow-slate-100/30 p-5 sm:p-6 space-y-4">
-              <h3 className="font-display font-black text-slate-900 text-sm uppercase tracking-wide flex items-center gap-2">
-                <Calendar size={16} className="text-indigo-600" /> Assessment Settings
-              </h3>
+              <div>
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-[11px] font-black uppercase tracking-wider text-slate-500">Assessment role</p>
+                  {selectedPlayer && getDefaultRoleForPlayer(selectedPlayer) === role && (
+                    <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[9px] font-black uppercase tracking-wider text-emerald-700">
+                      Auto from profile
+                    </span>
+                  )}
+                </div>
+                <div className="mt-3 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
+                  {(['ST', 'W', 'CM', 'CDM', 'FB', 'CB', 'GK'] as FprdsRole[]).map(r => {
+                    const active = role === r;
+                    return (
+                      <Button
+                        key={r}
+                        type="button"
+                        variant="outline"
+                        onClick={() => setRole(r)}
+                        aria-label={`Select role ${ROLE_LABELS[r]}`}
+                        className={`h-auto justify-start whitespace-normal rounded-xl px-3 py-2.5 text-left ${
+                          active ? 'border-indigo-300 bg-indigo-50 shadow-sm' : 'border-slate-200 bg-white hover:bg-slate-50'
+                        }`}
+                      >
+                        <div className="flex w-full items-center justify-between gap-2">
+                          <span className="text-sm font-black text-slate-900">{ROLE_LABELS[r]}</span>
+                          {active
+                            ? <CheckCircle2 size={16} className="shrink-0 text-indigo-700" />
+                            : <span className="shrink-0 text-[10px] font-black uppercase tracking-wider text-slate-400">{r}</span>}
+                        </div>
+                      </Button>
+                    );
+                  })}
+                </div>
+              </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
@@ -1128,7 +1297,9 @@ export default function AssessmentsView({
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-[11px] font-black uppercase tracking-wider text-slate-500">Assessment date</label>
+                  <label className="flex items-center gap-1.5 text-[11px] font-black uppercase tracking-wider text-slate-500">
+                    <Calendar size={12} className="text-indigo-600" /> Assessment date
+                  </label>
                   <Input
                     type="date"
                     value={assessmentDate}
@@ -1138,46 +1309,80 @@ export default function AssessmentsView({
                   />
                 </div>
               </div>
-            </div>
-          )}
 
-          {step === 4 && (
-            <div className="bg-white border border-slate-200/70 rounded-2xl shadow-md shadow-slate-100/30 p-5 sm:p-6 space-y-4">
-              <h3 className="font-display font-black text-slate-900 text-sm uppercase tracking-wide flex items-center gap-2">
-                <Sparkles size={16} className="text-indigo-600" /> Age Group
-              </h3>
-              <p className="text-xs text-slate-500 font-semibold">
-                Benchmarks are age-grouped. If the player has a Date of Birth saved, we auto-select the correct group.
-              </p>
-
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                {(['U12', 'U15', 'U18', 'Adult'] as AgeGroup[]).map(g => {
-                  const active = ageGroup === g;
-                  return (
-                    <Button
-                      key={g}
-                      type="button"
-                      variant={active ? 'default' : 'outline'}
-                      data-validation-field={active ? 'ageGroup' : undefined}
-                      onClick={() => setAgeGroup(g)}
-                      aria-label={`Select age group ${g}`}
-                      className={`rounded-xl px-4 py-2 text-xs font-black ${
-                        active ? 'border-indigo-300 bg-indigo-600 text-white' : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
-                      }`}
-                    >
-                      {g}
-                    </Button>
-                  );
-                })}
+              <div>
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-[11px] font-black uppercase tracking-wider text-slate-500">Age group</p>
+                  {selectedPlayer?.dateOfBirth && assessmentDate && ageGroup !== ''
+                    && computeAgeGroupFromDob(selectedPlayer.dateOfBirth, assessmentDate) === ageGroup && (
+                    <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[9px] font-black uppercase tracking-wider text-emerald-700">
+                      Auto from date of birth
+                    </span>
+                  )}
+                </div>
+                <p className="mt-1 text-[11px] font-medium text-slate-400">
+                  Benchmarks are age-grouped. Set this manually if the player has no saved date of birth.
+                </p>
+                <div className="mt-3 grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  {(['U12', 'U15', 'U18', 'Adult'] as AgeGroup[]).map(g => {
+                    const active = ageGroup === g;
+                    return (
+                      <Button
+                        key={g}
+                        type="button"
+                        variant={active ? 'default' : 'outline'}
+                        data-validation-field={active ? 'ageGroup' : undefined}
+                        onClick={() => setAgeGroup(g)}
+                        aria-label={`Select age group ${g}`}
+                        className={`rounded-xl px-4 py-2 text-xs font-black ${
+                          active ? 'border-indigo-300 bg-indigo-600 text-white' : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
+                        }`}
+                      >
+                        {g}
+                      </Button>
+                    );
+                  })}
+                </div>
               </div>
             </div>
           )}
 
-          {step === 5 && (
+          {step === 3 && (
             <div className="bg-white border border-slate-200/70 rounded-2xl shadow-md shadow-slate-100/30 p-5 sm:p-6 space-y-6">
-              <h3 className="font-display font-black text-slate-900 text-sm uppercase tracking-wide flex items-center gap-2">
-                <Sparkles size={16} className="text-indigo-600" /> Enter Results
-              </h3>
+              <div className="flex items-center justify-between gap-3">
+                <h3 className="font-display font-black text-slate-900 text-sm uppercase tracking-wide flex items-center gap-2">
+                  <Gauge size={16} className="text-indigo-600" /> Enter Results
+                </h3>
+                <span className="hidden text-[11px] font-semibold text-slate-400 sm:inline">
+                  Ratings update live against age-group benchmarks
+                </span>
+              </div>
+
+              {selectedPlayer && (
+                <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-slate-50/70 px-4 py-3">
+                  <div className="flex min-w-0 items-center gap-3">
+                    <img
+                      src={selectedPlayer.photoUrl}
+                      alt=""
+                      className="h-10 w-10 shrink-0 rounded-xl border border-slate-200 object-cover"
+                      referrerPolicy="no-referrer"
+                    />
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-black text-slate-900">{selectedPlayer.name}</p>
+                      <p className="mt-0.5 truncate text-[11px] font-semibold text-slate-500">
+                        #{selectedPlayer.number || '—'} · {ROLE_LABELS[role]} · {ageGroup || 'No age group'} · {assessmentType}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="rounded-xl border border-indigo-100 bg-white px-3 py-1.5 text-center">
+                    <p className="text-[8px] font-black uppercase tracking-widest text-slate-400">Projected OVR</p>
+                    <p className="text-lg font-display font-black leading-none text-indigo-700">
+                      {scorePreview && scorePreview.ok ? scorePreview.ovr : '—'}
+                    </p>
+                  </div>
+                </div>
+              )}
+
               <FormErrorSummary
                 id="assessment-error-summary"
                 errors={showAssessmentSubmitErrors ? assessmentSubmitErrors : {}}
@@ -1193,6 +1398,7 @@ export default function AssessmentsView({
                     value={base.sprint10mSeconds}
                     step={0.01}
                     error={assessmentSubmitErrors.sprint10mSeconds}
+                    rating={fieldRatings.sprint10mSeconds}
                     onChange={(v) => {
                       setAssessmentSubmitErrors(previous => ({ ...previous, sprint10mSeconds: undefined }));
                       setBase(prev => ({ ...prev, sprint10mSeconds: v }));
@@ -1205,6 +1411,7 @@ export default function AssessmentsView({
                     value={base.sprint30mSeconds}
                     step={0.01}
                     error={assessmentSubmitErrors.sprint30mSeconds}
+                    rating={fieldRatings.sprint30mSeconds}
                     onChange={(v) => {
                       setAssessmentSubmitErrors(previous => ({ ...previous, sprint30mSeconds: undefined }));
                       setBase(prev => ({ ...prev, sprint30mSeconds: v }));
@@ -1217,6 +1424,7 @@ export default function AssessmentsView({
                     value={base.yoyoMeters}
                     step={1}
                     error={assessmentSubmitErrors.yoyoMeters}
+                    rating={fieldRatings.yoyoMeters}
                     onChange={(v) => {
                       setAssessmentSubmitErrors(previous => ({ ...previous, yoyoMeters: undefined }));
                       setBase(prev => ({ ...prev, yoyoMeters: v }));
@@ -1229,6 +1437,7 @@ export default function AssessmentsView({
                     value={base.illinoisSeconds}
                     step={0.01}
                     error={assessmentSubmitErrors.illinoisSeconds}
+                    rating={fieldRatings.illinoisSeconds}
                     onChange={(v) => {
                       setAssessmentSubmitErrors(previous => ({ ...previous, illinoisSeconds: undefined }));
                       setBase(prev => ({ ...prev, illinoisSeconds: v }));
@@ -1241,6 +1450,7 @@ export default function AssessmentsView({
                     value={base.broadJumpCm}
                     step={1}
                     error={assessmentSubmitErrors.broadJumpCm}
+                    rating={fieldRatings.broadJumpCm}
                     onChange={(v) => {
                       setAssessmentSubmitErrors(previous => ({ ...previous, broadJumpCm: undefined }));
                       setBase(prev => ({ ...prev, broadJumpCm: v }));
@@ -1253,6 +1463,7 @@ export default function AssessmentsView({
                     value={base.medicineBallThrowCm}
                     step={1}
                     error={assessmentSubmitErrors.medicineBallThrowCm}
+                    rating={fieldRatings.medicineBallThrowCm}
                     onChange={(v) => {
                       setAssessmentSubmitErrors(previous => ({ ...previous, medicineBallThrowCm: undefined }));
                       setBase(prev => ({ ...prev, medicineBallThrowCm: v }));
@@ -1267,6 +1478,7 @@ export default function AssessmentsView({
                     min={0}
                     max={10}
                     error={assessmentSubmitErrors.firstTouchSuccessesOutOf10}
+                    rating={fieldRatings.firstTouchSuccessesOutOf10}
                     onChange={(v) => {
                       setAssessmentSubmitErrors(previous => ({ ...previous, firstTouchSuccessesOutOf10: undefined }));
                       setBase(prev => ({ ...prev, firstTouchSuccessesOutOf10: v }));
@@ -1281,6 +1493,7 @@ export default function AssessmentsView({
                     min={0}
                     max={10}
                     error={assessmentSubmitErrors.shortPassingSuccessesOutOf10}
+                    rating={fieldRatings.shortPassingSuccessesOutOf10}
                     onChange={(v) => {
                       setAssessmentSubmitErrors(previous => ({ ...previous, shortPassingSuccessesOutOf10: undefined }));
                       setBase(prev => ({ ...prev, shortPassingSuccessesOutOf10: v }));
@@ -1304,6 +1517,7 @@ export default function AssessmentsView({
                       max={f.max}
                       step={f.step}
                       error={assessmentSubmitErrors[f.key]}
+                      rating={fieldRatings[f.key] ?? null}
                       onChange={(v) => {
                         setAssessmentSubmitErrors(previous => ({ ...previous, [f.key]: undefined }));
                         setRoleSpecific(prev => ({ ...prev, [f.key]: v }));
@@ -1330,7 +1544,7 @@ export default function AssessmentsView({
             </div>
           )}
 
-          {step === 6 && (
+          {step === 4 && (
             <div className="bg-white border border-slate-200/70 rounded-2xl shadow-md shadow-slate-100/30 p-5 sm:p-6 space-y-4">
               <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                 <div>
@@ -1814,6 +2028,7 @@ export default function AssessmentsView({
           )}
         </div>
 
+        {showSidebar && (
         <div className="space-y-6">
           <div className="bg-white border border-slate-200/70 rounded-2xl shadow-md shadow-slate-100/30 p-5 sm:p-6">
             <h3 className="font-display font-black text-slate-900 text-sm uppercase tracking-wide flex items-center gap-2">
@@ -1832,7 +2047,7 @@ export default function AssessmentsView({
                 role={role}
                 assessmentType={assessmentType}
                 ageGroupLabel={ageGroup || 'Select age group'}
-                scorePreview={step === 5 ? scorePreview : null}
+                scorePreview={null}
               />
             )}
           </div>
@@ -1940,6 +2155,7 @@ export default function AssessmentsView({
             </div>
           )}
         </div>
+        )}
       </div>
 
       {selectedPlayer && betaSubmissionSession && (
