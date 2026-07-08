@@ -83,6 +83,7 @@ interface DevelopmentHubViewProps {
   onAddAssessment: (session: AssessmentSession) => void;
   onDeleteAssessment: (sessionId: string) => void;
   onUpdateAssessmentNotes: (sessionId: string, coachNotes: string) => void;
+  onReportDownloaded?: () => void;
 }
 
 export default function DevelopmentHubView(props: DevelopmentHubViewProps) {
@@ -127,6 +128,7 @@ export default function DevelopmentHubView(props: DevelopmentHubViewProps) {
               onAddAssessment={props.onAddAssessment}
               onDeleteAssessment={props.onDeleteAssessment}
               onUpdateAssessmentNotes={props.onUpdateAssessmentNotes}
+              onReportDownloaded={props.onReportDownloaded}
             />
           </section>
         )}

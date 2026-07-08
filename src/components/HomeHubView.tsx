@@ -1,5 +1,6 @@
 import React, { lazy, Suspense, type ReactNode } from 'react';
 import type { AssessmentSession, Announcement, Game, Player, Standing, TeamInfo } from '../types';
+import type { ActivationState } from '../activation/milestones';
 import type { DayName } from '../training/synchronization';
 import ViewLoadingFallback from './ViewLoadingFallback';
 import { SegmentedTabs, type SegmentedTabOption } from './ui/segmented-tabs';
@@ -37,6 +38,7 @@ interface HomeHubViewProps {
   standings: Standing[];
   announcements: Announcement[];
   assessments: AssessmentSession[];
+  activation?: ActivationState;
   onSelectPlayer: (player: Player) => void;
   onUpdateTeamInfo: (updated: TeamInfo) => void;
   onAddAnnouncement: (announcement: Announcement) => void;
@@ -87,6 +89,7 @@ export default function HomeHubView(props: HomeHubViewProps) {
             standings={props.standings}
             announcements={props.announcements}
             assessments={props.assessments}
+            activation={props.activation}
             onNavigate={props.onNavigate}
             onOpenTrainingSession={props.onOpenTrainingSession}
             onSelectPlayer={props.onSelectPlayer}

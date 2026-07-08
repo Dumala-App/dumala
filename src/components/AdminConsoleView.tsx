@@ -19,6 +19,7 @@ import {
   LogOut,
   MessageSquare,
   RefreshCcw,
+  Rocket,
   Save,
   ShieldAlert,
   ShieldCheck,
@@ -46,7 +47,8 @@ import type {
   FprdsBenchmarkReviewDecision,
   FprdsBenchmarkCorrection,
   FprdsBenchmarkCorrectionInput,
-  FprdsBenchmarkCorrectionStatus
+  FprdsBenchmarkCorrectionStatus,
+  ActivationFunnelStep
 } from '../cloud/admin';
 import type { MfaChallenge, MfaFactor, TotpEnrollment } from '../cloud/auth';
 import { Button } from './ui/button';
@@ -418,16 +420,26 @@ const OverviewPanel = ({ snapshot, growthMetrics }: { snapshot: AdminConsoleSnap
   );
 };
 
+const ACTIVATION_STEP_LABELS: Record<string, string> = {
+  roster: 'Roster added',
+  schedule: 'Match scheduled',
+  result: 'Result logged',
+  assessment: 'Assessment saved',
+  report: 'Report downloaded'
+};
+
 const UsagePanel = ({
   events,
   sessions,
   metrics,
-  productMetrics
+  productMetrics,
+  activationFunnel
 }: {
   events: AppUsageEvent[];
   sessions: AppSession[];
   metrics: AdminGrowthMetrics | null;
   productMetrics: AdminProductMetrics | null | undefined;
+  activationFunnel: ActivationFunnelStep[];
 }) => {
   const last24hEvents = events.filter(event => eventAgeMs(event.created_at) < 24 * 60 * 60000);
   const onlineNow = sessions.filter(session => eventAgeMs(session.last_seen_at) < 5 * 60000);
@@ -466,6 +478,28 @@ const UsagePanel = ({
           <TopList rows={topBrowsers} />
         </Section>
       </div>
+      <Section title="First-week activation funnel" icon={Rocket}>
+        {activationFunnel.length === 0 || activationFunnel.every(step => step.users === 0) ? (
+          <EmptyState title="No activation data yet" detail="Coaches emit activation milestones as they add a roster, schedule a match, log a result, save an assessment, and download a report." />
+        ) : (
+          <div className="space-y-2">
+            {activationFunnel.map((step, index) => {
+              const base = activationFunnel[0]?.users || 0;
+              const pct = base > 0 ? Math.round((step.users / base) * 100) : 0;
+              return (
+                <div key={step.step} className="flex items-center gap-3">
+                  <div className="w-36 shrink-0 text-xs font-bold text-slate-200">{ACTIVATION_STEP_LABELS[step.step] ?? step.step}</div>
+                  <div className="relative h-6 flex-1 overflow-hidden rounded-md border border-white/10 bg-white/[0.04]">
+                    <div className="h-full rounded-md bg-gradient-to-r from-cyan-400/70 to-emerald-400/70" style={{ width: `${Math.max(pct, step.users > 0 ? 4 : 0)}%` }} />
+                    <span className="absolute inset-y-0 left-2 flex items-center text-[11px] font-black text-slate-100">{step.users}</span>
+                  </div>
+                  <div className="w-24 shrink-0 text-right text-[11px] text-muted-foreground">{index === 0 ? `${step.workspaces} teams` : `${pct}% of start`}</div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </Section>
       <div className="grid gap-4 xl:grid-cols-[1.25fr_0.75fr]">
         <Section title="Recent events" icon={Activity}>
           {events.length === 0 ? (
@@ -1772,6 +1806,7 @@ export default function AdminConsoleView() {
   const [snapshot, setSnapshot] = useState<AdminConsoleSnapshot | null>(null);
   const [securityMetrics, setSecurityMetrics] = useState<AdminSecurityMetrics | null>(null);
   const [growthMetrics, setGrowthMetrics] = useState<AdminGrowthMetrics | null>(null);
+  const [activationFunnel, setActivationFunnel] = useState<ActivationFunnelStep[]>([]);
   const [storageMetrics, setStorageMetrics] = useState<AdminStorageMetrics | null>(null);
   const [recoverableWorkspaces, setRecoverableWorkspaces] = useState<AdminRecoverableWorkspace[]>([]);
   const [loadState, setLoadState] = useState<'idle' | 'loading' | 'ready' | 'error' | 'denied' | 'mfaRequired'>('idle');
@@ -1833,16 +1868,18 @@ export default function AdminConsoleView() {
       const next = await runtime.dataAccess.admin.getSnapshot();
       setSnapshot(next);
       if (admin.role === 'owner') {
-        const [security, growth, storage, recoverable] = await Promise.allSettled([
+        const [security, growth, storage, recoverable, activation] = await Promise.allSettled([
           runtime.dataAccess.admin.getSecurityMetrics(),
           runtime.dataAccess.admin.getGrowthMetrics(),
           runtime.dataAccess.admin.getStorageMetrics(),
-          runtime.dataAccess.admin.listRecoverableWorkspaces()
+          runtime.dataAccess.admin.listRecoverableWorkspaces(),
+          runtime.dataAccess.admin.getActivationFunnel()
         ]);
         setSecurityMetrics(security.status === 'fulfilled' ? security.value : null);
         setGrowthMetrics(growth.status === 'fulfilled' ? growth.value : null);
         setStorageMetrics(storage.status === 'fulfilled' ? storage.value : null);
         setRecoverableWorkspaces(recoverable.status === 'fulfilled' ? recoverable.value : []);
+        setActivationFunnel(activation.status === 'fulfilled' ? activation.value : []);
 
         const ownerMetricErrors = [security, growth, storage, recoverable]
           .map(getSettledErrorMessage)
@@ -1853,6 +1890,7 @@ export default function AdminConsoleView() {
         setGrowthMetrics(null);
         setStorageMetrics(null);
         setRecoverableWorkspaces([]);
+        setActivationFunnel([]);
       }
       await runtime.dataAccess.admin.recordAuditEvent('admin_console_opened', { role: admin.role }).catch(() => undefined);
       setLoadState('ready');
@@ -2380,7 +2418,7 @@ export default function AdminConsoleView() {
                 onSignOut={() => void handleAdminSignOut()}
               />
             )}
-            {activeTab === 'usage' && <UsagePanel events={snapshot.usageEvents} sessions={snapshot.activeSessions} metrics={growthMetrics} productMetrics={snapshot.productMetrics} />}
+            {activeTab === 'usage' && <UsagePanel events={snapshot.usageEvents} sessions={snapshot.activeSessions} metrics={growthMetrics} productMetrics={snapshot.productMetrics} activationFunnel={activationFunnel} />}
             {activeTab === 'feedback' && (
               <FeedbackPanel feedback={snapshot.feedback} metrics={growthMetrics} onStatusChange={handleFeedbackStatusChange} onOpen={setSelectedFeedback} />
             )}

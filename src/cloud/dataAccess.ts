@@ -58,6 +58,7 @@ import { importCloudPayload, type CloudImportDeviceContext } from './importer';
 import type { CloudImportPayload } from '../migrations/localToCloud';
 import {
   getAdminConsoleSnapshot,
+  getAdminActivationFunnel,
   getAdminGrowthMetrics,
   getAdminSecurityMetrics,
   getAdminStorageMetrics,
@@ -97,6 +98,7 @@ import {
   type FprdsBenchmarkCorrection,
   type FprdsBenchmarkCorrectionInput,
   type FprdsBenchmarkCorrectionStatus,
+  type ActivationFunnelStep,
   type UsageEventInput
 } from './admin';
 
@@ -164,6 +166,7 @@ export interface CloudAdminRepository {
   getSnapshot(): Promise<AdminConsoleSnapshot>;
   getSecurityMetrics(days?: number): Promise<AdminSecurityMetrics>;
   getGrowthMetrics(days?: number): Promise<AdminGrowthMetrics>;
+  getActivationFunnel(days?: number): Promise<ActivationFunnelStep[]>;
   getStorageMetrics(days?: number): Promise<AdminStorageMetrics>;
   listRecoverableWorkspaces(days?: number): Promise<AdminRecoverableWorkspace[]>;
   restoreWorkspace(clubId: string): Promise<AdminRecoverableWorkspace>;
@@ -251,6 +254,7 @@ export const createCloudDataAccess = (client: DumalaSupabaseClient): CloudDataAc
     getSnapshot: () => getAdminConsoleSnapshot(client),
     getSecurityMetrics: days => getAdminSecurityMetrics(client, days),
     getGrowthMetrics: days => getAdminGrowthMetrics(client, days),
+    getActivationFunnel: days => getAdminActivationFunnel(client, days),
     getStorageMetrics: days => getAdminStorageMetrics(client, days),
     listRecoverableWorkspaces: days => listAdminRecoverableWorkspaces(client, days),
     restoreWorkspace: clubId => restoreAdminWorkspace(client, clubId),

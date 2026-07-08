@@ -93,6 +93,8 @@ import {
 } from './components/CloudAccountGate';
 import { runCloudBackupFlow } from './cloud/workspaceBackupFlow';
 import { createContentFingerprint } from './migrations/localToCloud';
+import { deriveActivationMilestones, type ActivationMilestoneId } from './activation/milestones';
+import { readActivationFlags, recordActivationFlag } from './activation/activationStore';
 
 import { 
   Shield, 
@@ -320,6 +322,7 @@ export default function App() {
   const [paymentLedger, setPaymentLedger] = useState<PaymentLedgerEntry[]>(initialWorkspace.paymentLedger);
   const [workspaces, setWorkspaces] = useState<WorkspaceSummary[]>(initialWorkspace.workspaces);
   const [activeWorkspaceId, setActiveWorkspaceId] = useState<string | null>(initialWorkspace.activeWorkspaceId);
+  const [activationFlags, setActivationFlags] = useState<Record<string, string>>(() => readActivationFlags());
   const [recoveryWarnings, setRecoveryWarnings] = useState(initialWorkspace.warnings);
   const [startupRecoveryIssues, setStartupRecoveryIssues] = useState(initialWorkspace.startupIssues);
   const [storageHealth, setStorageHealth] = useState<StorageHealth | null>(null);
@@ -346,6 +349,7 @@ export default function App() {
     setAssessments(next.assessments);
     setPaymentLedger(next.paymentLedger);
     setIsOnboarded(next.isOnboarded);
+    setActivationFlags(readActivationFlags());
     setSelectedPlayer(null);
     setSelectedStaff(null);
     setSelectedTrainingSessionDay(null);
@@ -931,6 +935,57 @@ export default function App() {
       console.warn('Failed to record usage event', error);
     });
   }, [cloudRuntime, primaryTab]);
+
+  const activationState = useMemo(
+    () => deriveActivationMilestones(players, games, assessments, activationFlags),
+    [players, games, assessments, activationFlags]
+  );
+
+  const emitActivationMilestone = useCallback((id: ActivationMilestoneId, viewName: string, metadata?: Record<string, unknown>) => {
+    if (!cloudRuntime.enabled) return;
+    void cloudRuntime.dataAccess.admin.recordUsageEvent({
+      sessionId: analyticsSessionIdRef.current,
+      eventType: 'activation_milestone',
+      viewName,
+      featureName: id,
+      appVersion: '0.0.0',
+      deviceType: getDeviceType(),
+      browserFamily: getBrowserFamily(),
+      metadata
+    }).catch(error => {
+      console.warn('Failed to record activation milestone', error);
+    });
+  }, [cloudRuntime]);
+
+  // First time a state-derived milestone is reached, persist it (per team) and
+  // emit one activation event. localStorage is the source of truth, so this fires
+  // exactly once per milestone even across reloads. The `report` milestone is
+  // handled separately by the download handler below.
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const existing = readActivationFlags();
+    const nowIso = new Date().toISOString();
+    const newlyReached = activationState.milestones.filter(
+      milestone => milestone.id !== 'report' && milestone.done && !existing[milestone.id]
+    );
+    if (newlyReached.length === 0) return;
+
+    let flags = existing;
+    for (const milestone of newlyReached) {
+      const result = recordActivationFlag(milestone.id, nowIso);
+      flags = result.flags;
+      if (result.changed) emitActivationMilestone(milestone.id, 'home', { rosterSize: activationState.rosterSize });
+    }
+    setActivationFlags(flags);
+  }, [activationState, emitActivationMilestone]);
+
+  const handleReportDownloaded = useCallback(() => {
+    const result = recordActivationFlag('report', new Date().toISOString());
+    if (result.changed) {
+      setActivationFlags(result.flags);
+      emitActivationMilestone('report', 'development');
+    }
+  }, [emitActivationMilestone]);
 
   useEffect(() => {
     if (!cloudRuntime.enabled) return;
@@ -1615,6 +1670,7 @@ export default function App() {
                   standings={standings}
                   announcements={announcements}
                   assessments={assessments}
+                  activation={activationState}
                   onSelectPlayer={setSelectedPlayer}
                   onOpenTrainingSession={setSelectedTrainingSessionDay}
                   onUpdateTeamInfo={handleUpdateTeamInfo}
@@ -1682,6 +1738,7 @@ export default function App() {
                   onAddAssessment={handleAddAssessment}
                   onDeleteAssessment={handleDeleteAssessment}
                   onUpdateAssessmentNotes={handleUpdateAssessmentNotes}
+                  onReportDownloaded={handleReportDownloaded}
                 />
               </ViewErrorBoundary>
             )}
