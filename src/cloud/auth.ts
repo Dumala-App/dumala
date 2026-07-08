@@ -132,7 +132,7 @@ export const signUpWithPassword = async (
   if (!normalizedEmail) throw new CloudAuthError('Email is required to create a cloud account.', 'AUTH_EMAIL_REQUIRED');
   if (password.length < 8) throw new CloudAuthError('Password must be at least 8 characters.', 'AUTH_PASSWORD_TOO_SHORT');
 
-  const { error } = await client.auth.signUp({
+  const { data, error } = await client.auth.signUp({
     email: normalizedEmail,
     password,
     options: redirectTo ? { emailRedirectTo: redirectTo } : undefined
@@ -140,6 +140,17 @@ export const signUpWithPassword = async (
 
   if (error) {
     throw new CloudAuthError(`Failed to create cloud account: ${getErrorMessage(error)}`, 'AUTH_PASSWORD_SIGN_UP_FAILED', error);
+  }
+
+  // Supabase does not return an error when the email is already registered (an
+  // anti-enumeration measure). Instead it returns a user whose `identities`
+  // array is empty. Treat that as a duplicate so we don't falsely claim the
+  // account was created.
+  if (data?.user && Array.isArray(data.user.identities) && data.user.identities.length === 0) {
+    throw new CloudAuthError(
+      'An account with this email already exists. Sign in instead.',
+      'AUTH_EMAIL_ALREADY_REGISTERED'
+    );
   }
 };
 
