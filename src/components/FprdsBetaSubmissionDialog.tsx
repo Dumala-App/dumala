@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { CheckCircle2, FlaskConical, Loader2, Send, ShieldCheck } from 'lucide-react';
 import type { AssessmentSession, Player } from '../types';
 import { useCloudRuntime } from '../hooks/useCloudRuntime';
+import { deriveBetaDrillResults } from '../fprds/betaDrillResults';
 import { ROLE_LABELS } from '../fprds/weights';
 import { Button } from './ui/button';
 import { Checkbox } from './ui/checkbox';
@@ -108,7 +109,9 @@ export default function FprdsBetaSubmissionDialog({ open, player, session, onOpe
         venueContext: { surface, timingMethod, conditions },
         coachConfidence: Number(confidence),
         coachNotes: notes.trim() || null,
-        consentVersion: CONSENT_VERSION
+        consentVersion: CONSENT_VERSION,
+        benchmarkVersion: session.benchmarkVersion,
+        drillResults: deriveBetaDrillResults(session)
       });
       setAvailability('submitted');
       setStatusMessage('Anonymized results were sent to the FPRDS beta review queue.');

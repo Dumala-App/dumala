@@ -4,6 +4,44 @@ export type AgeGroup = 'U12' | 'U15' | 'U18' | 'Adult';
 
 export type BenchmarkDirection = 'lower_is_better' | 'higher_is_better';
 
+// FPRDS benchmark versioning.
+//
+// Every assessment session records the benchmark version it was scored under so
+// historical results stay reproducible: the raw drill inputs, the derived scores,
+// and the exact benchmark/weighting/scoring version are all preserved. When the
+// benchmark tables, role weights, or scoring algorithm change, publish a NEW
+// version string and register it below rather than mutating the current tables —
+// existing sessions keep their original version and remain auditable.
+export const CURRENT_BENCHMARK_VERSION = 'fprds-beta-1';
+export const CURRENT_WEIGHTING_VERSION = 'fprds-beta-1';
+export const CURRENT_SCORING_VERSION = 'fprds-beta-1';
+
+export interface BenchmarkVersionInfo {
+  version: string;
+  label: string;
+  publishedAt: string;
+  status: 'current' | 'superseded';
+  description: string;
+}
+
+export const BENCHMARK_VERSION_REGISTRY: Record<string, BenchmarkVersionInfo> = {
+  'fprds-beta-1': {
+    version: 'fprds-beta-1',
+    label: 'FPRDS Beta 1',
+    publishedAt: '2026-06-15',
+    status: 'current',
+    description: 'Initial FPRDS beta benchmark tables, seven-role weights, and scoring algorithm used during private beta validation.'
+  }
+};
+
+export const isKnownBenchmarkVersion = (version: string | undefined | null): boolean =>
+  typeof version === 'string' && version in BENCHMARK_VERSION_REGISTRY;
+
+// Resolves version metadata, falling back to the current version for unknown or
+// missing values (for example legacy sessions saved before versions were stamped).
+export const getBenchmarkVersionInfo = (version: string | undefined | null): BenchmarkVersionInfo =>
+  (isKnownBenchmarkVersion(version) ? BENCHMARK_VERSION_REGISTRY[version as string] : BENCHMARK_VERSION_REGISTRY[CURRENT_BENCHMARK_VERSION]);
+
 export interface BenchmarkTier {
   label: TierLabel;
   scoreMin: number;

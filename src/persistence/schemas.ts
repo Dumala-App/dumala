@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import type { Player, StaffMember } from '../types';
 import { isStaffPosition } from '../types';
+import { CURRENT_BENCHMARK_VERSION } from '../fprds/benchmarks';
 
 const finiteNumber = z.number().finite();
 const nonNegativeNumber = finiteNumber.min(0);
@@ -288,7 +289,10 @@ export const assessmentSessionSchema = z.object({
     attributeDeltas: z.record(z.string(), finiteNumber).optional()
   }),
   coachNotes: z.string().optional(),
-  developmentPlan: developmentPlanSchema.optional()
+  developmentPlan: developmentPlanSchema.optional(),
+  // Legacy sessions saved before benchmark versioning are backfilled to the
+  // first benchmark version so every restored session carries a version.
+  benchmarkVersion: z.string().default(CURRENT_BENCHMARK_VERSION)
 });
 export const assessmentsSchema = z.array(assessmentSessionSchema);
 

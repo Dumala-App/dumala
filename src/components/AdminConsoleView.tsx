@@ -11,6 +11,7 @@ import {
   Download,
   Eye,
   FileText,
+  FlaskConical,
   Gauge,
   KeyRound,
   Loader2,
@@ -39,7 +40,13 @@ import type {
   FeedbackStatus,
   FeedbackSubmission,
   FprdsBetaReviewStatus,
-  FprdsBetaSubmission
+  FprdsBetaSubmission,
+  FprdsBenchmarkAnalysisRow,
+  FprdsBenchmarkReview,
+  FprdsBenchmarkReviewDecision,
+  FprdsBenchmarkCorrection,
+  FprdsBenchmarkCorrectionInput,
+  FprdsBenchmarkCorrectionStatus
 } from '../cloud/admin';
 import type { MfaChallenge, MfaFactor, TotpEnrollment } from '../cloud/auth';
 import { Button } from './ui/button';
@@ -54,11 +61,12 @@ import {
   DialogTitle
 } from './ui/dialog';
 import { Label } from './ui/label';
+import { Input } from './ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Textarea } from './ui/textarea';
 import { DARK_GLASS_THEME, type DarkGlassThemeId } from '../theme/darkGlassTheme';
 
-type AdminTab = 'overview' | 'users' | 'recovery' | 'storage' | 'security' | 'usage' | 'feedback' | 'fprds' | 'online' | 'billing' | 'exports' | 'alerts';
+type AdminTab = 'overview' | 'users' | 'recovery' | 'storage' | 'security' | 'usage' | 'feedback' | 'fprds' | 'benchmarks' | 'online' | 'billing' | 'exports' | 'alerts';
 
 const ADMIN_AUTH_REDIRECT_URL = 'https://dumala.asia/?returnTo=admin';
 
@@ -79,6 +87,7 @@ const adminTabs: Array<{ id: AdminTab; label: string; icon: React.ComponentType<
   { id: 'usage', label: 'Usage', icon: BarChart3 },
   { id: 'feedback', label: 'Feedback', icon: MessageSquare },
   { id: 'fprds', label: 'FPRDS Beta', icon: ClipboardList },
+  { id: 'benchmarks', label: 'Benchmarks', icon: FlaskConical },
   { id: 'online', label: 'Online', icon: Wifi },
   { id: 'billing', label: 'Billing', icon: CreditCard },
   { id: 'exports', label: 'Exports', icon: Download },
@@ -91,7 +100,7 @@ const canUseTab = (role: AppAdminProfile['role'] | undefined, tab: AdminTab) => 
   if (!role) return tab === 'overview';
   if (role === 'owner') return true;
   if (role === 'support') return ['overview', 'usage', 'feedback', 'online'].includes(tab);
-  if (role === 'fprds_reviewer') return ['overview', 'fprds'].includes(tab);
+  if (role === 'fprds_reviewer') return ['overview', 'fprds', 'benchmarks'].includes(tab);
   if (role === 'billing') return ['overview', 'billing'].includes(tab);
   return tab === 'overview';
 };
@@ -187,6 +196,36 @@ const fprdsStatusTone: Record<FprdsBetaReviewStatus, string> = {
   excluded: 'border-rose-300/25 bg-rose-300/10 text-rose-100',
   needs_followup: 'border-sky-300/25 bg-sky-300/10 text-sky-100'
 };
+
+const benchmarkDecisionLabel: Record<FprdsBenchmarkReviewDecision, string> = {
+  accept: 'Accept as-is',
+  change_requested: 'Change requested',
+  inconclusive: 'Inconclusive'
+};
+
+const benchmarkDecisionTone: Record<FprdsBenchmarkReviewDecision, string> = {
+  accept: 'border-emerald-300/25 bg-emerald-300/10 text-emerald-100',
+  change_requested: 'border-amber-300/25 bg-amber-300/10 text-amber-100',
+  inconclusive: 'border-slate-300/20 bg-white/[0.05] text-slate-200'
+};
+
+const correctionStatusLabel: Record<FprdsBenchmarkCorrectionStatus, string> = {
+  proposed: 'Proposed',
+  accepted: 'Accepted',
+  rejected: 'Rejected',
+  deferred: 'Deferred'
+};
+
+const correctionStatusTone: Record<FprdsBenchmarkCorrectionStatus, string> = {
+  proposed: 'border-amber-300/25 bg-amber-300/10 text-amber-100',
+  accepted: 'border-emerald-300/25 bg-emerald-300/10 text-emerald-100',
+  rejected: 'border-rose-300/25 bg-rose-300/10 text-rose-100',
+  deferred: 'border-sky-300/25 bg-sky-300/10 text-sky-100'
+};
+
+const BENCHMARK_TIERS = ['Elite', 'Advanced', 'Developing', 'Below Average', 'Beginner', 'Unbanded'] as const;
+
+const formatDrillLabel = (drillId: string) => drillId.replace(/_/g, ' ').replace(/\b\w/g, char => char.toUpperCase());
 
 const eventAgeMs = (date: string) => Date.now() - new Date(date).getTime();
 
@@ -953,6 +992,344 @@ const FprdsPanel = ({
   );
 };
 
+const TierBar = ({ distribution }: { distribution: Record<string, number> }) => {
+  const tones: Record<string, string> = {
+    Elite: 'bg-amber-400/80',
+    Advanced: 'bg-emerald-400/80',
+    Developing: 'bg-sky-400/80',
+    'Below Average': 'bg-orange-400/80',
+    Beginner: 'bg-rose-400/80',
+    Unbanded: 'bg-slate-500/60'
+  };
+  const total = BENCHMARK_TIERS.reduce((sum, tier) => sum + (distribution[tier] ?? 0), 0);
+  if (total === 0) return <span className="text-muted-foreground">-</span>;
+  return (
+    <div className="flex h-2.5 w-32 overflow-hidden rounded-full border border-white/10" title={BENCHMARK_TIERS.map(tier => `${tier}: ${distribution[tier] ?? 0}`).join(' · ')}>
+      {BENCHMARK_TIERS.map(tier => {
+        const value = distribution[tier] ?? 0;
+        if (value === 0) return null;
+        return <div key={tier} className={tones[tier]} style={{ width: `${(value / total) * 100}%` }} />;
+      })}
+    </div>
+  );
+};
+
+const BenchmarkReviewDialog = ({ row, open, saving, onOpenChange, onSave }: {
+  row: FprdsBenchmarkAnalysisRow | null;
+  open: boolean;
+  saving: boolean;
+  onOpenChange: (open: boolean) => void;
+  onSave: (row: FprdsBenchmarkAnalysisRow, decision: FprdsBenchmarkReviewDecision, notes: string) => void;
+}) => {
+  const [decision, setDecision] = useState<FprdsBenchmarkReviewDecision>('inconclusive');
+  const [notes, setNotes] = useState('');
+
+  useEffect(() => {
+    if (!row) return;
+    setDecision('inconclusive');
+    setNotes('');
+  }, [row]);
+
+  if (!row) return null;
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className={ADMIN_DIALOG_CONTENT_CLASS}>
+        <DialogHeader>
+          <DialogTitle className="text-slate-100">Record benchmark verdict</DialogTitle>
+          <DialogDescription className="text-slate-400">
+            {formatDrillLabel(row.drillId)} · {row.ageGroup.toUpperCase()} · {row.role.toUpperCase()} · {row.assessmentType} · n={row.sampleSize}
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4 py-2">
+          <div className="grid grid-cols-3 gap-px overflow-hidden rounded-lg border border-white/10 bg-white/10 text-center">
+            {([['P10', row.p10], ['Median', row.median], ['P90', row.p90]] as const).map(([label, value]) => (
+              <div key={label} className="bg-slate-900/60 px-2 py-2">
+                <p className="text-[9px] font-black uppercase text-slate-400">{label}</p>
+                <p className="mt-0.5 text-sm font-extrabold text-slate-100">{value ?? '-'}</p>
+              </div>
+            ))}
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="benchmark-decision" className="normal-case tracking-normal text-slate-300">Decision</Label>
+            <Select value={decision} onValueChange={value => setDecision(value as FprdsBenchmarkReviewDecision)}>
+              <SelectTrigger id="benchmark-decision" className={ADMIN_DIALOG_FIELD_CLASS}><SelectValue /></SelectTrigger>
+              <SelectContent className={ADMIN_DIALOG_SELECT_CONTENT_CLASS}>
+                {(Object.keys(benchmarkDecisionLabel) as FprdsBenchmarkReviewDecision[]).map(value => (
+                  <SelectItem key={value} value={value} className={ADMIN_DIALOG_SELECT_ITEM_CLASS}>{benchmarkDecisionLabel[value]}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="benchmark-review-notes" className="normal-case tracking-normal text-slate-300">Reviewer notes</Label>
+            <Textarea id="benchmark-review-notes" value={notes} onChange={event => setNotes(event.target.value)} rows={3} maxLength={3000} placeholder="Distribution read, drill-consistency concerns, or follow-up needed." className={ADMIN_DIALOG_FIELD_CLASS} />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button type="button" variant="outline" onClick={() => onOpenChange(false)} className={ADMIN_DIALOG_SECONDARY_BUTTON_CLASS}>Cancel</Button>
+          <Button type="button" disabled={saving} onClick={() => onSave(row, decision, notes)} className={ADMIN_DIALOG_PRIMARY_BUTTON_CLASS}>
+            {saving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />} Save verdict
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
+const BenchmarkCorrectionDialog = ({ row, open, saving, onOpenChange, onSave }: {
+  row: FprdsBenchmarkAnalysisRow | null;
+  open: boolean;
+  saving: boolean;
+  onOpenChange: (open: boolean) => void;
+  onSave: (input: FprdsBenchmarkCorrectionInput) => void;
+}) => {
+  const [tierLabel, setTierLabel] = useState<string>('Developing');
+  const [currentBest, setCurrentBest] = useState('');
+  const [currentWorst, setCurrentWorst] = useState('');
+  const [proposedBest, setProposedBest] = useState('');
+  const [proposedWorst, setProposedWorst] = useState('');
+  const [rationale, setRationale] = useState('');
+  const [targetVersion, setTargetVersion] = useState('');
+
+  useEffect(() => {
+    if (!row) return;
+    setTierLabel('Developing');
+    setCurrentBest('');
+    setCurrentWorst('');
+    setProposedBest('');
+    setProposedWorst('');
+    setRationale('');
+    setTargetVersion('');
+  }, [row]);
+
+  if (!row) return null;
+
+  const toNumberOrNull = (value: string) => {
+    const trimmed = value.trim();
+    if (trimmed === '') return null;
+    const n = Number(trimmed);
+    return Number.isFinite(n) ? n : null;
+  };
+
+  const submit = () => {
+    onSave({
+      drillId: row.drillId,
+      attributeId: row.attributeId,
+      ageGroup: row.ageGroup,
+      role: row.role,
+      tierLabel,
+      currentRawBest: toNumberOrNull(currentBest),
+      currentRawWorst: toNumberOrNull(currentWorst),
+      proposedRawBest: toNumberOrNull(proposedBest),
+      proposedRawWorst: toNumberOrNull(proposedWorst),
+      rationale: rationale.trim(),
+      targetBenchmarkVersion: targetVersion.trim() || null
+    });
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className={ADMIN_DIALOG_CONTENT_CLASS}>
+        <DialogHeader>
+          <DialogTitle className="text-slate-100">Propose benchmark correction</DialogTitle>
+          <DialogDescription className="text-slate-400">
+            {formatDrillLabel(row.drillId)} · {row.ageGroup.toUpperCase()} · {row.role.toUpperCase()} · v{row.benchmarkVersion}
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4 py-2">
+          <div className="space-y-1.5">
+            <Label htmlFor="correction-tier" className="normal-case tracking-normal text-slate-300">Tier under review</Label>
+            <Select value={tierLabel} onValueChange={setTierLabel}>
+              <SelectTrigger id="correction-tier" className={ADMIN_DIALOG_FIELD_CLASS}><SelectValue /></SelectTrigger>
+              <SelectContent className={ADMIN_DIALOG_SELECT_CONTENT_CLASS}>
+                {BENCHMARK_TIERS.filter(tier => tier !== 'Unbanded').map(tier => (
+                  <SelectItem key={tier} value={tier} className={ADMIN_DIALOG_SELECT_ITEM_CLASS}>{tier}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label htmlFor="current-best" className="normal-case tracking-normal text-slate-300">Current best bound</Label>
+              <Input id="current-best" inputMode="decimal" value={currentBest} onChange={event => setCurrentBest(event.target.value)} placeholder="e.g. 4.20" className={ADMIN_DIALOG_FIELD_CLASS} />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="current-worst" className="normal-case tracking-normal text-slate-300">Current worst bound</Label>
+              <Input id="current-worst" inputMode="decimal" value={currentWorst} onChange={event => setCurrentWorst(event.target.value)} placeholder="e.g. 4.59" className={ADMIN_DIALOG_FIELD_CLASS} />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="proposed-best" className="normal-case tracking-normal text-slate-300">Proposed best bound</Label>
+              <Input id="proposed-best" inputMode="decimal" value={proposedBest} onChange={event => setProposedBest(event.target.value)} placeholder="Optional" className={ADMIN_DIALOG_FIELD_CLASS} />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="proposed-worst" className="normal-case tracking-normal text-slate-300">Proposed worst bound</Label>
+              <Input id="proposed-worst" inputMode="decimal" value={proposedWorst} onChange={event => setProposedWorst(event.target.value)} placeholder="Optional" className={ADMIN_DIALOG_FIELD_CLASS} />
+            </div>
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="correction-rationale" className="normal-case tracking-normal text-slate-300">Rationale</Label>
+            <Textarea id="correction-rationale" value={rationale} onChange={event => setRationale(event.target.value)} rows={3} maxLength={4000} required placeholder="Why the current band looks too easy or too hard, backed by the observed distribution." className={ADMIN_DIALOG_FIELD_CLASS} />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="correction-target" className="normal-case tracking-normal text-slate-300">Target benchmark version (optional)</Label>
+            <Input id="correction-target" value={targetVersion} onChange={event => setTargetVersion(event.target.value)} placeholder="e.g. fprds-beta-2" className={ADMIN_DIALOG_FIELD_CLASS} />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button type="button" variant="outline" onClick={() => onOpenChange(false)} className={ADMIN_DIALOG_SECONDARY_BUTTON_CLASS}>Cancel</Button>
+          <Button type="button" disabled={saving || !rationale.trim()} onClick={submit} className={ADMIN_DIALOG_PRIMARY_BUTTON_CLASS}>
+            {saving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />} Log correction
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
+const FprdsBenchmarkPanel = ({
+  analysis,
+  reviews,
+  corrections,
+  loadState,
+  minSample,
+  onMinSampleChange,
+  onRefresh,
+  onReview,
+  onPropose,
+  onCorrectionStatus,
+  busyCorrectionId
+}: {
+  analysis: FprdsBenchmarkAnalysisRow[];
+  reviews: FprdsBenchmarkReview[];
+  corrections: FprdsBenchmarkCorrection[];
+  loadState: 'idle' | 'loading' | 'ready' | 'error';
+  minSample: number;
+  onMinSampleChange: (value: number) => void;
+  onRefresh: () => void;
+  onReview: (row: FprdsBenchmarkAnalysisRow) => void;
+  onPropose: (row: FprdsBenchmarkAnalysisRow) => void;
+  onCorrectionStatus: (correction: FprdsBenchmarkCorrection, status: FprdsBenchmarkCorrectionStatus) => void;
+  busyCorrectionId: string | null;
+}) => {
+  const totalSamples = analysis.reduce((sum, row) => sum + row.sampleSize, 0);
+  const openCorrections = corrections.filter(item => item.status === 'proposed').length;
+
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <StatTile label="Benchmark groups" value={analysis.length} detail="Drill × age × role × type cells." />
+        <StatTile label="Drill measurements" value={totalSamples} detail="Included, non-excluded submissions." />
+        <StatTile label="Reviews logged" value={reviews.length} detail="Reviewer verdicts on benchmark rows." />
+        <StatTile label="Open corrections" value={openCorrections} detail="Proposed band changes awaiting a decision." />
+      </div>
+
+      <Section title="Benchmark distribution analysis" icon={FlaskConical}>
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <Label htmlFor="benchmark-min-sample" className="normal-case tracking-normal text-slate-300">Min sample</Label>
+            <Select value={String(minSample)} onValueChange={value => onMinSampleChange(Number(value))}>
+              <SelectTrigger id="benchmark-min-sample" className={`h-8 w-20 ${ADMIN_DIALOG_FIELD_CLASS}`}><SelectValue /></SelectTrigger>
+              <SelectContent className={ADMIN_DIALOG_SELECT_CONTENT_CLASS}>
+                {[1, 3, 5, 10, 20].map(value => (
+                  <SelectItem key={value} value={String(value)} className={ADMIN_DIALOG_SELECT_ITEM_CLASS}>{value}+</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <Button type="button" variant="outline" size="sm" onClick={onRefresh} className={ADMIN_SECONDARY_ACTION_BUTTON_CLASS}>
+            <RefreshCcw size={14} /> Refresh
+          </Button>
+        </div>
+        {loadState === 'loading' ? (
+          <div className="flex items-center gap-2 rounded-lg border border-white/10 bg-white/[0.03] p-4 text-sm font-semibold text-slate-300"><Loader2 size={16} className="animate-spin" /> Loading benchmark analysis...</div>
+        ) : loadState === 'error' ? (
+          <EmptyState title="Analysis unavailable" detail="The benchmark analysis query failed. Refresh to try again." />
+        ) : analysis.length === 0 ? (
+          <EmptyState title="No benchmark data yet" detail="Distributions appear once opt-in submissions include per-drill results at or above the minimum sample size." />
+        ) : (
+          <CompactTable headers={['Drill', 'Age', 'Role', 'Type', 'N', 'Median (P10–P90)', 'Avg score', 'Tier mix', '']}>
+            {analysis.map(row => (
+              <tr key={`${row.drillId}-${row.ageGroup}-${row.role}-${row.assessmentType}-${row.benchmarkVersion}`}>
+                <td className="px-3 py-2 font-bold text-foreground">{formatDrillLabel(row.drillId)}</td>
+                <td className="px-3 py-2 text-muted-foreground">{row.ageGroup.toUpperCase()}</td>
+                <td className="px-3 py-2 text-muted-foreground">{row.role.toUpperCase()}</td>
+                <td className="px-3 py-2 text-muted-foreground">{row.assessmentType}</td>
+                <td className="px-3 py-2 font-black text-foreground">{row.sampleSize}</td>
+                <td className="px-3 py-2 text-muted-foreground">{row.median ?? '-'} <span className="text-slate-500">({row.p10 ?? '-'}–{row.p90 ?? '-'})</span></td>
+                <td className="px-3 py-2 text-muted-foreground">{row.avgScore ?? '-'}</td>
+                <td className="px-3 py-2"><TierBar distribution={row.tierDistribution} /></td>
+                <td className="px-3 py-2">
+                  <div className="flex justify-end gap-2">
+                    <Button type="button" variant="outline" size="sm" onClick={() => onReview(row)} className={ADMIN_REVIEW_BUTTON_CLASS}><Eye size={14} /> Review</Button>
+                    <Button type="button" variant="outline" size="sm" onClick={() => onPropose(row)} className={ADMIN_SECONDARY_ACTION_BUTTON_CLASS}>Propose fix</Button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </CompactTable>
+        )}
+      </Section>
+
+      <div className="grid gap-4 xl:grid-cols-2">
+        <Section title="Recent benchmark reviews" icon={ClipboardList}>
+          {reviews.length === 0 ? (
+            <EmptyState title="No reviews yet" detail="Recorded verdicts on benchmark rows appear here." />
+          ) : (
+            <CompactTable headers={['Drill', 'Age', 'Role', 'Decision', 'N', 'When']}>
+              {reviews.map(review => (
+                <tr key={review.id}>
+                  <td className="px-3 py-2 font-bold text-foreground">{formatDrillLabel(review.drill_id)}</td>
+                  <td className="px-3 py-2 text-muted-foreground">{review.age_group.toUpperCase()}</td>
+                  <td className="px-3 py-2 text-muted-foreground">{review.role ? review.role.toUpperCase() : 'All'}</td>
+                  <td className="px-3 py-2"><span className={`inline-flex rounded-md border px-2 py-1 text-[10px] font-black ${benchmarkDecisionTone[review.review_decision]}`}>{benchmarkDecisionLabel[review.review_decision]}</span></td>
+                  <td className="px-3 py-2 text-muted-foreground">{review.sample_size}</td>
+                  <td className="px-3 py-2 text-muted-foreground">{formatRelativeTime(review.created_at)}</td>
+                </tr>
+              ))}
+            </CompactTable>
+          )}
+        </Section>
+
+        <Section title="Benchmark corrections" icon={FileText}>
+          {corrections.length === 0 ? (
+            <EmptyState title="No corrections proposed" detail="Proposed band changes and their decisions appear here." />
+          ) : (
+            <div className="space-y-3">
+              {corrections.map(correction => (
+                <div key={correction.id} className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-bold text-foreground">{formatDrillLabel(correction.drill_id)} · {correction.tier_label}</p>
+                      <p className="text-[11px] text-muted-foreground">{correction.age_group.toUpperCase()} · {correction.role ? correction.role.toUpperCase() : 'All roles'}
+                        {correction.target_benchmark_version ? ` · → ${correction.target_benchmark_version}` : ''}</p>
+                    </div>
+                    <span className={`inline-flex shrink-0 rounded-md border px-2 py-1 text-[10px] font-black ${correctionStatusTone[correction.status]}`}>{correctionStatusLabel[correction.status]}</span>
+                  </div>
+                  <p className="mt-2 text-xs text-slate-300">
+                    <span className="text-slate-500">Band</span> {correction.current_raw_best ?? '·'}–{correction.current_raw_worst ?? '·'}
+                    <span className="text-slate-500"> → </span> {correction.proposed_raw_best ?? '·'}–{correction.proposed_raw_worst ?? '·'}
+                  </p>
+                  <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{correction.rationale}</p>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {(['accepted', 'rejected', 'deferred', 'proposed'] as FprdsBenchmarkCorrectionStatus[])
+                      .filter(status => status !== correction.status)
+                      .map(status => (
+                        <Button key={status} type="button" variant="outline" size="sm" disabled={busyCorrectionId === correction.id} onClick={() => onCorrectionStatus(correction, status)} className={ADMIN_SECONDARY_ACTION_BUTTON_CLASS}>
+                          {busyCorrectionId === correction.id ? <Loader2 size={12} className="animate-spin" /> : null}
+                          {status === 'proposed' ? 'Reopen' : correctionStatusLabel[status]}
+                        </Button>
+                      ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </Section>
+      </div>
+    </div>
+  );
+};
+
 const UsersPanel = ({ metrics }: { metrics: AdminGrowthMetrics | null }) => (
   <div className="space-y-4">
     <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
@@ -1403,6 +1780,15 @@ export default function AdminConsoleView() {
   const [selectedFprdsSubmission, setSelectedFprdsSubmission] = useState<FprdsBetaSubmission | null>(null);
   const [isSavingReview, setIsSavingReview] = useState(false);
   const [restoringWorkspaceId, setRestoringWorkspaceId] = useState<string | null>(null);
+  const [benchmarkAnalysis, setBenchmarkAnalysis] = useState<FprdsBenchmarkAnalysisRow[]>([]);
+  const [benchmarkReviews, setBenchmarkReviews] = useState<FprdsBenchmarkReview[]>([]);
+  const [benchmarkCorrections, setBenchmarkCorrections] = useState<FprdsBenchmarkCorrection[]>([]);
+  const [benchmarkLoadState, setBenchmarkLoadState] = useState<'idle' | 'loading' | 'ready' | 'error'>('idle');
+  const [benchmarkMinSample, setBenchmarkMinSample] = useState(1);
+  const [selectedBenchmarkReviewRow, setSelectedBenchmarkReviewRow] = useState<FprdsBenchmarkAnalysisRow | null>(null);
+  const [selectedBenchmarkCorrectionRow, setSelectedBenchmarkCorrectionRow] = useState<FprdsBenchmarkAnalysisRow | null>(null);
+  const [isSavingBenchmark, setIsSavingBenchmark] = useState(false);
+  const [busyCorrectionId, setBusyCorrectionId] = useState<string | null>(null);
 
   const loadSnapshot = async () => {
     if (!runtime.enabled || auth.state.status !== 'signedIn') return;
@@ -1481,6 +1867,13 @@ export default function AdminConsoleView() {
   useEffect(() => {
     void loadSnapshot();
   }, [auth.state.status, runtime.enabled]);
+
+  useEffect(() => {
+    if (activeTab === 'benchmarks' && loadState === 'ready' && benchmarkLoadState === 'idle') {
+      void loadBenchmarkData();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab, loadState, benchmarkLoadState]);
 
   const onlineSessions = useMemo(
     () => snapshot?.activeSessions.filter(session => eventAgeMs(session.last_seen_at) < 5 * 60000) ?? [],
@@ -1695,6 +2088,97 @@ export default function AdminConsoleView() {
     }
   };
 
+  const loadBenchmarkData = async (sample = benchmarkMinSample) => {
+    if (!runtime.enabled) return;
+    setBenchmarkLoadState('loading');
+    try {
+      const [analysis, reviews, corrections] = await Promise.all([
+        runtime.dataAccess.admin.getFprdsBenchmarkAnalysis(sample),
+        runtime.dataAccess.admin.listFprdsBenchmarkReviews(),
+        runtime.dataAccess.admin.listFprdsBenchmarkCorrections()
+      ]);
+      setBenchmarkAnalysis(analysis);
+      setBenchmarkReviews(reviews);
+      setBenchmarkCorrections(corrections);
+      setBenchmarkLoadState('ready');
+    } catch (error) {
+      setBenchmarkLoadState('error');
+      setMessage(error instanceof Error ? error.message : 'Benchmark analysis could not load.');
+    }
+  };
+
+  const handleBenchmarkMinSampleChange = (value: number) => {
+    setBenchmarkMinSample(value);
+    void loadBenchmarkData(value);
+  };
+
+  const handleBenchmarkReviewSave = async (
+    row: FprdsBenchmarkAnalysisRow,
+    decision: FprdsBenchmarkReviewDecision,
+    notes: string
+  ) => {
+    if (!runtime.enabled) return;
+    setIsSavingBenchmark(true);
+    setMessage('');
+    try {
+      const created = await runtime.dataAccess.admin.createFprdsBenchmarkReview({
+        drillId: row.drillId,
+        attributeId: row.attributeId,
+        ageGroup: row.ageGroup,
+        role: row.role,
+        benchmarkVersion: row.benchmarkVersion,
+        sampleSize: row.sampleSize,
+        distributionSummary: {
+          median: row.median,
+          p10: row.p10,
+          p25: row.p25,
+          p75: row.p75,
+          p90: row.p90,
+          avg: row.avg,
+          avgScore: row.avgScore,
+          tierDistribution: row.tierDistribution
+        },
+        reviewDecision: decision,
+        reviewerNotes: notes.trim() || null
+      });
+      setBenchmarkReviews(current => [created, ...current]);
+      setSelectedBenchmarkReviewRow(null);
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : 'Benchmark review could not be saved.');
+    } finally {
+      setIsSavingBenchmark(false);
+    }
+  };
+
+  const handleBenchmarkCorrectionSave = async (input: FprdsBenchmarkCorrectionInput) => {
+    if (!runtime.enabled) return;
+    setIsSavingBenchmark(true);
+    setMessage('');
+    try {
+      const created = await runtime.dataAccess.admin.createFprdsBenchmarkCorrection(input);
+      setBenchmarkCorrections(current => [created, ...current]);
+      setSelectedBenchmarkCorrectionRow(null);
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : 'Benchmark correction could not be saved.');
+    } finally {
+      setIsSavingBenchmark(false);
+    }
+  };
+
+  const handleCorrectionStatus = async (correction: FprdsBenchmarkCorrection, status: FprdsBenchmarkCorrectionStatus) => {
+    if (!runtime.enabled) return;
+    setBusyCorrectionId(correction.id);
+    setMessage('');
+    try {
+      const updated = await runtime.dataAccess.admin.updateFprdsBenchmarkCorrectionStatus(correction.id, status);
+      setBenchmarkCorrections(current => current.map(item => item.id === correction.id ? updated : item));
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : 'Benchmark correction could not be updated.');
+    } finally {
+      setBusyCorrectionId(null);
+    }
+  };
+
   const handleRestoreWorkspace = async (workspace: AdminRecoverableWorkspace) => {
     if (!runtime.enabled) return;
     setRestoringWorkspaceId(workspace.clubId);
@@ -1901,6 +2385,21 @@ export default function AdminConsoleView() {
               <FeedbackPanel feedback={snapshot.feedback} metrics={growthMetrics} onStatusChange={handleFeedbackStatusChange} onOpen={setSelectedFeedback} />
             )}
             {activeTab === 'fprds' && <FprdsPanel submissions={snapshot.fprdsSubmissions} metrics={growthMetrics} onOpen={setSelectedFprdsSubmission} />}
+            {activeTab === 'benchmarks' && (
+              <FprdsBenchmarkPanel
+                analysis={benchmarkAnalysis}
+                reviews={benchmarkReviews}
+                corrections={benchmarkCorrections}
+                loadState={benchmarkLoadState}
+                minSample={benchmarkMinSample}
+                onMinSampleChange={handleBenchmarkMinSampleChange}
+                onRefresh={() => void loadBenchmarkData()}
+                onReview={setSelectedBenchmarkReviewRow}
+                onPropose={setSelectedBenchmarkCorrectionRow}
+                onCorrectionStatus={(correction, status) => void handleCorrectionStatus(correction, status)}
+                busyCorrectionId={busyCorrectionId}
+              />
+            )}
             {activeTab === 'online' && (
               <Section title="Online users" icon={UsersRound}>
                 {onlineSessions.length === 0 ? (
@@ -1941,6 +2440,20 @@ export default function AdminConsoleView() {
         saving={isSavingReview}
         onOpenChange={open => { if (!open) setSelectedFprdsSubmission(null); }}
         onSave={handleFprdsReviewSave}
+      />
+      <BenchmarkReviewDialog
+        row={selectedBenchmarkReviewRow}
+        open={selectedBenchmarkReviewRow !== null}
+        saving={isSavingBenchmark}
+        onOpenChange={open => { if (!open) setSelectedBenchmarkReviewRow(null); }}
+        onSave={(row, decision, notes) => void handleBenchmarkReviewSave(row, decision, notes)}
+      />
+      <BenchmarkCorrectionDialog
+        row={selectedBenchmarkCorrectionRow}
+        open={selectedBenchmarkCorrectionRow !== null}
+        saving={isSavingBenchmark}
+        onOpenChange={open => { if (!open) setSelectedBenchmarkCorrectionRow(null); }}
+        onSave={input => void handleBenchmarkCorrectionSave(input)}
       />
     </div>
   );

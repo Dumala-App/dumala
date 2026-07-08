@@ -1,6 +1,6 @@
 # Dumala Delivery Tasks
 
-Updated: 2026-07-05
+Updated: 2026-07-08
 
 Status values: **Done**, **In Progress**, **Next**, **Planned**, **Long Term**.
 
@@ -9,11 +9,11 @@ Status values: **Done**, **In Progress**, **Next**, **Planned**, **Long Term**.
 Progress is calculated from the completed capabilities and open checklist items in this document. The roadmap bars track implementation, while Release Validation tracks the latest verified build checks.
 
 ```text
-Overall roadmap                 [########--]  77%  86 / 111
+Overall roadmap                 [########--]  81%  90 / 111
 
 Shipped beta foundation         [##########] 100%  20 / 20
 Current Beta: Reliability       [##########] 100%  24 / 24
-FPRDS Beta                      [########--]  80%  16 / 20
+FPRDS Beta                      [##########] 100%  20 / 20
 Phase 1: Offline-ready PWA      [##########] 100%   7 / 7
 Phase 2: Mobile and tablet      [##########] 100%   4 / 4
 Phase 3: Cloud and sync         [##########] 100%   6 / 6
@@ -31,7 +31,7 @@ Release validation              [##########] 100%  14 / 14
 | --- | ---: | ---: | ---: | --- |
 | Shipped beta foundation | 20 | 20 | 100% | Done |
 | Current Beta: Reliability and data confidence | 24 | 24 | 100% | Done |
-| FPRDS Beta | 16 | 20 | 80% | In Progress |
+| FPRDS Beta | 20 | 20 | 100% | Done |
 | Phase 1: Offline-ready web app | 7 | 7 | 100% | Done |
 | Phase 2: Mobile and tablet experience | 4 | 4 | 100% | Done |
 | Phase 3: Cloud accounts and synchronization | 6 | 6 | 100% | Done |
@@ -42,9 +42,19 @@ Release validation              [##########] 100%  14 / 14
 | Commercial validation and SaaS packaging | 2 | 6 | 33% | In Progress |
 | Future Release: App store distribution | 0 | 1 | 0% | Deferred |
 
-The FPRDS total includes sixteen completed capabilities: the five shipped assessment features plus interpolation, role-weighting, age-transition, required-field validation coverage, true historical progress charts, player/session comparison reports, the evidence-based development doctrine, training evidence naming, removal of direct training-to-rating mutation, reassessment recommendations, and rating confidence labels. Practitioner benchmark review is deferred until qualified external reviewers are available.
+The FPRDS total includes twenty completed capabilities: the five shipped assessment features plus interpolation, role-weighting, age-transition, required-field validation coverage, true historical progress charts, player/session comparison reports, the evidence-based development doctrine, training evidence naming, removal of direct training-to-rating mutation, reassessment recommendations, rating confidence labels, the opt-in FPRDS beta results database with aggregate benchmark analysis and correction review, downloadable player assessment and development reports, a coach-review data export, and benchmark versioning that stamps every session with the benchmark table version it was scored under. Practitioner benchmark review is deferred until qualified external reviewers are available, so it is not counted in the twenty.
 
 ## Recent changes
+
+### Completed: 2026-07-08
+
+- [x] Added benchmark versioning: a `CURRENT_BENCHMARK_VERSION` constant and version registry now stamp every new assessment session, legacy sessions backfill to the first version on load, and the version flows through the FPRDS beta submission and the downloadable report so historical results stay reproducible.
+- [x] Added downloadable player assessment and development reports: a self-contained, print-ready HTML report (OVR snapshot, role-weighted attributes, strengths/priorities, 4-week development plan, OVR history, coach notes) plus a JSON data export, both from the Assessment Center coach feedback panel.
+- [x] Built the FPRDS private beta results database end to end: opt-in submissions now fan out per-drill result rows for benchmark distribution analysis.
+- [x] Added an aggregate benchmark analysis RPC that groups included submissions by drill, attribute, age group, role, assessment type, and benchmark version with sample size, percentiles, average score, and tier distribution.
+- [x] Added the benchmark correction-review workflow with reviewer verdict records (`fprds_benchmark_reviews`) and a proposed-change correction log (`fprds_benchmark_corrections`), gated to FPRDS reviewers and MFA-verified owners by RLS.
+- [x] Added an Admin Console "Benchmarks" tab with the distribution table, per-cell review and correction actions, and correction status controls.
+- [x] Added pgTAP coverage for reviewer-only access and a unit test for per-drill result derivation.
 
 ### Completed: 2026-07-05
 
@@ -259,10 +269,10 @@ The FPRDS total includes sixteen completed capabilities: the five shipped assess
 - [x] **Done:** Remove direct training-to-rating mutation from completed development sessions.
 - [x] **Done:** Add reassessment recommendation behavior after sustained development evidence.
 - [x] **Done:** Add confidence and freshness labels for assessment-derived ratings.
-- [ ] **Next:** Design and build the FPRDS private beta results database for opt-in submitted assessment sessions, aggregate benchmark analysis, and correction review.
-- [ ] **Next:** Add downloadable assessment and development reports.
-- [ ] **Planned:** Add assessment export suitable for coach review.
-- [ ] **Planned:** Define benchmark versioning so historical sessions remain reproducible.
+- [x] **Done:** Design and build the FPRDS private beta results database for opt-in submitted assessment sessions, aggregate benchmark analysis, and correction review.
+- [x] **Done:** Add downloadable assessment and development reports.
+- [x] **Done:** Add assessment export suitable for coach review.
+- [x] **Done:** Define benchmark versioning so historical sessions remain reproducible.
 
 ## Phase 1: Offline-ready web app
 
