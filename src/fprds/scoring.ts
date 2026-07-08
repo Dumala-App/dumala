@@ -1,4 +1,5 @@
 import type { AgeGroup, AssessmentSession, FprdsAttributeId, FprdsRole, Player } from '../types';
+import type { BenchmarkTable } from './benchmarks';
 import {
   BALL_RETENTION_SECONDS,
   BROAD_JUMP_CM,
@@ -146,6 +147,22 @@ export const scoreFromBenchmarkTable = (raw: number, table: { direction: Benchma
   if (!lower || !upper || lower.raw === upper.raw) return 10;
   const ratio = (raw - lower.raw) / (upper.raw - lower.raw);
   return lower.score + ratio * (upper.score - lower.score);
+};
+
+export interface MatchedBenchmarkTier {
+  label: string;
+  rawBest: number | null;
+  rawWorst: number | null;
+}
+
+// Returns the benchmark tier a raw result falls into, or null when the value
+// sits in a gap between published bands. Used by the FPRDS beta review dataset
+// to record the tier each submitted drill landed in for distribution analysis.
+export const matchBenchmarkTier = (raw: number, table: BenchmarkTable): MatchedBenchmarkTier | null => {
+  if (!Number.isFinite(raw)) return null;
+  const tier = table.tiers.find(t => isInTier(raw, t.rawBest, t.rawWorst, table.direction));
+  if (!tier) return null;
+  return { label: tier.label, rawBest: tier.rawBest, rawWorst: tier.rawWorst };
 };
 
 export const scoreFromOutOf10Direct = (successes: number): number => {

@@ -1,6 +1,6 @@
 # Dumala Product Roadmap
 
-Updated: 2026-07-05
+Updated: 2026-07-08
 
 ## Source of truth
 
@@ -29,15 +29,20 @@ Core workflows, planning summaries, and recovery paths work without unexpected d
 
 ## FPRDS Beta: Development system
 
-Status: **Current**
+Status: **Complete**
 
-### Planned deliverables
+### Delivered
 
-- Complete standardized assessments for every supported position and age group.
-- Finalize benchmark tables through qualified practitioner review, scoring validation, and explainable rating calculations.
-- Add historical progress charts, comparison reports, and measurable development plans.
-- Separate training evidence, rating confidence, and verified assessment results.
-- Produce downloadable player assessment and progress reports.
+- Standardized assessments for every supported position and age group with interpolated, role-weighted, explainable scoring.
+- Historical progress charts, player-to-player and session-to-session comparison reports, and measurable four-week development plans.
+- Separation of training evidence, rating confidence, and verified assessment results under the evidence-based development doctrine.
+- Downloadable player assessment and development reports plus a coach-review data export.
+- An opt-in private beta results database with per-drill data, aggregate benchmark distribution analysis, and a reviewer verdict and correction-log workflow.
+- Benchmark versioning that stamps every session with the benchmark version it was scored under so historical results stay reproducible.
+
+### Deferred
+
+- Qualified practitioner review of every benchmark table remains deferred until external reviewers are available; the beta results database and correction log exist to support that review when it happens.
 
 ### Completion criteria
 

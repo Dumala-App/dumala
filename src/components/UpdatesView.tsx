@@ -38,6 +38,118 @@ export default function UpdatesView() {
 
   const changelogEntries = [
     {
+      id: 'july_8_downloadable_assessment_reports',
+      date: '2026-07-08',
+      title: 'Downloadable Player Assessment and Development Reports',
+      badge: 'New Features Added',
+      summary: 'Coaches can now download a clean, print-ready report for any assessed player straight from the Assessment Center, plus a JSON data export for record-keeping or sharing.',
+      accent: 'border-cyan-400/20 bg-slate-950/90 text-slate-100',
+      renderContent: () => (
+        <div className="space-y-4">
+          <p className="text-sm text-slate-300 leading-relaxed">
+            Open a player in the Assessment Center, and the coach feedback panel now offers a one-click <span className="font-bold text-cyan-200">Download report</span>. The report is a self-contained web page you can open and print to PDF, so it works offline and needs no extra software.
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {[
+              {
+                icon: Download,
+                title: 'Print-ready player report',
+                desc: 'One page with the OVR snapshot and tier, role-weighted attribute scores, strengths, development priorities, the 4-week development plan, OVR history, and coach notes.'
+              },
+              {
+                icon: TrendingUp,
+                title: 'Built from real assessments',
+                desc: 'The report uses the player’s latest saved session and the trend against the previous one, so it reflects actual drill results, not manual entry.'
+              },
+              {
+                icon: Award,
+                title: 'Development plan included',
+                desc: 'The saved or freshly generated 4-week plan is printed alongside the scores, giving players and parents a clear next block of work.'
+              },
+              {
+                icon: Cloud,
+                title: 'JSON data export',
+                desc: 'A separate data export saves the raw assessment sessions for the player, useful for backups, coach handover, or external review.'
+              }
+            ].map(item => {
+              const Icon = item.icon;
+
+              return (
+                <div key={item.title} className="rounded-xl border border-cyan-400/20 bg-slate-900/80 p-4 shadow-sm shadow-black/20">
+                  <div className="mb-2 flex items-center gap-2">
+                    <span className="flex h-8 w-8 items-center justify-center rounded-lg border border-cyan-400/30 bg-cyan-400/10 text-cyan-200">
+                      <Icon size={16} aria-hidden="true" />
+                    </span>
+                    <h5 className="text-xs font-black uppercase tracking-wider text-cyan-100">{item.title}</h5>
+                  </div>
+                  <p className="text-xs text-slate-400 leading-relaxed">{item.desc}</p>
+                </div>
+              );
+            })}
+          </div>
+          <p className="rounded-xl border border-cyan-400/20 bg-cyan-400/10 p-3 text-xs font-semibold leading-relaxed text-cyan-100">
+            Every assessment now records the benchmark version it was scored under, shown on the report and in the Assessment Center. This keeps older results reproducible if the benchmark tables are updated in a future version.
+          </p>
+        </div>
+      )
+    },
+    {
+      id: 'july_8_fprds_beta_results_database',
+      date: '2026-07-08',
+      title: 'FPRDS Beta Results Database and Benchmark Review',
+      badge: 'New Features Added',
+      summary: 'Opt-in FPRDS beta submissions now feed a private benchmark-validation dataset: each shared assessment records per-drill results, and reviewers get an aggregate distribution view with a benchmark verdict and correction-log workflow.',
+      accent: 'border-indigo-400/20 bg-slate-950/90 text-slate-100',
+      renderContent: () => (
+        <div className="space-y-4">
+          <p className="text-sm text-slate-300 leading-relaxed">
+            When a coach chooses to share an assessment with the FPRDS beta, Dumala now stores anonymized per-drill measurements alongside the session. This lets us check whether each benchmark band is realistic for its age group and role before wider release — without sending any player identity.
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {[
+              {
+                icon: FlaskConical,
+                title: 'Per-drill beta dataset',
+                desc: 'Shared submissions fan out into individual drill rows with raw value, unit, derived score, and the benchmark tier each result landed in, all keyed to the benchmark version used at save time.'
+              },
+              {
+                icon: TrendingUp,
+                title: 'Aggregate benchmark analysis',
+                desc: 'Reviewers see distributions grouped by drill, age group, role, and assessment type with sample size, percentiles, average score, and tier mix.'
+              },
+              {
+                icon: Award,
+                title: 'Benchmark verdicts and corrections',
+                desc: 'Each benchmark cell can be marked accept, change-requested, or inconclusive, and proposed band changes are tracked in a correction log with accept, reject, and defer decisions.'
+              },
+              {
+                icon: Cloud,
+                title: 'Private and versioned',
+                desc: 'The review dataset is separate from team assessment history, protected so only FPRDS reviewers can read it, and proposed corrections target a new benchmark version rather than rewriting past sessions.'
+              }
+            ].map(item => {
+              const Icon = item.icon;
+
+              return (
+                <div key={item.title} className="rounded-xl border border-indigo-400/20 bg-slate-900/80 p-4 shadow-sm shadow-black/20">
+                  <div className="mb-2 flex items-center gap-2">
+                    <span className="flex h-8 w-8 items-center justify-center rounded-lg border border-indigo-400/30 bg-indigo-400/10 text-indigo-200">
+                      <Icon size={16} aria-hidden="true" />
+                    </span>
+                    <h5 className="text-xs font-black uppercase tracking-wider text-indigo-100">{item.title}</h5>
+                  </div>
+                  <p className="text-xs text-slate-400 leading-relaxed">{item.desc}</p>
+                </div>
+              );
+            })}
+          </div>
+          <p className="rounded-xl border border-indigo-400/20 bg-indigo-400/10 p-3 text-xs font-semibold leading-relaxed text-indigo-100">
+            Contributing beta results is always opt-in and never includes player names, photos, or dates of birth. The dataset exists to make the FPRDS benchmarks more trustworthy before they are treated as settled.
+          </p>
+        </div>
+      )
+    },
+    {
       id: 'july_5_game_plan_session_dashboard_overhaul',
       date: '2026-07-05',
       title: 'Game Plan Workflow, Session Dashboard Summary, and Coaching Command Center',

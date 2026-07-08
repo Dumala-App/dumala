@@ -1,5 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { DumalaSupabaseClient } from './client';
+import type { BetaDrillResultInput } from '../fprds/betaDrillResults';
+import { CURRENT_BENCHMARK_VERSION, CURRENT_SCORING_VERSION, CURRENT_WEIGHTING_VERSION } from '../fprds/benchmarks';
 import { getSession } from './auth';
 
 export type AppAdminRole = 'owner' | 'support' | 'fprds_reviewer' | 'billing';
@@ -343,12 +345,104 @@ export interface FprdsBetaSubmissionInput {
   coachConfidence: number;
   coachNotes?: string | null;
   consentVersion: string;
+  benchmarkVersion?: string;
+  drillResults?: BetaDrillResultInput[];
 }
 
 export interface FprdsBetaReviewInput {
   reviewStatus: FprdsBetaReviewStatus;
   reviewerNotes?: string | null;
   exclusionReason?: string | null;
+}
+
+export type FprdsBenchmarkReviewDecision = 'accept' | 'change_requested' | 'inconclusive';
+export type FprdsBenchmarkCorrectionStatus = 'proposed' | 'accepted' | 'rejected' | 'deferred';
+
+export interface FprdsBenchmarkAnalysisRow {
+  drillId: string;
+  attributeId: string;
+  ageGroup: string;
+  role: string;
+  assessmentType: string;
+  benchmarkVersion: string;
+  unit: string;
+  sampleSize: number;
+  clubCount: number;
+  min: number | null;
+  max: number | null;
+  avg: number | null;
+  p10: number | null;
+  p25: number | null;
+  median: number | null;
+  p75: number | null;
+  p90: number | null;
+  avgScore: number | null;
+  tierDistribution: Record<string, number>;
+}
+
+export interface FprdsBenchmarkReview {
+  id: string;
+  drill_id: string;
+  attribute_id: string;
+  age_group: string;
+  role?: string | null;
+  benchmark_version: string;
+  sample_size: number;
+  distribution_summary: Record<string, unknown>;
+  review_decision: FprdsBenchmarkReviewDecision;
+  reviewer_notes?: string | null;
+  created_by?: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface FprdsBenchmarkReviewInput {
+  drillId: string;
+  attributeId: string;
+  ageGroup: string;
+  role?: string | null;
+  benchmarkVersion: string;
+  sampleSize: number;
+  distributionSummary?: Record<string, unknown>;
+  reviewDecision: FprdsBenchmarkReviewDecision;
+  reviewerNotes?: string | null;
+}
+
+export interface FprdsBenchmarkCorrection {
+  id: string;
+  review_id?: string | null;
+  drill_id: string;
+  attribute_id: string;
+  age_group: string;
+  role?: string | null;
+  tier_label: string;
+  current_raw_best?: number | null;
+  current_raw_worst?: number | null;
+  proposed_raw_best?: number | null;
+  proposed_raw_worst?: number | null;
+  rationale: string;
+  status: FprdsBenchmarkCorrectionStatus;
+  target_benchmark_version?: string | null;
+  created_by?: string | null;
+  decided_by?: string | null;
+  decided_at?: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface FprdsBenchmarkCorrectionInput {
+  reviewId?: string | null;
+  drillId: string;
+  attributeId: string;
+  ageGroup: string;
+  role?: string | null;
+  tierLabel: string;
+  currentRawBest?: number | null;
+  currentRawWorst?: number | null;
+  proposedRawBest?: number | null;
+  proposedRawWorst?: number | null;
+  rationale: string;
+  targetBenchmarkVersion?: string | null;
 }
 
 export interface BillingCustomer {
@@ -735,7 +829,7 @@ export const createFprdsBetaSubmission = async (
   ]);
   const supabase = asUntypedClient(client);
 
-  return expectNoError(
+  const submission = expectNoError(
     await supabase
       .from('fprds_beta_submissions')
       .insert({
@@ -748,9 +842,9 @@ export const createFprdsBetaSubmission = async (
         age_group: input.ageGroup.toLowerCase(),
         role: input.role.toLowerCase(),
         assessment_type: input.assessmentType.toLowerCase(),
-        benchmark_version: 'fprds-beta-1',
-        weighting_version: 'fprds-beta-1',
-        scoring_algorithm_version: 'fprds-beta-1',
+        benchmark_version: input.benchmarkVersion || CURRENT_BENCHMARK_VERSION,
+        weighting_version: CURRENT_WEIGHTING_VERSION,
+        scoring_algorithm_version: CURRENT_SCORING_VERSION,
         raw_results: input.rawResults,
         attribute_scores: input.attributeScores,
         ovr: input.ovr,
@@ -769,6 +863,28 @@ export const createFprdsBetaSubmission = async (
     'FPRDS_BETA_CREATE_FAILED',
     'Failed to submit FPRDS beta results'
   ) as FprdsBetaSubmission;
+
+  // Fan out per-drill rows for benchmark distribution analysis. These enrich the
+  // review dataset; a failure here must not undo the accepted submission, which
+  // is unique per (user, assessment) and cannot simply be retried.
+  if (input.drillResults && input.drillResults.length > 0) {
+    try {
+      const rows = input.drillResults.map(result => ({
+        submission_id: submission.id,
+        drill_id: result.drillId,
+        attribute_id: result.attributeId,
+        raw_value: result.rawValue,
+        unit: result.unit,
+        score: result.score,
+        benchmark_band: result.benchmarkBand ?? {}
+      }));
+      await supabase.from('fprds_beta_drill_results').insert(rows);
+    } catch {
+      // Best effort: the submission is saved even if drill rows fail to persist.
+    }
+  }
+
+  return submission;
 };
 
 export const updateFprdsBetaSubmissionReview = async (
@@ -798,4 +914,134 @@ export const updateFprdsBetaSubmissionReview = async (
     'FPRDS_BETA_REVIEW_FAILED',
     'Failed to update FPRDS beta review'
   ) as FprdsBetaSubmission;
+};
+
+export const getFprdsBenchmarkAnalysis = async (
+  client: DumalaSupabaseClient,
+  minSample = 1
+): Promise<FprdsBenchmarkAnalysisRow[]> => {
+  const supabase = asUntypedClient(client);
+  const data = expectNoError(
+    await supabase.rpc('get_fprds_benchmark_analysis_v1', { min_sample: minSample }),
+    'FPRDS_BENCHMARK_ANALYSIS_FAILED',
+    'Failed to load FPRDS benchmark analysis'
+  );
+  return (data as FprdsBenchmarkAnalysisRow[] | null) ?? [];
+};
+
+export const listFprdsBenchmarkReviews = async (
+  client: DumalaSupabaseClient
+): Promise<FprdsBenchmarkReview[]> => {
+  const supabase = asUntypedClient(client);
+  return (expectNoError(
+    await supabase
+      .from('fprds_benchmark_reviews')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(200),
+    'FPRDS_BENCHMARK_REVIEWS_READ_FAILED',
+    'Failed to load benchmark reviews'
+  ) as FprdsBenchmarkReview[] | null) ?? [];
+};
+
+export const createFprdsBenchmarkReview = async (
+  client: DumalaSupabaseClient,
+  input: FprdsBenchmarkReviewInput
+): Promise<FprdsBenchmarkReview> => {
+  const userId = await requireSignedInUserId(client);
+  const supabase = asUntypedClient(client);
+  return expectNoError(
+    await supabase
+      .from('fprds_benchmark_reviews')
+      .insert({
+        drill_id: input.drillId,
+        attribute_id: input.attributeId,
+        age_group: input.ageGroup.toLowerCase(),
+        role: input.role ? input.role.toLowerCase() : null,
+        benchmark_version: input.benchmarkVersion,
+        sample_size: Math.max(0, Math.round(input.sampleSize)),
+        distribution_summary: input.distributionSummary ?? {},
+        review_decision: input.reviewDecision,
+        reviewer_notes: input.reviewerNotes?.trim() || null,
+        created_by: userId
+      })
+      .select('*')
+      .single(),
+    'FPRDS_BENCHMARK_REVIEW_CREATE_FAILED',
+    'Failed to record benchmark review'
+  ) as FprdsBenchmarkReview;
+};
+
+export const listFprdsBenchmarkCorrections = async (
+  client: DumalaSupabaseClient
+): Promise<FprdsBenchmarkCorrection[]> => {
+  const supabase = asUntypedClient(client);
+  return (expectNoError(
+    await supabase
+      .from('fprds_benchmark_corrections')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(200),
+    'FPRDS_BENCHMARK_CORRECTIONS_READ_FAILED',
+    'Failed to load benchmark corrections'
+  ) as FprdsBenchmarkCorrection[] | null) ?? [];
+};
+
+export const createFprdsBenchmarkCorrection = async (
+  client: DumalaSupabaseClient,
+  input: FprdsBenchmarkCorrectionInput
+): Promise<FprdsBenchmarkCorrection> => {
+  const userId = await requireSignedInUserId(client);
+  if (!input.rationale?.trim()) {
+    throw new CloudAdminError('A rationale is required for a benchmark correction.', 'FPRDS_BENCHMARK_CORRECTION_RATIONALE_REQUIRED');
+  }
+
+  const supabase = asUntypedClient(client);
+  return expectNoError(
+    await supabase
+      .from('fprds_benchmark_corrections')
+      .insert({
+        review_id: input.reviewId ?? null,
+        drill_id: input.drillId,
+        attribute_id: input.attributeId,
+        age_group: input.ageGroup.toLowerCase(),
+        role: input.role ? input.role.toLowerCase() : null,
+        tier_label: input.tierLabel,
+        current_raw_best: input.currentRawBest ?? null,
+        current_raw_worst: input.currentRawWorst ?? null,
+        proposed_raw_best: input.proposedRawBest ?? null,
+        proposed_raw_worst: input.proposedRawWorst ?? null,
+        rationale: input.rationale.trim(),
+        target_benchmark_version: input.targetBenchmarkVersion?.trim() || null,
+        created_by: userId
+      })
+      .select('*')
+      .single(),
+    'FPRDS_BENCHMARK_CORRECTION_CREATE_FAILED',
+    'Failed to record benchmark correction'
+  ) as FprdsBenchmarkCorrection;
+};
+
+export const updateFprdsBenchmarkCorrectionStatus = async (
+  client: DumalaSupabaseClient,
+  correctionId: string,
+  status: FprdsBenchmarkCorrectionStatus
+): Promise<FprdsBenchmarkCorrection> => {
+  const userId = await requireSignedInUserId(client);
+  const supabase = asUntypedClient(client);
+  const decided = status === 'proposed';
+  return expectNoError(
+    await supabase
+      .from('fprds_benchmark_corrections')
+      .update({
+        status,
+        decided_by: decided ? null : userId,
+        decided_at: decided ? null : new Date().toISOString()
+      })
+      .eq('id', correctionId)
+      .select('*')
+      .single(),
+    'FPRDS_BENCHMARK_CORRECTION_UPDATE_FAILED',
+    'Failed to update benchmark correction'
+  ) as FprdsBenchmarkCorrection;
 };

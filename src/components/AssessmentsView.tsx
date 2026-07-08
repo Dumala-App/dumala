@@ -8,6 +8,7 @@ import {
   ChevronLeft,
   ChevronRight,
   ClipboardList,
+  FileDown,
   FlaskConical,
   Gauge,
   History,
@@ -59,6 +60,8 @@ import {
 import {
   BALL_RETENTION_SECONDS,
   BROAD_JUMP_CM,
+  CURRENT_BENCHMARK_VERSION,
+  getBenchmarkVersionInfo,
   ILLINOIS_AGILITY,
   MED_BALL_THROW_CM,
   OUT_OF_5_BANDS,
@@ -79,6 +82,7 @@ import {
   selectLatestAssessmentByPlayer,
   type AssessmentProgressPoint
 } from '../fprds/progress';
+import { buildAssessmentReportModel, renderAssessmentReportHtml } from '../fprds/assessmentReport';
 import AssessmentPlayerCardPreview from './AssessmentPlayerCardPreview';
 import FprdsBetaSubmissionDialog from './FprdsBetaSubmissionDialog';
 
@@ -447,6 +451,38 @@ export default function AssessmentsView({
     () => buildPlayerFeedbackReport(selectedPlayerLatestAssessment, selectedPlayerPreviousAssessment),
     [selectedPlayerLatestAssessment, selectedPlayerPreviousAssessment]
   );
+
+  const triggerDownload = (content: string, mimeType: string, fileName: string) => {
+    const blob = new Blob([content], { type: mimeType });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = fileName;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
+  const reportFileStem = (name: string, date: string) => {
+    const safeName = name.replace(/[^a-z0-9]+/gi, '-').replace(/^-+|-+$/g, '').toLowerCase() || 'player';
+    return `${safeName}-fprds-${date}`;
+  };
+
+  const handleDownloadReport = () => {
+    if (!selectedPlayer) return;
+    const model = buildAssessmentReportModel(selectedPlayer, playerAssessments);
+    if (!model) return;
+    triggerDownload(renderAssessmentReportHtml(model), 'text/html;charset=utf-8', `${reportFileStem(selectedPlayer.name, model.latest.date)}-report.html`);
+  };
+
+  const handleExportReportData = () => {
+    if (!selectedPlayer) return;
+    const model = buildAssessmentReportModel(selectedPlayer, playerAssessments);
+    if (!model) return;
+    const payload = { player: selectedPlayer.name, generatedAt: model.generatedAt, sessions: playerAssessments };
+    triggerDownload(JSON.stringify(payload, null, 2), 'application/json', `${reportFileStem(selectedPlayer.name, model.latest.date)}-data.json`);
+  };
 
   const requiredRoleFields = useMemo(() => {
     const fields: Array<{ key: string; label: string; hint?: string; min?: number; max?: number; step?: number }> = [];
@@ -958,7 +994,8 @@ export default function AssessmentsView({
         ovrDelta: previous ? Math.round(scorePreview.ovr - previous.ovr) : undefined,
         attributeDeltas: previous ? attributeDeltas : undefined
       },
-      developmentPlan: assessmentType === 'Full' ? generateFourWeekPlan(role, scorePreview.attributeScores) : undefined
+      developmentPlan: assessmentType === 'Full' ? generateFourWeekPlan(role, scorePreview.attributeScores) : undefined,
+      benchmarkVersion: CURRENT_BENCHMARK_VERSION
     };
 
     onAddAssessment(session);
@@ -1808,6 +1845,28 @@ export default function AssessmentsView({
                           <p className="mt-1 text-xs font-semibold text-slate-400">
                             A player-facing summary built from the latest assessment, trend, role priorities, and development plan.
                           </p>
+                          <p className="mt-2 inline-flex items-center gap-1.5 rounded-md border border-white/10 bg-white/[0.04] px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                            <FlaskConical size={12} className="text-cyan-300" /> Benchmark: {getBenchmarkVersionInfo(playerFeedbackReport.latestSession.benchmarkVersion).label}
+                          </p>
+                        </div>
+                        <div className="flex shrink-0 flex-wrap gap-2">
+                          <Button
+                            type="button"
+                            size="sm"
+                            onClick={handleDownloadReport}
+                            className="h-8 gap-1.5 rounded-lg bg-cyan-500/90 px-3 text-[11px] font-bold text-slate-950 hover:bg-cyan-400"
+                          >
+                            <FileDown size={14} /> Download report
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={handleExportReportData}
+                            className="h-8 gap-1.5 rounded-lg border-white/10 bg-white/[0.055] px-3 text-[11px] text-slate-200 hover:bg-white/10 hover:text-white"
+                          >
+                            <FileDown size={14} /> Data (JSON)
+                          </Button>
                         </div>
                       </div>
 

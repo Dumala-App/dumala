@@ -1,6 +1,17 @@
 # FPRDS Beta Results Database Plan
 
-Updated: 2026-06-26
+Updated: 2026-07-08
+
+## Implementation status (2026-07-08)
+
+The plan below is now implemented:
+
+- **Phase A / B (consent + database foundation):** `fprds_beta_submissions` and `fprds_beta_drill_results` ship in migration `202606280001_admin_console_foundation.sql` with RLS, anonymized player/assessment references, and withdrawal support. Migration `202607080001_fprds_benchmark_review.sql` adds `fprds_benchmark_reviews`, `fprds_benchmark_corrections`, the `is_fprds_benchmark_reviewer()` guard, and the `get_fprds_benchmark_analysis_v1()` aggregate RPC.
+- **Phase C (submission UI):** `FprdsBetaSubmissionDialog` collects consent and context, and now derives per-drill result rows (`src/fprds/betaDrillResults.ts`) that persist alongside each submission for distribution analysis.
+- **Phase D (aggregation + review tools):** the Admin Console **Benchmarks** tab renders the per-cell distribution table (sample size, percentiles, average score, tier mix), a reviewer verdict workflow, and a correction log with accept/reject/defer/reopen controls. CSV export of the submission queue is available on the Exports tab.
+- **Phase E (benchmark versioning):** every submission and drill row records the benchmark, weighting, and scoring versions in force at save time (`fprds-beta-1`); corrections carry a `target_benchmark_version` so proposed changes land in a new version rather than mutating history.
+
+Open decisions below remain product questions for the private beta rollout (for example, the minimum sample size before a benchmark row may change, and final correction-approval authority). The tier-distribution `Unbanded` bucket captures fixed-scale drills (out-of-10, coach 1-10) that do not use an age-grouped benchmark table.
 
 ## Purpose
 

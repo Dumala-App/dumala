@@ -67,6 +67,12 @@ import {
   createFeedbackSubmission,
   createFprdsBetaSubmission,
   findMyFprdsBetaSubmission,
+  getFprdsBenchmarkAnalysis,
+  listFprdsBenchmarkReviews,
+  createFprdsBenchmarkReview,
+  listFprdsBenchmarkCorrections,
+  createFprdsBenchmarkCorrection,
+  updateFprdsBenchmarkCorrectionStatus,
   restoreAdminWorkspace,
   updateFprdsBetaSubmissionReview,
   recordAppSessionHeartbeat,
@@ -85,6 +91,12 @@ import {
   type FprdsBetaSubmission,
   type FprdsBetaSubmissionInput,
   type FprdsBetaReviewInput,
+  type FprdsBenchmarkAnalysisRow,
+  type FprdsBenchmarkReview,
+  type FprdsBenchmarkReviewInput,
+  type FprdsBenchmarkCorrection,
+  type FprdsBenchmarkCorrectionInput,
+  type FprdsBenchmarkCorrectionStatus,
   type UsageEventInput
 } from './admin';
 
@@ -163,6 +175,12 @@ export interface CloudAdminRepository {
   findMyFprdsSubmission(assessmentId: string): Promise<FprdsBetaSubmission | null>;
   createFprdsSubmission(input: FprdsBetaSubmissionInput): Promise<FprdsBetaSubmission>;
   updateFprdsReview(submissionId: string, input: FprdsBetaReviewInput): Promise<FprdsBetaSubmission>;
+  getFprdsBenchmarkAnalysis(minSample?: number): Promise<FprdsBenchmarkAnalysisRow[]>;
+  listFprdsBenchmarkReviews(): Promise<FprdsBenchmarkReview[]>;
+  createFprdsBenchmarkReview(input: FprdsBenchmarkReviewInput): Promise<FprdsBenchmarkReview>;
+  listFprdsBenchmarkCorrections(): Promise<FprdsBenchmarkCorrection[]>;
+  createFprdsBenchmarkCorrection(input: FprdsBenchmarkCorrectionInput): Promise<FprdsBenchmarkCorrection>;
+  updateFprdsBenchmarkCorrectionStatus(correctionId: string, status: FprdsBenchmarkCorrectionStatus): Promise<FprdsBenchmarkCorrection>;
 }
 
 export interface CloudDataAccess {
@@ -243,6 +261,12 @@ export const createCloudDataAccess = (client: DumalaSupabaseClient): CloudDataAc
     updateFeedback: (feedbackId, values) => updateFeedbackSubmission(client, feedbackId, values),
     findMyFprdsSubmission: assessmentId => findMyFprdsBetaSubmission(client, assessmentId),
     createFprdsSubmission: input => createFprdsBetaSubmission(client, input),
-    updateFprdsReview: (submissionId, input) => updateFprdsBetaSubmissionReview(client, submissionId, input)
+    updateFprdsReview: (submissionId, input) => updateFprdsBetaSubmissionReview(client, submissionId, input),
+    getFprdsBenchmarkAnalysis: minSample => getFprdsBenchmarkAnalysis(client, minSample),
+    listFprdsBenchmarkReviews: () => listFprdsBenchmarkReviews(client),
+    createFprdsBenchmarkReview: input => createFprdsBenchmarkReview(client, input),
+    listFprdsBenchmarkCorrections: () => listFprdsBenchmarkCorrections(client),
+    createFprdsBenchmarkCorrection: input => createFprdsBenchmarkCorrection(client, input),
+    updateFprdsBenchmarkCorrectionStatus: (correctionId, status) => updateFprdsBenchmarkCorrectionStatus(client, correctionId, status)
   }
 });

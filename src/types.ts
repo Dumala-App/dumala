@@ -230,6 +230,10 @@ export interface AssessmentSession {
   deltas: AssessmentDeltas;
   coachNotes?: string;
   developmentPlan?: AssessmentDevelopmentPlan;
+  // Benchmark table/weighting/scoring version this session was scored under.
+  // Optional for backward compatibility; legacy sessions are backfilled to the
+  // first version on load, and new sessions always set it.
+  benchmarkVersion?: string;
 }
 
 export interface Player {
