@@ -41,6 +41,15 @@ describe('cloud auth service', () => {
     });
   });
 
+  it('rejects registration when the email is already registered', async () => {
+    const signUp = vi.fn().mockResolvedValue({ data: { user: { identities: [] } }, error: null });
+    const client = { auth: { signUp } } as unknown as DumalaSupabaseClient;
+
+    await expect(
+      signUpWithPassword(client, 'coach@example.com', 'secure-pass-1', 'https://dumala.test/auth')
+    ).rejects.toMatchObject({ code: 'AUTH_EMAIL_ALREADY_REGISTERED' });
+  });
+
   it('signs a returning coach in with email and password', async () => {
     const signInWithPasswordRequest = vi.fn().mockResolvedValue({ error: null });
     const client = { auth: { signInWithPassword: signInWithPasswordRequest } } as unknown as DumalaSupabaseClient;
