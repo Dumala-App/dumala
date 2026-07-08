@@ -68,16 +68,34 @@ export interface CloudAccountGateProps {
   onBootstrapComplete?: (result: AccountBootstrapResult) => void;
 }
 
-export const getOrCreateCloudDeviceId = (): string => {
+const cloudDeviceIdStorageKey = (userId?: string): string =>
+  userId ? `${CLOUD_DEVICE_ID_KEY}:${userId}` : CLOUD_DEVICE_ID_KEY;
+
+// Device IDs are namespaced per user so that two accounts signing in on the same
+// browser never collide on the same `devices.id`. A shared, per-browser ID caused
+// the second account's upsert to hit the UPDATE branch against a row owned by the
+// first account, tripping the devices RLS policy (USING expression).
+export const getOrCreateCloudDeviceId = (userId?: string): string => {
   if (typeof window === 'undefined') return 'server-rendered-device';
 
-  const existing = window.localStorage.getItem(CLOUD_DEVICE_ID_KEY);
+  const storageKey = cloudDeviceIdStorageKey(userId);
+
+  // One-time cleanup of the legacy per-browser device ID. Its DB row is owned by
+  // whichever account registered first on this browser, so we must NOT carry the
+  // value into a user's namespace (that would re-collide and re-trip the RLS
+  // policy for a different account). Just drop it — everyone gets a fresh ID and
+  // the stale row is left orphaned but harmless.
+  if (userId && window.localStorage.getItem(CLOUD_DEVICE_ID_KEY) !== null) {
+    window.localStorage.removeItem(CLOUD_DEVICE_ID_KEY);
+  }
+
+  const existing = window.localStorage.getItem(storageKey);
   if (existing) return existing;
 
   const generated = typeof window.crypto?.randomUUID === 'function'
     ? window.crypto.randomUUID()
     : `device-${Date.now()}-${Math.random().toString(16).slice(2)}`;
-  window.localStorage.setItem(CLOUD_DEVICE_ID_KEY, generated);
+  window.localStorage.setItem(storageKey, generated);
   return generated;
 };
 
@@ -137,7 +155,7 @@ export const buildAccountBootstrapInput = (
   appVersion = '0.0.0'
 ): AccountBootstrapInput => ({
   clubName,
-  deviceId: getOrCreateCloudDeviceId(),
+  deviceId: getOrCreateCloudDeviceId(state.session.userId),
   deviceLabel: typeof navigator === 'undefined' ? 'Dumala web session' : navigator.userAgent.slice(0, 120),
   appVersion,
   displayName: state.session.displayName ?? state.session.email,
