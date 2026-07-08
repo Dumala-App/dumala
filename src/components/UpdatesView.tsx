@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Award, Brain, Calculator, ChevronDown, ChevronRight, Cloud, Download, FlaskConical, Hash, Megaphone, Target, TrendingUp, Users } from 'lucide-react';
+import { Award, Brain, Calculator, ChevronDown, ChevronRight, Cloud, Download, FlaskConical, Hash, Megaphone, Sparkles, Target, TrendingUp, Users } from 'lucide-react';
 import { Button } from './ui/button';
 
 export default function UpdatesView() {
@@ -37,6 +37,59 @@ export default function UpdatesView() {
     changelogBadgeStyles[badge] ?? 'border-slate-400/40 bg-slate-400/15 text-slate-100';
 
   const changelogEntries = [
+    {
+      id: 'july_8_getting_started_checklist',
+      date: '2026-07-08',
+      title: 'First-Week Getting-Started Checklist',
+      badge: 'New Features Added',
+      summary: 'The Home dashboard now shows a getting-started checklist that walks you through the five steps that make Dumala genuinely useful in your first week, with one-tap links straight to each screen.',
+      accent: 'border-cyan-400/20 bg-slate-950/90 text-slate-100',
+      renderContent: () => (
+        <div className="space-y-4">
+          <p className="text-sm text-slate-300 leading-relaxed">
+            New to Dumala or setting up a fresh team? The overview now guides you from an empty workspace to real value: add your squad, schedule a match, log a result, run an assessment, and download a report. Each step links straight to the right screen, and the checklist steps aside once you are set up.
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {[
+              {
+                icon: Target,
+                title: 'Five steps to value',
+                desc: 'Add 8-12 players, schedule your next match, log a result, run an FPRDS assessment, and download a player report.'
+              },
+              {
+                icon: TrendingUp,
+                title: 'Progress at a glance',
+                desc: 'A progress bar tracks how far along you are, and completed steps are checked off automatically from your workspace.'
+              },
+              {
+                icon: Sparkles,
+                title: 'One-tap deep links',
+                desc: 'Every unfinished step has a button that jumps straight to the Squad, Game Week, or Assessments screen you need.'
+              },
+              {
+                icon: Award,
+                title: 'Try a sample team',
+                desc: 'Prefer to explore first? Load a bundled sample team from onboarding or the team menu to see a fully set-up workspace instantly.'
+              }
+            ].map(item => {
+              const Icon = item.icon;
+
+              return (
+                <div key={item.title} className="rounded-xl border border-cyan-400/20 bg-slate-900/80 p-4 shadow-sm shadow-black/20">
+                  <div className="mb-2 flex items-center gap-2">
+                    <span className="flex h-8 w-8 items-center justify-center rounded-lg border border-cyan-400/30 bg-cyan-400/10 text-cyan-200">
+                      <Icon size={16} aria-hidden="true" />
+                    </span>
+                    <h5 className="text-xs font-black uppercase tracking-wider text-cyan-100">{item.title}</h5>
+                  </div>
+                  <p className="text-xs text-slate-400 leading-relaxed">{item.desc}</p>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )
+    },
     {
       id: 'july_8_downloadable_assessment_reports',
       date: '2026-07-08',

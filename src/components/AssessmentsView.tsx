@@ -174,6 +174,7 @@ interface AssessmentsViewProps {
   onAddAssessment: (session: AssessmentSession) => void;
   onDeleteAssessment: (sessionId: string) => void;
   onUpdateAssessmentNotes: (sessionId: string, coachNotes: string) => void;
+  onReportDownloaded?: () => void;
 }
 
 const getDefaultRoleForPlayer = (player: Player): FprdsRole => {
@@ -265,7 +266,8 @@ export default function AssessmentsView({
   onClearPreselectedPlayer,
   onAddAssessment,
   onDeleteAssessment,
-  onUpdateAssessmentNotes
+  onUpdateAssessmentNotes,
+  onReportDownloaded
 }: AssessmentsViewProps) {
   const assessmentContainerRef = useRef<HTMLDivElement | null>(null);
   const eligiblePlayers = useMemo(() => players, [players]);
@@ -474,6 +476,7 @@ export default function AssessmentsView({
     const model = buildAssessmentReportModel(selectedPlayer, playerAssessments);
     if (!model) return;
     triggerDownload(renderAssessmentReportHtml(model), 'text/html;charset=utf-8', `${reportFileStem(selectedPlayer.name, model.latest.date)}-report.html`);
+    onReportDownloaded?.();
   };
 
   const handleExportReportData = () => {
@@ -482,6 +485,7 @@ export default function AssessmentsView({
     if (!model) return;
     const payload = { player: selectedPlayer.name, generatedAt: model.generatedAt, sessions: playerAssessments };
     triggerDownload(JSON.stringify(payload, null, 2), 'application/json', `${reportFileStem(selectedPlayer.name, model.latest.date)}-data.json`);
+    onReportDownloaded?.();
   };
 
   const requiredRoleFields = useMemo(() => {

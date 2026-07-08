@@ -9,7 +9,7 @@ Status values: **Done**, **In Progress**, **Next**, **Planned**, **Long Term**.
 Progress is calculated from the completed capabilities and open checklist items in this document. The roadmap bars track implementation, while Release Validation tracks the latest verified build checks.
 
 ```text
-Overall roadmap                 [########--]  81%  90 / 111
+Overall roadmap                 [########--]  84%  93 / 111
 
 Shipped beta foundation         [##########] 100%  20 / 20
 Current Beta: Reliability       [##########] 100%  24 / 24
@@ -21,7 +21,7 @@ Phase 4: Team collaboration     [##########] 100%   5 / 5
 Phase 5: Profiles and drafting  [----------]   0%   0 / 6
 Future: Coach education         [----------]   0%   0 / 6
 Future: Club operations         [##--------]  17%   1 / 6
-Commercial validation           [###-------]  33%   2 / 6
+Commercial validation           [########--]  83%   5 / 6
 Release: App stores             [----------]   0%   0 / 1
 
 Release validation              [##########] 100%  14 / 14
@@ -39,7 +39,7 @@ Release validation              [##########] 100%  14 / 14
 | Phase 5: Public profiles and drafting | 0 | 6 | 0% | Long Term |
 | Future Expansion: Philippine coach education | 0 | 6 | 0% | Long Term |
 | Future Expansion: Club operations | 1 | 6 | 17% | Long Term |
-| Commercial validation and SaaS packaging | 2 | 6 | 33% | In Progress |
+| Commercial validation and SaaS packaging | 5 | 6 | 83% | In Progress |
 | Future Release: App store distribution | 0 | 1 | 0% | Deferred |
 
 The FPRDS total includes twenty completed capabilities: the five shipped assessment features plus interpolation, role-weighting, age-transition, required-field validation coverage, true historical progress charts, player/session comparison reports, the evidence-based development doctrine, training evidence naming, removal of direct training-to-rating mutation, reassessment recommendations, rating confidence labels, the opt-in FPRDS beta results database with aggregate benchmark analysis and correction review, downloadable player assessment and development reports, a coach-review data export, and benchmark versioning that stamps every session with the benchmark table version it was scored under. Practitioner benchmark review is deferred until qualified external reviewers are available, so it is not counted in the twenty.
@@ -48,6 +48,9 @@ The FPRDS total includes twenty completed capabilities: the five shipped assessm
 
 ### Completed: 2026-07-08
 
+- [x] Added a first-week getting-started checklist to the Home dashboard that tracks five activation milestones (roster added, match scheduled, result logged, assessment saved, report downloaded), deep-links each step, shows progress, and hides once the coach is fully set up.
+- [x] Instrumented activation metrics: each milestone emits a one-time-per-team `activation_milestone` usage event, aggregated into a first-week activation funnel (distinct users and workspaces per step) in the Admin Console Usage tab via `get_activation_funnel_v1`.
+- [x] Marked the demo/sample workspace item complete: bundled `mock/*.json` sample teams are already selectable from onboarding and the team menu so coaches can evaluate Dumala without building a roster first.
 - [x] Added benchmark versioning: a `CURRENT_BENCHMARK_VERSION` constant and version registry now stamp every new assessment session, legacy sessions backfill to the first version on load, and the version flows through the FPRDS beta submission and the downloadable report so historical results stay reproducible.
 - [x] Added downloadable player assessment and development reports: a self-contained, print-ready HTML report (OVR snapshot, role-weighted attributes, strengths/priorities, 4-week development plan, OVR history, coach notes) plus a JSON data export, both from the Assessment Center coach feedback panel.
 - [x] Built the FPRDS private beta results database end to end: opt-in submissions now fan out per-drill result rows for benchmark distribution analysis.
@@ -346,10 +349,10 @@ Phase 3 implementation baseline is complete. Local launch-readiness checks now i
 
 - [x] **Done:** Define the initial SaaS hypothesis, target paying users, and coach/club subscription ranges.
 - [x] **Done:** Create a coach-facing one-page pitch and pricing/value proposition with two choices: Free and Premium monthly subscription.
-- [ ] **Next:** Design the first-week success flow so a coach gets value after adding 8-12 players and one upcoming match.
-- [ ] **Planned:** Prepare a demo/sample workspace that lets coaches evaluate Dumala without entering a full roster first.
-- [ ] **Planned:** Recruit 10-20 real coaches or clubs for private beta validation and collect willingness-to-pay feedback.
-- [ ] **Planned:** Define activation metrics: roster added, first event scheduled, first result logged, first assessment saved, report downloaded.
+- [x] **Done:** Design the first-week success flow so a coach gets value after adding 8-12 players and one upcoming match (Home dashboard getting-started checklist with deep links).
+- [x] **Done:** Prepare a demo/sample workspace that lets coaches evaluate Dumala without entering a full roster first (bundled `mock/*.json` sample teams selectable in onboarding and the team menu).
+- [ ] **Ops (not code):** Recruit 10-20 real coaches or clubs for private beta validation and collect willingness-to-pay feedback. Tracked as a go-to-market task; the in-app feedback channel already captures coach input.
+- [x] **Done:** Define activation metrics: roster added, first event scheduled, first result logged, first assessment saved, report downloaded (emitted once per team as `activation_milestone` usage events and shown as a funnel in the Admin Console).
 
 ## Future Release: App store distribution
 

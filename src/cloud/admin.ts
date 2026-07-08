@@ -638,6 +638,25 @@ export const getAdminGrowthMetrics = async (
   ) as AdminGrowthMetrics;
 };
 
+export interface ActivationFunnelStep {
+  step: string;
+  users: number;
+  workspaces: number;
+}
+
+export const getAdminActivationFunnel = async (
+  client: DumalaSupabaseClient,
+  days = 30
+): Promise<ActivationFunnelStep[]> => {
+  const supabase = asUntypedClient(client);
+  const data = expectNoError(
+    await supabase.rpc('get_activation_funnel_v1', { days }),
+    'ADMIN_ACTIVATION_FUNNEL_READ_FAILED',
+    'Failed to read activation funnel'
+  );
+  return (data as ActivationFunnelStep[] | null) ?? [];
+};
+
 export const listAdminRecoverableWorkspaces = async (
   client: DumalaSupabaseClient,
   days = 365

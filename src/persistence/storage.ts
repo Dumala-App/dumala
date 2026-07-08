@@ -1,5 +1,6 @@
 import type { z } from 'zod';
 import {
+  activationFlagsSchema,
   announcementsSchema,
   assessmentsSchema,
   availabilitySchema,
@@ -70,6 +71,7 @@ export const STORAGE_KEYS = {
   drawingPaths: 'stack_tactics_draw_paths',
   tacticsBoardSnapshots: 'stack_tactics_board_snapshots',
   gamePlans: 'stack_tactics_game_plans',
+  activation: 'stack_team_activation',
   preRestoreBackup: 'stack_pre_restore_backup'
 } as const;
 
@@ -119,7 +121,8 @@ export const storageSchemas = {
   [STORAGE_KEYS.draggedPositions]: draggedPositionsSchema,
   [STORAGE_KEYS.drawingPaths]: drawingPathsSchema,
   [STORAGE_KEYS.tacticsBoardSnapshots]: tacticsBoardSnapshotsSchema,
-  [STORAGE_KEYS.gamePlans]: gamePlansSchema
+  [STORAGE_KEYS.gamePlans]: gamePlansSchema,
+  [STORAGE_KEYS.activation]: activationFlagsSchema
 } as const;
 
 export type RecoveryWarning = {
@@ -183,7 +186,8 @@ const STORAGE_SECTIONS: Record<string, string> = {
   [STORAGE_KEYS.draggedPositions]: 'Tactics positions',
   [STORAGE_KEYS.drawingPaths]: 'Tactics drawings',
   [STORAGE_KEYS.tacticsBoardSnapshots]: 'Tactics board snapshots',
-  [STORAGE_KEYS.gamePlans]: 'Tactics game plans'
+  [STORAGE_KEYS.gamePlans]: 'Tactics game plans',
+  [STORAGE_KEYS.activation]: 'Getting started'
 };
 
 const BOOLEAN_STORAGE_KEYS = new Set<string>([

@@ -302,6 +302,9 @@ export const availabilitySchema = z.record(
 );
 export const coachNotesSchema = z.record(z.string(), z.string());
 
+// Per-team getting-started activation flags: milestone id -> ISO first-reached.
+export const activationFlagsSchema = z.record(z.string(), z.string());
+
 export const scheduledDrillSchema = z.object({
   id: z.string(),
   drillId: z.string(),

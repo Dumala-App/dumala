@@ -169,13 +169,14 @@ Status: **In Progress**
 - Packaged the public offer as two choices: Free during beta and a Premium monthly subscription, with Coach, Club, and Academy value framed inside Premium rather than as separate visible tiers.
 - Separated the marketing landing page from the coach workspace with a dedicated `#/app` route, made the installed app open straight into the workspace, and returned cloud sign-in redirects cleanly to the app.
 - Refined the landing page copy, glow treatment, hero-to-How-it-Works flow, installed app route, and cloud sign-in return path around the coach workspace.
+- Shipped a first-week getting-started checklist on the Home dashboard that guides a coach to value across five milestones and deep-links each step.
+- Bundled sample teams a coach can load from onboarding or the team menu to evaluate the product before building a roster.
+- Instrumented activation metrics (roster, schedule, result, assessment, report) as one-time events with an activation funnel in the Admin Console.
 
 ### Planned deliverables
 
 - Validate whether solo coaches will pay roughly USD 9-15 per month before introducing any future club-scale pricing.
-- Build a first-week success flow that gets a coach to value after adding 8-12 players and one upcoming match.
-- Prepare a demo/sample workspace so coaches can evaluate the product before doing full setup.
-- Recruit 10-20 real coaches or clubs for private beta feedback, activation tracking, and willingness-to-pay interviews.
+- Recruit 10-20 real coaches or clubs for private beta feedback, activation tracking, and willingness-to-pay interviews (go-to-market task, supported by the in-app feedback channel and activation funnel).
 
 ### Completion criteria
 
