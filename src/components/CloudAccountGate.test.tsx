@@ -6,6 +6,7 @@ import {
   clearPendingAppAuthRedirect,
   CloudAccountGate,
   getAppAuthRedirectUrl,
+  getOrCreateCloudDeviceId,
   hasPendingAppAuthRedirect,
   hasOnboardingIntent,
   markPendingAppAuthRedirect,
@@ -77,6 +78,37 @@ describe('CloudAccountGate', () => {
     expect(signInWithPassword).toHaveBeenCalledWith('coach@example.com', 'secure-pass-1');
     expect(window.localStorage.getItem(ONBOARDING_INTENT_KEY)).not.toBeNull();
     expect(hasOnboardingIntent()).toBe(true);
+
+    vi.unstubAllGlobals();
+  });
+
+  it('namespaces cloud device IDs per user so accounts never collide on the same device row', () => {
+    stubWindow();
+
+    const firstForUserA = getOrCreateCloudDeviceId('user-a');
+    const secondForUserA = getOrCreateCloudDeviceId('user-a');
+    const firstForUserB = getOrCreateCloudDeviceId('user-b');
+
+    // Stable within a user, distinct across users on the same browser.
+    expect(secondForUserA).toBe(firstForUserA);
+    expect(firstForUserB).not.toBe(firstForUserA);
+
+    expect(window.localStorage.getItem('dumala_cloud_device_id:user-a')).toBe(firstForUserA);
+    expect(window.localStorage.getItem('dumala_cloud_device_id:user-b')).toBe(firstForUserB);
+
+    vi.unstubAllGlobals();
+  });
+
+  it('clears the legacy shared device ID without carrying its value into a user namespace', () => {
+    stubWindow();
+    window.localStorage.setItem('dumala_cloud_device_id', 'legacy-shared-id');
+
+    const deviceId = getOrCreateCloudDeviceId('user-a');
+
+    // Legacy per-browser key is dropped, and its value is never reused.
+    expect(window.localStorage.getItem('dumala_cloud_device_id')).toBeNull();
+    expect(deviceId).not.toBe('legacy-shared-id');
+    expect(window.localStorage.getItem('dumala_cloud_device_id:user-a')).toBe(deviceId);
 
     vi.unstubAllGlobals();
   });
