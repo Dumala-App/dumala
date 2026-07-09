@@ -3,7 +3,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import TacticsView from './TacticsView';
 import { CoachKnowledgeBase } from './CoachKnowledgeBase';
-import { COACHING_LIBRARY_ITEMS } from '../knowledge/coachingLibrary';
+import { ACTIVE_LIBRARY_ARTICLES } from '../knowledge/library';
 import type { Player, StaffMember } from '../types';
 
 const createMemoryStorage = () => {
@@ -76,27 +76,31 @@ afterEach(() => {
 });
 
 describe('Tactics knowledgebase', () => {
-  it('renders coaching reference content from structured library data', () => {
+  it('renders the reading library with article list and reader', () => {
     const html = renderToStaticMarkup(<CoachKnowledgeBase />);
 
-    expect(html).toContain('Coach Reference Library');
-    expect(html).toContain('Formations, game phases, and tactical models');
-    expect(html).toContain(`${COACHING_LIBRARY_ITEMS.length} topics`);
-    expect(html).toContain('4-3-3');
-    expect(html).toContain('3-4-3');
-    expect(html).toContain('4-1-4-1');
-    expect(html).toContain('5-3-2');
-    expect(html).toContain('4-3-1-2');
-    expect(html).toContain('4-4-1-1');
-    expect(html).toContain('Attack Types');
-    expect(html).toContain('Defense Types');
-    expect(html).toContain('Tactical Models');
-    expect(html).not.toContain('Illustration brief');
-    expect(html).not.toContain('Photo/diagram brief');
-    expect(html).toContain('<svg');
-    expect(html).toContain('4-3-3 with wide forwards and fullback overlaps');
-    expect(html).toContain('Key Learning');
-    expect(html).toContain('Coach Notes');
+    expect(html).toContain('Coaching Library');
+    expect(html).toContain('A reading room for coaches');
+    expect(html).toContain(`${ACTIVE_LIBRARY_ARTICLES.length} articles`);
+
+    // Category filters are present
+    expect(html).toContain('Coaching Philosophies');
+    expect(html).toContain('Club &amp; National Identities');
+    expect(html).toContain('Formations &amp; Systems');
+    expect(html).toContain('Game Principles');
+    expect(html).toContain('Coaching Craft');
+
+    // Every active article appears in the browse list
+    for (const article of ACTIVE_LIBRARY_ARTICLES) {
+      expect(html).toContain(article.title.replace(/&/g, '&amp;'));
+    }
+
+    // The default-selected article renders as long-form text
+    const first = ACTIVE_LIBRARY_ARTICLES[0];
+    expect(html).toContain(first.sections[0].heading);
+    expect(html).toContain('Key Ideas');
+    expect(html).toContain('min read');
+    expect(html).toContain(`Updated ${first.updatedOn}`);
   });
 });
 
