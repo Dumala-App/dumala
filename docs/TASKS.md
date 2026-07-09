@@ -9,7 +9,7 @@ Status values: **Done**, **In Progress**, **Next**, **Planned**, **Long Term**.
 Progress is calculated from the completed capabilities and open checklist items in this document. The roadmap bars track implementation, while Release Validation tracks the latest verified build checks.
 
 ```text
-Overall roadmap                 [########--]  84%  93 / 111
+Overall roadmap                 [#######---]  75%  93 / 122
 
 Shipped beta foundation         [##########] 100%  20 / 20
 Current Beta: Reliability       [##########] 100%  24 / 24
@@ -19,6 +19,7 @@ Phase 2: Mobile and tablet      [##########] 100%   4 / 4
 Phase 3: Cloud and sync         [##########] 100%   6 / 6
 Phase 4: Team collaboration     [##########] 100%   5 / 5
 Phase 5: Profiles and drafting  [----------]   0%   0 / 6
+Phase 6: Player & League        [----------]   0%   0 / 11
 Future: Coach education         [----------]   0%   0 / 6
 Future: Club operations         [##--------]  17%   1 / 6
 Commercial validation           [########--]  83%   5 / 6
@@ -37,6 +38,7 @@ Release validation              [##########] 100%  14 / 14
 | Phase 3: Cloud accounts and synchronization | 6 | 6 | 100% | Done |
 | Phase 4: Team collaboration | 5 | 5 | 100% | Done |
 | Phase 5: Public profiles and drafting | 0 | 6 | 0% | Long Term |
+| Phase 6: Player and League platform expansion | 0 | 11 | 0% | Planned |
 | Future Expansion: Philippine coach education | 0 | 6 | 0% | Long Term |
 | Future Expansion: Club operations | 1 | 6 | 17% | Long Term |
 | Commercial validation and SaaS packaging | 5 | 6 | 83% | In Progress |
@@ -48,6 +50,7 @@ The FPRDS total includes twenty completed capabilities: the five shipped assessm
 
 ### Completed: 2026-07-09
 
+- [x] Added the Player and League platform expansion plan (`docs/PLAYER_AND_LEAGUE_PLATFORM_EXPANSION.md`) covering the three persona apps (Coach, Player, League), shared identity and entitlements, season/tournament operations, statistics verification, ledger, and reporting, and reflected it as Phase 6 across the roadmap, task tracker, and in-app Roadmap Snapshot.
 - [x] Consolidated subscription plans to the public two-plan offer: the admin plan picker now reads Free and Premium from a shared `src/billing/plans.ts` module (future tiers are added in one place), and a migration folds legacy `trial`/`pro`/`club` plan codes into `premium` while preserving the original code in the plan note.
 - [x] Added promotions (discounts and sales) management: a new `promotions` table with admin-managed RLS, a Marketing tab in the Dumala Admin Console to create, schedule, activate, and delete percent or fixed-amount offers, and automatic display of the live offer on the landing page pricing section.
 - [x] Added announcements management: a new `announcements` table, admin console authoring with draft/publish state, type (info, feature, maintenance, promo), and start/end scheduling, plus a dismissible in-app banner that shows live announcements to every user.
@@ -333,6 +336,22 @@ Phase 3 implementation baseline is complete. Local launch-readiness checks now i
 - [ ] **Long Term:** Add draft shortlists, comparisons, trial status, and notes.
 - [ ] **Long Term:** Add media, achievements, position history, and verified assessment highlights.
 - [ ] **Long Term:** Add abuse reporting and profile ownership recovery.
+
+## Phase 6: Player and League platform expansion
+
+Full plan: `docs/PLAYER_AND_LEAGUE_PLATFORM_EXPANSION.md`. Each item is independently shippable behind feature flags and entitlements.
+
+- [ ] **Planned:** Identity and authorization — personas, existing-account migration to Coach, server-side routing, dashboard shells, permissions, audit foundation, and League pilot entitlements.
+- [ ] **Planned:** Player foundation — profile, invite-and-claim, guardian consent, schedule, solo drills, workout timer, progress dashboard, and notifications.
+- [ ] **Planned:** Shared communication — Coach/Player Team Chat, moderation and youth safeguards, dashboard announcements, and email delivery.
+- [ ] **Planned:** League and season foundation — League Database, fresh-season lifecycle, independent events, roles, venues, eligibility rules, and documents.
+- [ ] **Planned:** Registration and rosters — unique links, Coach account creation, applications, approvals, roster controls, and transfer windows.
+- [ ] **Planned:** Tournament engine — formats, draws, brackets, groups, fixtures, conflict detection, and calendar publication.
+- [ ] **Planned:** Live operations — On-the-Day command center, delegated staff, check-in, match sheets, results, incidents, and offline queue.
+- [ ] **Planned:** Statistics and awards — verification workflow, event and season aggregates, leaderboards, awards, and certificates.
+- [ ] **Planned:** Finance and reporting — ledger, invoices, receipts, reconciliation, exports, operational dashboards, and season closeout.
+- [ ] **Planned:** Player engagement — fitness tracking, badges, verified achievements, streaks, and personalized recommendations.
+- [ ] **Planned:** Production hardening — accessibility, performance, security review, migration rehearsal, monitoring, retention policies, support procedures, and staged rollout.
 
 ## Future Expansion: Philippine coach education
 
