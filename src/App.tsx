@@ -255,6 +255,7 @@ export default function App() {
   });
   const analyticsSessionIdRef = useRef(getOrCreateAnalyticsSessionId());
   const onboardingCloudBootstrapUserRef = useRef<string | null>(null);
+  const [cloudWorkspaceResolution, setCloudWorkspaceResolution] = useState<'idle' | 'checking' | 'resolved'>('idle');
   const [hashRoute, setHashRoute] = useState(getHashRoute);
   type IntegrityFocus = {
     playerId?: string | null;
@@ -910,7 +911,7 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    if (!shouldRouteAuthReturnToApp() || cloudAuthController.state.status === 'loading') return;
+    if (!shouldRouteAuthReturnToApp() || cloudAuthController.state.status !== 'signedIn') return;
     const nextUrl = `${window.location.pathname}#/app`;
     window.history.replaceState(null, '', nextUrl);
     clearPendingAppAuthRedirect();
@@ -1223,6 +1224,12 @@ export default function App() {
     if (startupRecoveryIssues.length > 0) return;
     if (!cloudRuntime.enabled || cloudAuthController.state.status !== 'signedIn') {
       onboardingCloudBootstrapUserRef.current = null;
+      setCloudWorkspaceResolution('idle');
+      return;
+    }
+
+    if (isOnboarded && teamInfo !== null) {
+      setCloudWorkspaceResolution('resolved');
       return;
     }
 
@@ -1234,29 +1241,31 @@ export default function App() {
       hasSavedCloudWorkspace
     });
 
-    if (!shouldRestore && (isOnboarded || teamInfo !== null)) return;
-
     const signedInState = cloudAuthController.state;
     const userId = cloudAuthController.state.session.userId;
     if (onboardingCloudBootstrapUserRef.current === userId) return;
     onboardingCloudBootstrapUserRef.current = userId;
+    setCloudWorkspaceResolution('checking');
 
     const restoreExistingCloudWorkspace = async () => {
       if (!shouldRestore) {
         const hasExistingCloudWorkspace = await cloudRuntime.dataAccess.account.hasExistingWorkspace();
-        if (!hasExistingCloudWorkspace) return;
+        if (!hasExistingCloudWorkspace) return false;
       }
 
       const result = await bootstrapSignedInCloudAccount(cloudRuntime, signedInState, undefined, '0.0.0');
       handleCloudWorkspaceReady(result);
+      return true;
     };
 
     restoreExistingCloudWorkspace()
-      .then(result => {
+      .then(() => {
         onboardingCloudBootstrapUserRef.current = null;
+        setCloudWorkspaceResolution('resolved');
       })
       .catch(error => {
         onboardingCloudBootstrapUserRef.current = null;
+        setCloudWorkspaceResolution('resolved');
         console.warn('Cloud workspace could not restore after sign-in.', error);
       });
   }, [
@@ -1494,7 +1503,27 @@ export default function App() {
     </div>
   ) : null;
 
-  if (!isOnboarded || !teamInfo) {
+  const appAuthStatus = cloudAuthController.state.status;
+  const isCheckingAppAccess = cloudRuntime.enabled && (
+    appAuthStatus === 'loading'
+    || (appAuthStatus === 'signedIn' && (!isOnboarded || !teamInfo) && cloudWorkspaceResolution !== 'resolved')
+  );
+
+  if (isCheckingAppAccess) {
+    return (
+      <div className="min-h-screen bg-[#020713] p-4 text-slate-100">
+        <div className="mx-auto max-w-3xl">
+          <ViewLoadingFallback label="your workspace" />
+        </div>
+      </div>
+    );
+  }
+
+  if (
+    (cloudRuntime.enabled && appAuthStatus !== 'signedIn')
+    || !isOnboarded
+    || !teamInfo
+  ) {
     return (
       <div className="min-h-screen bg-[#020713] text-slate-100">
         <PwaStatusBanners />
