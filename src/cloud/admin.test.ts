@@ -82,17 +82,17 @@ describe('cloud admin repository', () => {
   });
 
   it('normalizes plan codes before calling the plan RPC', async () => {
-    const updated = { userId: 'user-1', accountState: 'active', planCode: 'pro' };
+    const updated = { userId: 'user-1', accountState: 'active', planCode: 'premium' };
     const rpc = vi.fn().mockResolvedValue({ data: updated, error: null });
     const client = { rpc } as unknown as DumalaSupabaseClient;
 
     await expect(
-      createCloudDataAccess(client).admin.setUserPlan('user-1', ' Pro ', '2026-12-31T23:59:59.000Z', 'founder deal')
+      createCloudDataAccess(client).admin.setUserPlan('user-1', ' Premium ', '2026-12-31T23:59:59.000Z', 'founder deal')
     ).resolves.toEqual(updated);
 
     expect(rpc).toHaveBeenCalledWith('set_admin_user_plan_v1', {
       target_user_id: 'user-1',
-      plan_code: 'pro',
+      plan_code: 'premium',
       expires_at: '2026-12-31T23:59:59.000Z',
       note: 'founder deal'
     });

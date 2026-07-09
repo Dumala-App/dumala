@@ -21,6 +21,12 @@ import {
   type PremiumLeadField,
   type PremiumLeadForm
 } from '../landing/premiumLeadCapture';
+import type { PromotionRecord } from '../cloud/marketing';
+
+const promotionDiscountLabel = (promotion: PromotionRecord) =>
+  promotion.discount_type === 'percent'
+    ? `${promotion.discount_value}% off`
+    : `₱${promotion.discount_value} off`;
 
 const steps = [
   {
@@ -186,6 +192,21 @@ export default function LandingPage() {
   const [premiumLeadErrors, setPremiumLeadErrors] = useState<PremiumLeadErrors>({});
   const [premiumLeadStatus, setPremiumLeadStatus] = useState<'idle' | 'submitting' | 'success' | 'error'>('idle');
   const [premiumLeadMessage, setPremiumLeadMessage] = useState('');
+  const [activePromotion, setActivePromotion] = useState<PromotionRecord | null>(null);
+
+  // Live promotion (sale/discount) managed from the Dumala Admin Console.
+  useEffect(() => {
+    if (!runtime.enabled) return;
+    let cancelled = false;
+    runtime.dataAccess.marketing.listActivePromotions()
+      .then(rows => {
+        if (!cancelled) setActivePromotion(rows[0] ?? null);
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, [runtime]);
 
   const scrollToId = (id: string) => {
     const el = document.getElementById(id);
@@ -391,6 +412,24 @@ export default function LandingPage() {
               <h2 style={{ fontFamily: "'Manrope', sans-serif", fontWeight: 800, letterSpacing: '-.03em', fontSize: 'clamp(1.9rem,3.4vw,2.6rem)', lineHeight: 1.15, margin: '16px 0 0', color: '#F5F7FB' }}>Start free. Upgrade when it becomes your rhythm.</h2>
               <p style={{ margin: '16px auto 0', fontSize: 15.5, lineHeight: 1.7, color: '#8A96AD' }}>Free is for trying the workflow in a real match week. Premium is for coaches and organizations that need stronger reports and planning.</p>
             </div>
+
+            {activePromotion && (
+              <div data-reveal="1" style={{ margin: '28px auto 0', maxWidth: 920, opacity: 1 }}>
+                <div role="status" style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center', gap: 12, border: '1px dashed rgba(255,138,61,.45)', background: 'rgba(255,138,61,.08)', borderRadius: 14, padding: '14px 20px', textAlign: 'center' }}>
+                  <span style={{ background: '#FF8A3D', color: '#180A00', fontSize: 10.5, fontWeight: 800, letterSpacing: '.14em', textTransform: 'uppercase', padding: '4px 10px', borderRadius: 999 }}>
+                    {promotionDiscountLabel(activePromotion)}
+                  </span>
+                  <span style={{ fontSize: 14, fontWeight: 700, color: '#FFD9BC' }}>
+                    {activePromotion.headline || activePromotion.name}
+                  </span>
+                  {activePromotion.ends_at && (
+                    <span style={{ fontSize: 12, color: '#B9C2D4' }}>
+                      Ends {new Date(activePromotion.ends_at).toLocaleDateString()}
+                    </span>
+                  )}
+                </div>
+              </div>
+            )}
 
             <div id="pricing-plans" style={{ margin: '40px auto 0', maxWidth: 920, display: 'flex', flexDirection: 'column', gap: 20 }}>
               {/* Free — Matchday pass ticket */}

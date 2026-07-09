@@ -5,6 +5,7 @@ import ViewLoadingFallback from './components/ViewLoadingFallback';
 import PwaInstallControl from './components/PwaInstallControl';
 import PwaStatusBanners from './components/PwaStatusBanners';
 import WorkspaceIntegrityBanner from './components/WorkspaceIntegrityBanner';
+import AnnouncementBanner from './components/AnnouncementBanner';
 import WorkspaceStatusBar, { type CloudBackupStatus } from './components/WorkspaceStatusBar';
 import StartupRecoveryScreen from './components/StartupRecoveryScreen';
 import { ViewErrorBoundary } from './components/ErrorBoundary';
@@ -1629,6 +1630,7 @@ export default function App() {
 
         {recoveryBanner}
         {storageWarningBanner}
+        <AnnouncementBanner runtime={cloudRuntime} />
         {integrityReport && !integrityDismissed && (
           <WorkspaceIntegrityBanner
             report={integrityReport}
