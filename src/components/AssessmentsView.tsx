@@ -5,8 +5,10 @@ import {
   Calendar,
   Check,
   CheckCircle2,
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
+  ChevronUp,
   ClipboardList,
   FileDown,
   FlaskConical,
@@ -297,6 +299,7 @@ export default function AssessmentsView({
   const [teamHistorySearch, setTeamHistorySearch] = useState('');
   const [teamHistoryRoleFilter, setTeamHistoryRoleFilter] = useState<FprdsRole | 'all'>('all');
   const [noteDrafts, setNoteDrafts] = useState<Record<string, string>>({});
+  const [showEarlierSessions, setShowEarlierSessions] = useState(false);
   const [betaSubmissionSession, setBetaSubmissionSession] = useState<AssessmentSession | null>(null);
   const [submittedBetaAssessmentIds, setSubmittedBetaAssessmentIds] = useState<Set<string>>(() => new Set());
 
@@ -318,6 +321,10 @@ export default function AssessmentsView({
     if (!selectedPlayer) return;
     setRole(getDefaultRoleForPlayer(selectedPlayer));
   }, [selectedPlayer?.id]);
+
+  useEffect(() => {
+    setShowEarlierSessions(false);
+  }, [selectedPlayerId]);
 
   useEffect(() => {
     if (!selectedPlayer || !assessmentDate) return;
@@ -727,6 +734,82 @@ export default function AssessmentsView({
     const nextNotes = noteDrafts[sessionId] ?? sourceSession?.coachNotes ?? '';
     onUpdateAssessmentNotes(sessionId, nextNotes);
   };
+
+  const renderAssessmentSessionCard = (s: AssessmentSession) => (
+    <div key={s.id} className="rounded-2xl border border-cyan-300/10 bg-white/[0.02] p-4">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-xs font-black text-slate-100">
+            {s.assessmentDate} • {ROLE_LABELS[s.role]} • {s.assessmentType}
+          </p>
+          <p className="mt-1 text-[11px] font-semibold text-slate-400">
+            Age group: {s.ageGroup} • OVR tier: {s.labels.ovrTierLabel}
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="inline-flex h-9 min-w-9 items-center justify-center rounded-xl border border-cyan-300/15 bg-cyan-300/10 px-2 text-base font-display font-black leading-none text-cyan-100">
+            {s.ovr}
+          </span>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => setBetaSubmissionSession(s)}
+            aria-label={`Share assessment from ${s.assessmentDate} with the FPRDS beta`}
+            className={submittedBetaAssessmentIds.has(s.id)
+              ? 'border-emerald-300/25 bg-emerald-300/[0.08] text-emerald-200 hover:bg-emerald-300/15'
+              : 'border-cyan-300/20 bg-cyan-300/10 text-cyan-100 hover:bg-cyan-300/15'}
+          >
+            {submittedBetaAssessmentIds.has(s.id) ? <CheckCircle2 size={14} /> : <FlaskConical size={14} />}
+            <span className="hidden sm:inline">{submittedBetaAssessmentIds.has(s.id) ? 'Shared' : 'Beta'}</span>
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            size="icon"
+            onClick={() => {
+              const confirmed = window.confirm('Delete this assessment session? This cannot be undone.');
+              if (!confirmed) return;
+              onDeleteAssessment(s.id);
+            }}
+            aria-label="Delete assessment"
+            className="rounded-xl border-rose-400/25 bg-rose-400/[0.08] text-rose-200 hover:bg-rose-400/12 hover:text-rose-100"
+          >
+            <Trash2 size={16} />
+          </Button>
+        </div>
+      </div>
+
+      <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
+        {weightedAttributeIdsForRole(s.role).map((attrId) => {
+          const val = s.attributeScores[attrId];
+          const meta = getAttributeLabel(val);
+          const isWeakest = attrId === s.labels.weakestAttributeId;
+          return (
+            <div
+              key={`${s.id}-${attrId}`}
+              className={`rounded-xl border px-3 py-2 ${
+                isWeakest ? 'border-amber-300/25 bg-amber-300/[0.08]' : 'border-cyan-300/10 bg-white/[0.03]'
+              }`}
+            >
+              <div className="flex items-center justify-between gap-2">
+                <p className="truncate text-[10px] font-black uppercase tracking-widest text-slate-400">{String(attrId)}</p>
+                {isWeakest && (
+                  <Badge className="rounded-full border-amber-300/25 bg-amber-300/15 px-2 py-0.5 text-[9px] text-amber-200">
+                    Weakest
+                  </Badge>
+                )}
+              </div>
+              <div className="mt-1 flex items-baseline justify-between gap-2">
+                <span className="text-sm font-display font-black text-slate-100">{val}</span>
+                <span className={`text-[10px] font-black ${meta.color}`}>{meta.label}</span>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
 
   const handleNextStep = () => {
     setSaveError(null);
@@ -1570,19 +1653,15 @@ export default function AssessmentsView({
             </div>
           )}
 
-          {step === 4 && (
+          {step === 4 && !selectedPlayer && (
             <div className="rounded-2xl border border-cyan-300/10 bg-[#07111f]/88 text-slate-100 shadow-lg shadow-black/20 backdrop-blur-xl p-5 sm:p-6 space-y-4">
-              <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-                <div>
-                  <h3 className="font-display font-black text-slate-100 text-sm uppercase tracking-wide flex items-center gap-2">
-                    <Sparkles size={16} className="text-cyan-300" /> {selectedPlayer ? 'Assessment History' : 'Team Assessment History'}
-                  </h3>
-                  <p className="mt-1 text-xs font-semibold text-slate-400">
-                    {selectedPlayer
-                      ? `Review saved sessions, reports, and notes for ${selectedPlayer.name}.`
-                      : 'Choose an assessed player to view organized history, reports, and notes.'}
-                  </p>
-                </div>
+              <div>
+                <h3 className="font-display font-black text-slate-100 text-sm uppercase tracking-wide flex items-center gap-2">
+                  <Sparkles size={16} className="text-cyan-300" /> Team Assessment History
+                </h3>
+                <p className="mt-1 text-xs font-semibold text-slate-400">
+                  Choose an assessed player to view organized history, reports, and notes.
+                </p>
               </div>
 
               <div className="flex flex-col gap-3">
@@ -1726,14 +1805,61 @@ export default function AssessmentsView({
                       )}
                     </div>
                   )}
+              </div>
+            </div>
+          )}
 
-                  {selectedPlayer && playerAssessments.length === 0 && (
-                    <div className="rounded-2xl border border-cyan-300/10 bg-white/[0.03] p-4 text-sm text-slate-400 font-semibold">
-                      No assessments saved for this player yet.
+          {step === 4 && selectedPlayer && (
+            <div className="flex flex-col gap-5">
+              <div className="order-1 flex flex-col gap-4 rounded-2xl border border-cyan-300/10 bg-[#07111f]/88 p-5 shadow-lg shadow-black/20 backdrop-blur-xl sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex min-w-0 items-center gap-4">
+                  <img
+                    src={selectedPlayer.photoUrl}
+                    alt=""
+                    className="h-14 w-14 shrink-0 rounded-2xl border border-cyan-300/15 object-cover"
+                    referrerPolicy="no-referrer"
+                  />
+                  <div className="min-w-0">
+                    <button
+                      type="button"
+                      onClick={handleOpenTeamHistory}
+                      aria-label="Back to all assessed players"
+                      className="inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-wider text-cyan-200/80 transition hover:text-cyan-100"
+                    >
+                      <ChevronLeft size={12} /> All players
+                    </button>
+                    <h3 className="mt-0.5 truncate text-lg font-display font-black text-slate-100">{selectedPlayer.name}</h3>
+                    <p className="truncate text-xs font-semibold text-slate-400">
+                      #{selectedPlayer.number || '-'} • {selectedPlayer.position}
+                      {selectedPlayerLatestAssessment ? ` • ${ROLE_LABELS[selectedPlayerLatestAssessment.role]}` : ''}
+                    </p>
+                  </div>
+                </div>
+                {selectedPlayerLatestAssessment && (
+                  <div className="flex items-center gap-5 pl-1">
+                    <div>
+                      <p className="text-[9px] font-black uppercase tracking-widest text-slate-500">Latest OVR</p>
+                      <p className="text-2xl font-display font-black leading-none text-slate-100">{selectedPlayerLatestAssessment.ovr}</p>
                     </div>
-                  )}
+                    {progressDelta !== null && (
+                      <div>
+                        <p className="text-[9px] font-black uppercase tracking-widest text-slate-500">Change</p>
+                        <p className={`text-2xl font-display font-black leading-none ${progressDelta >= 0 ? 'text-emerald-300' : 'text-rose-300'}`}>
+                          {progressDelta >= 0 ? `+${progressDelta}` : progressDelta}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
 
-                  {selectedPlayer && assessmentProgressSeries.length > 0 && (
+              {playerAssessments.length === 0 && (
+                <div className="order-2 rounded-2xl border border-dashed border-cyan-300/10 bg-white/[0.03] p-6 text-center text-sm font-semibold text-slate-400">
+                  No assessments saved for this player yet. Run an assessment to unlock the coach feedback report and progress trend.
+                </div>
+              )}
+
+              {selectedPlayer && assessmentProgressSeries.length > 0 && (
                     <div className="order-3 rounded-2xl border border-cyan-300/10 bg-[#0b1726]/70 p-4">
                       <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                         <div>
@@ -1839,13 +1965,13 @@ export default function AssessmentsView({
                   )}
 
                   {selectedPlayer && playerFeedbackReport && (
-                    <div className="order-4 rounded-2xl border border-cyan-300/10 bg-white/[0.03] p-4">
+                    <div className="order-2 rounded-2xl border border-cyan-300/20 bg-[#07111f]/88 p-5 shadow-lg shadow-black/20 backdrop-blur-xl sm:p-6">
                       <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                         <div>
-                          <p className="flex items-center gap-2 text-[11px] font-black uppercase tracking-wider text-slate-400">
-                            <MessageSquareText size={14} className="text-cyan-300" /> Coach feedback report
+                          <p className="flex items-center gap-2 text-[11px] font-black uppercase tracking-wider text-cyan-200">
+                            <MessageSquareText size={15} className="text-cyan-300" /> Coach feedback report
                           </p>
-                          <h4 className="mt-1 text-sm font-black text-slate-100">What to tell {selectedPlayer.name}</h4>
+                          <h4 className="mt-1.5 text-lg font-display font-black text-slate-100">What to tell {selectedPlayer.name}</h4>
                           <p className="mt-1 text-xs font-semibold text-slate-400">
                             A player-facing summary built from the latest assessment, trend, role priorities, and development plan.
                           </p>
@@ -1895,24 +2021,22 @@ export default function AssessmentsView({
                         </div>
                       </div>
 
-                      <div className="mt-4">
-                        <div className="rounded-2xl border border-cyan-300/15 bg-cyan-300/[0.06] p-4">
-                          <p className="flex items-center gap-2 text-[10px] font-black uppercase tracking-wider text-cyan-100">
-                            <MessageSquareText size={14} /> What to tell the player
-                          </p>
-                          <h5 className="mt-2 text-sm font-bold text-slate-100">{playerFeedbackReport.feedback.headline}</h5>
-                          <div className="mt-3 space-y-3 rounded-xl border border-cyan-300/15 bg-white/[0.03]/75 p-4">
-                            {[
-                              playerFeedbackReport.feedback.opening,
-                              playerFeedbackReport.feedback.praise,
-                              playerFeedbackReport.feedback.correction,
-                              playerFeedbackReport.feedback.focus
-                            ].map((line) => (
-                              <p key={line} className="text-sm font-normal leading-6 text-slate-300">
-                                {line}
-                              </p>
-                            ))}
-                          </div>
+                      <div className="mt-4 rounded-2xl border border-cyan-300/15 bg-cyan-300/[0.06] p-5">
+                        <p className="flex items-center gap-2 text-[10px] font-black uppercase tracking-wider text-cyan-100">
+                          <MessageSquareText size={14} /> What to tell the player
+                        </p>
+                        <h5 className="mt-2 text-base font-bold text-slate-100">{playerFeedbackReport.feedback.headline}</h5>
+                        <div className="mt-3 space-y-3">
+                          {[
+                            playerFeedbackReport.feedback.opening,
+                            playerFeedbackReport.feedback.praise,
+                            playerFeedbackReport.feedback.correction,
+                            playerFeedbackReport.feedback.focus
+                          ].map((line) => (
+                            <p key={line} className="text-sm font-normal leading-6 text-slate-300">
+                              {line}
+                            </p>
+                          ))}
                         </div>
                       </div>
 
@@ -1971,107 +2095,41 @@ export default function AssessmentsView({
                     </div>
                   )}
 
-                  {selectedPlayer && playerAssessments.map((s) => {
-                    return (
-                    <div key={s.id} className="order-2 rounded-2xl border border-cyan-300/10 bg-white/[0.03] p-4">
-                      <div className="flex items-start justify-between gap-3">
-                        <div>
-                          <p className="text-xs font-black text-slate-100">
-                            {s.assessmentDate} • {ROLE_LABELS[s.role]} • {s.assessmentType}
-                          </p>
-                          <p className="mt-1 text-[11px] text-slate-400 font-semibold">
-                            Age group: {s.ageGroup} • OVR tier: {s.labels.ovrTierLabel}
-                          </p>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            onClick={() => setBetaSubmissionSession(s)}
-                            aria-label={`Share assessment from ${s.assessmentDate} with the FPRDS beta`}
-                            className={submittedBetaAssessmentIds.has(s.id)
-                              ? 'border-emerald-300/25 bg-emerald-300/[0.08] text-emerald-200 hover:bg-emerald-300/15'
-                              : 'border-cyan-300/20 bg-cyan-300/10 text-cyan-100 hover:bg-cyan-300/15'}
-                          >
-                            {submittedBetaAssessmentIds.has(s.id) ? <CheckCircle2 size={14} /> : <FlaskConical size={14} />}
-                            <span className="hidden sm:inline">{submittedBetaAssessmentIds.has(s.id) ? 'Shared' : 'Beta'}</span>
-                          </Button>
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="icon"
-                            onClick={() => {
-                              const confirmed = window.confirm('Delete this assessment session? This cannot be undone.');
-                              if (!confirmed) return;
-                              onDeleteAssessment(s.id);
-                            }}
-                            aria-label="Delete assessment"
-                            className="rounded-xl border-rose-400/25 bg-rose-400/[0.08] text-rose-200 hover:bg-rose-400/12 hover:text-rose-100"
-                          >
-                            <Trash2 size={16} />
-                          </Button>
-                        </div>
-                      </div>
-
-                      <div className="mt-3 grid grid-cols-2 sm:grid-cols-3 gap-2">
-                        {weightedAttributeIdsForRole(s.role).map((attrId) => {
-                          const val = s.attributeScores[attrId];
-                          const meta = getAttributeLabel(val);
-                          const isWeakest = attrId === s.labels.weakestAttributeId;
-                          return (
-                            <div
-                              key={`${s.id}-${attrId}`}
-                              className={`rounded-xl border px-3 py-2 ${
-                                isWeakest ? 'border-amber-300/25 bg-amber-300/[0.08]' : 'border-cyan-300/10 bg-white/[0.03]'
-                              }`}
-                            >
-                              <div className="flex items-center justify-between gap-2">
-                                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 truncate">{String(attrId)}</p>
-                                {isWeakest && (
-                                  <Badge className="rounded-full border-amber-300/25 bg-amber-300/15 px-2 py-0.5 text-[9px] text-amber-200">
-                                    Weakest
-                                  </Badge>
-                                )}
-                              </div>
-                              <div className="mt-1 flex items-baseline justify-between gap-2">
-                                <span className="text-sm font-display font-black text-slate-100">{val}</span>
-                                <span className={`text-[10px] font-black ${meta.color}`}>{meta.label}</span>
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-
-                      {false && s.developmentPlan && (
-                        <div className="mt-4 rounded-2xl border border-cyan-300/20 bg-cyan-300/[0.06] p-4">
-                          <p className="text-[11px] font-black uppercase tracking-wider text-cyan-100 flex items-center gap-2">
-                            <Sparkles size={14} /> 4-week development plan
-                          </p>
-                          <p className="mt-1 text-xs text-slate-300 font-semibold">
-                            Focus: <span className="font-black">{String(s.developmentPlan.focusAttributeId)}</span> • Priority score:{' '}
-                            <span className="font-black">{s.developmentPlan.priorityScore}</span>
-                          </p>
-                          <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-3">
-                            {s.developmentPlan.weeks.map(w => (
-                              <div key={`${s.id}-wk-${w.weekNumber}`} className="rounded-2xl border border-cyan-300/10 bg-white/[0.03] p-4">
-                                <p className="text-xs font-black text-slate-100">Week {w.weekNumber}</p>
-                                <p className="text-xs text-slate-300 font-semibold mt-1">{w.focus}</p>
-                                {w.drillIds.length > 0 && (
-                                  <p className="mt-2 text-[11px] text-slate-400 font-semibold">
-                                    Drills: <span className="font-mono">{w.drillIds.join(', ')}</span>
-                                  </p>
-                                )}
-                                <p className="mt-2 text-[11px] text-slate-400 font-medium">{w.notes}</p>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
+              {playerAssessments.length > 0 && (
+                <div className="order-4 rounded-2xl border border-cyan-300/10 bg-[#07111f]/88 p-5 shadow-lg shadow-black/20 backdrop-blur-xl sm:p-6">
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <p className="flex items-center gap-2 text-[11px] font-black uppercase tracking-wider text-slate-400">
+                        <History size={14} className="text-cyan-300" /> Assessment history
+                      </p>
+                      <p className="mt-1 text-xs font-semibold text-slate-400">
+                        {playerAssessments.length} saved {playerAssessments.length === 1 ? 'session' : 'sessions'} · showing the most recent.
+                      </p>
                     </div>
-                    );
-                  })}
+                    {playerAssessments.length > 1 && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setShowEarlierSessions((v) => !v)}
+                        aria-expanded={showEarlierSessions}
+                        className="h-8 shrink-0 gap-1.5 rounded-lg border-cyan-300/15 bg-white/[0.03] px-3 text-[11px] font-bold text-slate-200 hover:bg-white/[0.06]"
+                      >
+                        {showEarlierSessions ? (
+                          <><ChevronUp size={14} /> Hide earlier</>
+                        ) : (
+                          <><ChevronDown size={14} /> {playerAssessments.length - 1} earlier</>
+                        )}
+                      </Button>
+                    )}
+                  </div>
+
+                  <div className="mt-4 space-y-3">
+                    {renderAssessmentSessionCard(playerAssessments[0])}
+                    {showEarlierSessions && playerAssessments.slice(1).map((s) => renderAssessmentSessionCard(s))}
+                  </div>
                 </div>
+              )}
             </div>
           )}
         </div>
