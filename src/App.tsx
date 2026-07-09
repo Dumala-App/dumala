@@ -1528,7 +1528,7 @@ export default function App() {
       <div className="min-h-screen bg-[#020713] text-slate-100">
         <PwaStatusBanners />
         <div className="fixed right-4 top-4 z-40">
-          <PwaInstallControl />
+          <PwaInstallControl tone="darkGlass" />
         </div>
         {storageWarningBanner && <div className="mx-auto max-w-3xl px-4 pt-4">{storageWarningBanner}</div>}
         {recoveryBanner && <div className="mx-auto max-w-3xl px-4 pt-4">{recoveryBanner}</div>}
