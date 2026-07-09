@@ -504,7 +504,7 @@ export default function LandingPage() {
                     <span aria-hidden="true" style={{ position: 'absolute', left: -12, bottom: -11, width: 22, height: 22, borderRadius: '50%', background: '#04091A', border: '1px solid rgba(255,138,61,.4)' }} />
                     <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.24em', textTransform: 'uppercase', color: '#FFB37E' }}>Whole season</span>
                     <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginTop: 4 }}>
-                      <span style={{ fontFamily: "'Manrope', sans-serif", fontWeight: 800, fontSize: 44, letterSpacing: '-.03em', color: '#F5F7FB' }}>₱499</span>
+                      <span style={{ fontFamily: "'Manrope', sans-serif", fontWeight: 800, fontSize: 44, letterSpacing: '-.03em', color: '#F5F7FB' }}>₱249</span>
                     </div>
                     <span style={{ fontSize: 12, color: '#8A96AD' }}>per month · <span style={{ textDecoration: 'line-through', color: '#5C6880' }}>₱800</span> early-bird</span>
                     <button type="button" onClick={openPremiumLeadModal} className="dc-joinbeta" style={{ marginTop: 16 }}>Join the beta list</button>
