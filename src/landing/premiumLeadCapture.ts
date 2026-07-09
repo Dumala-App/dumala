@@ -1,7 +1,12 @@
 import type { CloudRuntime } from '../cloud/runtime';
+import type { FeedbackStatus, FeedbackSubmission } from '../cloud/admin';
 
 export const PREMIUM_LEAD_STORAGE_KEY = 'dumala.premiumBetaLeads.v1';
 export const PREMIUM_LEAD_KIND = 'premium_beta_interest';
+// These two strings are the join key between the landing-page lead writer and the
+// Admin Console leads reader. Keep them in sync — the reader filters feedback by them.
+export const PREMIUM_LEAD_AFFECTED_AREA = 'Landing page Premium beta';
+export const PREMIUM_LEAD_SUBJECT_PREFIX = 'Premium beta interest: ';
 const PREMIUM_LEAD_EMAIL = 'kleinski23@gmail.com';
 
 export type PremiumLeadField = 'name' | 'email' | 'organization' | 'role' | 'teamCount' | 'notes';
@@ -105,9 +110,9 @@ export const submitPremiumLead = async (
   if (runtime.enabled) {
     const savedFeedback = await runtime.dataAccess.admin.createFeedback({
       category: 'feature_request',
-      affectedArea: 'Landing page Premium beta',
+      affectedArea: PREMIUM_LEAD_AFFECTED_AREA,
       urgency: 'normal',
-      subject: `Premium beta interest: ${lead.organization}`,
+      subject: `${PREMIUM_LEAD_SUBJECT_PREFIX}${lead.organization}`,
       details: [
         `Lead kind: ${lead.kind}`,
         `Source: ${lead.source}`,
@@ -184,3 +189,61 @@ const isPremiumLeadRecord = (value: unknown): value is PremiumLeadRecord => {
     && typeof record.email === 'string'
     && typeof record.submittedAt === 'string';
 };
+
+// A Premium beta lead reconstructed from a stored feedback submission, for the
+// Admin Console leads view. The landing CTA writes the structured `details`
+// block below, so we parse it back out here rather than adding a second table.
+export interface PremiumLeadSummary {
+  id: string;
+  name: string;
+  email: string;
+  organization: string;
+  role: string;
+  teamCount: string;
+  notes: string;
+  status: FeedbackStatus;
+  submittedAt: string;
+  pageUrl: string;
+  browser: string;
+}
+
+export const isPremiumLeadFeedback = (feedback: FeedbackSubmission): boolean =>
+  feedback.affected_area === PREMIUM_LEAD_AFFECTED_AREA
+  || feedback.subject.startsWith(PREMIUM_LEAD_SUBJECT_PREFIX);
+
+const readDetailField = (details: string, label: string): string => {
+  const prefix = `${label}:`;
+  const line = details.split('\n').find(entry => entry.startsWith(prefix));
+  return line ? line.slice(prefix.length).trim() : '';
+};
+
+const readDetailNotes = (details: string): string => {
+  const marker = '\nNotes:\n';
+  const index = details.indexOf(marker);
+  if (index === -1) return '';
+  const value = details.slice(index + marker.length).trim();
+  return value && value !== 'Not provided' ? value : '';
+};
+
+export const parsePremiumLeadFeedback = (feedback: FeedbackSubmission): PremiumLeadSummary => {
+  const details = feedback.details ?? '';
+  const organization = feedback.team_workspace?.trim()
+    || readDetailField(details, 'Organization')
+    || feedback.subject.slice(PREMIUM_LEAD_SUBJECT_PREFIX.length).trim();
+  return {
+    id: feedback.id,
+    name: readDetailField(details, 'Name') || 'Unknown',
+    email: feedback.contact_email?.trim() || '',
+    organization: organization || 'Unknown',
+    role: readDetailField(details, 'Role') || 'Unknown',
+    teamCount: readDetailField(details, 'Teams'),
+    notes: readDetailNotes(details),
+    status: feedback.status,
+    submittedAt: feedback.created_at,
+    pageUrl: feedback.page_url ?? '',
+    browser: feedback.browser ?? ''
+  };
+};
+
+export const derivePremiumLeads = (feedback: FeedbackSubmission[]): PremiumLeadSummary[] =>
+  feedback.filter(isPremiumLeadFeedback).map(parsePremiumLeadFeedback);
