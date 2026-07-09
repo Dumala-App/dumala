@@ -63,8 +63,14 @@ import {
   getAdminSecurityMetrics,
   getAdminStorageMetrics,
   getCurrentAppAdmin,
+  listAdminManagedUsers,
   listAdminRecoverableWorkspaces,
   recordAdminAuditEvent,
+  revokeAdminUserDevices,
+  setAdminUserBan,
+  setAdminUserMute,
+  setAdminUserNotes,
+  setAdminUserPlan,
   createFeedbackSubmission,
   createFprdsBetaSubmission,
   findMyFprdsBetaSubmission,
@@ -81,6 +87,7 @@ import {
   updateFeedbackSubmission,
   type AdminConsoleSnapshot,
   type AdminGrowthMetrics,
+  type AdminManagedUser,
   type AdminRecoverableWorkspace,
   type AdminSecurityMetrics,
   type AdminStorageMetrics,
@@ -170,6 +177,12 @@ export interface CloudAdminRepository {
   getStorageMetrics(days?: number): Promise<AdminStorageMetrics>;
   listRecoverableWorkspaces(days?: number): Promise<AdminRecoverableWorkspace[]>;
   restoreWorkspace(clubId: string): Promise<AdminRecoverableWorkspace>;
+  listManagedUsers(search?: string | null, limit?: number): Promise<AdminManagedUser[]>;
+  setUserBan(userId: string, banned: boolean, reason?: string | null): Promise<AdminManagedUser>;
+  setUserMute(userId: string, mutedUntil: string | null, reason?: string | null): Promise<AdminManagedUser>;
+  setUserPlan(userId: string, planCode: string, expiresAt?: string | null, note?: string | null): Promise<AdminManagedUser>;
+  revokeUserDevices(userId: string): Promise<AdminManagedUser>;
+  setUserNotes(userId: string, notes: string | null): Promise<AdminManagedUser>;
   recordAuditEvent(eventType: string, metadata?: Record<string, unknown>): Promise<void>;
   recordUsageEvent(input: UsageEventInput): Promise<void>;
   recordSessionHeartbeat(input: AppSessionHeartbeatInput): Promise<void>;
@@ -258,6 +271,12 @@ export const createCloudDataAccess = (client: DumalaSupabaseClient): CloudDataAc
     getStorageMetrics: days => getAdminStorageMetrics(client, days),
     listRecoverableWorkspaces: days => listAdminRecoverableWorkspaces(client, days),
     restoreWorkspace: clubId => restoreAdminWorkspace(client, clubId),
+    listManagedUsers: (search, limit) => listAdminManagedUsers(client, search ?? null, limit),
+    setUserBan: (userId, banned, reason) => setAdminUserBan(client, userId, banned, reason ?? null),
+    setUserMute: (userId, mutedUntil, reason) => setAdminUserMute(client, userId, mutedUntil, reason ?? null),
+    setUserPlan: (userId, planCode, expiresAt, note) => setAdminUserPlan(client, userId, planCode, expiresAt ?? null, note ?? null),
+    revokeUserDevices: userId => revokeAdminUserDevices(client, userId),
+    setUserNotes: (userId, notes) => setAdminUserNotes(client, userId, notes),
     recordAuditEvent: (eventType, metadata) => recordAdminAuditEvent(client, eventType, metadata),
     recordUsageEvent: input => recordAppUsageEvent(client, input),
     recordSessionHeartbeat: input => recordAppSessionHeartbeat(client, input),
