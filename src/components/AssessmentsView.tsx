@@ -1965,114 +1965,106 @@ export default function AssessmentsView({
                   )}
 
                   {selectedPlayer && playerFeedbackReport && (
-                    <div className="order-2 rounded-2xl border border-cyan-300/20 bg-[#07111f]/88 p-5 shadow-lg shadow-black/20 backdrop-blur-xl sm:p-6">
-                      <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-                        <div>
-                          <p className="flex items-center gap-2 text-[11px] font-black uppercase tracking-wider text-cyan-200">
-                            <MessageSquareText size={15} className="text-cyan-300" /> Coach feedback report
+                    <div className="order-2 rounded-2xl border border-cyan-300/15 bg-[#07111f]/88 p-6 shadow-lg shadow-black/20 backdrop-blur-xl sm:p-7">
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="min-w-0">
+                          <p className="flex items-center gap-2 text-[11px] font-black uppercase tracking-wider text-cyan-200/90">
+                            <MessageSquareText size={14} className="text-cyan-300" /> Coach feedback report
                           </p>
-                          <h4 className="mt-1.5 text-lg font-display font-black text-slate-100">What to tell {selectedPlayer.name}</h4>
-                          <p className="mt-1 text-xs font-semibold text-slate-400">
-                            A player-facing summary built from the latest assessment, trend, role priorities, and development plan.
-                          </p>
-                          <p className="mt-2 inline-flex items-center gap-1.5 rounded-md border border-white/10 bg-white/[0.04] px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                            <FlaskConical size={12} className="text-cyan-300" /> Benchmark: {getBenchmarkVersionInfo(playerFeedbackReport.latestSession.benchmarkVersion).label}
-                          </p>
+                          <h4 className="mt-2 text-xl font-display font-black text-slate-100">What to tell {selectedPlayer.name}</h4>
+                          <div className="mt-2 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[11px] font-semibold text-slate-400">
+                            <span className={
+                              playerFeedbackReport.trendTone === 'positive'
+                                ? 'text-emerald-300'
+                                : playerFeedbackReport.trendTone === 'negative' ? 'text-rose-300' : 'text-slate-300'
+                            }>
+                              {playerFeedbackReport.trendLabel}
+                            </span>
+                            <span className="text-slate-600" aria-hidden="true">•</span>
+                            <span className="text-slate-300">{ROLE_LABELS[playerFeedbackReport.role]}</span>
+                            <span className="text-slate-600" aria-hidden="true">•</span>
+                            <span>{playerFeedbackReport.latestSession.assessmentDate}</span>
+                            <span className="text-slate-600" aria-hidden="true">•</span>
+                            <span className="inline-flex items-center gap-1">
+                              <FlaskConical size={11} className="text-slate-500" /> {getBenchmarkVersionInfo(playerFeedbackReport.latestSession.benchmarkVersion).label}
+                            </span>
+                          </div>
                         </div>
-                        <div className="flex shrink-0 flex-wrap gap-2">
+                        <div className="flex shrink-0 items-center gap-1">
                           <Button
                             type="button"
+                            variant="ghost"
                             size="sm"
                             onClick={handleDownloadReport}
-                            className="h-8 gap-1.5 rounded-lg bg-cyan-500/90 px-3 text-[11px] font-bold text-slate-950 hover:bg-cyan-400"
+                            aria-label="Download report"
+                            className="h-8 gap-1.5 rounded-lg px-2.5 text-[11px] font-semibold text-slate-400 hover:bg-white/[0.06] hover:text-slate-100"
                           >
-                            <FileDown size={14} /> Download report
+                            <FileDown size={14} /> <span className="hidden sm:inline">Report</span>
                           </Button>
                           <Button
                             type="button"
-                            variant="outline"
+                            variant="ghost"
                             size="sm"
                             onClick={handleExportReportData}
-                            className="h-8 gap-1.5 rounded-lg border-white/10 bg-white/[0.055] px-3 text-[11px] text-slate-200 hover:bg-white/10 hover:text-white"
+                            aria-label="Export report data as JSON"
+                            className="h-8 gap-1.5 rounded-lg px-2.5 text-[11px] font-semibold text-slate-500 hover:bg-white/[0.06] hover:text-slate-200"
                           >
-                            <FileDown size={14} /> Data (JSON)
+                            <FileDown size={14} /> <span className="hidden sm:inline">Data</span>
                           </Button>
                         </div>
                       </div>
 
-                      <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-3">
-                        <div className="rounded-xl border border-cyan-300/10 bg-white/[0.03] px-3 py-3">
-                          <p className="text-[9px] font-black uppercase tracking-widest text-slate-500">Trend</p>
-                          <p className={`mt-1 text-sm font-black leading-tight ${
-                            playerFeedbackReport.trendTone === 'positive'
-                              ? 'text-emerald-300'
-                              : playerFeedbackReport.trendTone === 'negative' ? 'text-rose-300' : 'text-slate-100'
-                          }`}>
-                            {playerFeedbackReport.trendLabel}
-                          </p>
-                        </div>
-                        <div className="rounded-xl border border-cyan-300/10 bg-white/[0.03] px-3 py-3">
-                          <p className="text-[9px] font-black uppercase tracking-widest text-slate-500">Role</p>
-                          <p className="mt-1 text-sm font-black leading-tight text-slate-100">{ROLE_LABELS[playerFeedbackReport.role]}</p>
-                        </div>
-                        <div className="rounded-xl border border-cyan-300/10 bg-white/[0.03] px-3 py-3">
-                          <p className="text-[9px] font-black uppercase tracking-widest text-slate-500">Latest date</p>
-                          <p className="mt-1 text-sm font-black leading-tight text-slate-100">{playerFeedbackReport.latestSession.assessmentDate}</p>
-                        </div>
-                      </div>
-
-                      <div className="mt-4 rounded-2xl border border-cyan-300/15 bg-cyan-300/[0.06] p-5">
-                        <p className="flex items-center gap-2 text-[10px] font-black uppercase tracking-wider text-cyan-100">
-                          <MessageSquareText size={14} /> What to tell the player
-                        </p>
-                        <h5 className="mt-2 text-base font-bold text-slate-100">{playerFeedbackReport.feedback.headline}</h5>
-                        <div className="mt-3 space-y-3">
+                      <div className="mt-5">
+                        <h5 className="text-lg font-bold leading-snug text-slate-100">{playerFeedbackReport.feedback.headline}</h5>
+                        <div className="mt-4 space-y-3.5 border-l-2 border-cyan-300/35 pl-4">
                           {[
                             playerFeedbackReport.feedback.opening,
                             playerFeedbackReport.feedback.praise,
                             playerFeedbackReport.feedback.correction,
                             playerFeedbackReport.feedback.focus
                           ].map((line) => (
-                            <p key={line} className="text-sm font-normal leading-6 text-slate-300">
+                            <p key={line} className="text-[15px] font-normal leading-7 text-slate-200">
                               {line}
                             </p>
                           ))}
                         </div>
                       </div>
 
-                      <div className="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-2">
-                        <div className="rounded-2xl border border-cyan-300/10 bg-white/[0.03] p-4">
+                      <div className="mt-7 grid grid-cols-1 gap-x-8 gap-y-6 border-t border-white/[0.06] pt-6 md:grid-cols-2">
+                        <div>
                           <p className="text-[10px] font-black uppercase tracking-wider text-slate-400">Keep building</p>
-                          <div className="mt-3 space-y-2">
+                          <div className="mt-3 space-y-3">
                             {playerFeedbackReport.strengths.map((item) => (
-                              <div key={`feedback-strength-${item.attributeId}`} className="flex items-center justify-between gap-3 rounded-xl border border-cyan-300/10 bg-white/[0.03] px-3 py-2">
+                              <div key={`feedback-strength-${item.attributeId}`} className="flex items-baseline justify-between gap-3">
                                 <div className="min-w-0">
-                                  <p className="truncate text-xs font-black text-slate-100">{item.displayName}</p>
-                                  <p className="mt-0.5 text-[11px] font-semibold text-slate-400">{item.coachPhrase}</p>
-                                  <p className={`mt-0.5 text-[10px] font-black ${item.color}`}>{item.label}</p>
+                                  <p className="truncate text-sm font-bold text-slate-100">
+                                    {item.displayName} <span className={`text-[11px] font-black ${item.color}`}>· {item.label}</span>
+                                  </p>
+                                  <p className="mt-0.5 text-xs font-medium leading-relaxed text-slate-400">{item.coachPhrase}</p>
                                 </div>
-                                <span className="shrink-0 text-base font-display font-black text-slate-100">{item.score}</span>
+                                <span className="shrink-0 text-lg font-display font-black text-slate-100">{item.score}</span>
                               </div>
                             ))}
                           </div>
                         </div>
 
-                        <div className="rounded-2xl border border-cyan-300/10 bg-white/[0.03] p-4">
-                          <p className="flex items-center gap-2 text-[10px] font-black uppercase tracking-wider text-slate-400">
-                            <Target size={14} className="text-amber-300" /> Priority focus
+                        <div className="md:border-l md:border-white/[0.06] md:pl-8">
+                          <p className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider text-amber-300/90">
+                            <Target size={13} /> Priority focus
                           </p>
-                          <div className="mt-3 space-y-2">
+                          <div className="mt-3 space-y-4">
                             {playerFeedbackReport.priorities.map((item) => (
-                              <div key={`feedback-priority-${item.attributeId}`} className="rounded-xl border border-amber-300/25 bg-amber-300/[0.08] px-3 py-2">
-                                <div className="flex items-center justify-between gap-3">
+                              <div key={`feedback-priority-${item.attributeId}`}>
+                                <div className="flex items-baseline justify-between gap-3">
                                   <div className="min-w-0">
-                                    <p className="truncate text-xs font-black text-slate-100">{item.displayName}</p>
-                                    <p className="mt-0.5 text-[11px] font-semibold text-amber-100">{item.coachPhrase}</p>
-                                    <p className={`mt-0.5 text-[10px] font-black ${item.color}`}>{item.label}</p>
+                                    <p className="truncate text-sm font-bold text-slate-100">
+                                      {item.displayName} <span className={`text-[11px] font-black ${item.color}`}>· {item.label}</span>
+                                    </p>
+                                    <p className="mt-0.5 text-xs font-medium leading-relaxed text-amber-100/85">{item.coachPhrase}</p>
                                   </div>
-                                  <span className="shrink-0 text-base font-display font-black text-slate-100">{item.score}</span>
+                                  <span className="shrink-0 text-lg font-display font-black text-amber-200">{item.score}</span>
                                 </div>
-                                <p className="mt-1 text-[11px] font-semibold leading-relaxed text-amber-100">
+                                <p className="mt-1 text-xs font-medium leading-relaxed text-slate-400">
                                   {item.reason}
                                 </p>
                               </div>
@@ -2081,16 +2073,16 @@ export default function AssessmentsView({
                         </div>
                       </div>
 
-                      <div className="mt-4 rounded-2xl border border-cyan-300/10 bg-[#0b1726]/70 p-4">
+                      <div className="mt-7 border-t border-white/[0.06] pt-6">
                         <p className="text-[10px] font-black uppercase tracking-wider text-slate-400">Next conversation prompts</p>
-                        <div className="mt-3 grid grid-cols-1 gap-2 md:grid-cols-3">
+                        <ul className="mt-3 space-y-2.5">
                           {playerFeedbackReport.conversationPrompts.map((prompt, index) => (
-                            <div key={`feedback-prompt-${prompt}`} className="rounded-xl border border-cyan-300/10 bg-white/[0.03] p-3">
-                              <p className="text-[9px] font-black uppercase tracking-widest text-slate-500">Prompt {index + 1}</p>
-                              <p className="mt-1 text-xs font-semibold leading-relaxed text-slate-300">{prompt}</p>
-                            </div>
+                            <li key={`feedback-prompt-${prompt}`} className="flex gap-2.5">
+                              <span className="shrink-0 text-sm font-black text-cyan-300/70">{index + 1}.</span>
+                              <span className="text-sm font-medium leading-relaxed text-slate-300">{prompt}</span>
+                            </li>
                           ))}
-                        </div>
+                        </ul>
                       </div>
                     </div>
                   )}
