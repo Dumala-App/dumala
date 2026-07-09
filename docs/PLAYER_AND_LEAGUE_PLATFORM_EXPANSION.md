@@ -1,6 +1,6 @@
 # Player and League Platform Expansion
 
-Updated: 2026-07-09
+Updated: 2026-07-10
 
 Status: Proposed platform plan (pre-implementation)
 
@@ -22,8 +22,9 @@ changes into ROADMAP.md and the in-app Roadmap Snapshot.
 
 ## 1. Executive summary
 
-Expand Dumala into three secured products that share one identity and
-entitlement platform:
+Expand Dumala into three separate apps that share one backend — one login system,
+one database, and one codebase (like three stores in one mall: shared plumbing,
+separate entrances):
 
 - **Coach App — `#/app`:** the existing club-management workspace, extended with
   team chat, tournament registration, match-stat submission, and League
@@ -34,17 +35,23 @@ entitlement platform:
   oversight, independent tournament operations, registration, finance,
   statistics, and reporting.
 
-One account has one **persona**. Existing accounts migrate to `coach`. New users
-choose a persona once during registration; in v1 only Dumala administrators can
-change it. Access is resolved server-side after sign-in and gated by
-**entitlements**, never by client-trusted routes or plan-name string matching.
+Each account belongs to exactly one app, decided by the **registration door** the
+user came through — not by a switch inside a shared account. Existing accounts are
+already Coach accounts and stay exactly as they are. One email is one account is
+one app: a person who is both a coach and a league owner keeps two separate
+accounts under two different emails, and there is no in-app switching between apps
+in v1. The account type (stored internally as `persona`) is set at account
+creation, and in v1 only Dumala administrators can change it. After sign-in the
+authorized destination is resolved server-side and gated by **entitlements**,
+never by client-trusted routes or plan-name string matching.
 
 ### Design principles
 
-1. **One identity, separated concerns.** Account persona, club membership, and
-   League operational roles are independent axes. A person can be a coach in one
-   club and appear on a League roster without those roles leaking into each
-   other.
+1. **Separate apps, shared backend.** Each account belongs to exactly one app, and
+   account type is fixed per account. A person who needs more than one app uses a
+   separate account (and email) per app. Within an app, operational roles stay
+   independent — a Coach account's club memberships and a player's appearance on a
+   League roster do not leak across apps or accounts.
 2. **Verified vs. self-reported is always visible.** Official club and League
    records stay staff-controlled. Player self-recorded activity is stored and
    displayed as clearly distinct from verified data.
@@ -60,21 +67,43 @@ change it. Access is resolved server-side after sign-in and gated by
    consent, privacy-aware views, and moderated communication apply from the
    Player foundation onward.
 
-## 2. Personas and routing
+## 2. Apps, accounts, and registration
 
-| Persona  | Route      | Price          | Primary purpose                                   |
+| App      | Route      | Price          | Primary purpose                                   |
 | -------- | ---------- | -------------- | ------------------------------------------------- |
 | Coach    | `#/app`    | existing plans | Club and squad management (current product)       |
 | Player   | `#/player` | free           | Personal training, fitness, schedule, team comms  |
 | League   | `#/league` | price-pending  | Season, tournament, finance, and reporting ops    |
 
-- The persona is stored on the account, not inferred from the URL. After
-  sign-in, the server resolves the authorized destination and rejects
-  cross-persona access to another dashboard or its protected records, including
+- The account type (`persona`) is stored on the account, not inferred from the
+  URL. After sign-in, the server resolves the authorized destination and rejects
+  cross-app access to another dashboard or its protected records, including
   through modified URLs or direct requests.
 - League pilot access is admin-granted while checkout enforcement stays
   feature-flagged. League pricing will exceed Premium but remains configurable
   and unpublished until production approval.
+
+### Registration front doors
+
+Each app has its own registration entrance, and the entrance decides the account
+type. There is no post-signup account-type picker.
+
+- **Coach — existing signup (unchanged).** Coaches register through the current
+  landing-page signup and land on `#/app`. Existing accounts are already Coach
+  accounts and see no change.
+- **Player — dedicated free registration link.** Players register through their
+  own free entrance, or join by **invite-and-claim** when a coach or League adds a
+  roster entry the player then claims. Player accounts are always free.
+- **League Owner — request access, no open signup.** There is no self-serve League
+  signup. A prospective owner submits a public **"Request League Access"** form (a
+  waitlist). A Dumala administrator reviews the request and provisions or approves
+  the League Owner account, granting the league entitlement. League Owner access
+  is **free during the beta pilot**; pricing is applied at production. Submitting a
+  request does not by itself unlock the app — an admin-granted entitlement does.
+
+**Same-person rule:** one email is one account is one app. A person who is both a
+coach and a league owner keeps two separate accounts under two different emails.
+There is no in-app switching between apps in v1.
 
 ## 3. Player App
 
@@ -289,16 +318,19 @@ Extends the Squad ledger model to League scope.
 
 ## 5. Platform architecture
 
-- Extend `user_profiles` with persona, onboarding status, and account state.
-- Keep account persona separate from club membership and League operational
-  roles.
+- Extend `user_profiles` with account type (`persona`), onboarding status, and
+  account state. The account type is assigned by the registration entry point, not
+  a post-signup picker; League accounts are admin-provisioned through the
+  access-request queue rather than open signup.
+- Keep account type separate from club membership and League operational roles.
 - Resolve the authorized destination server-side after sign-in.
 - Introduce **entitlement-based access** for League features; do not authorize on
   plan-name comparisons.
-- Add domain entities for seasons, independent events, registrations,
-  eligibility, documents, rosters, transfers, brackets, groups, fixtures, match
-  events, verified statistics, awards, event staff, invoices, payments,
-  announcements, chat, fitness activities, drill completion, badges, and consent.
+- Add domain entities for League access requests, seasons, independent events,
+  registrations, eligibility, documents, rosters, transfers, brackets, groups,
+  fixtures, match events, verified statistics, awards, event staff, invoices,
+  payments, announcements, chat, fitness activities, drill completion, badges, and
+  consent.
 - Use atomic server functions for player claiming, registration approval, roster
   locking, draw generation, schedule publication, result correction, statistic
   verification, bracket advancement, badge awarding, and financial reconciliation.
@@ -413,6 +445,13 @@ Each stage is independently shippable behind feature flags and entitlements.
 ## 9. Assumptions and deferred features
 
 - Player accounts remain free.
+- Each account belongs to exactly one app; there are no multi-app accounts in v1,
+  and a person who needs more than one app uses a separate account (and email) per
+  app.
+- League Owner accounts are created through request/waitlist plus admin approval,
+  not open self-serve signup.
+- League Owner access has no permanent free tier; the beta pilot is free and
+  pricing is applied at production.
 - League pricing will exceed Premium but stays configurable and unpublished until
   production approval.
 - League pilot access is admin-granted while checkout enforcement remains
