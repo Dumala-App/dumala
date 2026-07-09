@@ -1411,7 +1411,7 @@ export default function UpdatesView() {
       date: '2026-07-05',
       title: 'Roadmap Snapshot',
       badge: 'Roadmap',
-      summary: 'A practical development sequence covering the active beta, saved Game Plans, dashboard/session summaries, cloud-ready planning data, objective player development, SaaS validation, and longer-term public profile and club operations work.',
+      summary: 'A practical development sequence covering the active beta, saved Game Plans, dashboard/session summaries, cloud-ready planning data, objective player development, SaaS validation, and the longer-term public profiles, Player and League platform expansion, and club operations work.',
       accent: 'border-slate-700/70 bg-slate-950/90 text-slate-100',
       renderContent: () => (
         <div className="space-y-5">
@@ -1530,6 +1530,24 @@ export default function UpdatesView() {
               completion: 'Authorized users can publish controlled player and team profiles through unique links, and coaches can reliably shortlist and compare draft candidates.',
               color: 'border-l-fuchsia-400 bg-fuchsia-400/10',
               badge: 'border-fuchsia-400/30 bg-fuchsia-400/15 text-fuchsia-100'
+            },
+            {
+              phase: 'Phase 6',
+              status: 'Planned',
+              objective: 'Player and League platform expansion',
+              deliverables: [
+                'Introduce three persona apps on one shared identity and entitlement platform: Coach, a free Player app, and a paid League Owner app, migrating existing accounts to Coach.',
+                'Ship the free Player app with profile, invite-and-claim, guardian consent, team schedule, solo drills, fitness tracking, badges, a workout timer, and a progress dashboard.',
+                'Add shared Team Chat and dashboard announcements across the Coach and Player apps with moderation and youth safeguards.',
+                'Build the paid League Owner app: fresh-season lifecycle, independent tournaments, a central League database, registration links, and roster and transfer controls.',
+                'Add the tournament engine with round robin, single elimination with byes, and group-into-knockout formats, draws, brackets, and conflict-aware scheduling.',
+                'Run live events with an On-the-Day command center, delegated staff, check-in, match sheets, results, and an offline-tolerant match-day queue.',
+                'Verify statistics through League staff, aggregate season totals and awards, and extend the ledger to League fees, reconciliation, and reporting.'
+              ],
+              benefit: 'Coaches, players, and league organizers each get a secured app on one platform, so a whole competition can be run end to end while personal and official records stay clearly separated.',
+              completion: 'Coaches keep their workspaces, players and league owners operate their own secured apps, seasons start empty and combine only compatible verified statistics, and no persona can reach another persona\'s protected records.',
+              color: 'border-l-teal-400 bg-teal-400/10',
+              badge: 'border-teal-400/30 bg-teal-400/15 text-teal-100'
             },
             {
               phase: 'Future Expansion: Coaching',

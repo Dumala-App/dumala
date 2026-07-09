@@ -1,6 +1,6 @@
 # Dumala Product Roadmap
 
-Updated: 2026-07-08
+Updated: 2026-07-09
 
 ## Source of truth
 
@@ -124,6 +124,28 @@ Status: **Long Term**
 ### Completion criteria
 
 Authorized users can publish controlled player and team profiles, and coaches can reliably shortlist and compare candidates.
+
+## Phase 6: Player and League platform expansion
+
+Status: **Planned**
+
+Full plan: [docs/PLAYER_AND_LEAGUE_PLATFORM_EXPANSION.md](PLAYER_AND_LEAGUE_PLATFORM_EXPANSION.md).
+
+### Planned deliverables
+
+- Introduce three persona apps on one shared identity and entitlement platform — Coach (`#/app`), Player (`#/player`, free), and League Owner (`#/league`, paid, price-pending) — migrating existing accounts to Coach and resolving the authorized destination server-side.
+- Ship the free Player App: profile, invite-and-claim, guardian consent, team schedule, solo drills library, fitness tracking, badges, workout timer, and progress dashboard, keeping self-recorded activity visibly distinct from verified records.
+- Add shared Team Chat and dashboard announcements across the Coach and Player apps with moderation, read/acknowledgement state, and youth safeguards.
+- Build the paid League Owner App foundation: fresh-season lifecycle (Draft → Registration open → Active → Completed → Archived), independent events, the League Database, roles, venues, eligibility rules, and documents, with every new season starting empty.
+- Add tournament registration links plus the tournament engine (round robin, single elimination with automatic byes, group stage into knockout), draws, brackets, groups, and conflict-aware scheduling.
+- Run live events through an On-the-Day command center with delegated staff, check-in, match sheets, results, incidents, and an offline-tolerant match-day queue.
+- Verify statistics through assigned League staff, aggregate event and season totals and awards, and keep provisional, verified, disputed, corrected, and locked records clearly distinct while preserving historical club attribution across transfers.
+- Extend the ledger to League and event fees, invoices, reconciliation, exports, operational reports, and season closeout.
+- Enforce entitlement-based access, Supabase row-level security per persona, competition, club, and delegated event, atomic server functions for sensitive sporting/financial/identity changes, and immutable audit records.
+
+### Completion criteria
+
+Coaches keep their existing workspaces, players and League owners operate their own secured apps on the shared identity platform, seasons start empty and group only compatible verified statistics, and no persona can reach another persona's protected records.
 
 ## Future Expansion: Philippine coach education
 
