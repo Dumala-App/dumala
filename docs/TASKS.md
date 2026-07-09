@@ -1,6 +1,6 @@
 # Dumala Delivery Tasks
 
-Updated: 2026-07-08
+Updated: 2026-07-09
 
 Status values: **Done**, **In Progress**, **Next**, **Planned**, **Long Term**.
 
@@ -45,6 +45,13 @@ Release validation              [##########] 100%  14 / 14
 The FPRDS total includes twenty completed capabilities: the five shipped assessment features plus interpolation, role-weighting, age-transition, required-field validation coverage, true historical progress charts, player/session comparison reports, the evidence-based development doctrine, training evidence naming, removal of direct training-to-rating mutation, reassessment recommendations, rating confidence labels, the opt-in FPRDS beta results database with aggregate benchmark analysis and correction review, downloadable player assessment and development reports, a coach-review data export, and benchmark versioning that stamps every session with the benchmark table version it was scored under. Practitioner benchmark review is deferred until qualified external reviewers are available, so it is not counted in the twenty.
 
 ## Recent changes
+
+### Completed: 2026-07-09
+
+- [x] Consolidated subscription plans to the public two-plan offer: the admin plan picker now reads Free and Premium from a shared `src/billing/plans.ts` module (future tiers are added in one place), and a migration folds legacy `trial`/`pro`/`club` plan codes into `premium` while preserving the original code in the plan note.
+- [x] Added promotions (discounts and sales) management: a new `promotions` table with admin-managed RLS, a Marketing tab in the Dumala Admin Console to create, schedule, activate, and delete percent or fixed-amount offers, and automatic display of the live offer on the landing page pricing section.
+- [x] Added announcements management: a new `announcements` table, admin console authoring with draft/publish state, type (info, feature, maintenance, promo), and start/end scheduling, plus a dismissible in-app banner that shows live announcements to every user.
+- [x] Covered the marketing repository with unit tests (promotion validation, live-window filtering, draft-by-default announcements, publish toggling, deletion) and updated plan-code tests to the new premium plan.
 
 ### Completed: 2026-07-08
 

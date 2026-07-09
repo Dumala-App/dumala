@@ -108,6 +108,24 @@ import {
   type ActivationFunnelStep,
   type UsageEventInput
 } from './admin';
+import {
+  createAdminAnnouncement,
+  createAdminPromotion,
+  deleteAdminAnnouncement,
+  deleteAdminPromotion,
+  listActiveAnnouncements,
+  listActivePromotions,
+  listAdminAnnouncements,
+  listAdminPromotions,
+  setAdminAnnouncementPublished,
+  setAdminPromotionActive,
+  updateAdminAnnouncement,
+  updateAdminPromotion,
+  type AnnouncementInput,
+  type AnnouncementRecord,
+  type PromotionInput,
+  type PromotionRecord
+} from './marketing';
 
 export interface CloudBulletinRepository {
   list(clubId: string): Promise<SharedBulletin[]>;
@@ -199,6 +217,21 @@ export interface CloudAdminRepository {
   updateFprdsBenchmarkCorrectionStatus(correctionId: string, status: FprdsBenchmarkCorrectionStatus): Promise<FprdsBenchmarkCorrection>;
 }
 
+export interface CloudMarketingRepository {
+  listPromotions(): Promise<PromotionRecord[]>;
+  listActivePromotions(): Promise<PromotionRecord[]>;
+  createPromotion(input: PromotionInput): Promise<PromotionRecord>;
+  updatePromotion(promotionId: string, input: PromotionInput): Promise<PromotionRecord>;
+  setPromotionActive(promotionId: string, isActive: boolean): Promise<PromotionRecord>;
+  deletePromotion(promotionId: string): Promise<void>;
+  listAnnouncements(): Promise<AnnouncementRecord[]>;
+  listActiveAnnouncements(): Promise<AnnouncementRecord[]>;
+  createAnnouncement(input: AnnouncementInput): Promise<AnnouncementRecord>;
+  updateAnnouncement(announcementId: string, input: AnnouncementInput): Promise<AnnouncementRecord>;
+  setAnnouncementPublished(announcementId: string, isPublished: boolean): Promise<AnnouncementRecord>;
+  deleteAnnouncement(announcementId: string): Promise<void>;
+}
+
 export interface CloudDataAccess {
   auth: CloudAuthRepository;
   account: CloudAccountRepository;
@@ -208,6 +241,7 @@ export interface CloudDataAccess {
   activity: CloudActivityRepository;
   sync: CloudSyncRepository;
   admin: CloudAdminRepository;
+  marketing: CloudMarketingRepository;
 }
 
 export const createCloudDataAccess = (client: DumalaSupabaseClient): CloudDataAccess => ({
@@ -291,5 +325,19 @@ export const createCloudDataAccess = (client: DumalaSupabaseClient): CloudDataAc
     listFprdsBenchmarkCorrections: () => listFprdsBenchmarkCorrections(client),
     createFprdsBenchmarkCorrection: input => createFprdsBenchmarkCorrection(client, input),
     updateFprdsBenchmarkCorrectionStatus: (correctionId, status) => updateFprdsBenchmarkCorrectionStatus(client, correctionId, status)
+  },
+  marketing: {
+    listPromotions: () => listAdminPromotions(client),
+    listActivePromotions: () => listActivePromotions(client),
+    createPromotion: input => createAdminPromotion(client, input),
+    updatePromotion: (promotionId, input) => updateAdminPromotion(client, promotionId, input),
+    setPromotionActive: (promotionId, isActive) => setAdminPromotionActive(client, promotionId, isActive),
+    deletePromotion: promotionId => deleteAdminPromotion(client, promotionId),
+    listAnnouncements: () => listAdminAnnouncements(client),
+    listActiveAnnouncements: () => listActiveAnnouncements(client),
+    createAnnouncement: input => createAdminAnnouncement(client, input),
+    updateAnnouncement: (announcementId, input) => updateAdminAnnouncement(client, announcementId, input),
+    setAnnouncementPublished: (announcementId, isPublished) => setAdminAnnouncementPublished(client, announcementId, isPublished),
+    deleteAnnouncement: announcementId => deleteAdminAnnouncement(client, announcementId)
   }
 });

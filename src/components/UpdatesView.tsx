@@ -38,6 +38,59 @@ export default function UpdatesView() {
 
   const changelogEntries = [
     {
+      id: 'july_9_plans_promotions_announcements',
+      date: '2026-07-09',
+      title: 'Simpler Plans, Sales, and In-App Announcements',
+      badge: 'New Features Added',
+      summary: 'Dumala now has exactly two plans — Free and Premium — matching the landing page, and the team can run limited-time discounts and publish in-app announcements without shipping an update.',
+      accent: 'border-orange-400/20 bg-slate-950/90 text-slate-100',
+      renderContent: () => (
+        <div className="space-y-4">
+          <p className="text-sm text-slate-300 leading-relaxed">
+            The old free/trial/pro/club plan mix is consolidated into the same two options you see on the landing page: <span className="font-bold text-orange-200">Free</span> and <span className="font-bold text-orange-200">Premium</span>. Existing accounts on legacy plans were moved to Premium automatically. Alongside this, announcements published from the admin console now appear inside the app, and live promotions show up on the landing page pricing.
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {[
+              {
+                icon: Users,
+                title: 'Two clear plans',
+                desc: 'Free and Premium everywhere — the plan picker, admin tools, and landing page all read from one shared plan list that can grow when new tiers make sense.'
+              },
+              {
+                icon: Sparkles,
+                title: 'Discounts and sales',
+                desc: 'Limited-time percent or fixed-amount offers can be scheduled with start and end dates, and the live offer appears automatically on the pricing section.'
+              },
+              {
+                icon: Megaphone,
+                title: 'In-app announcements',
+                desc: 'Product news, feature notes, maintenance windows, and promos show as a dismissible banner inside the app while they are live.'
+              },
+              {
+                icon: Cloud,
+                title: 'No update required',
+                desc: 'Offers and announcements are managed centrally and go live instantly — no new app version needed to run a sale or post a notice.'
+              }
+            ].map(item => {
+              const Icon = item.icon;
+
+              return (
+                <div key={item.title} className="rounded-xl border border-orange-400/20 bg-slate-900/80 p-4 shadow-sm shadow-black/20">
+                  <div className="mb-2 flex items-center gap-2">
+                    <span className="flex h-8 w-8 items-center justify-center rounded-lg border border-orange-400/30 bg-orange-400/10 text-orange-200">
+                      <Icon size={16} aria-hidden="true" />
+                    </span>
+                    <h5 className="text-xs font-black uppercase tracking-wider text-orange-100">{item.title}</h5>
+                  </div>
+                  <p className="text-xs text-slate-400 leading-relaxed">{item.desc}</p>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )
+    },
+    {
       id: 'july_8_getting_started_checklist',
       date: '2026-07-08',
       title: 'First-Week Getting-Started Checklist',
@@ -1520,6 +1573,7 @@ export default function UpdatesView() {
                 'Lead the public offer with weekly admin relief, match-week preparation, and clearer player development.',
                 'Package pricing as two clear choices: Free during beta and a Premium monthly subscription, with Coach, Club, and Academy value framed inside Premium.',
                 'Keep the public landing page, installed app route, and cloud sign-in return path aligned around the coach workspace.',
+                'Run limited-time discounts and publish in-app announcements from the admin console without shipping an app update.',
                 'Validate whether solo coaches will pay roughly USD 9-15 per month before introducing any future club-scale pricing.',
                 'Build a first-week success flow that gets a coach to value after adding 8-12 players and one upcoming match.',
                 'Prepare a demo/sample workspace so coaches can evaluate the product before full setup.',

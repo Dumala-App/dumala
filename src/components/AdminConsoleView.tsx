@@ -18,7 +18,9 @@ import {
   Loader2,
   LockKeyhole,
   LogOut,
+  Megaphone,
   MessageSquare,
+  Pencil,
   RefreshCcw,
   Rocket,
   Save,
@@ -26,6 +28,8 @@ import {
   ShieldAlert,
   ShieldCheck,
   Smartphone,
+  Tag,
+  Trash2,
   UserCog,
   UsersRound,
   Volume2,
@@ -57,6 +61,15 @@ import type {
   FprdsBenchmarkCorrectionStatus,
   ActivationFunnelStep
 } from '../cloud/admin';
+import type {
+  AnnouncementInput,
+  AnnouncementKind,
+  AnnouncementRecord,
+  PromotionDiscountType,
+  PromotionInput,
+  PromotionRecord
+} from '../cloud/marketing';
+import { PLAN_OPTIONS } from '../billing/plans';
 import type { MfaChallenge, MfaFactor, TotpEnrollment } from '../cloud/auth';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
@@ -75,7 +88,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Textarea } from './ui/textarea';
 import { DARK_GLASS_THEME, type DarkGlassThemeId } from '../theme/darkGlassTheme';
 
-type AdminTab = 'overview' | 'users' | 'recovery' | 'storage' | 'security' | 'usage' | 'feedback' | 'fprds' | 'benchmarks' | 'online' | 'billing' | 'exports' | 'alerts';
+type AdminTab = 'overview' | 'users' | 'recovery' | 'storage' | 'security' | 'usage' | 'feedback' | 'fprds' | 'benchmarks' | 'online' | 'billing' | 'marketing' | 'exports' | 'alerts';
 
 const ADMIN_AUTH_REDIRECT_URL = 'https://dumala.asia/?returnTo=admin';
 
@@ -99,6 +112,7 @@ const adminTabs: Array<{ id: AdminTab; label: string; icon: React.ComponentType<
   { id: 'benchmarks', label: 'Benchmarks', icon: FlaskConical },
   { id: 'online', label: 'Online', icon: Wifi },
   { id: 'billing', label: 'Billing', icon: CreditCard },
+  { id: 'marketing', label: 'Marketing', icon: Megaphone },
   { id: 'exports', label: 'Exports', icon: Download },
   { id: 'alerts', label: 'Alerts', icon: Bell }
 ];
@@ -121,12 +135,13 @@ const roleLabel: Record<AppAdminProfile['role'], string> = {
   billing: 'Billing'
 };
 
-const ADMIN_PLAN_OPTIONS: Array<{ value: string; label: string }> = [
-  { value: 'free', label: 'Free' },
-  { value: 'trial', label: 'Trial' },
-  { value: 'pro', label: 'Pro' },
-  { value: 'club', label: 'Club' }
-];
+// Plan choices come from the shared plans module so new tiers only need to be
+// added in src/billing/plans.ts. Legacy codes on existing users still render
+// because the plan dialog appends unknown codes to this list.
+const ADMIN_PLAN_OPTIONS: Array<{ value: string; label: string }> = PLAN_OPTIONS.map(option => ({
+  value: option.value,
+  label: option.label
+}));
 
 const MUTE_DURATION_OPTIONS: Array<{ hours: number; label: string }> = [
   { hours: 1, label: '1 hour' },
@@ -1847,6 +1862,528 @@ const BillingPanel = ({ snapshot, metrics }: { snapshot: AdminConsoleSnapshot; m
   </div>
 );
 
+const statusChip = (label: string, tone: string) => (
+  <span className={`inline-flex rounded-md border px-2 py-1 text-[10px] font-black uppercase ${tone}`}>{label}</span>
+);
+
+const LIVE_TONE = 'border-emerald-300/25 bg-emerald-300/10 text-emerald-100';
+const SCHEDULED_TONE = 'border-sky-300/25 bg-sky-300/10 text-sky-100';
+const ENDED_TONE = 'border-amber-300/25 bg-amber-300/10 text-amber-100';
+const OFF_TONE = 'border-slate-300/20 bg-slate-300/10 text-slate-200';
+
+const scheduleStatus = (enabled: boolean, startsAt: string, endsAt: string | null | undefined, offLabel: string) => {
+  if (!enabled) return { label: offLabel, tone: OFF_TONE };
+  const now = Date.now();
+  if (new Date(startsAt).getTime() > now) return { label: 'Scheduled', tone: SCHEDULED_TONE };
+  if (endsAt && new Date(endsAt).getTime() <= now) return { label: 'Ended', tone: ENDED_TONE };
+  return { label: 'Live', tone: LIVE_TONE };
+};
+
+const promotionStatus = (promotion: PromotionRecord) =>
+  scheduleStatus(promotion.is_active, promotion.starts_at, promotion.ends_at, 'Inactive');
+
+const announcementStatus = (announcement: AnnouncementRecord) =>
+  scheduleStatus(announcement.is_published, announcement.starts_at, announcement.ends_at, 'Draft');
+
+const discountLabel = (promotion: PromotionRecord) =>
+  promotion.discount_type === 'percent'
+    ? `${promotion.discount_value}% off`
+    : `${formatCurrency(promotion.discount_value)} off`;
+
+const scheduleWindowLabel = (startsAt: string, endsAt?: string | null) =>
+  `${formatDateTime(startsAt)} → ${endsAt ? formatDateTime(endsAt) : 'no end date'}`;
+
+const announcementKindLabel: Record<AnnouncementKind, string> = {
+  info: 'Info',
+  feature: 'Feature',
+  maintenance: 'Maintenance',
+  promo: 'Promotion'
+};
+
+const MarketingPanel = ({
+  promotions,
+  announcements,
+  loadState,
+  onRefresh,
+  onSavePromotion,
+  onTogglePromotion,
+  onDeletePromotion,
+  onSaveAnnouncement,
+  onToggleAnnouncement,
+  onDeleteAnnouncement
+}: {
+  promotions: PromotionRecord[];
+  announcements: AnnouncementRecord[];
+  loadState: 'idle' | 'loading' | 'ready' | 'error';
+  onRefresh: () => void;
+  onSavePromotion: (input: PromotionInput, promotionId: string | null) => Promise<void>;
+  onTogglePromotion: (promotion: PromotionRecord) => Promise<void>;
+  onDeletePromotion: (promotion: PromotionRecord) => Promise<void>;
+  onSaveAnnouncement: (input: AnnouncementInput, announcementId: string | null) => Promise<void>;
+  onToggleAnnouncement: (announcement: AnnouncementRecord) => Promise<void>;
+  onDeleteAnnouncement: (announcement: AnnouncementRecord) => Promise<void>;
+}) => {
+  const [promotionId, setPromotionId] = useState<string | null>(null);
+  const [promotionName, setPromotionName] = useState('');
+  const [promotionHeadline, setPromotionHeadline] = useState('');
+  const [promotionDescription, setPromotionDescription] = useState('');
+  const [promotionType, setPromotionType] = useState<PromotionDiscountType>('percent');
+  const [promotionValue, setPromotionValue] = useState('20');
+  const [promotionStarts, setPromotionStarts] = useState('');
+  const [promotionEnds, setPromotionEnds] = useState('');
+  const [promotionActive, setPromotionActive] = useState(true);
+  const [promotionBusy, setPromotionBusy] = useState(false);
+
+  const [announcementId, setAnnouncementId] = useState<string | null>(null);
+  const [announcementTitle, setAnnouncementTitle] = useState('');
+  const [announcementBody, setAnnouncementBody] = useState('');
+  const [announcementKind, setAnnouncementKind] = useState<AnnouncementKind>('info');
+  const [announcementPublished, setAnnouncementPublished] = useState(true);
+  const [announcementStarts, setAnnouncementStarts] = useState('');
+  const [announcementEnds, setAnnouncementEnds] = useState('');
+  const [announcementBusy, setAnnouncementBusy] = useState(false);
+
+  const [busyRowId, setBusyRowId] = useState<string | null>(null);
+
+  const resetPromotionForm = () => {
+    setPromotionId(null);
+    setPromotionName('');
+    setPromotionHeadline('');
+    setPromotionDescription('');
+    setPromotionType('percent');
+    setPromotionValue('20');
+    setPromotionStarts('');
+    setPromotionEnds('');
+    setPromotionActive(true);
+  };
+
+  const resetAnnouncementForm = () => {
+    setAnnouncementId(null);
+    setAnnouncementTitle('');
+    setAnnouncementBody('');
+    setAnnouncementKind('info');
+    setAnnouncementPublished(true);
+    setAnnouncementStarts('');
+    setAnnouncementEnds('');
+  };
+
+  const editPromotion = (promotion: PromotionRecord) => {
+    setPromotionId(promotion.id);
+    setPromotionName(promotion.name);
+    setPromotionHeadline(promotion.headline ?? '');
+    setPromotionDescription(promotion.description ?? '');
+    setPromotionType(promotion.discount_type);
+    setPromotionValue(String(promotion.discount_value));
+    setPromotionStarts(promotion.starts_at.slice(0, 10));
+    setPromotionEnds(promotion.ends_at ? promotion.ends_at.slice(0, 10) : '');
+    setPromotionActive(promotion.is_active);
+  };
+
+  const editAnnouncement = (announcement: AnnouncementRecord) => {
+    setAnnouncementId(announcement.id);
+    setAnnouncementTitle(announcement.title);
+    setAnnouncementBody(announcement.body);
+    setAnnouncementKind(announcement.kind);
+    setAnnouncementPublished(announcement.is_published);
+    setAnnouncementStarts(announcement.starts_at.slice(0, 10));
+    setAnnouncementEnds(announcement.ends_at ? announcement.ends_at.slice(0, 10) : '');
+  };
+
+  const submitPromotion = async () => {
+    setPromotionBusy(true);
+    try {
+      await onSavePromotion({
+        name: promotionName,
+        headline: promotionHeadline.trim() || null,
+        description: promotionDescription.trim() || null,
+        discountType: promotionType,
+        discountValue: Number(promotionValue),
+        startsAt: promotionStarts ? new Date(`${promotionStarts}T00:00:00`).toISOString() : null,
+        endsAt: promotionEnds ? new Date(`${promotionEnds}T23:59:59`).toISOString() : null,
+        isActive: promotionActive
+      }, promotionId);
+      resetPromotionForm();
+    } catch {
+      // The console view surfaces the error message.
+    } finally {
+      setPromotionBusy(false);
+    }
+  };
+
+  const submitAnnouncement = async () => {
+    setAnnouncementBusy(true);
+    try {
+      await onSaveAnnouncement({
+        title: announcementTitle,
+        body: announcementBody,
+        kind: announcementKind,
+        isPublished: announcementPublished,
+        startsAt: announcementStarts ? new Date(`${announcementStarts}T00:00:00`).toISOString() : null,
+        endsAt: announcementEnds ? new Date(`${announcementEnds}T23:59:59`).toISOString() : null
+      }, announcementId);
+      resetAnnouncementForm();
+    } catch {
+      // The console view surfaces the error message.
+    } finally {
+      setAnnouncementBusy(false);
+    }
+  };
+
+  const runRowAction = async (rowId: string, action: () => Promise<void>) => {
+    setBusyRowId(rowId);
+    try {
+      await action();
+    } catch {
+      // The console view surfaces the error message.
+    } finally {
+      setBusyRowId(null);
+    }
+  };
+
+  const livePromotions = promotions.filter(promotion => promotionStatus(promotion).label === 'Live').length;
+  const liveAnnouncements = announcements.filter(announcement => announcementStatus(announcement).label === 'Live').length;
+
+  return (
+    <div className="space-y-4">
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <StatTile label="Promotions" value={promotions.length} detail="Discount and sale campaigns created." />
+        <StatTile label="Live promotions" value={livePromotions} detail="Shown on the landing page pricing right now." />
+        <StatTile label="Announcements" value={announcements.length} detail="Product announcements created." />
+        <StatTile label="Live announcements" value={liveAnnouncements} detail="Shown to app users right now." />
+      </div>
+
+      {loadState === 'error' && (
+        <div className={ADMIN_WARNING_CLASS}>
+          Marketing data could not load.
+          <Button type="button" variant="outline" size="sm" onClick={onRefresh} className="ml-2 h-7">
+            <RefreshCcw size={12} /> Retry
+          </Button>
+        </div>
+      )}
+
+      <Section title="Discounts and sales" icon={Tag}>
+        <div className={`${ADMIN_SUBTLE_CARD_CLASS} p-4`}>
+          <div className="flex items-center justify-between gap-2">
+            <h3 className="text-xs font-black uppercase text-slate-200">
+              {promotionId ? 'Edit promotion' : 'New promotion'}
+            </h3>
+            {promotionId && (
+              <Button type="button" variant="ghost" size="sm" onClick={resetPromotionForm} className="h-7 text-xs">
+                Cancel edit
+              </Button>
+            )}
+          </div>
+          <div className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            <div className="space-y-1.5 xl:col-span-2">
+              <Label htmlFor="promotion-name" className="normal-case tracking-normal text-slate-300">Name</Label>
+              <Input
+                id="promotion-name"
+                value={promotionName}
+                onChange={event => setPromotionName(event.target.value)}
+                maxLength={120}
+                placeholder="e.g. Season kickoff sale"
+                className={ADMIN_DIALOG_FIELD_CLASS}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="promotion-type" className="normal-case tracking-normal text-slate-300">Discount type</Label>
+              <Select value={promotionType} onValueChange={value => setPromotionType(value as PromotionDiscountType)}>
+                <SelectTrigger id="promotion-type" className={ADMIN_DIALOG_FIELD_CLASS}><SelectValue /></SelectTrigger>
+                <SelectContent className={ADMIN_DIALOG_SELECT_CONTENT_CLASS}>
+                  <SelectItem value="percent" className={ADMIN_DIALOG_SELECT_ITEM_CLASS}>Percent off</SelectItem>
+                  <SelectItem value="fixed" className={ADMIN_DIALOG_SELECT_ITEM_CLASS}>Fixed amount off (PHP)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="promotion-value" className="normal-case tracking-normal text-slate-300">
+                {promotionType === 'percent' ? 'Percent off' : 'Amount off (PHP)'}
+              </Label>
+              <Input
+                id="promotion-value"
+                type="number"
+                min={1}
+                max={promotionType === 'percent' ? 100 : undefined}
+                value={promotionValue}
+                onChange={event => setPromotionValue(event.target.value)}
+                className={ADMIN_DIALOG_FIELD_CLASS}
+              />
+            </div>
+            <div className="space-y-1.5 sm:col-span-2 xl:col-span-4">
+              <Label htmlFor="promotion-headline" className="normal-case tracking-normal text-slate-300">Headline (shown on the landing page)</Label>
+              <Input
+                id="promotion-headline"
+                value={promotionHeadline}
+                onChange={event => setPromotionHeadline(event.target.value)}
+                maxLength={160}
+                placeholder="e.g. 20% off Premium until the season opener"
+                className={ADMIN_DIALOG_FIELD_CLASS}
+              />
+            </div>
+            <div className="space-y-1.5 sm:col-span-2 xl:col-span-4">
+              <Label htmlFor="promotion-description" className="normal-case tracking-normal text-slate-300">Details (optional)</Label>
+              <Textarea
+                id="promotion-description"
+                value={promotionDescription}
+                onChange={event => setPromotionDescription(event.target.value)}
+                rows={2}
+                maxLength={1000}
+                placeholder="Internal notes or extra copy for the offer."
+                className={ADMIN_DIALOG_FIELD_CLASS}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="promotion-starts" className="normal-case tracking-normal text-slate-300">Starts</Label>
+              <Input
+                id="promotion-starts"
+                type="date"
+                value={promotionStarts}
+                onChange={event => setPromotionStarts(event.target.value)}
+                className={ADMIN_DIALOG_FIELD_CLASS}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="promotion-ends" className="normal-case tracking-normal text-slate-300">Ends (optional)</Label>
+              <Input
+                id="promotion-ends"
+                type="date"
+                value={promotionEnds}
+                onChange={event => setPromotionEnds(event.target.value)}
+                className={ADMIN_DIALOG_FIELD_CLASS}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="promotion-active" className="normal-case tracking-normal text-slate-300">Status</Label>
+              <Select value={promotionActive ? 'active' : 'inactive'} onValueChange={value => setPromotionActive(value === 'active')}>
+                <SelectTrigger id="promotion-active" className={ADMIN_DIALOG_FIELD_CLASS}><SelectValue /></SelectTrigger>
+                <SelectContent className={ADMIN_DIALOG_SELECT_CONTENT_CLASS}>
+                  <SelectItem value="active" className={ADMIN_DIALOG_SELECT_ITEM_CLASS}>Active</SelectItem>
+                  <SelectItem value="inactive" className={ADMIN_DIALOG_SELECT_ITEM_CLASS}>Inactive</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex items-end">
+              <Button
+                type="button"
+                disabled={promotionBusy || !promotionName.trim() || !Number(promotionValue)}
+                onClick={() => void submitPromotion()}
+                className="w-full"
+              >
+                {promotionBusy ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
+                {promotionId ? 'Save changes' : 'Create promotion'}
+              </Button>
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-4">
+          {promotions.length === 0 ? (
+            <EmptyState title="No promotions yet" detail="Create a discount or sale above. Live promotions appear automatically on the landing page pricing section." />
+          ) : (
+            <CompactTable headers={['Promotion', 'Discount', 'Window', 'Status', 'Actions']}>
+              {promotions.map(promotion => {
+                const status = promotionStatus(promotion);
+                const busy = busyRowId === promotion.id;
+                return (
+                  <tr key={promotion.id}>
+                    <td className="px-3 py-2">
+                      <p className="font-bold text-foreground">{promotion.name}</p>
+                      {promotion.headline && <p className="mt-0.5 max-w-[18rem] truncate text-[10px] text-muted-foreground">{promotion.headline}</p>}
+                    </td>
+                    <td className="px-3 py-2 text-muted-foreground">{discountLabel(promotion)}</td>
+                    <td className="px-3 py-2 text-muted-foreground">{scheduleWindowLabel(promotion.starts_at, promotion.ends_at)}</td>
+                    <td className="px-3 py-2">{statusChip(status.label, status.tone)}</td>
+                    <td className="px-3 py-2">
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <Button type="button" size="sm" variant="outline" disabled={busy} onClick={() => editPromotion(promotion)} className="h-7 px-2 text-xs">
+                          <Pencil size={12} /> Edit
+                        </Button>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          disabled={busy}
+                          onClick={() => void runRowAction(promotion.id, () => onTogglePromotion(promotion))}
+                          className="h-7 px-2 text-xs"
+                        >
+                          {busy ? <Loader2 size={12} className="animate-spin" /> : <Tag size={12} />}
+                          {promotion.is_active ? 'Deactivate' : 'Activate'}
+                        </Button>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="ghost"
+                          disabled={busy}
+                          onClick={() => {
+                            if (window.confirm(`Delete promotion "${promotion.name}"? This cannot be undone.`)) {
+                              void runRowAction(promotion.id, () => onDeletePromotion(promotion));
+                            }
+                          }}
+                          className="h-7 px-2 text-xs text-red-300 hover:text-red-200"
+                        >
+                          <Trash2 size={12} /> Delete
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </CompactTable>
+          )}
+        </div>
+      </Section>
+
+      <Section title="Announcements" icon={Megaphone}>
+        <div className={`${ADMIN_SUBTLE_CARD_CLASS} p-4`}>
+          <div className="flex items-center justify-between gap-2">
+            <h3 className="text-xs font-black uppercase text-slate-200">
+              {announcementId ? 'Edit announcement' : 'New announcement'}
+            </h3>
+            {announcementId && (
+              <Button type="button" variant="ghost" size="sm" onClick={resetAnnouncementForm} className="h-7 text-xs">
+                Cancel edit
+              </Button>
+            )}
+          </div>
+          <div className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            <div className="space-y-1.5 xl:col-span-2">
+              <Label htmlFor="announcement-title" className="normal-case tracking-normal text-slate-300">Title</Label>
+              <Input
+                id="announcement-title"
+                value={announcementTitle}
+                onChange={event => setAnnouncementTitle(event.target.value)}
+                maxLength={160}
+                placeholder="e.g. Scheduled maintenance this Sunday"
+                className={ADMIN_DIALOG_FIELD_CLASS}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="announcement-kind" className="normal-case tracking-normal text-slate-300">Type</Label>
+              <Select value={announcementKind} onValueChange={value => setAnnouncementKind(value as AnnouncementKind)}>
+                <SelectTrigger id="announcement-kind" className={ADMIN_DIALOG_FIELD_CLASS}><SelectValue /></SelectTrigger>
+                <SelectContent className={ADMIN_DIALOG_SELECT_CONTENT_CLASS}>
+                  {(Object.keys(announcementKindLabel) as AnnouncementKind[]).map(kind => (
+                    <SelectItem key={kind} value={kind} className={ADMIN_DIALOG_SELECT_ITEM_CLASS}>{announcementKindLabel[kind]}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="announcement-published" className="normal-case tracking-normal text-slate-300">Status</Label>
+              <Select value={announcementPublished ? 'published' : 'draft'} onValueChange={value => setAnnouncementPublished(value === 'published')}>
+                <SelectTrigger id="announcement-published" className={ADMIN_DIALOG_FIELD_CLASS}><SelectValue /></SelectTrigger>
+                <SelectContent className={ADMIN_DIALOG_SELECT_CONTENT_CLASS}>
+                  <SelectItem value="published" className={ADMIN_DIALOG_SELECT_ITEM_CLASS}>Published</SelectItem>
+                  <SelectItem value="draft" className={ADMIN_DIALOG_SELECT_ITEM_CLASS}>Draft</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5 sm:col-span-2 xl:col-span-4">
+              <Label htmlFor="announcement-body" className="normal-case tracking-normal text-slate-300">Message</Label>
+              <Textarea
+                id="announcement-body"
+                value={announcementBody}
+                onChange={event => setAnnouncementBody(event.target.value)}
+                rows={3}
+                maxLength={2000}
+                placeholder="What users should know. Shown as a banner inside the app while the announcement is live."
+                className={ADMIN_DIALOG_FIELD_CLASS}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="announcement-starts" className="normal-case tracking-normal text-slate-300">Starts</Label>
+              <Input
+                id="announcement-starts"
+                type="date"
+                value={announcementStarts}
+                onChange={event => setAnnouncementStarts(event.target.value)}
+                className={ADMIN_DIALOG_FIELD_CLASS}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="announcement-ends" className="normal-case tracking-normal text-slate-300">Ends (optional)</Label>
+              <Input
+                id="announcement-ends"
+                type="date"
+                value={announcementEnds}
+                onChange={event => setAnnouncementEnds(event.target.value)}
+                className={ADMIN_DIALOG_FIELD_CLASS}
+              />
+            </div>
+            <div className="flex items-end sm:col-span-2">
+              <Button
+                type="button"
+                disabled={announcementBusy || !announcementTitle.trim() || !announcementBody.trim()}
+                onClick={() => void submitAnnouncement()}
+                className="w-full sm:w-auto"
+              >
+                {announcementBusy ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
+                {announcementId ? 'Save changes' : 'Create announcement'}
+              </Button>
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-4">
+          {announcements.length === 0 ? (
+            <EmptyState title="No announcements yet" detail="Published announcements appear as a banner inside the app for every user while they are live." />
+          ) : (
+            <CompactTable headers={['Announcement', 'Type', 'Window', 'Status', 'Actions']}>
+              {announcements.map(announcement => {
+                const status = announcementStatus(announcement);
+                const busy = busyRowId === announcement.id;
+                return (
+                  <tr key={announcement.id}>
+                    <td className="px-3 py-2">
+                      <p className="font-bold text-foreground">{announcement.title}</p>
+                      <p className="mt-0.5 max-w-[18rem] truncate text-[10px] text-muted-foreground">{announcement.body}</p>
+                    </td>
+                    <td className="px-3 py-2 text-muted-foreground">{announcementKindLabel[announcement.kind]}</td>
+                    <td className="px-3 py-2 text-muted-foreground">{scheduleWindowLabel(announcement.starts_at, announcement.ends_at)}</td>
+                    <td className="px-3 py-2">{statusChip(status.label, status.tone)}</td>
+                    <td className="px-3 py-2">
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <Button type="button" size="sm" variant="outline" disabled={busy} onClick={() => editAnnouncement(announcement)} className="h-7 px-2 text-xs">
+                          <Pencil size={12} /> Edit
+                        </Button>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          disabled={busy}
+                          onClick={() => void runRowAction(announcement.id, () => onToggleAnnouncement(announcement))}
+                          className="h-7 px-2 text-xs"
+                        >
+                          {busy ? <Loader2 size={12} className="animate-spin" /> : <Megaphone size={12} />}
+                          {announcement.is_published ? 'Unpublish' : 'Publish'}
+                        </Button>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="ghost"
+                          disabled={busy}
+                          onClick={() => {
+                            if (window.confirm(`Delete announcement "${announcement.title}"? This cannot be undone.`)) {
+                              void runRowAction(announcement.id, () => onDeleteAnnouncement(announcement));
+                            }
+                          }}
+                          className="h-7 px-2 text-xs text-red-300 hover:text-red-200"
+                        >
+                          <Trash2 size={12} /> Delete
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </CompactTable>
+          )}
+        </div>
+      </Section>
+    </div>
+  );
+};
+
 const RecoveryPanel = ({
   workspaces,
   restoringWorkspaceId,
@@ -2237,6 +2774,9 @@ export default function AdminConsoleView() {
   const [managedUsersState, setManagedUsersState] = useState<'idle' | 'loading' | 'ready' | 'error'>('idle');
   const [managedUserSearch, setManagedUserSearch] = useState('');
   const [selectedManagedUser, setSelectedManagedUser] = useState<AdminManagedUser | null>(null);
+  const [promotions, setPromotions] = useState<PromotionRecord[]>([]);
+  const [announcements, setAnnouncements] = useState<AnnouncementRecord[]>([]);
+  const [marketingLoadState, setMarketingLoadState] = useState<'idle' | 'loading' | 'ready' | 'error'>('idle');
 
   const loadSnapshot = async () => {
     if (!runtime.enabled || auth.state.status !== 'signedIn') return;
@@ -2332,6 +2872,13 @@ export default function AdminConsoleView() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab, loadState, managedUsersState, adminProfile]);
+
+  useEffect(() => {
+    if (activeTab === 'marketing' && loadState === 'ready' && marketingLoadState === 'idle') {
+      void loadMarketingData();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab, loadState, marketingLoadState]);
 
   const onlineSessions = useMemo(
     () => snapshot?.activeSessions.filter(session => eventAgeMs(session.last_seen_at) < 5 * 60000) ?? [],
@@ -2680,6 +3227,111 @@ export default function AdminConsoleView() {
     applyManagedUserUpdate(await requireAdminRepo().setUserNotes(user.userId, notes.trim() || null));
   };
 
+  const loadMarketingData = async () => {
+    if (!runtime.enabled) return;
+    setMarketingLoadState('loading');
+    try {
+      const [promotionRows, announcementRows] = await Promise.all([
+        runtime.dataAccess.marketing.listPromotions(),
+        runtime.dataAccess.marketing.listAnnouncements()
+      ]);
+      setPromotions(promotionRows);
+      setAnnouncements(announcementRows);
+      setMarketingLoadState('ready');
+    } catch (error) {
+      setMarketingLoadState('error');
+      setMessage(error instanceof Error ? error.message : 'Marketing data could not load.');
+    }
+  };
+
+  const requireMarketingRepo = () => {
+    if (!runtime.enabled) throw new Error('Cloud runtime is disabled.');
+    return runtime.dataAccess.marketing;
+  };
+
+  const recordMarketingAudit = (eventType: string, metadata: Record<string, unknown>) => {
+    if (!runtime.enabled) return;
+    void runtime.dataAccess.admin.recordAuditEvent(eventType, metadata).catch(() => undefined);
+  };
+
+  const handleSavePromotion = async (input: PromotionInput, promotionId: string | null) => {
+    try {
+      const repo = requireMarketingRepo();
+      const saved = promotionId
+        ? await repo.updatePromotion(promotionId, input)
+        : await repo.createPromotion(input);
+      setPromotions(current => promotionId
+        ? current.map(item => item.id === saved.id ? saved : item)
+        : [saved, ...current]);
+      recordMarketingAudit('promotion_saved', { promotionId: saved.id, name: saved.name });
+      setMessage(`Promotion "${saved.name}" was saved.`);
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : 'Promotion could not be saved.');
+      throw error;
+    }
+  };
+
+  const handleTogglePromotion = async (promotion: PromotionRecord) => {
+    try {
+      const updated = await requireMarketingRepo().setPromotionActive(promotion.id, !promotion.is_active);
+      setPromotions(current => current.map(item => item.id === updated.id ? updated : item));
+      recordMarketingAudit('promotion_toggled', { promotionId: updated.id, isActive: updated.is_active });
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : 'Promotion could not be updated.');
+      throw error;
+    }
+  };
+
+  const handleDeletePromotion = async (promotion: PromotionRecord) => {
+    try {
+      await requireMarketingRepo().deletePromotion(promotion.id);
+      setPromotions(current => current.filter(item => item.id !== promotion.id));
+      recordMarketingAudit('promotion_deleted', { promotionId: promotion.id, name: promotion.name });
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : 'Promotion could not be deleted.');
+      throw error;
+    }
+  };
+
+  const handleSaveAnnouncement = async (input: AnnouncementInput, announcementId: string | null) => {
+    try {
+      const repo = requireMarketingRepo();
+      const saved = announcementId
+        ? await repo.updateAnnouncement(announcementId, input)
+        : await repo.createAnnouncement(input);
+      setAnnouncements(current => announcementId
+        ? current.map(item => item.id === saved.id ? saved : item)
+        : [saved, ...current]);
+      recordMarketingAudit('announcement_saved', { announcementId: saved.id, title: saved.title });
+      setMessage(`Announcement "${saved.title}" was saved.`);
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : 'Announcement could not be saved.');
+      throw error;
+    }
+  };
+
+  const handleToggleAnnouncement = async (announcement: AnnouncementRecord) => {
+    try {
+      const updated = await requireMarketingRepo().setAnnouncementPublished(announcement.id, !announcement.is_published);
+      setAnnouncements(current => current.map(item => item.id === updated.id ? updated : item));
+      recordMarketingAudit('announcement_toggled', { announcementId: updated.id, isPublished: updated.is_published });
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : 'Announcement could not be updated.');
+      throw error;
+    }
+  };
+
+  const handleDeleteAnnouncement = async (announcement: AnnouncementRecord) => {
+    try {
+      await requireMarketingRepo().deleteAnnouncement(announcement.id);
+      setAnnouncements(current => current.filter(item => item.id !== announcement.id));
+      recordMarketingAudit('announcement_deleted', { announcementId: announcement.id, title: announcement.title });
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : 'Announcement could not be deleted.');
+      throw error;
+    }
+  };
+
   const handleRestoreWorkspace = async (workspace: AdminRecoverableWorkspace) => {
     if (!runtime.enabled) return;
     setRestoringWorkspaceId(workspace.clubId);
@@ -2931,6 +3583,20 @@ export default function AdminConsoleView() {
             )}
             {activeTab === 'billing' && (
               <BillingPanel snapshot={snapshot} metrics={growthMetrics} />
+            )}
+            {activeTab === 'marketing' && (
+              <MarketingPanel
+                promotions={promotions}
+                announcements={announcements}
+                loadState={marketingLoadState}
+                onRefresh={() => void loadMarketingData()}
+                onSavePromotion={handleSavePromotion}
+                onTogglePromotion={handleTogglePromotion}
+                onDeletePromotion={handleDeletePromotion}
+                onSaveAnnouncement={handleSaveAnnouncement}
+                onToggleAnnouncement={handleToggleAnnouncement}
+                onDeleteAnnouncement={handleDeleteAnnouncement}
+              />
             )}
             {activeTab === 'exports' && <ExportsPanel snapshot={snapshot} metrics={growthMetrics} onExport={handleExport} />}
             {activeTab === 'alerts' && <AlertsPanel snapshot={snapshot} securityMetrics={securityMetrics} growthMetrics={growthMetrics} />}

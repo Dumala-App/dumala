@@ -172,6 +172,8 @@ Status: **In Progress**
 - Shipped a first-week getting-started checklist on the Home dashboard that guides a coach to value across five milestones and deep-links each step.
 - Bundled sample teams a coach can load from onboarding or the team menu to evaluate the product before building a roster.
 - Instrumented activation metrics (roster, schedule, result, assessment, report) as one-time events with an activation funnel in the Admin Console.
+- Consolidated internal plan codes to the same two-plan offer (Free and Premium) behind a single shared plans module, with legacy trial/pro/club codes migrated to Premium.
+- Added a Marketing tab to the Admin Console for running scheduled discounts or sales (shown automatically on the landing page pricing) and publishing in-app announcements with draft/publish control.
 
 ### Planned deliverables
 
