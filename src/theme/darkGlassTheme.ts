@@ -45,10 +45,10 @@ export const DARK_GLASS_THEME = {
     dialogSecondaryButton: 'border-cyan-300/15 bg-[#0b1726]/90 text-slate-100 hover:bg-white/[0.06] hover:text-white',
     dialogPrimaryButton: 'bg-orange-400 text-slate-950 shadow-sm shadow-orange-950/25 hover:bg-orange-300 hover:text-slate-950',
     secondaryActionButton: 'border-cyan-300/15 bg-[#0b1726]/90 text-slate-100 shadow-sm shadow-black/15 hover:border-orange-300/30 hover:bg-orange-300/10 hover:text-orange-100',
-    nav: 'flex flex-wrap gap-1.5 rounded-2xl border border-orange-300/10 bg-[#07111f]/88 p-2 shadow-lg shadow-black/20 backdrop-blur-xl lg:flex-nowrap',
-    navItem: 'min-w-0 shrink-0 border px-2 text-[10px] transition-colors sm:flex-1 lg:h-8 lg:flex-1 lg:basis-0 lg:shrink xl:text-[11px]',
+    nav: 'grid grid-cols-2 gap-2 rounded-2xl border border-orange-300/10 bg-[#07111f]/88 p-2.5 text-xs font-bold shadow-lg shadow-black/20 backdrop-blur-xl sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-7',
+    navItem: 'h-10 w-full justify-center gap-2 rounded-xl border px-3 text-xs font-bold transition-colors',
     navItemActive: 'border-orange-300/40 bg-orange-400 text-slate-950 shadow-sm shadow-orange-950/25 hover:bg-orange-300 hover:text-slate-950',
-    navItemIdle: 'border-transparent text-slate-400 hover:border-orange-300/20 hover:bg-orange-300/10 hover:text-orange-100'
+    navItemIdle: 'border-transparent text-slate-300 hover:border-orange-300/20 hover:bg-orange-300/10 hover:text-orange-100'
   }
 } as const;
 

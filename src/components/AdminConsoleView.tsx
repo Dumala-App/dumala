@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import {
   Activity,
   AlertCircle,
+  Ban,
   BarChart3,
   Bell,
   Building2,
@@ -21,9 +22,14 @@ import {
   RefreshCcw,
   Rocket,
   Save,
+  Search,
   ShieldAlert,
   ShieldCheck,
+  Smartphone,
+  UserCog,
   UsersRound,
+  Volume2,
+  VolumeX,
   Wifi
 } from 'lucide-react';
 import { useCloudAuth } from '../hooks/useCloudAuth';
@@ -31,6 +37,7 @@ import { useCloudRuntime } from '../hooks/useCloudRuntime';
 import type {
   AdminConsoleSnapshot,
   AdminGrowthMetrics,
+  AdminManagedUser,
   AdminProductMetrics,
   AdminRecoverableWorkspace,
   AdminSecurityMetrics,
@@ -113,6 +120,33 @@ const roleLabel: Record<AppAdminProfile['role'], string> = {
   fprds_reviewer: 'FPRDS reviewer',
   billing: 'Billing'
 };
+
+const ADMIN_PLAN_OPTIONS: Array<{ value: string; label: string }> = [
+  { value: 'free', label: 'Free' },
+  { value: 'trial', label: 'Trial' },
+  { value: 'pro', label: 'Pro' },
+  { value: 'club', label: 'Club' }
+];
+
+const MUTE_DURATION_OPTIONS: Array<{ hours: number; label: string }> = [
+  { hours: 1, label: '1 hour' },
+  { hours: 8, label: '8 hours' },
+  { hours: 24, label: '24 hours' },
+  { hours: 72, label: '3 days' },
+  { hours: 168, label: '7 days' },
+  { hours: 720, label: '30 days' }
+];
+
+const isManagedUserMuted = (user: AdminManagedUser) =>
+  Boolean(user.mutedUntil && new Date(user.mutedUntil).getTime() > Date.now());
+
+const managedUserLabel = (user: AdminManagedUser) =>
+  user.displayName || user.email || user.userId.slice(0, 12);
+
+const planBadgeTone = (planCode: string) =>
+  planCode === 'free'
+    ? 'border-slate-300/20 bg-slate-300/10 text-slate-200'
+    : 'border-emerald-300/25 bg-emerald-300/10 text-emerald-100';
 
 const ADMIN_PANEL_CLASS = ADMIN_THEME.classes.panel;
 const ADMIN_PANEL_HEADER_CLASS = ADMIN_THEME.classes.panelHeader;
@@ -1364,39 +1398,113 @@ const FprdsBenchmarkPanel = ({
   );
 };
 
-const UsersPanel = ({ metrics }: { metrics: AdminGrowthMetrics | null }) => (
-  <div className="space-y-4">
-    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
-      <StatTile label="Users" value={metrics?.users.total ?? 0} detail="Cloud user profiles." />
-      <StatTile label="New 7d" value={metrics?.users.new7d ?? 0} detail={`${metrics?.users.newToday ?? 0} joined today.`} />
-      <StatTile label="Active 30d" value={metrics?.users.active30d ?? 0} detail={`${metrics?.users.active7d ?? 0} active in seven days.`} />
-      <StatTile label="Workspaces" value={metrics?.workspaces.total ?? 0} detail={`${metrics?.workspaces.active ?? 0} active team spaces.`} />
-      <StatTile label="Deletion risk" value={(metrics?.users.pendingDeletion ?? 0) + (metrics?.workspaces.pendingDeletion ?? 0)} detail="Users or workspaces pending deletion." />
-    </div>
-    <div className="grid gap-4 xl:grid-cols-[1.25fr_0.75fr]">
-      <Section title="Recent users" icon={UsersRound}>
-        {metrics?.recentUsers.length ? (
-          <CompactTable headers={['User', 'Email', 'State', 'Workspaces', 'Devices', 'Signals', 'Last active']}>
-            {metrics.recentUsers.map(user => (
+const ManagedUserStatusBadges = ({ user }: { user: AdminManagedUser }) => (
+  <div className="flex flex-wrap items-center gap-1.5">
+    <Badge variant={user.accountState === 'active' ? 'secondary' : 'warning'}>{user.accountState.replaceAll('_', ' ')}</Badge>
+    {user.bannedAt && (
+      <span className="inline-flex items-center gap-1 rounded-md border border-rose-300/25 bg-rose-300/10 px-2 py-0.5 text-[10px] font-black text-rose-100">
+        <Ban size={11} aria-hidden="true" /> Banned
+      </span>
+    )}
+    {isManagedUserMuted(user) && (
+      <span className="inline-flex items-center gap-1 rounded-md border border-amber-300/25 bg-amber-300/10 px-2 py-0.5 text-[10px] font-black text-amber-100">
+        <VolumeX size={11} aria-hidden="true" /> Muted
+      </span>
+    )}
+  </div>
+);
+
+const UsersPanel = ({
+  metrics,
+  users,
+  usersState,
+  search,
+  onSearchChange,
+  onSearch,
+  onManage
+}: {
+  metrics: AdminGrowthMetrics | null;
+  users: AdminManagedUser[];
+  usersState: 'idle' | 'loading' | 'ready' | 'error';
+  search: string;
+  onSearchChange: (value: string) => void;
+  onSearch: () => void;
+  onManage: (user: AdminManagedUser) => void;
+}) => {
+  const bannedCount = users.filter(user => user.bannedAt).length;
+  const mutedCount = users.filter(isManagedUserMuted).length;
+  const paidCount = users.filter(user => user.planCode !== 'free').length;
+
+  return (
+    <div className="space-y-4">
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+        <StatTile label="Users" value={metrics?.users.total ?? users.length} detail="Cloud user profiles." />
+        <StatTile label="New 7d" value={metrics?.users.new7d ?? 0} detail={`${metrics?.users.newToday ?? 0} joined today.`} />
+        <StatTile label="Banned / muted" value={`${bannedCount} / ${mutedCount}`} detail="Moderated accounts in the loaded directory." />
+        <StatTile label="Paid plans" value={paidCount} detail="Loaded users on a non-free plan." />
+        <StatTile label="Deletion risk" value={(metrics?.users.pendingDeletion ?? 0) + (metrics?.workspaces.pendingDeletion ?? 0)} detail="Users or workspaces pending deletion." />
+      </div>
+      <Section title="User management" icon={UserCog}>
+        <form
+          className="mb-4 flex flex-col gap-2 sm:flex-row"
+          onSubmit={event => {
+            event.preventDefault();
+            onSearch();
+          }}
+        >
+          <input
+            type="search"
+            value={search}
+            onChange={event => onSearchChange(event.target.value)}
+            placeholder="Search by email, display name, or user id"
+            className={`${ADMIN_INPUT_CLASS} flex-1`}
+          />
+          <Button type="submit" variant="outline" disabled={usersState === 'loading'} className={ADMIN_SECONDARY_ACTION_BUTTON_CLASS}>
+            {usersState === 'loading' ? <Loader2 size={14} className="animate-spin" /> : <Search size={14} />} Search
+          </Button>
+        </form>
+        {usersState === 'loading' && users.length === 0 ? (
+          <div className="flex items-center gap-2 rounded-lg border border-white/10 bg-white/[0.03] p-4 text-sm font-semibold text-slate-300">
+            <Loader2 size={16} className="animate-spin" /> Loading user directory...
+          </div>
+        ) : usersState === 'error' ? (
+          <EmptyState title="User directory unavailable" detail="The managed users query failed. Search again to retry." />
+        ) : users.length === 0 ? (
+          <EmptyState title="No users found" detail="Clear the search or wait for cloud accounts to bootstrap." />
+        ) : (
+          <CompactTable headers={['User', 'Status', 'Plan', 'Workspaces', 'Devices', 'Last active', '']} scrollHeightClassName="max-h-[30rem]">
+            {users.map(user => (
               <tr key={user.userId}>
-                <td className="px-3 py-2 font-bold text-foreground">{user.displayName || user.userId.slice(0, 12)}</td>
-                <td className="px-3 py-2 text-muted-foreground">{user.email || '-'}</td>
-                <td className="px-3 py-2"><Badge variant={user.accountState === 'active' ? 'secondary' : 'warning'}>{user.accountState}</Badge></td>
+                <td className="px-3 py-2">
+                  <p className="font-bold text-foreground">{managedUserLabel(user)}</p>
+                  <p className="mt-0.5 max-w-[16rem] truncate text-[11px] text-muted-foreground">{user.email || user.userId}</p>
+                </td>
+                <td className="px-3 py-2"><ManagedUserStatusBadges user={user} /></td>
+                <td className="px-3 py-2">
+                  <span className={`inline-flex rounded-md border px-2 py-1 text-[10px] font-black uppercase ${planBadgeTone(user.planCode)}`}>
+                    {user.planCode}
+                  </span>
+                  {user.planExpiresAt && (
+                    <p className="mt-1 text-[10px] text-muted-foreground">until {formatDateTime(user.planExpiresAt)}</p>
+                  )}
+                </td>
                 <td className="px-3 py-2 text-muted-foreground">{user.workspaceCount}</td>
                 <td className="px-3 py-2 text-muted-foreground">{user.deviceCount}</td>
-                <td className="px-3 py-2 text-muted-foreground">{user.feedbackCount} feedback / {user.fprdsCount} FPRDS</td>
                 <td className="px-3 py-2 text-muted-foreground">{user.lastActiveAt ? formatRelativeTime(user.lastActiveAt) : '-'}</td>
+                <td className="px-3 py-2 text-right">
+                  <Button type="button" variant="outline" size="sm" onClick={() => onManage(user)} className={ADMIN_REVIEW_BUTTON_CLASS}>
+                    <UserCog size={14} /> Manage
+                  </Button>
+                </td>
               </tr>
             ))}
           </CompactTable>
-        ) : (
-          <EmptyState title="No user data yet" detail="Signed-in cloud users will appear here after account bootstrap and activity events." />
         )}
       </Section>
       <Section title="Top workspaces" icon={Building2}>
         {metrics?.topWorkspaces.length ? (
-          <div className="space-y-2">
-            {metrics.topWorkspaces.slice(0, 10).map(workspace => (
+          <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+            {metrics.topWorkspaces.slice(0, 9).map(workspace => (
               <div key={workspace.clubId} className={`${ADMIN_SUBTLE_CARD_CLASS} px-3 py-2`}>
                 <div className="flex items-center justify-between gap-3">
                   <p className="truncate text-xs font-black text-foreground">{workspace.name}</p>
@@ -1413,8 +1521,309 @@ const UsersPanel = ({ metrics }: { metrics: AdminGrowthMetrics | null }) => (
         )}
       </Section>
     </div>
-  </div>
-);
+  );
+};
+
+type ManagedUserAction = 'ban' | 'mute' | 'plan' | 'devices' | 'notes';
+
+const ManageUserDialog = ({
+  user,
+  open,
+  onOpenChange,
+  onBan,
+  onMute,
+  onPlan,
+  onRevokeDevices,
+  onNotes
+}: {
+  user: AdminManagedUser | null;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onBan: (user: AdminManagedUser, banned: boolean, reason: string) => Promise<void>;
+  onMute: (user: AdminManagedUser, mutedUntil: string | null, reason: string) => Promise<void>;
+  onPlan: (user: AdminManagedUser, planCode: string, expiresAt: string | null, note: string) => Promise<void>;
+  onRevokeDevices: (user: AdminManagedUser) => Promise<void>;
+  onNotes: (user: AdminManagedUser, notes: string) => Promise<void>;
+}) => {
+  const [banReason, setBanReason] = useState('');
+  const [muteHours, setMuteHours] = useState('24');
+  const [muteReason, setMuteReason] = useState('');
+  const [planCode, setPlanCode] = useState('free');
+  const [planExpires, setPlanExpires] = useState('');
+  const [planNote, setPlanNote] = useState('');
+  const [adminNotes, setAdminNotes] = useState('');
+  const [busyAction, setBusyAction] = useState<ManagedUserAction | null>(null);
+  const [error, setError] = useState('');
+  const userId = user?.userId;
+
+  useEffect(() => {
+    if (!user || !open) return;
+    setBanReason(user.banReason ?? '');
+    setMuteHours('24');
+    setMuteReason(user.muteReason ?? '');
+    setPlanCode(user.planCode);
+    setPlanExpires(user.planExpiresAt ? user.planExpiresAt.slice(0, 10) : '');
+    setPlanNote(user.planNote ?? '');
+    setAdminNotes(user.adminNotes ?? '');
+    setBusyAction(null);
+    setError('');
+    // Only reset the form when a different user is opened, not after each saved action.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId, open]);
+
+  if (!user) return null;
+  const muted = isManagedUserMuted(user);
+  const planOptions = ADMIN_PLAN_OPTIONS.some(option => option.value === user.planCode)
+    ? ADMIN_PLAN_OPTIONS
+    : [...ADMIN_PLAN_OPTIONS, { value: user.planCode, label: user.planCode }];
+
+  const run = async (action: ManagedUserAction, task: () => Promise<void>) => {
+    setBusyAction(action);
+    setError('');
+    try {
+      await task();
+    } catch (taskError) {
+      setError(taskError instanceof Error ? taskError.message : 'Action could not be completed.');
+    } finally {
+      setBusyAction(null);
+    }
+  };
+
+  const actionSpinner = (action: ManagedUserAction, fallback: React.ReactNode) =>
+    busyAction === action ? <Loader2 size={14} className="animate-spin" /> : fallback;
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className={`${ADMIN_DIALOG_CONTENT_CLASS} max-h-[92vh] max-w-2xl overflow-y-auto`}>
+        <DialogHeader>
+          <DialogTitle className="text-slate-100">{managedUserLabel(user)}</DialogTitle>
+          <DialogDescription className="text-slate-400">
+            {user.email || 'No email on record'} · joined {formatRelativeTime(user.createdAt)} · {user.workspaceCount} workspaces
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="flex flex-wrap items-center gap-2">
+          <ManagedUserStatusBadges user={user} />
+          <span className={`inline-flex rounded-md border px-2 py-1 text-[10px] font-black uppercase ${planBadgeTone(user.planCode)}`}>
+            {user.planCode}
+          </span>
+        </div>
+
+        {error && (
+          <div className="rounded-lg border border-destructive/25 bg-destructive/10 p-3 text-xs font-semibold text-destructive" role="alert">
+            {error}
+          </div>
+        )}
+
+        <div className="space-y-4">
+          <div className={`${ADMIN_SUBTLE_CARD_CLASS} p-4`}>
+            <div className="flex items-center gap-2">
+              <Ban size={15} className="text-rose-200" aria-hidden="true" />
+              <h3 className="text-xs font-black uppercase text-slate-200">Ban</h3>
+            </div>
+            {user.bannedAt ? (
+              <div className="mt-3 space-y-3">
+                <p className="text-xs leading-relaxed text-slate-300">
+                  Banned {formatRelativeTime(user.bannedAt)}{user.banReason ? ` — ${user.banReason}` : ''}. The account is disabled and blocked from all workspace data.
+                </p>
+                <Button
+                  type="button"
+                  disabled={busyAction !== null}
+                  onClick={() => void run('ban', () => onBan(user, false, ''))}
+                  className={ADMIN_DIALOG_PRIMARY_BUTTON_CLASS}
+                >
+                  {actionSpinner('ban', <ShieldCheck size={14} />)} Unban user
+                </Button>
+              </div>
+            ) : (
+              <div className="mt-3 space-y-3">
+                <p className="text-xs leading-relaxed text-slate-400">
+                  Banning disables the account, blocks all workspace data access, and revokes every synced device.
+                </p>
+                <Input
+                  value={banReason}
+                  onChange={event => setBanReason(event.target.value)}
+                  maxLength={500}
+                  placeholder="Ban reason (recommended)"
+                  className={ADMIN_DIALOG_FIELD_CLASS}
+                />
+                <Button
+                  type="button"
+                  variant="destructive"
+                  disabled={busyAction !== null}
+                  onClick={() => void run('ban', () => onBan(user, true, banReason))}
+                >
+                  {actionSpinner('ban', <Ban size={14} />)} Ban user
+                </Button>
+              </div>
+            )}
+          </div>
+
+          <div className={`${ADMIN_SUBTLE_CARD_CLASS} p-4`}>
+            <div className="flex items-center gap-2">
+              <VolumeX size={15} className="text-amber-200" aria-hidden="true" />
+              <h3 className="text-xs font-black uppercase text-slate-200">Mute</h3>
+            </div>
+            {muted ? (
+              <div className="mt-3 space-y-3">
+                <p className="text-xs leading-relaxed text-slate-300">
+                  Muted until {formatDateTime(user.mutedUntil as string)}{user.muteReason ? ` — ${user.muteReason}` : ''}. Muted users cannot post bulletins or submit feedback.
+                </p>
+                <Button
+                  type="button"
+                  disabled={busyAction !== null}
+                  onClick={() => void run('mute', () => onMute(user, null, ''))}
+                  className={ADMIN_DIALOG_PRIMARY_BUTTON_CLASS}
+                >
+                  {actionSpinner('mute', <Volume2 size={14} />)} Unmute user
+                </Button>
+              </div>
+            ) : (
+              <div className="mt-3 space-y-3">
+                <p className="text-xs leading-relaxed text-slate-400">
+                  Muted users keep access but cannot post bulletins or submit feedback until the mute expires.
+                </p>
+                <div className="grid gap-3 sm:grid-cols-[10rem_1fr]">
+                  <Select value={muteHours} onValueChange={setMuteHours}>
+                    <SelectTrigger aria-label="Mute duration" className={ADMIN_DIALOG_FIELD_CLASS}><SelectValue /></SelectTrigger>
+                    <SelectContent className={ADMIN_DIALOG_SELECT_CONTENT_CLASS}>
+                      {MUTE_DURATION_OPTIONS.map(option => (
+                        <SelectItem key={option.hours} value={String(option.hours)} className={ADMIN_DIALOG_SELECT_ITEM_CLASS}>{option.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Input
+                    value={muteReason}
+                    onChange={event => setMuteReason(event.target.value)}
+                    maxLength={500}
+                    placeholder="Mute reason (optional)"
+                    className={ADMIN_DIALOG_FIELD_CLASS}
+                  />
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={busyAction !== null}
+                  onClick={() => void run('mute', () => onMute(
+                    user,
+                    new Date(Date.now() + Number(muteHours) * 3_600_000).toISOString(),
+                    muteReason
+                  ))}
+                  className={ADMIN_SECONDARY_ACTION_BUTTON_CLASS}
+                >
+                  {actionSpinner('mute', <VolumeX size={14} />)} Mute user
+                </Button>
+              </div>
+            )}
+          </div>
+
+          <div className={`${ADMIN_SUBTLE_CARD_CLASS} p-4`}>
+            <div className="flex items-center gap-2">
+              <CreditCard size={15} className="text-emerald-200" aria-hidden="true" />
+              <h3 className="text-xs font-black uppercase text-slate-200">Plan</h3>
+            </div>
+            <div className="mt-3 space-y-3">
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="space-y-1.5">
+                  <Label htmlFor="managed-user-plan" className="normal-case tracking-normal text-slate-300">Plan</Label>
+                  <Select value={planCode} onValueChange={setPlanCode}>
+                    <SelectTrigger id="managed-user-plan" className={ADMIN_DIALOG_FIELD_CLASS}><SelectValue /></SelectTrigger>
+                    <SelectContent className={ADMIN_DIALOG_SELECT_CONTENT_CLASS}>
+                      {planOptions.map(option => (
+                        <SelectItem key={option.value} value={option.value} className={ADMIN_DIALOG_SELECT_ITEM_CLASS}>{option.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="managed-user-plan-expiry" className="normal-case tracking-normal text-slate-300">Expires (optional)</Label>
+                  <Input
+                    id="managed-user-plan-expiry"
+                    type="date"
+                    value={planExpires}
+                    onChange={event => setPlanExpires(event.target.value)}
+                    className={ADMIN_DIALOG_FIELD_CLASS}
+                  />
+                </div>
+              </div>
+              <Input
+                value={planNote}
+                onChange={event => setPlanNote(event.target.value)}
+                maxLength={500}
+                placeholder="Plan note, e.g. founder discount or comp reason (optional)"
+                className={ADMIN_DIALOG_FIELD_CLASS}
+              />
+              <Button
+                type="button"
+                disabled={busyAction !== null}
+                onClick={() => void run('plan', () => onPlan(
+                  user,
+                  planCode,
+                  planExpires ? new Date(`${planExpires}T23:59:59`).toISOString() : null,
+                  planNote
+                ))}
+                className={ADMIN_DIALOG_PRIMARY_BUTTON_CLASS}
+              >
+                {actionSpinner('plan', <Save size={14} />)} Apply plan
+              </Button>
+            </div>
+          </div>
+
+          <div className={`${ADMIN_SUBTLE_CARD_CLASS} p-4`}>
+            <div className="flex items-center gap-2">
+              <Smartphone size={15} className="text-cyan-200" aria-hidden="true" />
+              <h3 className="text-xs font-black uppercase text-slate-200">Devices</h3>
+            </div>
+            <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
+              <p className="text-xs leading-relaxed text-slate-400">
+                {user.deviceCount} active synced {user.deviceCount === 1 ? 'device' : 'devices'}. Revoking forces every device to re-authenticate before syncing again.
+              </p>
+              <Button
+                type="button"
+                variant="outline"
+                disabled={busyAction !== null || user.deviceCount === 0}
+                onClick={() => void run('devices', () => onRevokeDevices(user))}
+                className={ADMIN_SECONDARY_ACTION_BUTTON_CLASS}
+              >
+                {actionSpinner('devices', <Smartphone size={14} />)} Revoke all devices
+              </Button>
+            </div>
+          </div>
+
+          <div className={`${ADMIN_SUBTLE_CARD_CLASS} p-4`}>
+            <div className="flex items-center gap-2">
+              <FileText size={15} className="text-slate-300" aria-hidden="true" />
+              <h3 className="text-xs font-black uppercase text-slate-200">Private admin notes</h3>
+            </div>
+            <div className="mt-3 space-y-3">
+              <Textarea
+                value={adminNotes}
+                onChange={event => setAdminNotes(event.target.value)}
+                rows={3}
+                maxLength={4000}
+                placeholder="Moderation history, support context, or follow-up reminders."
+                className={ADMIN_DIALOG_FIELD_CLASS}
+              />
+              <Button
+                type="button"
+                variant="outline"
+                disabled={busyAction !== null}
+                onClick={() => void run('notes', () => onNotes(user, adminNotes))}
+                className={ADMIN_SECONDARY_ACTION_BUTTON_CLASS}
+              >
+                {actionSpinner('notes', <Save size={14} />)} Save notes
+              </Button>
+            </div>
+          </div>
+        </div>
+
+        <DialogFooter>
+          <Button type="button" variant="outline" onClick={() => onOpenChange(false)} className={ADMIN_DIALOG_SECONDARY_BUTTON_CLASS}>Close</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+};
 
 const BillingPanel = ({ snapshot, metrics }: { snapshot: AdminConsoleSnapshot; metrics: AdminGrowthMetrics | null }) => (
   <div className="space-y-4">
@@ -1824,6 +2233,10 @@ export default function AdminConsoleView() {
   const [selectedBenchmarkCorrectionRow, setSelectedBenchmarkCorrectionRow] = useState<FprdsBenchmarkAnalysisRow | null>(null);
   const [isSavingBenchmark, setIsSavingBenchmark] = useState(false);
   const [busyCorrectionId, setBusyCorrectionId] = useState<string | null>(null);
+  const [managedUsers, setManagedUsers] = useState<AdminManagedUser[]>([]);
+  const [managedUsersState, setManagedUsersState] = useState<'idle' | 'loading' | 'ready' | 'error'>('idle');
+  const [managedUserSearch, setManagedUserSearch] = useState('');
+  const [selectedManagedUser, setSelectedManagedUser] = useState<AdminManagedUser | null>(null);
 
   const loadSnapshot = async () => {
     if (!runtime.enabled || auth.state.status !== 'signedIn') return;
@@ -1912,6 +2325,13 @@ export default function AdminConsoleView() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab, loadState, benchmarkLoadState]);
+
+  useEffect(() => {
+    if (activeTab === 'users' && loadState === 'ready' && managedUsersState === 'idle' && adminProfile?.role === 'owner') {
+      void loadManagedUsers();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab, loadState, managedUsersState, adminProfile]);
 
   const onlineSessions = useMemo(
     () => snapshot?.activeSessions.filter(session => eventAgeMs(session.last_seen_at) < 5 * 60000) ?? [],
@@ -2217,6 +2637,49 @@ export default function AdminConsoleView() {
     }
   };
 
+  const loadManagedUsers = async (search = managedUserSearch) => {
+    if (!runtime.enabled) return;
+    setManagedUsersState('loading');
+    try {
+      const users = await runtime.dataAccess.admin.listManagedUsers(search.trim() || null, 100);
+      setManagedUsers(users);
+      setManagedUsersState('ready');
+    } catch (error) {
+      setManagedUsersState('error');
+      setMessage(error instanceof Error ? error.message : 'User directory could not load.');
+    }
+  };
+
+  const requireAdminRepo = () => {
+    if (!runtime.enabled) throw new Error('Cloud runtime is disabled.');
+    return runtime.dataAccess.admin;
+  };
+
+  const applyManagedUserUpdate = (updated: AdminManagedUser) => {
+    setManagedUsers(current => current.map(item => item.userId === updated.userId ? updated : item));
+    setSelectedManagedUser(current => current && current.userId === updated.userId ? updated : current);
+  };
+
+  const handleManagedUserBan = async (user: AdminManagedUser, banned: boolean, reason: string) => {
+    applyManagedUserUpdate(await requireAdminRepo().setUserBan(user.userId, banned, reason.trim() || null));
+  };
+
+  const handleManagedUserMute = async (user: AdminManagedUser, mutedUntil: string | null, reason: string) => {
+    applyManagedUserUpdate(await requireAdminRepo().setUserMute(user.userId, mutedUntil, reason.trim() || null));
+  };
+
+  const handleManagedUserPlan = async (user: AdminManagedUser, planCode: string, expiresAt: string | null, note: string) => {
+    applyManagedUserUpdate(await requireAdminRepo().setUserPlan(user.userId, planCode, expiresAt, note.trim() || null));
+  };
+
+  const handleManagedUserDeviceRevoke = async (user: AdminManagedUser) => {
+    applyManagedUserUpdate(await requireAdminRepo().revokeUserDevices(user.userId));
+  };
+
+  const handleManagedUserNotes = async (user: AdminManagedUser, notes: string) => {
+    applyManagedUserUpdate(await requireAdminRepo().setUserNotes(user.userId, notes.trim() || null));
+  };
+
   const handleRestoreWorkspace = async (workspace: AdminRecoverableWorkspace) => {
     if (!runtime.enabled) return;
     setRestoringWorkspaceId(workspace.clubId);
@@ -2392,15 +2855,25 @@ export default function AdminConsoleView() {
                         : ADMIN_THEME.classes.navItemIdle
                     }`}
                   >
-                    <Icon size={14} aria-hidden="true" />
-                    {tab.label}
+                    <Icon size={15} className="shrink-0" aria-hidden="true" />
+                    <span className="truncate">{tab.label}</span>
                   </Button>
                 );
               })}
             </nav>
 
             {activeTab === 'overview' && <OverviewPanel snapshot={snapshot} growthMetrics={growthMetrics} />}
-            {activeTab === 'users' && <UsersPanel metrics={growthMetrics} />}
+            {activeTab === 'users' && (
+              <UsersPanel
+                metrics={growthMetrics}
+                users={managedUsers}
+                usersState={managedUsersState}
+                search={managedUserSearch}
+                onSearchChange={setManagedUserSearch}
+                onSearch={() => void loadManagedUsers()}
+                onManage={setSelectedManagedUser}
+              />
+            )}
             {activeTab === 'recovery' && (
               <RecoveryPanel
                 workspaces={recoverableWorkspaces}
@@ -2492,6 +2965,16 @@ export default function AdminConsoleView() {
         saving={isSavingBenchmark}
         onOpenChange={open => { if (!open) setSelectedBenchmarkCorrectionRow(null); }}
         onSave={input => void handleBenchmarkCorrectionSave(input)}
+      />
+      <ManageUserDialog
+        user={selectedManagedUser}
+        open={selectedManagedUser !== null}
+        onOpenChange={open => { if (!open) setSelectedManagedUser(null); }}
+        onBan={handleManagedUserBan}
+        onMute={handleManagedUserMute}
+        onPlan={handleManagedUserPlan}
+        onRevokeDevices={handleManagedUserDeviceRevoke}
+        onNotes={handleManagedUserNotes}
       />
     </div>
   );

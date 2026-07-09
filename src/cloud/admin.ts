@@ -105,6 +105,27 @@ export interface AdminRecentUserSummary {
   fprdsCount: number;
 }
 
+export interface AdminManagedUser {
+  userId: string;
+  email?: string | null;
+  displayName?: string | null;
+  accountState: string;
+  createdAt: string;
+  lastActiveAt?: string | null;
+  workspaceCount: number;
+  deviceCount: number;
+  feedbackCount: number;
+  bannedAt?: string | null;
+  banReason?: string | null;
+  mutedUntil?: string | null;
+  muteReason?: string | null;
+  planCode: string;
+  planExpiresAt?: string | null;
+  planNote?: string | null;
+  adminNotes?: string | null;
+  revokedDeviceCount?: number;
+}
+
 export interface AdminWorkspaceSummary {
   clubId: string;
   name: string;
@@ -679,6 +700,107 @@ export const restoreAdminWorkspace = async (
     'ADMIN_WORKSPACE_RESTORE_FAILED',
     'Failed to restore workspace'
   ) as AdminRecoverableWorkspace;
+};
+
+export const listAdminManagedUsers = async (
+  client: DumalaSupabaseClient,
+  search: string | null = null,
+  limit = 100
+): Promise<AdminManagedUser[]> => {
+  const supabase = asUntypedClient(client);
+  const data = expectNoError(
+    await supabase.rpc('list_admin_managed_users_v1', {
+      search: search?.trim() || null,
+      limit_count: limit
+    }),
+    'ADMIN_MANAGED_USERS_READ_FAILED',
+    'Failed to read managed users'
+  );
+  return (data as AdminManagedUser[] | null) ?? [];
+};
+
+export const setAdminUserBan = async (
+  client: DumalaSupabaseClient,
+  userId: string,
+  banned: boolean,
+  reason: string | null = null
+): Promise<AdminManagedUser> => {
+  const supabase = asUntypedClient(client);
+  return expectNoError(
+    await supabase.rpc('set_admin_user_ban_v1', {
+      target_user_id: userId,
+      banned,
+      reason: reason?.trim() || null
+    }),
+    'ADMIN_USER_BAN_FAILED',
+    banned ? 'Failed to ban user' : 'Failed to unban user'
+  ) as AdminManagedUser;
+};
+
+export const setAdminUserMute = async (
+  client: DumalaSupabaseClient,
+  userId: string,
+  mutedUntil: string | null,
+  reason: string | null = null
+): Promise<AdminManagedUser> => {
+  const supabase = asUntypedClient(client);
+  return expectNoError(
+    await supabase.rpc('set_admin_user_mute_v1', {
+      target_user_id: userId,
+      muted_until: mutedUntil,
+      reason: reason?.trim() || null
+    }),
+    'ADMIN_USER_MUTE_FAILED',
+    mutedUntil ? 'Failed to mute user' : 'Failed to unmute user'
+  ) as AdminManagedUser;
+};
+
+export const setAdminUserPlan = async (
+  client: DumalaSupabaseClient,
+  userId: string,
+  planCode: string,
+  expiresAt: string | null = null,
+  note: string | null = null
+): Promise<AdminManagedUser> => {
+  const supabase = asUntypedClient(client);
+  return expectNoError(
+    await supabase.rpc('set_admin_user_plan_v1', {
+      target_user_id: userId,
+      plan_code: planCode.trim().toLowerCase(),
+      expires_at: expiresAt,
+      note: note?.trim() || null
+    }),
+    'ADMIN_USER_PLAN_FAILED',
+    'Failed to update user plan'
+  ) as AdminManagedUser;
+};
+
+export const revokeAdminUserDevices = async (
+  client: DumalaSupabaseClient,
+  userId: string
+): Promise<AdminManagedUser> => {
+  const supabase = asUntypedClient(client);
+  return expectNoError(
+    await supabase.rpc('revoke_admin_user_devices_v1', { target_user_id: userId }),
+    'ADMIN_USER_DEVICE_REVOKE_FAILED',
+    'Failed to revoke user devices'
+  ) as AdminManagedUser;
+};
+
+export const setAdminUserNotes = async (
+  client: DumalaSupabaseClient,
+  userId: string,
+  notes: string | null
+): Promise<AdminManagedUser> => {
+  const supabase = asUntypedClient(client);
+  return expectNoError(
+    await supabase.rpc('set_admin_user_notes_v1', {
+      target_user_id: userId,
+      notes: notes?.trim() || null
+    }),
+    'ADMIN_USER_NOTES_FAILED',
+    'Failed to save admin notes'
+  ) as AdminManagedUser;
 };
 
 export const getAdminStorageMetrics = async (
