@@ -1,12 +1,46 @@
 import { describe, expect, it, vi } from 'vitest';
+import type { FeedbackSubmission } from '../cloud/admin';
 import {
+  PREMIUM_LEAD_AFFECTED_AREA,
   PREMIUM_LEAD_KIND,
   PREMIUM_LEAD_STORAGE_KEY,
+  PREMIUM_LEAD_SUBJECT_PREFIX,
   createPremiumLeadRecord,
+  derivePremiumLeads,
+  isPremiumLeadFeedback,
+  parsePremiumLeadFeedback,
   readStoredPremiumLeads,
   storePremiumLead,
   validatePremiumLeadForm
 } from './premiumLeadCapture';
+
+// Mirrors the structured details block written by submitPremiumLead so the reader
+// is tested against the exact contract the landing CTA produces.
+const buildLeadFeedback = (overrides: Partial<FeedbackSubmission> = {}): FeedbackSubmission => ({
+  id: 'feedback-1',
+  category: 'feature_request',
+  affected_area: PREMIUM_LEAD_AFFECTED_AREA,
+  urgency: 'normal',
+  subject: `${PREMIUM_LEAD_SUBJECT_PREFIX}Dumala FC`,
+  details: [
+    `Lead kind: ${PREMIUM_LEAD_KIND}`,
+    'Source: landing_premium_cta',
+    'Plan interest: premium',
+    'Name: Ada Coach',
+    'Organization: Dumala FC',
+    'Role: Club manager',
+    'Teams: 3',
+    '',
+    'Notes:',
+    'Interested in staff workflows.'
+  ].join('\n'),
+  contact_email: 'ada@example.com',
+  team_workspace: 'Dumala FC',
+  status: 'new',
+  created_at: '2026-07-03T12:00:00.000Z',
+  updated_at: '2026-07-03T12:00:00.000Z',
+  ...overrides
+});
 
 describe('premium lead capture', () => {
   it('validates the required Premium beta lead fields', () => {
@@ -73,5 +107,47 @@ describe('premium lead capture', () => {
     expect(values.has(PREMIUM_LEAD_STORAGE_KEY)).toBe(true);
 
     vi.unstubAllGlobals();
+  });
+
+  it('recognises Premium beta feedback by area or subject prefix', () => {
+    expect(isPremiumLeadFeedback(buildLeadFeedback())).toBe(true);
+    expect(isPremiumLeadFeedback(buildLeadFeedback({ affected_area: 'Something else' }))).toBe(true);
+    expect(isPremiumLeadFeedback(buildLeadFeedback({
+      affected_area: 'General feedback',
+      subject: 'App is slow'
+    }))).toBe(false);
+  });
+
+  it('parses lead fields back out of the stored feedback details block', () => {
+    const lead = parsePremiumLeadFeedback(buildLeadFeedback());
+    expect(lead).toEqual({
+      id: 'feedback-1',
+      name: 'Ada Coach',
+      email: 'ada@example.com',
+      organization: 'Dumala FC',
+      role: 'Club manager',
+      teamCount: '3',
+      notes: 'Interested in staff workflows.',
+      status: 'new',
+      submittedAt: '2026-07-03T12:00:00.000Z',
+      pageUrl: '',
+      browser: ''
+    });
+  });
+
+  it('treats "Not provided" notes as empty and only derives Premium leads', () => {
+    const withoutNotes = buildLeadFeedback({
+      id: 'feedback-2',
+      details: buildLeadFeedback().details.replace('Interested in staff workflows.', 'Not provided')
+    });
+    const unrelated = buildLeadFeedback({
+      id: 'feedback-3',
+      affected_area: 'General feedback',
+      subject: 'Bug report'
+    });
+
+    expect(parsePremiumLeadFeedback(withoutNotes).notes).toBe('');
+    const derived = derivePremiumLeads([buildLeadFeedback(), withoutNotes, unrelated]);
+    expect(derived.map(item => item.id)).toEqual(['feedback-1', 'feedback-2']);
   });
 });

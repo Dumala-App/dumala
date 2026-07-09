@@ -28,6 +28,7 @@ import {
   ShieldAlert,
   ShieldCheck,
   Smartphone,
+  Sparkles,
   Tag,
   Trash2,
   UserCog,
@@ -70,6 +71,7 @@ import type {
   PromotionRecord
 } from '../cloud/marketing';
 import { PLAN_OPTIONS } from '../billing/plans';
+import { derivePremiumLeads, isPremiumLeadFeedback, type PremiumLeadSummary } from '../landing/premiumLeadCapture';
 import type { MfaChallenge, MfaFactor, TotpEnrollment } from '../cloud/auth';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
@@ -88,7 +90,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Textarea } from './ui/textarea';
 import { DARK_GLASS_THEME, type DarkGlassThemeId } from '../theme/darkGlassTheme';
 
-type AdminTab = 'overview' | 'users' | 'recovery' | 'storage' | 'security' | 'usage' | 'feedback' | 'fprds' | 'benchmarks' | 'online' | 'billing' | 'marketing' | 'exports' | 'alerts';
+type AdminTab = 'overview' | 'users' | 'recovery' | 'storage' | 'security' | 'usage' | 'feedback' | 'leads' | 'fprds' | 'benchmarks' | 'online' | 'billing' | 'marketing' | 'exports' | 'alerts';
 
 const ADMIN_AUTH_REDIRECT_URL = 'https://dumala.asia/?returnTo=admin';
 
@@ -108,6 +110,7 @@ const adminTabs: Array<{ id: AdminTab; label: string; icon: React.ComponentType<
   { id: 'security', label: 'Security', icon: ShieldAlert },
   { id: 'usage', label: 'Usage', icon: BarChart3 },
   { id: 'feedback', label: 'Feedback', icon: MessageSquare },
+  { id: 'leads', label: 'Premium leads', icon: Sparkles },
   { id: 'fprds', label: 'FPRDS Beta', icon: ClipboardList },
   { id: 'benchmarks', label: 'Benchmarks', icon: FlaskConical },
   { id: 'online', label: 'Online', icon: Wifi },
@@ -122,7 +125,7 @@ const highPrivilegeRoles = new Set<AppAdminProfile['role']>(['owner', 'billing']
 const canUseTab = (role: AppAdminProfile['role'] | undefined, tab: AdminTab) => {
   if (!role) return tab === 'overview';
   if (role === 'owner') return true;
-  if (role === 'support') return ['overview', 'usage', 'feedback', 'online'].includes(tab);
+  if (role === 'support') return ['overview', 'usage', 'feedback', 'leads', 'online'].includes(tab);
   if (role === 'fprds_reviewer') return ['overview', 'fprds', 'benchmarks'].includes(tab);
   if (role === 'billing') return ['overview', 'billing'].includes(tab);
   return tab === 'overview';
@@ -819,6 +822,151 @@ const FeedbackPanel = ({ feedback, metrics, onStatusChange, onOpen }: {
               </article>
             ))}
           </div>
+        )}
+      </Section>
+    </div>
+  );
+};
+
+const LEAD_OPEN_STATUSES: FeedbackStatus[] = ['new', 'triaged', 'planned', 'in_progress'];
+
+const parseTeamCount = (value: string) => {
+  const parsed = Number.parseInt(value, 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
+};
+
+const PremiumLeadsPanel = ({ feedback, onStatusChange, onOpen, onExport }: {
+  feedback: FeedbackSubmission[];
+  onStatusChange: (feedbackId: string, status: FeedbackStatus) => void;
+  onOpen: (item: FeedbackSubmission) => void;
+  onExport: () => void;
+}) => {
+  const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'open' | 'all' | FeedbackStatus>('open');
+  const [roleFilter, setRoleFilter] = useState('all');
+
+  const leadFeedback = useMemo(() => feedback.filter(isPremiumLeadFeedback), [feedback]);
+  const feedbackById = useMemo(
+    () => new Map(leadFeedback.map(item => [item.id, item])),
+    [leadFeedback]
+  );
+  const leads = useMemo(() => derivePremiumLeads(feedback), [feedback]);
+
+  const newLeads = leads.filter(lead => lead.status === 'new').length;
+  const weekLeads = leads.filter(lead => eventAgeMs(lead.submittedAt) < 7 * 24 * 60 * 60000).length;
+  const totalTeams = leads.reduce((sum, lead) => sum + parseTeamCount(lead.teamCount), 0);
+  const roleOptions = useMemo(
+    () => Array.from(new Set(leads.map(lead => lead.role))).sort(),
+    [leads]
+  );
+
+  const normalizedSearch = search.trim().toLowerCase();
+  const filtered = leads.filter(lead => {
+    const matchesStatus = statusFilter === 'all'
+      ? true
+      : statusFilter === 'open'
+        ? LEAD_OPEN_STATUSES.includes(lead.status)
+        : lead.status === statusFilter;
+    const matchesRole = roleFilter === 'all' || lead.role === roleFilter;
+    const matchesSearch = !normalizedSearch || [
+      lead.name,
+      lead.organization,
+      lead.email,
+      lead.role,
+      lead.notes
+    ].join(' ').toLowerCase().includes(normalizedSearch);
+    return matchesStatus && matchesRole && matchesSearch;
+  });
+
+  return (
+    <div className="space-y-4">
+      <div className="grid gap-3 md:grid-cols-4">
+        <StatTile label="Total leads" value={leads.length} detail="Premium beta interest captured from the landing page." />
+        <StatTile label="Awaiting outreach" value={newLeads} detail="Leads still marked new — not yet contacted." />
+        <StatTile label="This week" value={weekLeads} detail="Leads submitted in the last seven days." />
+        <StatTile label="Teams represented" value={totalTeams} detail="Sum of the team counts coaches reported." />
+      </div>
+      <Section title="Premium beta leads" icon={Sparkles}>
+        <div className="mb-4 grid gap-3 lg:grid-cols-[1fr_auto_auto_auto]">
+          <input
+            type="search"
+            value={search}
+            onChange={event => setSearch(event.target.value)}
+            placeholder="Search name, organization, email, or notes"
+            className={ADMIN_INPUT_CLASS}
+          />
+          <select
+            aria-label="Filter leads by follow-up status"
+            value={statusFilter}
+            onChange={event => setStatusFilter(event.target.value as typeof statusFilter)}
+            className={ADMIN_SELECT_CLASS}
+          >
+            <option value="open">Open statuses</option>
+            <option value="all">All statuses</option>
+            {Object.entries(statusLabel).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+          </select>
+          <select
+            aria-label="Filter leads by role"
+            value={roleFilter}
+            onChange={event => setRoleFilter(event.target.value)}
+            className={ADMIN_SELECT_CLASS}
+          >
+            <option value="all">All roles</option>
+            {roleOptions.map(role => <option key={role} value={role}>{role}</option>)}
+          </select>
+          <Button type="button" variant="outline" onClick={onExport} disabled={leads.length === 0} className={ADMIN_SECONDARY_ACTION_BUTTON_CLASS}>
+            <Download size={14} aria-hidden="true" /> Export CSV
+          </Button>
+        </div>
+        {leads.length === 0 ? (
+          <EmptyState title="No Premium leads yet" detail="When a coach or club submits interest from the landing page Premium CTA, they appear here for willingness-to-pay follow-up." />
+        ) : filtered.length === 0 ? (
+          <EmptyState title="No matching leads" detail="Clear the search or choose another status or role filter." />
+        ) : (
+          <>
+            <p className="mb-3 text-xs text-muted-foreground">Showing {filtered.length} of {leads.length} leads</p>
+            <CompactTable headers={['Status', 'Name', 'Organization', 'Role', 'Teams', 'Email', 'Submitted', 'Follow-up', '']} scrollHeightClassName="max-h-[34rem]">
+              {filtered.map(lead => {
+                const feedbackItem = feedbackById.get(lead.id);
+                return (
+                  <tr key={lead.id}>
+                    <td className="px-3 py-2">
+                      <span className={`inline-flex rounded-md border px-2 py-1 text-[10px] font-black ${statusTone[lead.status]}`}>
+                        {statusLabel[lead.status]}
+                      </span>
+                    </td>
+                    <td className="px-3 py-2 font-bold text-foreground">{lead.name}</td>
+                    <td className="px-3 py-2 text-muted-foreground">{lead.organization}</td>
+                    <td className="px-3 py-2 text-muted-foreground">{lead.role}</td>
+                    <td className="px-3 py-2 text-muted-foreground">{lead.teamCount || '-'}</td>
+                    <td className="px-3 py-2 text-muted-foreground">
+                      {lead.email ? (
+                        <a href={`mailto:${lead.email}`} className="text-cyan-200 underline-offset-2 hover:underline">{lead.email}</a>
+                      ) : '-'}
+                    </td>
+                    <td className="px-3 py-2 text-muted-foreground" title={formatDateTime(lead.submittedAt)}>{formatRelativeTime(lead.submittedAt)}</td>
+                    <td className="px-3 py-2">
+                      <select
+                        aria-label={`Follow-up status for ${lead.name}`}
+                        value={lead.status}
+                        onChange={event => onStatusChange(lead.id, event.target.value as FeedbackStatus)}
+                        className={ADMIN_SELECT_CLASS}
+                      >
+                        {Object.entries(statusLabel).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+                      </select>
+                    </td>
+                    <td className="px-3 py-2 text-right">
+                      {feedbackItem && (
+                        <Button type="button" variant="outline" size="sm" onClick={() => onOpen(feedbackItem)} aria-label={`Open lead: ${lead.name}`} className={ADMIN_REVIEW_BUTTON_CLASS}>
+                          <Eye size={14} aria-hidden="true" /> Review
+                        </Button>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
+            </CompactTable>
+          </>
         )}
       </Section>
     </div>
@@ -2451,18 +2599,21 @@ const ExportsPanel = ({
 }: {
   snapshot: AdminConsoleSnapshot;
   metrics: AdminGrowthMetrics | null;
-  onExport: (kind: 'feedback' | 'usage' | 'fprds' | 'users') => void;
-}) => (
+  onExport: (kind: 'feedback' | 'usage' | 'fprds' | 'users' | 'leads') => void;
+}) => {
+  const premiumLeadCount = snapshot.feedback.filter(isPremiumLeadFeedback).length;
+  return (
   <div className="space-y-4">
     <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
       <StatTile label="Recent exports" value={metrics?.exports.recentExportCount ?? 0} detail="Audited export actions in this window." />
       <StatTile label="Feedback rows" value={snapshot.feedback.length} detail="Ready for CSV export." />
-      <StatTile label="Usage rows" value={snapshot.usageEvents.length} detail="Recent privacy-minimized events." />
+      <StatTile label="Premium leads" value={premiumLeadCount} detail="Landing-page Premium beta interest." />
       <StatTile label="FPRDS rows" value={snapshot.fprdsSubmissions.length} detail="Review queue export." />
     </div>
     <Section title="Create export" icon={Download}>
       <div className="flex flex-wrap gap-2">
         <Button type="button" variant="outline" onClick={() => onExport('feedback')} className={ADMIN_SECONDARY_ACTION_BUTTON_CLASS}><Download size={14} /> Feedback CSV</Button>
+        <Button type="button" variant="outline" onClick={() => onExport('leads')} disabled={premiumLeadCount === 0} className={ADMIN_SECONDARY_ACTION_BUTTON_CLASS}><Download size={14} /> Premium leads CSV</Button>
         <Button type="button" variant="outline" onClick={() => onExport('usage')} className={ADMIN_SECONDARY_ACTION_BUTTON_CLASS}><Download size={14} /> Usage CSV</Button>
         <Button type="button" variant="outline" onClick={() => onExport('fprds')} className={ADMIN_SECONDARY_ACTION_BUTTON_CLASS}><Download size={14} /> FPRDS CSV</Button>
         <Button type="button" variant="outline" onClick={() => onExport('users')} disabled={!metrics} className={ADMIN_SECONDARY_ACTION_BUTTON_CLASS}><Download size={14} /> Users CSV</Button>
@@ -2485,7 +2636,8 @@ const ExportsPanel = ({
       )}
     </Section>
   </div>
-);
+  );
+};
 
 const AlertsPanel = ({ snapshot, securityMetrics, growthMetrics }: {
   snapshot: AdminConsoleSnapshot;
@@ -2960,9 +3112,24 @@ export default function AdminConsoleView() {
     setLoadState('idle');
   };
 
-  const handleExport = async (kind: 'feedback' | 'usage' | 'fprds' | 'users') => {
+  const handleExport = async (kind: 'feedback' | 'usage' | 'fprds' | 'users' | 'leads') => {
     if (!snapshot) return;
     const stamp = new Date().toISOString().slice(0, 10);
+
+    if (kind === 'leads') {
+      const leads = derivePremiumLeads(snapshot.feedback);
+      downloadCsv(`dumala-premium-leads-${stamp}.csv`, ['id', 'status', 'name', 'organization', 'role', 'teams', 'email', 'notes', 'submitted_at'], leads.map(lead => [
+        lead.id,
+        lead.status,
+        lead.name,
+        lead.organization,
+        lead.role,
+        lead.teamCount,
+        lead.email,
+        lead.notes,
+        lead.submittedAt
+      ]));
+    }
 
     if (kind === 'feedback') {
       downloadCsv(`dumala-feedback-${stamp}.csv`, ['id', 'status', 'urgency', 'category', 'area', 'subject', 'workspace', 'created_at'], snapshot.feedback.map(item => [
@@ -3022,7 +3189,9 @@ export default function AdminConsoleView() {
         ? snapshot.usageEvents.length
         : kind === 'fprds'
           ? snapshot.fprdsSubmissions.length
-          : snapshot.feedback.length;
+          : kind === 'leads'
+            ? snapshot.feedback.filter(isPremiumLeadFeedback).length
+            : snapshot.feedback.length;
 
     if (runtime.enabled) {
       await runtime.dataAccess.admin.recordAuditEvent('admin_export', { kind, rowCount }).catch(() => undefined);
@@ -3546,6 +3715,14 @@ export default function AdminConsoleView() {
             {activeTab === 'usage' && <UsagePanel events={snapshot.usageEvents} sessions={snapshot.activeSessions} metrics={growthMetrics} productMetrics={snapshot.productMetrics} activationFunnel={activationFunnel} />}
             {activeTab === 'feedback' && (
               <FeedbackPanel feedback={snapshot.feedback} metrics={growthMetrics} onStatusChange={handleFeedbackStatusChange} onOpen={setSelectedFeedback} />
+            )}
+            {activeTab === 'leads' && (
+              <PremiumLeadsPanel
+                feedback={snapshot.feedback}
+                onStatusChange={handleFeedbackStatusChange}
+                onOpen={setSelectedFeedback}
+                onExport={() => void handleExport('leads')}
+              />
             )}
             {activeTab === 'fprds' && <FprdsPanel submissions={snapshot.fprdsSubmissions} metrics={growthMetrics} onOpen={setSelectedFprdsSubmission} />}
             {activeTab === 'benchmarks' && (
