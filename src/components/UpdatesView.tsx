@@ -1536,16 +1536,16 @@ export default function UpdatesView() {
               status: 'Planned',
               objective: 'Player and League platform expansion',
               deliverables: [
-                'Introduce three persona apps on one shared identity and entitlement platform: Coach, a free Player app, and a paid League Owner app, migrating existing accounts to Coach.',
+                'Introduce three separate apps on one shared platform, one account per app: the existing Coach app (untouched), a free Player app, and a paid League Owner app, with each account type set by its own registration door.',
                 'Ship the free Player app with profile, invite-and-claim, guardian consent, team schedule, solo drills, fitness tracking, badges, a workout timer, and a progress dashboard.',
                 'Add shared Team Chat and dashboard announcements across the Coach and Player apps with moderation and youth safeguards.',
-                'Build the paid League Owner app: fresh-season lifecycle, independent tournaments, a central League database, registration links, and roster and transfer controls.',
+                'Build the paid League Owner app (accounts created by request and admin approval, free during the beta pilot): fresh-season lifecycle, independent tournaments, a central League database, registration links, and roster and transfer controls.',
                 'Add the tournament engine with round robin, single elimination with byes, and group-into-knockout formats, draws, brackets, and conflict-aware scheduling.',
                 'Run live events with an On-the-Day command center, delegated staff, check-in, match sheets, results, and an offline-tolerant match-day queue.',
                 'Verify statistics through League staff, aggregate season totals and awards, and extend the ledger to League fees, reconciliation, and reporting.'
               ],
               benefit: 'Coaches, players, and league organizers each get a secured app on one platform, so a whole competition can be run end to end while personal and official records stay clearly separated.',
-              completion: 'Coaches keep their workspaces, players and league owners operate their own secured apps, seasons start empty and combine only compatible verified statistics, and no persona can reach another persona\'s protected records.',
+              completion: 'Coaches keep their workspaces, players and league owners operate their own secured apps, each account belongs to exactly one app, seasons start empty and combine only compatible verified statistics, and no app can reach another app\'s protected records.',
               color: 'border-l-teal-400 bg-teal-400/10',
               badge: 'border-teal-400/30 bg-teal-400/15 text-teal-100'
             },

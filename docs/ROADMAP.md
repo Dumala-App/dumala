@@ -1,6 +1,6 @@
 # Dumala Product Roadmap
 
-Updated: 2026-07-09
+Updated: 2026-07-10
 
 ## Source of truth
 
@@ -133,7 +133,7 @@ Full plan: [docs/PLAYER_AND_LEAGUE_PLATFORM_EXPANSION.md](PLAYER_AND_LEAGUE_PLAT
 
 ### Planned deliverables
 
-- Introduce three persona apps on one shared identity and entitlement platform — Coach (`#/app`), Player (`#/player`, free), and League Owner (`#/league`, paid, price-pending) — migrating existing accounts to Coach and resolving the authorized destination server-side.
+- Introduce three separate apps on one shared backend — Coach (`#/app`), Player (`#/player`, free), and League Owner (`#/league`, paid, price-pending). Each account belongs to exactly one app, set by its own registration door; existing Coach accounts are untouched. Player has a free self-serve signup plus invite-and-claim; League Owner has no open signup — owners request access (waitlist) and a Dumala admin provisions the account and grants the league entitlement (free during the beta pilot). The authorized destination is resolved server-side.
 - Ship the free Player App: profile, invite-and-claim, guardian consent, team schedule, solo drills library, fitness tracking, badges, workout timer, and progress dashboard, keeping self-recorded activity visibly distinct from verified records.
 - Add shared Team Chat and dashboard announcements across the Coach and Player apps with moderation, read/acknowledgement state, and youth safeguards.
 - Build the paid League Owner App foundation: fresh-season lifecycle (Draft → Registration open → Active → Completed → Archived), independent events, the League Database, roles, venues, eligibility rules, and documents, with every new season starting empty.
@@ -145,7 +145,7 @@ Full plan: [docs/PLAYER_AND_LEAGUE_PLATFORM_EXPANSION.md](PLAYER_AND_LEAGUE_PLAT
 
 ### Completion criteria
 
-Coaches keep their existing workspaces, players and League owners operate their own secured apps on the shared identity platform, seasons start empty and group only compatible verified statistics, and no persona can reach another persona's protected records.
+Coaches keep their existing workspaces, players and League owners operate their own secured apps on the shared backend, each account belongs to exactly one app, seasons start empty and group only compatible verified statistics, and no app can reach another app's protected records.
 
 ## Future Expansion: Philippine coach education
 

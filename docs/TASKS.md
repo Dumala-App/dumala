@@ -1,6 +1,6 @@
 # Dumala Delivery Tasks
 
-Updated: 2026-07-09
+Updated: 2026-07-10
 
 Status values: **Done**, **In Progress**, **Next**, **Planned**, **Long Term**.
 
@@ -47,6 +47,10 @@ Release validation              [##########] 100%  14 / 14
 The FPRDS total includes twenty completed capabilities: the five shipped assessment features plus interpolation, role-weighting, age-transition, required-field validation coverage, true historical progress charts, player/session comparison reports, the evidence-based development doctrine, training evidence naming, removal of direct training-to-rating mutation, reassessment recommendations, rating confidence labels, the opt-in FPRDS beta results database with aggregate benchmark analysis and correction review, downloadable player assessment and development reports, a coach-review data export, and benchmark versioning that stamps every session with the benchmark table version it was scored under. Practitioner benchmark review is deferred until qualified external reviewers are available, so it is not counted in the twenty.
 
 ## Recent changes
+
+### Completed: 2026-07-10
+
+- [x] Clarified the Phase 6 identity and registration model so it is unambiguous: Dumala becomes three separate apps on one shared backend (one login system, database, and codebase), each account belongs to exactly one app, and the account type is set by the registration door — not a post-signup picker. Locked three decisions: separate accounts per app (one email = one account = one app; no in-app switching in v1), League Owner signup is request/waitlist with admin provisioning (no open self-serve), and League Owner is free during the beta pilot with no permanent free tier. Updated `docs/PLAYER_AND_LEAGUE_PLATFORM_EXPANSION.md`, mirrored the roadmap-visible wording into `docs/ROADMAP.md` and the in-app Roadmap Snapshot, and revised the Phase 6 identity-and-authorization task accordingly.
 
 ### Completed: 2026-07-09
 
@@ -341,7 +345,7 @@ Phase 3 implementation baseline is complete. Local launch-readiness checks now i
 
 Full plan: `docs/PLAYER_AND_LEAGUE_PLATFORM_EXPANSION.md`. Each item is independently shippable behind feature flags and entitlements.
 
-- [ ] **Planned:** Identity and authorization — personas, existing-account migration to Coach, server-side routing, dashboard shells, permissions, audit foundation, and League pilot entitlements.
+- [ ] **Planned:** Identity and authorization — three separate apps on one shared backend with one account type per account, a separate registration door per app (Coach existing signup untouched; Player free self-serve plus invite-and-claim; League Owner request/waitlist with admin provisioning, no open signup), admin-granted League pilot entitlements, server-side destination resolution, dashboard shells, permissions, and audit foundation.
 - [ ] **Planned:** Player foundation — profile, invite-and-claim, guardian consent, schedule, solo drills, workout timer, progress dashboard, and notifications.
 - [ ] **Planned:** Shared communication — Coach/Player Team Chat, moderation and youth safeguards, dashboard announcements, and email delivery.
 - [ ] **Planned:** League and season foundation — League Database, fresh-season lifecycle, independent events, roles, venues, eligibility rules, and documents.
