@@ -127,7 +127,7 @@ Authorized users can publish controlled player and team profiles, and coaches ca
 
 ## Phase 6: Player and League platform expansion
 
-Status: **Planned**
+Status: **In Progress**
 
 Full plan: [docs/PLAYER_AND_LEAGUE_PLATFORM_EXPANSION.md](PLAYER_AND_LEAGUE_PLATFORM_EXPANSION.md).
 

@@ -123,9 +123,14 @@ const DevelopmentHubView = lazy(() => import('./components/DevelopmentHubView'))
 const LeagueUpdatesHubView = lazy(() => import('./components/LeagueUpdatesHubView'));
 const AdminConsoleView = lazy(() => import('./components/AdminConsoleView'));
 const LandingPage = lazy(() => import('./components/LandingPage'));
+const PlayerAppShell = lazy(() => import('./components/PlayerAppShell'));
+const LeagueAppShell = lazy(() => import('./components/LeagueAppShell'));
 
 const getHashRoute = () => typeof window === 'undefined' ? '' : window.location.hash.replace(/^#\/?/, '');
 const isLandingRoute = (route: string) => route === '' || route === 'landing';
+// Phase 6 persona apps live under their own hash roots (#/player, #/league).
+const isPlayerRoute = (route: string) => route === 'player' || route.startsWith('player/');
+const isLeagueRoute = (route: string) => route === 'league' || route.startsWith('league/');
 const isAppAuthRedirect = () => {
   if (typeof window === 'undefined') return false;
   return new URLSearchParams(window.location.search).get('dumalaAuth') === 'app';
@@ -1425,6 +1430,32 @@ export default function App() {
     );
   }
 
+  // Phase 6 persona apps. These doors are feature-flagged off by default, so the
+  // Coach app behaves exactly as before until an operator enables them.
+  const phase6Config = cloudRuntime.phase6;
+
+  if (isPlayerRoute(hashRoute) && (phase6Config.playerAppEnabled || phase6Config.playerPreviewEnabled)) {
+    return (
+      <>
+        <PwaStatusBanners />
+        <Suspense fallback={<ViewLoadingFallback label="player app" />}>
+          <PlayerAppShell />
+        </Suspense>
+      </>
+    );
+  }
+
+  if (isLeagueRoute(hashRoute) && (phase6Config.leagueAppEnabled || phase6Config.leagueRequestEnabled || phase6Config.leaguePreviewEnabled)) {
+    return (
+      <>
+        <PwaStatusBanners />
+        <Suspense fallback={<ViewLoadingFallback label="league app" />}>
+          <LeagueAppShell />
+        </Suspense>
+      </>
+    );
+  }
+
   if (isLandingRoute(hashRoute) && !shouldRouteAuthReturnToApp()) {
     return (
       <>
@@ -1734,6 +1765,7 @@ export default function App() {
                   onAddBulkPaymentLedgerEntries={handleAddBulkPaymentLedgerEntries}
                   onUpdatePaymentLedgerEntry={handleUpdatePaymentLedgerEntry}
                   onVoidPaymentLedgerEntry={handleVoidPaymentLedgerEntry}
+                  cloudClubId={activeWorkspace?.cloudClubId ?? null}
                 />
               </ViewErrorBoundary>
             )}
