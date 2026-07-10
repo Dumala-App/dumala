@@ -42,9 +42,13 @@ const INITIAL_FORM: FeedbackForm = {
   contactEmail: '',
 };
 
-const feedbackControlClass = 'rounded-xl text-sm font-medium text-slate-800';
-const feedbackSelectContentClass = 'z-[130]';
-const feedbackLabelClass = 'space-y-1.5 text-xs normal-case tracking-normal text-slate-700';
+const feedbackControlClass =
+  'rounded-xl border-white/10 bg-white/[0.04] text-sm font-medium text-slate-100 placeholder:text-slate-500 focus-visible:ring-cyan-300/25 focus:ring-cyan-300/25';
+const feedbackTextareaClass =
+  'min-h-28 resize-y rounded-xl border-white/10 bg-white/[0.04] text-sm font-medium leading-relaxed text-slate-100 placeholder:text-slate-500 focus-visible:ring-cyan-300/25';
+const feedbackSelectContentClass =
+  'z-[130] border-white/10 bg-[#0b1726] text-slate-100 [&_[role=option]:focus]:bg-white/10 [&_[role=option]:focus]:text-white';
+const feedbackLabelClass = 'space-y-1.5 text-xs normal-case tracking-normal text-slate-300';
 
 const categoryMap: Record<string, FeedbackCategory> = {
   Improvement: 'improvement',
@@ -184,22 +188,26 @@ export default function FeedbackModal({teamName, onClose}: FeedbackModalProps) {
 
   return (
     <div
-      className="fixed inset-0 z-[110] flex items-center justify-center bg-slate-950/55 backdrop-blur-sm p-4"
+      className="fixed inset-0 z-[110] flex items-center justify-center bg-slate-950/70 p-4 backdrop-blur-sm"
       role="dialog"
       aria-modal="true"
       aria-labelledby="feedback-dialog-title"
     >
-      <div ref={dialogRef} tabIndex={-1} className="max-h-[92vh] w-full max-w-2xl overflow-y-auto rounded-3xl border border-slate-200 bg-white shadow-2xl">
-        <div className="sticky top-0 z-10 flex items-start justify-between gap-4 border-b border-slate-100 bg-white/95 px-5 py-4 backdrop-blur sm:px-6">
+      <div
+        ref={dialogRef}
+        tabIndex={-1}
+        className="flex max-h-[92vh] w-full max-w-4xl flex-col overflow-hidden rounded-3xl border border-white/10 bg-[#07111f]/95 text-slate-100 shadow-2xl shadow-black/50 backdrop-blur-xl"
+      >
+        <div className="flex items-start justify-between gap-4 border-b border-white/10 bg-white/[0.02] px-5 py-4 sm:px-6">
           <div className="flex items-start gap-3">
-            <div className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600">
+            <div className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-indigo-300/20 bg-indigo-400/15 text-indigo-200">
               <MessageSquare size={19} />
             </div>
             <div>
-              <h2 id="feedback-dialog-title" className="font-display text-lg font-black text-slate-900">
+              <h2 id="feedback-dialog-title" className="font-display text-lg font-black text-slate-50">
                 Share feedback
               </h2>
-              <p className="mt-0.5 text-xs leading-relaxed text-slate-500">
+              <p className="mt-0.5 text-xs leading-relaxed text-slate-400">
                 Report a bug, suggest an improvement, or tell us what would make the app more useful. Submissions are sent to the app owner.
               </p>
             </div>
@@ -209,17 +217,17 @@ export default function FeedbackModal({teamName, onClose}: FeedbackModalProps) {
             onClick={onClose}
             variant="ghost"
             size="icon"
-            className="text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+            className="text-slate-400 hover:bg-white/10 hover:text-slate-100"
             aria-label="Close feedback form"
           >
             <X size={18} />
           </Button>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-5 p-5 sm:p-6">
-          <div className="grid gap-4 sm:grid-cols-2">
+        <form onSubmit={handleSubmit} className="space-y-5 overflow-y-auto p-5 sm:p-6">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <div className="space-y-1.5">
-              <Label className="text-xs normal-case tracking-normal text-slate-700">Feedback type</Label>
+              <Label className="text-xs normal-case tracking-normal text-slate-300">Feedback type</Label>
               <Select
                 value={form.category}
                 onValueChange={value => updateField('category', value)}
@@ -239,7 +247,7 @@ export default function FeedbackModal({teamName, onClose}: FeedbackModalProps) {
             </div>
 
             <div className="space-y-1.5">
-              <Label className="text-xs normal-case tracking-normal text-slate-700">Affected area</Label>
+              <Label className="text-xs normal-case tracking-normal text-slate-300">Affected area</Label>
               <Select
                 value={form.area}
                 onValueChange={value => updateField('area', value)}
@@ -261,47 +269,9 @@ export default function FeedbackModal({teamName, onClose}: FeedbackModalProps) {
                 </SelectContent>
               </Select>
             </div>
-          </div>
 
-          <Label className={cn('block', feedbackLabelClass)}>
-            Short summary
-            <Input
-              required
-              maxLength={120}
-              value={form.subject}
-              onChange={event => updateField('subject', event.target.value)}
-              placeholder="Briefly describe the idea or problem"
-              className={feedbackControlClass}
-            />
-          </Label>
-
-          <Label className={cn('block', feedbackLabelClass)}>
-            Detailed information
-            <Textarea
-              required
-              minLength={10}
-              rows={5}
-              value={form.details}
-              onChange={event => updateField('details', event.target.value)}
-              placeholder="What happened? What were you trying to do? Include steps to reproduce a bug or explain why an improvement would help."
-              className="min-h-32 resize-y rounded-xl text-sm font-medium leading-relaxed text-slate-800"
-            />
-          </Label>
-
-          <Label className={cn('block', feedbackLabelClass)}>
-            Expected behavior or suggested outcome
-            <Textarea
-              rows={3}
-              value={form.expectedBehavior}
-              onChange={event => updateField('expectedBehavior', event.target.value)}
-              placeholder="Describe what you expected to happen or how you would improve it."
-              className="min-h-24 resize-y rounded-xl text-sm font-medium leading-relaxed text-slate-800"
-            />
-          </Label>
-
-          <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-1.5">
-              <Label className="text-xs normal-case tracking-normal text-slate-700">Urgency</Label>
+              <Label className="text-xs normal-case tracking-normal text-slate-300">Urgency</Label>
               <Select
                 value={form.urgency}
                 onValueChange={value => updateField('urgency', value)}
@@ -330,13 +300,51 @@ export default function FeedbackModal({teamName, onClose}: FeedbackModalProps) {
             </Label>
           </div>
 
-          <div className="grid gap-3 rounded-2xl border border-indigo-100 bg-indigo-50/70 p-4 text-xs text-indigo-950 sm:grid-cols-2">
+          <Label className={cn('block', feedbackLabelClass)}>
+            Short summary
+            <Input
+              required
+              maxLength={120}
+              value={form.subject}
+              onChange={event => updateField('subject', event.target.value)}
+              placeholder="Briefly describe the idea or problem"
+              className={feedbackControlClass}
+            />
+          </Label>
+
+          <div className="grid gap-4 lg:grid-cols-2">
+            <Label className={cn('block', feedbackLabelClass)}>
+              Detailed information
+              <Textarea
+                required
+                minLength={10}
+                rows={5}
+                value={form.details}
+                onChange={event => updateField('details', event.target.value)}
+                placeholder="What happened? What were you trying to do? Include steps to reproduce a bug or explain why an improvement would help."
+                className={cn(feedbackTextareaClass, 'min-h-36')}
+              />
+            </Label>
+
+            <Label className={cn('block', feedbackLabelClass)}>
+              Expected behavior or suggested outcome
+              <Textarea
+                rows={5}
+                value={form.expectedBehavior}
+                onChange={event => updateField('expectedBehavior', event.target.value)}
+                placeholder="Describe what you expected to happen or how you would improve it."
+                className={cn(feedbackTextareaClass, 'min-h-36')}
+              />
+            </Label>
+          </div>
+
+          <div className="grid gap-3 rounded-2xl border border-indigo-300/20 bg-indigo-300/[0.06] p-4 text-xs text-indigo-100 sm:grid-cols-2">
             <div className="flex gap-2">
-              <Bug size={15} className="mt-0.5 shrink-0 text-indigo-600" />
+              <Bug size={15} className="mt-0.5 shrink-0 text-indigo-300" />
               <span>Bug reports automatically include the page, browser, workspace name, and submission time.</span>
             </div>
             <div className="flex gap-2">
-              <Lightbulb size={15} className="mt-0.5 shrink-0 text-amber-500" />
+              <Lightbulb size={15} className="mt-0.5 shrink-0 text-amber-300" />
               <span>Do not include passwords, private medical details, or other sensitive information.</span>
             </div>
           </div>
@@ -346,21 +354,21 @@ export default function FeedbackModal({teamName, onClose}: FeedbackModalProps) {
               role="status"
               className={`rounded-xl border px-4 py-3 text-xs font-bold ${
                 status === 'success'
-                  ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
-                  : 'border-amber-200 bg-amber-50 text-amber-800'
+                  ? 'border-emerald-300/25 bg-emerald-300/10 text-emerald-200'
+                  : 'border-amber-300/25 bg-amber-300/10 text-amber-200'
               }`}
             >
               {statusMessage}
             </div>
           )}
 
-          <div className="flex flex-col-reverse gap-2 border-t border-slate-100 pt-4 sm:flex-row sm:justify-end">
+          <div className="flex flex-col-reverse gap-2 border-t border-white/10 pt-4 sm:flex-row sm:justify-end">
             {status === 'error' && (
               <Button
                 type="button"
                 onClick={openEmailFallback}
                 variant="outline"
-                className="rounded-xl border-slate-200 bg-white text-xs font-black text-slate-700"
+                className="rounded-xl border-white/10 bg-white/[0.04] text-xs font-black text-slate-200 hover:bg-white/10 hover:text-white"
               >
                 Open email app
               </Button>
@@ -368,15 +376,15 @@ export default function FeedbackModal({teamName, onClose}: FeedbackModalProps) {
             <Button
               type="button"
               onClick={onClose}
-              variant="secondary"
-              className="rounded-xl text-xs font-black"
+              variant="ghost"
+              className="rounded-xl border border-white/10 bg-white/[0.04] text-xs font-black text-slate-200 hover:bg-white/10 hover:text-white"
             >
               Cancel
             </Button>
             <Button
               type="submit"
               disabled={isSubmitting}
-              className="rounded-xl bg-indigo-600 px-5 text-xs font-black shadow-md hover:bg-indigo-500"
+              className="rounded-xl bg-indigo-600 px-5 text-xs font-black text-white shadow-md hover:bg-indigo-500"
             >
               <Send size={14} />
               {isSubmitting ? 'Sending feedback...' : 'Send feedback'}
