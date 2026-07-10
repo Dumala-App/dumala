@@ -16,9 +16,20 @@
   src: url("/fonts/manrope/manrope-latin-variable.woff2") format("woff2");
 }
 
+/* Player app (Apex Precision design system) display face. */
+@font-face {
+  font-family: "Hanken Grotesk";
+  font-style: normal;
+  font-weight: 400 800;
+  font-display: swap;
+  src: url("/fonts/hanken-grotesk/hanken-grotesk-latin-variable.woff2") format("woff2");
+}
+
 @theme {
   --font-sans: "DM Sans", ui-sans-serif, system-ui, sans-serif;
   --font-display: "Manrope", ui-sans-serif, system-ui, sans-serif;
+  --font-player-display: "Hanken Grotesk", "DM Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-player-mono: ui-monospace, "Cascadia Mono", "Segoe UI Mono", Menlo, Consolas, monospace;
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -90,11 +101,15 @@ body {
   transition: background-color 180ms ease, color 180ms ease;
 }
 
-button,
-input,
-select,
-textarea {
-  font: inherit;
+/* Layered so Tailwind font utilities on form controls can still win; un-layered
+   this rule would silently override every font-* utility placed on a button. */
+@layer base {
+  button,
+  input,
+  select,
+  textarea {
+    font: inherit;
+  }
 }
 
 button {

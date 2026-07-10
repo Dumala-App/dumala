@@ -38,6 +38,148 @@ export default function UpdatesView() {
 
   const changelogEntries = [
     {
+      id: 'july_10_phase6_player_app',
+      date: '2026-07-10',
+      title: 'The Player App: A Fitness Home for Your Players',
+      badge: 'Cloud Foundation',
+      summary: 'The free Player app is now a real mobile fitness experience — a solo drills library, a workout timer, streaks, and a progress dashboard, plus a schedule and notifications. Still switched off by default while Phase 6 is built out.',
+      accent: 'border-blue-400/20 bg-slate-950/90 text-slate-100',
+      renderContent: () => (
+        <div className="space-y-4">
+          <p className="text-sm text-slate-300 leading-relaxed">
+            Players who link to your team now get a phone-first workspace they'll actually want to open: a Home screen with a weekly activity ring and streak, a library of 85 solo drills with a built-in workout timer, and a progress dashboard tracking their consistency. Self-recorded activity stays clearly separate from your official team records, and under-18 players still need guardian consent.
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {[
+              { icon: Target, title: 'Solo drills library', desc: '85 drills to filter, favorite, and follow step by step — the same library your training plans draw from.' },
+              { icon: TrendingUp, title: 'Streaks & progress', desc: 'A weekly goal ring, day streaks, minutes, and a 7-day chart keep players coming back.' },
+              { icon: Sparkles, title: 'Workout timer', desc: 'Stopwatch, countdown, and interval training with sound and vibration cues, saved as workout summaries.' },
+              { icon: Cloud, title: 'Schedule & alerts', desc: 'Linked players see the team schedule and get in-app notifications when you approve their request.' }
+            ].map(item => {
+              const Icon = item.icon;
+              return (
+                <div key={item.title} className="rounded-xl border border-blue-400/20 bg-slate-900/80 p-4 shadow-sm shadow-black/20">
+                  <div className="mb-2 flex items-center gap-2">
+                    <span className="flex h-8 w-8 items-center justify-center rounded-lg border border-blue-400/30 bg-blue-400/10 text-blue-200">
+                      <Icon size={16} aria-hidden="true" />
+                    </span>
+                    <h5 className="text-xs font-black uppercase tracking-wider text-blue-100">{item.title}</h5>
+                  </div>
+                  <p className="text-xs text-slate-400 leading-relaxed">{item.desc}</p>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )
+    },
+    {
+      id: 'july_10_phase6_player_foundation',
+      date: '2026-07-10',
+      title: 'Players Can Join Your Team (Phase 6 Player App)',
+      badge: 'Cloud Foundation',
+      summary: 'The free Player app now has real profiles, an invite-and-claim join flow, and a read-only team schedule. Players request to join with your club code, and you approve them from the Squad — all switched off by default while the app is in preview.',
+      accent: 'border-blue-400/20 bg-slate-950/90 text-slate-100',
+      renderContent: () => (
+        <div className="space-y-4">
+          <p className="text-sm text-slate-300 leading-relaxed">
+            This adds the backbone of the free Player app. A player creates their own profile, enters your club's join code, and requests to be linked to their roster spot. You review and approve the request from the Squad tab, and from then on the player can see the team schedule. Youth safety is built in: under-18 players must record guardian consent before they can join.
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {[
+              {
+                icon: Users,
+                title: 'Invite-and-claim',
+                desc: 'Share your club join code. Players request to join and you match them to the right roster spot — one account per roster slot.'
+              },
+              {
+                icon: Target,
+                title: 'Coach stays in control',
+                desc: 'No player is linked until you approve it from the Squad tab. Official records remain staff-controlled.'
+              },
+              {
+                icon: Award,
+                title: 'Guardian consent for minors',
+                desc: 'Under-18 players must record a parent or guardian consent before they can join or share activity.'
+              },
+              {
+                icon: Cloud,
+                title: 'Read-only team schedule',
+                desc: 'Linked players see their fixtures, training, and meetings — without any access to your other club records.'
+              }
+            ].map(item => {
+              const Icon = item.icon;
+
+              return (
+                <div key={item.title} className="rounded-xl border border-blue-400/20 bg-slate-900/80 p-4 shadow-sm shadow-black/20">
+                  <div className="mb-2 flex items-center gap-2">
+                    <span className="flex h-8 w-8 items-center justify-center rounded-lg border border-blue-400/30 bg-blue-400/10 text-blue-200">
+                      <Icon size={16} aria-hidden="true" />
+                    </span>
+                    <h5 className="text-xs font-black uppercase tracking-wider text-blue-100">{item.title}</h5>
+                  </div>
+                  <p className="text-xs text-slate-400 leading-relaxed">{item.desc}</p>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )
+    },
+    {
+      id: 'july_10_phase6_identity_authorization',
+      date: '2026-07-10',
+      title: 'Phase 6 Foundation: Player and League Identity',
+      badge: 'Cloud Foundation',
+      summary: 'Groundwork for Dumala becoming three apps on one backend — Coach, a free Player app, and a League Owner app. Your Coach workspace is unchanged; the new apps are switched off by default while we build them.',
+      accent: 'border-blue-400/20 bg-slate-950/90 text-slate-100',
+      renderContent: () => (
+        <div className="space-y-4">
+          <p className="text-sm text-slate-300 leading-relaxed">
+            This release lays the identity and access foundation for Phase 6. Every account now belongs to exactly one app, decided by the door it registered through — your existing Coach account stays a Coach account, and nothing about your workspace changes. The Player and League doors ship switched off until those experiences are ready.
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {[
+              {
+                icon: Users,
+                title: 'One account, one app',
+                desc: 'Coach, Player, and League accounts are separate. Your Coach login and club data are untouched and behave exactly as before.'
+              },
+              {
+                icon: Sparkles,
+                title: 'Free Player app (preview)',
+                desc: 'A personal workspace for players — schedule, drills, fitness, and badges — with self-recorded activity always kept distinct from verified team records.'
+              },
+              {
+                icon: Award,
+                title: 'League Owner app (invite-based)',
+                desc: 'No open signup: owners request access and a Dumala admin provisions the account. Free during the beta pilot.'
+              },
+              {
+                icon: Cloud,
+                title: 'Secure by design',
+                desc: 'The app each account can reach is decided on the server and gated by entitlements, so no app can reach another app’s protected records.'
+              }
+            ].map(item => {
+              const Icon = item.icon;
+
+              return (
+                <div key={item.title} className="rounded-xl border border-blue-400/20 bg-slate-900/80 p-4 shadow-sm shadow-black/20">
+                  <div className="mb-2 flex items-center gap-2">
+                    <span className="flex h-8 w-8 items-center justify-center rounded-lg border border-blue-400/30 bg-blue-400/10 text-blue-200">
+                      <Icon size={16} aria-hidden="true" />
+                    </span>
+                    <h5 className="text-xs font-black uppercase tracking-wider text-blue-100">{item.title}</h5>
+                  </div>
+                  <p className="text-xs text-slate-400 leading-relaxed">{item.desc}</p>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )
+    },
+    {
       id: 'july_9_plans_promotions_announcements',
       date: '2026-07-09',
       title: 'Simpler Plans, Sales, and In-App Announcements',
