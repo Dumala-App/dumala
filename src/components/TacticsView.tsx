@@ -166,9 +166,9 @@ const SHAPE_IMPACT_TONE_CLASSES: Record<ShapeImpactCard['tone'], {
   }
 };
 
-const tacticsGlassPanelClass = 'rounded-2xl border border-cyan-300/10 bg-[#07111f]/88 text-slate-100 shadow-lg shadow-black/20 backdrop-blur-xl';
-const tacticsGlassCardClass = 'rounded-xl border border-cyan-300/10 bg-[#0b1726]/66 text-slate-100 shadow-sm shadow-black/10 backdrop-blur-sm';
-const tacticsGlassInsetClass = 'rounded-xl border border-cyan-300/10 bg-[#0b1726]/72 text-slate-100 shadow-inner shadow-black/10 backdrop-blur-sm';
+const tacticsGlassPanelClass = 'rounded-2xl border border-slate-700/60 bg-[#081321]/92 text-slate-100 shadow-xl shadow-black/20 backdrop-blur-xl';
+const tacticsGlassCardClass = 'rounded-xl border border-slate-700/55 bg-[#0d1a2a]/72 text-slate-100 shadow-sm shadow-black/10 backdrop-blur-sm';
+const tacticsGlassInsetClass = 'rounded-lg border border-slate-700/50 bg-[#0a1625]/80 text-slate-100 shadow-inner shadow-black/10 backdrop-blur-sm';
 
 const getDrawingStrokeDash = (strokeStyle?: DrawingStrokeStyle) => {
   if (strokeStyle === 'Dashed') return '3 2.2';
@@ -1324,13 +1324,13 @@ export default function TacticsView({
       
       {/* Visual background ambient glow elements */}
       <div className="pointer-events-none absolute left-1/4 top-0 h-[500px] w-[500px] rounded-full bg-cyan-400/10 blur-[140px]" />
-      <div className="pointer-events-none absolute bottom-0 right-1/4 h-[500px] w-[500px] rounded-full bg-orange-400/10 blur-[140px]" />
+      <div className="pointer-events-none absolute bottom-0 right-1/4 h-[500px] w-[500px] rounded-full bg-indigo-500/10 blur-[140px]" />
 
       <div className="xl:col-span-12 relative z-10">
         <div className={cn(tacticsGlassPanelClass, 'flex flex-col gap-3 p-3')}>
           <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
             <div>
-              <p className="text-[10px] font-black uppercase tracking-widest text-amber-400">Tactics Workspace</p>
+              <p className="text-[10px] font-black uppercase tracking-widest text-cyan-300">Tactics Workspace</p>
               <h2 className="font-display text-lg font-black text-white">Match planning desk</h2>
               <p className="text-xs text-slate-400">Set the match shape, work the board, and manage supporting details without leaving the workspace.</p>
             </div>
@@ -1342,7 +1342,7 @@ export default function TacticsView({
                 size="sm"
                 className={`h-9 w-full justify-center rounded-lg px-3 text-xs font-black uppercase tracking-wide whitespace-nowrap ${
                   activeWorkspaceSection === 'board'
-                    ? 'bg-emerald-500 text-slate-950 shadow-sm'
+                    ? 'bg-cyan-400 text-slate-950 shadow-sm shadow-cyan-400/20'
                     : 'text-slate-400 hover:bg-white/5 hover:text-white'
                 }`}
               >
@@ -1355,7 +1355,7 @@ export default function TacticsView({
                 size="sm"
                 className={`h-9 w-full justify-center rounded-lg px-3 text-xs font-black uppercase tracking-wide whitespace-nowrap ${
                   activeWorkspaceSection === 'library'
-                    ? 'bg-indigo-500 text-white shadow-sm'
+                    ? 'bg-indigo-400 text-slate-950 shadow-sm shadow-indigo-400/20'
                     : 'text-slate-400 hover:bg-white/5 hover:text-white'
                 }`}
               >
@@ -1487,8 +1487,8 @@ export default function TacticsView({
                   size="sm"
                   className={`h-16 flex-col gap-1 rounded-lg text-[10px] font-black uppercase tracking-wide ${
                     activeBoardPanel === item.id
-                      ? 'bg-amber-400 text-slate-950 shadow-sm'
-                      : 'border border-cyan-300/10 bg-[#0b1726]/66 text-slate-400 hover:bg-orange-300/10 hover:text-white'
+                      ? 'bg-cyan-400 text-slate-950 shadow-sm shadow-cyan-400/20'
+                      : 'border border-slate-700/50 bg-[#0d1a2a]/66 text-slate-400 hover:border-cyan-300/30 hover:bg-cyan-300/10 hover:text-white'
                   }`}
                 >
                   <Icon size={15} />
@@ -1595,7 +1595,10 @@ export default function TacticsView({
           )}
         >
           <div>
-            <h3 className="font-display font-black text-white text-sm tracking-widest uppercase text-emerald-400">Match Layout</h3>
+            <div>
+              <p className="mb-1 text-[9px] font-black uppercase tracking-[0.22em] text-cyan-300/70">Match Layout</p>
+              <h3 className="font-display text-base font-black tracking-tight text-white">Shape your starting idea</h3>
+            </div>
           </div>
           <div className="flex flex-wrap items-center gap-2">
             {isBoardFullscreen && (
@@ -2084,7 +2087,7 @@ export default function TacticsView({
           <div className="flex flex-wrap items-center justify-center gap-1.5">
             <span className="text-[10px] text-slate-400 font-bold tracking-widest uppercase">Active Tactic Style</span>
           </div>
-          <p id="pitch-hud-val-playstyle" className="font-display font-black text-amber-400 text-sm leading-tight uppercase">{activePlaystyle}</p>
+          <p id="pitch-hud-val-playstyle" className="font-display font-black text-cyan-300 text-sm leading-tight uppercase">{activePlaystyle}</p>
         </div>
           </div>
 
@@ -2895,25 +2898,25 @@ export default function TacticsView({
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95 }}
-            className={cn(tacticsGlassPanelClass, 'relative select-none rounded-xl p-4 text-xs lg:p-5 xl:col-span-12')}
+            className={cn(tacticsGlassPanelClass, 'relative select-none rounded-2xl p-4 text-xs lg:p-6 xl:col-span-12')}
           >
             <div className="flex flex-col gap-3 border-b border-slate-800 pb-4 md:flex-row md:items-center md:justify-between">
               <div>
                 <h4 className="font-display font-black text-white flex items-center gap-2 uppercase tracking-wide">
-                  <BarChart2 className="text-amber-400 shrink-0" size={16} /> Playstyle Tactics & Formations
+                  <BarChart2 className="text-cyan-300 shrink-0" size={16} /> Playstyle Tactics & Formations
                 </h4>
                 <p className="mt-1 text-[11px] text-slate-400">
                   Pick a shape, then choose the game behavior your players should recognize on the field.
                 </p>
               </div>
-              <span className="w-fit rounded-lg border border-amber-400/20 bg-amber-400/10 px-3 py-2 text-[10px] font-black uppercase tracking-widest text-amber-200">
+              <span className="w-fit rounded-lg border border-cyan-400/20 bg-cyan-400/10 px-3 py-2 text-[10px] font-black uppercase tracking-widest text-cyan-200">
                 Strategy engine
               </span>
             </div>
 
             {/* Team Formation (shared for both modes) */}
             <div className="my-4 grid grid-cols-1 gap-3 lg:grid-cols-[18rem_minmax(0,1fr)]">
-              <div className={cn(tacticsGlassCardClass, 'p-3.5')}>
+              <div className="border-b border-slate-700/60 pb-4 lg:border-b-0 lg:border-r lg:pr-5">
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <label className="block text-[10px] font-black uppercase tracking-widest text-slate-300">Formation</label>
@@ -2925,7 +2928,7 @@ export default function TacticsView({
                 <Select value={formation} onValueChange={setFormation}>
                   <SelectTrigger
                     id="select-formation-library"
-                    className="mt-3 h-11 rounded-lg border-slate-800 bg-slate-900 px-3 text-sm font-black text-amber-200 focus:ring-amber-400/30"
+                    className="mt-3 h-11 rounded-lg border-slate-700 bg-slate-900 px-3 text-sm font-black text-cyan-200 focus:ring-cyan-400/30"
                   >
                     <SelectValue />
                   </SelectTrigger>
@@ -2966,7 +2969,7 @@ export default function TacticsView({
                   </div>
                 </div>
               </div>
-              <div className={cn(tacticsGlassCardClass, 'p-3.5')}>
+              <div className="pt-1 lg:pl-1">
                 <div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between">
                   <div>
                     <span className="text-[10px] font-black uppercase tracking-widest text-slate-300">Shape Impact</span>
@@ -3022,7 +3025,7 @@ export default function TacticsView({
                           onClick={() => setStrategyContext(prev => ({ ...prev, matchState: value }))}
                           className={cn(
                             'min-h-9 px-2 text-[9px] font-black leading-tight transition',
-                            selected ? 'bg-amber-400 text-slate-950' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-100'
+                            selected ? 'bg-cyan-400 text-slate-950' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-100'
                           )}
                         >
                           {STRATEGY_CONTEXT_LABELS.matchState[value]}
@@ -3129,7 +3132,7 @@ export default function TacticsView({
               </div>
 
               <div className="mt-3 grid grid-cols-1 gap-3 xl:grid-cols-2">
-                <div className="rounded-lg border border-indigo-500/20 bg-indigo-500/10 p-3.5">
+              <div className="border-l-2 border-indigo-400/70 bg-indigo-500/[0.07] px-4 py-2">
                   <div>
                     <div>
                       <span className="text-[9px] font-black uppercase tracking-widest text-indigo-200">Recommended attack</span>
@@ -3150,10 +3153,10 @@ export default function TacticsView({
                       <span key={cue} className="rounded-md border border-indigo-500/20 bg-slate-950/50 px-2 py-1 text-[9.5px] font-bold text-indigo-100">{cue}</span>
                     ))}
                   </div>
-                  <p className="mt-2 text-[10px] leading-relaxed text-amber-200/80">Watch: {matchupRecommendation.recommendedAttack.watchout}</p>
+                  <p className="mt-2 text-[10px] leading-relaxed text-rose-200/80">Watch: {matchupRecommendation.recommendedAttack.watchout}</p>
                 </div>
 
-                <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/10 p-3.5">
+                <div className="border-l-2 border-emerald-400/70 bg-emerald-500/[0.07] px-4 py-2">
                   <div>
                     <div>
                       <span className="text-[9px] font-black uppercase tracking-widest text-emerald-200">Recommended defense</span>
@@ -3174,7 +3177,7 @@ export default function TacticsView({
                       <span key={cue} className="rounded-md border border-emerald-500/20 bg-slate-950/50 px-2 py-1 text-[9.5px] font-bold text-emerald-100">{cue}</span>
                     ))}
                   </div>
-                  <p className="mt-2 text-[10px] leading-relaxed text-amber-200/80">Watch: {matchupRecommendation.recommendedDefense.watchout}</p>
+                  <p className="mt-2 text-[10px] leading-relaxed text-rose-200/80">Watch: {matchupRecommendation.recommendedDefense.watchout}</p>
                 </div>
               </div>
 
@@ -3245,10 +3248,10 @@ export default function TacticsView({
                           key={guidance.id}
                           type="button"
                           onClick={() => setPlaystyle(guidance.styleValue)}
-                          className={`block w-full min-w-0 whitespace-normal rounded-xl border p-4 text-left align-top transition ${
+                          className={`block w-full min-w-0 whitespace-normal rounded-lg border border-l-2 px-4 py-3 text-left align-top transition ${
                             selected
-                              ? 'border-indigo-400 bg-indigo-500/15 shadow-sm shadow-indigo-500/10'
-                              : 'border-cyan-300/10 bg-[#0b1726]/66 hover:border-orange-300/30 hover:bg-orange-300/10'
+                            ? 'border-indigo-300 bg-indigo-500/15 shadow-sm shadow-indigo-500/10'
+                              : 'border-slate-700/60 bg-[#0b1726]/66 hover:border-cyan-300/30 hover:bg-cyan-300/[0.08]'
                           }`}
                         >
                           <div className="flex min-w-0 items-start justify-between gap-3">
@@ -3262,7 +3265,7 @@ export default function TacticsView({
                               <span key={cue} className="rounded-md border border-indigo-500/20 bg-indigo-500/10 px-2 py-1 text-[10px] font-bold leading-tight text-indigo-200">{cue}</span>
                             ))}
                           </div>
-                          <p className="mt-3 text-[11px] leading-relaxed text-amber-300/85">Watch: {guidance.watchout}</p>
+                          <p className="mt-3 text-[11px] leading-relaxed text-rose-200/85">Watch: {guidance.watchout}</p>
                         </button>
                       );
                     })}
@@ -3283,10 +3286,10 @@ export default function TacticsView({
                           key={guidance.id}
                           type="button"
                           onClick={() => setDefensiveStyle(guidance.styleValue)}
-                          className={`block w-full min-w-0 whitespace-normal rounded-xl border p-4 text-left align-top transition ${
+                          className={`block w-full min-w-0 whitespace-normal rounded-lg border border-l-2 px-4 py-3 text-left align-top transition ${
                             selected
-                              ? 'border-emerald-400 bg-emerald-500/15 shadow-sm shadow-emerald-500/10'
-                              : 'border-cyan-300/10 bg-[#0b1726]/66 hover:border-orange-300/30 hover:bg-orange-300/10'
+                            ? 'border-emerald-300 bg-emerald-500/15 shadow-sm shadow-emerald-500/10'
+                              : 'border-slate-700/60 bg-[#0b1726]/66 hover:border-cyan-300/30 hover:bg-cyan-300/[0.08]'
                           }`}
                         >
                           <div className="flex min-w-0 items-start justify-between gap-3">
@@ -3300,7 +3303,7 @@ export default function TacticsView({
                               <span key={cue} className="rounded-md border border-emerald-500/20 bg-emerald-500/10 px-2 py-1 text-[10px] font-bold leading-tight text-emerald-200">{cue}</span>
                             ))}
                           </div>
-                          <p className="mt-3 text-[11px] leading-relaxed text-amber-300/85">Watch: {guidance.watchout}</p>
+                          <p className="mt-3 text-[11px] leading-relaxed text-rose-200/85">Watch: {guidance.watchout}</p>
                         </button>
                       );
                     })}
