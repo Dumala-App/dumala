@@ -13,6 +13,7 @@ const requiredFiles = [
   'docs/PHASE_3_LAUNCH_APPROVAL_RUNBOOK.md',
   'docs/SUPABASE_SETUP.md',
   'supabase/tests/rls_isolation.sql',
+  'vercel.json',
   '.env.example'
 ];
 
@@ -138,6 +139,21 @@ for (const deploymentBoundary of [
 
 if (!qualityGate.includes('- deploy-production-database')) {
   failures.push('Vercel production deployment must wait for the Supabase migration job.');
+}
+
+const vercelConfig = existsSync(join(root, 'vercel.json')) ? read('vercel.json') : '';
+for (const headerMarker of [
+  '"key": "Permissions-Policy"',
+  'camera=()',
+  'microphone=()',
+  'geolocation=()',
+  'payment=()',
+  'clipboard-write=(self)',
+  'vibrate=(self)'
+]) {
+  if (!vercelConfig.includes(headerMarker)) {
+    failures.push(`Vercel security headers are missing ${headerMarker}.`);
+  }
 }
 
 if (failures.length > 0) {
