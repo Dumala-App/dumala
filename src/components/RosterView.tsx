@@ -17,6 +17,7 @@ import {
   parseIntegerInput
 } from '../forms/validation';
 import SquadPaymentsPanel from './SquadPaymentsPanel';
+import PlayerLinkRequestsPanel from './PlayerLinkRequestsPanel';
 import { Button } from './ui/button';
 import {
   WORKSPACE_SEGMENTED_LIST_CLASS,
@@ -56,6 +57,7 @@ interface RosterViewProps {
   onAddBulkPaymentLedgerEntries: (entries: PaymentLedgerEntry[]) => void;
   onUpdatePaymentLedgerEntry: (entry: PaymentLedgerEntry) => void;
   onVoidPaymentLedgerEntry: (entryId: string, reason: string) => void;
+  cloudClubId?: string | null;
 }
 
 type PlayerFormField = 'name' | 'number' | 'position' | 'age' | 'height' | 'weight';
@@ -105,7 +107,8 @@ export default function RosterView({
   paymentLedger,
   onAddPaymentLedgerEntry,
   onAddBulkPaymentLedgerEntries,
-  onVoidPaymentLedgerEntry
+  onVoidPaymentLedgerEntry,
+  cloudClubId
 }: RosterViewProps) {
   const [activeSection, setActiveSection] = useState<SquadSection>('players');
   // Search & Basic Filter State
@@ -417,6 +420,10 @@ export default function RosterView({
           ))}
         </div>
       </nav>
+
+      {activeSection === 'players' && cloudClubId && (
+        <PlayerLinkRequestsPanel clubId={cloudClubId} />
+      )}
 
       {/* Roster command bar (Players tab only) */}
       {activeSection === 'players' && (
