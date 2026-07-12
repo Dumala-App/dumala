@@ -76,31 +76,18 @@ afterEach(() => {
 });
 
 describe('Tactics knowledgebase', () => {
-  it('renders the reading library with article list and reader', () => {
+  it('opens with the coach development workspace and credential boundary', () => {
     const html = renderToStaticMarkup(<CoachKnowledgeBase />);
 
     expect(html).toContain('Coaching Library');
-    expect(html).toContain('A reading room for coaches');
+    expect(html).toContain('Learn. Apply. Reflect.');
     expect(html).toContain(`${ACTIVE_LIBRARY_ARTICLES.length} articles`);
-
-    // Category filters are present
-    expect(html).toContain('Coaching Philosophies');
-    expect(html).toContain('Club &amp; National Identities');
-    expect(html).toContain('Formations &amp; Systems');
-    expect(html).toContain('Game Principles');
-    expect(html).toContain('Coaching Craft');
-
-    // Every active article appears in the browse list
-    for (const article of ACTIVE_LIBRARY_ARTICLES) {
-      expect(html).toContain(article.title.replace(/&/g, '&amp;'));
-    }
-
-    // The default-selected article renders as long-form text
-    const first = ACTIVE_LIBRARY_ARTICLES[0];
-    expect(html).toContain(first.sections[0].heading);
-    expect(html).toContain('Key Ideas');
-    expect(html).toContain('min read');
-    expect(html).toContain(`Updated ${first.updatedOn}`);
+    expect(html).toContain('Learning plans &amp; goals');
+    expect(html).toContain('Reflection journal');
+    expect(html).toContain('Official resource directory');
+    expect(html).toContain('Learning is not a licence');
+    expect(html).toContain('PFF Coach Courses');
+    expect(html).toContain('Knowledge library');
   });
 });
 

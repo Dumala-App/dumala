@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { BookOpen, Clock, ExternalLink, Lightbulb, ClipboardList, Search } from 'lucide-react';
+import { BookOpen, Clock, ExternalLink, Lightbulb, ClipboardList, Search, Compass, Library, Bookmark, CheckCircle2, ArrowRight } from 'lucide-react';
 import {
   ACTIVE_LIBRARY_ARTICLES,
   LIBRARY_CATEGORY_DESCRIPTIONS,
@@ -14,6 +14,7 @@ import { COACHING_LIBRARY_ITEMS } from '../knowledge/coachingLibrary';
 import { CoachingLibraryDiagram } from './CoachingLibraryDiagram';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
+import { CoachDevelopmentWorkspace } from './CoachDevelopmentWorkspace';
 
 const CATEGORY_ACCENTS: Record<LibraryCategory, string> = {
   philosophy: 'text-amber-300 border-amber-500/20 bg-amber-500/10',
@@ -25,6 +26,16 @@ const CATEGORY_ACCENTS: Record<LibraryCategory, string> = {
 
 type LibraryFilter = 'all' | LibraryCategory;
 
+const readStoredArticleIds = (key: string): string[] => {
+  if (typeof window === 'undefined') return [];
+  try {
+    const value = JSON.parse(window.localStorage.getItem(key) ?? '[]') as unknown;
+    return Array.isArray(value) ? value.filter((id): id is string => typeof id === 'string') : [];
+  } catch {
+    return [];
+  }
+};
+
 const CategoryBadge = ({ category }: { category: LibraryCategory }) => (
   <span className={`rounded-md border px-2 py-1 text-[9px] font-black uppercase tracking-widest ${CATEGORY_ACCENTS[category]}`}>
     {LIBRARY_CATEGORY_LABELS[category]}
@@ -34,10 +45,14 @@ const CategoryBadge = ({ category }: { category: LibraryCategory }) => (
 const ArticleListItem = ({
   article,
   isSelected,
+  isBookmarked,
+  isCompleted,
   onSelect
 }: {
   article: LibraryArticle;
   isSelected: boolean;
+  isBookmarked: boolean;
+  isCompleted: boolean;
   onSelect: (id: string) => void;
 }) => (
   <button
@@ -52,9 +67,10 @@ const ArticleListItem = ({
   >
     <div className="flex items-center justify-between gap-2">
       <CategoryBadge category={article.category} />
-      <span className="inline-flex shrink-0 items-center gap-1 text-[9px] font-bold uppercase tracking-widest text-slate-500">
-        <Clock size={10} aria-hidden="true" />
-        {estimateReadingMinutes(article)} min
+      <span className="flex items-center gap-1.5">
+        {isBookmarked && <Bookmark size={11} className="fill-amber-300 text-amber-300" aria-label="Bookmarked" />}
+        {isCompleted && <CheckCircle2 size={12} className="text-emerald-300" aria-label="Completed" />}
+        <span className="inline-flex shrink-0 items-center gap-1 text-[9px] font-bold uppercase tracking-widest text-slate-500"><Clock size={10} aria-hidden="true" />{estimateReadingMinutes(article)} min</span>
       </span>
     </div>
     <h5 className={`mt-2 text-xs font-black leading-snug ${isSelected ? 'text-amber-200' : 'text-white'}`}>
@@ -66,7 +82,7 @@ const ArticleListItem = ({
   </button>
 );
 
-const ArticleReader = ({ article }: { article: LibraryArticle }) => {
+const ArticleReader = ({ article, isBookmarked, isCompleted, onBookmark, onComplete }: { article: LibraryArticle; isBookmarked: boolean; isCompleted: boolean; onBookmark: () => void; onComplete: () => void }) => {
   const diagramItem = article.diagramId
     ? COACHING_LIBRARY_ITEMS.find(item => item.id === article.diagramId)
     : undefined;
@@ -98,6 +114,10 @@ const ArticleReader = ({ article }: { article: LibraryArticle }) => {
             {estimateReadingMinutes(article)} min read
           </span>
           <span>Updated {article.updatedOn}</span>
+        </div>
+        <div className="mt-5 flex flex-wrap gap-2">
+          <button type="button" onClick={onBookmark} aria-pressed={isBookmarked} className={`inline-flex h-9 items-center gap-2 rounded-lg border px-3 text-[10px] font-black uppercase tracking-widest transition ${isBookmarked ? 'border-amber-400/40 bg-amber-400/10 text-amber-200' : 'border-slate-700 bg-slate-950/50 text-slate-300 hover:border-amber-400/50 hover:text-amber-200'}`}><Bookmark size={13} className={isBookmarked ? 'fill-current' : ''} />{isBookmarked ? 'Saved' : 'Save article'}</button>
+          <button type="button" onClick={onComplete} aria-pressed={isCompleted} className={`inline-flex h-9 items-center gap-2 rounded-lg border px-3 text-[10px] font-black uppercase tracking-widest transition ${isCompleted ? 'border-emerald-400/40 bg-emerald-400/10 text-emerald-200' : 'border-slate-700 bg-slate-950/50 text-slate-300 hover:border-emerald-400/50 hover:text-emerald-200'}`}><CheckCircle2 size={13} />{isCompleted ? 'Completed' : 'Mark as read'}</button>
         </div>
       </header>
 
@@ -198,9 +218,12 @@ const ArticleReader = ({ article }: { article: LibraryArticle }) => {
 };
 
 export const CoachKnowledgeBase = () => {
+  const [workspace, setWorkspace] = useState<'develop' | 'library'>('develop');
   const [activeFilter, setActiveFilter] = useState<LibraryFilter>('all');
   const [query, setQuery] = useState('');
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [savedArticleIds, setSavedArticleIds] = useState<string[]>(() => readStoredArticleIds('dumala:coach-library:saved:v1'));
+  const [completedArticleIds, setCompletedArticleIds] = useState<string[]>(() => readStoredArticleIds('dumala:coach-library:completed:v1'));
 
   const visibleArticles = useMemo(() => {
     const byCategory = activeFilter === 'all'
@@ -213,16 +236,23 @@ export const CoachKnowledgeBase = () => {
     ?? visibleArticles[0]
     ?? null;
 
+  const toggleStoredArticle = (key: string, id: string, values: string[], setValues: React.Dispatch<React.SetStateAction<string[]>>) => {
+    const next = values.includes(id) ? values.filter(value => value !== id) : [...values, id];
+    setValues(next);
+    window.localStorage.setItem(key, JSON.stringify(next));
+  };
+
   return (
     <section id="coach-knowledgebase-panel" className="xl:col-span-12 relative z-10 space-y-5">
-      <div className="rounded-2xl border border-slate-800 bg-[#0f172a]/95 p-5 shadow-lg">
+      <div className="overflow-hidden rounded-2xl border border-slate-800 bg-[#0f172a]/95 shadow-lg">
+        <div className="border-b border-slate-800 bg-[radial-gradient(circle_at_top_right,rgba(251,191,36,0.12),transparent_36%)] p-5 md:p-6">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
             <p className="text-[10px] font-black uppercase tracking-widest text-amber-400">Coaching Library</p>
-            <h3 className="font-display text-xl font-black text-white">A reading room for coaches</h3>
+            <h3 className="font-display text-2xl font-black text-white">Learn. Apply. Reflect.</h3>
             <p className="mt-2 max-w-3xl text-xs leading-relaxed text-slate-400">
-              Long-form notes on the philosophies, club identities, systems, principles, and coaching craft that
-              shaped football. Open an article, read for a few minutes, take one idea to your next session.
+              Your practical development space for football knowledge, personal learning plans, pitch-side goals,
+              reflections, and trusted Philippine and international coaching resources.
             </p>
           </div>
           <div className="flex items-center gap-2 rounded-xl border border-slate-800 bg-slate-950/60 px-3 py-2 text-[10px] font-black uppercase tracking-widest text-slate-400">
@@ -231,7 +261,28 @@ export const CoachKnowledgeBase = () => {
           </div>
         </div>
 
-        <div className="mt-5 flex flex-col gap-3 lg:flex-row lg:items-center">
+        </div>
+        <div className="flex gap-2 border-t border-slate-800/70 px-5 py-3" role="tablist" aria-label="Coaching Library sections">
+          <button type="button" role="tab" aria-selected={workspace === 'develop'} onClick={() => setWorkspace('develop')} className={`inline-flex h-9 items-center gap-2 rounded-lg px-4 text-[10px] font-black uppercase tracking-widest ${workspace === 'develop' ? 'bg-amber-400 text-slate-950' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}><Compass size={14} /> My development</button>
+          <button type="button" role="tab" aria-selected={workspace === 'library'} onClick={() => setWorkspace('library')} className={`inline-flex h-9 items-center gap-2 rounded-lg px-4 text-[10px] font-black uppercase tracking-widest ${workspace === 'library' ? 'bg-amber-400 text-slate-950' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}><Library size={14} /> Knowledge library</button>
+        </div>
+      </div>
+
+      {workspace === 'develop' ? <CoachDevelopmentWorkspace /> : <>
+      <section className="rounded-2xl border border-slate-800 bg-[#0f172a]/95 p-4 md:p-5" aria-labelledby="library-browse-heading">
+        <div className="flex flex-col gap-4 border-b border-slate-800 pb-5 lg:flex-row lg:items-end lg:justify-between">
+          <div><p className="text-[10px] font-black uppercase tracking-[0.2em] text-sky-300">Curated curriculum</p><h4 id="library-browse-heading" className="mt-1 font-display text-xl font-black text-white">Find one idea for your next session</h4><p className="mt-1 max-w-2xl text-xs leading-5 text-slate-400">Browse coaching systems, principles, identities, and practical craft. Save useful reads and track what you have completed.</p></div>
+          <div className="flex gap-2 text-[10px] font-black uppercase tracking-widest"><span className="rounded-lg border border-amber-400/20 bg-amber-400/5 px-3 py-2 text-amber-200">{savedArticleIds.length} saved</span><span className="rounded-lg border border-emerald-400/20 bg-emerald-400/5 px-3 py-2 text-emerald-200">{completedArticleIds.length} read</span></div>
+        </div>
+        <div className="mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-5">
+          {LIBRARY_CATEGORY_ORDER.map(category => {
+            const count = ACTIVE_LIBRARY_ARTICLES.filter(article => article.category === category).length;
+            return <button key={category} type="button" onClick={() => setActiveFilter(category)} className={`group rounded-xl border p-3 text-left transition ${activeFilter === category ? 'border-amber-400/50 bg-amber-400/10' : 'border-slate-800 bg-slate-950/40 hover:border-slate-700'}`}><CategoryBadge category={category} /><p className="mt-2 line-clamp-2 text-[11px] leading-4 text-slate-400">{LIBRARY_CATEGORY_DESCRIPTIONS[category]}</p><span className="mt-3 inline-flex items-center gap-1 text-[9px] font-black uppercase tracking-widest text-slate-500 group-hover:text-amber-300">{count} articles <ArrowRight size={10} /></span></button>;
+          })}
+        </div>
+      </section>
+      <div className="rounded-2xl border border-slate-800 bg-[#0f172a]/95 p-4">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
           <div className="relative lg:w-72">
             <Search size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" aria-hidden="true" />
             <Input
@@ -283,6 +334,8 @@ export const CoachKnowledgeBase = () => {
               key={article.id}
               article={article}
               isSelected={selectedArticle?.id === article.id}
+              isBookmarked={savedArticleIds.includes(article.id)}
+              isCompleted={completedArticleIds.includes(article.id)}
               onSelect={setSelectedId}
             />
           ))}
@@ -296,13 +349,13 @@ export const CoachKnowledgeBase = () => {
         </nav>
 
         {selectedArticle ? (
-          <ArticleReader article={selectedArticle} />
+          <ArticleReader article={selectedArticle} isBookmarked={savedArticleIds.includes(selectedArticle.id)} isCompleted={completedArticleIds.includes(selectedArticle.id)} onBookmark={() => toggleStoredArticle('dumala:coach-library:saved:v1', selectedArticle.id, savedArticleIds, setSavedArticleIds)} onComplete={() => toggleStoredArticle('dumala:coach-library:completed:v1', selectedArticle.id, completedArticleIds, setCompletedArticleIds)} />
         ) : (
           <div className="rounded-2xl border border-dashed border-slate-800 p-10 text-center text-xs text-slate-400">
             Select an article to start reading.
           </div>
         )}
-      </div>
+      </div></>}
     </section>
   );
 };

@@ -149,9 +149,9 @@ Coaches keep their existing workspaces, players and League owners operate their 
 
 ## Future Expansion: Philippine coach education
 
-Status: **Long Term**
+Status: **Done — local-first foundation**
 
-### Planned deliverables
+### Delivered
 
 - Build a knowledge base for session planning, tactics, development, conditioning, leadership, safeguarding, first aid, and Laws of the Game.
 - Explain the Philippine pathway using current PFF and AFC guidance.
@@ -165,6 +165,8 @@ Status: **Long Term**
 ### Completion criteria
 
 Philippine coaches can find official guidance, organize development records, and clearly distinguish verified credentials from app progress.
+
+The Coaching Library provides the completed private/local workflow and a controlled public portfolio preview/export. Authenticated public URLs, moderation, ownership recovery, and server-side credential verification remain governed by Phase 5 rather than this education module.
 
 ## Future Expansion: Club operations
 
