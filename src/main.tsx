@@ -1,14 +1,14 @@
 import {StrictMode} from 'react';
 import {createRoot} from 'react-dom/client';
 import {injectSpeedInsights} from '@vercel/speed-insights';
-import App from './App.tsx';
+import RootRouter from './RootRouter.tsx';
 import { AppErrorBoundary } from './components/ErrorBoundary.tsx';
-import './index.css';
+import './landing-critical.css';
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <AppErrorBoundary>
-      <App />
+      <RootRouter />
     </AppErrorBoundary>
   </StrictMode>,
 );

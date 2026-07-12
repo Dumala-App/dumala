@@ -9,7 +9,6 @@ import {
   DialogHeader,
   DialogTitle
 } from './ui/dialog';
-import { useCloudRuntime } from '../hooks/useCloudRuntime';
 import {
   createPremiumLeadRecord,
   hasPremiumLeadErrors,
@@ -178,6 +177,7 @@ const styles = `
   .dc-ticket{grid-template-columns:1fr !important}
   .dc-ticket-stub{border-left:none !important;border-top:2px dashed rgba(255,255,255,.12) !important}
   .dc-ticket-stub-premium{border-left:none !important;border-top:2px dashed rgba(255,138,61,.32) !important}
+  .dc-promotion-slot{min-height:132px !important}
 }
 @media (prefers-reduced-motion: reduce){
   .dc-root *{animation-duration:.001ms !important;animation-iteration-count:1 !important}
@@ -186,7 +186,6 @@ const styles = `
 
 export default function LandingPage() {
   const rootRef = useRef<HTMLDivElement>(null);
-  const runtime = useCloudRuntime();
   const [premiumModalOpen, setPremiumModalOpen] = useState(false);
   const [premiumLead, setPremiumLead] = useState<PremiumLeadForm>(initialPremiumLeadForm);
   const [premiumLeadErrors, setPremiumLeadErrors] = useState<PremiumLeadErrors>({});
@@ -196,17 +195,28 @@ export default function LandingPage() {
 
   // Live promotion (sale/discount) managed from the Dumala Admin Console.
   useEffect(() => {
-    if (!runtime.enabled) return;
     let cancelled = false;
-    runtime.dataAccess.marketing.listActivePromotions()
-      .then(rows => {
-        if (!cancelled) setActivePromotion(rows[0] ?? null);
-      })
-      .catch(() => undefined);
+    const loadPromotion = () => {
+      void import('../cloud/runtime')
+        .then(({ createCloudRuntime }) => createCloudRuntime())
+        .then(runtime => runtime.enabled ? runtime.dataAccess.marketing.listActivePromotions() : [])
+        .then(rows => {
+          if (!cancelled) setActivePromotion(rows[0] ?? null);
+        })
+        .catch(() => undefined);
+    };
+    const idleWindow = window as Window & typeof globalThis & {
+      requestIdleCallback?: (callback: () => void, options?: { timeout: number }) => number;
+      cancelIdleCallback?: (handle: number) => void;
+    };
+    const idleHandle = idleWindow.requestIdleCallback?.(loadPromotion, { timeout: 1500 });
+    const timeoutHandle = idleHandle === undefined ? window.setTimeout(loadPromotion, 750) : undefined;
     return () => {
       cancelled = true;
+      if (idleHandle !== undefined) idleWindow.cancelIdleCallback?.(idleHandle);
+      if (timeoutHandle !== undefined) window.clearTimeout(timeoutHandle);
     };
-  }, [runtime]);
+  }, []);
 
   const scrollToId = (id: string) => {
     const el = document.getElementById(id);
@@ -241,7 +251,8 @@ export default function LandingPage() {
     setPremiumLeadMessage('');
 
     try {
-      const deliveredLead = await submitPremiumLead(lead, runtime);
+      const { createCloudRuntime } = await import('../cloud/runtime');
+      const deliveredLead = await submitPremiumLead(lead, createCloudRuntime());
       storePremiumLead(deliveredLead);
       setPremiumLeadStatus('success');
       setPremiumLeadMessage('You are on the Premium beta list. We will follow up before Premium access opens.');
@@ -270,8 +281,11 @@ export default function LandingPage() {
       },
       { threshold: 0.12 }
     );
-    els.forEach((el) => {
-      if (el.getBoundingClientRect().top > window.innerHeight) {
+    // Read all geometry before changing any inline styles. Interleaving these
+    // reads and writes forces layout once per reveal element in Chromium.
+    const belowFold = els.map((el) => el.getBoundingClientRect().top > window.innerHeight);
+    els.forEach((el, index) => {
+      if (belowFold[index]) {
         el.style.opacity = '0';
         el.style.transform = 'translateY(26px)';
         el.style.transition = 'opacity .7s ease-out, transform .7s cubic-bezier(.2,.7,.2,1)';
@@ -413,8 +427,9 @@ export default function LandingPage() {
               <p style={{ margin: '16px auto 0', fontSize: 15.5, lineHeight: 1.7, color: '#8A96AD' }}>Free is for trying the workflow in a real match week. Premium is for coaches and organizations that need stronger reports and planning.</p>
             </div>
 
-            {activePromotion && (
-              <div data-reveal="1" style={{ margin: '28px auto 0', maxWidth: 920, opacity: 1 }}>
+            <div className="dc-promotion-slot" style={{ minHeight: 86, margin: '28px auto 0', maxWidth: 920 }}>
+              {activePromotion && (
+              <div data-reveal="1" style={{ opacity: 1 }}>
                 <div role="status" style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center', gap: 12, border: '1px dashed rgba(255,138,61,.45)', background: 'rgba(255,138,61,.08)', borderRadius: 14, padding: '14px 20px', textAlign: 'center' }}>
                   <span style={{ background: '#FF8A3D', color: '#180A00', fontSize: 10.5, fontWeight: 800, letterSpacing: '.14em', textTransform: 'uppercase', padding: '4px 10px', borderRadius: 999 }}>
                     {promotionDiscountLabel(activePromotion)}
@@ -429,9 +444,10 @@ export default function LandingPage() {
                   )}
                 </div>
               </div>
-            )}
+              )}
+            </div>
 
-            <div id="pricing-plans" style={{ margin: '40px auto 0', maxWidth: 920, display: 'flex', flexDirection: 'column', gap: 20 }}>
+            <div id="pricing-plans" style={{ margin: '12px auto 0', maxWidth: 920, display: 'flex', flexDirection: 'column', gap: 20 }}>
               {/* Free — Matchday pass ticket */}
               <div data-reveal="1" className="dc-glow-shell" style={{ opacity: 1, borderRadius: 26 }}>
                 <GlowingEffect spread={42} glow disabled={false} proximity={82} inactiveZone={0.01} borderWidth={3} />
