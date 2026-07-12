@@ -558,3 +558,261 @@ export const submitEventRegistration = async (
     'Failed to submit your registration'
   ) as string;
 };
+
+// --- Tournament engine: teams, fixtures, results -----------------------------
+// A round-robin backbone. Standings are derived from results by a pure helper
+// (computeStandings) rather than stored, so there is nothing to keep in sync.
+
+export type EventFixtureStatus = 'scheduled' | 'completed' | 'cancelled';
+
+export interface EventTeam {
+  id: string;
+  event_id: string;
+  league_id: string;
+  registration_id: string | null;
+  name: string;
+  seed: number | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface EventFixture {
+  id: string;
+  event_id: string;
+  league_id: string;
+  round: number;
+  sequence: number | null;
+  home_team_id: string;
+  away_team_id: string;
+  status: EventFixtureStatus;
+  home_score: number | null;
+  away_score: number | null;
+  kickoff_at: string | null;
+  venue_id: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface StandingRow {
+  teamId: string;
+  name: string;
+  played: number;
+  won: number;
+  drawn: number;
+  lost: number;
+  goalsFor: number;
+  goalsAgainst: number;
+  goalDifference: number;
+  points: number;
+}
+
+/** A single generated pairing (team ids, or null for a bye). */
+export interface FixturePairing {
+  round: number;
+  sequence: number;
+  homeTeamId: string;
+  awayTeamId: string;
+}
+
+// --- Pure helpers (unit-testable) --------------------------------------------
+
+/**
+ * Round-robin schedule (circle method): every team plays every other once.
+ * Odd counts get a bye each round (dropped from the output). Deterministic.
+ */
+export const roundRobinRounds = (teamIds: string[]): FixturePairing[] => {
+  const ids = [...teamIds];
+  if (ids.length < 2) return [];
+  const bye = '__bye__';
+  if (ids.length % 2 === 1) ids.push(bye);
+
+  const n = ids.length;
+  const rounds = n - 1;
+  const half = n / 2;
+  const rotating = ids.slice(1);
+  const pairings: FixturePairing[] = [];
+
+  for (let round = 0; round < rounds; round += 1) {
+    const roster = [ids[0], ...rotating];
+    let sequence = 0;
+    for (let i = 0; i < half; i += 1) {
+      const home = roster[i];
+      const away = roster[n - 1 - i];
+      if (home !== bye && away !== bye) {
+        // Alternate home/away by round so it isn't always the same side.
+        const flip = round % 2 === 1;
+        pairings.push({
+          round: round + 1,
+          sequence: sequence + 1,
+          homeTeamId: flip ? away : home,
+          awayTeamId: flip ? home : away
+        });
+        sequence += 1;
+      }
+    }
+    // Rotate all but the first element clockwise.
+    rotating.unshift(rotating.pop() as string);
+  }
+  return pairings;
+};
+
+/** League table from completed fixtures. 3 pts win / 1 draw; sorted by pts, GD, GF, name. */
+export const computeStandings = (teams: EventTeam[], fixtures: EventFixture[]): StandingRow[] => {
+  const table = new Map<string, StandingRow>();
+  for (const team of teams) {
+    table.set(team.id, {
+      teamId: team.id, name: team.name, played: 0, won: 0, drawn: 0, lost: 0,
+      goalsFor: 0, goalsAgainst: 0, goalDifference: 0, points: 0
+    });
+  }
+
+  for (const fixture of fixtures) {
+    if (fixture.status !== 'completed' || fixture.home_score === null || fixture.away_score === null) continue;
+    const home = table.get(fixture.home_team_id);
+    const away = table.get(fixture.away_team_id);
+    if (!home || !away) continue;
+    home.played += 1; away.played += 1;
+    home.goalsFor += fixture.home_score; home.goalsAgainst += fixture.away_score;
+    away.goalsFor += fixture.away_score; away.goalsAgainst += fixture.home_score;
+    if (fixture.home_score > fixture.away_score) {
+      home.won += 1; home.points += 3; away.lost += 1;
+    } else if (fixture.home_score < fixture.away_score) {
+      away.won += 1; away.points += 3; home.lost += 1;
+    } else {
+      home.drawn += 1; away.drawn += 1; home.points += 1; away.points += 1;
+    }
+  }
+
+  const rows = [...table.values()];
+  for (const row of rows) row.goalDifference = row.goalsFor - row.goalsAgainst;
+  rows.sort((a, b) =>
+    b.points - a.points ||
+    b.goalDifference - a.goalDifference ||
+    b.goalsFor - a.goalsFor ||
+    a.name.localeCompare(b.name));
+  return rows;
+};
+
+// --- Owner: teams ------------------------------------------------------------
+
+export const listEventTeams = async (client: DumalaSupabaseClient, eventId: string): Promise<EventTeam[]> => {
+  const supabase = asUntypedClient(client);
+  return (expectNoError(
+    await supabase.from('event_teams').select('*').eq('event_id', eventId).order('created_at', { ascending: true }),
+    'TEAMS_READ_FAILED',
+    'Failed to load teams'
+  ) as EventTeam[] | null) ?? [];
+};
+
+export const addEventTeam = async (
+  client: DumalaSupabaseClient,
+  leagueId: string,
+  eventId: string,
+  input: { name: string; seed?: number | null; registrationId?: string | null }
+): Promise<EventTeam> => {
+  const supabase = asUntypedClient(client);
+  return expectNoError(
+    await supabase.from('event_teams').insert({
+      league_id: leagueId, event_id: eventId, name: input.name.trim(),
+      seed: input.seed ?? null, registration_id: input.registrationId ?? null
+    }).select('*').single(),
+    'TEAM_CREATE_FAILED',
+    'Failed to add the team'
+  ) as EventTeam;
+};
+
+export const deleteEventTeam = async (client: DumalaSupabaseClient, teamId: string): Promise<void> => {
+  const supabase = asUntypedClient(client);
+  expectNoError(
+    await supabase.from('event_teams').delete().eq('id', teamId),
+    'TEAM_DELETE_FAILED',
+    'Failed to remove the team'
+  );
+};
+
+/** Add an event_team for every approved registration not already represented. */
+export const syncApprovedTeams = async (
+  client: DumalaSupabaseClient,
+  leagueId: string,
+  eventId: string
+): Promise<EventTeam[]> => {
+  const supabase = asUntypedClient(client);
+  const [approved, existing] = await Promise.all([
+    listRegistrations(client, eventId),
+    listEventTeams(client, eventId)
+  ]);
+  const linked = new Set(existing.map(t => t.registration_id).filter(Boolean) as string[]);
+  const toAdd = approved
+    .filter(r => r.status === 'approved' && !linked.has(r.id))
+    .map(r => ({
+      league_id: leagueId, event_id: eventId,
+      name: r.team_name?.trim() || r.club_name.trim(), registration_id: r.id
+    }));
+  if (toAdd.length === 0) return existing;
+  const inserted = expectNoError(
+    await supabase.from('event_teams').insert(toAdd).select('*'),
+    'TEAM_SYNC_FAILED',
+    'Failed to add approved teams'
+  ) as EventTeam[] | null;
+  return [...existing, ...(inserted ?? [])];
+};
+
+// --- Owner: fixtures + results -----------------------------------------------
+
+export const listFixtures = async (client: DumalaSupabaseClient, eventId: string): Promise<EventFixture[]> => {
+  const supabase = asUntypedClient(client);
+  return (expectNoError(
+    await supabase.from('event_fixtures').select('*').eq('event_id', eventId)
+      .order('round', { ascending: true }).order('sequence', { ascending: true }),
+    'FIXTURES_READ_FAILED',
+    'Failed to load fixtures'
+  ) as EventFixture[] | null) ?? [];
+};
+
+export const clearFixtures = async (client: DumalaSupabaseClient, eventId: string): Promise<void> => {
+  const supabase = asUntypedClient(client);
+  expectNoError(
+    await supabase.from('event_fixtures').delete().eq('event_id', eventId),
+    'FIXTURES_CLEAR_FAILED',
+    'Failed to clear fixtures'
+  );
+};
+
+/** Regenerate a round-robin schedule for the event's teams (clears existing first). */
+export const generateFixtures = async (
+  client: DumalaSupabaseClient,
+  leagueId: string,
+  eventId: string
+): Promise<EventFixture[]> => {
+  const supabase = asUntypedClient(client);
+  const teams = await listEventTeams(client, eventId);
+  if (teams.length < 2) {
+    throw new CloudLeagueError('Add at least two teams before generating fixtures.', 'NOT_ENOUGH_TEAMS');
+  }
+  await clearFixtures(client, eventId);
+  const rows = roundRobinRounds(teams.map(t => t.id)).map(p => ({
+    league_id: leagueId, event_id: eventId, round: p.round, sequence: p.sequence,
+    home_team_id: p.homeTeamId, away_team_id: p.awayTeamId
+  }));
+  const inserted = expectNoError(
+    await supabase.from('event_fixtures').insert(rows).select('*')
+      .order('round', { ascending: true }).order('sequence', { ascending: true }),
+    'FIXTURES_GENERATE_FAILED',
+    'Failed to generate fixtures'
+  ) as EventFixture[] | null;
+  return inserted ?? [];
+};
+
+export const recordFixtureResult = async (
+  client: DumalaSupabaseClient,
+  fixtureId: string,
+  homeScore: number,
+  awayScore: number
+): Promise<EventFixture> => {
+  const supabase = asUntypedClient(client);
+  return expectNoError(
+    await supabase.rpc('record_fixture_result', { fixture_id: fixtureId, home_score: homeScore, away_score: awayScore }),
+    'FIXTURE_RESULT_FAILED',
+    'Failed to record the result'
+  ) as EventFixture;
+};

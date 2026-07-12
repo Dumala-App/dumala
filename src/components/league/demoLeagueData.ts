@@ -4,8 +4,11 @@ import type { CloudAuthController } from '../../hooks/useCloudAuth';
 import {
   nextEventStatuses,
   nextSeasonStatuses,
+  roundRobinRounds,
   spotsRemaining,
+  type EventFixture,
   type EventRegistration,
+  type EventTeam,
   type League,
   type LeagueEvent,
   type LeagueSeason,
@@ -115,6 +118,34 @@ const buildDemoLeagueRepository = (): CloudLeagueRepository => {
       created_at: now(), updated_at: now()
     }
   ];
+
+  const teamRow = (id: string, name: string, registrationId: string | null): EventTeam => ({
+    id, event_id: 'demo-event-1', league_id: LEAGUE_ID, registration_id: registrationId, name, seed: null,
+    created_at: now(), updated_at: now()
+  });
+  let teams: EventTeam[] = [
+    teamRow('demo-team-1', 'Bayside FC', 'demo-reg-1'),
+    teamRow('demo-team-2', 'North Stars', null),
+    teamRow('demo-team-3', 'Metro United', null),
+    teamRow('demo-team-4', 'Harbour City', null)
+  ];
+
+  // A pre-generated round-robin with the first two matches already played, so
+  // the Fixtures list and the live table are populated on first open.
+  const seededResults: Record<string, [number, number]> = {
+    'demo-team-1|demo-team-2': [2, 1],
+    'demo-team-3|demo-team-4': [0, 0]
+  };
+  let fixtures: EventFixture[] = roundRobinRounds(teams.map(t => t.id)).map((p, index) => {
+    const key = `${p.homeTeamId}|${p.awayTeamId}`;
+    const result = seededResults[key];
+    return {
+      id: `demo-fixture-${index + 1}`, event_id: 'demo-event-1', league_id: LEAGUE_ID,
+      round: p.round, sequence: p.sequence, home_team_id: p.homeTeamId, away_team_id: p.awayTeamId,
+      status: result ? 'completed' : 'scheduled', home_score: result ? result[0] : null,
+      away_score: result ? result[1] : null, kickoff_at: null, venue_id: null, created_at: now(), updated_at: now()
+    };
+  });
 
   return {
     listLeagues: async () => leagues,
@@ -260,6 +291,56 @@ const buildDemoLeagueRepository = (): CloudLeagueRepository => {
       };
       registrations = [...registrations, row];
       return row.id;
+    },
+    listEventTeams: async eventId => teams.filter(t => t.event_id === eventId),
+    addEventTeam: async (leagueId, eventId, input) => {
+      const row = teamRow(newId(), input.name.trim(), input.registrationId ?? null);
+      row.event_id = eventId;
+      row.league_id = leagueId;
+      row.seed = input.seed ?? null;
+      teams = [...teams, row];
+      return row;
+    },
+    deleteEventTeam: async teamId => {
+      teams = teams.filter(t => t.id !== teamId);
+      fixtures = fixtures.filter(f => f.home_team_id !== teamId && f.away_team_id !== teamId);
+    },
+    syncApprovedTeams: async (leagueId, eventId) => {
+      const linked = new Set(teams.filter(t => t.event_id === eventId).map(t => t.registration_id).filter(Boolean) as string[]);
+      const additions = registrations
+        .filter(r => r.event_id === eventId && r.status === 'approved' && !linked.has(r.id))
+        .map(r => {
+          const row = teamRow(newId(), r.team_name?.trim() || r.club_name.trim(), r.id);
+          row.event_id = eventId;
+          row.league_id = leagueId;
+          return row;
+        });
+      teams = [...teams, ...additions];
+      return teams.filter(t => t.event_id === eventId);
+    },
+    listFixtures: async eventId => fixtures
+      .filter(f => f.event_id === eventId)
+      .sort((a, b) => a.round - b.round || (a.sequence ?? 0) - (b.sequence ?? 0)),
+    generateFixtures: async (leagueId, eventId) => {
+      const eventTeams = teams.filter(t => t.event_id === eventId);
+      if (eventTeams.length < 2) throw new Error('NOT_ENOUGH_TEAMS');
+      fixtures = fixtures.filter(f => f.event_id !== eventId);
+      const generated: EventFixture[] = roundRobinRounds(eventTeams.map(t => t.id)).map(p => ({
+        id: newId(), event_id: eventId, league_id: leagueId, round: p.round, sequence: p.sequence,
+        home_team_id: p.homeTeamId, away_team_id: p.awayTeamId, status: 'scheduled',
+        home_score: null, away_score: null, kickoff_at: null, venue_id: null, created_at: now(), updated_at: now()
+      }));
+      fixtures = [...fixtures, ...generated];
+      return generated;
+    },
+    clearFixtures: async eventId => {
+      fixtures = fixtures.filter(f => f.event_id !== eventId);
+    },
+    recordFixtureResult: async (fixtureId, homeScore, awayScore) => {
+      fixtures = fixtures.map(f => f.id === fixtureId
+        ? { ...f, home_score: homeScore, away_score: awayScore, status: 'completed', updated_at: now() }
+        : f);
+      return fixtures.find(f => f.id === fixtureId)!;
     }
   };
 };

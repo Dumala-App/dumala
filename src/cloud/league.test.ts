@@ -4,10 +4,14 @@ import { createCloudDataAccess } from './dataAccess';
 import {
   CloudLeagueError,
   EVENT_STATUS_LABELS,
+  computeStandings,
   nextEventStatuses,
   nextSeasonStatuses,
+  roundRobinRounds,
   SEASON_STATUS_LABELS,
-  spotsRemaining
+  spotsRemaining,
+  type EventFixture,
+  type EventTeam
 } from './league';
 
 const createTableStub = (result: unknown, error: unknown = null) => {
@@ -61,6 +65,56 @@ describe('event lifecycle + capacity helpers', () => {
     expect(spotsRemaining(4, 9)).toBe(0);
     expect(spotsRemaining(null, 3)).toBeNull();
     expect(spotsRemaining(undefined, 0)).toBeNull();
+  });
+});
+
+describe('tournament pure helpers', () => {
+  const team = (id: string, name: string): EventTeam => ({
+    id, event_id: 'e', league_id: 'l', registration_id: null, name, seed: null, created_at: '', updated_at: ''
+  });
+  const fixture = (
+    home: string, away: string, hs: number | null, as: number | null,
+    status: EventFixture['status'] = 'completed'
+  ): EventFixture => ({
+    id: `${home}-${away}`, event_id: 'e', league_id: 'l', round: 1, sequence: 1,
+    home_team_id: home, away_team_id: away, status, home_score: hs, away_score: as,
+    kickoff_at: null, venue_id: null, created_at: '', updated_at: ''
+  });
+
+  const unordered = (p: { homeTeamId: string; awayTeamId: string }) => [p.homeTeamId, p.awayTeamId].sort().join('-');
+
+  it('schedules a full single round-robin for an even field', () => {
+    const pairings = roundRobinRounds(['a', 'b', 'c', 'd']);
+    expect(pairings).toHaveLength(6); // 4C2
+    expect(Math.max(...pairings.map(p => p.round))).toBe(3);
+    expect(new Set(pairings.map(unordered)).size).toBe(6); // every pair exactly once
+  });
+
+  it('gives each team a bye for an odd field', () => {
+    const pairings = roundRobinRounds(['a', 'b', 'c']);
+    expect(pairings).toHaveLength(3); // 3C2
+    expect(Math.max(...pairings.map(p => p.round))).toBe(3); // one match per round + a bye
+    expect(new Set(pairings.map(unordered)).size).toBe(3);
+  });
+
+  it('returns nothing for fewer than two teams', () => {
+    expect(roundRobinRounds([])).toEqual([]);
+    expect(roundRobinRounds(['a'])).toEqual([]);
+  });
+
+  it('builds a league table sorted by points, then goal difference', () => {
+    const teams = [team('a', 'Alpha'), team('b', 'Bravo'), team('c', 'Charlie')];
+    const fixtures = [
+      fixture('a', 'b', 2, 1),
+      fixture('a', 'c', 0, 0),
+      fixture('b', 'c', 3, 0),
+      fixture('a', 'c', 5, 0, 'scheduled') // not completed → ignored
+    ];
+    const table = computeStandings(teams, fixtures);
+    expect(table.map(r => r.teamId)).toEqual(['a', 'b', 'c']);
+    expect(table[0]).toMatchObject({ played: 2, won: 1, drawn: 1, lost: 0, points: 4, goalDifference: 1 });
+    expect(table[1]).toMatchObject({ points: 3, goalDifference: 2 });
+    expect(table[2]).toMatchObject({ points: 1, goalDifference: -3 });
   });
 });
 

@@ -181,29 +181,39 @@ import {
   type WorkoutSessionInput
 } from './player';
 import {
+  addEventTeam,
   advanceEventStatus,
   advanceSeasonStatus,
+  clearFixtures,
   createEvent,
   createLeague,
   createSeason,
   createVenue,
+  deleteEventTeam,
   deleteVenue,
+  generateFixtures,
   listEvents,
+  listEventTeams,
+  listFixtures,
   listLeagues,
   listRegistrations,
   listSeasons,
   listVenues,
   lookupEventRegistration,
+  recordFixtureResult,
   reviewRegistration,
   submitEventRegistration,
+  syncApprovedTeams,
   updateEvent,
   updateLeague,
   updateSeason,
   updateVenue,
+  type EventFixture,
   type EventRegistration,
   type EventRegistrationInput,
   type EventRegistrationLookup,
   type EventRegistrationStatus,
+  type EventTeam,
   type League,
   type LeagueEvent,
   type LeagueEventInput,
@@ -395,6 +405,14 @@ export interface CloudLeagueRepository {
   ): Promise<EventRegistrationStatus>;
   lookupEventRegistration(code: string): Promise<EventRegistrationLookup>;
   submitEventRegistration(input: EventRegistrationInput): Promise<string>;
+  listEventTeams(eventId: string): Promise<EventTeam[]>;
+  addEventTeam(leagueId: string, eventId: string, input: { name: string; seed?: number | null; registrationId?: string | null }): Promise<EventTeam>;
+  deleteEventTeam(teamId: string): Promise<void>;
+  syncApprovedTeams(leagueId: string, eventId: string): Promise<EventTeam[]>;
+  listFixtures(eventId: string): Promise<EventFixture[]>;
+  generateFixtures(leagueId: string, eventId: string): Promise<EventFixture[]>;
+  clearFixtures(eventId: string): Promise<void>;
+  recordFixtureResult(fixtureId: string, homeScore: number, awayScore: number): Promise<EventFixture>;
 }
 
 export interface CloudChatRepository {
@@ -575,7 +593,15 @@ export const createCloudDataAccess = (client: DumalaSupabaseClient): CloudDataAc
     reviewRegistration: (registrationId, nextStatus, note) =>
       reviewRegistration(client, registrationId, nextStatus, note),
     lookupEventRegistration: code => lookupEventRegistration(client, code),
-    submitEventRegistration: input => submitEventRegistration(client, input)
+    submitEventRegistration: input => submitEventRegistration(client, input),
+    listEventTeams: eventId => listEventTeams(client, eventId),
+    addEventTeam: (leagueId, eventId, input) => addEventTeam(client, leagueId, eventId, input),
+    deleteEventTeam: teamId => deleteEventTeam(client, teamId),
+    syncApprovedTeams: (leagueId, eventId) => syncApprovedTeams(client, leagueId, eventId),
+    listFixtures: eventId => listFixtures(client, eventId),
+    generateFixtures: (leagueId, eventId) => generateFixtures(client, leagueId, eventId),
+    clearFixtures: eventId => clearFixtures(client, eventId),
+    recordFixtureResult: (fixtureId, homeScore, awayScore) => recordFixtureResult(client, fixtureId, homeScore, awayScore)
   },
   chat: {
     ensureChannel: clubId => ensureChannel(client, clubId),
