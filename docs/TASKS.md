@@ -1,6 +1,6 @@
 # Dumala Delivery Tasks
 
-Updated: 2026-07-10
+Updated: 2026-07-12
 
 Status values: **Done**, **In Progress**, **Next**, **Planned**, **Long Term**.
 
@@ -9,7 +9,7 @@ Status values: **Done**, **In Progress**, **Next**, **Planned**, **Long Term**.
 Progress is calculated from the completed capabilities and open checklist items in this document. The roadmap bars track implementation, while Release Validation tracks the latest verified build checks.
 
 ```text
-Overall roadmap                 [#######---]  75%  93 / 122
+Overall roadmap                 [########--]  81%  99 / 122
 
 Shipped beta foundation         [##########] 100%  20 / 20
 Current Beta: Reliability       [##########] 100%  24 / 24
@@ -20,7 +20,7 @@ Phase 3: Cloud and sync         [##########] 100%   6 / 6
 Phase 4: Team collaboration     [##########] 100%   5 / 5
 Phase 5: Profiles and drafting  [----------]   0%   0 / 6
 Phase 6: Player & League        [----------]   0%   0 / 11
-Future: Coach education         [----------]   0%   0 / 6
+Future: Coach education         [##########] 100%   6 / 6
 Future: Club operations         [##--------]  17%   1 / 6
 Commercial validation           [########--]  83%   5 / 6
 Release: App stores             [----------]   0%   0 / 1
@@ -39,7 +39,7 @@ Release validation              [##########] 100%  14 / 14
 | Phase 4: Team collaboration | 5 | 5 | 100% | Done |
 | Phase 5: Public profiles and drafting | 0 | 6 | 0% | Long Term |
 | Phase 6: Player and League platform expansion | 0 | 11 | 0% | Planned |
-| Future Expansion: Philippine coach education | 0 | 6 | 0% | Long Term |
+| Future Expansion: Philippine coach education | 6 | 6 | 100% | Done |
 | Future Expansion: Club operations | 1 | 6 | 17% | Long Term |
 | Commercial validation and SaaS packaging | 5 | 6 | 83% | In Progress |
 | Future Release: App store distribution | 0 | 1 | 0% | Deferred |
@@ -47,6 +47,10 @@ Release validation              [##########] 100%  14 / 14
 The FPRDS total includes twenty completed capabilities: the five shipped assessment features plus interpolation, role-weighting, age-transition, required-field validation coverage, true historical progress charts, player/session comparison reports, the evidence-based development doctrine, training evidence naming, removal of direct training-to-rating mutation, reassessment recommendations, rating confidence labels, the opt-in FPRDS beta results database with aggregate benchmark analysis and correction review, downloadable player assessment and development reports, a coach-review data export, and benchmark versioning that stamps every session with the benchmark table version it was scored under. Practitioner benchmark review is deferred until qualified external reviewers are available, so it is not counted in the twenty.
 
 ## Recent changes
+
+### Completed: 2026-07-12
+
+- [x] Completed the local-first Philippine Coach Education expansion inside the redesigned Coaching Library: a practical eight-lane learning pathway, curated long-form knowledge library, official PFF/AFC/FIFA resource directory, learning plans and observable goals, private reflections, saved/read article tracking, self-recorded qualification records, derived expiry reminders, and a consent-controlled coach portfolio preview/export. Credential state is locked to self-recorded, document references are excluded from public exports, nothing publishes by default, and authenticated public hosting remains part of the separate Phase 5 public-profile platform.
 
 ### Completed: 2026-07-10
 
@@ -359,12 +363,12 @@ Full plan: `docs/PLAYER_AND_LEAGUE_PLATFORM_EXPANSION.md`. Each item is independ
 
 ## Future Expansion: Philippine coach education
 
-- [ ] **Long Term:** Curate a coach knowledge base.
-- [ ] **Long Term:** Maintain official PFF, AFC, and FIFA resource links.
-- [ ] **Long Term:** Model qualifications, issuers, licence numbers, dates, documents, and verification state.
-- [ ] **Long Term:** Add learning plans, journals, reflections, goals, and renewal reminders.
-- [ ] **Long Term:** Keep Dumala Development Progress separate from official credentials.
-- [ ] **Long Term:** Add controlled public coach credentials and portfolios.
+- [x] **Done:** Curate a coach knowledge base, redesigned as a practical development workspace with the existing football reading library alongside learning plans, goals, and reflections.
+- [x] **Done:** Maintain a clearly labelled official PFF, AFC, and FIFA resource directory with link-verification dates and publisher ownership.
+- [x] **Done:** Model private, self-recorded qualifications with issuer, licence number, issue/expiry dates, document references, and a locked self-recorded verification state that users cannot promote to verified.
+- [x] **Done:** Add derived credential renewal reminders alongside the existing local learning plans, journals, reflections, and goals.
+- [x] **Done:** Keep Dumala Development Progress separate from official credentials in both the data model and interface; Dumala never claims to award, verify, renew, or replace a PFF/AFC licence.
+- [x] **Done:** Add a consent-controlled local coach portfolio preview with private-by-default visibility, per-credential inclusion, specialties, and automatic removal of document metadata; authenticated public hosting remains outside this local-only release.
 
 ## Future Expansion: Club operations
 

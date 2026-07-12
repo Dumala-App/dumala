@@ -1551,7 +1551,7 @@ export default function UpdatesView() {
             },
             {
               phase: 'Future Expansion: Coaching',
-              status: 'Long Term',
+              status: 'Done',
               objective: 'Philippine coach education and professional development',
               deliverables: [
                 'Build a coach knowledge base covering session planning, tactics, player development, conditioning, leadership, safeguarding, first aid, and the Laws of the Game.',
