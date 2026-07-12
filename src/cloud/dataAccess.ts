@@ -200,6 +200,15 @@ import {
   type LeagueVenue,
   type LeagueVenueInput
 } from './league';
+import {
+  deleteMessage,
+  ensureChannel,
+  listMessages,
+  markChatRead,
+  postMessage,
+  reportMessage,
+  type ChatMessage
+} from './chat';
 
 export interface CloudBulletinRepository {
   list(clubId: string): Promise<SharedBulletin[]>;
@@ -361,6 +370,15 @@ export interface CloudLeagueRepository {
   deleteVenue(venueId: string): Promise<void>;
 }
 
+export interface CloudChatRepository {
+  ensureChannel(clubId: string): Promise<string>;
+  listMessages(clubId: string, limit?: number): Promise<ChatMessage[]>;
+  postMessage(clubId: string, body: string): Promise<ChatMessage>;
+  deleteMessage(messageId: string): Promise<void>;
+  reportMessage(messageId: string, reason?: string | null): Promise<void>;
+  markRead(channelId: string): Promise<void>;
+}
+
 export interface CloudDataAccess {
   auth: CloudAuthRepository;
   account: CloudAccountRepository;
@@ -374,6 +392,7 @@ export interface CloudDataAccess {
   identity: CloudIdentityRepository;
   player: CloudPlayerRepository;
   league: CloudLeagueRepository;
+  chat: CloudChatRepository;
 }
 
 export const createCloudDataAccess = (client: DumalaSupabaseClient): CloudDataAccess => ({
@@ -521,5 +540,13 @@ export const createCloudDataAccess = (client: DumalaSupabaseClient): CloudDataAc
     createVenue: (leagueId, input) => createVenue(client, leagueId, input),
     updateVenue: (venueId, input) => updateVenue(client, venueId, input),
     deleteVenue: venueId => deleteVenue(client, venueId)
+  },
+  chat: {
+    ensureChannel: clubId => ensureChannel(client, clubId),
+    listMessages: (clubId, limit) => listMessages(client, clubId, limit),
+    postMessage: (clubId, body) => postMessage(client, clubId, body),
+    deleteMessage: messageId => deleteMessage(client, messageId),
+    reportMessage: (messageId, reason) => reportMessage(client, messageId, reason),
+    markRead: channelId => markChatRead(client, channelId)
   }
 });

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Bell, Dumbbell, Flame, Home, Timer as TimerIcon, TrendingUp, User } from 'lucide-react';
+import { Bell, Dumbbell, Flame, Home, MessageSquare, Timer as TimerIcon, TrendingUp, User } from 'lucide-react';
 import { APEX_THEME_STYLE, apexHeader, apexMono, apexMonoTight, apexNav, apexShell, apexWordmark } from './playerTheme';
 
 export type PlayerTab = 'home' | 'drills' | 'timer' | 'progress' | 'profile';
@@ -20,6 +20,7 @@ interface PlayerAppLayoutProps {
   activeTab: PlayerTab;
   onTabChange: (tab: PlayerTab) => void;
   onBellClick: () => void;
+  onChatClick?: () => void;
   children: React.ReactNode;
 }
 
@@ -31,6 +32,7 @@ const PlayerAppLayout = ({
   activeTab,
   onTabChange,
   onBellClick,
+  onChatClick,
   children
 }: PlayerAppLayoutProps) => (
   <div className={apexShell} style={APEX_THEME_STYLE}>
@@ -50,6 +52,16 @@ const PlayerAppLayout = ({
             <span className="flex items-center gap-1 rounded border border-[#ff6d00]/30 bg-[#ff6d00]/10 px-2 py-1 font-player-mono text-[11px] font-bold text-[#ff6d00]">
               <Flame size={13} /> {streakDays}
             </span>
+          )}
+          {onChatClick && (
+            <button
+              type="button"
+              onClick={onChatClick}
+              aria-label="Team chat"
+              className="flex h-10 w-10 items-center justify-center rounded-lg text-[#c6c6cd] transition-colors hover:text-[#ff6d00]"
+            >
+              <MessageSquare size={19} />
+            </button>
           )}
           <button
             type="button"

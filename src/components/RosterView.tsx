@@ -18,6 +18,7 @@ import {
 } from '../forms/validation';
 import SquadPaymentsPanel from './SquadPaymentsPanel';
 import PlayerLinkRequestsPanel from './PlayerLinkRequestsPanel';
+import TeamChatPanel from './TeamChatPanel';
 import { Button } from './ui/button';
 import {
   WORKSPACE_SEGMENTED_LIST_CLASS,
@@ -423,6 +424,9 @@ export default function RosterView({
 
       {activeSection === 'players' && cloudClubId && (
         <PlayerLinkRequestsPanel clubId={cloudClubId} />
+      )}
+      {activeSection === 'players' && cloudClubId && (
+        <TeamChatPanel clubId={cloudClubId} />
       )}
 
       {/* Roster command bar (Players tab only) */}

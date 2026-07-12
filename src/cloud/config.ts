@@ -11,6 +11,7 @@ const cloudEnvironmentSchema = z.object({
   VITE_DUMALA_LEAGUE_REQUEST_ENABLED: booleanEnvSchema,
   VITE_DUMALA_PLAYER_PREVIEW: booleanEnvSchema,
   VITE_DUMALA_LEAGUE_PREVIEW: booleanEnvSchema,
+  VITE_DUMALA_CHAT_ENABLED: booleanEnvSchema,
   DEV: z.boolean().optional()
 });
 
@@ -28,6 +29,8 @@ export interface Phase6Config {
   // Same idea for the League Owner app: open #/league straight into a demo
   // dashboard with no login/entitlement (in-memory sample data).
   leaguePreviewEnabled: boolean;
+  // Team Chat (shared Coach/Player communication) surfaces.
+  chatEnabled: boolean;
 }
 
 export interface CloudConfig {
@@ -54,6 +57,7 @@ export const readCloudConfig = (
     VITE_DUMALA_LEAGUE_REQUEST_ENABLED: readBooleanEnv(env.VITE_DUMALA_LEAGUE_REQUEST_ENABLED),
     VITE_DUMALA_PLAYER_PREVIEW: readBooleanEnv(env.VITE_DUMALA_PLAYER_PREVIEW),
     VITE_DUMALA_LEAGUE_PREVIEW: readBooleanEnv(env.VITE_DUMALA_LEAGUE_PREVIEW),
+    VITE_DUMALA_CHAT_ENABLED: readBooleanEnv(env.VITE_DUMALA_CHAT_ENABLED),
     DEV: typeof env.DEV === 'boolean' ? env.DEV : false
   });
 
@@ -73,7 +77,8 @@ export const readCloudConfig = (
       leagueRequestEnabled: parsed.VITE_DUMALA_LEAGUE_REQUEST_ENABLED === 'true'
         || parsed.VITE_DUMALA_LEAGUE_APP_ENABLED === 'true',
       playerPreviewEnabled: parsed.VITE_DUMALA_PLAYER_PREVIEW === 'true',
-      leaguePreviewEnabled: parsed.VITE_DUMALA_LEAGUE_PREVIEW === 'true'
+      leaguePreviewEnabled: parsed.VITE_DUMALA_LEAGUE_PREVIEW === 'true',
+      chatEnabled: parsed.VITE_DUMALA_CHAT_ENABLED === 'true'
     }
   };
 };

@@ -1,6 +1,7 @@
-import type { CloudDataAccess, CloudPlayerRepository } from '../../cloud/dataAccess';
+import type { CloudChatRepository, CloudDataAccess, CloudPlayerRepository } from '../../cloud/dataAccess';
 import type { CloudRuntime, Phase6Config } from '../../cloud/runtime';
 import type { CloudAuthController } from '../../hooks/useCloudAuth';
+import type { ChatMessage } from '../../cloud/chat';
 import type {
   PlayerClubLink,
   PlayerDrillCompletion,
@@ -214,6 +215,29 @@ export const createDemoPlayerRepository = (): CloudPlayerRepository => {
 };
 
 /** A stub auth controller (unused in preview — the account card is hidden). */
+export const createDemoChatRepository = (): CloudChatRepository => {
+  let messages: ChatMessage[] = [
+    { id: newId(), channel_id: 'demo-chan', club_id: 'demo-club', author_user_id: 'demo-coach', author_name: 'Coach Rivera', author_role: 'coach', body: 'Tactical briefing 15 mins before kickoff on Saturday. Bring your A-game. 🔥', deleted_at: null, deleted_by: null, created_at: ago(0, 8) },
+    { id: newId(), channel_id: 'demo-chan', club_id: 'demo-club', author_user_id: 'demo-teammate', author_name: 'Jordan M.', author_role: 'player', body: 'On it, coach. Just finished my shooting drills.', deleted_at: null, deleted_by: null, created_at: ago(0, 9) }
+  ];
+  return {
+    ensureChannel: async () => 'demo-chan',
+    listMessages: async () => messages,
+    postMessage: async (_clubId, body) => {
+      const row: ChatMessage = {
+        id: newId(), channel_id: 'demo-chan', club_id: 'demo-club', author_user_id: 'preview-player',
+        author_name: 'Alex Rivera', author_role: 'player', body: body.trim(), deleted_at: null, deleted_by: null,
+        created_at: new Date().toISOString()
+      };
+      messages = [...messages, row];
+      return row;
+    },
+    deleteMessage: async id => { messages = messages.map(m => m.id === id ? { ...m, deleted_at: new Date().toISOString() } : m); },
+    reportMessage: async () => undefined,
+    markRead: async () => undefined
+  };
+};
+
 export const createPreviewAuthController = (): CloudAuthController => ({
   state: { status: 'disabled' },
   requestOtp: async () => undefined,
@@ -233,5 +257,5 @@ export const createPreviewRuntime = (
 ): Extract<CloudRuntime, { enabled: true }> => ({
   enabled: true,
   phase6,
-  dataAccess: { player: createDemoPlayerRepository() } as unknown as CloudDataAccess
+  dataAccess: { player: createDemoPlayerRepository(), chat: createDemoChatRepository() } as unknown as CloudDataAccess
 });

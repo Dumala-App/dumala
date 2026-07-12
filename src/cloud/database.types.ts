@@ -3428,6 +3428,163 @@ export type Database = {
           },
         ]
       }
+      team_chat_channels: {
+        Row: {
+          club_id: string
+          created_at: string
+          id: string
+          kind: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          club_id: string
+          created_at?: string
+          id?: string
+          kind?: string
+          name?: string
+          updated_at?: string
+        }
+        Update: {
+          club_id?: string
+          created_at?: string
+          id?: string
+          kind?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_chat_channels_club_id_fkey"
+            columns: ["club_id"]
+            isOneToOne: false
+            referencedRelation: "clubs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      team_chat_messages: {
+        Row: {
+          author_name: string
+          author_role: string
+          author_user_id: string | null
+          body: string
+          channel_id: string
+          club_id: string
+          created_at: string
+          deleted_at: string | null
+          deleted_by: string | null
+          id: string
+        }
+        Insert: {
+          author_name: string
+          author_role: string
+          author_user_id?: string | null
+          body: string
+          channel_id: string
+          club_id: string
+          created_at?: string
+          deleted_at?: string | null
+          deleted_by?: string | null
+          id?: string
+        }
+        Update: {
+          author_name?: string
+          author_role?: string
+          author_user_id?: string | null
+          body?: string
+          channel_id?: string
+          club_id?: string
+          created_at?: string
+          deleted_at?: string | null
+          deleted_by?: string | null
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_chat_messages_channel_id_fkey"
+            columns: ["channel_id"]
+            isOneToOne: false
+            referencedRelation: "team_chat_channels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "team_chat_messages_club_id_fkey"
+            columns: ["club_id"]
+            isOneToOne: false
+            referencedRelation: "clubs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      team_chat_reads: {
+        Row: {
+          channel_id: string
+          last_read_at: string
+          user_id: string
+        }
+        Insert: {
+          channel_id: string
+          last_read_at?: string
+          user_id: string
+        }
+        Update: {
+          channel_id?: string
+          last_read_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_chat_reads_channel_id_fkey"
+            columns: ["channel_id"]
+            isOneToOne: false
+            referencedRelation: "team_chat_channels"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      team_chat_reports: {
+        Row: {
+          club_id: string
+          created_at: string
+          id: string
+          message_id: string
+          reason: string | null
+          reporter_user_id: string | null
+        }
+        Insert: {
+          club_id: string
+          created_at?: string
+          id?: string
+          message_id: string
+          reason?: string | null
+          reporter_user_id?: string | null
+        }
+        Update: {
+          club_id?: string
+          created_at?: string
+          id?: string
+          message_id?: string
+          reason?: string | null
+          reporter_user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_chat_reports_club_id_fkey"
+            columns: ["club_id"]
+            isOneToOne: false
+            referencedRelation: "clubs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "team_chat_reports_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "team_chat_messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_entitlements: {
         Row: {
           created_at: string
@@ -3753,6 +3910,15 @@ export type Database = {
         Args: never
         Returns: Database["public"]["Enums"]["account_persona"]
       }
+      can_access_team_chat: {
+        Args: { target_club_id: string }
+        Returns: boolean
+      }
+      delete_team_chat_message: {
+        Args: { message_id: string }
+        Returns: undefined
+      }
+      ensure_team_channel: { Args: { target_club_id: string }; Returns: string }
       get_activation_funnel_v1: { Args: { days?: number }; Returns: Json }
       get_admin_console_snapshot_v2: { Args: { days?: number }; Returns: Json }
       get_admin_growth_metrics_v1: { Args: { days?: number }; Returns: Json }
@@ -3799,6 +3965,10 @@ export type Database = {
         Args: { target_club_id: string; target_user_id?: string }
         Returns: boolean
       }
+      is_team_chat_member: {
+        Args: { target_club_id: string }
+        Returns: boolean
+      }
       is_user_banned: { Args: { target_user_id?: string }; Returns: boolean }
       is_user_muted: { Args: { target_user_id?: string }; Returns: boolean }
       list_admin_managed_users_v1: {
@@ -3837,11 +4007,36 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      mark_team_chat_read: {
+        Args: { p_channel_id: string }
+        Returns: undefined
+      }
       owns_league: {
         Args: { target_league_id: string; target_user_id?: string }
         Returns: boolean
       }
       player_is_minor: { Args: { target_user_id?: string }; Returns: boolean }
+      post_team_chat_message: {
+        Args: { body: string; target_club_id: string }
+        Returns: {
+          author_name: string
+          author_role: string
+          author_user_id: string | null
+          body: string
+          channel_id: string
+          club_id: string
+          created_at: string
+          deleted_at: string | null
+          deleted_by: string | null
+          id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "team_chat_messages"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       record_admin_audit: {
         Args: {
           event_type: string
@@ -3880,6 +4075,10 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      report_team_chat_message: {
+        Args: { message_id: string; reason?: string }
+        Returns: string
       }
       request_league_access: {
         Args: {

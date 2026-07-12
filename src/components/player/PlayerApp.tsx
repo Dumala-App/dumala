@@ -1,8 +1,9 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import type { CloudRuntime } from '../../cloud/runtime';
 import type { CloudAuthController } from '../../hooks/useCloudAuth';
-import type { PlayerDrillCompletion, PlayerNotification, PlayerProfile, TeamScheduleEntry } from '../../cloud/player';
+import { computeIsMinor, type PlayerDrillCompletion, type PlayerNotification, type PlayerProfile, type TeamScheduleEntry } from '../../cloud/player';
 import { computeStreakDays } from '../../player/progress';
+import TeamChat, { ChatConsentGate } from '../chat/TeamChat';
 import PlayerAppLayout, { type PlayerTab } from './PlayerAppLayout';
 import NotificationsSheet from './NotificationsSheet';
 import HomeTab from './HomeTab';
@@ -34,6 +35,7 @@ const PlayerApp = ({ runtime, userId, authController, preview = false }: PlayerA
   const [notifications, setNotifications] = useState<PlayerNotification[]>([]);
   const [schedule, setSchedule] = useState<TeamScheduleEntry[]>([]);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [chatOpen, setChatOpen] = useState(false);
   const [timerPreset, setTimerPreset] = useState<TimerPreset | null>(null);
 
   const player = runtime.dataAccess.player;
@@ -89,6 +91,11 @@ const PlayerApp = ({ runtime, userId, authController, preview = false }: PlayerA
   );
   const weekday = new Date().toLocaleDateString(undefined, { weekday: 'long' });
 
+  const chatAvailable = runtime.phase6.chatEnabled && !!linkedClubId;
+  const minorBlockedFromChat = !!profile
+    && computeIsMinor(profile.date_of_birth)
+    && profile.guardian_consent_state !== 'granted';
+
   return (
     <>
       <PlayerAppLayout
@@ -99,6 +106,7 @@ const PlayerApp = ({ runtime, userId, authController, preview = false }: PlayerA
         activeTab={tab}
         onTabChange={setTab}
         onBellClick={() => setNotificationsOpen(true)}
+        onChatClick={chatAvailable ? () => setChatOpen(true) : undefined}
       >
         {tab === 'home' && (
           <HomeTab
@@ -150,6 +158,28 @@ const PlayerApp = ({ runtime, userId, authController, preview = false }: PlayerA
         onMarkRead={handleMarkRead}
         onMarkAllRead={handleMarkAllRead}
       />
+
+      {chatOpen && linkedClubId && (
+        <div className="fixed inset-0 z-50 flex justify-center bg-black/40">
+          <div className="h-[100dvh] w-full max-w-md">
+            {minorBlockedFromChat ? (
+              <div className="flex h-full flex-col bg-[#081425]">
+                <button type="button" onClick={() => setChatOpen(false)} className="px-4 py-3 text-left font-player-mono text-[11px] uppercase tracking-wide text-[#ff6d00]">← Back</button>
+                <div className="flex-1"><ChatConsentGate tone="apex" /></div>
+              </div>
+            ) : (
+              <TeamChat
+                runtime={runtime}
+                clubId={linkedClubId}
+                selfUserId={userId}
+                tone="apex"
+                title="Your team"
+                onBack={() => setChatOpen(false)}
+              />
+            )}
+          </div>
+        </div>
+      )}
     </>
   );
 };
