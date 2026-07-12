@@ -1,7 +1,14 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { DumalaSupabaseClient } from './client';
 import { createCloudDataAccess } from './dataAccess';
-import { CloudLeagueError, nextSeasonStatuses, SEASON_STATUS_LABELS } from './league';
+import {
+  CloudLeagueError,
+  EVENT_STATUS_LABELS,
+  nextEventStatuses,
+  nextSeasonStatuses,
+  SEASON_STATUS_LABELS,
+  spotsRemaining
+} from './league';
 
 const createTableStub = (result: unknown, error: unknown = null) => {
   const query: Record<string, unknown> = {};
@@ -32,6 +39,28 @@ describe('season lifecycle helper', () => {
   it('labels every status', () => {
     expect(SEASON_STATUS_LABELS.registration_open).toBe('Registration open');
     expect(Object.keys(SEASON_STATUS_LABELS)).toHaveLength(5);
+  });
+});
+
+describe('event lifecycle + capacity helpers', () => {
+  it('advances an event forward one step at a time and stops when completed', () => {
+    expect(nextEventStatuses('draft')).toEqual(['registration_open']);
+    expect(nextEventStatuses('registration_open')).toEqual(['active']);
+    expect(nextEventStatuses('active')).toEqual(['completed']);
+    expect(nextEventStatuses('completed')).toEqual([]);
+  });
+
+  it('labels every event status', () => {
+    expect(EVENT_STATUS_LABELS.registration_open).toBe('Registration open');
+    expect(Object.keys(EVENT_STATUS_LABELS)).toHaveLength(4);
+  });
+
+  it('computes spots remaining, clamping at zero and passing through an uncapped event', () => {
+    expect(spotsRemaining(8, 3)).toBe(5);
+    expect(spotsRemaining(4, 4)).toBe(0);
+    expect(spotsRemaining(4, 9)).toBe(0);
+    expect(spotsRemaining(null, 3)).toBeNull();
+    expect(spotsRemaining(undefined, 0)).toBeNull();
   });
 });
 
@@ -73,6 +102,47 @@ describe('cloud league repository', () => {
       createCloudDataAccess(client).league.advanceSeasonStatus('season-1', 'active')
     ).resolves.toBe('active');
     expect(rpc).toHaveBeenCalledWith('advance_season_status', { season_id: 'season-1', next_status: 'active' });
+  });
+
+  it('creates an event under a league with a default format', async () => {
+    const { client, from, query } = createTableStub({ id: 'event-1' });
+    await createCloudDataAccess(client).league.createEvent('league-1', { seasonId: 'season-1', name: '  Metro Cup  ' });
+    expect(from).toHaveBeenCalledWith('league_events');
+    expect(query.insert).toHaveBeenCalledWith(expect.objectContaining({
+      league_id: 'league-1',
+      season_id: 'season-1',
+      name: 'Metro Cup',
+      format: 'round_robin',
+      team_cap: null
+    }));
+  });
+
+  it('advances an event status through the RPC', async () => {
+    const { client, rpc } = createTableStub('registration_open');
+    await expect(
+      createCloudDataAccess(client).league.advanceEventStatus('event-1', 'registration_open')
+    ).resolves.toBe('registration_open');
+    expect(rpc).toHaveBeenCalledWith('advance_event_status', { event_id: 'event-1', next_status: 'registration_open' });
+  });
+
+  it('submits a public registration, normalizing the code and fields', async () => {
+    const { client, rpc } = createTableStub('registration-1');
+    await expect(
+      createCloudDataAccess(client).league.submitEventRegistration({
+        code: ' alphacup1 ',
+        clubName: '  Rovers FC ',
+        contactName: ' Coach One ',
+        contactEmail: '  coach@example.test '
+      })
+    ).resolves.toBe('registration-1');
+    expect(rpc).toHaveBeenCalledWith('submit_event_registration', expect.objectContaining({
+      code: 'ALPHACUP1',
+      club_name: 'Rovers FC',
+      contact_name: 'Coach One',
+      contact_email: 'coach@example.test',
+      team_name: null,
+      roster_size: null
+    }));
   });
 
   it('surfaces errors as CloudLeagueError', async () => {

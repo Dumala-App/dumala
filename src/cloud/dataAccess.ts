@@ -181,18 +181,33 @@ import {
   type WorkoutSessionInput
 } from './player';
 import {
+  advanceEventStatus,
   advanceSeasonStatus,
+  createEvent,
   createLeague,
   createSeason,
   createVenue,
   deleteVenue,
+  listEvents,
   listLeagues,
+  listRegistrations,
   listSeasons,
   listVenues,
+  lookupEventRegistration,
+  reviewRegistration,
+  submitEventRegistration,
+  updateEvent,
   updateLeague,
   updateSeason,
   updateVenue,
+  type EventRegistration,
+  type EventRegistrationInput,
+  type EventRegistrationLookup,
+  type EventRegistrationStatus,
   type League,
+  type LeagueEvent,
+  type LeagueEventInput,
+  type LeagueEventStatus,
   type LeagueInput,
   type LeagueSeason,
   type LeagueSeasonInput,
@@ -368,6 +383,18 @@ export interface CloudLeagueRepository {
   createVenue(leagueId: string, input: LeagueVenueInput): Promise<LeagueVenue>;
   updateVenue(venueId: string, input: LeagueVenueInput): Promise<LeagueVenue>;
   deleteVenue(venueId: string): Promise<void>;
+  listEvents(leagueId: string): Promise<LeagueEvent[]>;
+  createEvent(leagueId: string, input: LeagueEventInput): Promise<LeagueEvent>;
+  updateEvent(eventId: string, input: LeagueEventInput): Promise<LeagueEvent>;
+  advanceEventStatus(eventId: string, nextStatus: LeagueEventStatus): Promise<LeagueEventStatus>;
+  listRegistrations(eventId: string): Promise<EventRegistration[]>;
+  reviewRegistration(
+    registrationId: string,
+    nextStatus: EventRegistrationStatus,
+    note?: string | null
+  ): Promise<EventRegistrationStatus>;
+  lookupEventRegistration(code: string): Promise<EventRegistrationLookup>;
+  submitEventRegistration(input: EventRegistrationInput): Promise<string>;
 }
 
 export interface CloudChatRepository {
@@ -539,7 +566,16 @@ export const createCloudDataAccess = (client: DumalaSupabaseClient): CloudDataAc
     listVenues: leagueId => listVenues(client, leagueId),
     createVenue: (leagueId, input) => createVenue(client, leagueId, input),
     updateVenue: (venueId, input) => updateVenue(client, venueId, input),
-    deleteVenue: venueId => deleteVenue(client, venueId)
+    deleteVenue: venueId => deleteVenue(client, venueId),
+    listEvents: leagueId => listEvents(client, leagueId),
+    createEvent: (leagueId, input) => createEvent(client, leagueId, input),
+    updateEvent: (eventId, input) => updateEvent(client, eventId, input),
+    advanceEventStatus: (eventId, nextStatus) => advanceEventStatus(client, eventId, nextStatus),
+    listRegistrations: eventId => listRegistrations(client, eventId),
+    reviewRegistration: (registrationId, nextStatus, note) =>
+      reviewRegistration(client, registrationId, nextStatus, note),
+    lookupEventRegistration: code => lookupEventRegistration(client, code),
+    submitEventRegistration: input => submitEventRegistration(client, input)
   },
   chat: {
     ensureChannel: clubId => ensureChannel(client, clubId),
