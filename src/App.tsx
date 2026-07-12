@@ -1,4 +1,5 @@
 import React, { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import './index.css';
 import { Player, Game, Standing, Announcement, TeamInfo, AssessmentSession, StaffMember, PaymentLedgerEntry } from './types';
 
 import ViewLoadingFallback from './components/ViewLoadingFallback';
@@ -122,10 +123,7 @@ const HomeHubView = lazy(() => import('./components/HomeHubView'));
 const DevelopmentHubView = lazy(() => import('./components/DevelopmentHubView'));
 const LeagueUpdatesHubView = lazy(() => import('./components/LeagueUpdatesHubView'));
 const AdminConsoleView = lazy(() => import('./components/AdminConsoleView'));
-const LandingPage = lazy(() => import('./components/LandingPage'));
-
 const getHashRoute = () => typeof window === 'undefined' ? '' : window.location.hash.replace(/^#\/?/, '');
-const isLandingRoute = (route: string) => route === '' || route === 'landing';
 const isAppAuthRedirect = () => {
   if (typeof window === 'undefined') return false;
   return new URLSearchParams(window.location.search).get('dumalaAuth') === 'app';
@@ -1420,17 +1418,6 @@ export default function App() {
         <PwaStatusBanners />
         <Suspense fallback={<ViewLoadingFallback label="admin console" />}>
           <AdminConsoleView />
-        </Suspense>
-      </>
-    );
-  }
-
-  if (isLandingRoute(hashRoute) && !shouldRouteAuthReturnToApp()) {
-    return (
-      <>
-        <PwaStatusBanners />
-        <Suspense fallback={<ViewLoadingFallback label="landing page" />}>
-          <LandingPage />
         </Suspense>
       </>
     );
