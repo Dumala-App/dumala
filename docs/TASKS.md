@@ -48,6 +48,10 @@ The FPRDS total includes twenty completed capabilities: the five shipped assessm
 
 ## Recent changes
 
+### Completed: 2026-07-13
+
+- [x] Expanded the Coaching Library with 20 additional famous and effective coaching references across coach philosophies, club and national identities, formations, game principles, and coaching craft.
+
 ### Completed: 2026-07-12
 
 - [x] Completed the local-first Philippine Coach Education expansion inside the redesigned Coaching Library: a practical eight-lane learning pathway, curated long-form knowledge library, official PFF/AFC/FIFA resource directory, learning plans and observable goals, private reflections, saved/read article tracking, self-recorded qualification records, derived expiry reminders, and a consent-controlled coach portfolio preview/export. Credential state is locked to self-recorded, document references are excluded from public exports, nothing publishes by default, and authenticated public hosting remains part of the separate Phase 5 public-profile platform.

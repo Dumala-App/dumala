@@ -17,6 +17,7 @@ src/knowledge/library/
   formations.ts       # Formations & Systems (4-4-2, 4-3-3, back threes, ...)
   principles.ts       # Game Principles (pressing, build-up, transitions, ...)
   coachingCraft.ts    # Coaching Craft (session design, youth development, ...)
+  famousEffectiveExpansion.ts # Additional famous/effective coaches, teams, systems, principles
   index.ts            # Aggregation, category labels/order, reading time, search
   library.test.ts     # Data validation tests
 ```

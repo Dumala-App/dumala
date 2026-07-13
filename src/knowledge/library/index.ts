@@ -4,6 +4,7 @@ import { CLUB_DNA_ARTICLES } from './clubDna';
 import { FORMATION_ARTICLES } from './formations';
 import { PRINCIPLE_ARTICLES } from './principles';
 import { COACHING_CRAFT_ARTICLES } from './coachingCraft';
+import { FAMOUS_EFFECTIVE_EXPANSION_ARTICLES } from './famousEffectiveExpansion';
 
 export type { LibraryArticle, LibraryCategory, LibrarySection, LibraryReference } from './types';
 
@@ -36,7 +37,8 @@ export const LIBRARY_ARTICLES: readonly LibraryArticle[] = [
   ...CLUB_DNA_ARTICLES,
   ...FORMATION_ARTICLES,
   ...PRINCIPLE_ARTICLES,
-  ...COACHING_CRAFT_ARTICLES
+  ...COACHING_CRAFT_ARTICLES,
+  ...FAMOUS_EFFECTIVE_EXPANSION_ARTICLES
 ];
 
 export const ACTIVE_LIBRARY_ARTICLES: readonly LibraryArticle[] = LIBRARY_ARTICLES
@@ -54,7 +56,7 @@ export const estimateReadingMinutes = (article: LibraryArticle): number => {
     + article.keyIdeas.reduce((sum, idea) => sum + countWords(idea), 0)
     + (article.trainingIdeas ?? []).reduce((sum, idea) => sum + countWords(idea), 0);
 
-  return Math.max(1, Math.round(words / 200));
+  return Math.max(1, Math.ceil(words / 200));
 };
 
 export const searchLibraryArticles = (
