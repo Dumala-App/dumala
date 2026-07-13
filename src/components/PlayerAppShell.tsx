@@ -102,10 +102,10 @@ const PlayerAppShell = () => {
     }
   }, [destination]);
 
-  // Preview/demo mode: skip the login gate and cloud entirely, rendering the app
-  // with in-memory sample data. Works even when cloud is disabled. Placed after
-  // all hooks so the hook order stays stable.
-  if (runtime.phase6.playerPreviewEnabled) {
+  // Direct design mode: while the Player app is enabled for production rollout,
+  // skip the login gate and cloud entirely so the dashboard can be designed with
+  // stable in-memory sample data. Placed after all hooks so hook order stays stable.
+  if (runtime.phase6.playerAppEnabled || runtime.phase6.playerPreviewEnabled) {
     if (!previewRuntimeSingleton) previewRuntimeSingleton = createPreviewRuntime(runtime.phase6);
     return (
       <PlayerApp runtime={previewRuntimeSingleton} userId="preview-player" authController={previewAuthController} preview />
