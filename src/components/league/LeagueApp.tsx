@@ -8,6 +8,8 @@ import {
   Copy,
   Eye,
   Gauge,
+  ArrowDownLeft,
+  ArrowUpRight,
   Award,
   ListOrdered,
   Loader2,
@@ -15,6 +17,7 @@ import {
   Medal,
   Plus,
   RefreshCw,
+  Receipt,
   Save,
   Settings,
   Shield,
@@ -24,6 +27,7 @@ import {
   Trash2,
   Trophy,
   Users,
+  Wallet,
   X
 } from 'lucide-react';
 import type { CloudRuntime } from '../../cloud/runtime';
@@ -32,32 +36,39 @@ import type { CloudAuthController } from '../../hooks/useCloudAuth';
 import {
   EVENT_FORMAT_LABELS,
   EVENT_STATUS_LABELS,
+  INVOICE_STATUS_LABELS,
   REGISTRATION_STATUS_LABELS,
   SEASON_STATUS_LABELS,
   STAT_TYPE_LABELS,
   computeDiscipline,
   computeScorers,
   computeStandings,
+  formatMoney,
   nextEventStatuses,
   nextSeasonStatuses,
   spotsRemaining,
   suggestAwards,
+  summarizeLedger,
   type AwardRecipientType,
   type EventAward,
   type EventFixture,
+  type EventInvoice,
   type EventRegistration,
   type EventRegistrationStatus,
   type EventTeam,
   type FixtureStatEvent,
   type FixtureStatInput,
   type FixtureStatType,
+  type InvoiceStatus,
   type League,
   type LeagueEvent,
   type LeagueEventFormat,
   type LeagueEventStatus,
   type LeagueSeason,
   type LeagueSeasonStatus,
-  type LeagueVenue
+  type LeagueVenue,
+  type LedgerDirection,
+  type LedgerEntry
 } from '../../cloud/league';
 import {
   DARK_GLASS_CLASSES,
@@ -73,13 +84,14 @@ interface LeagueAppProps {
   preview?: boolean;
 }
 
-type LeagueSection = 'overview' | 'seasons' | 'events' | 'venues' | 'settings';
+type LeagueSection = 'overview' | 'seasons' | 'events' | 'venues' | 'finance' | 'settings';
 
 const NAV: Array<{ id: LeagueSection; label: string; icon: React.ComponentType<{ size?: number; className?: string }> }> = [
   { id: 'overview', label: 'Overview', icon: Gauge },
   { id: 'seasons', label: 'Seasons', icon: CalendarRange },
   { id: 'events', label: 'Events', icon: Trophy },
   { id: 'venues', label: 'Venues', icon: MapPin },
+  { id: 'finance', label: 'Finance', icon: Wallet },
   { id: 'settings', label: 'Settings', icon: Settings }
 ];
 
@@ -133,6 +145,8 @@ const LeagueApp = ({ runtime, userId, authController, preview = false }: LeagueA
   const [seasons, setSeasons] = useState<LeagueSeason[]>([]);
   const [venues, setVenues] = useState<LeagueVenue[]>([]);
   const [events, setEvents] = useState<LeagueEvent[]>([]);
+  const [ledger, setLedger] = useState<LedgerEntry[]>([]);
+  const [invoices, setInvoices] = useState<EventInvoice[]>([]);
   const [section, setSection] = useState<LeagueSection>('overview');
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState('');
@@ -140,14 +154,18 @@ const LeagueApp = ({ runtime, userId, authController, preview = false }: LeagueA
   const activeLeague = useMemo(() => leagues.find(l => l.id === activeLeagueId) ?? null, [leagues, activeLeagueId]);
 
   const loadLeagueData = useCallback(async (leagueId: string) => {
-    const [nextSeasons, nextVenues, nextEvents] = await Promise.all([
+    const [nextSeasons, nextVenues, nextEvents, nextLedger, nextInvoices] = await Promise.all([
       league.listSeasons(leagueId),
       league.listVenues(leagueId),
-      league.listEvents(leagueId)
+      league.listEvents(leagueId),
+      league.listLedgerEntries(leagueId),
+      league.listInvoices(leagueId)
     ]);
     setSeasons(nextSeasons);
     setVenues(nextVenues);
     setEvents(nextEvents);
+    setLedger(nextLedger);
+    setInvoices(nextInvoices);
   }, [league]);
 
   const reload = useCallback(async () => {
@@ -156,7 +174,7 @@ const LeagueApp = ({ runtime, userId, authController, preview = false }: LeagueA
     const target = nextLeagues.find(l => l.id === activeLeagueId) ?? nextLeagues[0] ?? null;
     setActiveLeagueId(target?.id ?? null);
     if (target) await loadLeagueData(target.id);
-    else { setSeasons([]); setVenues([]); setEvents([]); }
+    else { setSeasons([]); setVenues([]); setEvents([]); setLedger([]); setInvoices([]); }
   }, [league, activeLeagueId, loadLeagueData]);
 
   useEffect(() => {
@@ -264,6 +282,19 @@ const LeagueApp = ({ runtime, userId, authController, preview = false }: LeagueA
                 venues={venues}
                 onCreate={input => withError(async () => { await league.createVenue(activeLeague.id, input); await loadLeagueData(activeLeague.id); })}
                 onDelete={venueId => withError(async () => { await league.deleteVenue(venueId); await loadLeagueData(activeLeague.id); })}
+              />
+            )}
+            {section === 'finance' && (
+              <FinanceSection
+                currency={activeLeague.currency}
+                ledger={ledger}
+                invoices={invoices}
+                events={events}
+                onAddLedger={input => withError(async () => { await league.addLedgerEntry(activeLeague.id, input); await loadLeagueData(activeLeague.id); })}
+                onDeleteLedger={entryId => withError(async () => { await league.deleteLedgerEntry(entryId); await loadLeagueData(activeLeague.id); })}
+                onAddInvoice={input => withError(async () => { await league.addInvoice(activeLeague.id, input); await loadLeagueData(activeLeague.id); })}
+                onSettleInvoice={(invoiceId, status) => withError(async () => { await league.settleInvoice(invoiceId, status); await loadLeagueData(activeLeague.id); })}
+                onDeleteInvoice={invoiceId => withError(async () => { await league.deleteInvoice(invoiceId); await loadLeagueData(activeLeague.id); })}
               />
             )}
             {section === 'settings' && (
@@ -1317,6 +1348,195 @@ const VenuesSection = ({ venues, onCreate, onDelete }: {
         </ul>
       )}
     </div>
+  );
+};
+
+// --- Finance -----------------------------------------------------------------
+
+const amountToCents = (v: string) => Math.max(0, Math.round(Number(v) * 100));
+const LEDGER_DIRECTIONS: LedgerDirection[] = ['income', 'expense'];
+
+const invoiceTone: Record<InvoiceStatus, string> = {
+  unpaid: 'border-amber-400/40 bg-amber-400/15 text-amber-100',
+  paid: 'border-emerald-400/40 bg-emerald-400/15 text-emerald-100',
+  waived: 'border-slate-500/40 bg-slate-500/15 text-slate-300'
+};
+
+const FinanceSection = ({ currency, ledger, invoices, events, onAddLedger, onDeleteLedger, onAddInvoice, onSettleInvoice, onDeleteInvoice }: {
+  currency: string;
+  ledger: LedgerEntry[];
+  invoices: EventInvoice[];
+  events: LeagueEvent[];
+  onAddLedger: (input: { direction: LedgerDirection; category: string; amountCents: number; description?: string | null; eventId?: string | null; occurredOn?: string | null }) => void;
+  onDeleteLedger: (entryId: string) => void;
+  onAddInvoice: (input: { eventId: string; billTo: string; amountCents: number; dueOn?: string | null }) => void;
+  onSettleInvoice: (invoiceId: string, status: Extract<InvoiceStatus, 'paid' | 'waived'>) => void;
+  onDeleteInvoice: (invoiceId: string) => void;
+}) => {
+  const summary = summarizeLedger(ledger, invoices);
+  const eventName = (id: string | null) => (id ? events.find(e => e.id === id)?.name ?? '—' : '—');
+
+  return (
+    <div className="space-y-4">
+      <div className="grid gap-3 sm:grid-cols-4">
+        <StatTile label="Income" value={formatMoney(summary.incomeCents, currency)} detail="Recorded" />
+        <StatTile label="Expenses" value={formatMoney(summary.expenseCents, currency)} detail="Recorded" />
+        <StatTile label="Net" value={formatMoney(summary.netCents, currency)} detail="Income − expenses" />
+        <StatTile label="Outstanding" value={formatMoney(summary.outstandingCents, currency)} detail={`${formatMoney(summary.collectedCents, currency)} collected`} />
+      </div>
+
+      <section className={panel}>
+        <div className={DARK_GLASS_CLASSES.panelHeader}>
+          <Receipt size={16} className="text-cyan-200" />
+          <h2 className="font-display text-sm font-black text-white">Invoices</h2>
+        </div>
+        <div className="space-y-4 p-4">
+          <InvoiceForm events={events} onAdd={onAddInvoice} />
+          {invoices.length === 0 ? (
+            <p className="text-sm text-slate-400">No invoices yet. Bill a team for an event above.</p>
+          ) : (
+            <ul className="space-y-2">
+              {invoices.map(inv => (
+                <li key={inv.id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-cyan-300/10 bg-white/[0.035] px-4 py-3">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="font-display text-sm font-black text-white">{inv.bill_to}</span>
+                      <span className={`rounded-full border px-2 py-0.5 text-[11px] font-bold ${invoiceTone[inv.status]}`}>{INVOICE_STATUS_LABELS[inv.status]}</span>
+                    </div>
+                    <p className="mt-1 text-xs text-slate-400">
+                      {formatMoney(inv.amount_cents, currency)} · {eventName(inv.event_id)}
+                      {inv.status === 'paid' && inv.paid_on ? ` · paid ${inv.paid_on}` : inv.due_on ? ` · due ${inv.due_on}` : ''}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    {inv.status === 'unpaid' && (
+                      <>
+                        <button type="button" className={`${primaryBtn} !px-3`} onClick={() => onSettleInvoice(inv.id, 'paid')}><Check size={14} /> Mark paid</button>
+                        <button type="button" className={`${ghostBtn} !px-3`} onClick={() => onSettleInvoice(inv.id, 'waived')}>Waive</button>
+                      </>
+                    )}
+                    <button type="button" aria-label="Remove invoice" className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 hover:text-rose-300" onClick={() => onDeleteInvoice(inv.id)}>
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </section>
+
+      <section className={panel}>
+        <div className={DARK_GLASS_CLASSES.panelHeader}>
+          <Wallet size={16} className="text-cyan-200" />
+          <h2 className="font-display text-sm font-black text-white">Ledger</h2>
+        </div>
+        <div className="space-y-4 p-4">
+          <LedgerForm events={events} onAdd={onAddLedger} />
+          {ledger.length === 0 ? (
+            <p className="text-sm text-slate-400">No entries yet. Record income and expenses above.</p>
+          ) : (
+            <ul className="space-y-2">
+              {ledger.map(entry => (
+                <li key={entry.id} className="flex items-center justify-between gap-3 rounded-xl border border-cyan-300/10 bg-white/[0.035] px-4 py-3">
+                  <div className="flex items-center gap-3">
+                    <span className={`flex h-8 w-8 items-center justify-center rounded-lg ${entry.direction === 'income' ? 'bg-emerald-400/15 text-emerald-300' : 'bg-rose-400/15 text-rose-300'}`}>
+                      {entry.direction === 'income' ? <ArrowDownLeft size={16} /> : <ArrowUpRight size={16} />}
+                    </span>
+                    <div>
+                      <p className="font-display text-sm font-black text-white">{entry.category}</p>
+                      <p className="text-xs text-slate-400">{[entry.occurred_on, entry.description, entry.event_id ? eventName(entry.event_id) : null].filter(Boolean).join(' · ')}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className={`font-display text-sm font-black ${entry.direction === 'income' ? 'text-emerald-300' : 'text-rose-300'}`}>
+                      {entry.direction === 'income' ? '+' : '−'} {formatMoney(entry.amount_cents, currency)}
+                    </span>
+                    <button type="button" aria-label="Remove entry" className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 hover:text-rose-300" onClick={() => onDeleteLedger(entry.id)}>
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </section>
+    </div>
+  );
+};
+
+const InvoiceForm = ({ events, onAdd }: {
+  events: LeagueEvent[];
+  onAdd: (input: { eventId: string; billTo: string; amountCents: number; dueOn?: string | null }) => void;
+}) => {
+  const [eventId, setEventId] = useState(events[0]?.id ?? '');
+  const [billTo, setBillTo] = useState('');
+  const [amount, setAmount] = useState('');
+  const [dueOn, setDueOn] = useState('');
+
+  const submit = (e: FormEvent) => {
+    e.preventDefault();
+    if (!eventId || !billTo.trim() || !amount) return;
+    onAdd({ eventId, billTo, amountCents: amountToCents(amount), dueOn: dueOn || null });
+    setBillTo(''); setAmount(''); setDueOn('');
+  };
+
+  if (events.length === 0) return <p className="text-xs text-slate-400">Create an event first — invoices are billed against one.</p>;
+
+  return (
+    <form onSubmit={submit} className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5 lg:items-end">
+      <div className="space-y-1 lg:col-span-1">
+        <label className={label}>Event</label>
+        <select className={DARK_GLASS_CLASSES.select} value={eventId} onChange={e => setEventId(e.target.value)}>
+          {events.map(ev => <option key={ev.id} value={ev.id}>{ev.name}</option>)}
+        </select>
+      </div>
+      <div className="space-y-1"><label className={label}>Bill to</label><input className={inputClass} value={billTo} onChange={e => setBillTo(e.target.value)} placeholder="Club name" /></div>
+      <div className="space-y-1"><label className={label}>Amount</label><input className={inputClass} type="number" min={0} step="0.01" value={amount} onChange={e => setAmount(e.target.value)} placeholder="0.00" /></div>
+      <div className="space-y-1"><label className={label}>Due on</label><input className={inputClass} type="date" value={dueOn} onChange={e => setDueOn(e.target.value)} /></div>
+      <button type="submit" className={primaryBtn}><Plus size={14} /> Invoice</button>
+    </form>
+  );
+};
+
+const LedgerForm = ({ events, onAdd }: {
+  events: LeagueEvent[];
+  onAdd: (input: { direction: LedgerDirection; category: string; amountCents: number; description?: string | null; eventId?: string | null; occurredOn?: string | null }) => void;
+}) => {
+  const [direction, setDirection] = useState<LedgerDirection>('income');
+  const [category, setCategory] = useState('');
+  const [amount, setAmount] = useState('');
+  const [eventId, setEventId] = useState('');
+  const [occurredOn, setOccurredOn] = useState('');
+
+  const submit = (e: FormEvent) => {
+    e.preventDefault();
+    if (!category.trim() || !amount) return;
+    onAdd({ direction, category, amountCents: amountToCents(amount), eventId: eventId || null, occurredOn: occurredOn || null });
+    setCategory(''); setAmount(''); setOccurredOn('');
+  };
+
+  return (
+    <form onSubmit={submit} className="grid gap-3 sm:grid-cols-2 lg:grid-cols-6 lg:items-end">
+      <div className="space-y-1">
+        <label className={label}>Type</label>
+        <select className={DARK_GLASS_CLASSES.select} value={direction} onChange={e => setDirection(e.target.value as LedgerDirection)}>
+          {LEDGER_DIRECTIONS.map(d => <option key={d} value={d}>{d === 'income' ? 'Income' : 'Expense'}</option>)}
+        </select>
+      </div>
+      <div className="space-y-1"><label className={label}>Category</label><input className={inputClass} value={category} onChange={e => setCategory(e.target.value)} placeholder="Referees" /></div>
+      <div className="space-y-1"><label className={label}>Amount</label><input className={inputClass} type="number" min={0} step="0.01" value={amount} onChange={e => setAmount(e.target.value)} placeholder="0.00" /></div>
+      <div className="space-y-1">
+        <label className={label}>Event</label>
+        <select className={DARK_GLASS_CLASSES.select} value={eventId} onChange={e => setEventId(e.target.value)}>
+          <option value="">— None —</option>
+          {events.map(ev => <option key={ev.id} value={ev.id}>{ev.name}</option>)}
+        </select>
+      </div>
+      <div className="space-y-1"><label className={label}>Date</label><input className={inputClass} type="date" value={occurredOn} onChange={e => setOccurredOn(e.target.value)} /></div>
+      <button type="submit" className={primaryBtn}><Plus size={14} /> Add</button>
+    </form>
   );
 };
 
