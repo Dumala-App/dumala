@@ -8,6 +8,8 @@ import {
   Copy,
   Eye,
   Gauge,
+  Activity,
+  AlertTriangle,
   ArrowDownLeft,
   ArrowUpRight,
   Award,
@@ -26,6 +28,7 @@ import {
   Target,
   Trash2,
   Trophy,
+  UserCheck,
   Users,
   Wallet,
   X
@@ -39,6 +42,7 @@ import {
   INVOICE_STATUS_LABELS,
   REGISTRATION_STATUS_LABELS,
   SEASON_STATUS_LABELS,
+  INCIDENT_KIND_LABELS,
   STAT_TYPE_LABELS,
   computeDiscipline,
   computeScorers,
@@ -49,16 +53,21 @@ import {
   spotsRemaining,
   suggestAwards,
   summarizeLedger,
+  summarizeMatchday,
   type AwardRecipientType,
   type EventAward,
   type EventFixture,
+  type EventIncident,
+  type EventIncidentInput,
   type EventInvoice,
   type EventRegistration,
   type EventRegistrationStatus,
   type EventTeam,
+  type FixtureOpsPatch,
   type FixtureStatEvent,
   type FixtureStatInput,
   type FixtureStatType,
+  type IncidentKind,
   type InvoiceStatus,
   type League,
   type LeagueEvent,
@@ -589,14 +598,15 @@ const EventsList = ({ events, seasons, onCreate, onOpen, onGoToSeasons }: {
   );
 };
 
-type EventTab = 'applications' | 'teams' | 'fixtures' | 'table' | 'stats';
+type EventTab = 'applications' | 'teams' | 'fixtures' | 'table' | 'stats' | 'matchday';
 
 const EVENT_TABS: Array<{ id: EventTab; label: string; icon: React.ComponentType<{ size?: number; className?: string }> }> = [
   { id: 'applications', label: 'Applications', icon: Users },
   { id: 'teams', label: 'Teams', icon: Shield },
   { id: 'fixtures', label: 'Fixtures', icon: Swords },
   { id: 'table', label: 'Table', icon: ListOrdered },
-  { id: 'stats', label: 'Stats', icon: Target }
+  { id: 'stats', label: 'Stats', icon: Target },
+  { id: 'matchday', label: 'Match day', icon: Activity }
 ];
 
 const EventDetail = ({ league, event, runError, onBack, onAdvance, onAfterReview }: {
@@ -612,23 +622,26 @@ const EventDetail = ({ league, event, runError, onBack, onAdvance, onAfterReview
   const [fixtures, setFixtures] = useState<EventFixture[]>([]);
   const [statEvents, setStatEvents] = useState<FixtureStatEvent[]>([]);
   const [awards, setAwards] = useState<EventAward[]>([]);
+  const [incidents, setIncidents] = useState<EventIncident[]>([]);
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
   const [tab, setTab] = useState<EventTab>('applications');
 
   const refresh = useCallback(async () => {
-    const [regs, tms, fxs, stats, aws] = await Promise.all([
+    const [regs, tms, fxs, stats, aws, incs] = await Promise.all([
       league.listRegistrations(event.id),
       league.listEventTeams(event.id),
       league.listFixtures(event.id),
       league.listStatEvents(event.id),
-      league.listAwards(event.id)
+      league.listAwards(event.id),
+      league.listIncidents(event.id)
     ]);
     setRegistrations(regs);
     setTeams(tms);
     setFixtures(fxs);
     setStatEvents(stats);
     setAwards(aws);
+    setIncidents(incs);
   }, [league, event.id]);
 
   useEffect(() => {
@@ -679,6 +692,12 @@ const EventDetail = ({ league, event, runError, onBack, onAdvance, onAfterReview
     runError(async () => { await league.addAward(event.league_id, event.id, input); await refresh(); });
   const deleteAward = (awardId: string) =>
     runError(async () => { await league.deleteAward(awardId); await refresh(); });
+  const setFixtureOps = (fixtureId: string, patch: FixtureOpsPatch) =>
+    runError(async () => { await league.setFixtureOps(fixtureId, patch); await refresh(); });
+  const addIncident = (input: EventIncidentInput) =>
+    runError(async () => { await league.addIncident(event.league_id, event.id, input); await refresh(); });
+  const deleteIncident = (incidentId: string) =>
+    runError(async () => { await league.deleteIncident(incidentId); await refresh(); });
 
   return (
     <div className="space-y-4">
@@ -760,6 +779,16 @@ const EventDetail = ({ league, event, runError, onBack, onAdvance, onAfterReview
               onDeleteStat={deleteStat}
               onAddAward={addAward}
               onDeleteAward={deleteAward}
+            />
+          )}
+          {tab === 'matchday' && (
+            <MatchdayPanel
+              fixtures={fixtures}
+              incidents={incidents}
+              teamName={teamName}
+              onSetOps={setFixtureOps}
+              onAddIncident={addIncident}
+              onDeleteIncident={deleteIncident}
             />
           )}
         </>
@@ -1297,6 +1326,166 @@ const AwardsCard = ({ awards, teams, teamName, suggestions, onAdd, onDelete }: {
         </form>
       </div>
     </section>
+  );
+};
+
+// --- Match day (live operations) ---------------------------------------------
+
+const INCIDENT_KINDS: IncidentKind[] = ['injury', 'misconduct', 'dispute', 'delay', 'other'];
+
+const MatchdayPanel = ({ fixtures, incidents, teamName, onSetOps, onAddIncident, onDeleteIncident }: {
+  fixtures: EventFixture[];
+  incidents: EventIncident[];
+  teamName: (id: string) => string;
+  onSetOps: (fixtureId: string, patch: FixtureOpsPatch) => void;
+  onAddIncident: (input: EventIncidentInput) => void;
+  onDeleteIncident: (incidentId: string) => void;
+}) => {
+  const summary = summarizeMatchday(fixtures);
+  const active = fixtures.filter(f => f.status !== 'cancelled');
+
+  return (
+    <div className="space-y-4">
+      <div className="grid gap-3 sm:grid-cols-4">
+        <StatTile label="Fixtures" value={summary.total} detail="In this event" />
+        <StatTile label="Completed" value={summary.completed} detail="Results in" />
+        <StatTile label="Ready" value={summary.ready} detail="Both checked in" />
+        <StatTile label="Awaiting" value={summary.awaitingCheckin} detail="Check-in pending" />
+      </div>
+
+      <section className={panel}>
+        <div className={DARK_GLASS_CLASSES.panelHeader}>
+          <Activity size={16} className="text-cyan-200" />
+          <h2 className="font-display text-sm font-black text-white">Command center</h2>
+        </div>
+        <div className="space-y-2 p-4">
+          {active.length === 0 ? (
+            <p className="text-sm text-slate-400">Generate fixtures to run match-day check-in.</p>
+          ) : (
+            active.map(fixture => <FixtureOpsCard key={fixture.id} fixture={fixture} teamName={teamName} onSetOps={onSetOps} />)
+          )}
+        </div>
+      </section>
+
+      <section className={panel}>
+        <div className={DARK_GLASS_CLASSES.panelHeader}>
+          <AlertTriangle size={16} className="text-cyan-200" />
+          <h2 className="font-display text-sm font-black text-white">Incidents</h2>
+        </div>
+        <div className="space-y-4 p-4">
+          <IncidentForm fixtures={fixtures} teamName={teamName} onAdd={onAddIncident} />
+          {incidents.length === 0 ? (
+            <p className="text-sm text-slate-400">No incidents logged.</p>
+          ) : (
+            <ul className="space-y-2">
+              {incidents.map(inc => (
+                <li key={inc.id} className="flex items-start justify-between gap-3 rounded-xl border border-cyan-300/10 bg-white/[0.035] px-4 py-3">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="rounded-full border border-amber-400/40 bg-amber-400/15 px-2 py-0.5 text-[11px] font-bold text-amber-100">{INCIDENT_KIND_LABELS[inc.kind]}</span>
+                      <span className="text-[11px] text-slate-500">{new Date(inc.occurred_at).toLocaleString()}</span>
+                    </div>
+                    <p className="mt-1 text-sm text-slate-200">{inc.summary}</p>
+                  </div>
+                  <button type="button" aria-label="Remove incident" className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-slate-400 hover:text-rose-300" onClick={() => onDeleteIncident(inc.id)}>
+                    <Trash2 size={16} />
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </section>
+    </div>
+  );
+};
+
+const CheckinButton = ({ name, checked, onClick }: { name: string; checked: boolean; onClick: () => void }) => (
+  <button
+    type="button"
+    onClick={onClick}
+    className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-bold transition-colors ${checked ? 'border-emerald-400/40 bg-emerald-400/15 text-emerald-100' : 'border-cyan-300/10 bg-white/[0.035] text-slate-300 hover:text-white'}`}
+  >
+    <UserCheck size={13} /> {name}
+  </button>
+);
+
+const FixtureOpsCard = ({ fixture, teamName, onSetOps }: {
+  fixture: EventFixture;
+  teamName: (id: string) => string;
+  onSetOps: (fixtureId: string, patch: FixtureOpsPatch) => void;
+}) => {
+  const ready = fixture.home_checked_in && fixture.away_checked_in;
+  const statusPill = fixture.status === 'completed'
+    ? { text: `${fixture.home_score}–${fixture.away_score}`, tone: 'border-cyan-400/40 bg-cyan-400/15 text-cyan-100' }
+    : ready
+      ? { text: 'Ready', tone: 'border-emerald-400/40 bg-emerald-400/15 text-emerald-100' }
+      : { text: 'Awaiting', tone: 'border-amber-400/40 bg-amber-400/15 text-amber-100' };
+
+  return (
+    <div className="space-y-2 rounded-xl border border-cyan-300/10 bg-white/[0.035] p-3">
+      <div className="flex items-center justify-between gap-2">
+        <CheckinButton name={teamName(fixture.home_team_id)} checked={fixture.home_checked_in} onClick={() => onSetOps(fixture.id, { homeCheckedIn: !fixture.home_checked_in })} />
+        <span className={`shrink-0 rounded-full border px-2 py-0.5 text-[11px] font-bold ${statusPill.tone}`}>{statusPill.text}</span>
+        <CheckinButton name={teamName(fixture.away_team_id)} checked={fixture.away_checked_in} onClick={() => onSetOps(fixture.id, { awayCheckedIn: !fixture.away_checked_in })} />
+      </div>
+      <OfficialInput value={fixture.official_name} onSave={name => onSetOps(fixture.id, { officialName: name })} />
+    </div>
+  );
+};
+
+const OfficialInput = ({ value, onSave }: { value: string | null; onSave: (name: string) => void }) => {
+  const [name, setName] = useState(value ?? '');
+  useEffect(() => { setName(value ?? ''); }, [value]);
+  const commit = () => { if ((name.trim() || null) !== (value ?? null)) onSave(name); };
+  return (
+    <input
+      className={`${inputClass} h-8 text-xs`}
+      value={name}
+      onChange={e => setName(e.target.value)}
+      onBlur={commit}
+      onKeyDown={e => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
+      placeholder="Assign official / referee"
+    />
+  );
+};
+
+const IncidentForm = ({ fixtures, teamName, onAdd }: {
+  fixtures: EventFixture[];
+  teamName: (id: string) => string;
+  onAdd: (input: EventIncidentInput) => void;
+}) => {
+  const [kind, setKind] = useState<IncidentKind>('injury');
+  const [summary, setSummary] = useState('');
+  const [fixtureId, setFixtureId] = useState('');
+
+  const submit = (e: FormEvent) => {
+    e.preventDefault();
+    if (!summary.trim()) return;
+    onAdd({ kind, summary, fixtureId: fixtureId || null });
+    setSummary('');
+  };
+
+  return (
+    <form onSubmit={submit} className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 lg:items-end">
+      <div className="space-y-1">
+        <label className={label}>Type</label>
+        <select className={DARK_GLASS_CLASSES.select} value={kind} onChange={e => setKind(e.target.value as IncidentKind)}>
+          {INCIDENT_KINDS.map(k => <option key={k} value={k}>{INCIDENT_KIND_LABELS[k]}</option>)}
+        </select>
+      </div>
+      <div className="space-y-1 lg:col-span-2"><label className={label}>What happened</label><input className={inputClass} value={summary} onChange={e => setSummary(e.target.value)} placeholder="Brief summary" /></div>
+      <div className="flex items-end gap-2">
+        <div className="flex-1 space-y-1">
+          <label className={label}>Match</label>
+          <select className={DARK_GLASS_CLASSES.select} value={fixtureId} onChange={e => setFixtureId(e.target.value)}>
+            <option value="">— None —</option>
+            {fixtures.map(f => <option key={f.id} value={f.id}>{teamName(f.home_team_id)} v {teamName(f.away_team_id)}</option>)}
+          </select>
+        </div>
+        <button type="submit" className={primaryBtn}><Plus size={14} /> Log</button>
+      </div>
+    </form>
   );
 };
 
