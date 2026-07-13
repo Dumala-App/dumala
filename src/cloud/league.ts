@@ -816,3 +816,212 @@ export const recordFixtureResult = async (
     'Failed to record the result'
   ) as EventFixture;
 };
+
+// --- Statistics + awards -----------------------------------------------------
+// Match stat events (goals/cards attributed to a team + named player) and event
+// awards. Leaderboards + award suggestions are derived by pure helpers.
+
+export type FixtureStatType = 'goal' | 'assist' | 'yellow_card' | 'red_card' | 'own_goal';
+export type AwardRecipientType = 'team' | 'player';
+
+export interface FixtureStatEvent {
+  id: string;
+  fixture_id: string;
+  event_id: string;
+  league_id: string;
+  team_id: string;
+  player_name: string;
+  stat_type: FixtureStatType;
+  minute: number | null;
+  note: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface FixtureStatInput {
+  fixtureId: string;
+  teamId: string;
+  playerName: string;
+  statType: FixtureStatType;
+  minute?: number | null;
+}
+
+export interface EventAward {
+  id: string;
+  event_id: string;
+  league_id: string;
+  title: string;
+  recipient_type: AwardRecipientType;
+  team_id: string | null;
+  player_name: string | null;
+  note: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface EventAwardInput {
+  title: string;
+  recipientType: AwardRecipientType;
+  teamId?: string | null;
+  playerName?: string | null;
+  note?: string | null;
+}
+
+export interface ScorerRow {
+  teamId: string;
+  playerName: string;
+  goals: number;
+  assists: number;
+}
+
+export interface DisciplineRow {
+  teamId: string;
+  playerName: string;
+  yellow: number;
+  red: number;
+}
+
+/** A team's suggested champion / a player's suggested top scorer, for award auto-fill. */
+export interface AwardSuggestions {
+  champion: { teamId: string; name: string } | null;
+  topScorer: { teamId: string; playerName: string; goals: number } | null;
+}
+
+export const STAT_TYPE_LABELS: Record<FixtureStatType, string> = {
+  goal: 'Goal',
+  assist: 'Assist',
+  yellow_card: 'Yellow card',
+  red_card: 'Red card',
+  own_goal: 'Own goal'
+};
+
+// --- Pure helpers (unit-testable) --------------------------------------------
+
+const statKey = (teamId: string, playerName: string) => `${teamId}::${playerName}`;
+
+/** Top scorers from stat events (goals count; assists tallied), sorted goals → assists → name. */
+export const computeScorers = (statEvents: FixtureStatEvent[]): ScorerRow[] => {
+  const table = new Map<string, ScorerRow>();
+  const ensure = (teamId: string, playerName: string) => {
+    const key = statKey(teamId, playerName);
+    let row = table.get(key);
+    if (!row) {
+      row = { teamId, playerName, goals: 0, assists: 0 };
+      table.set(key, row);
+    }
+    return row;
+  };
+  for (const e of statEvents) {
+    if (e.stat_type === 'goal') ensure(e.team_id, e.player_name).goals += 1;
+    else if (e.stat_type === 'assist') ensure(e.team_id, e.player_name).assists += 1;
+  }
+  return [...table.values()]
+    .filter(r => r.goals > 0 || r.assists > 0)
+    .sort((a, b) => b.goals - a.goals || b.assists - a.assists || a.playerName.localeCompare(b.playerName));
+};
+
+/** Discipline table from card stat events, sorted red → yellow → name. */
+export const computeDiscipline = (statEvents: FixtureStatEvent[]): DisciplineRow[] => {
+  const table = new Map<string, DisciplineRow>();
+  const ensure = (teamId: string, playerName: string) => {
+    const key = statKey(teamId, playerName);
+    let row = table.get(key);
+    if (!row) {
+      row = { teamId, playerName, yellow: 0, red: 0 };
+      table.set(key, row);
+    }
+    return row;
+  };
+  for (const e of statEvents) {
+    if (e.stat_type === 'yellow_card') ensure(e.team_id, e.player_name).yellow += 1;
+    else if (e.stat_type === 'red_card') ensure(e.team_id, e.player_name).red += 1;
+  }
+  return [...table.values()]
+    .sort((a, b) => b.red - a.red || b.yellow - a.yellow || a.playerName.localeCompare(b.playerName));
+};
+
+/** Suggest a champion (standings leader) and top scorer for award auto-fill. */
+export const suggestAwards = (standings: StandingRow[], scorers: ScorerRow[]): AwardSuggestions => {
+  const leader = standings.find(s => s.played > 0) ?? null;
+  const scorer = scorers.length > 0 && scorers[0].goals > 0 ? scorers[0] : null;
+  return {
+    champion: leader ? { teamId: leader.teamId, name: leader.name } : null,
+    topScorer: scorer ? { teamId: scorer.teamId, playerName: scorer.playerName, goals: scorer.goals } : null
+  };
+};
+
+// --- Owner: stat events ------------------------------------------------------
+
+export const listStatEvents = async (client: DumalaSupabaseClient, eventId: string): Promise<FixtureStatEvent[]> => {
+  const supabase = asUntypedClient(client);
+  return (expectNoError(
+    await supabase.from('fixture_stat_events').select('*').eq('event_id', eventId).order('created_at', { ascending: true }),
+    'STAT_EVENTS_READ_FAILED',
+    'Failed to load statistics'
+  ) as FixtureStatEvent[] | null) ?? [];
+};
+
+export const addStatEvent = async (
+  client: DumalaSupabaseClient,
+  leagueId: string,
+  eventId: string,
+  input: FixtureStatInput
+): Promise<FixtureStatEvent> => {
+  const supabase = asUntypedClient(client);
+  return expectNoError(
+    await supabase.from('fixture_stat_events').insert({
+      league_id: leagueId, event_id: eventId, fixture_id: input.fixtureId, team_id: input.teamId,
+      player_name: input.playerName.trim(), stat_type: input.statType, minute: input.minute ?? null
+    }).select('*').single(),
+    'STAT_EVENT_CREATE_FAILED',
+    'Failed to record the statistic'
+  ) as FixtureStatEvent;
+};
+
+export const deleteStatEvent = async (client: DumalaSupabaseClient, statEventId: string): Promise<void> => {
+  const supabase = asUntypedClient(client);
+  expectNoError(
+    await supabase.from('fixture_stat_events').delete().eq('id', statEventId),
+    'STAT_EVENT_DELETE_FAILED',
+    'Failed to remove the statistic'
+  );
+};
+
+// --- Owner: awards -----------------------------------------------------------
+
+export const listAwards = async (client: DumalaSupabaseClient, eventId: string): Promise<EventAward[]> => {
+  const supabase = asUntypedClient(client);
+  return (expectNoError(
+    await supabase.from('event_awards').select('*').eq('event_id', eventId).order('created_at', { ascending: true }),
+    'AWARDS_READ_FAILED',
+    'Failed to load awards'
+  ) as EventAward[] | null) ?? [];
+};
+
+export const addAward = async (
+  client: DumalaSupabaseClient,
+  leagueId: string,
+  eventId: string,
+  input: EventAwardInput
+): Promise<EventAward> => {
+  const supabase = asUntypedClient(client);
+  return expectNoError(
+    await supabase.from('event_awards').insert({
+      league_id: leagueId, event_id: eventId, title: input.title.trim(), recipient_type: input.recipientType,
+      team_id: input.recipientType === 'team' ? input.teamId ?? null : null,
+      player_name: input.recipientType === 'player' ? input.playerName?.trim() || null : null,
+      note: input.note?.trim() || null
+    }).select('*').single(),
+    'AWARD_CREATE_FAILED',
+    'Failed to assign the award'
+  ) as EventAward;
+};
+
+export const deleteAward = async (client: DumalaSupabaseClient, awardId: string): Promise<void> => {
+  const supabase = asUntypedClient(client);
+  expectNoError(
+    await supabase.from('event_awards').delete().eq('id', awardId),
+    'AWARD_DELETE_FAILED',
+    'Failed to remove the award'
+  );
+};

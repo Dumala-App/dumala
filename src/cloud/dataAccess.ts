@@ -181,7 +181,9 @@ import {
   type WorkoutSessionInput
 } from './player';
 import {
+  addAward,
   addEventTeam,
+  addStatEvent,
   advanceEventStatus,
   advanceSeasonStatus,
   clearFixtures,
@@ -189,15 +191,19 @@ import {
   createLeague,
   createSeason,
   createVenue,
+  deleteAward,
   deleteEventTeam,
+  deleteStatEvent,
   deleteVenue,
   generateFixtures,
+  listAwards,
   listEvents,
   listEventTeams,
   listFixtures,
   listLeagues,
   listRegistrations,
   listSeasons,
+  listStatEvents,
   listVenues,
   lookupEventRegistration,
   recordFixtureResult,
@@ -208,12 +214,16 @@ import {
   updateLeague,
   updateSeason,
   updateVenue,
+  type EventAward,
+  type EventAwardInput,
   type EventFixture,
   type EventRegistration,
   type EventRegistrationInput,
   type EventRegistrationLookup,
   type EventRegistrationStatus,
   type EventTeam,
+  type FixtureStatEvent,
+  type FixtureStatInput,
   type League,
   type LeagueEvent,
   type LeagueEventInput,
@@ -413,6 +423,12 @@ export interface CloudLeagueRepository {
   generateFixtures(leagueId: string, eventId: string): Promise<EventFixture[]>;
   clearFixtures(eventId: string): Promise<void>;
   recordFixtureResult(fixtureId: string, homeScore: number, awayScore: number): Promise<EventFixture>;
+  listStatEvents(eventId: string): Promise<FixtureStatEvent[]>;
+  addStatEvent(leagueId: string, eventId: string, input: FixtureStatInput): Promise<FixtureStatEvent>;
+  deleteStatEvent(statEventId: string): Promise<void>;
+  listAwards(eventId: string): Promise<EventAward[]>;
+  addAward(leagueId: string, eventId: string, input: EventAwardInput): Promise<EventAward>;
+  deleteAward(awardId: string): Promise<void>;
 }
 
 export interface CloudChatRepository {
@@ -601,7 +617,13 @@ export const createCloudDataAccess = (client: DumalaSupabaseClient): CloudDataAc
     listFixtures: eventId => listFixtures(client, eventId),
     generateFixtures: (leagueId, eventId) => generateFixtures(client, leagueId, eventId),
     clearFixtures: eventId => clearFixtures(client, eventId),
-    recordFixtureResult: (fixtureId, homeScore, awayScore) => recordFixtureResult(client, fixtureId, homeScore, awayScore)
+    recordFixtureResult: (fixtureId, homeScore, awayScore) => recordFixtureResult(client, fixtureId, homeScore, awayScore),
+    listStatEvents: eventId => listStatEvents(client, eventId),
+    addStatEvent: (leagueId, eventId, input) => addStatEvent(client, leagueId, eventId, input),
+    deleteStatEvent: statEventId => deleteStatEvent(client, statEventId),
+    listAwards: eventId => listAwards(client, eventId),
+    addAward: (leagueId, eventId, input) => addAward(client, leagueId, eventId, input),
+    deleteAward: awardId => deleteAward(client, awardId)
   },
   chat: {
     ensureChannel: clubId => ensureChannel(client, clubId),

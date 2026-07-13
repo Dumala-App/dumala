@@ -4,14 +4,19 @@ import { createCloudDataAccess } from './dataAccess';
 import {
   CloudLeagueError,
   EVENT_STATUS_LABELS,
+  computeDiscipline,
+  computeScorers,
   computeStandings,
   nextEventStatuses,
   nextSeasonStatuses,
   roundRobinRounds,
   SEASON_STATUS_LABELS,
   spotsRemaining,
+  suggestAwards,
   type EventFixture,
-  type EventTeam
+  type FixtureStatEvent,
+  type EventTeam,
+  type StandingRow
 } from './league';
 
 const createTableStub = (result: unknown, error: unknown = null) => {
@@ -115,6 +120,47 @@ describe('tournament pure helpers', () => {
     expect(table[0]).toMatchObject({ played: 2, won: 1, drawn: 1, lost: 0, points: 4, goalDifference: 1 });
     expect(table[1]).toMatchObject({ points: 3, goalDifference: 2 });
     expect(table[2]).toMatchObject({ points: 1, goalDifference: -3 });
+  });
+});
+
+describe('statistics + awards pure helpers', () => {
+  const stat = (teamId: string, playerName: string, statType: FixtureStatEvent['stat_type']): FixtureStatEvent => ({
+    id: `${teamId}-${playerName}-${statType}-${Math.random()}`, fixture_id: 'f', event_id: 'e', league_id: 'l',
+    team_id: teamId, player_name: playerName, stat_type: statType, minute: null, note: null, created_at: '', updated_at: ''
+  });
+
+  it('ranks scorers by goals then assists, ignoring card-only players', () => {
+    const scorers = computeScorers([
+      stat('a', 'Cruz', 'goal'), stat('a', 'Cruz', 'goal'), stat('a', 'Cruz', 'assist'),
+      stat('b', 'Reyes', 'goal'), stat('b', 'Santos', 'assist'),
+      stat('a', 'Cruz', 'yellow_card')
+    ]);
+    expect(scorers.map(s => s.playerName)).toEqual(['Cruz', 'Reyes', 'Santos']);
+    expect(scorers[0]).toMatchObject({ goals: 2, assists: 1 });
+    expect(scorers[2]).toMatchObject({ goals: 0, assists: 1 });
+  });
+
+  it('tallies discipline, red before yellow', () => {
+    const table = computeDiscipline([
+      stat('a', 'Cruz', 'yellow_card'), stat('a', 'Cruz', 'yellow_card'),
+      stat('b', 'Reyes', 'red_card'), stat('a', 'Cruz', 'goal')
+    ]);
+    expect(table.map(r => r.playerName)).toEqual(['Reyes', 'Cruz']);
+    expect(table[0]).toMatchObject({ red: 1, yellow: 0 });
+    expect(table[1]).toMatchObject({ red: 0, yellow: 2 });
+  });
+
+  it('suggests the standings leader and top scorer for awards', () => {
+    const standings: StandingRow[] = [
+      { teamId: 'a', name: 'Alpha', played: 2, won: 2, drawn: 0, lost: 0, goalsFor: 5, goalsAgainst: 1, goalDifference: 4, points: 6 },
+      { teamId: 'b', name: 'Bravo', played: 0, won: 0, drawn: 0, lost: 0, goalsFor: 0, goalsAgainst: 0, goalDifference: 0, points: 0 }
+    ];
+    const scorers = computeScorers([stat('a', 'Cruz', 'goal')]);
+    expect(suggestAwards(standings, scorers)).toEqual({
+      champion: { teamId: 'a', name: 'Alpha' },
+      topScorer: { teamId: 'a', playerName: 'Cruz', goals: 1 }
+    });
+    expect(suggestAwards([], [])).toEqual({ champion: null, topScorer: null });
   });
 });
 

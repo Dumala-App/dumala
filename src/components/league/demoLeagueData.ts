@@ -6,9 +6,11 @@ import {
   nextSeasonStatuses,
   roundRobinRounds,
   spotsRemaining,
+  type EventAward,
   type EventFixture,
   type EventRegistration,
   type EventTeam,
+  type FixtureStatEvent,
   type League,
   type LeagueEvent,
   type LeagueSeason,
@@ -146,6 +148,26 @@ const buildDemoLeagueRepository = (): CloudLeagueRepository => {
       away_score: result ? result[1] : null, kickoff_at: null, venue_id: null, created_at: now(), updated_at: now()
     };
   });
+
+  const statRow = (teamId: string, playerName: string, statType: FixtureStatEvent['stat_type']): FixtureStatEvent => ({
+    id: newId(), fixture_id: 'demo-fixture-1', event_id: 'demo-event-1', league_id: LEAGUE_ID,
+    team_id: teamId, player_name: playerName, stat_type: statType, minute: null, note: null,
+    created_at: now(), updated_at: now()
+  });
+  let statEvents: FixtureStatEvent[] = [
+    statRow('demo-team-1', 'A. Ramos', 'goal'),
+    statRow('demo-team-1', 'A. Ramos', 'goal'),
+    statRow('demo-team-1', 'J. Cruz', 'assist'),
+    statRow('demo-team-2', 'M. Lim', 'goal'),
+    statRow('demo-team-2', 'M. Lim', 'yellow_card')
+  ];
+
+  let awards: EventAward[] = [
+    {
+      id: 'demo-award-1', event_id: 'demo-event-1', league_id: LEAGUE_ID, title: 'Group Stage Winners',
+      recipient_type: 'team', team_id: 'demo-team-1', player_name: null, note: null, created_at: now(), updated_at: now()
+    }
+  ];
 
   return {
     listLeagues: async () => leagues,
@@ -341,6 +363,34 @@ const buildDemoLeagueRepository = (): CloudLeagueRepository => {
         ? { ...f, home_score: homeScore, away_score: awayScore, status: 'completed', updated_at: now() }
         : f);
       return fixtures.find(f => f.id === fixtureId)!;
+    },
+    listStatEvents: async eventId => statEvents.filter(s => s.event_id === eventId),
+    addStatEvent: async (leagueId, eventId, input) => {
+      const row: FixtureStatEvent = {
+        id: newId(), fixture_id: input.fixtureId, event_id: eventId, league_id: leagueId, team_id: input.teamId,
+        player_name: input.playerName.trim(), stat_type: input.statType, minute: input.minute ?? null, note: null,
+        created_at: now(), updated_at: now()
+      };
+      statEvents = [...statEvents, row];
+      return row;
+    },
+    deleteStatEvent: async statEventId => {
+      statEvents = statEvents.filter(s => s.id !== statEventId);
+    },
+    listAwards: async eventId => awards.filter(a => a.event_id === eventId),
+    addAward: async (leagueId, eventId, input) => {
+      const row: EventAward = {
+        id: newId(), event_id: eventId, league_id: leagueId, title: input.title.trim(),
+        recipient_type: input.recipientType,
+        team_id: input.recipientType === 'team' ? input.teamId ?? null : null,
+        player_name: input.recipientType === 'player' ? input.playerName?.trim() || null : null,
+        note: input.note?.trim() || null, created_at: now(), updated_at: now()
+      };
+      awards = [...awards, row];
+      return row;
+    },
+    deleteAward: async awardId => {
+      awards = awards.filter(a => a.id !== awardId);
     }
   };
 };
