@@ -8,11 +8,16 @@ import {
   Copy,
   Eye,
   Gauge,
+  ListOrdered,
   Loader2,
   MapPin,
   Plus,
+  RefreshCw,
   Save,
   Settings,
+  Shield,
+  Shuffle,
+  Swords,
   Trash2,
   Trophy,
   Users,
@@ -26,11 +31,14 @@ import {
   EVENT_STATUS_LABELS,
   REGISTRATION_STATUS_LABELS,
   SEASON_STATUS_LABELS,
+  computeStandings,
   nextEventStatuses,
   nextSeasonStatuses,
   spotsRemaining,
+  type EventFixture,
   type EventRegistration,
   type EventRegistrationStatus,
+  type EventTeam,
   type League,
   type LeagueEvent,
   type LeagueEventFormat,
@@ -538,6 +546,15 @@ const EventsList = ({ events, seasons, onCreate, onOpen, onGoToSeasons }: {
   );
 };
 
+type EventTab = 'applications' | 'teams' | 'fixtures' | 'table';
+
+const EVENT_TABS: Array<{ id: EventTab; label: string; icon: React.ComponentType<{ size?: number; className?: string }> }> = [
+  { id: 'applications', label: 'Applications', icon: Users },
+  { id: 'teams', label: 'Teams', icon: Shield },
+  { id: 'fixtures', label: 'Fixtures', icon: Swords },
+  { id: 'table', label: 'Table', icon: ListOrdered }
+];
+
 const EventDetail = ({ league, event, runError, onBack, onAdvance, onAfterReview }: {
   league: CloudLeagueRepository;
   event: LeagueEvent;
@@ -547,12 +564,21 @@ const EventDetail = ({ league, event, runError, onBack, onAdvance, onAfterReview
   onAfterReview: () => void;
 }) => {
   const [registrations, setRegistrations] = useState<EventRegistration[]>([]);
+  const [teams, setTeams] = useState<EventTeam[]>([]);
+  const [fixtures, setFixtures] = useState<EventFixture[]>([]);
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
+  const [tab, setTab] = useState<EventTab>('applications');
 
   const refresh = useCallback(async () => {
-    const rows = await league.listRegistrations(event.id);
-    setRegistrations(rows);
+    const [regs, tms, fxs] = await Promise.all([
+      league.listRegistrations(event.id),
+      league.listEventTeams(event.id),
+      league.listFixtures(event.id)
+    ]);
+    setRegistrations(regs);
+    setTeams(tms);
+    setFixtures(fxs);
   }, [league, event.id]);
 
   useEffect(() => {
@@ -566,6 +592,7 @@ const EventDetail = ({ league, event, runError, onBack, onAdvance, onAfterReview
   const spots = spotsRemaining(event.team_cap, approvedCount);
   const nexts = nextEventStatuses(event.status);
   const registerUrl = typeof window !== 'undefined' ? `${window.location.origin}/#/register` : '/#/register';
+  const teamName = (id: string) => teams.find(t => t.id === id)?.name ?? 'TBD';
 
   const copyCode = async () => {
     try {
@@ -582,6 +609,19 @@ const EventDetail = ({ league, event, runError, onBack, onAdvance, onAfterReview
   const review = (registrationId: string, status: EventRegistrationStatus) =>
     runError(async () => { await league.reviewRegistration(registrationId, status); await refresh(); onAfterReview(); });
 
+  const addTeam = (name: string) =>
+    runError(async () => { await league.addEventTeam(event.league_id, event.id, { name }); await refresh(); });
+  const addApprovedTeams = () =>
+    runError(async () => { await league.syncApprovedTeams(event.league_id, event.id); await refresh(); });
+  const removeTeam = (teamId: string) =>
+    runError(async () => { await league.deleteEventTeam(teamId); await refresh(); });
+  const generateFixtures = () =>
+    runError(async () => { await league.generateFixtures(event.league_id, event.id); await refresh(); });
+  const clearFixtures = () =>
+    runError(async () => { await league.clearFixtures(event.id); await refresh(); });
+  const recordResult = (fixtureId: string, home: number, away: number) =>
+    runError(async () => { await league.recordFixtureResult(fixtureId, home, away); await refresh(); });
+
   return (
     <div className="space-y-4">
       <button type="button" onClick={onBack} className={ghostBtn}><ChevronLeft size={14} /> All events</button>
@@ -595,7 +635,7 @@ const EventDetail = ({ league, event, runError, onBack, onAdvance, onAfterReview
         <div className="space-y-4 p-4">
           <div className="grid gap-3 sm:grid-cols-3">
             <StatTile label="Registered" value={`${approvedCount}${event.team_cap ? ` / ${event.team_cap}` : ''}`} detail={spots === null ? 'No cap' : `${spots} spots left`} />
-            <StatTile label="Applications" value={registrations.length} detail="Total received" />
+            <StatTile label="Teams" value={teams.length} detail="In this event" />
             <StatTile label="Format" value={EVENT_FORMAT_LABELS[event.format]} detail={event.category ?? 'All ages'} />
           </div>
 
@@ -624,51 +664,277 @@ const EventDetail = ({ league, event, runError, onBack, onAdvance, onAfterReview
         </div>
       </section>
 
-      <section className={panel}>
-        <div className={DARK_GLASS_CLASSES.panelHeader}>
-          <Users size={16} className="text-cyan-200" />
-          <h2 className="font-display text-sm font-black text-white">Applications</h2>
-        </div>
-        <div className="p-4">
-          {loading ? (
-            <div className="flex items-center gap-2 text-sm text-slate-300"><Loader2 size={16} className="animate-spin" /> Loading applications…</div>
-          ) : registrations.length === 0 ? (
-            <p className="text-sm text-slate-400">No applications yet. Share the registration code to invite clubs.</p>
-          ) : (
-            <ul className="space-y-2">
-              {registrations.map(reg => (
-                <li key={reg.id} className="rounded-2xl border border-cyan-300/10 bg-white/[0.035] p-4">
-                  <div className="flex flex-wrap items-start justify-between gap-3">
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="font-display text-sm font-black text-white">{reg.club_name}</span>
-                        <span className={`rounded-full border px-2 py-0.5 text-[11px] font-bold ${registrationTone[reg.status]}`}>
-                          {REGISTRATION_STATUS_LABELS[reg.status]}
-                        </span>
-                      </div>
-                      <p className="mt-1 text-xs text-slate-400">
-                        {[reg.team_name, reg.category, reg.roster_size ? `${reg.roster_size} players` : null].filter(Boolean).join(' · ') || '—'}
-                      </p>
-                      <p className="mt-1 text-xs text-slate-500">{reg.contact_name} · {reg.contact_email}</p>
-                      {reg.message && <p className="mt-2 rounded-lg bg-black/20 px-3 py-2 text-xs text-slate-300">“{reg.message}”</p>}
-                    </div>
-                    {(reg.status === 'submitted' || reg.status === 'waitlisted') && (
-                      <div className="flex items-center gap-1.5">
-                        <button type="button" className={`${primaryBtn} !px-3`} onClick={() => review(reg.id, 'approved')}><Check size={14} /> Approve</button>
-                        <button type="button" aria-label="Waitlist" className={`${ghostBtn} !px-2.5`} onClick={() => review(reg.id, 'waitlisted')}><Clock size={14} /></button>
-                        <button type="button" aria-label="Reject" className={`${ghostBtn} !px-2.5`} onClick={() => review(reg.id, 'rejected')}><X size={14} /></button>
-                      </div>
-                    )}
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-      </section>
+      <nav className="flex flex-wrap gap-2">
+        {EVENT_TABS.map(item => {
+          const active = item.id === tab;
+          const Icon = item.icon;
+          const count = item.id === 'applications' ? registrations.length : item.id === 'teams' ? teams.length : null;
+          return (
+            <button
+              key={item.id}
+              type="button"
+              onClick={() => setTab(item.id)}
+              className={`inline-flex items-center gap-2 rounded-xl border px-3 py-2 text-xs font-bold transition-colors ${active ? DARK_GLASS_CLASSES.navItemActive : DARK_GLASS_CLASSES.navItemIdle}`}
+            >
+              <Icon size={14} /> {item.label}{count ? ` (${count})` : ''}
+            </button>
+          );
+        })}
+      </nav>
+
+      {loading ? (
+        <div className="flex items-center gap-2 text-sm text-slate-300"><Loader2 size={16} className="animate-spin" /> Loading event…</div>
+      ) : (
+        <>
+          {tab === 'applications' && <ApplicationsPanel registrations={registrations} onReview={review} />}
+          {tab === 'teams' && <TeamsPanel teams={teams} approvedCount={approvedCount} onAdd={addTeam} onAddApproved={addApprovedTeams} onRemove={removeTeam} />}
+          {tab === 'fixtures' && <FixturesPanel fixtures={fixtures} teamCount={teams.length} teamName={teamName} onGenerate={generateFixtures} onClear={clearFixtures} onRecord={recordResult} />}
+          {tab === 'table' && <TablePanel standings={computeStandings(teams, fixtures)} />}
+        </>
+      )}
     </div>
   );
 };
+
+const ApplicationsPanel = ({ registrations, onReview }: {
+  registrations: EventRegistration[];
+  onReview: (registrationId: string, status: EventRegistrationStatus) => void;
+}) => (
+  <section className={panel}>
+    <div className={DARK_GLASS_CLASSES.panelHeader}>
+      <Users size={16} className="text-cyan-200" />
+      <h2 className="font-display text-sm font-black text-white">Applications</h2>
+    </div>
+    <div className="p-4">
+      {registrations.length === 0 ? (
+        <p className="text-sm text-slate-400">No applications yet. Share the registration code to invite clubs.</p>
+      ) : (
+        <ul className="space-y-2">
+          {registrations.map(reg => (
+            <li key={reg.id} className="rounded-2xl border border-cyan-300/10 bg-white/[0.035] p-4">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="font-display text-sm font-black text-white">{reg.club_name}</span>
+                    <span className={`rounded-full border px-2 py-0.5 text-[11px] font-bold ${registrationTone[reg.status]}`}>
+                      {REGISTRATION_STATUS_LABELS[reg.status]}
+                    </span>
+                  </div>
+                  <p className="mt-1 text-xs text-slate-400">
+                    {[reg.team_name, reg.category, reg.roster_size ? `${reg.roster_size} players` : null].filter(Boolean).join(' · ') || '—'}
+                  </p>
+                  <p className="mt-1 text-xs text-slate-500">{reg.contact_name} · {reg.contact_email}</p>
+                  {reg.message && <p className="mt-2 rounded-lg bg-black/20 px-3 py-2 text-xs text-slate-300">“{reg.message}”</p>}
+                </div>
+                {(reg.status === 'submitted' || reg.status === 'waitlisted') && (
+                  <div className="flex items-center gap-1.5">
+                    <button type="button" className={`${primaryBtn} !px-3`} onClick={() => onReview(reg.id, 'approved')}><Check size={14} /> Approve</button>
+                    <button type="button" aria-label="Waitlist" className={`${ghostBtn} !px-2.5`} onClick={() => onReview(reg.id, 'waitlisted')}><Clock size={14} /></button>
+                    <button type="button" aria-label="Reject" className={`${ghostBtn} !px-2.5`} onClick={() => onReview(reg.id, 'rejected')}><X size={14} /></button>
+                  </div>
+                )}
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  </section>
+);
+
+const TeamsPanel = ({ teams, approvedCount, onAdd, onAddApproved, onRemove }: {
+  teams: EventTeam[];
+  approvedCount: number;
+  onAdd: (name: string) => void;
+  onAddApproved: () => void;
+  onRemove: (teamId: string) => void;
+}) => {
+  const [name, setName] = useState('');
+  const linkedCount = teams.filter(t => t.registration_id).length;
+  const pendingApproved = Math.max(0, approvedCount - linkedCount);
+
+  const submit = (e: FormEvent) => {
+    e.preventDefault();
+    if (!name.trim()) return;
+    onAdd(name);
+    setName('');
+  };
+
+  return (
+    <section className={panel}>
+      <div className={DARK_GLASS_CLASSES.panelHeader}>
+        <Shield size={16} className="text-cyan-200" />
+        <h2 className="font-display text-sm font-black text-white">Teams</h2>
+      </div>
+      <div className="space-y-4 p-4">
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <form onSubmit={submit} className="flex flex-1 items-end gap-2">
+            <div className="flex-1 space-y-1">
+              <label className={label}>Add a team</label>
+              <input className={inputClass} value={name} onChange={e => setName(e.target.value)} placeholder="Team name" />
+            </div>
+            <button type="submit" className={primaryBtn}><Plus size={14} /> Add</button>
+          </form>
+          {pendingApproved > 0 && (
+            <button type="button" className={ghostBtn} onClick={onAddApproved}>
+              <Plus size={14} /> Add {pendingApproved} approved
+            </button>
+          )}
+        </div>
+
+        {teams.length === 0 ? (
+          <p className="text-sm text-slate-400">No teams yet. Add them by hand, or pull in approved applicants.</p>
+        ) : (
+          <ul className="space-y-2">
+            {teams.map((team, index) => (
+              <li key={team.id} className="flex items-center justify-between gap-3 rounded-xl border border-cyan-300/10 bg-white/[0.035] px-4 py-3">
+                <div className="flex items-center gap-3">
+                  <span className="font-display text-xs font-black text-slate-500">{index + 1}</span>
+                  <span className="font-display text-sm font-black text-white">{team.name}</span>
+                  {team.registration_id && <span className="rounded-full border border-emerald-400/40 bg-emerald-400/15 px-2 py-0.5 text-[10px] font-bold text-emerald-100">Registered</span>}
+                </div>
+                <button type="button" aria-label="Remove team" className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 hover:text-rose-300" onClick={() => onRemove(team.id)}>
+                  <Trash2 size={16} />
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+    </section>
+  );
+};
+
+const FixturesPanel = ({ fixtures, teamCount, teamName, onGenerate, onClear, onRecord }: {
+  fixtures: EventFixture[];
+  teamCount: number;
+  teamName: (id: string) => string;
+  onGenerate: () => void;
+  onClear: () => void;
+  onRecord: (fixtureId: string, home: number, away: number) => void;
+}) => {
+  const rounds = [...new Set(fixtures.map(f => f.round))].sort((a, b) => a - b);
+  const played = fixtures.filter(f => f.status === 'completed').length;
+
+  return (
+    <section className={panel}>
+      <div className={`${DARK_GLASS_CLASSES.panelHeader} justify-between`}>
+        <div className="flex items-center gap-2">
+          <Swords size={16} className="text-cyan-200" />
+          <h2 className="font-display text-sm font-black text-white">Fixtures</h2>
+        </div>
+        {fixtures.length > 0 && (
+          <button type="button" className={`${ghostBtn} !py-1.5`} onClick={onClear}><RefreshCw size={13} /> Clear & regenerate</button>
+        )}
+      </div>
+      <div className="space-y-4 p-4">
+        {fixtures.length === 0 ? (
+          <div className="space-y-3 text-center">
+            <p className="text-sm text-slate-400">
+              {teamCount < 2 ? 'Add at least two teams to generate a schedule.' : 'Generate a round-robin schedule — every team plays every other once.'}
+            </p>
+            <button type="button" className={primaryBtn} disabled={teamCount < 2} onClick={onGenerate}>
+              <Shuffle size={14} /> Generate fixtures
+            </button>
+          </div>
+        ) : (
+          <>
+            <p className="text-xs text-slate-400">{played} of {fixtures.length} played</p>
+            {rounds.map(round => (
+              <div key={round} className="space-y-2">
+                <p className="text-[11px] font-black uppercase tracking-wide text-cyan-100/65">Round {round}</p>
+                {fixtures.filter(f => f.round === round).map(fixture => (
+                  <FixtureRow key={fixture.id} fixture={fixture} teamName={teamName} onRecord={onRecord} />
+                ))}
+              </div>
+            ))}
+          </>
+        )}
+      </div>
+    </section>
+  );
+};
+
+const FixtureRow = ({ fixture, teamName, onRecord }: {
+  fixture: EventFixture;
+  teamName: (id: string) => string;
+  onRecord: (fixtureId: string, home: number, away: number) => void;
+}) => {
+  const [home, setHome] = useState(fixture.home_score?.toString() ?? '');
+  const [away, setAway] = useState(fixture.away_score?.toString() ?? '');
+  const dirty = home !== (fixture.home_score?.toString() ?? '') || away !== (fixture.away_score?.toString() ?? '');
+  const canSave = home !== '' && away !== '' && dirty;
+
+  const scoreInput = 'h-9 w-12 rounded-lg border border-cyan-300/10 bg-[#0b1726]/85 text-center font-display text-sm font-black text-white';
+
+  return (
+    <div className="flex items-center gap-2 rounded-xl border border-cyan-300/10 bg-white/[0.035] px-3 py-2">
+      <span className="flex-1 truncate text-right text-sm font-bold text-white">{teamName(fixture.home_team_id)}</span>
+      <input aria-label="Home score" type="number" min={0} className={scoreInput} value={home} onChange={e => setHome(e.target.value)} />
+      <span className="text-xs text-slate-500">v</span>
+      <input aria-label="Away score" type="number" min={0} className={scoreInput} value={away} onChange={e => setAway(e.target.value)} />
+      <span className="flex-1 truncate text-sm font-bold text-white">{teamName(fixture.away_team_id)}</span>
+      <button
+        type="button"
+        aria-label="Save result"
+        disabled={!canSave}
+        onClick={() => onRecord(fixture.id, Number(home), Number(away))}
+        className={`flex h-8 w-8 items-center justify-center rounded-lg ${canSave ? 'text-emerald-300 hover:bg-emerald-300/10' : 'text-slate-600'}`}
+      >
+        {fixture.status === 'completed' && !dirty ? <Check size={16} /> : <Save size={16} />}
+      </button>
+    </div>
+  );
+};
+
+const TablePanel = ({ standings }: { standings: ReturnType<typeof computeStandings> }) => (
+  <section className={panel}>
+    <div className={DARK_GLASS_CLASSES.panelHeader}>
+      <ListOrdered size={16} className="text-cyan-200" />
+      <h2 className="font-display text-sm font-black text-white">Standings</h2>
+    </div>
+    <div className="p-4">
+      {standings.length === 0 ? (
+        <p className="text-sm text-slate-400">Add teams and record results to build the table.</p>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="text-[11px] font-black uppercase text-cyan-100/65">
+                <th className="px-2 py-2 text-left">#</th>
+                <th className="px-2 py-2 text-left">Team</th>
+                <th className="px-2 py-2 text-right">P</th>
+                <th className="px-2 py-2 text-right">W</th>
+                <th className="px-2 py-2 text-right">D</th>
+                <th className="px-2 py-2 text-right">L</th>
+                <th className="px-2 py-2 text-right">GF</th>
+                <th className="px-2 py-2 text-right">GA</th>
+                <th className="px-2 py-2 text-right">GD</th>
+                <th className="px-2 py-2 text-right">Pts</th>
+              </tr>
+            </thead>
+            <tbody>
+              {standings.map((row, index) => (
+                <tr key={row.teamId} className="border-t border-cyan-300/10">
+                  <td className="px-2 py-2 text-slate-500">{index + 1}</td>
+                  <td className="px-2 py-2 font-bold text-white">{row.name}</td>
+                  <td className="px-2 py-2 text-right text-slate-300">{row.played}</td>
+                  <td className="px-2 py-2 text-right text-slate-300">{row.won}</td>
+                  <td className="px-2 py-2 text-right text-slate-300">{row.drawn}</td>
+                  <td className="px-2 py-2 text-right text-slate-300">{row.lost}</td>
+                  <td className="px-2 py-2 text-right text-slate-300">{row.goalsFor}</td>
+                  <td className="px-2 py-2 text-right text-slate-300">{row.goalsAgainst}</td>
+                  <td className="px-2 py-2 text-right text-slate-300">{row.goalDifference}</td>
+                  <td className="px-2 py-2 text-right font-black text-white">{row.points}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  </section>
+);
 
 // --- Venues ------------------------------------------------------------------
 
