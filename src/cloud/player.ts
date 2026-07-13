@@ -544,3 +544,32 @@ export const markAllNotificationsRead = async (
     'Failed to update notifications'
   );
 };
+
+// --- Achievements / badges ---------------------------------------------------
+
+export interface PlayerAchievement {
+  user_id: string;
+  achievement_key: string;
+  earned_at: string;
+  created_at: string;
+}
+
+export const listAchievements = async (client: DumalaSupabaseClient): Promise<PlayerAchievement[]> => {
+  const supabase = asUntypedClient(client);
+  return (expectNoError(
+    await supabase.from('player_achievements').select('*').order('earned_at', { ascending: true }),
+    'ACHIEVEMENTS_READ_FAILED',
+    'Failed to load achievements'
+  ) as PlayerAchievement[] | null) ?? [];
+};
+
+/** Grant any newly-earned badges from the player's activity; returns new keys. */
+export const syncAchievements = async (client: DumalaSupabaseClient, streak: number): Promise<string[]> => {
+  const supabase = asUntypedClient(client);
+  const data = expectNoError(
+    await supabase.rpc('sync_player_achievements', { p_streak: Math.max(0, Math.round(streak)) }),
+    'ACHIEVEMENTS_SYNC_FAILED',
+    'Failed to update achievements'
+  );
+  return Array.isArray(data) ? (data as string[]) : [];
+};

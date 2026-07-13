@@ -146,6 +146,7 @@ import {
   approvePlayerLink,
   getMyPlayerProfile,
   getOrCreateClubJoinCode,
+  listAchievements,
   listClubLinkRequests,
   listClubRosterPlayers,
   listDrillCompletions,
@@ -162,6 +163,7 @@ import {
   requestPlayerLink,
   saveWorkoutSession,
   setGuardianConsent,
+  syncAchievements,
   toggleDrillFavorite,
   upsertMyPlayerProfile,
   withdrawPlayerLinkRequest,
@@ -169,6 +171,7 @@ import {
   type DrillCompletionInput,
   type GuardianConsentInput,
   type GuardianConsentState,
+  type PlayerAchievement,
   type PlayerClubLink,
   type PlayerDrillCompletion,
   type PlayerLinkRequest,
@@ -408,6 +411,8 @@ export interface CloudPlayerRepository {
   listNotifications(limit?: number): Promise<PlayerNotification[]>;
   markNotificationRead(notificationId: string): Promise<void>;
   markAllNotificationsRead(userId: string): Promise<void>;
+  listAchievements(): Promise<PlayerAchievement[]>;
+  syncAchievements(streak: number): Promise<string[]>;
 }
 
 export interface CloudLeagueRepository {
@@ -617,7 +622,9 @@ export const createCloudDataAccess = (client: DumalaSupabaseClient): CloudDataAc
     listWorkoutSessions: limit => listWorkoutSessions(client, limit),
     listNotifications: limit => listNotifications(client, limit),
     markNotificationRead: notificationId => markNotificationRead(client, notificationId),
-    markAllNotificationsRead: userId => markAllNotificationsRead(client, userId)
+    markAllNotificationsRead: userId => markAllNotificationsRead(client, userId),
+    listAchievements: () => listAchievements(client),
+    syncAchievements: streak => syncAchievements(client, streak)
   },
   league: {
     listLeagues: () => listLeagues(client),

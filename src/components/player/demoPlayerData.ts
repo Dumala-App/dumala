@@ -3,6 +3,7 @@ import type { CloudRuntime, Phase6Config } from '../../cloud/runtime';
 import type { CloudAuthController } from '../../hooks/useCloudAuth';
 import type { ChatMessage } from '../../cloud/chat';
 import type {
+  PlayerAchievement,
   PlayerClubLink,
   PlayerDrillCompletion,
   PlayerLinkRequest,
@@ -11,6 +12,7 @@ import type {
   PlayerWorkoutSession,
   TeamScheduleEntry
 } from '../../cloud/player';
+import { PLAYER_ACHIEVEMENTS } from '../../player/achievements';
 
 // In-memory sample data for the Player app "preview" mode. When the preview flag
 // is on, the app renders straight into a demo dashboard (no login, no cloud) so
@@ -72,6 +74,7 @@ export const createDemoPlayerRepository = (): CloudPlayerRepository => {
   ];
 
   let favorites = new Set<string>(['drill-agility', 'drill-shooting']);
+  let achievements: PlayerAchievement[] = [];
 
   let workouts: PlayerWorkoutSession[] = [
     {
@@ -210,6 +213,24 @@ export const createDemoPlayerRepository = (): CloudPlayerRepository => {
     markAllNotificationsRead: async () => {
       const now = new Date().toISOString();
       notifications = notifications.map(n => (n.read_at ? n : { ...n, read_at: now }));
+    },
+    listAchievements: async () => achievements,
+    syncAchievements: async streak => {
+      const stats = { drills: completions.length, workouts: workouts.length, favorites: favorites.size, streak };
+      const earnedKeys = new Set(achievements.map(a => a.achievement_key));
+      const newly: string[] = [];
+      for (const def of PLAYER_ACHIEVEMENTS) {
+        const val = def.metric === 'drills' ? stats.drills
+          : def.metric === 'workouts' ? stats.workouts
+          : def.metric === 'streak' ? stats.streak
+          : stats.favorites;
+        if (val >= def.threshold && !earnedKeys.has(def.key)) {
+          const at = new Date().toISOString();
+          achievements = [...achievements, { user_id: profile.user_id, achievement_key: def.key, earned_at: at, created_at: at }];
+          newly.push(def.key);
+        }
+      }
+      return newly;
     }
   };
 };
