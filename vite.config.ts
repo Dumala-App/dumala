@@ -54,7 +54,7 @@ export default defineConfig({
         skipWaiting: false,
         navigateFallback: null,
         globPatterns: ['**/*.{js,css,html,ico,png,svg,webp,woff,woff2,json,webmanifest}'],
-        globIgnores: ['**/dumala-free-kick.html'],
+        globIgnores: ['**/dumala-free-kick.html', '**/dumala-free-kick.css', '**/dumala-free-kick.js', '**/free-kick-wall-*.webp'],
         runtimeCaching: [
           {
             urlPattern: ({url}) =>
