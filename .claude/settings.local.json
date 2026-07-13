@@ -18,7 +18,8 @@
       "Bash(gh pr create --base main --head codex/free-kick-wall-switch --title 'Add switchable Albiceleste wall to Free Kick Hero' --body ' *)",
       "Bash(npx tsc *)",
       "Bash(ls -la .env*)",
-      "Bash(grep -rn \"SUPABASE\\\\|DUMALA_CLOUD\" .env*)"
+      "Bash(grep -rn \"SUPABASE\\\\|DUMALA_CLOUD\" .env*)",
+      "Bash(git commit -q -m 'docs\\(phase6\\): changelog for league events + registration *)"
     ]
   }
 }
