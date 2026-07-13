@@ -31,6 +31,7 @@ import {
   Sparkles,
   Tag,
   Trash2,
+  Trophy,
   UserCog,
   UsersRound,
   Volume2,
@@ -70,6 +71,10 @@ import type {
   PromotionInput,
   PromotionRecord
 } from '../cloud/marketing';
+import type {
+  LeagueAccessRequestRecord,
+  LeagueAccessRequestStatus
+} from '../cloud/identity';
 import { PLAN_OPTIONS } from '../billing/plans';
 import { derivePremiumLeads, isPremiumLeadFeedback, type PremiumLeadSummary } from '../landing/premiumLeadCapture';
 import type { MfaChallenge, MfaFactor, TotpEnrollment } from '../cloud/auth';
@@ -90,7 +95,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Textarea } from './ui/textarea';
 import { DARK_GLASS_THEME, type DarkGlassThemeId } from '../theme/darkGlassTheme';
 
-type AdminTab = 'overview' | 'users' | 'recovery' | 'storage' | 'security' | 'usage' | 'feedback' | 'leads' | 'fprds' | 'benchmarks' | 'online' | 'billing' | 'marketing' | 'exports' | 'alerts';
+type AdminTab = 'overview' | 'users' | 'recovery' | 'storage' | 'security' | 'usage' | 'feedback' | 'leads' | 'fprds' | 'benchmarks' | 'online' | 'billing' | 'marketing' | 'league-access' | 'exports' | 'alerts';
 
 const ADMIN_AUTH_REDIRECT_URL = 'https://dumala.asia/?returnTo=admin';
 
@@ -116,6 +121,7 @@ const adminTabs: Array<{ id: AdminTab; label: string; icon: React.ComponentType<
   { id: 'online', label: 'Online', icon: Wifi },
   { id: 'billing', label: 'Billing', icon: CreditCard },
   { id: 'marketing', label: 'Marketing', icon: Megaphone },
+  { id: 'league-access', label: 'League access', icon: Trophy },
   { id: 'exports', label: 'Exports', icon: Download },
   { id: 'alerts', label: 'Alerts', icon: Bell }
 ];
@@ -2048,6 +2054,103 @@ const announcementKindLabel: Record<AnnouncementKind, string> = {
   promo: 'Promotion'
 };
 
+const leagueRequestStatusLabel: Record<LeagueAccessRequestStatus, string> = {
+  pending: 'Pending',
+  approved: 'Approved',
+  rejected: 'Rejected',
+  provisioned: 'Provisioned',
+  withdrawn: 'Withdrawn'
+};
+
+const LeagueAccessPanel = ({
+  requests,
+  loadState,
+  actionId,
+  onRefresh,
+  onProvision,
+  onReview
+}: {
+  requests: LeagueAccessRequestRecord[];
+  loadState: 'idle' | 'loading' | 'ready' | 'error';
+  actionId: string | null;
+  onRefresh: () => void;
+  onProvision: (request: LeagueAccessRequestRecord) => Promise<void>;
+  onReview: (request: LeagueAccessRequestRecord, status: LeagueAccessRequestStatus) => Promise<void>;
+}) => {
+  const pendingCount = requests.filter(request => request.status === 'pending').length;
+  const provisionedCount = requests.filter(request => request.status === 'provisioned').length;
+
+  return (
+    <div className="space-y-4">
+      <div className="grid gap-3 sm:grid-cols-3">
+        <StatTile label="Open requests" value={pendingCount} detail="Waitlist entries awaiting review." />
+        <StatTile label="Provisioned" value={provisionedCount} detail="League owners granted the pilot entitlement." />
+        <StatTile label="Total requests" value={requests.length} detail="All League access submissions." />
+      </div>
+
+      <Section title="League access requests" icon={Trophy}>
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+          <p className="text-xs font-medium text-slate-400">
+            Provisioning sets the account persona to League and grants the <span className="font-black text-slate-200">league_pilot</span> entitlement.
+            The owner account must already exist in Users (create it there first if needed).
+          </p>
+          <Button type="button" variant="outline" size="sm" className="gap-1.5" onClick={onRefresh} disabled={loadState === 'loading'}>
+            {loadState === 'loading' ? <Loader2 size={14} className="animate-spin" /> : <RefreshCcw size={14} />} Refresh
+          </Button>
+        </div>
+
+        {requests.length === 0 ? (
+          <EmptyState
+            title={loadState === 'loading' ? 'Loading requests…' : 'No League access requests yet'}
+            detail="Requests submitted through the public League door appear here for review and provisioning."
+          />
+        ) : (
+          <CompactTable headers={['Status', 'Contact', 'Organization', 'League', 'Submitted', 'Actions']} scrollHeightClassName="max-h-[32rem]">
+            {requests.map(request => {
+              const busy = actionId === request.id;
+              return (
+                <tr key={request.id}>
+                  <td className="px-3 py-2"><Badge variant="secondary">{leagueRequestStatusLabel[request.status]}</Badge></td>
+                  <td className="px-3 py-2">
+                    <div className="font-bold text-slate-100">{request.contact_name}</div>
+                    <div className="text-slate-400">{request.contact_email}</div>
+                  </td>
+                  <td className="px-3 py-2">{request.organization ?? '—'}</td>
+                  <td className="px-3 py-2">{request.league_name ?? '—'}</td>
+                  <td className="px-3 py-2">{formatDateTime(request.created_at)}</td>
+                  <td className="px-3 py-2">
+                    <div className="flex flex-wrap gap-1.5">
+                      <Button
+                        type="button"
+                        size="sm"
+                        className="h-7 gap-1 px-2 text-[11px]"
+                        disabled={busy || request.status === 'provisioned'}
+                        onClick={() => void onProvision(request)}
+                      >
+                        {busy ? <Loader2 size={12} className="animate-spin" /> : <ShieldCheck size={12} />} Provision
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="h-7 gap-1 px-2 text-[11px]"
+                        disabled={busy || request.status === 'provisioned'}
+                        onClick={() => void onReview(request, 'rejected')}
+                      >
+                        Reject
+                      </Button>
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
+          </CompactTable>
+        )}
+      </Section>
+    </div>
+  );
+};
+
 const MarketingPanel = ({
   promotions,
   announcements,
@@ -2929,6 +3032,9 @@ export default function AdminConsoleView() {
   const [promotions, setPromotions] = useState<PromotionRecord[]>([]);
   const [announcements, setAnnouncements] = useState<AnnouncementRecord[]>([]);
   const [marketingLoadState, setMarketingLoadState] = useState<'idle' | 'loading' | 'ready' | 'error'>('idle');
+  const [leagueRequests, setLeagueRequests] = useState<LeagueAccessRequestRecord[]>([]);
+  const [leagueAccessLoadState, setLeagueAccessLoadState] = useState<'idle' | 'loading' | 'ready' | 'error'>('idle');
+  const [leagueActionId, setLeagueActionId] = useState<string | null>(null);
 
   const loadSnapshot = async () => {
     if (!runtime.enabled || auth.state.status !== 'signedIn') return;
@@ -3031,6 +3137,13 @@ export default function AdminConsoleView() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab, loadState, marketingLoadState]);
+
+  useEffect(() => {
+    if (activeTab === 'league-access' && loadState === 'ready' && leagueAccessLoadState === 'idle') {
+      void loadLeagueAccessRequests();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab, loadState, leagueAccessLoadState]);
 
   const onlineSessions = useMemo(
     () => snapshot?.activeSessions.filter(session => eventAgeMs(session.last_seen_at) < 5 * 60000) ?? [],
@@ -3418,6 +3531,51 @@ export default function AdminConsoleView() {
     return runtime.dataAccess.marketing;
   };
 
+  const requireIdentityRepo = () => {
+    if (!runtime.enabled) throw new Error('Cloud runtime is disabled.');
+    return runtime.dataAccess.identity;
+  };
+
+  const loadLeagueAccessRequests = async () => {
+    if (!runtime.enabled) return;
+    setLeagueAccessLoadState('loading');
+    try {
+      const rows = await runtime.dataAccess.identity.listLeagueAccessRequests();
+      setLeagueRequests(rows);
+      setLeagueAccessLoadState('ready');
+    } catch (error) {
+      setLeagueAccessLoadState('error');
+      setMessage(error instanceof Error ? error.message : 'League access requests could not load.');
+    }
+  };
+
+  const handleProvisionLeagueOwner = async (request: LeagueAccessRequestRecord) => {
+    setLeagueActionId(request.id);
+    setMessage('');
+    try {
+      await requireIdentityRepo().provisionLeagueOwner(request.id);
+      setMessage(`Provisioned League owner for ${request.contact_email}.`);
+      await loadLeagueAccessRequests();
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : 'Could not provision the League owner.');
+    } finally {
+      setLeagueActionId(null);
+    }
+  };
+
+  const handleReviewLeagueRequest = async (request: LeagueAccessRequestRecord, status: LeagueAccessRequestStatus) => {
+    setLeagueActionId(request.id);
+    setMessage('');
+    try {
+      await requireIdentityRepo().reviewLeagueAccessRequest(request.id, status);
+      await loadLeagueAccessRequests();
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : 'Could not update the request.');
+    } finally {
+      setLeagueActionId(null);
+    }
+  };
+
   const recordMarketingAudit = (eventType: string, metadata: Record<string, unknown>) => {
     if (!runtime.enabled) return;
     void runtime.dataAccess.admin.recordAuditEvent(eventType, metadata).catch(() => undefined);
@@ -3773,6 +3931,16 @@ export default function AdminConsoleView() {
                 onSaveAnnouncement={handleSaveAnnouncement}
                 onToggleAnnouncement={handleToggleAnnouncement}
                 onDeleteAnnouncement={handleDeleteAnnouncement}
+              />
+            )}
+            {activeTab === 'league-access' && (
+              <LeagueAccessPanel
+                requests={leagueRequests}
+                loadState={leagueAccessLoadState}
+                actionId={leagueActionId}
+                onRefresh={() => void loadLeagueAccessRequests()}
+                onProvision={handleProvisionLeagueOwner}
+                onReview={handleReviewLeagueRequest}
               />
             )}
             {activeTab === 'exports' && <ExportsPanel snapshot={snapshot} metrics={growthMetrics} onExport={handleExport} />}

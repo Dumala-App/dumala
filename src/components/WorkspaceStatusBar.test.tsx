@@ -63,7 +63,7 @@ describe('WorkspaceStatusBar', () => {
   });
 
   it('keeps the status bar local-first when cloud accounts are disabled', () => {
-    const html = renderStatus({ enabled: false, dataAccess: null });
+    const html = renderStatus({ enabled: false, dataAccess: null, phase6: { playerAppEnabled: false, leagueAppEnabled: false, leagueRequestEnabled: false, playerPreviewEnabled: false, leaguePreviewEnabled: false, chatEnabled: false } });
 
     expect(html).toContain('Workspace ready');
     expect(html).toContain('Install Dumala');

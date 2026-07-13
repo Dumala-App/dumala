@@ -123,7 +123,16 @@ const HomeHubView = lazy(() => import('./components/HomeHubView'));
 const DevelopmentHubView = lazy(() => import('./components/DevelopmentHubView'));
 const LeagueUpdatesHubView = lazy(() => import('./components/LeagueUpdatesHubView'));
 const AdminConsoleView = lazy(() => import('./components/AdminConsoleView'));
+const PlayerAppShell = lazy(() => import('./components/PlayerAppShell'));
+const LeagueAppShell = lazy(() => import('./components/LeagueAppShell'));
+const EventRegistrationView = lazy(() => import('./components/league/EventRegistrationForm'));
+
 const getHashRoute = () => typeof window === 'undefined' ? '' : window.location.hash.replace(/^#\/?/, '');
+// Phase 6 persona apps live under their own hash roots (#/player, #/league).
+const isPlayerRoute = (route: string) => route === 'player' || route.startsWith('player/');
+const isLeagueRoute = (route: string) => route === 'league' || route.startsWith('league/');
+// Public event registration (a coach applies with a code — no account).
+const isRegisterRoute = (route: string) => route === 'register' || route.startsWith('register/');
 const isAppAuthRedirect = () => {
   if (typeof window === 'undefined') return false;
   return new URLSearchParams(window.location.search).get('dumalaAuth') === 'app';
@@ -1423,6 +1432,43 @@ export default function App() {
     );
   }
 
+  // Phase 6 persona apps. These doors are feature-flagged off by default, so the
+  // Coach app behaves exactly as before until an operator enables them.
+  const phase6Config = cloudRuntime.phase6;
+
+  if (isPlayerRoute(hashRoute) && (phase6Config.playerAppEnabled || phase6Config.playerPreviewEnabled)) {
+    return (
+      <>
+        <PwaStatusBanners />
+        <Suspense fallback={<ViewLoadingFallback label="player app" />}>
+          <PlayerAppShell />
+        </Suspense>
+      </>
+    );
+  }
+
+  if (isLeagueRoute(hashRoute) && (phase6Config.leagueAppEnabled || phase6Config.leagueRequestEnabled || phase6Config.leaguePreviewEnabled)) {
+    return (
+      <>
+        <PwaStatusBanners />
+        <Suspense fallback={<ViewLoadingFallback label="league app" />}>
+          <LeagueAppShell />
+        </Suspense>
+      </>
+    );
+  }
+
+  if (isRegisterRoute(hashRoute) && (phase6Config.leagueAppEnabled || phase6Config.leagueRequestEnabled || phase6Config.leaguePreviewEnabled)) {
+    return (
+      <>
+        <PwaStatusBanners />
+        <Suspense fallback={<ViewLoadingFallback label="event registration" />}>
+          <EventRegistrationView />
+        </Suspense>
+      </>
+    );
+  }
+
   if (startupRecoveryIssues.length > 0) {
     return (
       <StartupRecoveryScreen
@@ -1721,6 +1767,7 @@ export default function App() {
                   onAddBulkPaymentLedgerEntries={handleAddBulkPaymentLedgerEntries}
                   onUpdatePaymentLedgerEntry={handleUpdatePaymentLedgerEntry}
                   onVoidPaymentLedgerEntry={handleVoidPaymentLedgerEntry}
+                  cloudClubId={activeWorkspace?.cloudClubId ?? null}
                 />
               </ViewErrorBoundary>
             )}

@@ -81,7 +81,7 @@ describe('OnboardingView account-first flow', () => {
   });
 
   it('blocks local-only setup when cloud is unavailable', () => {
-    const html = renderOnboarding({ enabled: false, dataAccess: null });
+    const html = renderOnboarding({ enabled: false, dataAccess: null, phase6: { playerAppEnabled: false, leagueAppEnabled: false, leagueRequestEnabled: false, playerPreviewEnabled: false, leaguePreviewEnabled: false, chatEnabled: false } });
 
     expect(html).toContain('Cloud account required');
     expect(html).toContain('Enable Dumala Cloud');

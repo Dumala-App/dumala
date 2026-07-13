@@ -126,6 +126,146 @@ import {
   type PromotionInput,
   type PromotionRecord
 } from './marketing';
+import {
+  bootstrapPlayerAccount,
+  grantEntitlement,
+  listLeagueAccessRequests,
+  provisionLeagueOwner,
+  requestLeagueAccess,
+  resolveAppDestination,
+  reviewLeagueAccessRequest,
+  revokeEntitlement,
+  setUserPersona,
+  type AccountPersona,
+  type AppDestination,
+  type LeagueAccessRequestInput,
+  type LeagueAccessRequestRecord,
+  type LeagueAccessRequestStatus
+} from './identity';
+import {
+  approvePlayerLink,
+  getMyPlayerProfile,
+  getOrCreateClubJoinCode,
+  listAchievements,
+  listClubLinkRequests,
+  listClubRosterPlayers,
+  listDrillCompletions,
+  listFavorites,
+  listMyLinkRequests,
+  listMyPlayerLinks,
+  listMyTeamSchedule,
+  listNotifications,
+  listWorkoutSessions,
+  logDrillCompletion,
+  markAllNotificationsRead,
+  markNotificationRead,
+  rejectPlayerLink,
+  requestPlayerLink,
+  saveWorkoutSession,
+  setGuardianConsent,
+  syncAchievements,
+  toggleDrillFavorite,
+  upsertMyPlayerProfile,
+  withdrawPlayerLinkRequest,
+  type ClubRosterPlayer,
+  type DrillCompletionInput,
+  type GuardianConsentInput,
+  type GuardianConsentState,
+  type PlayerAchievement,
+  type PlayerClubLink,
+  type PlayerDrillCompletion,
+  type PlayerLinkRequest,
+  type PlayerNotification,
+  type PlayerProfile,
+  type PlayerProfileInput,
+  type PlayerWorkoutSession,
+  type RequestPlayerLinkInput,
+  type TeamScheduleEntry,
+  type WorkoutSessionInput
+} from './player';
+import {
+  addAward,
+  addEventTeam,
+  addIncident,
+  addInvoice,
+  addLedgerEntry,
+  addStatEvent,
+  advanceEventStatus,
+  advanceSeasonStatus,
+  clearFixtures,
+  createEvent,
+  createLeague,
+  createSeason,
+  createVenue,
+  deleteAward,
+  deleteEventTeam,
+  deleteIncident,
+  deleteInvoice,
+  deleteLedgerEntry,
+  deleteStatEvent,
+  deleteVenue,
+  generateFixtures,
+  listAwards,
+  listEvents,
+  listEventTeams,
+  listFixtures,
+  listIncidents,
+  listInvoices,
+  listLeagues,
+  listLedgerEntries,
+  listRegistrations,
+  listSeasons,
+  listStatEvents,
+  listVenues,
+  lookupEventRegistration,
+  recordFixtureResult,
+  reviewRegistration,
+  setFixtureOps,
+  settleInvoice,
+  submitEventRegistration,
+  syncApprovedTeams,
+  updateEvent,
+  updateLeague,
+  updateSeason,
+  updateVenue,
+  type EventAward,
+  type EventAwardInput,
+  type EventFixture,
+  type EventIncident,
+  type EventIncidentInput,
+  type EventInvoice,
+  type EventInvoiceInput,
+  type EventRegistration,
+  type EventRegistrationInput,
+  type EventRegistrationLookup,
+  type EventRegistrationStatus,
+  type EventTeam,
+  type FixtureOpsPatch,
+  type FixtureStatEvent,
+  type FixtureStatInput,
+  type InvoiceStatus,
+  type League,
+  type LeagueEvent,
+  type LeagueEventInput,
+  type LeagueEventStatus,
+  type LeagueInput,
+  type LeagueSeason,
+  type LeagueSeasonInput,
+  type LeagueSeasonStatus,
+  type LeagueVenue,
+  type LeagueVenueInput,
+  type LedgerEntry,
+  type LedgerEntryInput
+} from './league';
+import {
+  deleteMessage,
+  ensureChannel,
+  listMessages,
+  markChatRead,
+  postMessage,
+  reportMessage,
+  type ChatMessage
+} from './chat';
 
 export interface CloudBulletinRepository {
   list(clubId: string): Promise<SharedBulletin[]>;
@@ -232,6 +372,109 @@ export interface CloudMarketingRepository {
   deleteAnnouncement(announcementId: string): Promise<void>;
 }
 
+export interface CloudIdentityRepository {
+  resolveDestination(): Promise<AppDestination>;
+  bootstrapPlayerAccount(): Promise<AccountPersona>;
+  requestLeagueAccess(input: LeagueAccessRequestInput): Promise<string>;
+  listLeagueAccessRequests(status?: LeagueAccessRequestStatus | null): Promise<LeagueAccessRequestRecord[]>;
+  provisionLeagueOwner(requestId: string): Promise<void>;
+  reviewLeagueAccessRequest(
+    requestId: string,
+    status: LeagueAccessRequestStatus,
+    adminNotes?: string | null
+  ): Promise<void>;
+  setUserPersona(userId: string, persona: AccountPersona): Promise<void>;
+  grantEntitlement(userId: string, entitlement: string, expiresAt?: string | null, notes?: string | null): Promise<void>;
+  revokeEntitlement(userId: string, entitlement: string): Promise<void>;
+}
+
+export interface CloudPlayerRepository {
+  getMyProfile(userId: string): Promise<PlayerProfile | null>;
+  upsertMyProfile(userId: string, input: PlayerProfileInput): Promise<PlayerProfile>;
+  setGuardianConsent(input: GuardianConsentInput): Promise<GuardianConsentState>;
+  requestLink(input: RequestPlayerLinkInput): Promise<string>;
+  withdrawLinkRequest(requestId: string): Promise<void>;
+  listMyLinkRequests(): Promise<PlayerLinkRequest[]>;
+  listMyLinks(): Promise<PlayerClubLink[]>;
+  listMyTeamSchedule(clubId: string): Promise<TeamScheduleEntry[]>;
+  getOrCreateClubJoinCode(clubId: string): Promise<string>;
+  listClubLinkRequests(clubId: string): Promise<PlayerLinkRequest[]>;
+  listClubRosterPlayers(clubId: string): Promise<ClubRosterPlayer[]>;
+  approveLink(requestId: string, targetPlayerId: string): Promise<string>;
+  rejectLink(requestId: string, reason?: string | null): Promise<void>;
+  logDrillCompletion(userId: string, input: DrillCompletionInput): Promise<PlayerDrillCompletion>;
+  listDrillCompletions(limit?: number): Promise<PlayerDrillCompletion[]>;
+  listFavorites(): Promise<string[]>;
+  toggleFavorite(userId: string, drillId: string, isFavorite: boolean): Promise<void>;
+  saveWorkoutSession(userId: string, input: WorkoutSessionInput): Promise<PlayerWorkoutSession>;
+  listWorkoutSessions(limit?: number): Promise<PlayerWorkoutSession[]>;
+  listNotifications(limit?: number): Promise<PlayerNotification[]>;
+  markNotificationRead(notificationId: string): Promise<void>;
+  markAllNotificationsRead(userId: string): Promise<void>;
+  listAchievements(): Promise<PlayerAchievement[]>;
+  syncAchievements(streak: number): Promise<string[]>;
+}
+
+export interface CloudLeagueRepository {
+  listLeagues(): Promise<League[]>;
+  createLeague(ownerUserId: string, input: LeagueInput): Promise<League>;
+  updateLeague(leagueId: string, input: LeagueInput): Promise<League>;
+  listSeasons(leagueId: string): Promise<LeagueSeason[]>;
+  createSeason(leagueId: string, input: LeagueSeasonInput): Promise<LeagueSeason>;
+  updateSeason(seasonId: string, input: LeagueSeasonInput): Promise<LeagueSeason>;
+  advanceSeasonStatus(seasonId: string, nextStatus: LeagueSeasonStatus): Promise<LeagueSeasonStatus>;
+  listVenues(leagueId: string): Promise<LeagueVenue[]>;
+  createVenue(leagueId: string, input: LeagueVenueInput): Promise<LeagueVenue>;
+  updateVenue(venueId: string, input: LeagueVenueInput): Promise<LeagueVenue>;
+  deleteVenue(venueId: string): Promise<void>;
+  listEvents(leagueId: string): Promise<LeagueEvent[]>;
+  createEvent(leagueId: string, input: LeagueEventInput): Promise<LeagueEvent>;
+  updateEvent(eventId: string, input: LeagueEventInput): Promise<LeagueEvent>;
+  advanceEventStatus(eventId: string, nextStatus: LeagueEventStatus): Promise<LeagueEventStatus>;
+  listRegistrations(eventId: string): Promise<EventRegistration[]>;
+  reviewRegistration(
+    registrationId: string,
+    nextStatus: EventRegistrationStatus,
+    note?: string | null
+  ): Promise<EventRegistrationStatus>;
+  lookupEventRegistration(code: string): Promise<EventRegistrationLookup>;
+  submitEventRegistration(input: EventRegistrationInput): Promise<string>;
+  listEventTeams(eventId: string): Promise<EventTeam[]>;
+  addEventTeam(leagueId: string, eventId: string, input: { name: string; seed?: number | null; registrationId?: string | null }): Promise<EventTeam>;
+  deleteEventTeam(teamId: string): Promise<void>;
+  syncApprovedTeams(leagueId: string, eventId: string): Promise<EventTeam[]>;
+  listFixtures(eventId: string): Promise<EventFixture[]>;
+  generateFixtures(leagueId: string, eventId: string): Promise<EventFixture[]>;
+  clearFixtures(eventId: string): Promise<void>;
+  recordFixtureResult(fixtureId: string, homeScore: number, awayScore: number): Promise<EventFixture>;
+  listStatEvents(eventId: string): Promise<FixtureStatEvent[]>;
+  addStatEvent(leagueId: string, eventId: string, input: FixtureStatInput): Promise<FixtureStatEvent>;
+  deleteStatEvent(statEventId: string): Promise<void>;
+  listAwards(eventId: string): Promise<EventAward[]>;
+  addAward(leagueId: string, eventId: string, input: EventAwardInput): Promise<EventAward>;
+  deleteAward(awardId: string): Promise<void>;
+  listLedgerEntries(leagueId: string): Promise<LedgerEntry[]>;
+  addLedgerEntry(leagueId: string, input: LedgerEntryInput): Promise<LedgerEntry>;
+  deleteLedgerEntry(entryId: string): Promise<void>;
+  listInvoices(leagueId: string): Promise<EventInvoice[]>;
+  addInvoice(leagueId: string, input: EventInvoiceInput): Promise<EventInvoice>;
+  settleInvoice(invoiceId: string, nextStatus: Extract<InvoiceStatus, 'paid' | 'waived'>, paidOn?: string | null): Promise<EventInvoice>;
+  deleteInvoice(invoiceId: string): Promise<void>;
+  setFixtureOps(fixtureId: string, patch: FixtureOpsPatch): Promise<EventFixture>;
+  listIncidents(eventId: string): Promise<EventIncident[]>;
+  addIncident(leagueId: string, eventId: string, input: EventIncidentInput): Promise<EventIncident>;
+  deleteIncident(incidentId: string): Promise<void>;
+}
+
+export interface CloudChatRepository {
+  ensureChannel(clubId: string): Promise<string>;
+  listMessages(clubId: string, limit?: number): Promise<ChatMessage[]>;
+  postMessage(clubId: string, body: string): Promise<ChatMessage>;
+  deleteMessage(messageId: string): Promise<void>;
+  reportMessage(messageId: string, reason?: string | null): Promise<void>;
+  markRead(channelId: string): Promise<void>;
+}
+
 export interface CloudDataAccess {
   auth: CloudAuthRepository;
   account: CloudAccountRepository;
@@ -242,6 +485,10 @@ export interface CloudDataAccess {
   sync: CloudSyncRepository;
   admin: CloudAdminRepository;
   marketing: CloudMarketingRepository;
+  identity: CloudIdentityRepository;
+  player: CloudPlayerRepository;
+  league: CloudLeagueRepository;
+  chat: CloudChatRepository;
 }
 
 export const createCloudDataAccess = (client: DumalaSupabaseClient): CloudDataAccess => ({
@@ -339,5 +586,99 @@ export const createCloudDataAccess = (client: DumalaSupabaseClient): CloudDataAc
     updateAnnouncement: (announcementId, input) => updateAdminAnnouncement(client, announcementId, input),
     setAnnouncementPublished: (announcementId, isPublished) => setAdminAnnouncementPublished(client, announcementId, isPublished),
     deleteAnnouncement: announcementId => deleteAdminAnnouncement(client, announcementId)
+  },
+  identity: {
+    resolveDestination: () => resolveAppDestination(client),
+    bootstrapPlayerAccount: () => bootstrapPlayerAccount(client),
+    requestLeagueAccess: input => requestLeagueAccess(client, input),
+    listLeagueAccessRequests: status => listLeagueAccessRequests(client, status),
+    provisionLeagueOwner: requestId => provisionLeagueOwner(client, requestId),
+    reviewLeagueAccessRequest: (requestId, status, adminNotes) =>
+      reviewLeagueAccessRequest(client, requestId, status, adminNotes),
+    setUserPersona: (userId, persona) => setUserPersona(client, userId, persona),
+    grantEntitlement: (userId, entitlement, expiresAt, notes) =>
+      grantEntitlement(client, userId, entitlement, expiresAt, notes),
+    revokeEntitlement: (userId, entitlement) => revokeEntitlement(client, userId, entitlement)
+  },
+  player: {
+    getMyProfile: userId => getMyPlayerProfile(client, userId),
+    upsertMyProfile: (userId, input) => upsertMyPlayerProfile(client, userId, input),
+    setGuardianConsent: input => setGuardianConsent(client, input),
+    requestLink: input => requestPlayerLink(client, input),
+    withdrawLinkRequest: requestId => withdrawPlayerLinkRequest(client, requestId),
+    listMyLinkRequests: () => listMyLinkRequests(client),
+    listMyLinks: () => listMyPlayerLinks(client),
+    listMyTeamSchedule: clubId => listMyTeamSchedule(client, clubId),
+    getOrCreateClubJoinCode: clubId => getOrCreateClubJoinCode(client, clubId),
+    listClubLinkRequests: clubId => listClubLinkRequests(client, clubId),
+    listClubRosterPlayers: clubId => listClubRosterPlayers(client, clubId),
+    approveLink: (requestId, targetPlayerId) => approvePlayerLink(client, requestId, targetPlayerId),
+    rejectLink: (requestId, reason) => rejectPlayerLink(client, requestId, reason),
+    logDrillCompletion: (userId, input) => logDrillCompletion(client, userId, input),
+    listDrillCompletions: limit => listDrillCompletions(client, limit),
+    listFavorites: () => listFavorites(client),
+    toggleFavorite: (userId, drillId, isFavorite) => toggleDrillFavorite(client, userId, drillId, isFavorite),
+    saveWorkoutSession: (userId, input) => saveWorkoutSession(client, userId, input),
+    listWorkoutSessions: limit => listWorkoutSessions(client, limit),
+    listNotifications: limit => listNotifications(client, limit),
+    markNotificationRead: notificationId => markNotificationRead(client, notificationId),
+    markAllNotificationsRead: userId => markAllNotificationsRead(client, userId),
+    listAchievements: () => listAchievements(client),
+    syncAchievements: streak => syncAchievements(client, streak)
+  },
+  league: {
+    listLeagues: () => listLeagues(client),
+    createLeague: (ownerUserId, input) => createLeague(client, ownerUserId, input),
+    updateLeague: (leagueId, input) => updateLeague(client, leagueId, input),
+    listSeasons: leagueId => listSeasons(client, leagueId),
+    createSeason: (leagueId, input) => createSeason(client, leagueId, input),
+    updateSeason: (seasonId, input) => updateSeason(client, seasonId, input),
+    advanceSeasonStatus: (seasonId, nextStatus) => advanceSeasonStatus(client, seasonId, nextStatus),
+    listVenues: leagueId => listVenues(client, leagueId),
+    createVenue: (leagueId, input) => createVenue(client, leagueId, input),
+    updateVenue: (venueId, input) => updateVenue(client, venueId, input),
+    deleteVenue: venueId => deleteVenue(client, venueId),
+    listEvents: leagueId => listEvents(client, leagueId),
+    createEvent: (leagueId, input) => createEvent(client, leagueId, input),
+    updateEvent: (eventId, input) => updateEvent(client, eventId, input),
+    advanceEventStatus: (eventId, nextStatus) => advanceEventStatus(client, eventId, nextStatus),
+    listRegistrations: eventId => listRegistrations(client, eventId),
+    reviewRegistration: (registrationId, nextStatus, note) =>
+      reviewRegistration(client, registrationId, nextStatus, note),
+    lookupEventRegistration: code => lookupEventRegistration(client, code),
+    submitEventRegistration: input => submitEventRegistration(client, input),
+    listEventTeams: eventId => listEventTeams(client, eventId),
+    addEventTeam: (leagueId, eventId, input) => addEventTeam(client, leagueId, eventId, input),
+    deleteEventTeam: teamId => deleteEventTeam(client, teamId),
+    syncApprovedTeams: (leagueId, eventId) => syncApprovedTeams(client, leagueId, eventId),
+    listFixtures: eventId => listFixtures(client, eventId),
+    generateFixtures: (leagueId, eventId) => generateFixtures(client, leagueId, eventId),
+    clearFixtures: eventId => clearFixtures(client, eventId),
+    recordFixtureResult: (fixtureId, homeScore, awayScore) => recordFixtureResult(client, fixtureId, homeScore, awayScore),
+    listStatEvents: eventId => listStatEvents(client, eventId),
+    addStatEvent: (leagueId, eventId, input) => addStatEvent(client, leagueId, eventId, input),
+    deleteStatEvent: statEventId => deleteStatEvent(client, statEventId),
+    listAwards: eventId => listAwards(client, eventId),
+    addAward: (leagueId, eventId, input) => addAward(client, leagueId, eventId, input),
+    deleteAward: awardId => deleteAward(client, awardId),
+    listLedgerEntries: leagueId => listLedgerEntries(client, leagueId),
+    addLedgerEntry: (leagueId, input) => addLedgerEntry(client, leagueId, input),
+    deleteLedgerEntry: entryId => deleteLedgerEntry(client, entryId),
+    listInvoices: leagueId => listInvoices(client, leagueId),
+    addInvoice: (leagueId, input) => addInvoice(client, leagueId, input),
+    settleInvoice: (invoiceId, nextStatus, paidOn) => settleInvoice(client, invoiceId, nextStatus, paidOn),
+    deleteInvoice: invoiceId => deleteInvoice(client, invoiceId),
+    setFixtureOps: (fixtureId, patch) => setFixtureOps(client, fixtureId, patch),
+    listIncidents: eventId => listIncidents(client, eventId),
+    addIncident: (leagueId, eventId, input) => addIncident(client, leagueId, eventId, input),
+    deleteIncident: incidentId => deleteIncident(client, incidentId)
+  },
+  chat: {
+    ensureChannel: clubId => ensureChannel(client, clubId),
+    listMessages: (clubId, limit) => listMessages(client, clubId, limit),
+    postMessage: (clubId, body) => postMessage(client, clubId, body),
+    deleteMessage: messageId => deleteMessage(client, messageId),
+    reportMessage: (messageId, reason) => reportMessage(client, messageId, reason),
+    markRead: channelId => markChatRead(client, channelId)
   }
 });

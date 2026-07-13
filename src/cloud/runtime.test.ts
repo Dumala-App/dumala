@@ -8,9 +8,9 @@ describe('cloud runtime', () => {
     const createClient = vi.fn();
 
     expect(createCloudRuntime({
-      config: { enabled: false },
+      config: { enabled: false, phase6: { playerAppEnabled: false, leagueAppEnabled: false, leagueRequestEnabled: false, playerPreviewEnabled: false, leaguePreviewEnabled: false, chatEnabled: false } },
       createClient
-    })).toEqual({ enabled: false, dataAccess: null });
+    })).toEqual({ enabled: false, dataAccess: null, phase6: { playerAppEnabled: false, leagueAppEnabled: false, leagueRequestEnabled: false, playerPreviewEnabled: false, leaguePreviewEnabled: false, chatEnabled: false } });
     expect(createClient).not.toHaveBeenCalled();
   });
 
@@ -24,11 +24,12 @@ describe('cloud runtime', () => {
       config: {
         enabled: true,
         supabaseUrl: 'http://127.0.0.1:54321',
-        supabasePublishableKey: 'sb_publishable_test'
+        supabasePublishableKey: 'sb_publishable_test',
+        phase6: { playerAppEnabled: false, leagueAppEnabled: false, leagueRequestEnabled: false, playerPreviewEnabled: false, leaguePreviewEnabled: false, chatEnabled: false }
       },
       createClient,
       createDataAccess
-    })).toEqual({ enabled: true, dataAccess });
+    })).toEqual({ enabled: true, dataAccess, phase6: { playerAppEnabled: false, leagueAppEnabled: false, leagueRequestEnabled: false, playerPreviewEnabled: false, leaguePreviewEnabled: false, chatEnabled: false } });
     expect(createClient).toHaveBeenCalledOnce();
     expect(createDataAccess).toHaveBeenCalledWith(client);
   });
