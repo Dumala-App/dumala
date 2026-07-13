@@ -80,7 +80,6 @@ import {
   type LedgerEntry
 } from '../../cloud/league';
 import {
-  DARK_GLASS_CLASSES,
   DARK_GLASS_THEME_STYLE,
   DARK_GLASS_DASHBOARD_SURFACE_STYLE
 } from '../../theme/darkGlassTheme';
@@ -105,33 +104,39 @@ const NAV: Array<{ id: LeagueSection; label: string; icon: React.ComponentType<{
 ];
 
 const statusTone: Record<LeagueSeasonStatus, string> = {
-  draft: 'border-slate-400/40 bg-slate-400/15 text-slate-200',
-  registration_open: 'border-amber-400/40 bg-amber-400/15 text-amber-100',
-  active: 'border-emerald-400/40 bg-emerald-400/15 text-emerald-100',
-  completed: 'border-cyan-400/40 bg-cyan-400/15 text-cyan-100',
-  archived: 'border-slate-500/40 bg-slate-500/15 text-slate-300'
+  draft: 'border-slate-300/20 bg-slate-300/8 text-slate-300',
+  registration_open: 'border-sky-300/30 bg-sky-400/10 text-sky-100',
+  active: 'border-emerald-300/30 bg-emerald-400/10 text-emerald-100',
+  completed: 'border-indigo-300/30 bg-indigo-400/10 text-indigo-100',
+  archived: 'border-slate-500/30 bg-slate-500/10 text-slate-400'
 };
 
 const eventStatusTone: Record<LeagueEventStatus, string> = {
-  draft: 'border-slate-400/40 bg-slate-400/15 text-slate-200',
-  registration_open: 'border-amber-400/40 bg-amber-400/15 text-amber-100',
-  active: 'border-emerald-400/40 bg-emerald-400/15 text-emerald-100',
-  completed: 'border-cyan-400/40 bg-cyan-400/15 text-cyan-100'
+  draft: 'border-slate-300/20 bg-slate-300/8 text-slate-300',
+  registration_open: 'border-sky-300/30 bg-sky-400/10 text-sky-100',
+  active: 'border-emerald-300/30 bg-emerald-400/10 text-emerald-100',
+  completed: 'border-indigo-300/30 bg-indigo-400/10 text-indigo-100'
 };
 
 const registrationTone: Record<EventRegistrationStatus, string> = {
-  submitted: 'border-amber-400/40 bg-amber-400/15 text-amber-100',
-  approved: 'border-emerald-400/40 bg-emerald-400/15 text-emerald-100',
-  rejected: 'border-rose-400/40 bg-rose-400/15 text-rose-100',
-  waitlisted: 'border-sky-400/40 bg-sky-400/15 text-sky-100',
-  withdrawn: 'border-slate-500/40 bg-slate-500/15 text-slate-300'
+  submitted: 'border-sky-300/30 bg-sky-400/10 text-sky-100',
+  approved: 'border-emerald-300/30 bg-emerald-400/10 text-emerald-100',
+  rejected: 'border-rose-300/30 bg-rose-400/10 text-rose-100',
+  waitlisted: 'border-violet-300/30 bg-violet-400/10 text-violet-100',
+  withdrawn: 'border-slate-500/30 bg-slate-500/10 text-slate-400'
 };
 
-const panel = DARK_GLASS_CLASSES.panel;
-const inputClass = DARK_GLASS_CLASSES.input;
-const primaryBtn = `inline-flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-bold ${DARK_GLASS_CLASSES.reviewButton}`;
-const ghostBtn = `inline-flex items-center gap-2 rounded-xl px-3 py-2 text-xs font-bold ${DARK_GLASS_CLASSES.secondaryActionButton}`;
-const label = 'block text-[11px] font-black uppercase tracking-wide text-cyan-100/65';
+const panel = 'rounded-[1.4rem] border border-white/10 bg-slate-950/55 shadow-[0_20px_70px_rgba(2,6,23,0.28)] backdrop-blur-xl';
+const subtleCard = 'rounded-2xl border border-white/10 bg-white/[0.045] shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]';
+const sectionHeader = 'flex items-center gap-2 border-b border-white/10 px-4 py-3';
+const inputClass = 'h-10 w-full rounded-xl border border-white/10 bg-slate-950/70 px-3 text-sm text-slate-100 outline-none transition placeholder:text-slate-500 focus:border-sky-300/50 focus:ring-2 focus:ring-sky-400/15';
+const selectClass = `${inputClass} pr-8`;
+const primaryBtn = 'inline-flex items-center justify-center gap-2 rounded-xl border border-sky-300/30 bg-sky-300 px-4 py-2 text-xs font-bold text-slate-950 shadow-[0_10px_30px_rgba(125,211,252,0.16)] transition hover:bg-sky-200 disabled:cursor-not-allowed disabled:border-white/10 disabled:bg-white/10 disabled:text-slate-500';
+const ghostBtn = 'inline-flex items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/[0.045] px-3 py-2 text-xs font-bold text-slate-200 transition hover:border-sky-300/35 hover:bg-sky-300/10 hover:text-white';
+const navItemActive = 'border-white/20 bg-white text-slate-950 shadow-[0_12px_40px_rgba(15,23,42,0.22)]';
+const navItemIdle = 'border-white/10 bg-white/[0.035] text-slate-300 hover:border-sky-300/35 hover:bg-white/[0.07] hover:text-white';
+const label = 'block text-[11px] font-bold uppercase tracking-wide text-slate-400';
+const inlineLink = 'font-bold text-sky-200 transition hover:text-white';
 
 const StatusBadge = ({ status }: { status: LeagueSeasonStatus }) => (
   <span className={`rounded-full border px-2 py-0.5 text-[11px] font-bold ${statusTone[status]}`}>
@@ -140,8 +145,8 @@ const StatusBadge = ({ status }: { status: LeagueSeasonStatus }) => (
 );
 
 const StatTile = ({ label: tileLabel, value, detail }: { label: string; value: string | number; detail: string }) => (
-  <div className="rounded-2xl border border-cyan-300/10 bg-white/[0.035] p-4">
-    <p className="text-[11px] font-black uppercase text-cyan-100/65">{tileLabel}</p>
+  <div className={`${subtleCard} p-4`}>
+    <p className="text-[11px] font-bold uppercase tracking-wide text-slate-400">{tileLabel}</p>
     <p className="mt-1 font-display text-2xl font-black text-white">{value}</p>
     <p className="mt-1 text-xs text-slate-400">{detail}</p>
   </div>
@@ -201,16 +206,24 @@ const LeagueApp = ({ runtime, userId, authController, preview = false }: LeagueA
   };
 
   return (
-    <div className="relative min-h-screen bg-[#020713] text-slate-100" style={DARK_GLASS_THEME_STYLE}>
-      <div className="mx-auto min-h-screen max-w-5xl px-4 py-6" style={DARK_GLASS_DASHBOARD_SURFACE_STYLE}>
-        <header className="mb-5 flex flex-wrap items-center justify-between gap-3">
+    <div
+      className="relative min-h-screen bg-[#05070d] text-slate-100"
+      style={{
+        ...DARK_GLASS_THEME_STYLE,
+        backgroundImage:
+          'radial-gradient(circle at 18% 0%, rgba(125, 211, 252, 0.14), transparent 32rem), radial-gradient(circle at 82% 8%, rgba(129, 140, 248, 0.11), transparent 30rem), linear-gradient(180deg, #070a12 0%, #05070d 48%, #03050a 100%)'
+      }}
+    >
+      <div className="mx-auto min-h-screen max-w-7xl px-4 py-5 sm:px-6 lg:px-8" style={DARK_GLASS_DASHBOARD_SURFACE_STYLE}>
+        <header className="mb-5 flex flex-wrap items-center justify-between gap-4 rounded-[1.75rem] border border-white/10 bg-white/[0.045] px-4 py-4 shadow-[0_24px_90px_rgba(2,6,23,0.25)] backdrop-blur-xl sm:px-5">
           <div className="flex items-center gap-3">
-            <span className="flex h-9 w-9 items-center justify-center rounded-xl" style={{ backgroundColor: `${activeLeague?.logo_color ?? '#f97316'}22`, color: activeLeague?.logo_color ?? '#f97316' }}>
+            <span className="flex h-11 w-11 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.07] text-sky-200 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
               <Trophy size={18} />
             </span>
             <div>
-              <p className="text-[11px] font-black uppercase tracking-[0.2em] text-orange-300">Dumala League</p>
-              <h1 className="font-display text-lg font-black leading-tight">{activeLeague?.name ?? 'Your league'}</h1>
+              <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-sky-200/85">Dumala League</p>
+              <h1 className="font-display text-xl font-black leading-tight text-white">{activeLeague?.name ?? 'Your league'}</h1>
+              <p className="mt-0.5 text-xs text-slate-400">{activeLeague?.location ?? 'League operations workspace'}</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -218,13 +231,13 @@ const LeagueApp = ({ runtime, userId, authController, preview = false }: LeagueA
               <select
                 value={activeLeagueId ?? ''}
                 onChange={e => { setActiveLeagueId(e.target.value); void loadLeagueData(e.target.value); }}
-                className={DARK_GLASS_CLASSES.select}
+                className={selectClass}
               >
                 {leagues.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
               </select>
             )}
             {preview ? (
-              <span className="inline-flex items-center gap-1.5 rounded-lg border border-orange-400/25 bg-orange-400/10 px-3 py-1.5 text-[11px] font-black uppercase tracking-wide text-orange-200">
+              <span className="inline-flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/[0.06] px-3 py-2 text-[11px] font-bold uppercase tracking-wide text-slate-200">
                 <Eye size={13} /> Preview
               </span>
             ) : (
@@ -233,7 +246,7 @@ const LeagueApp = ({ runtime, userId, authController, preview = false }: LeagueA
           </div>
         </header>
 
-        <nav className="mb-5 flex flex-wrap gap-2">
+        <nav className="mb-5 flex flex-wrap gap-2 rounded-2xl border border-white/10 bg-black/20 p-1.5 backdrop-blur-xl">
           {NAV.map(item => {
             const active = item.id === section;
             const Icon = item.icon;
@@ -242,7 +255,7 @@ const LeagueApp = ({ runtime, userId, authController, preview = false }: LeagueA
                 key={item.id}
                 type="button"
                 onClick={() => setSection(item.id)}
-                className={`inline-flex items-center gap-2 rounded-xl border px-3 py-2 text-xs font-bold transition-colors ${active ? DARK_GLASS_CLASSES.navItemActive : DARK_GLASS_CLASSES.navItemIdle}`}
+                className={`inline-flex items-center gap-2 rounded-xl border px-3 py-2 text-xs font-bold transition-colors ${active ? navItemActive : navItemIdle}`}
               >
                 <Icon size={15} /> {item.label}
               </button>
@@ -250,7 +263,7 @@ const LeagueApp = ({ runtime, userId, authController, preview = false }: LeagueA
           })}
         </nav>
 
-        {message && <p className="mb-4 rounded-xl border border-amber-300/25 bg-amber-300/10 px-4 py-2 text-sm text-amber-100" role="status">{message}</p>}
+        {message && <p className="mb-4 rounded-xl border border-rose-300/20 bg-rose-400/10 px-4 py-2 text-sm text-rose-100" role="status">{message}</p>}
 
         {loading ? (
           <div className="flex items-center gap-2 text-sm text-slate-300"><Loader2 size={16} className="animate-spin" /> Loading your league…</div>
@@ -263,8 +276,14 @@ const LeagueApp = ({ runtime, userId, authController, preview = false }: LeagueA
                 league={activeLeague}
                 seasons={seasons}
                 venues={venues}
+                events={events}
+                ledger={ledger}
+                invoices={invoices}
                 onAdvance={(seasonId, next) => withError(async () => { await league.advanceSeasonStatus(seasonId, next); await loadLeagueData(activeLeague.id); })}
                 onGoToSeasons={() => setSection('seasons')}
+                onGoToEvents={() => setSection('events')}
+                onGoToVenues={() => setSection('venues')}
+                onGoToFinance={() => setSection('finance')}
               />
             )}
             {section === 'seasons' && (
@@ -321,25 +340,97 @@ const LeagueApp = ({ runtime, userId, authController, preview = false }: LeagueA
 
 // --- Overview ----------------------------------------------------------------
 
-const OverviewSection = ({ league, seasons, venues, onAdvance, onGoToSeasons }: {
+const OverviewSection = ({ league, seasons, venues, events, ledger, invoices, onAdvance, onGoToSeasons, onGoToEvents, onGoToVenues, onGoToFinance }: {
   league: League;
   seasons: LeagueSeason[];
   venues: LeagueVenue[];
+  events: LeagueEvent[];
+  ledger: LedgerEntry[];
+  invoices: EventInvoice[];
   onAdvance: (seasonId: string, next: LeagueSeasonStatus) => void;
   onGoToSeasons: () => void;
+  onGoToEvents: () => void;
+  onGoToVenues: () => void;
+  onGoToFinance: () => void;
 }) => {
   const activeSeasons = seasons.filter(s => s.status === 'active').length;
   const focus = seasons.find(s => s.status === 'active') ?? seasons.find(s => s.status === 'registration_open') ?? seasons[0] ?? null;
+  const openEvents = events.filter(event => event.status === 'registration_open');
+  const activeEvents = events.filter(event => event.status === 'active');
+  const upcomingEvents = events
+    .filter(event => event.status !== 'completed')
+    .slice()
+    .sort((a, b) => (a.starts_on ?? '9999-12-31').localeCompare(b.starts_on ?? '9999-12-31'))
+    .slice(0, 3);
+  const finance = summarizeLedger(ledger, invoices);
+  const unpaidInvoices = invoices.filter(invoice => invoice.status === 'unpaid');
+  const nextActions = [
+    !focus ? { label: 'Create the first season', detail: 'Seasons organize every event and table.', action: onGoToSeasons } : null,
+    focus && focus.status === 'draft' ? { label: 'Open season registration', detail: `${focus.name} is still in draft.`, action: () => onAdvance(focus.id, 'registration_open') } : null,
+    events.length === 0 && focus ? { label: 'Create a league event', detail: 'Start a cup, tournament, or season competition.', action: onGoToEvents } : null,
+    venues.length === 0 ? { label: 'Add venue inventory', detail: 'Set match locations before scheduling.', action: onGoToVenues } : null,
+    unpaidInvoices.length > 0 ? { label: 'Review outstanding invoices', detail: `${unpaidInvoices.length} unpaid invoice${unpaidInvoices.length === 1 ? '' : 's'} to collect.`, action: onGoToFinance } : null
+  ].filter(Boolean) as Array<{ label: string; detail: string; action: () => void }>;
+
   return (
-    <div className="space-y-4">
-      <div className="grid gap-3 sm:grid-cols-3">
-        <StatTile label="Seasons" value={seasons.length} detail={`${activeSeasons} active`} />
-        <StatTile label="Venues" value={venues.length} detail="Available locations" />
-        <StatTile label="League" value={league.short_name ?? '—'} detail={league.location ?? 'No location set'} />
-      </div>
+    <div className="space-y-5">
+      <section className="grid gap-4 lg:grid-cols-[1.3fr_0.7fr]">
+        <div className={`${panel} overflow-hidden p-5 sm:p-6`}>
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div className="max-w-2xl">
+              <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-sky-200/80">Operations overview</p>
+              <h2 className="mt-2 font-display text-3xl font-black tracking-normal text-white sm:text-4xl">
+                {league.short_name ?? league.name}
+              </h2>
+              <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-300">
+                {league.description || 'Control seasons, tournaments, venues, finance, registration, and match-day operations from one league workspace.'}
+              </p>
+            </div>
+            <span className="rounded-full border border-white/10 bg-white/[0.06] px-3 py-1.5 text-xs font-bold text-slate-200">
+              {league.currency} workspace
+            </span>
+          </div>
+          <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <StatTile label="Seasons" value={seasons.length} detail={`${activeSeasons} active`} />
+            <StatTile label="Events" value={events.length} detail={`${activeEvents.length} live now`} />
+            <StatTile label="Registration" value={openEvents.length} detail="Events open to clubs" />
+            <StatTile label="Net balance" value={formatMoney(finance.netCents, league.currency)} detail={`${formatMoney(finance.outstandingCents, league.currency)} outstanding`} />
+          </div>
+        </div>
+
+        <section className={`${panel} overflow-hidden`}>
+          <div className={sectionHeader}>
+            <Activity size={16} className="text-sky-200" />
+            <h2 className="font-display text-sm font-black text-white">Priority actions</h2>
+          </div>
+          <div className="space-y-2 p-4">
+            {nextActions.length === 0 ? (
+              <p className="rounded-2xl border border-emerald-300/20 bg-emerald-400/10 px-4 py-3 text-sm text-emerald-100">
+                Your league setup looks calm. Keep reviewing registrations, fixtures, and finance as events progress.
+              </p>
+            ) : (
+              nextActions.map(action => (
+                <button
+                  key={action.label}
+                  type="button"
+                  onClick={action.action}
+                  className={`${subtleCard} flex w-full items-start justify-between gap-3 px-4 py-3 text-left transition hover:border-sky-300/35 hover:bg-sky-300/10`}
+                >
+                  <span>
+                    <span className="block text-sm font-black text-white">{action.label}</span>
+                    <span className="mt-0.5 block text-xs leading-5 text-slate-400">{action.detail}</span>
+                  </span>
+                  <ChevronRight size={16} className="mt-0.5 shrink-0 text-slate-500" />
+                </button>
+              ))
+            )}
+          </div>
+        </section>
+      </section>
+
       <section className={panel}>
-        <div className={DARK_GLASS_CLASSES.panelHeader}>
-          <CalendarRange size={16} className="text-cyan-200" />
+        <div className={sectionHeader}>
+          <CalendarRange size={16} className="text-sky-200" />
           <h2 className="font-display text-sm font-black text-white">Current season</h2>
         </div>
         <div className="p-4">
@@ -358,9 +449,54 @@ const OverviewSection = ({ league, seasons, venues, onAdvance, onGoToSeasons }: 
             </div>
           ) : (
             <div className="text-sm text-slate-400">
-              No seasons yet. <button type="button" onClick={onGoToSeasons} className="font-bold text-orange-300">Create your first season</button>.
+              No seasons yet. <button type="button" onClick={onGoToSeasons} className={inlineLink}>Create your first season</button>.
             </div>
           )}
+        </div>
+      </section>
+      <section className="grid gap-4 lg:grid-cols-[1fr_0.9fr]">
+        <div className={panel}>
+          <div className={sectionHeader}>
+            <Trophy size={16} className="text-sky-200" />
+            <h2 className="font-display text-sm font-black text-white">Event pipeline</h2>
+          </div>
+          <div className="space-y-2 p-4">
+            {upcomingEvents.length === 0 ? (
+              <p className="text-sm text-slate-400">No upcoming events yet. Create a competition when the season is ready.</p>
+            ) : (
+              upcomingEvents.map(event => (
+                <button
+                  key={event.id}
+                  type="button"
+                  onClick={onGoToEvents}
+                  className={`${subtleCard} flex w-full items-center justify-between gap-3 px-4 py-3 text-left transition hover:border-sky-300/35 hover:bg-sky-300/10`}
+                >
+                  <span>
+                    <span className="flex flex-wrap items-center gap-2">
+                      <span className="font-display text-sm font-black text-white">{event.name}</span>
+                      <EventStatusBadge status={event.status} />
+                    </span>
+                    <span className="mt-1 block text-xs text-slate-400">
+                      {[EVENT_FORMAT_LABELS[event.format], event.category, event.starts_on ?? 'Date TBD'].filter(Boolean).join(' / ')}
+                    </span>
+                  </span>
+                  <ChevronRight size={16} className="text-slate-500" />
+                </button>
+              ))
+            )}
+          </div>
+        </div>
+        <div className={panel}>
+          <div className={sectionHeader}>
+            <Wallet size={16} className="text-sky-200" />
+            <h2 className="font-display text-sm font-black text-white">Finance pulse</h2>
+          </div>
+          <div className="grid gap-3 p-4 sm:grid-cols-2">
+            <StatTile label="Income" value={formatMoney(finance.incomeCents, league.currency)} detail="Recorded" />
+            <StatTile label="Expenses" value={formatMoney(finance.expenseCents, league.currency)} detail="Recorded" />
+            <StatTile label="Collected" value={formatMoney(finance.collectedCents, league.currency)} detail="Invoices paid" />
+            <StatTile label="Outstanding" value={formatMoney(finance.outstandingCents, league.currency)} detail={`${unpaidInvoices.length} unpaid`} />
+          </div>
         </div>
       </section>
     </div>
@@ -535,7 +671,7 @@ const EventsList = ({ events, seasons, onCreate, onOpen, onGoToSeasons }: {
       {seasons.length === 0 ? (
         <p className={`${panel} p-6 text-center text-sm text-slate-400`}>
           Create a season first — every event belongs to one.{' '}
-          <button type="button" onClick={onGoToSeasons} className="font-bold text-orange-300">Go to Seasons</button>.
+          <button type="button" onClick={onGoToSeasons} className="font-bold text-sky-200 transition hover:text-white">Go to Seasons</button>.
         </p>
       ) : (
         <>
@@ -545,14 +681,14 @@ const EventsList = ({ events, seasons, onCreate, onOpen, onGoToSeasons }: {
               <div className="grid gap-3 sm:grid-cols-2">
                 <div className="space-y-1">
                   <label className={label}>Season</label>
-                  <select className={DARK_GLASS_CLASSES.select} required value={seasonId} onChange={e => setSeasonId(e.target.value)}>
+                  <select className={selectClass} required value={seasonId} onChange={e => setSeasonId(e.target.value)}>
                     {seasons.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                   </select>
                 </div>
                 <div className="space-y-1"><label className={label}>Event name</label><input className={inputClass} required value={name} onChange={e => setName(e.target.value)} placeholder="Metro Cup Qualifiers" /></div>
                 <div className="space-y-1">
                   <label className={label}>Format</label>
-                  <select className={DARK_GLASS_CLASSES.select} value={format} onChange={e => setFormat(e.target.value as LeagueEventFormat)}>
+                  <select className={selectClass} value={format} onChange={e => setFormat(e.target.value as LeagueEventFormat)}>
                     {EVENT_FORMATS.map(f => <option key={f} value={f}>{EVENT_FORMAT_LABELS[f]}</option>)}
                   </select>
                 </div>
@@ -574,7 +710,7 @@ const EventsList = ({ events, seasons, onCreate, onOpen, onGoToSeasons }: {
                   <button
                     type="button"
                     onClick={() => onOpen(event.id)}
-                    className={`${panel} flex w-full flex-wrap items-center justify-between gap-3 p-4 text-left transition-colors hover:border-cyan-300/25`}
+                    className={`${panel} flex w-full flex-wrap items-center justify-between gap-3 p-4 text-left transition-colors hover:border-sky-300/35`}
                   >
                     <div>
                       <div className="flex items-center gap-2">
@@ -704,8 +840,8 @@ const EventDetail = ({ league, event, runError, onBack, onAdvance, onAfterReview
       <button type="button" onClick={onBack} className={ghostBtn}><ChevronLeft size={14} /> All events</button>
 
       <section className={panel}>
-        <div className={DARK_GLASS_CLASSES.panelHeader}>
-          <Trophy size={16} className="text-cyan-200" />
+        <div className={sectionHeader}>
+          <Trophy size={16} className="text-sky-200" />
           <h2 className="font-display text-sm font-black text-white">{event.name}</h2>
           <EventStatusBadge status={event.status} />
         </div>
@@ -716,13 +852,13 @@ const EventDetail = ({ league, event, runError, onBack, onAdvance, onAfterReview
             <StatTile label="Format" value={EVENT_FORMAT_LABELS[event.format]} detail={event.category ?? 'All ages'} />
           </div>
 
-          <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-cyan-300/10 bg-white/[0.035] p-4">
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-white/10 bg-white/[0.035] p-4">
             <div>
-              <p className="text-[11px] font-black uppercase text-cyan-100/65">Registration code</p>
+              <p className="text-[11px] font-black uppercase text-slate-400">Registration code</p>
               <p className="mt-1 font-display text-xl font-black tracking-[0.2em] text-white">{event.registration_code}</p>
               <p className="mt-1 text-xs text-slate-400">
                 {event.status === 'registration_open'
-                  ? <>Share <span className="text-cyan-200">{registerUrl}</span> and this code with clubs.</>
+                  ? <>Share <span className="text-sky-200">{registerUrl}</span> and this code with clubs.</>
                   : 'Applications open only while the event is in Registration open.'}
               </p>
             </div>
@@ -751,7 +887,7 @@ const EventDetail = ({ league, event, runError, onBack, onAdvance, onAfterReview
               key={item.id}
               type="button"
               onClick={() => setTab(item.id)}
-              className={`inline-flex items-center gap-2 rounded-xl border px-3 py-2 text-xs font-bold transition-colors ${active ? DARK_GLASS_CLASSES.navItemActive : DARK_GLASS_CLASSES.navItemIdle}`}
+              className={`inline-flex items-center gap-2 rounded-xl border px-3 py-2 text-xs font-bold transition-colors ${active ? navItemActive : navItemIdle}`}
             >
               <Icon size={14} /> {item.label}{count ? ` (${count})` : ''}
             </button>
@@ -802,8 +938,8 @@ const ApplicationsPanel = ({ registrations, onReview }: {
   onReview: (registrationId: string, status: EventRegistrationStatus) => void;
 }) => (
   <section className={panel}>
-    <div className={DARK_GLASS_CLASSES.panelHeader}>
-      <Users size={16} className="text-cyan-200" />
+    <div className={sectionHeader}>
+      <Users size={16} className="text-sky-200" />
       <h2 className="font-display text-sm font-black text-white">Applications</h2>
     </div>
     <div className="p-4">
@@ -812,7 +948,7 @@ const ApplicationsPanel = ({ registrations, onReview }: {
       ) : (
         <ul className="space-y-2">
           {registrations.map(reg => (
-            <li key={reg.id} className="rounded-2xl border border-cyan-300/10 bg-white/[0.035] p-4">
+            <li key={reg.id} className="rounded-2xl border border-white/10 bg-white/[0.035] p-4">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
                   <div className="flex items-center gap-2">
@@ -863,8 +999,8 @@ const TeamsPanel = ({ teams, approvedCount, onAdd, onAddApproved, onRemove }: {
 
   return (
     <section className={panel}>
-      <div className={DARK_GLASS_CLASSES.panelHeader}>
-        <Shield size={16} className="text-cyan-200" />
+      <div className={sectionHeader}>
+        <Shield size={16} className="text-sky-200" />
         <h2 className="font-display text-sm font-black text-white">Teams</h2>
       </div>
       <div className="space-y-4 p-4">
@@ -888,7 +1024,7 @@ const TeamsPanel = ({ teams, approvedCount, onAdd, onAddApproved, onRemove }: {
         ) : (
           <ul className="space-y-2">
             {teams.map((team, index) => (
-              <li key={team.id} className="flex items-center justify-between gap-3 rounded-xl border border-cyan-300/10 bg-white/[0.035] px-4 py-3">
+              <li key={team.id} className="flex items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/[0.035] px-4 py-3">
                 <div className="flex items-center gap-3">
                   <span className="font-display text-xs font-black text-slate-500">{index + 1}</span>
                   <span className="font-display text-sm font-black text-white">{team.name}</span>
@@ -919,9 +1055,9 @@ const FixturesPanel = ({ fixtures, teamCount, teamName, onGenerate, onClear, onR
 
   return (
     <section className={panel}>
-      <div className={`${DARK_GLASS_CLASSES.panelHeader} justify-between`}>
+      <div className={`${sectionHeader} justify-between`}>
         <div className="flex items-center gap-2">
-          <Swords size={16} className="text-cyan-200" />
+          <Swords size={16} className="text-sky-200" />
           <h2 className="font-display text-sm font-black text-white">Fixtures</h2>
         </div>
         {fixtures.length > 0 && (
@@ -943,7 +1079,7 @@ const FixturesPanel = ({ fixtures, teamCount, teamName, onGenerate, onClear, onR
             <p className="text-xs text-slate-400">{played} of {fixtures.length} played</p>
             {rounds.map(round => (
               <div key={round} className="space-y-2">
-                <p className="text-[11px] font-black uppercase tracking-wide text-cyan-100/65">Round {round}</p>
+                <p className="text-[11px] font-black uppercase tracking-wide text-slate-400">Round {round}</p>
                 {fixtures.filter(f => f.round === round).map(fixture => (
                   <FixtureRow key={fixture.id} fixture={fixture} teamName={teamName} onRecord={onRecord} />
                 ))}
@@ -966,10 +1102,10 @@ const FixtureRow = ({ fixture, teamName, onRecord }: {
   const dirty = home !== (fixture.home_score?.toString() ?? '') || away !== (fixture.away_score?.toString() ?? '');
   const canSave = home !== '' && away !== '' && dirty;
 
-  const scoreInput = 'h-9 w-12 rounded-lg border border-cyan-300/10 bg-[#0b1726]/85 text-center font-display text-sm font-black text-white';
+  const scoreInput = 'h-9 w-12 rounded-lg border border-white/10 bg-[#0b1726]/85 text-center font-display text-sm font-black text-white';
 
   return (
-    <div className="flex items-center gap-2 rounded-xl border border-cyan-300/10 bg-white/[0.035] px-3 py-2">
+    <div className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.035] px-3 py-2">
       <span className="flex-1 truncate text-right text-sm font-bold text-white">{teamName(fixture.home_team_id)}</span>
       <input aria-label="Home score" type="number" min={0} className={scoreInput} value={home} onChange={e => setHome(e.target.value)} />
       <span className="text-xs text-slate-500">v</span>
@@ -990,8 +1126,8 @@ const FixtureRow = ({ fixture, teamName, onRecord }: {
 
 const TablePanel = ({ standings }: { standings: ReturnType<typeof computeStandings> }) => (
   <section className={panel}>
-    <div className={DARK_GLASS_CLASSES.panelHeader}>
-      <ListOrdered size={16} className="text-cyan-200" />
+    <div className={sectionHeader}>
+      <ListOrdered size={16} className="text-sky-200" />
       <h2 className="font-display text-sm font-black text-white">Standings</h2>
     </div>
     <div className="p-4">
@@ -1001,7 +1137,7 @@ const TablePanel = ({ standings }: { standings: ReturnType<typeof computeStandin
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="text-[11px] font-black uppercase text-cyan-100/65">
+              <tr className="text-[11px] font-black uppercase text-slate-400">
                 <th className="px-2 py-2 text-left">#</th>
                 <th className="px-2 py-2 text-left">Team</th>
                 <th className="px-2 py-2 text-right">P</th>
@@ -1016,7 +1152,7 @@ const TablePanel = ({ standings }: { standings: ReturnType<typeof computeStandin
             </thead>
             <tbody>
               {standings.map((row, index) => (
-                <tr key={row.teamId} className="border-t border-cyan-300/10">
+                <tr key={row.teamId} className="border-t border-white/10">
                   <td className="px-2 py-2 text-slate-500">{index + 1}</td>
                   <td className="px-2 py-2 font-bold text-white">{row.name}</td>
                   <td className="px-2 py-2 text-right text-slate-300">{row.played}</td>
@@ -1085,7 +1221,7 @@ const StatsPanel = ({ teams, fixtures, statEvents, awards, standings, teamName, 
               {discipline.map(row => (
                 <li key={`${row.teamId}-${row.playerName}`} className="flex items-center gap-3 text-sm">
                   <span className="flex-1 truncate"><span className="font-bold text-white">{row.playerName}</span> <span className="text-slate-500">· {teamName(row.teamId)}</span></span>
-                  {row.yellow > 0 && <span className="rounded border border-amber-400/40 bg-amber-400/15 px-1.5 text-xs font-bold text-amber-100">{row.yellow}Y</span>}
+                  {row.yellow > 0 && <span className="rounded border border-yellow-200/25 bg-yellow-300/10 px-1.5 text-xs font-bold text-yellow-100">{row.yellow}Y</span>}
                   {row.red > 0 && <span className="rounded border border-rose-400/40 bg-rose-400/15 px-1.5 text-xs font-bold text-rose-100">{row.red}R</span>}
                 </li>
               ))}
@@ -1098,11 +1234,11 @@ const StatsPanel = ({ teams, fixtures, statEvents, awards, standings, teamName, 
 
       {statEvents.length > 0 && (
         <section className={panel}>
-          <div className={DARK_GLASS_CLASSES.panelHeader}>
-            <Target size={16} className="text-cyan-200" />
+          <div className={sectionHeader}>
+            <Target size={16} className="text-sky-200" />
             <h2 className="font-display text-sm font-black text-white">Stat log</h2>
           </div>
-          <ul className="divide-y divide-cyan-300/10 p-2">
+          <ul className="divide-y divide-white/10 p-2">
             {statEvents.map(s => (
               <li key={s.id} className="flex items-center justify-between gap-3 px-2 py-2 text-sm">
                 <span className="truncate">
@@ -1129,8 +1265,8 @@ const LeaderboardCard = ({ title, icon: Icon, children }: {
   children: React.ReactNode;
 }) => (
   <section className={panel}>
-    <div className={DARK_GLASS_CLASSES.panelHeader}>
-      <Icon size={16} className="text-cyan-200" />
+    <div className={sectionHeader}>
+      <Icon size={16} className="text-sky-200" />
       <h2 className="font-display text-sm font-black text-white">{title}</h2>
     </div>
     <div className="p-4">{children}</div>
@@ -1181,20 +1317,20 @@ const AddStatForm = ({ teams, fixtures, onAddStat }: {
 
   return (
     <section className={panel}>
-      <div className={DARK_GLASS_CLASSES.panelHeader}>
-        <Plus size={16} className="text-cyan-200" />
+      <div className={sectionHeader}>
+        <Plus size={16} className="text-sky-200" />
         <h2 className="font-display text-sm font-black text-white">Record a statistic</h2>
       </div>
       <form onSubmit={submit} className="grid gap-3 p-4 sm:grid-cols-2 lg:grid-cols-3">
         <div className="space-y-1 sm:col-span-2 lg:col-span-1">
           <label className={label}>Match</label>
-          <select className={DARK_GLASS_CLASSES.select} value={fixtureId} onChange={e => setFixtureId(e.target.value)}>
+          <select className={selectClass} value={fixtureId} onChange={e => setFixtureId(e.target.value)}>
             {fixtures.map(f => <option key={f.id} value={f.id}>{fixtureLabel(f)}</option>)}
           </select>
         </div>
         <div className="space-y-1">
           <label className={label}>Team</label>
-          <select className={DARK_GLASS_CLASSES.select} value={teamId} onChange={e => setTeamId(e.target.value)}>
+          <select className={selectClass} value={teamId} onChange={e => setTeamId(e.target.value)}>
             {teamOptions.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
           </select>
         </div>
@@ -1204,7 +1340,7 @@ const AddStatForm = ({ teams, fixtures, onAddStat }: {
         </div>
         <div className="space-y-1">
           <label className={label}>Type</label>
-          <select className={DARK_GLASS_CLASSES.select} value={statType} onChange={e => setStatType(e.target.value as FixtureStatType)}>
+          <select className={selectClass} value={statType} onChange={e => setStatType(e.target.value as FixtureStatType)}>
             {STAT_TYPES.map(t => <option key={t} value={t}>{STAT_TYPE_LABELS[t]}</option>)}
           </select>
         </div>
@@ -1258,17 +1394,17 @@ const AwardsCard = ({ awards, teams, teamName, suggestions, onAdd, onDelete }: {
 
   return (
     <section className={panel}>
-      <div className={DARK_GLASS_CLASSES.panelHeader}>
-        <Award size={16} className="text-cyan-200" />
+      <div className={sectionHeader}>
+        <Award size={16} className="text-sky-200" />
         <h2 className="font-display text-sm font-black text-white">Awards</h2>
       </div>
       <div className="space-y-4 p-4">
         {awards.length > 0 && (
           <ul className="space-y-2">
             {awards.map(award => (
-              <li key={award.id} className="flex items-center justify-between gap-3 rounded-xl border border-cyan-300/10 bg-white/[0.035] px-4 py-3">
+              <li key={award.id} className="flex items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/[0.035] px-4 py-3">
                 <div className="flex items-center gap-3">
-                  <Medal size={16} className="text-amber-300" />
+                  <Medal size={16} className="text-indigo-200" />
                   <div>
                     <p className="font-display text-sm font-black text-white">{award.title}</p>
                     <p className="text-xs text-slate-400">{award.recipient_type === 'team' ? (award.team_id ? teamName(award.team_id) : 'Team') : award.player_name}</p>
@@ -1304,7 +1440,7 @@ const AwardsCard = ({ awards, teams, teamName, suggestions, onAdd, onDelete }: {
           </div>
           <div className="space-y-1">
             <label className={label}>Recipient</label>
-            <select className={DARK_GLASS_CLASSES.select} value={recipientType} onChange={e => setRecipientType(e.target.value as AwardRecipientType)}>
+            <select className={selectClass} value={recipientType} onChange={e => setRecipientType(e.target.value as AwardRecipientType)}>
               <option value="team">Team</option>
               <option value="player">Player</option>
             </select>
@@ -1312,7 +1448,7 @@ const AwardsCard = ({ awards, teams, teamName, suggestions, onAdd, onDelete }: {
           {recipientType === 'team' ? (
             <div className="space-y-1">
               <label className={label}>Team</label>
-              <select className={DARK_GLASS_CLASSES.select} value={teamId} onChange={e => setTeamId(e.target.value)}>
+              <select className={selectClass} value={teamId} onChange={e => setTeamId(e.target.value)}>
                 {teams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
               </select>
             </div>
@@ -1354,8 +1490,8 @@ const MatchdayPanel = ({ fixtures, incidents, teamName, onSetOps, onAddIncident,
       </div>
 
       <section className={panel}>
-        <div className={DARK_GLASS_CLASSES.panelHeader}>
-          <Activity size={16} className="text-cyan-200" />
+        <div className={sectionHeader}>
+          <Activity size={16} className="text-sky-200" />
           <h2 className="font-display text-sm font-black text-white">Command center</h2>
         </div>
         <div className="space-y-2 p-4">
@@ -1368,8 +1504,8 @@ const MatchdayPanel = ({ fixtures, incidents, teamName, onSetOps, onAddIncident,
       </section>
 
       <section className={panel}>
-        <div className={DARK_GLASS_CLASSES.panelHeader}>
-          <AlertTriangle size={16} className="text-cyan-200" />
+        <div className={sectionHeader}>
+          <AlertTriangle size={16} className="text-sky-200" />
           <h2 className="font-display text-sm font-black text-white">Incidents</h2>
         </div>
         <div className="space-y-4 p-4">
@@ -1379,10 +1515,10 @@ const MatchdayPanel = ({ fixtures, incidents, teamName, onSetOps, onAddIncident,
           ) : (
             <ul className="space-y-2">
               {incidents.map(inc => (
-                <li key={inc.id} className="flex items-start justify-between gap-3 rounded-xl border border-cyan-300/10 bg-white/[0.035] px-4 py-3">
+                <li key={inc.id} className="flex items-start justify-between gap-3 rounded-xl border border-white/10 bg-white/[0.035] px-4 py-3">
                   <div>
                     <div className="flex items-center gap-2">
-                      <span className="rounded-full border border-amber-400/40 bg-amber-400/15 px-2 py-0.5 text-[11px] font-bold text-amber-100">{INCIDENT_KIND_LABELS[inc.kind]}</span>
+                      <span className="rounded-full border border-slate-300/20 bg-white/[0.045] px-2 py-0.5 text-[11px] font-bold text-slate-200">{INCIDENT_KIND_LABELS[inc.kind]}</span>
                       <span className="text-[11px] text-slate-500">{new Date(inc.occurred_at).toLocaleString()}</span>
                     </div>
                     <p className="mt-1 text-sm text-slate-200">{inc.summary}</p>
@@ -1404,7 +1540,7 @@ const CheckinButton = ({ name, checked, onClick }: { name: string; checked: bool
   <button
     type="button"
     onClick={onClick}
-    className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-bold transition-colors ${checked ? 'border-emerald-400/40 bg-emerald-400/15 text-emerald-100' : 'border-cyan-300/10 bg-white/[0.035] text-slate-300 hover:text-white'}`}
+    className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-bold transition-colors ${checked ? 'border-emerald-400/40 bg-emerald-400/15 text-emerald-100' : 'border-white/10 bg-white/[0.035] text-slate-300 hover:text-white'}`}
   >
     <UserCheck size={13} /> {name}
   </button>
@@ -1417,13 +1553,13 @@ const FixtureOpsCard = ({ fixture, teamName, onSetOps }: {
 }) => {
   const ready = fixture.home_checked_in && fixture.away_checked_in;
   const statusPill = fixture.status === 'completed'
-    ? { text: `${fixture.home_score}–${fixture.away_score}`, tone: 'border-cyan-400/40 bg-cyan-400/15 text-cyan-100' }
+    ? { text: `${fixture.home_score}–${fixture.away_score}`, tone: 'border-sky-300/35 bg-sky-400/10 text-sky-100' }
     : ready
       ? { text: 'Ready', tone: 'border-emerald-400/40 bg-emerald-400/15 text-emerald-100' }
-      : { text: 'Awaiting', tone: 'border-amber-400/40 bg-amber-400/15 text-amber-100' };
+      : { text: 'Awaiting', tone: 'border-slate-300/20 bg-white/[0.045] text-slate-300' };
 
   return (
-    <div className="space-y-2 rounded-xl border border-cyan-300/10 bg-white/[0.035] p-3">
+    <div className="space-y-2 rounded-xl border border-white/10 bg-white/[0.035] p-3">
       <div className="flex items-center justify-between gap-2">
         <CheckinButton name={teamName(fixture.home_team_id)} checked={fixture.home_checked_in} onClick={() => onSetOps(fixture.id, { homeCheckedIn: !fixture.home_checked_in })} />
         <span className={`shrink-0 rounded-full border px-2 py-0.5 text-[11px] font-bold ${statusPill.tone}`}>{statusPill.text}</span>
@@ -1470,7 +1606,7 @@ const IncidentForm = ({ fixtures, teamName, onAdd }: {
     <form onSubmit={submit} className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 lg:items-end">
       <div className="space-y-1">
         <label className={label}>Type</label>
-        <select className={DARK_GLASS_CLASSES.select} value={kind} onChange={e => setKind(e.target.value as IncidentKind)}>
+        <select className={selectClass} value={kind} onChange={e => setKind(e.target.value as IncidentKind)}>
           {INCIDENT_KINDS.map(k => <option key={k} value={k}>{INCIDENT_KIND_LABELS[k]}</option>)}
         </select>
       </div>
@@ -1478,7 +1614,7 @@ const IncidentForm = ({ fixtures, teamName, onAdd }: {
       <div className="flex items-end gap-2">
         <div className="flex-1 space-y-1">
           <label className={label}>Match</label>
-          <select className={DARK_GLASS_CLASSES.select} value={fixtureId} onChange={e => setFixtureId(e.target.value)}>
+          <select className={selectClass} value={fixtureId} onChange={e => setFixtureId(e.target.value)}>
             <option value="">— None —</option>
             {fixtures.map(f => <option key={f.id} value={f.id}>{teamName(f.home_team_id)} v {teamName(f.away_team_id)}</option>)}
           </select>
@@ -1523,7 +1659,7 @@ const VenuesSection = ({ venues, onCreate, onDelete }: {
           {venues.map(venue => (
             <li key={venue.id} className={`${panel} flex items-center justify-between gap-3 p-4`}>
               <div className="flex items-center gap-3">
-                <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-cyan-300/10 text-cyan-200"><MapPin size={16} /></span>
+                <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-sky-300/10 text-sky-200"><MapPin size={16} /></span>
                 <div>
                   <p className="font-display text-sm font-black text-white">{venue.name}</p>
                   <p className="text-xs text-slate-400">{[venue.address, venue.capacity ? `${venue.capacity} cap` : null].filter(Boolean).join(' · ') || '—'}</p>
@@ -1546,7 +1682,7 @@ const amountToCents = (v: string) => Math.max(0, Math.round(Number(v) * 100));
 const LEDGER_DIRECTIONS: LedgerDirection[] = ['income', 'expense'];
 
 const invoiceTone: Record<InvoiceStatus, string> = {
-  unpaid: 'border-amber-400/40 bg-amber-400/15 text-amber-100',
+  unpaid: 'border-sky-300/30 bg-sky-400/10 text-sky-100',
   paid: 'border-emerald-400/40 bg-emerald-400/15 text-emerald-100',
   waived: 'border-slate-500/40 bg-slate-500/15 text-slate-300'
 };
@@ -1575,8 +1711,8 @@ const FinanceSection = ({ currency, ledger, invoices, events, onAddLedger, onDel
       </div>
 
       <section className={panel}>
-        <div className={DARK_GLASS_CLASSES.panelHeader}>
-          <Receipt size={16} className="text-cyan-200" />
+        <div className={sectionHeader}>
+          <Receipt size={16} className="text-sky-200" />
           <h2 className="font-display text-sm font-black text-white">Invoices</h2>
         </div>
         <div className="space-y-4 p-4">
@@ -1586,7 +1722,7 @@ const FinanceSection = ({ currency, ledger, invoices, events, onAddLedger, onDel
           ) : (
             <ul className="space-y-2">
               {invoices.map(inv => (
-                <li key={inv.id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-cyan-300/10 bg-white/[0.035] px-4 py-3">
+                <li key={inv.id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/[0.035] px-4 py-3">
                   <div>
                     <div className="flex items-center gap-2">
                       <span className="font-display text-sm font-black text-white">{inv.bill_to}</span>
@@ -1616,8 +1752,8 @@ const FinanceSection = ({ currency, ledger, invoices, events, onAddLedger, onDel
       </section>
 
       <section className={panel}>
-        <div className={DARK_GLASS_CLASSES.panelHeader}>
-          <Wallet size={16} className="text-cyan-200" />
+        <div className={sectionHeader}>
+          <Wallet size={16} className="text-sky-200" />
           <h2 className="font-display text-sm font-black text-white">Ledger</h2>
         </div>
         <div className="space-y-4 p-4">
@@ -1627,7 +1763,7 @@ const FinanceSection = ({ currency, ledger, invoices, events, onAddLedger, onDel
           ) : (
             <ul className="space-y-2">
               {ledger.map(entry => (
-                <li key={entry.id} className="flex items-center justify-between gap-3 rounded-xl border border-cyan-300/10 bg-white/[0.035] px-4 py-3">
+                <li key={entry.id} className="flex items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/[0.035] px-4 py-3">
                   <div className="flex items-center gap-3">
                     <span className={`flex h-8 w-8 items-center justify-center rounded-lg ${entry.direction === 'income' ? 'bg-emerald-400/15 text-emerald-300' : 'bg-rose-400/15 text-rose-300'}`}>
                       {entry.direction === 'income' ? <ArrowDownLeft size={16} /> : <ArrowUpRight size={16} />}
@@ -1677,7 +1813,7 @@ const InvoiceForm = ({ events, onAdd }: {
     <form onSubmit={submit} className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5 lg:items-end">
       <div className="space-y-1 lg:col-span-1">
         <label className={label}>Event</label>
-        <select className={DARK_GLASS_CLASSES.select} value={eventId} onChange={e => setEventId(e.target.value)}>
+        <select className={selectClass} value={eventId} onChange={e => setEventId(e.target.value)}>
           {events.map(ev => <option key={ev.id} value={ev.id}>{ev.name}</option>)}
         </select>
       </div>
@@ -1710,7 +1846,7 @@ const LedgerForm = ({ events, onAdd }: {
     <form onSubmit={submit} className="grid gap-3 sm:grid-cols-2 lg:grid-cols-6 lg:items-end">
       <div className="space-y-1">
         <label className={label}>Type</label>
-        <select className={DARK_GLASS_CLASSES.select} value={direction} onChange={e => setDirection(e.target.value as LedgerDirection)}>
+        <select className={selectClass} value={direction} onChange={e => setDirection(e.target.value as LedgerDirection)}>
           {LEDGER_DIRECTIONS.map(d => <option key={d} value={d}>{d === 'income' ? 'Income' : 'Expense'}</option>)}
         </select>
       </div>
@@ -1718,7 +1854,7 @@ const LedgerForm = ({ events, onAdd }: {
       <div className="space-y-1"><label className={label}>Amount</label><input className={inputClass} type="number" min={0} step="0.01" value={amount} onChange={e => setAmount(e.target.value)} placeholder="0.00" /></div>
       <div className="space-y-1">
         <label className={label}>Event</label>
-        <select className={DARK_GLASS_CLASSES.select} value={eventId} onChange={e => setEventId(e.target.value)}>
+        <select className={selectClass} value={eventId} onChange={e => setEventId(e.target.value)}>
           <option value="">— None —</option>
           {events.map(ev => <option key={ev.id} value={ev.id}>{ev.name}</option>)}
         </select>
@@ -1736,7 +1872,7 @@ interface LeagueFormValues { name: string; shortName?: string | null; logoColor?
 const LeagueForm = ({ initial, submitLabel, onSubmit }: { initial?: League; submitLabel: string; onSubmit: (v: LeagueFormValues) => void }) => {
   const [name, setName] = useState(initial?.name ?? '');
   const [shortName, setShortName] = useState(initial?.short_name ?? '');
-  const [logoColor, setLogoColor] = useState(initial?.logo_color ?? '#f97316');
+  const [logoColor, setLogoColor] = useState(initial?.logo_color ?? '#38bdf8');
   const [contactEmail, setContactEmail] = useState(initial?.contact_email ?? '');
   const [location, setLocation] = useState(initial?.location ?? '');
   const [description, setDescription] = useState(initial?.description ?? '');
@@ -1753,7 +1889,7 @@ const LeagueForm = ({ initial, submitLabel, onSubmit }: { initial?: League; subm
         <div className="space-y-1"><label className={label}>Short name</label><input className={inputClass} value={shortName} onChange={e => setShortName(e.target.value)} placeholder="MYL" /></div>
         <div className="space-y-1"><label className={label}>Contact email</label><input className={inputClass} type="email" value={contactEmail} onChange={e => setContactEmail(e.target.value)} /></div>
         <div className="space-y-1"><label className={label}>Location</label><input className={inputClass} value={location} onChange={e => setLocation(e.target.value)} placeholder="Metro Manila" /></div>
-        <div className="space-y-1"><label className={label}>Brand color</label><input className="h-9 w-full rounded-xl border border-cyan-300/10 bg-[#0b1726]/85" type="color" value={logoColor} onChange={e => setLogoColor(e.target.value)} /></div>
+        <div className="space-y-1"><label className={label}>Brand color</label><input className="h-9 w-full rounded-xl border border-white/10 bg-[#0b1726]/85" type="color" value={logoColor} onChange={e => setLogoColor(e.target.value)} /></div>
         <div className="space-y-1 sm:col-span-2"><label className={label}>Description</label><textarea className={inputClass} rows={2} value={description} onChange={e => setDescription(e.target.value)} /></div>
       </div>
       <button type="submit" className={primaryBtn}><Save size={14} /> {submitLabel}</button>
