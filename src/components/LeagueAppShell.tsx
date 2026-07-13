@@ -100,9 +100,10 @@ const LeagueAppShell = () => {
     }
   }, [destination]);
 
-  // Preview/demo mode: skip login + entitlement, render the League app with
-  // in-memory sample data. Works even when cloud is disabled. After all hooks.
-  if (runtime.phase6.leaguePreviewEnabled) {
+  // Direct design mode: while the League app is enabled for production rollout,
+  // skip login + entitlement and render the dashboard with in-memory sample data.
+  // After all hooks.
+  if (runtime.phase6.leagueAppEnabled || runtime.phase6.leaguePreviewEnabled) {
     if (!previewLeagueRuntimeSingleton) previewLeagueRuntimeSingleton = createPreviewLeagueRuntime(runtime.phase6);
     return (
       <LeagueApp runtime={previewLeagueRuntimeSingleton} userId="preview-owner" authController={previewLeagueAuthController} preview />
