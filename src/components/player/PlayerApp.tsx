@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { MessageSquare } from 'lucide-react';
 import type { CloudRuntime } from '../../cloud/runtime';
 import type { CloudAuthController } from '../../hooks/useCloudAuth';
 import { computeIsMinor, type PlayerAchievement, type PlayerDrillCompletion, type PlayerNotification, type PlayerProfile, type PlayerWorkoutSession, type TeamScheduleEntry } from '../../cloud/player';
@@ -37,7 +38,6 @@ const PlayerApp = ({ runtime, userId, authController, preview = false }: PlayerA
   const [notifications, setNotifications] = useState<PlayerNotification[]>([]);
   const [schedule, setSchedule] = useState<TeamScheduleEntry[]>([]);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
-  const [chatOpen, setChatOpen] = useState(false);
   const [timerPreset, setTimerPreset] = useState<TimerPreset | null>(null);
 
   const player = runtime.dataAccess.player;
@@ -58,9 +58,7 @@ const PlayerApp = ({ runtime, userId, authController, preview = false }: PlayerA
     setNotifications(nextNotifications);
     setWorkouts(nextWorkouts);
     setAchievements(nextAchievements);
-    const clubId = links[0]?.club_id ?? null;
-    setLinkedClubId(clubId);
-    setSchedule(clubId ? await player.listMyTeamSchedule(clubId) : []);
+    setLinkedClubId(links[0]?.club_id ?? null);
     // Grant any newly-earned badges from this activity, then refresh if any landed.
     try {
       const newlyEarned = await player.syncAchievements(computeStreakDays(nextCompletions));
@@ -73,6 +71,21 @@ const PlayerApp = ({ runtime, userId, authController, preview = false }: PlayerA
   useEffect(() => {
     void reload().catch(() => undefined);
   }, [reload]);
+
+  // Load the linked club's schedule whenever the link changes. Kept separate
+  // from reload so reporting the current club (from JoinTeamPanel) never has to
+  // re-run the whole dashboard load.
+  useEffect(() => {
+    if (!linkedClubId) {
+      setSchedule([]);
+      return;
+    }
+    let active = true;
+    player.listMyTeamSchedule(linkedClubId)
+      .then(entries => { if (active) setSchedule(entries); })
+      .catch(() => undefined);
+    return () => { active = false; };
+  }, [player, linkedClubId]);
 
   const reloadNotifications = useCallback(async () => {
     setNotifications(await player.listNotifications());
@@ -108,7 +121,6 @@ const PlayerApp = ({ runtime, userId, authController, preview = false }: PlayerA
   );
   const weekday = new Date().toLocaleDateString(undefined, { weekday: 'long' });
 
-  const chatAvailable = runtime.phase6.chatEnabled && !!linkedClubId;
   const minorBlockedFromChat = !!profile
     && computeIsMinor(profile.date_of_birth)
     && profile.guardian_consent_state !== 'granted';
@@ -123,7 +135,7 @@ const PlayerApp = ({ runtime, userId, authController, preview = false }: PlayerA
         activeTab={tab}
         onTabChange={setTab}
         onBellClick={() => setNotificationsOpen(true)}
-        onChatClick={chatAvailable ? () => setChatOpen(true) : undefined}
+        fillMain={tab === 'chat'}
       >
         {tab === 'home' && (
           <HomeTab
@@ -153,6 +165,36 @@ const PlayerApp = ({ runtime, userId, authController, preview = false }: PlayerA
           />
         )}
         {tab === 'progress' && <ProgressTab completions={completions} stats={playerStats} achievements={achievements} />}
+        {tab === 'chat' && (
+          <div className="h-full pb-[calc(4.25rem+env(safe-area-inset-bottom))]">
+            {!linkedClubId ? (
+              <div className="flex h-full flex-col items-center justify-center gap-3 p-8 text-center">
+                <MessageSquare size={28} className="text-[#ff6d00]" />
+                <h2 className="font-player-display text-lg font-bold uppercase tracking-wide text-[#d8e3fb]">Join a team to chat</h2>
+                <p className="max-w-xs text-sm text-[#c6c6cd]/70">
+                  Team chat opens once you're linked to a club. Head to your profile to join your team.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setTab('profile')}
+                  className="mt-1 rounded-lg bg-[#ff6d00] px-4 py-2 font-player-mono text-[11px] font-bold uppercase tracking-wide text-[#081425]"
+                >
+                  Go to profile
+                </button>
+              </div>
+            ) : minorBlockedFromChat ? (
+              <ChatConsentGate tone="apex" />
+            ) : (
+              <TeamChat
+                runtime={runtime}
+                clubId={linkedClubId}
+                selfUserId={userId}
+                tone="apex"
+                title="Your team"
+              />
+            )}
+          </div>
+        )}
         {tab === 'profile' && (
           <ProfileTab
             runtime={runtime}
@@ -160,10 +202,7 @@ const PlayerApp = ({ runtime, userId, authController, preview = false }: PlayerA
             authController={authController}
             preview={preview}
             linkedClubId={linkedClubId}
-            onLinkedClubChange={clubId => {
-              setLinkedClubId(clubId);
-              void reload();
-            }}
+            onLinkedClubChange={setLinkedClubId}
           />
         )}
       </PlayerAppLayout>
@@ -175,28 +214,6 @@ const PlayerApp = ({ runtime, userId, authController, preview = false }: PlayerA
         onMarkRead={handleMarkRead}
         onMarkAllRead={handleMarkAllRead}
       />
-
-      {chatOpen && linkedClubId && (
-        <div className="fixed inset-0 z-50 flex justify-center bg-black/40">
-          <div className="h-[100dvh] w-full max-w-md">
-            {minorBlockedFromChat ? (
-              <div className="flex h-full flex-col bg-[#081425]">
-                <button type="button" onClick={() => setChatOpen(false)} className="px-4 py-3 text-left font-player-mono text-[11px] uppercase tracking-wide text-[#ff6d00]">← Back</button>
-                <div className="flex-1"><ChatConsentGate tone="apex" /></div>
-              </div>
-            ) : (
-              <TeamChat
-                runtime={runtime}
-                clubId={linkedClubId}
-                selfUserId={userId}
-                tone="apex"
-                title="Your team"
-                onBack={() => setChatOpen(false)}
-              />
-            )}
-          </div>
-        </div>
-      )}
     </>
   );
 };
