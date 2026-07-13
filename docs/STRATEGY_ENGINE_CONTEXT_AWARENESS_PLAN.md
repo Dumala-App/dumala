@@ -590,7 +590,7 @@ Required validation:
 
 ### Admin Editing Later
 
-If Dumala later adds an admin or coach education console, the same data model can power an editor.
+If Dumala later adds a knowledge-content admin console, the same data model can power an editor.
 
 Potential editor fields:
 

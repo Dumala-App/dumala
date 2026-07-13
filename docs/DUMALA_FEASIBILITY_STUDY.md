@@ -124,7 +124,7 @@ In that future, Dumala becomes the trusted place where a club manages:
 - Public player profiles with consent.
 - Trial shortlists and draft-style comparisons.
 - Club public profiles and achievements.
-- Coach education, qualifications, renewal reminders, and learning journals.
+- A practical coaching knowledge library with session-ready tactical and development ideas.
 - Payments, fees, reminders, and financial summaries.
 - Season archives and year-to-year continuity.
 
@@ -162,10 +162,9 @@ That gives Dumala two growth engines:
 
 - Public player profiles.
 - Public club pages.
-- Coach portfolios.
 - Player comparison and trial shortlists.
 - Academy reports.
-- Philippine coach education hub.
+- Expanded coaching knowledge library.
 
 ## Marketing Approach
 

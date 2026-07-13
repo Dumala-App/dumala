@@ -22,6 +22,7 @@ Status: **Complete**
 - Keep the beta feedback loop visible beside the roadmap so real coach testing can steer what gets refined next.
 - Support multiple local team workspaces from the navbar while keeping cloud club switching as a later capability.
 - Keep the Tactics page focused on pitch planning, curated strategy cards, opponent-shape recommendations, and fullscreen board controls instead of free-form custom-plan editing.
+- Keep the Coaching Library focused on an evidence-based improvement loop: learn one idea, apply it in a real session or match, capture evidence, and decide what to try next.
 
 ### Completion criteria
 
@@ -147,27 +148,6 @@ Full plan: [docs/PLAYER_AND_LEAGUE_PLATFORM_EXPANSION.md](PLAYER_AND_LEAGUE_PLAT
 
 Coaches keep their existing workspaces, players and League owners operate their own secured apps on the shared backend, each account belongs to exactly one app, seasons start empty and group only compatible verified statistics, and no app can reach another app's protected records.
 
-## Future Expansion: Philippine coach education
-
-Status: **Done — local-first foundation**
-
-### Delivered
-
-- Build a knowledge base for session planning, tactics, development, conditioning, leadership, safeguarding, first aid, and Laws of the Game.
-- Explain the Philippine pathway using current PFF and AFC guidance.
-- Link official PFF, AFC, and FIFA course resources.
-- Add education planning, learning goals, seminars, workshops, and continuing development.
-- Track qualification, issuer, licence number, issue/expiry dates, documents, and verification state.
-- Add renewal reminders, private coaching journals, reflections, goals, and portfolios.
-- Expand staff profiles with specialties, age groups, experience, achievements, and approved public credentials.
-- Keep Dumala Development Progress separate from official PFF/AFC qualifications.
-
-### Completion criteria
-
-Philippine coaches can find official guidance, organize development records, and clearly distinguish verified credentials from app progress.
-
-The Coaching Library provides the completed private/local workflow and a controlled public portfolio preview/export. Authenticated public URLs, moderation, ownership recovery, and server-side credential verification remain governed by Phase 5 rather than this education module.
-
 ## Future Expansion: Club operations
 
 Status: **Long Term**
@@ -216,5 +196,5 @@ Dumala has a tested subscription story, a simple first offer, and real coach fee
 4. Explicit privacy before publishing personal information.
 5. Explainable assessment scoring before wider FPRDS claims.
 6. Training creates development evidence; FPRDS assessment verifies current ability.
-7. Official coaching credentials must never be replaced by an internal Dumala score.
-8. Pricing must follow proven coach and club value, not feature count alone.
+7. Pricing must follow proven coach and club value, not feature count alone.
+8. Coach self-improvement features must connect to real coaching action and evidence, not standalone journals, goals, badges, or generic progress percentages.

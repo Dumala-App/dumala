@@ -43,7 +43,7 @@ The initial user is a football coach, manager, academy evaluator, or team admini
 1. **Football-specific workflow:** Operations, tactics, training, and development coexist in one product.
 2. **Local-first speed:** Teams can test the product without accounts or infrastructure.
 3. **Explainable assessment:** FPRDS retains raw measurements and benchmark-derived scores.
-4. **Philippines-first direction:** Future coach education will reference official PFF, AFC, and FIFA resources without inventing an unofficial coaching grade.
+4. **Coach-first direction:** The Knowledge Library turns football concepts into practical, session-ready actions and short evidence-based reviews.
 5. **Progressive architecture:** Offline use precedes cloud synchronization, and cloud identity precedes public profiles.
 
 ## Strategic roadmap
@@ -68,9 +68,9 @@ Add accounts, durable club workspaces, synchronization, invitations, roles, and 
 
 Offer controlled personalized player and team links, richer football profiles, candidate comparison, shortlists, and trial workflows.
 
-### Philippine coach development
+### Coaching knowledge
 
-Add an official-resource knowledge base, qualification tracking, education planning, journals, renewal reminders, and controlled coaching portfolios.
+Expand the searchable Knowledge Library around the improvement loop: learn one idea, apply it in a real session or match, capture evidence, receive useful feedback, and decide what to try next.
 
 ### Club expansion
 

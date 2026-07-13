@@ -5,6 +5,7 @@ import {
   LIBRARY_CATEGORY_LABELS,
   LIBRARY_CATEGORY_ORDER,
   estimateReadingMinutes,
+  getArticleApplyActions,
   searchLibraryArticles
 } from './index';
 import { COACHING_LIBRARY_ITEMS } from '../coachingLibrary';
@@ -42,6 +43,24 @@ describe('coaching library knowledge data', () => {
   it('keeps every article readable in a few minutes, not seconds', () => {
     for (const article of ACTIVE_LIBRARY_ARTICLES) {
       expect(estimateReadingMinutes(article), article.id).toBeGreaterThanOrEqual(2);
+    }
+  });
+
+  it('gives every active article concrete apply-this-idea actions', () => {
+    for (const article of ACTIVE_LIBRARY_ARTICLES) {
+      const actions = getArticleApplyActions(article);
+      expect(actions.length, article.id).toBeGreaterThanOrEqual(5);
+      for (const action of actions) {
+        expect(action.title.length, `${article.id} action title`).toBeGreaterThan(8);
+        expect(action.detail.length, `${article.id} action detail`).toBeGreaterThan(40);
+      }
+      expect(actions.map(action => action.title)).toEqual(expect.arrayContaining([
+        'Try this in your next session',
+        'Add the recommended drill',
+        'Use three coaching cues',
+        'Watch for player behaviours',
+        'Adapt this for your age group'
+      ]));
     }
   });
 
