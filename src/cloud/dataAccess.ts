@@ -183,6 +183,8 @@ import {
 import {
   addAward,
   addEventTeam,
+  addInvoice,
+  addLedgerEntry,
   addStatEvent,
   advanceEventStatus,
   advanceSeasonStatus,
@@ -193,6 +195,8 @@ import {
   createVenue,
   deleteAward,
   deleteEventTeam,
+  deleteInvoice,
+  deleteLedgerEntry,
   deleteStatEvent,
   deleteVenue,
   generateFixtures,
@@ -200,7 +204,9 @@ import {
   listEvents,
   listEventTeams,
   listFixtures,
+  listInvoices,
   listLeagues,
+  listLedgerEntries,
   listRegistrations,
   listSeasons,
   listStatEvents,
@@ -208,6 +214,7 @@ import {
   lookupEventRegistration,
   recordFixtureResult,
   reviewRegistration,
+  settleInvoice,
   submitEventRegistration,
   syncApprovedTeams,
   updateEvent,
@@ -217,6 +224,8 @@ import {
   type EventAward,
   type EventAwardInput,
   type EventFixture,
+  type EventInvoice,
+  type EventInvoiceInput,
   type EventRegistration,
   type EventRegistrationInput,
   type EventRegistrationLookup,
@@ -224,6 +233,7 @@ import {
   type EventTeam,
   type FixtureStatEvent,
   type FixtureStatInput,
+  type InvoiceStatus,
   type League,
   type LeagueEvent,
   type LeagueEventInput,
@@ -233,7 +243,9 @@ import {
   type LeagueSeasonInput,
   type LeagueSeasonStatus,
   type LeagueVenue,
-  type LeagueVenueInput
+  type LeagueVenueInput,
+  type LedgerEntry,
+  type LedgerEntryInput
 } from './league';
 import {
   deleteMessage,
@@ -429,6 +441,13 @@ export interface CloudLeagueRepository {
   listAwards(eventId: string): Promise<EventAward[]>;
   addAward(leagueId: string, eventId: string, input: EventAwardInput): Promise<EventAward>;
   deleteAward(awardId: string): Promise<void>;
+  listLedgerEntries(leagueId: string): Promise<LedgerEntry[]>;
+  addLedgerEntry(leagueId: string, input: LedgerEntryInput): Promise<LedgerEntry>;
+  deleteLedgerEntry(entryId: string): Promise<void>;
+  listInvoices(leagueId: string): Promise<EventInvoice[]>;
+  addInvoice(leagueId: string, input: EventInvoiceInput): Promise<EventInvoice>;
+  settleInvoice(invoiceId: string, nextStatus: Extract<InvoiceStatus, 'paid' | 'waived'>, paidOn?: string | null): Promise<EventInvoice>;
+  deleteInvoice(invoiceId: string): Promise<void>;
 }
 
 export interface CloudChatRepository {
@@ -623,7 +642,14 @@ export const createCloudDataAccess = (client: DumalaSupabaseClient): CloudDataAc
     deleteStatEvent: statEventId => deleteStatEvent(client, statEventId),
     listAwards: eventId => listAwards(client, eventId),
     addAward: (leagueId, eventId, input) => addAward(client, leagueId, eventId, input),
-    deleteAward: awardId => deleteAward(client, awardId)
+    deleteAward: awardId => deleteAward(client, awardId),
+    listLedgerEntries: leagueId => listLedgerEntries(client, leagueId),
+    addLedgerEntry: (leagueId, input) => addLedgerEntry(client, leagueId, input),
+    deleteLedgerEntry: entryId => deleteLedgerEntry(client, entryId),
+    listInvoices: leagueId => listInvoices(client, leagueId),
+    addInvoice: (leagueId, input) => addInvoice(client, leagueId, input),
+    settleInvoice: (invoiceId, nextStatus, paidOn) => settleInvoice(client, invoiceId, nextStatus, paidOn),
+    deleteInvoice: invoiceId => deleteInvoice(client, invoiceId)
   },
   chat: {
     ensureChannel: clubId => ensureChannel(client, clubId),

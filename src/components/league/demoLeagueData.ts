@@ -8,13 +8,15 @@ import {
   spotsRemaining,
   type EventAward,
   type EventFixture,
+  type EventInvoice,
   type EventRegistration,
   type EventTeam,
   type FixtureStatEvent,
   type League,
   type LeagueEvent,
   type LeagueSeason,
-  type LeagueVenue
+  type LeagueVenue,
+  type LedgerEntry
 } from '../../cloud/league';
 
 // In-memory sample data for the League Owner app "preview" mode: no login, no
@@ -44,6 +46,7 @@ const buildDemoLeagueRepository = (): CloudLeagueRepository => {
       location: 'Metro Manila, PH',
       description: 'Grassroots youth football across the metro.',
       timezone: 'Asia/Manila',
+      currency: 'PHP',
       state: 'active',
       created_at: now(),
       updated_at: now()
@@ -169,6 +172,37 @@ const buildDemoLeagueRepository = (): CloudLeagueRepository => {
     }
   ];
 
+  let ledger: LedgerEntry[] = [
+    {
+      id: 'demo-ledger-1', league_id: LEAGUE_ID, season_id: 'demo-season-1', event_id: 'demo-event-1', invoice_id: null,
+      direction: 'income', category: 'Sponsorship', description: 'Metro Sports Co.', amount_cents: 2500000,
+      occurred_on: '2026-07-01', created_at: now(), updated_at: now()
+    },
+    {
+      id: 'demo-ledger-2', league_id: LEAGUE_ID, season_id: 'demo-season-1', event_id: 'demo-event-1', invoice_id: null,
+      direction: 'expense', category: 'Referees', description: 'Matchday officials', amount_cents: 600000,
+      occurred_on: '2026-07-05', created_at: now(), updated_at: now()
+    },
+    {
+      id: 'demo-ledger-3', league_id: LEAGUE_ID, season_id: 'demo-season-1', event_id: 'demo-event-1', invoice_id: null,
+      direction: 'expense', category: 'Venue', description: 'Rizal Memorial hire', amount_cents: 900000,
+      occurred_on: '2026-07-06', created_at: now(), updated_at: now()
+    }
+  ];
+
+  let invoices: EventInvoice[] = [
+    {
+      id: 'demo-invoice-1', league_id: LEAGUE_ID, event_id: 'demo-event-1', team_id: 'demo-team-1', registration_id: 'demo-reg-1',
+      bill_to: 'Bayside FC', description: 'Metro Cup registration', amount_cents: 500000, due_on: '2026-07-20',
+      status: 'paid', paid_on: '2026-07-08', created_at: now(), updated_at: now()
+    },
+    {
+      id: 'demo-invoice-2', league_id: LEAGUE_ID, event_id: 'demo-event-1', team_id: 'demo-team-2', registration_id: null,
+      bill_to: 'North Stars', description: 'Metro Cup registration', amount_cents: 500000, due_on: '2026-07-20',
+      status: 'unpaid', paid_on: null, created_at: now(), updated_at: now()
+    }
+  ];
+
   return {
     listLeagues: async () => leagues,
     createLeague: async (ownerUserId, input) => {
@@ -176,7 +210,7 @@ const buildDemoLeagueRepository = (): CloudLeagueRepository => {
         id: newId(), owner_user_id: ownerUserId, name: input.name.trim(),
         short_name: input.shortName?.trim() || null, logo_color: input.logoColor?.trim() || '#f97316',
         contact_email: input.contactEmail?.trim() || null, location: input.location?.trim() || null,
-        description: input.description?.trim() || null, timezone: 'Asia/Manila', state: 'active',
+        description: input.description?.trim() || null, timezone: 'Asia/Manila', currency: 'PHP', state: 'active',
         created_at: now(), updated_at: now()
       };
       leagues = [...leagues, row];
@@ -391,6 +425,50 @@ const buildDemoLeagueRepository = (): CloudLeagueRepository => {
     },
     deleteAward: async awardId => {
       awards = awards.filter(a => a.id !== awardId);
+    },
+    listLedgerEntries: async leagueId => ledger.filter(l => l.league_id === leagueId),
+    addLedgerEntry: async (leagueId, input) => {
+      const row: LedgerEntry = {
+        id: newId(), league_id: leagueId, season_id: input.seasonId ?? null, event_id: input.eventId ?? null,
+        invoice_id: null, direction: input.direction, category: input.category.trim(),
+        description: input.description?.trim() || null, amount_cents: Math.max(0, Math.round(input.amountCents)),
+        occurred_on: input.occurredOn || now().slice(0, 10), created_at: now(), updated_at: now()
+      };
+      ledger = [row, ...ledger];
+      return row;
+    },
+    deleteLedgerEntry: async entryId => {
+      ledger = ledger.filter(l => l.id !== entryId);
+    },
+    listInvoices: async leagueId => invoices.filter(i => i.league_id === leagueId),
+    addInvoice: async (leagueId, input) => {
+      const row: EventInvoice = {
+        id: newId(), league_id: leagueId, event_id: input.eventId, team_id: input.teamId ?? null, registration_id: null,
+        bill_to: input.billTo.trim(), description: input.description?.trim() || null,
+        amount_cents: Math.max(0, Math.round(input.amountCents)), due_on: input.dueOn || null,
+        status: 'unpaid', paid_on: null, created_at: now(), updated_at: now()
+      };
+      invoices = [row, ...invoices];
+      return row;
+    },
+    settleInvoice: async (invoiceId, nextStatus, paidOn) => {
+      const invoice = invoices.find(i => i.id === invoiceId);
+      if (!invoice) throw new Error('INVOICE_NOT_FOUND');
+      const wasPaid = invoice.status === 'paid';
+      const paidDate = nextStatus === 'paid' ? (paidOn || now().slice(0, 10)) : null;
+      invoices = invoices.map(i => i.id === invoiceId ? { ...i, status: nextStatus, paid_on: paidDate, updated_at: now() } : i);
+      // Post a reconciling income entry only on the transition into paid.
+      if (nextStatus === 'paid' && !wasPaid) {
+        ledger = [{
+          id: newId(), league_id: invoice.league_id, season_id: null, event_id: invoice.event_id, invoice_id: invoice.id,
+          direction: 'income', category: 'Registration fee', description: `Invoice — ${invoice.bill_to}`,
+          amount_cents: invoice.amount_cents, occurred_on: paidDate ?? now().slice(0, 10), created_at: now(), updated_at: now()
+        }, ...ledger];
+      }
+      return invoices.find(i => i.id === invoiceId)!;
+    },
+    deleteInvoice: async invoiceId => {
+      invoices = invoices.filter(i => i.id !== invoiceId);
     }
   };
 };

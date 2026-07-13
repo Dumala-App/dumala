@@ -7,15 +7,19 @@ import {
   computeDiscipline,
   computeScorers,
   computeStandings,
+  formatMoney,
   nextEventStatuses,
   nextSeasonStatuses,
   roundRobinRounds,
   SEASON_STATUS_LABELS,
   spotsRemaining,
   suggestAwards,
+  summarizeLedger,
   type EventFixture,
+  type EventInvoice,
   type FixtureStatEvent,
   type EventTeam,
+  type LedgerEntry,
   type StandingRow
 } from './league';
 
@@ -161,6 +165,38 @@ describe('statistics + awards pure helpers', () => {
       topScorer: { teamId: 'a', playerName: 'Cruz', goals: 1 }
     });
     expect(suggestAwards([], [])).toEqual({ champion: null, topScorer: null });
+  });
+});
+
+describe('finance pure helpers', () => {
+  const entry = (direction: LedgerEntry['direction'], amount: number): LedgerEntry => ({
+    id: `${direction}-${amount}-${Math.random()}`, league_id: 'l', season_id: null, event_id: null, invoice_id: null,
+    direction, category: 'x', description: null, amount_cents: amount, occurred_on: '2026-07-01', created_at: '', updated_at: ''
+  });
+  const invoice = (amount: number, status: EventInvoice['status']): EventInvoice => ({
+    id: `${amount}-${status}-${Math.random()}`, league_id: 'l', event_id: 'e', team_id: null, registration_id: null,
+    bill_to: 'FC', description: null, amount_cents: amount, due_on: null, status, paid_on: null, created_at: '', updated_at: ''
+  });
+
+  it('formats minor units as a currency amount with grouping', () => {
+    expect(formatMoney(150000, 'PHP')).toBe('PHP 1,500.00');
+    expect(formatMoney(0)).toBe('PHP 0.00');
+    expect(formatMoney(2599, 'USD')).toBe('USD 25.99');
+  });
+
+  it('summarizes ledger totals and invoice collection, excluding waived invoices', () => {
+    const summary = summarizeLedger(
+      [entry('income', 100000), entry('income', 50000), entry('expense', 30000)],
+      [invoice(50000, 'paid'), invoice(20000, 'unpaid'), invoice(99999, 'waived')]
+    );
+    expect(summary).toEqual({
+      incomeCents: 150000,
+      expenseCents: 30000,
+      netCents: 120000,
+      invoicedCents: 70000,      // waived excluded
+      collectedCents: 50000,
+      outstandingCents: 20000
+    });
   });
 });
 

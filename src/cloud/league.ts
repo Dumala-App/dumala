@@ -22,6 +22,7 @@ export interface League {
   location: string | null;
   description: string | null;
   timezone: string;
+  currency: string;
   state: 'active' | 'archived';
   created_at: string;
   updated_at: string;
@@ -1023,5 +1024,201 @@ export const deleteAward = async (client: DumalaSupabaseClient, awardId: string)
     await supabase.from('event_awards').delete().eq('id', awardId),
     'AWARD_DELETE_FAILED',
     'Failed to remove the award'
+  );
+};
+
+// --- Finance: ledger + invoices ----------------------------------------------
+// A per-league ledger and team invoices. Money is in integer minor units
+// (cents). Summary totals are derived by a pure helper.
+
+export type LedgerDirection = 'income' | 'expense';
+export type InvoiceStatus = 'unpaid' | 'paid' | 'waived';
+
+export interface LedgerEntry {
+  id: string;
+  league_id: string;
+  season_id: string | null;
+  event_id: string | null;
+  invoice_id: string | null;
+  direction: LedgerDirection;
+  category: string;
+  description: string | null;
+  amount_cents: number;
+  occurred_on: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface LedgerEntryInput {
+  direction: LedgerDirection;
+  category: string;
+  amountCents: number;
+  description?: string | null;
+  eventId?: string | null;
+  seasonId?: string | null;
+  occurredOn?: string | null;
+}
+
+export interface EventInvoice {
+  id: string;
+  league_id: string;
+  event_id: string;
+  team_id: string | null;
+  registration_id: string | null;
+  bill_to: string;
+  description: string | null;
+  amount_cents: number;
+  due_on: string | null;
+  status: InvoiceStatus;
+  paid_on: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface EventInvoiceInput {
+  eventId: string;
+  billTo: string;
+  amountCents: number;
+  description?: string | null;
+  dueOn?: string | null;
+  teamId?: string | null;
+}
+
+export interface LedgerSummary {
+  incomeCents: number;
+  expenseCents: number;
+  netCents: number;
+  invoicedCents: number;
+  collectedCents: number;
+  outstandingCents: number;
+}
+
+export const INVOICE_STATUS_LABELS: Record<InvoiceStatus, string> = {
+  unpaid: 'Unpaid',
+  paid: 'Paid',
+  waived: 'Waived'
+};
+
+// --- Pure helpers (unit-testable) --------------------------------------------
+
+/** Format integer minor units as a currency amount, e.g. (150000,'PHP') → "PHP 1,500.00". */
+export const formatMoney = (cents: number, currency = 'PHP'): string => {
+  const amount = (cents / 100).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return `${currency} ${amount}`;
+};
+
+/** Income/expense/net from the ledger and invoiced/collected/outstanding from invoices. */
+export const summarizeLedger = (entries: LedgerEntry[], invoices: EventInvoice[]): LedgerSummary => {
+  let incomeCents = 0;
+  let expenseCents = 0;
+  for (const e of entries) {
+    if (e.direction === 'income') incomeCents += e.amount_cents;
+    else expenseCents += e.amount_cents;
+  }
+  let invoicedCents = 0;
+  let collectedCents = 0;
+  let outstandingCents = 0;
+  for (const inv of invoices) {
+    if (inv.status === 'waived') continue;
+    invoicedCents += inv.amount_cents;
+    if (inv.status === 'paid') collectedCents += inv.amount_cents;
+    else outstandingCents += inv.amount_cents;
+  }
+  return {
+    incomeCents,
+    expenseCents,
+    netCents: incomeCents - expenseCents,
+    invoicedCents,
+    collectedCents,
+    outstandingCents
+  };
+};
+
+// --- Owner: ledger -----------------------------------------------------------
+
+export const listLedgerEntries = async (client: DumalaSupabaseClient, leagueId: string): Promise<LedgerEntry[]> => {
+  const supabase = asUntypedClient(client);
+  return (expectNoError(
+    await supabase.from('league_ledger_entries').select('*').eq('league_id', leagueId).order('occurred_on', { ascending: false }),
+    'LEDGER_READ_FAILED',
+    'Failed to load the ledger'
+  ) as LedgerEntry[] | null) ?? [];
+};
+
+export const addLedgerEntry = async (
+  client: DumalaSupabaseClient,
+  leagueId: string,
+  input: LedgerEntryInput
+): Promise<LedgerEntry> => {
+  const supabase = asUntypedClient(client);
+  return expectNoError(
+    await supabase.from('league_ledger_entries').insert({
+      league_id: leagueId, direction: input.direction, category: input.category.trim(),
+      amount_cents: Math.max(0, Math.round(input.amountCents)), description: input.description?.trim() || null,
+      event_id: input.eventId ?? null, season_id: input.seasonId ?? null,
+      occurred_on: input.occurredOn || undefined
+    }).select('*').single(),
+    'LEDGER_CREATE_FAILED',
+    'Failed to record the ledger entry'
+  ) as LedgerEntry;
+};
+
+export const deleteLedgerEntry = async (client: DumalaSupabaseClient, entryId: string): Promise<void> => {
+  const supabase = asUntypedClient(client);
+  expectNoError(
+    await supabase.from('league_ledger_entries').delete().eq('id', entryId),
+    'LEDGER_DELETE_FAILED',
+    'Failed to remove the ledger entry'
+  );
+};
+
+// --- Owner: invoices ---------------------------------------------------------
+
+export const listInvoices = async (client: DumalaSupabaseClient, leagueId: string): Promise<EventInvoice[]> => {
+  const supabase = asUntypedClient(client);
+  return (expectNoError(
+    await supabase.from('event_invoices').select('*').eq('league_id', leagueId).order('created_at', { ascending: false }),
+    'INVOICES_READ_FAILED',
+    'Failed to load invoices'
+  ) as EventInvoice[] | null) ?? [];
+};
+
+export const addInvoice = async (
+  client: DumalaSupabaseClient,
+  leagueId: string,
+  input: EventInvoiceInput
+): Promise<EventInvoice> => {
+  const supabase = asUntypedClient(client);
+  return expectNoError(
+    await supabase.from('event_invoices').insert({
+      league_id: leagueId, event_id: input.eventId, bill_to: input.billTo.trim(),
+      amount_cents: Math.max(0, Math.round(input.amountCents)), description: input.description?.trim() || null,
+      due_on: input.dueOn || null, team_id: input.teamId ?? null
+    }).select('*').single(),
+    'INVOICE_CREATE_FAILED',
+    'Failed to create the invoice'
+  ) as EventInvoice;
+};
+
+export const settleInvoice = async (
+  client: DumalaSupabaseClient,
+  invoiceId: string,
+  nextStatus: Extract<InvoiceStatus, 'paid' | 'waived'>,
+  paidOn?: string | null
+): Promise<EventInvoice> => {
+  const supabase = asUntypedClient(client);
+  return expectNoError(
+    await supabase.rpc('settle_invoice', { invoice_id: invoiceId, next_status: nextStatus, paid_on: paidOn || undefined }),
+    'INVOICE_SETTLE_FAILED',
+    'Failed to update the invoice'
+  ) as EventInvoice;
+};
+
+export const deleteInvoice = async (client: DumalaSupabaseClient, invoiceId: string): Promise<void> => {
+  const supabase = asUntypedClient(client);
+  expectNoError(
+    await supabase.from('event_invoices').delete().eq('id', invoiceId),
+    'INVOICE_DELETE_FAILED',
+    'Failed to remove the invoice'
   );
 };
