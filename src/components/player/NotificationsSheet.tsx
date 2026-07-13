@@ -49,7 +49,7 @@ const NotificationsSheet = ({ open, notifications, onClose, onMarkRead, onMarkAl
               <button
                 type="button"
                 onClick={onMarkAllRead}
-                className={`${apexMonoTight} inline-flex items-center gap-1 rounded border border-[#45464d]/30 px-2 py-1 text-[#c6c6cd] transition-colors hover:text-[#ff6d00]`}
+                className={`${apexMonoTight} inline-flex items-center gap-1 rounded border border-[#45464d]/30 px-2 py-1 text-[#c6c6cd] transition-colors hover:text-[#dce7f8]`}
               >
                 <CheckCheck size={12} /> Mark all
               </button>
@@ -75,10 +75,10 @@ const NotificationsSheet = ({ open, notifications, onClose, onMarkRead, onMarkAl
                     type="button"
                     onClick={() => unread && onMarkRead(notification.id)}
                     className={`flex w-full items-start gap-3 rounded-lg border p-3 text-left transition-colors ${
-                      unread ? 'border-[#ff6d00]/25 bg-[#ff6d00]/[0.06]' : 'border-white/5 bg-[#152031]/60'
+                      unread ? 'border-[#b9c8de]/25 bg-[#b9c8de]/[0.06]' : 'border-white/5 bg-[#152031]/60'
                     }`}
                   >
-                    <span className={`mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded ${unread ? 'bg-[#ff6d00]/15 text-[#ff6d00]' : 'bg-white/[0.04] text-[#c6c6cd]'}`}>
+                    <span className={`mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded ${unread ? 'bg-[#dce7f8]/12 text-[#dce7f8]' : 'bg-white/[0.04] text-[#c6c6cd]'}`}>
                       <Icon size={16} />
                     </span>
                     <span className="min-w-0 flex-1">

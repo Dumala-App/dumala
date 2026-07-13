@@ -54,9 +54,9 @@ const PlayerSchedulePanel = ({ runtime, clubId }: PlayerSchedulePanelProps) => {
   const upcoming = entries.filter(entry => entry.status === 'upcoming');
 
   return (
-    <section className="rounded-xl border border-white/5 bg-[#152031]/80 p-5">
+    <section className="apex-card rounded-xl border border-white/[0.06] p-5">
       <div className="mb-4 flex items-center gap-2 text-[#d8e3fb]">
-        <CalendarDays size={18} className="text-[#ff6d00]" />
+        <CalendarDays size={18} className="text-[#dce7f8]" />
         <h2 className="font-player-display text-[13px] font-semibold uppercase tracking-widest text-[#d8e3fb]">Team schedule</h2>
       </div>
 

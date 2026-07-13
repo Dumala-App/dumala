@@ -169,7 +169,7 @@ const PlayerApp = ({ runtime, userId, authController, preview = false }: PlayerA
           <div className="h-full pb-[calc(4.25rem+env(safe-area-inset-bottom))]">
             {!linkedClubId ? (
               <div className="flex h-full flex-col items-center justify-center gap-3 p-8 text-center">
-                <MessageSquare size={28} className="text-[#ff6d00]" />
+                <MessageSquare size={28} className="text-[#dce7f8]" />
                 <h2 className="font-player-display text-lg font-bold uppercase tracking-wide text-[#d8e3fb]">Join a team to chat</h2>
                 <p className="max-w-xs text-sm text-[#c6c6cd]/70">
                   Team chat opens once you're linked to a club. Head to your profile to join your team.

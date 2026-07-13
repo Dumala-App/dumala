@@ -25,8 +25,8 @@ const Stat = ({ icon: Icon, value, label, accent }: {
   label: string;
   accent?: boolean;
 }) => (
-  <div className={`${apexCard} border-l-4 p-4 ${accent ? 'border-l-[#ff6d00]' : 'border-l-[#b9c8de]'}`}>
-    <Icon size={17} className={accent ? 'text-[#ff6d00]' : 'text-[#b9c8de]'} fill={accent ? 'currentColor' : 'none'} />
+  <div className={`${apexCard} border-l-4 p-4 ${accent ? 'border-l-[#ff6d00]/70' : 'border-l-[#b9c8de]/70'}`}>
+    <Icon size={17} className={accent ? 'text-[#ff9440]' : 'text-[#b9c8de]'} fill={accent ? 'currentColor' : 'none'} />
     <p className="mt-2 font-player-display text-2xl font-bold text-[#d8e3fb]">{value}</p>
     <p className={`${apexMonoTight} mt-0.5 text-[#c6c6cd]/70`}>{label}</p>
   </div>
@@ -113,15 +113,15 @@ const ProgressTab = ({ completions, stats, achievements }: ProgressTabProps) => 
       <section className="space-y-4">
         <div className="flex items-center justify-between">
           <h3 className={apexSectionTitle}>Achievements</h3>
-          <span className={`${apexMonoTight} border-b border-[#ff6d00]/40 pb-0.5 text-[#ff6d00]`}>{earnedBadges} / {badges.length}</span>
+          <span className={`${apexMonoTight} border-b border-[#b9c8de]/40 pb-0.5 text-[#dce7f8]`}>{earnedBadges} / {badges.length}</span>
         </div>
         <div className="grid grid-cols-2 gap-3">
           {badges.map(badge => {
             const Icon = ACHIEVEMENT_ICONS[badge.def.icon] ?? Award;
             return (
-              <div key={badge.def.key} className={`${apexCard} p-4 ${badge.earned ? 'border-l-4 border-l-[#ff6d00]' : 'opacity-70'}`}>
+              <div key={badge.def.key} className={`${apexCard} p-4 ${badge.earned ? 'border-l-4 border-l-[#dce7f8]/70' : 'opacity-70'}`}>
                 <div className="flex items-center gap-2.5">
-                  <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded ${badge.earned ? 'bg-[#ff6d00]/15 text-[#ff6d00] shadow-lg shadow-[#ff6d00]/20' : 'bg-[#152031] text-[#c6c6cd]/40'}`}>
+                  <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded ${badge.earned ? 'bg-[#dce7f8]/12 text-[#dce7f8] shadow-lg shadow-[#b9c8de]/15' : 'bg-[#152031] text-[#c6c6cd]/40'}`}>
                     <Icon size={17} />
                   </span>
                   <div className="min-w-0">
@@ -132,7 +132,7 @@ const ProgressTab = ({ completions, stats, achievements }: ProgressTabProps) => 
                 <p className="mt-2.5 text-xs leading-snug text-[#c6c6cd]/70">{badge.def.description}</p>
                 {!badge.earned && (
                   <div className="mt-2.5 h-1 w-full overflow-hidden rounded-full bg-[#152031]">
-                    <div className="h-full rounded-full bg-[#ff6d00]/70" style={{ width: `${badge.percent}%` }} />
+                    <div className="h-full rounded-full bg-[#b9c8de]/60" style={{ width: `${badge.percent}%` }} />
                   </div>
                 )}
               </div>
@@ -145,7 +145,7 @@ const ProgressTab = ({ completions, stats, achievements }: ProgressTabProps) => 
       <section className={`${apexCard} p-5`}>
         <div className="mb-4 flex items-center justify-between">
           <h3 className={apexSectionTitle}>Training Log</h3>
-          <span className={`${apexMonoTight} border-b border-[#ff6d00]/40 pb-0.5 text-[#ff6d00]`}>{month.label}</span>
+          <span className={`${apexMonoTight} border-b border-[#b9c8de]/40 pb-0.5 text-[#dce7f8]`}>{month.label}</span>
         </div>
         <div className="mb-2 grid grid-cols-7 gap-1.5">
           {WEEK_LABELS.map((label, i) => (
@@ -161,7 +161,7 @@ const ProgressTab = ({ completions, stats, achievements }: ProgressTabProps) => 
                 key={cell.day}
                 className={`relative flex aspect-square w-full items-center justify-center rounded-sm text-[11px] font-medium ${
                   cell.trained
-                    ? 'bg-[#ff6d00] font-bold text-white shadow-lg shadow-[#ff6d00]/30'
+                    ? 'bg-[#dce7f8] font-bold text-[#0a1526] shadow-lg shadow-[#b9c8de]/20'
                     : cell.isFuture
                       ? 'bg-[#152031]/50 text-[#c6c6cd]/25'
                       : 'bg-[#152031] text-[#c6c6cd]/60'
@@ -181,11 +181,11 @@ const ProgressTab = ({ completions, stats, achievements }: ProgressTabProps) => 
       <section className={`${apexCard} p-5`}>
         <div className="mb-6 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <TrendingUp size={17} className="text-[#ff6d00]" />
+            <TrendingUp size={17} className="text-[#dce7f8]" />
             <h3 className={apexSectionTitle}>Weekly Load</h3>
           </div>
           {totals.drills > 0 && (
-            <span className="rounded-full bg-[#ff6d00] px-3 py-1 font-player-mono text-[9px] font-bold uppercase tracking-widest text-white">
+            <span className="rounded-full border border-[#b9c8de]/30 bg-[#b9c8de]/10 px-3 py-1 font-player-mono text-[9px] font-bold uppercase tracking-widest text-[#dce7f8]">
               Building
             </span>
           )}
@@ -197,7 +197,7 @@ const ProgressTab = ({ completions, stats, achievements }: ProgressTabProps) => 
               <div
                 key={i}
                 className={`flex-1 rounded-t-sm ${
-                  isPeak ? 'bg-[#ff6d00] shadow-[0_-4px_16px_rgba(255,109,0,0.5)]' : day.count > 0 ? 'bg-[#b9c8de]/40' : 'bg-[#2a3548]/30'
+                  isPeak ? 'bg-[#dce7f8] shadow-[0_-4px_16px_rgba(220,231,248,0.35)]' : day.count > 0 ? 'bg-[#b9c8de]/40' : 'bg-[#2a3548]/30'
                 }`}
                 style={{ height: `${Math.max(8, (day.count / maxCount) * 100)}%` }}
                 title={`${day.count} drills`}
@@ -224,7 +224,7 @@ const ProgressTab = ({ completions, stats, achievements }: ProgressTabProps) => 
               const drill = getPlayerDrill(completion.drill_id);
               return (
                 <li key={completion.id} className={`${apexCard} flex items-center gap-3 px-4 py-3`}>
-                  <span className="flex h-9 w-9 items-center justify-center rounded bg-[#ff6d00]/10 text-[#ff6d00]">
+                  <span className="flex h-9 w-9 items-center justify-center rounded bg-[#b9c8de]/10 text-[#dce7f8]">
                     <Dumbbell size={16} />
                   </span>
                   <div className="min-w-0 flex-1">

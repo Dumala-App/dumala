@@ -91,9 +91,9 @@ const JoinTeamPanel = ({ runtime, onLinkedClubChange }: JoinTeamPanelProps) => {
   const pendingRequests = requests.filter(request => request.status === 'pending');
 
   return (
-    <section className="rounded-xl border border-white/5 bg-[#152031]/80 p-5">
+    <section className="apex-card rounded-xl border border-white/[0.06] p-5">
       <div className="mb-4 flex items-center gap-2 text-[#d8e3fb]">
-        <Users size={18} className="text-[#ff6d00]" />
+        <Users size={18} className="text-[#dce7f8]" />
         <h2 className="font-player-display text-[13px] font-semibold uppercase tracking-widest text-[#d8e3fb]">Your team</h2>
       </div>
 
@@ -145,7 +145,7 @@ const JoinTeamPanel = ({ runtime, onLinkedClubChange }: JoinTeamPanelProps) => {
               </span>
               <button
                 type="button"
-                className="inline-flex h-7 items-center gap-1 rounded px-2 font-player-mono text-[10px] font-bold uppercase tracking-wide text-[#c6c6cd] transition-colors hover:text-[#ff6d00]"
+                className="inline-flex h-7 items-center gap-1 rounded px-2 font-player-mono text-[10px] font-bold uppercase tracking-wide text-[#c6c6cd] transition-colors hover:text-[#dce7f8]"
                 onClick={() => void handleWithdraw(request)}
               >
                 <X size={12} /> Withdraw

@@ -113,9 +113,9 @@ const PlayerProfileForm = ({ runtime, userId }: PlayerProfileFormProps) => {
   }
 
   return (
-    <section className="rounded-xl border border-white/5 bg-[#152031]/80 p-5">
+    <section className="apex-card rounded-xl border border-white/[0.06] p-5">
       <div className="mb-4 flex items-center gap-2 text-[#d8e3fb]">
-        <UserRound size={18} className="text-[#ff6d00]" />
+        <UserRound size={18} className="text-[#dce7f8]" />
         <h2 className="font-player-display text-[13px] font-semibold uppercase tracking-widest text-[#d8e3fb]">Your profile</h2>
       </div>
 
@@ -200,7 +200,7 @@ const PlayerProfileForm = ({ runtime, userId }: PlayerProfileFormProps) => {
       )}
 
       {message && (
-        <p className={`mt-3 text-sm ${status === 'error' ? 'text-amber-400' : 'text-[#ff6d00]'}`} role="status">{message}</p>
+        <p className={`mt-3 text-sm ${status === 'error' ? 'text-amber-400' : 'text-[#9fe8c8]'}`} role="status">{message}</p>
       )}
     </section>
   );

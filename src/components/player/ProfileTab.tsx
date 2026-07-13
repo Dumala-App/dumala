@@ -20,9 +20,9 @@ interface ProfileTabProps {
 const ProfileTab = ({ runtime, userId, authController, linkedClubId, onLinkedClubChange, preview = false }: ProfileTabProps) => (
   <div className="space-y-3 pt-1">
     {preview ? (
-      <div className="flex items-center gap-2 rounded-lg border border-[#ff6d00]/25 bg-[#ff6d00]/[0.06] px-4 py-3">
-        <Eye size={16} className="text-[#ff6d00]" />
-        <p className={`${apexMono} text-[#ff6d00]`}>Preview mode — sign-in disabled, demo data</p>
+      <div className="flex items-center gap-2 rounded-lg border border-[#b9c8de]/25 bg-[#b9c8de]/[0.06] px-4 py-3">
+        <Eye size={16} className="text-[#dce7f8]" />
+        <p className={`${apexMono} text-[#dce7f8]`}>Preview mode — sign-in disabled, demo data</p>
       </div>
     ) : (
       <CloudAccountGate

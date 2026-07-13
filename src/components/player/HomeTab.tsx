@@ -5,6 +5,7 @@ import { getPlayerDrill } from '../../player/drillCatalog';
 import { weeklyGoalPercent, weeklyTotals, WEEKLY_DRILL_GOAL } from '../../player/progress';
 import {
   apexCard,
+  apexCardHero,
   apexCta,
   apexDisplay,
   apexEyebrow,
@@ -70,10 +71,10 @@ const HomeTab = ({ streakDays, completions, nextFixture, onGoToDrills, onGoToTim
       </section>
 
       {/* Active streak card */}
-      <section className={`${apexCard} border-t-2 border-t-[#ff6d00]/60 p-5`}>
+      <section className={`${apexCardHero} p-5`}>
         <div className="mb-6 flex items-center justify-between">
           <h3 className={apexSectionTitle}>Active Streak</h3>
-          <div className="flex items-center gap-2 text-[#ff6d00]">
+          <div className="flex items-center gap-2 text-[#ff9440]">
             <Flame size={18} fill="currentColor" />
             <span className="font-player-mono text-base font-bold">{streakDays} {streakDays === 1 ? 'DAY' : 'DAYS'}</span>
           </div>
@@ -83,11 +84,11 @@ const HomeTab = ({ streakDays, completions, nextFixture, onGoToDrills, onGoToTim
             <div
               key={day.label}
               className={`flex flex-col items-center gap-2 ${
-                day.trained || day.isToday ? 'text-[#ff6d00]' : day.isFuture ? 'text-[#b9c8de] opacity-30' : 'text-[#b9c8de]/50'
+                day.trained || day.isToday ? 'text-[#dce7f8]' : day.isFuture ? 'text-[#b9c8de] opacity-30' : 'text-[#b9c8de]/50'
               }`}
             >
               {day.isToday && !day.trained ? (
-                <span className="flex h-6 w-6 items-center justify-center rounded-full border-2 border-[#ff6d00]">
+                <span className="flex h-6 w-6 items-center justify-center rounded-full border-2 border-[#dce7f8]/70">
                   <span className="h-2 w-2 animate-pulse rounded-full bg-[#ff6d00]" />
                 </span>
               ) : (
@@ -103,7 +104,7 @@ const HomeTab = ({ streakDays, completions, nextFixture, onGoToDrills, onGoToTim
       <section className="space-y-4">
         <div className="flex items-end justify-between">
           <h3 className={apexSectionTitle}>Today's Training</h3>
-          <button type="button" onClick={onGoToDrills} className={`${apexMono} text-[#b9c8de] transition-colors hover:text-[#ff6d00]`}>
+          <button type="button" onClick={onGoToDrills} className={`${apexMono} text-[#b9c8de] transition-colors hover:text-[#dce7f8]`}>
             Library
           </button>
         </div>
@@ -121,7 +122,7 @@ const HomeTab = ({ streakDays, completions, nextFixture, onGoToDrills, onGoToTim
       {nextFixture && (
         <section className={`${apexCard} p-5`}>
           <div className="mb-2 flex items-center gap-2 text-[#b9c8de]">
-            <CalendarDays size={15} className="text-[#ff6d00]" />
+            <CalendarDays size={15} className="text-[#dce7f8]" />
             <span className={apexMono}>
               {formatFixtureDate(nextFixture.event_date)}{nextFixture.event_time ? ` · ${nextFixture.event_time}` : ''}
             </span>
@@ -147,13 +148,13 @@ const HomeTab = ({ streakDays, completions, nextFixture, onGoToDrills, onGoToTim
             <div className="font-player-display text-3xl font-bold text-[#d8e3fb]">{totals.drills}</div>
             <div className={`${apexMonoTight} mt-1 text-[#c6c6cd]/80`}>Drills Done</div>
           </div>
-          <div className={`${apexCard} border-l-4 border-l-[#ff6d00] p-5`}>
+          <div className={`${apexCard} border-l-4 border-l-[#dce7f8]/70 p-5`}>
             <div className="mb-4 flex items-center justify-between">
-              <Flame size={19} className="text-[#ff6d00]" fill="currentColor" />
+              <Flame size={19} className="text-[#dce7f8]" />
               <span className={`${apexMonoTight} text-[#c6c6cd]`}>Goal</span>
             </div>
             <div className="font-player-display text-3xl font-bold text-[#d8e3fb]">{percent}%</div>
-            <div className={`${apexMonoTight} mt-1 font-semibold text-[#ff6d00]`}>of {WEEKLY_DRILL_GOAL} / week</div>
+            <div className={`${apexMonoTight} mt-1 font-semibold text-[#b9c8de]`}>of {WEEKLY_DRILL_GOAL} / week</div>
           </div>
         </div>
       </section>
@@ -163,7 +164,7 @@ const HomeTab = ({ streakDays, completions, nextFixture, onGoToDrills, onGoToTim
         <div className="flex items-end justify-between">
           <h3 className={apexSectionTitle}>Recent Activity</h3>
           {completions.length > 0 && (
-            <button type="button" onClick={onGoToDrills} className={`${apexMono} inline-flex items-center text-[#b9c8de] transition-colors hover:text-[#ff6d00]`}>
+            <button type="button" onClick={onGoToDrills} className={`${apexMono} inline-flex items-center text-[#b9c8de] transition-colors hover:text-[#dce7f8]`}>
               More <ChevronRight size={13} />
             </button>
           )}
@@ -178,7 +179,7 @@ const HomeTab = ({ streakDays, completions, nextFixture, onGoToDrills, onGoToTim
               const drill = getPlayerDrill(completion.drill_id);
               return (
                 <li key={completion.id} className={`${apexCard} flex items-center gap-3 px-4 py-3`}>
-                  <span className="flex h-9 w-9 items-center justify-center rounded bg-[#ff6d00]/10 text-[#ff6d00]">
+                  <span className="flex h-9 w-9 items-center justify-center rounded bg-[#b9c8de]/10 text-[#dce7f8]">
                     <Dumbbell size={16} />
                   </span>
                   <div className="min-w-0 flex-1">

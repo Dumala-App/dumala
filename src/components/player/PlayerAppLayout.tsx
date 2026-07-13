@@ -54,7 +54,7 @@ const PlayerAppLayout = ({
         </div>
         <div className="flex shrink-0 items-center gap-2">
           {streakDays > 0 && (
-            <span className="flex items-center gap-1 rounded border border-[#ff6d00]/30 bg-[#ff6d00]/10 px-2 py-1 font-player-mono text-[11px] font-bold text-[#ff6d00]">
+            <span className="flex items-center gap-1 rounded border border-[#ff6d00]/25 bg-[#ff6d00]/[0.07] px-2 py-1 font-player-mono text-[11px] font-bold text-[#ff9440]">
               <Flame size={13} /> {streakDays}
             </span>
           )}
@@ -62,7 +62,7 @@ const PlayerAppLayout = ({
             type="button"
             onClick={onBellClick}
             aria-label={unreadCount > 0 ? `Notifications, ${unreadCount} unread` : 'Notifications'}
-            className="relative flex h-10 w-10 items-center justify-center rounded-lg text-[#c6c6cd] transition-colors hover:text-[#ff6d00]"
+            className="relative flex h-10 w-10 items-center justify-center rounded-lg text-[#c6c6cd] transition-colors hover:text-[#dce7f8]"
           >
             <Bell size={19} />
             {unreadCount > 0 && (
@@ -88,7 +88,7 @@ const PlayerAppLayout = ({
                 onClick={() => onTabChange(tab.id)}
                 aria-current={active ? 'page' : undefined}
                 className={`relative flex min-h-14 flex-col items-center justify-center gap-1.5 px-1 pb-2 pt-1 transition-colors ${
-                  active ? 'text-[#ff6d00]' : 'text-[#c6c6cd]/60 hover:text-[#ff6d00]'
+                  active ? 'text-[#eef4ff]' : 'text-[#c6c6cd]/60 hover:text-[#dce7f8]'
                 }`}
               >
                 <span className="relative">
@@ -99,7 +99,7 @@ const PlayerAppLayout = ({
                 </span>
                 <span className={`${apexMono} !text-[9px] ${active ? 'font-bold' : ''}`}>{tab.label}</span>
                 {active && (
-                  <span className="absolute bottom-0.5 h-0.5 w-5 rounded-full bg-[#ff6d00] shadow-[0_0_8px_#ff6d00]" />
+                  <span className="absolute bottom-0.5 h-0.5 w-5 rounded-full bg-[#dce7f8] shadow-[0_0_8px_rgba(220,231,248,0.7)]" />
                 )}
               </button>
             );

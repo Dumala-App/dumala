@@ -50,7 +50,7 @@ const RING_CIRCUMFERENCE = 2 * Math.PI * RING_RADIUS;
 
 const modeChip = (active: boolean) =>
   `flex-1 rounded-lg px-3 py-2 font-player-mono text-[10px] font-bold uppercase tracking-wider transition-colors ${
-    active ? 'bg-[#ff6d00] text-white' : 'text-[#c6c6cd] hover:text-[#d8e3fb]'
+    active ? 'bg-[#dce7f8] text-[#0a1526]' : 'text-[#c6c6cd] hover:text-[#d8e3fb]'
   }`;
 
 const TimerTab = ({ runtime, userId, preset, onConsumePreset, onSaved }: TimerTabProps) => {
@@ -223,7 +223,7 @@ const TimerTab = ({ runtime, userId, preset, onConsumePreset, onSaved }: TimerTa
     ? phase === 'work' ? 'Work Phase' : 'Rest Phase'
     : mode === 'countdown' ? (label || 'Countdown') : 'Stopwatch';
   const restPhase = mode === 'interval' && phase === 'rest';
-  const ringColor = restPhase ? '#b9c8de' : '#ff6d00';
+  const ringColor = restPhase ? '#b9c8de' : '#dce7f8';
 
   return (
     <div className="flex flex-col items-center space-y-6">
@@ -288,7 +288,7 @@ const TimerTab = ({ runtime, userId, preset, onConsumePreset, onSaved }: TimerTa
           type="button"
           onClick={toggle}
           aria-label={running ? 'Pause' : 'Start'}
-          className="flex h-16 items-center justify-center rounded-xl bg-[#ff6d00] text-white shadow-[0_8px_28px_rgba(255,109,0,0.35)] transition-all hover:brightness-110 active:scale-95"
+          className="flex h-16 items-center justify-center rounded-xl bg-[#ff6d00] text-white shadow-[0_8px_24px_rgba(255,109,0,0.22)] transition-all hover:brightness-110 active:scale-95"
         >
           {running ? <Pause size={28} fill="currentColor" /> : <Play size={28} fill="currentColor" />}
         </button>
@@ -312,7 +312,7 @@ const TimerTab = ({ runtime, userId, preset, onConsumePreset, onSaved }: TimerTa
               type="button"
               onClick={() => { setCountdownSec(sec); remainingRef.current = sec * 1000; setDisplayMs(sec * 1000); }}
               className={`rounded-lg px-4 py-2 font-player-mono text-[11px] font-bold uppercase transition-colors ${
-                countdownSec === sec ? 'bg-[#ff6d00]/15 text-[#ff6d00] ring-1 ring-[#ff6d00]/40' : 'bg-[#152031] text-[#c6c6cd]'
+                countdownSec === sec ? 'bg-[#dce7f8]/15 text-[#dce7f8] ring-1 ring-[#b9c8de]/40' : 'bg-[#152031] text-[#c6c6cd]'
               }`}
             >
               {sec / 60}m

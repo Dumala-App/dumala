@@ -132,11 +132,11 @@ const DrillsTab = ({ runtime, userId, favorites, onChanged, onStartWithTimer }: 
                     <h3 className="font-player-display text-[16px] font-semibold leading-tight text-[#d8e3fb]">{drill.name}</h3>
                     <div className="flex items-center gap-3">
                       <span className="flex items-center gap-1">
-                        <Clock size={14} className="text-[#ff6d00]" />
+                        <Clock size={14} className="text-[#b9c8de]" />
                         <span className={`${apexMonoTight} text-[#d8e3fb]`}>{drill.minutes}m</span>
                       </span>
                       <span className="flex items-center gap-1">
-                        <Repeat size={14} className="text-[#ff6d00]" />
+                        <Repeat size={14} className="text-[#b9c8de]" />
                         <span className={`${apexMonoTight} text-[#d8e3fb]`}>Solo</span>
                       </span>
                     </div>
@@ -151,7 +151,11 @@ const DrillsTab = ({ runtime, userId, favorites, onChanged, onStartWithTimer }: 
                     >
                       <Heart size={17} fill={fav ? 'currentColor' : 'none'} />
                     </button>
-                    <button type="button" onClick={() => setSelected(drill)} className={`${apexCta} px-4 py-2.5`}>
+                    <button
+                      type="button"
+                      onClick={() => setSelected(drill)}
+                      className="rounded-lg bg-[#dce7f8] px-4 py-2.5 font-player-mono text-[11px] font-bold uppercase tracking-wider text-[#0a1526] transition-all hover:brightness-110 active:scale-[0.98]"
+                    >
                       Start
                     </button>
                   </div>
@@ -186,7 +190,7 @@ const DrillsTab = ({ runtime, userId, favorites, onChanged, onStartWithTimer }: 
                 <div className="mt-2 flex items-center gap-2">
                   <span className={apexBadge}>{selected.difficulty}</span>
                   <span className={`${apexMonoTight} flex items-center gap-1 text-[#c6c6cd]`}>
-                    <Clock size={12} className="text-[#ff6d00]" /> {selected.minutes} min
+                    <Clock size={12} className="text-[#b9c8de]" /> {selected.minutes} min
                   </span>
                 </div>
               </div>
@@ -219,7 +223,7 @@ const DrillsTab = ({ runtime, userId, favorites, onChanged, onStartWithTimer }: 
                 onClick={() => { onStartWithTimer(selected.name, selected.minutes * 60); }}
                 className="flex items-center justify-center gap-2 rounded-lg border border-[#45464d]/20 bg-[#1f2a3c] p-3.5 font-player-mono text-[11px] font-bold uppercase tracking-wider text-[#d8e3fb] transition-all hover:bg-[#2a3548] active:scale-[0.98]"
               >
-                <Play size={15} className="text-[#ff6d00]" /> Timer
+                <Play size={15} className="text-[#dce7f8]" /> Timer
               </button>
               <button
                 type="button"
