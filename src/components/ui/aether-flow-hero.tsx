@@ -53,7 +53,11 @@ export const AetherFlowParticles = ({
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    const reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
+    const renderStatic = [
+      '(prefers-reduced-motion: reduce)',
+      '(pointer: coarse)',
+      '(max-width: 768px)'
+    ].some(query => window.matchMedia?.(query).matches ?? false);
 
     let animationFrameId = 0;
     let particles: Particle[] = [];
@@ -169,7 +173,7 @@ export const AetherFlowParticles = ({
       canvas.width = canvas.clientWidth;
       canvas.height = canvas.clientHeight;
       init();
-      if (reduceMotion) drawStaticFrame();
+      if (renderStatic) drawStaticFrame();
     };
 
     // Mouse coords translated into canvas space (the original used raw
@@ -188,7 +192,7 @@ export const AetherFlowParticles = ({
     window.addEventListener('resize', resizeCanvas);
     resizeCanvas();
 
-    if (reduceMotion) {
+    if (renderStatic) {
       return () => {
         window.removeEventListener('resize', resizeCanvas);
       };
@@ -281,16 +285,12 @@ const AetherFlowHero = ({
           </motion.div>
         ) : null}
 
-        <motion.h1
-          custom={1}
-          variants={fadeUpVariants}
-          initial="hidden"
-          animate="visible"
+        <h1
           className="mx-auto mb-6 max-w-4xl text-4xl font-extrabold sm:text-6xl lg:text-7xl"
           style={{ fontFamily: "'Manrope', ui-sans-serif, sans-serif", letterSpacing: '-.035em', lineHeight: 1.05 }}
         >
           {title}
-        </motion.h1>
+        </h1>
 
         {description ? (
           <motion.p

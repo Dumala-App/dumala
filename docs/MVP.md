@@ -39,7 +39,6 @@ The current business hypothesis is that Dumala should keep the public offer simp
 3. Offline PWA installation and service-worker caching.
 4. Public player, coach, or club profiles.
 5. Draft shortlists or recruiting workflows.
-6. Official PFF/AFC credential verification.
 7. Multi-squad, multi-season, and shared club administration beyond separate local team workspaces.
 8. Native mobile application.
 9. Paid subscription enforcement.

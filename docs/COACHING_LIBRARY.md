@@ -1,11 +1,14 @@
 # Coaching Library — Content Guide
 
-Updated: 2026-07-09
+Updated: 2026-07-13
 
-The Coaching Library (Tactics page → "Coaching Library" section) is a text-first reading
-room for coaches: long-form articles on coaching philosophies, club identities, formations,
-game principles, and coaching craft. This document explains how the content is structured
-and how to add or update articles without touching any UI code.
+The Coaching Library (Tactics page → "Coaching Library" section) is a focused, text-first
+knowledge room for coaches. It opens directly into long-form articles on coaching
+philosophies, club identities, formations, game principles, and coaching craft. Coaches can
+search, browse by category, filter saved or unread articles, keep a local reading history,
+choose "Apply this idea" actions, and save a short session-linked review for the article.
+This document explains how the content is structured and how to add or update articles
+without touching any UI code.
 
 ## Where the content lives
 
@@ -17,6 +20,7 @@ src/knowledge/library/
   formations.ts       # Formations & Systems (4-4-2, 4-3-3, back threes, ...)
   principles.ts       # Game Principles (pressing, build-up, transitions, ...)
   coachingCraft.ts    # Coaching Craft (session design, youth development, ...)
+  famousEffectiveExpansion.ts # Additional famous/effective coaches, teams, systems, principles
   index.ts            # Aggregation, category labels/order, reading time, search
   library.test.ts     # Data validation tests
 ```
@@ -37,6 +41,9 @@ Each article is a `LibraryArticle`:
   fragments), and optional `bullets` for scannable lists.
 - `keyIdeas` — 3-4 takeaways, shown in the green panel.
 - `trainingIdeas` — optional "On the Training Pitch" panel: how to coach the idea.
+- `applyActions` — optional explicit next-session actions. If omitted, the UI derives
+  five default actions from the article: try it next session, add the drill, use three
+  cues, watch player behaviours, and adapt for the age group.
 - `references` — optional further-reading links (https only).
 - `diagramId` — optional link to a legacy diagram in `src/knowledge/coachingLibrary.ts`;
   rendered collapsed at the bottom of the reader. Text stays primary.
@@ -48,7 +55,7 @@ Each article is a `LibraryArticle`:
 1. Pick the category file (or create a new one and register it in `index.ts`).
 2. Write the article following the model above. Aim for 3-5 sections and a 3-6 minute
    read (the validation test enforces minimum substance: 3+ sections, paragraphs of
-   real length, 3+ key ideas).
+  real length, 3+ key ideas, and concrete apply actions).
 3. Set `status: 'draft'` while writing if you want it merged but hidden; flip to
    `'active'` when reviewed.
 4. Bump `updatedOn`.
@@ -59,8 +66,12 @@ Each article is a `LibraryArticle`:
 
 - Write for a grassroots coach reading on a phone between sessions: plain language,
   concrete examples, no unexplained jargon.
-- Every article should end usable: the "What grassroots coaches can take" pattern and
-  `trainingIdeas` exist so knowledge converts into next-session actions.
+- Every article should end usable: the "What grassroots coaches can take" pattern,
+  `trainingIdeas`, and apply actions exist so knowledge converts into next-session
+  coaching behaviour.
+- The product loop is: learn one idea, apply it during a real session or match, capture
+  evidence, review what happened, and decide what to try next. Avoid standalone goals,
+  journals, badges, or progress percentages that are not tied to observed coaching work.
 - Claims about coaches/eras should be verifiable history, not fan lore; keep numbers
   approximate where sources vary ("multiple league titles") rather than precise and wrong.
 - Facts and philosophy over illustration: diagrams are optional supporting material.
@@ -75,7 +86,9 @@ Each article is a `LibraryArticle`:
 ## Future directions (not built yet)
 
 - Move article data to JSON + zod schema if non-developers need to edit content.
-- Bookmarks / "mark as read" persistence per coach.
 - Cross-links from Strategy Engine recommendations to relevant library articles
   (e.g. recommending High Press links to the pressing principles article).
+- Connect saved article reviews to scheduled training sessions and match-day Game Plans.
+- Surface useful feedback after repeated reviews, grounded in recorded evidence rather
+  than generic coach scores.
 - Search across full body text (currently title/subtitle/tags/headings/origin).

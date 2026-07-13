@@ -76,31 +76,22 @@ afterEach(() => {
 });
 
 describe('Tactics knowledgebase', () => {
-  it('renders the reading library with article list and reader', () => {
+  it('opens directly into the searchable coaching knowledge library', () => {
     const html = renderToStaticMarkup(<CoachKnowledgeBase />);
 
     expect(html).toContain('Coaching Library');
-    expect(html).toContain('A reading room for coaches');
+    expect(html).toContain('Knowledge that earns its place on the pitch.');
     expect(html).toContain(`${ACTIVE_LIBRARY_ARTICLES.length} articles`);
-
-    // Category filters are present
-    expect(html).toContain('Coaching Philosophies');
-    expect(html).toContain('Club &amp; National Identities');
-    expect(html).toContain('Formations &amp; Systems');
-    expect(html).toContain('Game Principles');
-    expect(html).toContain('Coaching Craft');
-
-    // Every active article appears in the browse list
-    for (const article of ACTIVE_LIBRARY_ARTICLES) {
-      expect(html).toContain(article.title.replace(/&/g, '&amp;'));
-    }
-
-    // The default-selected article renders as long-form text
-    const first = ACTIVE_LIBRARY_ARTICLES[0];
-    expect(html).toContain(first.sections[0].heading);
-    expect(html).toContain('Key Ideas');
-    expect(html).toContain('min read');
-    expect(html).toContain(`Updated ${first.updatedOn}`);
+    expect(html).toContain('Choose what you want to improve');
+    expect(html).toContain('Search the coaching library');
+    expect(html).toContain('All articles');
+    expect(html).toContain('Unread');
+    expect(html).toContain('Apply this idea');
+    expect(html).toContain('What evidence did you see?');
+    expect(html).toContain('Save review');
+    expect(html).not.toContain('My development');
+    expect(html).not.toContain('Learning plans &amp; goals');
+    expect(html).not.toContain('Reflection journal');
   });
 });
 

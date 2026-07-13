@@ -9,7 +9,6 @@ import {
   DialogHeader,
   DialogTitle
 } from './ui/dialog';
-import { useCloudRuntime } from '../hooks/useCloudRuntime';
 import {
   createPremiumLeadRecord,
   hasPremiumLeadErrors,
@@ -22,6 +21,7 @@ import {
   type PremiumLeadForm
 } from '../landing/premiumLeadCapture';
 import type { PromotionRecord } from '../cloud/marketing';
+import '../landing-page.css';
 
 const promotionDiscountLabel = (promotion: PromotionRecord) =>
   promotion.discount_type === 'percent'
@@ -134,59 +134,8 @@ const wins = [
   }
 ];
 
-const styles = `
-.dc-root{--dc-bg:#04091A;--dc-ink:#F5F7FB;--dc-muted:#8A96AD;--dc-dim:#5C6880;--dc-accent:#FF8A3D;--dc-accent-2:#FFB37E}
-.dc-root *{box-sizing:border-box}
-
-.dc-nav-link{background:none;border:none;cursor:pointer;padding:8px 14px;border-radius:10px;font-family:inherit;font-size:14px;font-weight:500;color:var(--dc-muted);transition:color .15s}
-.dc-nav-link:hover{color:var(--dc-ink)}
-.dc-openapp{display:inline-flex;align-items:center;gap:6px;background:linear-gradient(180deg,#FF9A52,#FF8A3D);color:#180A00;text-decoration:none;font-weight:700;font-size:14px;padding:9px 18px;border-radius:12px;box-shadow:inset 0 1px 0 rgba(255,255,255,.32),0 1px 2px rgba(0,0,0,.35),0 6px 14px -7px rgba(255,138,61,.5);transition:background .15s,box-shadow .15s}
-.dc-openapp:hover{background:linear-gradient(180deg,#FFB06E,#FFA35F)}
-.dc-cta-primary{display:inline-flex;align-items:center;gap:8px;background:linear-gradient(180deg,#FF9A52,#FF8A3D);color:#180A00;text-decoration:none;font-weight:700;font-size:15px;padding:14px 28px;border-radius:14px;box-shadow:inset 0 1px 0 rgba(255,255,255,.34),0 1px 2px rgba(0,0,0,.4),0 8px 20px -9px rgba(255,138,61,.55);transition:background .15s,transform .15s,box-shadow .15s;border:none;cursor:pointer;font-family:inherit}
-.dc-cta-primary:hover{background:linear-gradient(180deg,#FFB06E,#FFA35F);transform:translateY(-1px);box-shadow:inset 0 1px 0 rgba(255,255,255,.34),0 2px 4px rgba(0,0,0,.4),0 12px 26px -10px rgba(255,138,61,.6)}
-.dc-cta-secondary{display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.14);color:#DDE4EF;cursor:pointer;font-family:inherit;font-weight:600;font-size:15px;padding:14px 28px;border-radius:14px;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);box-shadow:inset 0 1px 0 rgba(255,255,255,.10),0 1px 2px rgba(0,0,0,.3);transition:border-color .15s,background .15s}
-.dc-cta-secondary:hover{border-color:rgba(255,255,255,.26);background:rgba(255,255,255,.07)}
-.dc-card{border:1px solid rgba(255,255,255,.14);background:rgba(8,16,38,.66);border-radius:18px;backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);box-shadow:inset 0 1px 0 rgba(255,255,255,.08),0 1px 2px rgba(0,0,0,.3),0 14px 30px -20px rgba(0,0,0,.65);transition:border-color .2s,background .2s,box-shadow .2s}
-.dc-card:hover{border-color:rgba(255,138,61,.34);background:rgba(8,16,38,.76);box-shadow:inset 0 1px 0 rgba(255,255,255,.10),0 1px 2px rgba(0,0,0,.35),0 18px 36px -20px rgba(0,0,0,.7)}
-.dc-feature-shell{position:relative;min-height:210px;list-style:none;border:1px solid rgba(255,255,255,.10);border-radius:22px;padding:8px;background:rgba(255,255,255,.025);box-shadow:0 16px 34px -26px rgba(0,0,0,.75)}
-.dc-feature-card{position:relative;z-index:1;height:100%;overflow:hidden;border:1px solid rgba(255,255,255,.12);background:rgba(8,16,38,.70);border-radius:16px;padding:24px;backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);box-shadow:inset 0 1px 0 rgba(255,255,255,.08)}
-.dc-feature-icon{display:inline-flex;width:40px;height:40px;align-items:center;justify-content:center;border-radius:12px;border:1px solid rgba(255,138,61,.25);background:rgba(255,138,61,.10);color:#FFB37E}
-.dc-glow-shell{position:relative;list-style:none;border:1px solid rgba(255,255,255,.10);border-radius:22px;padding:8px;background:rgba(255,255,255,.025);box-shadow:0 16px 34px -26px rgba(0,0,0,.75)}
-.dc-glow-card{position:relative;z-index:1;height:100%;overflow:hidden;border:1px solid rgba(255,255,255,.12);background:rgba(8,16,38,.70);border-radius:16px;backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);box-shadow:inset 0 1px 0 rgba(255,255,255,.08)}
-.dc-startfree{display:block;width:100%;text-align:center;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.04);color:#DDE4EF;text-decoration:none;font-weight:600;font-size:13.5px;padding:11px;border-radius:12px;box-shadow:inset 0 1px 0 rgba(255,255,255,.08),0 1px 2px rgba(0,0,0,.3);transition:background .15s,border-color .15s}
-.dc-startfree:hover{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.24)}
-.dc-joinbeta{display:block;width:100%;text-align:center;background:linear-gradient(180deg,#FF9A52,#FF8A3D);color:#180A00;text-decoration:none;font-weight:700;font-size:13.5px;padding:11px;border-radius:12px;box-shadow:inset 0 1px 0 rgba(255,255,255,.30),0 1px 2px rgba(0,0,0,.35),0 6px 16px -8px rgba(255,138,61,.5);transition:background .15s;border:none;cursor:pointer;font-family:inherit}
-.dc-joinbeta:hover{background:linear-gradient(180deg,#FFB06E,#FFA35F)}
-.dc-foot-link{background:none;border:none;cursor:pointer;padding:0;font-family:inherit;font-size:13.5px;color:var(--dc-dim);transition:color .15s;text-decoration:none}
-.dc-foot-link:hover{color:#DDE4EF}
-.dc-header-nav{display:flex;align-items:center;gap:4px}
-.dc-lead-field{display:grid;gap:6px;font-size:12px;font-weight:800;color:#DDE4EF}
-.dc-lead-field span{font-size:10px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:#8A96AD}
-.dc-lead-field input,.dc-lead-field select,.dc-lead-field textarea{width:100%;border:1px solid rgba(255,255,255,.13);background:rgba(4,9,26,.72);color:#F5F7FB;border-radius:12px;padding:11px 12px;font:inherit;font-size:13px;font-weight:600;outline:none;box-shadow:inset 0 1px 0 rgba(255,255,255,.05)}
-.dc-lead-field textarea{min-height:92px;resize:vertical;line-height:1.5}
-.dc-lead-field input:focus,.dc-lead-field select:focus,.dc-lead-field textarea:focus{border-color:rgba(255,138,61,.72);box-shadow:0 0 0 3px rgba(255,138,61,.18)}
-.dc-lead-error{font-size:11px;font-weight:700;color:#FDBA74}
-.dc-lead-status{border-radius:14px;border:1px solid rgba(255,255,255,.12);padding:12px 14px;font-size:12px;font-weight:800;line-height:1.5}
-.dc-lead-submit{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:none;cursor:pointer;border-radius:12px;background:linear-gradient(180deg,#FF9A52,#FF8A3D);color:#180A00;padding:12px 16px;font-family:inherit;font-size:13px;font-weight:800;box-shadow:inset 0 1px 0 rgba(255,255,255,.30),0 8px 18px -12px rgba(255,138,61,.7)}
-.dc-lead-submit:disabled{cursor:not-allowed;opacity:.68}
-.dc-lead-ghost{border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.04);color:#DDE4EF;cursor:pointer;border-radius:12px;padding:12px 16px;font-family:inherit;font-size:13px;font-weight:800}
-
-@media (max-width:700px){
-  .dc-header-nav{display:none}
-}
-@media (max-width:640px){
-  .dc-ticket{grid-template-columns:1fr !important}
-  .dc-ticket-stub{border-left:none !important;border-top:2px dashed rgba(255,255,255,.12) !important}
-  .dc-ticket-stub-premium{border-left:none !important;border-top:2px dashed rgba(255,138,61,.32) !important}
-}
-@media (prefers-reduced-motion: reduce){
-  .dc-root *{animation-duration:.001ms !important;animation-iteration-count:1 !important}
-}
-`;
-
 export default function LandingPage() {
   const rootRef = useRef<HTMLDivElement>(null);
-  const runtime = useCloudRuntime();
   const [premiumModalOpen, setPremiumModalOpen] = useState(false);
   const [premiumLead, setPremiumLead] = useState<PremiumLeadForm>(initialPremiumLeadForm);
   const [premiumLeadErrors, setPremiumLeadErrors] = useState<PremiumLeadErrors>({});
@@ -196,17 +145,28 @@ export default function LandingPage() {
 
   // Live promotion (sale/discount) managed from the Dumala Admin Console.
   useEffect(() => {
-    if (!runtime.enabled) return;
     let cancelled = false;
-    runtime.dataAccess.marketing.listActivePromotions()
-      .then(rows => {
-        if (!cancelled) setActivePromotion(rows[0] ?? null);
-      })
-      .catch(() => undefined);
+    const loadPromotion = () => {
+      void import('../cloud/runtime')
+        .then(({ createCloudRuntime }) => createCloudRuntime())
+        .then(runtime => runtime.enabled ? runtime.dataAccess.marketing.listActivePromotions() : [])
+        .then(rows => {
+          if (!cancelled) setActivePromotion(rows[0] ?? null);
+        })
+        .catch(() => undefined);
+    };
+    const idleWindow = window as Window & typeof globalThis & {
+      requestIdleCallback?: (callback: () => void, options?: { timeout: number }) => number;
+      cancelIdleCallback?: (handle: number) => void;
+    };
+    const idleHandle = idleWindow.requestIdleCallback?.(loadPromotion, { timeout: 1500 });
+    const timeoutHandle = idleHandle === undefined ? window.setTimeout(loadPromotion, 750) : undefined;
     return () => {
       cancelled = true;
+      if (idleHandle !== undefined) idleWindow.cancelIdleCallback?.(idleHandle);
+      if (timeoutHandle !== undefined) window.clearTimeout(timeoutHandle);
     };
-  }, [runtime]);
+  }, []);
 
   const scrollToId = (id: string) => {
     const el = document.getElementById(id);
@@ -241,7 +201,8 @@ export default function LandingPage() {
     setPremiumLeadMessage('');
 
     try {
-      const deliveredLead = await submitPremiumLead(lead, runtime);
+      const { createCloudRuntime } = await import('../cloud/runtime');
+      const deliveredLead = await submitPremiumLead(lead, createCloudRuntime());
       storePremiumLead(deliveredLead);
       setPremiumLeadStatus('success');
       setPremiumLeadMessage('You are on the Premium beta list. We will follow up before Premium access opens.');
@@ -270,8 +231,11 @@ export default function LandingPage() {
       },
       { threshold: 0.12 }
     );
-    els.forEach((el) => {
-      if (el.getBoundingClientRect().top > window.innerHeight) {
+    // Read all geometry before changing any inline styles. Interleaving these
+    // reads and writes forces layout once per reveal element in Chromium.
+    const belowFold = els.map((el) => el.getBoundingClientRect().top > window.innerHeight);
+    els.forEach((el, index) => {
+      if (belowFold[index]) {
         el.style.opacity = '0';
         el.style.transform = 'translateY(26px)';
         el.style.transition = 'opacity .7s ease-out, transform .7s cubic-bezier(.2,.7,.2,1)';
@@ -294,7 +258,6 @@ export default function LandingPage() {
         position: 'relative'
       }}
     >
-      <style dangerouslySetInnerHTML={{ __html: styles }} />
 
       {/* ambient background */}
       <AetherFlowBackdrop className="fixed inset-0 z-0" />
@@ -413,8 +376,9 @@ export default function LandingPage() {
               <p style={{ margin: '16px auto 0', fontSize: 15.5, lineHeight: 1.7, color: '#8A96AD' }}>Free is for trying the workflow in a real match week. Premium is for coaches and organizations that need stronger reports and planning.</p>
             </div>
 
-            {activePromotion && (
-              <div data-reveal="1" style={{ margin: '28px auto 0', maxWidth: 920, opacity: 1 }}>
+            <div className="dc-promotion-slot" style={{ minHeight: 86, margin: '28px auto 0', maxWidth: 920 }}>
+              {activePromotion && (
+              <div data-reveal="1" style={{ opacity: 1 }}>
                 <div role="status" style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center', gap: 12, border: '1px dashed rgba(255,138,61,.45)', background: 'rgba(255,138,61,.08)', borderRadius: 14, padding: '14px 20px', textAlign: 'center' }}>
                   <span style={{ background: '#FF8A3D', color: '#180A00', fontSize: 10.5, fontWeight: 800, letterSpacing: '.14em', textTransform: 'uppercase', padding: '4px 10px', borderRadius: 999 }}>
                     {promotionDiscountLabel(activePromotion)}
@@ -429,9 +393,10 @@ export default function LandingPage() {
                   )}
                 </div>
               </div>
-            )}
+              )}
+            </div>
 
-            <div id="pricing-plans" style={{ margin: '40px auto 0', maxWidth: 920, display: 'flex', flexDirection: 'column', gap: 20 }}>
+            <div id="pricing-plans" style={{ margin: '12px auto 0', maxWidth: 920, display: 'flex', flexDirection: 'column', gap: 20 }}>
               {/* Free — Matchday pass ticket */}
               <div data-reveal="1" className="dc-glow-shell" style={{ opacity: 1, borderRadius: 26 }}>
                 <GlowingEffect spread={42} glow disabled={false} proximity={82} inactiveZone={0.01} borderWidth={3} />

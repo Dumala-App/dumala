@@ -1,11 +1,12 @@
-import type { LibraryArticle, LibraryCategory } from './types';
+import type { LibraryApplyAction, LibraryArticle, LibraryCategory } from './types';
 import { PHILOSOPHY_ARTICLES } from './philosophies';
 import { CLUB_DNA_ARTICLES } from './clubDna';
 import { FORMATION_ARTICLES } from './formations';
 import { PRINCIPLE_ARTICLES } from './principles';
 import { COACHING_CRAFT_ARTICLES } from './coachingCraft';
+import { FAMOUS_EFFECTIVE_EXPANSION_ARTICLES } from './famousEffectiveExpansion';
 
-export type { LibraryArticle, LibraryCategory, LibrarySection, LibraryReference } from './types';
+export type { LibraryApplyAction, LibraryArticle, LibraryCategory, LibrarySection, LibraryReference } from './types';
 
 export const LIBRARY_CATEGORY_ORDER: readonly LibraryCategory[] = [
   'philosophy',
@@ -36,7 +37,8 @@ export const LIBRARY_ARTICLES: readonly LibraryArticle[] = [
   ...CLUB_DNA_ARTICLES,
   ...FORMATION_ARTICLES,
   ...PRINCIPLE_ARTICLES,
-  ...COACHING_CRAFT_ARTICLES
+  ...COACHING_CRAFT_ARTICLES,
+  ...FAMOUS_EFFECTIVE_EXPANSION_ARTICLES
 ];
 
 export const ACTIVE_LIBRARY_ARTICLES: readonly LibraryArticle[] = LIBRARY_ARTICLES
@@ -52,9 +54,62 @@ export const estimateReadingMinutes = (article: LibraryArticle): number => {
     + (section.bullets ?? []).reduce((inner, bullet) => inner + countWords(bullet), 0)
   ), 0)
     + article.keyIdeas.reduce((sum, idea) => sum + countWords(idea), 0)
-    + (article.trainingIdeas ?? []).reduce((sum, idea) => sum + countWords(idea), 0);
+    + (article.trainingIdeas ?? []).reduce((sum, idea) => sum + countWords(idea), 0)
+    + (article.applyActions ?? []).reduce((sum, action) => (
+      sum + countWords(action.title) + countWords(action.detail)
+    ), 0);
 
-  return Math.max(1, Math.round(words / 200));
+  return Math.max(1, Math.ceil(words / 200));
+};
+
+const CATEGORY_BEHAVIOUR_PROMPTS: Record<LibraryCategory, string> = {
+  philosophy: 'Watch whether the players solve the same problem with fewer coach interventions.',
+  'club-dna': 'Watch whether the group repeats the identity habit when the session becomes messy.',
+  formations: 'Watch whether the distances between units help players find the next pass or pressure.',
+  principles: 'Watch whether the principle appears naturally in a live game-speed moment.',
+  'coaching-craft': 'Watch whether your intervention improves player attention, confidence, or decision quality.'
+};
+
+const CATEGORY_ADAPTATION_PROMPTS: Record<LibraryCategory, string> = {
+  philosophy: 'Scale the idea down to one constraint, one cue, and one success picture for your age group.',
+  'club-dna': 'Translate the identity into one repeatable team habit your players can recognize.',
+  formations: 'Reduce the system to one relationship between two or three nearby players.',
+  principles: 'Start with a small-sided version before asking for it across the full team.',
+  'coaching-craft': 'Change the language, space, or pressure level until the players can act on it.'
+};
+
+export const getArticleApplyActions = (article: LibraryArticle): readonly LibraryApplyAction[] => {
+  if (article.applyActions && article.applyActions.length > 0) return article.applyActions;
+
+  const firstTrainingIdea = article.trainingIdeas?.[0];
+  const firstKeyIdea = article.keyIdeas[0];
+
+  return [
+    {
+      title: 'Try this in your next session',
+      detail: firstKeyIdea
+        ? `Choose one moment from training where this idea can be tested: ${firstKeyIdea}`
+        : 'Choose one moment from training where this idea can be tested under realistic pressure.'
+    },
+    {
+      title: 'Add the recommended drill',
+      detail: firstTrainingIdea
+        ? firstTrainingIdea
+        : 'Use a small-sided practice with a clear scoring condition so players must repeat the target behaviour.'
+    },
+    {
+      title: 'Use three coaching cues',
+      detail: 'Prepare three short cues before the session: one for the action, one for the timing, and one for the next decision.'
+    },
+    {
+      title: 'Watch for player behaviours',
+      detail: CATEGORY_BEHAVIOUR_PROMPTS[article.category]
+    },
+    {
+      title: 'Adapt this for your age group',
+      detail: CATEGORY_ADAPTATION_PROMPTS[article.category]
+    }
+  ];
 };
 
 export const searchLibraryArticles = (

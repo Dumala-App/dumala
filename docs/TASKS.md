@@ -9,7 +9,7 @@ Status values: **Done**, **In Progress**, **Next**, **Planned**, **Long Term**.
 Progress is calculated from the completed capabilities and open checklist items in this document. The roadmap bars track implementation, while Release Validation tracks the latest verified build checks.
 
 ```text
-Overall roadmap                 [########--]  78%  95 / 122
+Overall roadmap                 [########--]  82%  95 / 116
 
 Shipped beta foundation         [##########] 100%  20 / 20
 Current Beta: Reliability       [##########] 100%  24 / 24
@@ -20,7 +20,6 @@ Phase 3: Cloud and sync         [##########] 100%   6 / 6
 Phase 4: Team collaboration     [##########] 100%   5 / 5
 Phase 5: Profiles and drafting  [----------]   0%   0 / 6
 Phase 6: Player & League        [##--------]  18%   2 / 11
-Future: Coach education         [----------]   0%   0 / 6
 Future: Club operations         [##--------]  17%   1 / 6
 Commercial validation           [########--]  83%   5 / 6
 Release: App stores             [----------]   0%   0 / 1
@@ -39,7 +38,6 @@ Release validation              [##########] 100%  14 / 14
 | Phase 4: Team collaboration | 5 | 5 | 100% | Done |
 | Phase 5: Public profiles and drafting | 0 | 6 | 0% | Long Term |
 | Phase 6: Player and League platform expansion | 2 | 11 | 18% | In Progress |
-| Future Expansion: Philippine coach education | 0 | 6 | 0% | Long Term |
 | Future Expansion: Club operations | 1 | 6 | 17% | Long Term |
 | Commercial validation and SaaS packaging | 5 | 6 | 83% | In Progress |
 | Future Release: App store distribution | 0 | 1 | 0% | Deferred |
@@ -50,6 +48,8 @@ The FPRDS total includes twenty completed capabilities: the five shipped assessm
 
 ### Completed: 2026-07-13
 
+- [x] Removed the low-value My Development tab and its learning plans, goals, reflection journal, credential records, resource directory, pathways, and portfolio tooling. Reworked the Coaching Library to open directly into the Knowledge Library with stronger hierarchy, clearer category discovery, persistent saved/read state, actionable Saved and Unread filters, better empty-state recovery, a more readable article layout, article-level "Apply this idea" actions, and a short session-linked review saved locally per article.
+- [x] Expanded the Coaching Library with 20 additional famous and effective coaching references across coach philosophies, club and national identities, formations, game principles, and coaching craft.
 - [x] Shipped the Phase 6 **Player engagement** backbone (delivery step 9 — achievements / badges). Added a migration (`202607100011_phase6_player_achievements.sql`) with a `player_achievements` table and a `sync_player_achievements(p_streak)` security-definer RPC that re-derives the caller's drill/workout/favorite counts server-side, takes the client-computed streak (local-day dependent), grants any newly-earned badges idempotently, and returns the new keys; RLS lets a player read only their own badges and there is no INSERT policy, so a client cannot self-award. Covered by an 8-case pgTAP suite (grant thresholds, the streak parameter, idempotency, and cross-player isolation). Added the display catalog + pure, unit-tested `evaluateAchievements` helper (`src/player/achievements.ts` — merges catalog + stats + earned set, capped progress, earned-first sort), a `PlayerAchievement` type with `listAchievements`/`syncAchievements` on the player repository, and an **Achievements grid** in the Player app's Progress tab (earned badges lit with the orange accent, locked ones dimmed with a progress bar) on the Apex Precision theme. The app syncs on load, so badges unlock as the player trains. Preview grants badges from the in-memory demo activity. Verified end-to-end in the browser (3/8 earned — First Touch, First Sweat, On a Roll — with locked badges showing live progress like 6/10 drills). Fitness tracking, verified/certified achievements, and personalized recommendations remain for the follow-up, so the "Player engagement" checklist item stays open.
 - [x] Shipped the Phase 6 **Live operations** backbone (delivery step 6 — the on-the-day command center). Added a migration (`202607100010_phase6_live_operations.sql`) that extends `event_fixtures` with `home_checked_in`/`away_checked_in` + an `official_name`, adds an `incident_kind` enum, and an owner-scoped `event_incidents` log (optionally tied to a fixture/team). Check-in and official assignment ride the existing owner UPDATE policy on fixtures; incidents are RLS-scoped to the parent league owner. Covered by an 8-case pgTAP suite (check-in persistence, incident isolation, the non-owner insert block, and that a non-owner's UPDATE is filtered to a silent no-op). Extended the cloud `league` repository with the fixture check-in/official fields, an `EventIncident` type, the unit-tested pure helper `summarizeMatchday` (completed / ready / awaiting check-in), and repo methods `setFixtureOps` + list/add/delete incidents. Added a **Match-day sub-tab** to the event detail: readiness summary tiles, a command center of per-fixture cards (tap to check each team in, assign an official, see Ready/Awaiting or the final score), and an incidents feed with a quick-log form (type, summary, match). Preview seeds checked-in played fixtures and an injury incident. Verified end-to-end in the browser (checking both teams into a fixture flipped it to Ready and moved the readiness tiles; check-in persisted across navigation). Match-sheet detail, delegated staff login, and the offline queue remain for the follow-up, so the "Live operations" checklist item stays open.
 - [x] Shipped the Phase 6 **Finance & reporting** backbone (delivery step 8). Added a migration (`202607100009_phase6_finance.sql`) with a `currency` column on `leagues` (default PHP), `ledger_direction` + `invoice_status` enums, a per-league `league_ledger_entries` general ledger (income/expense, optionally tagged to a season/event, money in integer cents), and `event_invoices` (bill a club for an event, mark paid/waived). A `settle_invoice` RPC marks an invoice paid or waived and — **only** on the transition into paid — posts a reconciling income entry to the ledger (idempotent, no double-post). Covered by a 13-case pgTAP suite (ownership isolation on both tables, the settle flow, the no-double-post guard, amount/status validation, and the non-owner blocks). Extended the cloud `league` repository with `LedgerEntry`/`EventInvoice` types plus the unit-tested pure helpers `formatMoney` (minor units → grouped currency string) and `summarizeLedger` (income/expense/net and invoiced/collected/outstanding, waived excluded), and repo methods to list/add/delete ledger entries and list/add/settle/delete invoices. Added a top-level **Finance tab** to the League dashboard: summary tiles (income, expenses, net, outstanding), an invoices panel (bill an event → team, mark paid/waive, delete), and a ledger panel (record income/expense with category, event, and date). Preview seeds sponsorship/expense entries and two invoices. Verified end-to-end in the browser (marking the outstanding invoice paid auto-posted a reconciling income entry, income 25k → 30k, outstanding → 0). Reconciliation reports, receipts/exports, and season closeout remain for the follow-up, so the "Finance and reporting" checklist item stays open.
@@ -64,6 +64,10 @@ The FPRDS total includes twenty completed capabilities: the five shipped assessm
 - [x] Shipped the Phase 6 Player-foundation backbone (delivery step 2, first slice). Added a Supabase migration (`202607100002_phase6_player_foundation.sql`) with a personal `player_profiles` table (guardian-consent state machine + a minor-detection trigger that forces consent to `pending` for under-18s), a `club_join_codes` table, and an invite-and-claim flow via `player_link_requests` (player-initiated) → `player_club_links` (verified link created on coach approval). Atomic security-definer RPCs cover `request_player_link` (persona- and guardian-gated), `set_guardian_consent`, `get_or_create_club_join_code`, `approve_player_link`, `reject_player_link`, and `withdraw_player_link_request`, and a new linked-player SELECT policy lets a linked account read only its club's `games` (schedule) and club name. RLS scopes profiles to their owner and requests/links to the requester and club staff (owner/admin/coach). Added the cloud `player` repository (`src/cloud/player.ts`), fleshed out the Player app (`#/player`) with real Profile, Join-a-team, and Schedule sections, and added a coach-side **Player app requests** approval queue in the Squad hub (join code + roster matching), shown only for a cloud-backed club with the Player app flag on. Covered by a 19-case pgTAP suite and `player.test.ts`. The Player-foundation checklist item stays open until the follow-up slice (solo drills, workout timer, progress dashboard, notifications) lands.
 - [x] Shipped the Phase 6 identity and authorization foundation (delivery step 1). Added a Supabase migration (`202607100001_phase6_identity_authorization.sql`) that extends `user_profiles` with a server-controlled `persona` (coach/player/league, default coach so existing coaches are untouched) plus onboarding status and a persona-guard trigger, a dedicated `user_entitlements` table with an `is_entitled()` helper (League is gated on the `league_pilot` entitlement, never a plan code), a public `league_access_requests` waitlist, and atomic security-definer RPCs for server-side destination resolution (`resolve_app_destination`), player self-service bootstrap, public access requests, and owner/MFA-gated admin provisioning, review, persona, and entitlement changes — all covered by a 21-case pgTAP suite. Added the cloud `identity` repository, feature-flagged `#/player` and `#/league` routes with gated Player and League dashboard shells, the Player free-signup and League "Request access" doors, and an admin-console **League access** tab to review the waitlist and provision owners. All Phase 6 surfaces ship dark behind flags so the Coach app is unchanged by default.
 - [x] Clarified the Phase 6 identity and registration model so it is unambiguous: Dumala becomes three separate apps on one shared backend (one login system, database, and codebase), each account belongs to exactly one app, and the account type is set by the registration door — not a post-signup picker. Locked three decisions: separate accounts per app (one email = one account = one app; no in-app switching in v1), League Owner signup is request/waitlist with admin provisioning (no open self-serve), and League Owner is free during the beta pilot with no permanent free tier. Updated `docs/PLAYER_AND_LEAGUE_PLATFORM_EXPANSION.md`, mirrored the roadmap-visible wording into `docs/ROADMAP.md` and the in-app Roadmap Snapshot, and revised the Phase 6 identity-and-authorization task accordingly.
+
+### Completed: 2026-07-12
+
+- [x] Expanded the Coaching Library with a curated long-form knowledge library and local saved/read article tracking. The broader coach-development workspace shipped in this iteration was removed on 2026-07-13 after product review found that it did not provide enough practical value.
 
 ### Completed: 2026-07-09
 
@@ -228,7 +232,7 @@ The FPRDS total includes twenty completed capabilities: the five shipped assessm
 - [x] Fixed missing player-name labels on the match board.
 - [x] Corrected League & Updates routing and renamed announcements to Bulletins.
 - [x] Expanded the Updates roadmap and removed AI direction from the public roadmap.
-- [x] Added public profile, drafting, Philippine coach education, and club expansion plans.
+- [x] Added public profile, drafting, Coaching Library, and club expansion plans.
 - [x] Added structured feedback delivery with email fallback.
 - [x] Added Dumala favicon and Apple touch icon.
 - [x] Deployed as a static Vite application through GitHub and Vercel.
@@ -369,15 +373,6 @@ Full plan: `docs/PLAYER_AND_LEAGUE_PLATFORM_EXPANSION.md`. Each item is independ
 - [ ] **Planned:** Finance and reporting — ledger, invoices, receipts, reconciliation, exports, operational dashboards, and season closeout.
 - [ ] **Planned:** Player engagement — fitness tracking, badges, verified achievements, streaks, and personalized recommendations.
 - [ ] **Planned:** Production hardening — accessibility, performance, security review, migration rehearsal, monitoring, retention policies, support procedures, and staged rollout.
-
-## Future Expansion: Philippine coach education
-
-- [ ] **Long Term:** Curate a coach knowledge base.
-- [ ] **Long Term:** Maintain official PFF, AFC, and FIFA resource links.
-- [ ] **Long Term:** Model qualifications, issuers, licence numbers, dates, documents, and verification state.
-- [ ] **Long Term:** Add learning plans, journals, reflections, goals, and renewal reminders.
-- [ ] **Long Term:** Keep Dumala Development Progress separate from official credentials.
-- [ ] **Long Term:** Add controlled public coach credentials and portfolios.
 
 ## Future Expansion: Club operations
 

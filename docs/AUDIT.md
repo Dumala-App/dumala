@@ -62,12 +62,6 @@ Primary areas, hub subviews, onboarding, feedback, and player profiles now load 
 
 Remaining risk: chart-heavy views still load a shared deferred chart chunk when first opened, so chunk sizes should be monitored as those screens grow.
 
-### Medium: unofficial coach-level field
-
-Tactics currently stores a free-form `squad_coach_level` presentation value.
-
-Impact: this must not be confused with future PFF/AFC qualifications. The roadmap correctly requires official credentials and Dumala progress to remain separate.
-
 ### Resolved: obsolete custom strategy editor
 
 The Tactics UI no longer exposes Custom Playstyle Directive, Custom Defensive Anchor, mentality, or free-form strategy-note controls. Attack and defense expansion now flows through curated strategy records and deterministic matchup recommendations. Legacy custom-strategy persistence fields remain only for old backups, cloud migration compatibility, and durable schema continuity.

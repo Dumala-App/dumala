@@ -43,7 +43,7 @@ Dumala provides one structured workspace for weekly team administration and repe
 6. Preserve data through validated export and restore.
 7. Separate development activity from verified ability so FPRDS ratings remain evidence-based.
 8. Let operators manage multiple local teams while preserving a clean path toward cloud clubs.
-9. Build toward offline use, tablets, shared clubs, public profiles, and Philippine coach education.
+9. Build toward offline use, tablets, shared clubs, public profiles, and deeper coaching knowledge.
 10. Validate a subscription model around weekly time savings, match-week preparation, and clearer player-development records before enforcing paid plans.
 
 ## 5. Current non-goals
@@ -53,7 +53,7 @@ Dumala provides one structured workspace for weekly team administration and repe
 3. Official league feeds or federation verification.
 4. Payments, contracts, registration compliance, or medical records.
 5. Public player and team profiles.
-6. An official PFF or AFC coach rating.
+6. Coaching licence or credential management.
 7. Native Android implementation; the planned first app path is a tablet-focused PWA wrapper.
 
 ## 6. Current information architecture
@@ -216,7 +216,6 @@ Dumala provides one structured workspace for weekly team administration and repe
 
 - Uploaded photos and team records remain in the browser in the beta.
 - Future public profiles must require explicit publishing controls.
-- Dumala development progress must never be represented as an official PFF or AFC credential.
 
 ## 9. Data model
 

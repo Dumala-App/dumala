@@ -1,4 +1,5 @@
 import React, { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import './index.css';
 import { Player, Game, Standing, Announcement, TeamInfo, AssessmentSession, StaffMember, PaymentLedgerEntry } from './types';
 
 import ViewLoadingFallback from './components/ViewLoadingFallback';
@@ -122,13 +123,11 @@ const HomeHubView = lazy(() => import('./components/HomeHubView'));
 const DevelopmentHubView = lazy(() => import('./components/DevelopmentHubView'));
 const LeagueUpdatesHubView = lazy(() => import('./components/LeagueUpdatesHubView'));
 const AdminConsoleView = lazy(() => import('./components/AdminConsoleView'));
-const LandingPage = lazy(() => import('./components/LandingPage'));
 const PlayerAppShell = lazy(() => import('./components/PlayerAppShell'));
 const LeagueAppShell = lazy(() => import('./components/LeagueAppShell'));
 const EventRegistrationView = lazy(() => import('./components/league/EventRegistrationForm'));
 
 const getHashRoute = () => typeof window === 'undefined' ? '' : window.location.hash.replace(/^#\/?/, '');
-const isLandingRoute = (route: string) => route === '' || route === 'landing';
 // Phase 6 persona apps live under their own hash roots (#/player, #/league).
 const isPlayerRoute = (route: string) => route === 'player' || route.startsWith('player/');
 const isLeagueRoute = (route: string) => route === 'league' || route.startsWith('league/');
@@ -1465,17 +1464,6 @@ export default function App() {
         <PwaStatusBanners />
         <Suspense fallback={<ViewLoadingFallback label="event registration" />}>
           <EventRegistrationView />
-        </Suspense>
-      </>
-    );
-  }
-
-  if (isLandingRoute(hashRoute) && !shouldRouteAuthReturnToApp()) {
-    return (
-      <>
-        <PwaStatusBanners />
-        <Suspense fallback={<ViewLoadingFallback label="landing page" />}>
-          <LandingPage />
         </Suspense>
       </>
     );
