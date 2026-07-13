@@ -183,6 +183,7 @@ import {
 import {
   addAward,
   addEventTeam,
+  addIncident,
   addInvoice,
   addLedgerEntry,
   addStatEvent,
@@ -195,6 +196,7 @@ import {
   createVenue,
   deleteAward,
   deleteEventTeam,
+  deleteIncident,
   deleteInvoice,
   deleteLedgerEntry,
   deleteStatEvent,
@@ -204,6 +206,7 @@ import {
   listEvents,
   listEventTeams,
   listFixtures,
+  listIncidents,
   listInvoices,
   listLeagues,
   listLedgerEntries,
@@ -214,6 +217,7 @@ import {
   lookupEventRegistration,
   recordFixtureResult,
   reviewRegistration,
+  setFixtureOps,
   settleInvoice,
   submitEventRegistration,
   syncApprovedTeams,
@@ -224,6 +228,8 @@ import {
   type EventAward,
   type EventAwardInput,
   type EventFixture,
+  type EventIncident,
+  type EventIncidentInput,
   type EventInvoice,
   type EventInvoiceInput,
   type EventRegistration,
@@ -231,6 +237,7 @@ import {
   type EventRegistrationLookup,
   type EventRegistrationStatus,
   type EventTeam,
+  type FixtureOpsPatch,
   type FixtureStatEvent,
   type FixtureStatInput,
   type InvoiceStatus,
@@ -448,6 +455,10 @@ export interface CloudLeagueRepository {
   addInvoice(leagueId: string, input: EventInvoiceInput): Promise<EventInvoice>;
   settleInvoice(invoiceId: string, nextStatus: Extract<InvoiceStatus, 'paid' | 'waived'>, paidOn?: string | null): Promise<EventInvoice>;
   deleteInvoice(invoiceId: string): Promise<void>;
+  setFixtureOps(fixtureId: string, patch: FixtureOpsPatch): Promise<EventFixture>;
+  listIncidents(eventId: string): Promise<EventIncident[]>;
+  addIncident(leagueId: string, eventId: string, input: EventIncidentInput): Promise<EventIncident>;
+  deleteIncident(incidentId: string): Promise<void>;
 }
 
 export interface CloudChatRepository {
@@ -649,7 +660,11 @@ export const createCloudDataAccess = (client: DumalaSupabaseClient): CloudDataAc
     listInvoices: leagueId => listInvoices(client, leagueId),
     addInvoice: (leagueId, input) => addInvoice(client, leagueId, input),
     settleInvoice: (invoiceId, nextStatus, paidOn) => settleInvoice(client, invoiceId, nextStatus, paidOn),
-    deleteInvoice: invoiceId => deleteInvoice(client, invoiceId)
+    deleteInvoice: invoiceId => deleteInvoice(client, invoiceId),
+    setFixtureOps: (fixtureId, patch) => setFixtureOps(client, fixtureId, patch),
+    listIncidents: eventId => listIncidents(client, eventId),
+    addIncident: (leagueId, eventId, input) => addIncident(client, leagueId, eventId, input),
+    deleteIncident: incidentId => deleteIncident(client, incidentId)
   },
   chat: {
     ensureChannel: clubId => ensureChannel(client, clubId),

@@ -15,6 +15,7 @@ import {
   spotsRemaining,
   suggestAwards,
   summarizeLedger,
+  summarizeMatchday,
   type EventFixture,
   type EventInvoice,
   type FixtureStatEvent,
@@ -87,7 +88,8 @@ describe('tournament pure helpers', () => {
   ): EventFixture => ({
     id: `${home}-${away}`, event_id: 'e', league_id: 'l', round: 1, sequence: 1,
     home_team_id: home, away_team_id: away, status, home_score: hs, away_score: as,
-    kickoff_at: null, venue_id: null, created_at: '', updated_at: ''
+    kickoff_at: null, venue_id: null, home_checked_in: false, away_checked_in: false, official_name: null,
+    created_at: '', updated_at: ''
   });
 
   const unordered = (p: { homeTeamId: string; awayTeamId: string }) => [p.homeTeamId, p.awayTeamId].sort().join('-');
@@ -165,6 +167,24 @@ describe('statistics + awards pure helpers', () => {
       topScorer: { teamId: 'a', playerName: 'Cruz', goals: 1 }
     });
     expect(suggestAwards([], [])).toEqual({ champion: null, topScorer: null });
+  });
+});
+
+describe('matchday readiness helper', () => {
+  const fx = (status: EventFixture['status'], home: boolean, away: boolean): EventFixture => ({
+    id: `${status}-${home}-${away}-${Math.random()}`, event_id: 'e', league_id: 'l', round: 1, sequence: 1,
+    home_team_id: 'a', away_team_id: 'b', status, home_score: null, away_score: null, kickoff_at: null, venue_id: null,
+    home_checked_in: home, away_checked_in: away, official_name: null, created_at: '', updated_at: ''
+  });
+
+  it('counts completed, ready (both checked in), and awaiting check-in', () => {
+    expect(summarizeMatchday([
+      fx('completed', true, true),
+      fx('scheduled', true, true),   // ready
+      fx('scheduled', true, false),  // awaiting
+      fx('scheduled', false, false), // awaiting
+      fx('cancelled', false, false)  // ignored
+    ])).toEqual({ total: 5, completed: 1, ready: 1, awaitingCheckin: 2 });
   });
 });
 

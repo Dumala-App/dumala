@@ -8,6 +8,7 @@ import {
   spotsRemaining,
   type EventAward,
   type EventFixture,
+  type EventIncident,
   type EventInvoice,
   type EventRegistration,
   type EventTeam,
@@ -148,7 +149,9 @@ const buildDemoLeagueRepository = (): CloudLeagueRepository => {
       id: `demo-fixture-${index + 1}`, event_id: 'demo-event-1', league_id: LEAGUE_ID,
       round: p.round, sequence: p.sequence, home_team_id: p.homeTeamId, away_team_id: p.awayTeamId,
       status: result ? 'completed' : 'scheduled', home_score: result ? result[0] : null,
-      away_score: result ? result[1] : null, kickoff_at: null, venue_id: null, created_at: now(), updated_at: now()
+      away_score: result ? result[1] : null, kickoff_at: null, venue_id: null,
+      home_checked_in: !!result, away_checked_in: !!result, official_name: result ? 'Ref Santos' : null,
+      created_at: now(), updated_at: now()
     };
   });
 
@@ -200,6 +203,14 @@ const buildDemoLeagueRepository = (): CloudLeagueRepository => {
       id: 'demo-invoice-2', league_id: LEAGUE_ID, event_id: 'demo-event-1', team_id: 'demo-team-2', registration_id: null,
       bill_to: 'North Stars', description: 'Metro Cup registration', amount_cents: 500000, due_on: '2026-07-20',
       status: 'unpaid', paid_on: null, created_at: now(), updated_at: now()
+    }
+  ];
+
+  let incidents: EventIncident[] = [
+    {
+      id: 'demo-incident-1', event_id: 'demo-event-1', league_id: LEAGUE_ID, fixture_id: 'demo-fixture-1', team_id: 'demo-team-1',
+      kind: 'injury', summary: 'Bayside #7 subbed off after a knock — cleared by medics.',
+      occurred_at: now(), created_at: now(), updated_at: now()
     }
   ];
 
@@ -384,7 +395,8 @@ const buildDemoLeagueRepository = (): CloudLeagueRepository => {
       const generated: EventFixture[] = roundRobinRounds(eventTeams.map(t => t.id)).map(p => ({
         id: newId(), event_id: eventId, league_id: leagueId, round: p.round, sequence: p.sequence,
         home_team_id: p.homeTeamId, away_team_id: p.awayTeamId, status: 'scheduled',
-        home_score: null, away_score: null, kickoff_at: null, venue_id: null, created_at: now(), updated_at: now()
+        home_score: null, away_score: null, kickoff_at: null, venue_id: null,
+        home_checked_in: false, away_checked_in: false, official_name: null, created_at: now(), updated_at: now()
       }));
       fixtures = [...fixtures, ...generated];
       return generated;
@@ -469,6 +481,29 @@ const buildDemoLeagueRepository = (): CloudLeagueRepository => {
     },
     deleteInvoice: async invoiceId => {
       invoices = invoices.filter(i => i.id !== invoiceId);
+    },
+    setFixtureOps: async (fixtureId, patch) => {
+      fixtures = fixtures.map(f => f.id === fixtureId ? {
+        ...f,
+        home_checked_in: patch.homeCheckedIn ?? f.home_checked_in,
+        away_checked_in: patch.awayCheckedIn ?? f.away_checked_in,
+        official_name: patch.officialName !== undefined ? (patch.officialName?.trim() || null) : f.official_name,
+        updated_at: now()
+      } : f);
+      return fixtures.find(f => f.id === fixtureId)!;
+    },
+    listIncidents: async eventId => incidents.filter(i => i.event_id === eventId),
+    addIncident: async (leagueId, eventId, input) => {
+      const row: EventIncident = {
+        id: newId(), event_id: eventId, league_id: leagueId, fixture_id: input.fixtureId ?? null,
+        team_id: input.teamId ?? null, kind: input.kind, summary: input.summary.trim(),
+        occurred_at: now(), created_at: now(), updated_at: now()
+      };
+      incidents = [row, ...incidents];
+      return row;
+    },
+    deleteIncident: async incidentId => {
+      incidents = incidents.filter(i => i.id !== incidentId);
     }
   };
 };

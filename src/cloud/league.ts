@@ -590,6 +590,9 @@ export interface EventFixture {
   away_score: number | null;
   kickoff_at: string | null;
   venue_id: string | null;
+  home_checked_in: boolean;
+  away_checked_in: boolean;
+  official_name: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -1220,5 +1223,122 @@ export const deleteInvoice = async (client: DumalaSupabaseClient, invoiceId: str
     await supabase.from('event_invoices').delete().eq('id', invoiceId),
     'INVOICE_DELETE_FAILED',
     'Failed to remove the invoice'
+  );
+};
+
+// --- Live operations: check-in, officials, incidents -------------------------
+
+export type IncidentKind = 'injury' | 'misconduct' | 'dispute' | 'delay' | 'other';
+
+export interface EventIncident {
+  id: string;
+  event_id: string;
+  league_id: string;
+  fixture_id: string | null;
+  team_id: string | null;
+  kind: IncidentKind;
+  summary: string;
+  occurred_at: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface EventIncidentInput {
+  kind: IncidentKind;
+  summary: string;
+  fixtureId?: string | null;
+  teamId?: string | null;
+}
+
+export interface FixtureOpsPatch {
+  homeCheckedIn?: boolean;
+  awayCheckedIn?: boolean;
+  officialName?: string | null;
+}
+
+export interface MatchdaySummary {
+  total: number;
+  completed: number;
+  ready: number;      // both teams checked in, not yet played
+  awaitingCheckin: number;
+}
+
+export const INCIDENT_KIND_LABELS: Record<IncidentKind, string> = {
+  injury: 'Injury',
+  misconduct: 'Misconduct',
+  dispute: 'Dispute',
+  delay: 'Delay',
+  other: 'Other'
+};
+
+// --- Pure helper (unit-testable) ---------------------------------------------
+
+/** Match-day readiness across an event's fixtures. */
+export const summarizeMatchday = (fixtures: EventFixture[]): MatchdaySummary => {
+  let completed = 0;
+  let ready = 0;
+  let awaitingCheckin = 0;
+  for (const f of fixtures) {
+    if (f.status === 'completed') { completed += 1; continue; }
+    if (f.status === 'cancelled') continue;
+    if (f.home_checked_in && f.away_checked_in) ready += 1;
+    else awaitingCheckin += 1;
+  }
+  return { total: fixtures.length, completed, ready, awaitingCheckin };
+};
+
+// --- Owner: fixture match-day ops --------------------------------------------
+
+export const setFixtureOps = async (
+  client: DumalaSupabaseClient,
+  fixtureId: string,
+  patch: FixtureOpsPatch
+): Promise<EventFixture> => {
+  const supabase = asUntypedClient(client);
+  const row: Record<string, unknown> = {};
+  if (patch.homeCheckedIn !== undefined) row.home_checked_in = patch.homeCheckedIn;
+  if (patch.awayCheckedIn !== undefined) row.away_checked_in = patch.awayCheckedIn;
+  if (patch.officialName !== undefined) row.official_name = patch.officialName?.trim() || null;
+  return expectNoError(
+    await supabase.from('event_fixtures').update(row).eq('id', fixtureId).select('*').single(),
+    'FIXTURE_OPS_FAILED',
+    'Failed to update the match'
+  ) as EventFixture;
+};
+
+// --- Owner: incidents --------------------------------------------------------
+
+export const listIncidents = async (client: DumalaSupabaseClient, eventId: string): Promise<EventIncident[]> => {
+  const supabase = asUntypedClient(client);
+  return (expectNoError(
+    await supabase.from('event_incidents').select('*').eq('event_id', eventId).order('occurred_at', { ascending: false }),
+    'INCIDENTS_READ_FAILED',
+    'Failed to load incidents'
+  ) as EventIncident[] | null) ?? [];
+};
+
+export const addIncident = async (
+  client: DumalaSupabaseClient,
+  leagueId: string,
+  eventId: string,
+  input: EventIncidentInput
+): Promise<EventIncident> => {
+  const supabase = asUntypedClient(client);
+  return expectNoError(
+    await supabase.from('event_incidents').insert({
+      league_id: leagueId, event_id: eventId, kind: input.kind, summary: input.summary.trim(),
+      fixture_id: input.fixtureId ?? null, team_id: input.teamId ?? null
+    }).select('*').single(),
+    'INCIDENT_CREATE_FAILED',
+    'Failed to log the incident'
+  ) as EventIncident;
+};
+
+export const deleteIncident = async (client: DumalaSupabaseClient, incidentId: string): Promise<void> => {
+  const supabase = asUntypedClient(client);
+  expectNoError(
+    await supabase.from('event_incidents').delete().eq('id', incidentId),
+    'INCIDENT_DELETE_FAILED',
+    'Failed to remove the incident'
   );
 };
