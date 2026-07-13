@@ -143,6 +143,14 @@ if (!qualityGate.includes('- deploy-production-database')) {
 
 const vercelConfig = existsSync(join(root, 'vercel.json')) ? read('vercel.json') : '';
 for (const headerMarker of [
+  '"key": "X-Frame-Options"',
+  '"value": "SAMEORIGIN"',
+  "default-src 'none'",
+  "frame-ancestors 'self'",
+  "frame-src 'self'",
+  "form-action 'self'",
+  "object-src 'none'",
+  "style-src 'self'",
   '"key": "Permissions-Policy"',
   'camera=()',
   'microphone=()',
@@ -154,6 +162,17 @@ for (const headerMarker of [
   if (!vercelConfig.includes(headerMarker)) {
     failures.push(`Vercel security headers are missing ${headerMarker}.`);
   }
+}
+
+const cspHeader = vercelConfig.match(/"key": "Content-Security-Policy"[\s\S]*?"value": "([^"]+)"/)?.[1] ?? '';
+for (const forbiddenCspSource of ["script-src 'self' 'unsafe-inline'", "script-src 'self' 'unsafe-eval'", "style-src 'self' 'unsafe-inline'", ' data:']) {
+  if (cspHeader.includes(forbiddenCspSource)) {
+    failures.push(`Content-Security-Policy must not include ${forbiddenCspSource}.`);
+  }
+}
+
+if (/(^|[\s;])https:(?=\s|;|$)/.test(cspHeader)) {
+  failures.push('Content-Security-Policy must not include the broad https: source.');
 }
 
 if (failures.length > 0) {
