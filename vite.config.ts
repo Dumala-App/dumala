@@ -1,14 +1,46 @@
 import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
-import {defineConfig} from 'vite';
+import {defineConfig, type Plugin} from 'vite';
 import {VitePWA} from 'vite-plugin-pwa';
+
+const prioritizeEntryStylesheet = (): Plugin => ({
+  name: 'dumala-prioritize-entry-stylesheet',
+  apply: 'build',
+  transformIndexHtml: {
+    order: 'post',
+    handler(html) {
+      const entryStylesheetPattern = /\n?\s*<link rel="stylesheet"[^>]*href="\/assets\/[^"]+\.css"[^>]*>/g;
+      const entryStylesheets = html.match(entryStylesheetPattern);
+
+      if (!entryStylesheets?.length) return html;
+
+      const htmlWithoutEntryStylesheets = html.replace(entryStylesheetPattern, '');
+      const stylesheetBlock = entryStylesheets
+        .map(stylesheet => stylesheet.trim())
+        .join('\n    ');
+
+      if (htmlWithoutEntryStylesheets.includes('<script type="module"')) {
+        return htmlWithoutEntryStylesheets.replace(
+          /\n\s*<script type="module"/,
+          `\n    ${stylesheetBlock}\n    <script type="module"`
+        );
+      }
+
+      return htmlWithoutEntryStylesheets.replace(
+        /\n\s*<\/head>/,
+        `\n    ${stylesheetBlock}\n  </head>`
+      );
+    },
+  },
+});
 
 export default defineConfig({
   cacheDir: 'node_modules/.vite-app',
   plugins: [
     react(),
     tailwindcss(),
+    prioritizeEntryStylesheet(),
     VitePWA({
       registerType: 'prompt',
       injectRegister: false,
