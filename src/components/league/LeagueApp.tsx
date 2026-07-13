@@ -8,9 +8,11 @@ import {
   Copy,
   Eye,
   Gauge,
+  Award,
   ListOrdered,
   Loader2,
   MapPin,
+  Medal,
   Plus,
   RefreshCw,
   Save,
@@ -18,6 +20,7 @@ import {
   Shield,
   Shuffle,
   Swords,
+  Target,
   Trash2,
   Trophy,
   Users,
@@ -31,14 +34,23 @@ import {
   EVENT_STATUS_LABELS,
   REGISTRATION_STATUS_LABELS,
   SEASON_STATUS_LABELS,
+  STAT_TYPE_LABELS,
+  computeDiscipline,
+  computeScorers,
   computeStandings,
   nextEventStatuses,
   nextSeasonStatuses,
   spotsRemaining,
+  suggestAwards,
+  type AwardRecipientType,
+  type EventAward,
   type EventFixture,
   type EventRegistration,
   type EventRegistrationStatus,
   type EventTeam,
+  type FixtureStatEvent,
+  type FixtureStatInput,
+  type FixtureStatType,
   type League,
   type LeagueEvent,
   type LeagueEventFormat,
@@ -546,13 +558,14 @@ const EventsList = ({ events, seasons, onCreate, onOpen, onGoToSeasons }: {
   );
 };
 
-type EventTab = 'applications' | 'teams' | 'fixtures' | 'table';
+type EventTab = 'applications' | 'teams' | 'fixtures' | 'table' | 'stats';
 
 const EVENT_TABS: Array<{ id: EventTab; label: string; icon: React.ComponentType<{ size?: number; className?: string }> }> = [
   { id: 'applications', label: 'Applications', icon: Users },
   { id: 'teams', label: 'Teams', icon: Shield },
   { id: 'fixtures', label: 'Fixtures', icon: Swords },
-  { id: 'table', label: 'Table', icon: ListOrdered }
+  { id: 'table', label: 'Table', icon: ListOrdered },
+  { id: 'stats', label: 'Stats', icon: Target }
 ];
 
 const EventDetail = ({ league, event, runError, onBack, onAdvance, onAfterReview }: {
@@ -566,19 +579,25 @@ const EventDetail = ({ league, event, runError, onBack, onAdvance, onAfterReview
   const [registrations, setRegistrations] = useState<EventRegistration[]>([]);
   const [teams, setTeams] = useState<EventTeam[]>([]);
   const [fixtures, setFixtures] = useState<EventFixture[]>([]);
+  const [statEvents, setStatEvents] = useState<FixtureStatEvent[]>([]);
+  const [awards, setAwards] = useState<EventAward[]>([]);
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
   const [tab, setTab] = useState<EventTab>('applications');
 
   const refresh = useCallback(async () => {
-    const [regs, tms, fxs] = await Promise.all([
+    const [regs, tms, fxs, stats, aws] = await Promise.all([
       league.listRegistrations(event.id),
       league.listEventTeams(event.id),
-      league.listFixtures(event.id)
+      league.listFixtures(event.id),
+      league.listStatEvents(event.id),
+      league.listAwards(event.id)
     ]);
     setRegistrations(regs);
     setTeams(tms);
     setFixtures(fxs);
+    setStatEvents(stats);
+    setAwards(aws);
   }, [league, event.id]);
 
   useEffect(() => {
@@ -621,6 +640,14 @@ const EventDetail = ({ league, event, runError, onBack, onAdvance, onAfterReview
     runError(async () => { await league.clearFixtures(event.id); await refresh(); });
   const recordResult = (fixtureId: string, home: number, away: number) =>
     runError(async () => { await league.recordFixtureResult(fixtureId, home, away); await refresh(); });
+  const addStat = (input: FixtureStatInput) =>
+    runError(async () => { await league.addStatEvent(event.league_id, event.id, input); await refresh(); });
+  const deleteStat = (statEventId: string) =>
+    runError(async () => { await league.deleteStatEvent(statEventId); await refresh(); });
+  const addAward = (input: { title: string; recipientType: AwardRecipientType; teamId?: string | null; playerName?: string | null }) =>
+    runError(async () => { await league.addAward(event.league_id, event.id, input); await refresh(); });
+  const deleteAward = (awardId: string) =>
+    runError(async () => { await league.deleteAward(awardId); await refresh(); });
 
   return (
     <div className="space-y-4">
@@ -690,6 +717,20 @@ const EventDetail = ({ league, event, runError, onBack, onAdvance, onAfterReview
           {tab === 'teams' && <TeamsPanel teams={teams} approvedCount={approvedCount} onAdd={addTeam} onAddApproved={addApprovedTeams} onRemove={removeTeam} />}
           {tab === 'fixtures' && <FixturesPanel fixtures={fixtures} teamCount={teams.length} teamName={teamName} onGenerate={generateFixtures} onClear={clearFixtures} onRecord={recordResult} />}
           {tab === 'table' && <TablePanel standings={computeStandings(teams, fixtures)} />}
+          {tab === 'stats' && (
+            <StatsPanel
+              teams={teams}
+              fixtures={fixtures}
+              statEvents={statEvents}
+              awards={awards}
+              standings={computeStandings(teams, fixtures)}
+              teamName={teamName}
+              onAddStat={addStat}
+              onDeleteStat={deleteStat}
+              onAddAward={addAward}
+              onDeleteAward={deleteAward}
+            />
+          )}
         </>
       )}
     </div>
@@ -935,6 +976,298 @@ const TablePanel = ({ standings }: { standings: ReturnType<typeof computeStandin
     </div>
   </section>
 );
+
+// --- Statistics + awards -----------------------------------------------------
+
+const STAT_TYPES: FixtureStatType[] = ['goal', 'assist', 'yellow_card', 'red_card', 'own_goal'];
+
+const StatsPanel = ({ teams, fixtures, statEvents, awards, standings, teamName, onAddStat, onDeleteStat, onAddAward, onDeleteAward }: {
+  teams: EventTeam[];
+  fixtures: EventFixture[];
+  statEvents: FixtureStatEvent[];
+  awards: EventAward[];
+  standings: ReturnType<typeof computeStandings>;
+  teamName: (id: string) => string;
+  onAddStat: (input: FixtureStatInput) => void;
+  onDeleteStat: (statEventId: string) => void;
+  onAddAward: (input: { title: string; recipientType: AwardRecipientType; teamId?: string | null; playerName?: string | null }) => void;
+  onDeleteAward: (awardId: string) => void;
+}) => {
+  const scorers = computeScorers(statEvents);
+  const discipline = computeDiscipline(statEvents);
+  const suggestions = suggestAwards(standings, scorers);
+
+  return (
+    <div className="space-y-4">
+      <div className="grid gap-4 lg:grid-cols-2">
+        <LeaderboardCard title="Top scorers" icon={Target}>
+          {scorers.length === 0 ? (
+            <p className="text-sm text-slate-400">No goals recorded yet.</p>
+          ) : (
+            <ul className="space-y-1.5">
+              {scorers.map((row, index) => (
+                <li key={`${row.teamId}-${row.playerName}`} className="flex items-center gap-3 text-sm">
+                  <span className="w-5 text-right font-display text-xs font-black text-slate-500">{index + 1}</span>
+                  <span className="flex-1 truncate"><span className="font-bold text-white">{row.playerName}</span> <span className="text-slate-500">· {teamName(row.teamId)}</span></span>
+                  <span className="font-display font-black text-white">{row.goals}<span className="text-[11px] font-bold text-slate-500"> G</span></span>
+                  {row.assists > 0 && <span className="text-xs text-slate-400">{row.assists} A</span>}
+                </li>
+              ))}
+            </ul>
+          )}
+        </LeaderboardCard>
+
+        <LeaderboardCard title="Discipline" icon={Shield}>
+          {discipline.length === 0 ? (
+            <p className="text-sm text-slate-400">No cards recorded yet.</p>
+          ) : (
+            <ul className="space-y-1.5">
+              {discipline.map(row => (
+                <li key={`${row.teamId}-${row.playerName}`} className="flex items-center gap-3 text-sm">
+                  <span className="flex-1 truncate"><span className="font-bold text-white">{row.playerName}</span> <span className="text-slate-500">· {teamName(row.teamId)}</span></span>
+                  {row.yellow > 0 && <span className="rounded border border-amber-400/40 bg-amber-400/15 px-1.5 text-xs font-bold text-amber-100">{row.yellow}Y</span>}
+                  {row.red > 0 && <span className="rounded border border-rose-400/40 bg-rose-400/15 px-1.5 text-xs font-bold text-rose-100">{row.red}R</span>}
+                </li>
+              ))}
+            </ul>
+          )}
+        </LeaderboardCard>
+      </div>
+
+      <AddStatForm teams={teams} fixtures={fixtures} onAddStat={onAddStat} />
+
+      {statEvents.length > 0 && (
+        <section className={panel}>
+          <div className={DARK_GLASS_CLASSES.panelHeader}>
+            <Target size={16} className="text-cyan-200" />
+            <h2 className="font-display text-sm font-black text-white">Stat log</h2>
+          </div>
+          <ul className="divide-y divide-cyan-300/10 p-2">
+            {statEvents.map(s => (
+              <li key={s.id} className="flex items-center justify-between gap-3 px-2 py-2 text-sm">
+                <span className="truncate">
+                  <span className="font-bold text-white">{s.player_name}</span>
+                  <span className="text-slate-500"> · {teamName(s.team_id)} · {STAT_TYPE_LABELS[s.stat_type]}{s.minute !== null ? ` · ${s.minute}'` : ''}</span>
+                </span>
+                <button type="button" aria-label="Remove stat" className="flex h-7 w-7 items-center justify-center rounded-lg text-slate-400 hover:text-rose-300" onClick={() => onDeleteStat(s.id)}>
+                  <X size={14} />
+                </button>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      <AwardsCard awards={awards} teams={teams} teamName={teamName} suggestions={suggestions} onAdd={onAddAward} onDelete={onDeleteAward} />
+    </div>
+  );
+};
+
+const LeaderboardCard = ({ title, icon: Icon, children }: {
+  title: string;
+  icon: React.ComponentType<{ size?: number; className?: string }>;
+  children: React.ReactNode;
+}) => (
+  <section className={panel}>
+    <div className={DARK_GLASS_CLASSES.panelHeader}>
+      <Icon size={16} className="text-cyan-200" />
+      <h2 className="font-display text-sm font-black text-white">{title}</h2>
+    </div>
+    <div className="p-4">{children}</div>
+  </section>
+);
+
+const AddStatForm = ({ teams, fixtures, onAddStat }: {
+  teams: EventTeam[];
+  fixtures: EventFixture[];
+  onAddStat: (input: FixtureStatInput) => void;
+}) => {
+  const [fixtureId, setFixtureId] = useState(fixtures[0]?.id ?? '');
+  const [teamId, setTeamId] = useState('');
+  const [playerName, setPlayerName] = useState('');
+  const [statType, setStatType] = useState<FixtureStatType>('goal');
+  const [minute, setMinute] = useState('');
+
+  const selectedFixture = fixtures.find(f => f.id === fixtureId) ?? null;
+  const teamOptions = selectedFixture
+    ? teams.filter(t => t.id === selectedFixture.home_team_id || t.id === selectedFixture.away_team_id)
+    : [];
+
+  useEffect(() => {
+    if (selectedFixture && !teamOptions.some(t => t.id === teamId)) {
+      setTeamId(selectedFixture.home_team_id);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fixtureId, fixtures]);
+
+  const fixtureLabel = (f: EventFixture) =>
+    `R${f.round}: ${teams.find(t => t.id === f.home_team_id)?.name ?? '?'} v ${teams.find(t => t.id === f.away_team_id)?.name ?? '?'}`;
+
+  const submit = (e: FormEvent) => {
+    e.preventDefault();
+    if (!fixtureId || !teamId || !playerName.trim()) return;
+    onAddStat({ fixtureId, teamId, playerName, statType, minute: minute ? Number(minute) : null });
+    setPlayerName('');
+    setMinute('');
+  };
+
+  if (fixtures.length === 0) {
+    return (
+      <section className={panel}>
+        <div className="p-4 text-sm text-slate-400">Generate fixtures first — statistics are recorded against a match.</div>
+      </section>
+    );
+  }
+
+  return (
+    <section className={panel}>
+      <div className={DARK_GLASS_CLASSES.panelHeader}>
+        <Plus size={16} className="text-cyan-200" />
+        <h2 className="font-display text-sm font-black text-white">Record a statistic</h2>
+      </div>
+      <form onSubmit={submit} className="grid gap-3 p-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="space-y-1 sm:col-span-2 lg:col-span-1">
+          <label className={label}>Match</label>
+          <select className={DARK_GLASS_CLASSES.select} value={fixtureId} onChange={e => setFixtureId(e.target.value)}>
+            {fixtures.map(f => <option key={f.id} value={f.id}>{fixtureLabel(f)}</option>)}
+          </select>
+        </div>
+        <div className="space-y-1">
+          <label className={label}>Team</label>
+          <select className={DARK_GLASS_CLASSES.select} value={teamId} onChange={e => setTeamId(e.target.value)}>
+            {teamOptions.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+          </select>
+        </div>
+        <div className="space-y-1">
+          <label className={label}>Player</label>
+          <input className={inputClass} value={playerName} onChange={e => setPlayerName(e.target.value)} placeholder="Player name" />
+        </div>
+        <div className="space-y-1">
+          <label className={label}>Type</label>
+          <select className={DARK_GLASS_CLASSES.select} value={statType} onChange={e => setStatType(e.target.value as FixtureStatType)}>
+            {STAT_TYPES.map(t => <option key={t} value={t}>{STAT_TYPE_LABELS[t]}</option>)}
+          </select>
+        </div>
+        <div className="space-y-1">
+          <label className={label}>Minute</label>
+          <input className={inputClass} type="number" min={0} value={minute} onChange={e => setMinute(e.target.value)} placeholder="Optional" />
+        </div>
+        <div className="flex items-end">
+          <button type="submit" className={`${primaryBtn} w-full`}><Plus size={14} /> Add</button>
+        </div>
+      </form>
+    </section>
+  );
+};
+
+const AwardsCard = ({ awards, teams, teamName, suggestions, onAdd, onDelete }: {
+  awards: EventAward[];
+  teams: EventTeam[];
+  teamName: (id: string) => string;
+  suggestions: ReturnType<typeof suggestAwards>;
+  onAdd: (input: { title: string; recipientType: AwardRecipientType; teamId?: string | null; playerName?: string | null }) => void;
+  onDelete: (awardId: string) => void;
+}) => {
+  const [title, setTitle] = useState('');
+  const [recipientType, setRecipientType] = useState<AwardRecipientType>('team');
+  const [teamId, setTeamId] = useState(teams[0]?.id ?? '');
+  const [playerName, setPlayerName] = useState('');
+
+  const submit = (e: FormEvent) => {
+    e.preventDefault();
+    if (!title.trim()) return;
+    if (recipientType === 'team' && !teamId) return;
+    if (recipientType === 'player' && !playerName.trim()) return;
+    onAdd({ title, recipientType, teamId: recipientType === 'team' ? teamId : null, playerName: recipientType === 'player' ? playerName : null });
+    setTitle('');
+    setPlayerName('');
+  };
+
+  const applyChampion = () => {
+    if (!suggestions.champion) return;
+    setTitle('Champions');
+    setRecipientType('team');
+    setTeamId(suggestions.champion.teamId);
+  };
+  const applyTopScorer = () => {
+    if (!suggestions.topScorer) return;
+    setTitle('Top Scorer');
+    setRecipientType('player');
+    setPlayerName(suggestions.topScorer.playerName);
+  };
+
+  return (
+    <section className={panel}>
+      <div className={DARK_GLASS_CLASSES.panelHeader}>
+        <Award size={16} className="text-cyan-200" />
+        <h2 className="font-display text-sm font-black text-white">Awards</h2>
+      </div>
+      <div className="space-y-4 p-4">
+        {awards.length > 0 && (
+          <ul className="space-y-2">
+            {awards.map(award => (
+              <li key={award.id} className="flex items-center justify-between gap-3 rounded-xl border border-cyan-300/10 bg-white/[0.035] px-4 py-3">
+                <div className="flex items-center gap-3">
+                  <Medal size={16} className="text-amber-300" />
+                  <div>
+                    <p className="font-display text-sm font-black text-white">{award.title}</p>
+                    <p className="text-xs text-slate-400">{award.recipient_type === 'team' ? (award.team_id ? teamName(award.team_id) : 'Team') : award.player_name}</p>
+                  </div>
+                </div>
+                <button type="button" aria-label="Remove award" className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 hover:text-rose-300" onClick={() => onDelete(award.id)}>
+                  <Trash2 size={16} />
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+
+        {(suggestions.champion || suggestions.topScorer) && (
+          <div className="flex flex-wrap gap-2">
+            {suggestions.champion && (
+              <button type="button" className={ghostBtn} onClick={applyChampion}>
+                <Trophy size={13} /> Champions: {suggestions.champion.name}
+              </button>
+            )}
+            {suggestions.topScorer && (
+              <button type="button" className={ghostBtn} onClick={applyTopScorer}>
+                <Target size={13} /> Top scorer: {suggestions.topScorer.playerName} ({suggestions.topScorer.goals})
+              </button>
+            )}
+          </div>
+        )}
+
+        <form onSubmit={submit} className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 lg:items-end">
+          <div className="space-y-1">
+            <label className={label}>Award title</label>
+            <input className={inputClass} value={title} onChange={e => setTitle(e.target.value)} placeholder="Champions" />
+          </div>
+          <div className="space-y-1">
+            <label className={label}>Recipient</label>
+            <select className={DARK_GLASS_CLASSES.select} value={recipientType} onChange={e => setRecipientType(e.target.value as AwardRecipientType)}>
+              <option value="team">Team</option>
+              <option value="player">Player</option>
+            </select>
+          </div>
+          {recipientType === 'team' ? (
+            <div className="space-y-1">
+              <label className={label}>Team</label>
+              <select className={DARK_GLASS_CLASSES.select} value={teamId} onChange={e => setTeamId(e.target.value)}>
+                {teams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+              </select>
+            </div>
+          ) : (
+            <div className="space-y-1">
+              <label className={label}>Player</label>
+              <input className={inputClass} value={playerName} onChange={e => setPlayerName(e.target.value)} placeholder="Player name" />
+            </div>
+          )}
+          <button type="submit" className={primaryBtn}><Plus size={14} /> Assign</button>
+        </form>
+      </div>
+    </section>
+  );
+};
 
 // --- Venues ------------------------------------------------------------------
 
