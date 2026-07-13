@@ -152,6 +152,40 @@ const StatTile = ({ label: tileLabel, value, detail }: { label: string; value: s
   </div>
 );
 
+const ProgressMeter = ({ value, label: meterLabel }: { value: number; label: string }) => {
+  const clamped = Math.min(100, Math.max(0, value));
+  return (
+    <div>
+      <div className="mb-2 flex items-center justify-between gap-3">
+        <span className="text-xs font-bold text-slate-300">{meterLabel}</span>
+        <span className="font-display text-sm font-black text-white">{clamped}%</span>
+      </div>
+      <div className="h-2 overflow-hidden rounded-full bg-white/[0.07]">
+        <div
+          className="h-full rounded-full bg-gradient-to-r from-sky-300 via-indigo-300 to-emerald-300 transition-all"
+          style={{ width: `${clamped}%` }}
+        />
+      </div>
+    </div>
+  );
+};
+
+const formatShortDate = (date: string | null | undefined) => {
+  if (!date) return 'Date TBD';
+  const parsed = new Date(`${date}T00:00:00`);
+  if (Number.isNaN(parsed.getTime())) return date;
+  return new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric' }).format(parsed);
+};
+
+const daysUntil = (date: string | null | undefined) => {
+  if (!date) return null;
+  const target = new Date(`${date}T00:00:00`).getTime();
+  if (Number.isNaN(target)) return null;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return Math.ceil((target - today.getTime()) / 86_400_000);
+};
+
 const LeagueApp = ({ runtime, userId, authController, preview = false }: LeagueAppProps) => {
   const league = runtime.dataAccess.league;
   const [leagues, setLeagues] = useState<League[]>([]);
@@ -364,6 +398,60 @@ const OverviewSection = ({ league, seasons, venues, events, ledger, invoices, on
     .slice(0, 3);
   const finance = summarizeLedger(ledger, invoices);
   const unpaidInvoices = invoices.filter(invoice => invoice.status === 'unpaid');
+  const hasLiveCompetition = events.some(event => event.status === 'registration_open' || event.status === 'active');
+  const readinessItems = [
+    {
+      label: 'Season calendar',
+      ready: Boolean(focus?.starts_on),
+      detail: focus?.starts_on ? `${focus.name} starts ${formatShortDate(focus.starts_on)}` : 'Add dates to the active season.',
+      action: onGoToSeasons
+    },
+    {
+      label: 'Venue inventory',
+      ready: venues.length > 0,
+      detail: venues.length > 0 ? `${venues.length} venue${venues.length === 1 ? '' : 's'} ready for scheduling.` : 'Add at least one match venue.',
+      action: onGoToVenues
+    },
+    {
+      label: 'Competition setup',
+      ready: events.length > 0,
+      detail: events.length > 0 ? `${events.length} event${events.length === 1 ? '' : 's'} created.` : 'Create a tournament, cup, or league event.',
+      action: onGoToEvents
+    },
+    {
+      label: 'Registration flow',
+      ready: hasLiveCompetition,
+      detail: hasLiveCompetition ? `${openEvents.length + activeEvents.length} event${openEvents.length + activeEvents.length === 1 ? '' : 's'} accepting or running teams.` : 'Open registration or activate an event.',
+      action: onGoToEvents
+    },
+    {
+      label: 'Finance follow-up',
+      ready: finance.outstandingCents === 0,
+      detail: finance.outstandingCents === 0 ? 'No unpaid invoices right now.' : `${formatMoney(finance.outstandingCents, league.currency)} still outstanding.`,
+      action: onGoToFinance
+    }
+  ];
+  const readinessScore = Math.round((readinessItems.filter(item => item.ready).length / readinessItems.length) * 100);
+  const timeline = [
+    focus?.starts_on ? { date: focus.starts_on, title: `${focus.name} starts`, detail: 'Season calendar' } : null,
+    focus?.ends_on ? { date: focus.ends_on, title: `${focus.name} ends`, detail: 'Season calendar' } : null,
+    ...events.flatMap(event => [
+      event.starts_on ? { date: event.starts_on, title: `${event.name} starts`, detail: EVENT_FORMAT_LABELS[event.format] } : null,
+      event.ends_on ? { date: event.ends_on, title: `${event.name} ends`, detail: EVENT_STATUS_LABELS[event.status] } : null
+    ])
+  ]
+    .filter((item): item is { date: string; title: string; detail: string } => Boolean(item))
+    .sort((a, b) => a.date.localeCompare(b.date))
+    .slice(0, 5);
+  const capacityEvents = events
+    .filter(event => event.status !== 'completed')
+    .slice()
+    .sort((a, b) => {
+      const aPriority = a.status === 'registration_open' ? 0 : a.status === 'active' ? 1 : 2;
+      const bPriority = b.status === 'registration_open' ? 0 : b.status === 'active' ? 1 : 2;
+      return aPriority - bPriority || (a.starts_on ?? '9999-12-31').localeCompare(b.starts_on ?? '9999-12-31');
+    })
+    .slice(0, 4);
   const nextActions = [
     !focus ? { label: 'Create the first season', detail: 'Seasons organize every event and table.', action: onGoToSeasons } : null,
     focus && focus.status === 'draft' ? { label: 'Open season registration', detail: `${focus.name} is still in draft.`, action: () => onAdvance(focus.id, 'registration_open') } : null,
@@ -497,6 +585,126 @@ const OverviewSection = ({ league, seasons, venues, events, ledger, invoices, on
             <StatTile label="Collected" value={formatMoney(finance.collectedCents, league.currency)} detail="Invoices paid" />
             <StatTile label="Outstanding" value={formatMoney(finance.outstandingCents, league.currency)} detail={`${unpaidInvoices.length} unpaid`} />
           </div>
+        </div>
+      </section>
+      <section className="grid gap-4 lg:grid-cols-[0.95fr_1.05fr]">
+        <div className={panel}>
+          <div className={sectionHeader}>
+            <Shield size={16} className="text-sky-200" />
+            <h2 className="font-display text-sm font-black text-white">League readiness</h2>
+          </div>
+          <div className="space-y-4 p-4">
+            <ProgressMeter value={readinessScore} label="Setup health" />
+            <div className="space-y-2">
+              {readinessItems.map(item => (
+                <button
+                  key={item.label}
+                  type="button"
+                  onClick={item.action}
+                  className={`${subtleCard} flex w-full items-start gap-3 px-4 py-3 text-left transition hover:border-sky-300/35 hover:bg-sky-300/10`}
+                >
+                  <span className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border ${item.ready ? 'border-emerald-300/35 bg-emerald-400/10 text-emerald-100' : 'border-white/15 bg-white/[0.04] text-slate-400'}`}>
+                    {item.ready ? <Check size={12} /> : <Clock size={12} />}
+                  </span>
+                  <span>
+                    <span className="block text-sm font-black text-white">{item.label}</span>
+                    <span className="mt-0.5 block text-xs leading-5 text-slate-400">{item.detail}</span>
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <div className={panel}>
+          <div className={sectionHeader}>
+            <CalendarRange size={16} className="text-sky-200" />
+            <h2 className="font-display text-sm font-black text-white">Operations timeline</h2>
+          </div>
+          <div className="p-4">
+            {timeline.length === 0 ? (
+              <p className="text-sm text-slate-400">Add season and event dates to build your league operating calendar.</p>
+            ) : (
+              <ol className="space-y-3">
+                {timeline.map(item => {
+                  const diff = daysUntil(item.date);
+                  const timing = diff === null
+                    ? formatShortDate(item.date)
+                    : diff === 0
+                      ? 'Today'
+                      : diff > 0
+                        ? `${diff} day${diff === 1 ? '' : 's'} away`
+                        : `${Math.abs(diff)} day${Math.abs(diff) === 1 ? '' : 's'} ago`;
+                  return (
+                    <li key={`${item.date}-${item.title}`} className={`${subtleCard} grid gap-3 px-4 py-3 sm:grid-cols-[5rem_1fr_auto] sm:items-center`}>
+                      <span className="font-display text-sm font-black text-sky-100">{formatShortDate(item.date)}</span>
+                      <span>
+                        <span className="block text-sm font-black text-white">{item.title}</span>
+                        <span className="mt-0.5 block text-xs text-slate-400">{item.detail}</span>
+                      </span>
+                      <span className="text-xs font-bold text-slate-400 sm:text-right">{timing}</span>
+                    </li>
+                  );
+                })}
+              </ol>
+            )}
+          </div>
+        </div>
+      </section>
+
+      <section className={panel}>
+        <div className={sectionHeader}>
+          <Users size={16} className="text-sky-200" />
+          <h2 className="font-display text-sm font-black text-white">Registration and capacity planning</h2>
+        </div>
+        <div className="p-4">
+          {capacityEvents.length === 0 ? (
+            <p className="text-sm text-slate-400">Create an event to track registration status, team caps, and launch readiness.</p>
+          ) : (
+            <div className="grid gap-3 md:grid-cols-2">
+              {capacityEvents.map(event => {
+                const startsIn = daysUntil(event.starts_on);
+                const statusHint = event.status === 'registration_open'
+                  ? 'Share the registration code with clubs.'
+                  : event.status === 'active'
+                    ? 'Competition is live.'
+                    : 'Draft event, finish setup before opening.';
+                return (
+                  <button
+                    key={event.id}
+                    type="button"
+                    onClick={onGoToEvents}
+                    className={`${subtleCard} flex h-full flex-col items-start gap-3 p-4 text-left transition hover:border-sky-300/35 hover:bg-sky-300/10`}
+                  >
+                    <span className="flex w-full flex-wrap items-start justify-between gap-2">
+                      <span>
+                        <span className="block font-display text-sm font-black text-white">{event.name}</span>
+                        <span className="mt-1 block text-xs text-slate-400">{EVENT_FORMAT_LABELS[event.format]} / {event.category ?? 'Open category'}</span>
+                      </span>
+                      <EventStatusBadge status={event.status} />
+                    </span>
+                    <span className="grid w-full gap-2 sm:grid-cols-3">
+                      <span className="rounded-xl border border-white/10 bg-black/15 px-3 py-2">
+                        <span className="block text-[10px] font-bold uppercase tracking-wide text-slate-500">Starts</span>
+                        <span className="mt-0.5 block text-xs font-bold text-slate-200">
+                          {startsIn === null ? 'TBD' : startsIn === 0 ? 'Today' : startsIn > 0 ? `${startsIn}d` : 'Started'}
+                        </span>
+                      </span>
+                      <span className="rounded-xl border border-white/10 bg-black/15 px-3 py-2">
+                        <span className="block text-[10px] font-bold uppercase tracking-wide text-slate-500">Team cap</span>
+                        <span className="mt-0.5 block text-xs font-bold text-slate-200">{event.team_cap ?? 'Open'}</span>
+                      </span>
+                      <span className="rounded-xl border border-white/10 bg-black/15 px-3 py-2">
+                        <span className="block text-[10px] font-bold uppercase tracking-wide text-slate-500">Code</span>
+                        <span className="mt-0.5 block text-xs font-bold text-slate-200">{event.registration_code}</span>
+                      </span>
+                    </span>
+                    <span className="text-xs leading-5 text-slate-400">{statusHint}</span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
         </div>
       </section>
     </div>
