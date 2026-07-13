@@ -38,6 +38,35 @@ export default function UpdatesView() {
 
   const changelogEntries = [
     {
+      id: 'july_13_coaching_library_focus',
+      date: '2026-07-13',
+      title: 'Coaching Library Focused on Useful Knowledge',
+      badge: 'Coaching Library',
+      summary: 'The low-value My Development tools are gone, and the Coaching Library now connects reading to next-session action and review.',
+      accent: 'border-lime-400/20 bg-slate-950/90 text-slate-100',
+      renderContent: () => (
+        <div className="space-y-4">
+          <p className="text-sm text-slate-300 leading-relaxed">
+            Learning plans, goals, reflections, qualification records, and portfolio tools added too much organization work without helping enough on the pitch. They have been removed so the library can focus on useful football knowledge.
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {[
+              { title: 'Knowledge first', desc: 'Coaches now land directly in the article library with no workspace tab standing between them and the content.' },
+              { title: 'Faster discovery', desc: 'Clearer category cards, search, and Saved and Unread filters make the next useful idea easier to find.' },
+              { title: 'Apply this idea', desc: 'Every article now produces concrete next-session actions such as trying the idea, adding the drill, using cues, watching player behaviours, and adapting for age group.' },
+              { title: 'Session-linked review', desc: 'Coaches can capture evidence, player response, and the next thing to try, with the note saved locally against the article.' },
+              { title: 'Less dead weight', desc: 'The unused coach-development data model, portfolio UI, and related tests were removed along with the feature.' }
+            ].map(item => (
+              <div key={item.title} className="rounded-xl border border-lime-400/15 bg-lime-400/5 p-4">
+                <h5 className="mb-1.5 text-xs font-black uppercase tracking-wider text-lime-100">{item.title}</h5>
+                <p className="text-xs leading-relaxed text-slate-400">{item.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )
+    },
+    {
       id: 'july_9_plans_promotions_announcements',
       date: '2026-07-09',
       title: 'Simpler Plans, Sales, and In-App Announcements',
@@ -1548,25 +1577,6 @@ export default function UpdatesView() {
               completion: 'Coaches keep their workspaces, players and league owners operate their own secured apps, each account belongs to exactly one app, seasons start empty and combine only compatible verified statistics, and no app can reach another app\'s protected records.',
               color: 'border-l-teal-400 bg-teal-400/10',
               badge: 'border-teal-400/30 bg-teal-400/15 text-teal-100'
-            },
-            {
-              phase: 'Future Expansion: Coaching',
-              status: 'Done',
-              objective: 'Philippine coach education and professional development',
-              deliverables: [
-                'Build a coach knowledge base covering session planning, tactics, player development, conditioning, leadership, safeguarding, first aid, and the Laws of the Game.',
-                'Explain the Philippine coaching qualification pathway using current guidance from the Philippine Football Federation and the Asian Football Confederation.',
-                'Provide official PFF, AFC, and FIFA resource links for recognized coaching courses, announcements, requirements, and registration information.',
-                'Add a coach education planner for prerequisites, learning goals, recommended next qualifications, workshops, seminars, and continuing development.',
-                'Track certificates with qualification name, issuing authority, licence number, issue date, expiry date, supporting document, and verification status.',
-                'Add renewal reminders, a private coaching journal, session reflections, development goals, and a downloadable coaching portfolio.',
-                'Expand staff profiles with coaching specialties, age groups coached, experience, achievements, course history, and approved public credentials.',
-                'Keep official qualifications separate from Dumala Development Progress, which may summarize completed learning activities but must never appear as a PFF or AFC rating.'
-              ],
-              benefit: 'Philippine coaches can understand recognized development pathways, organize their credentials, and build practical coaching knowledge without confusing app progress with an official licence.',
-              completion: 'Coaches can find official Philippine guidance, record qualifications and development activity, control what appears publicly, and clearly distinguish verified credentials from Dumala progress.',
-              color: 'border-l-sky-400 bg-sky-400/10',
-              badge: 'border-sky-400/30 bg-sky-400/15 text-sky-100'
             },
             {
               phase: 'Future Expansion: Clubs',

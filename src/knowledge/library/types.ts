@@ -16,6 +16,11 @@ export type LibraryReference = {
   url?: string;
 };
 
+export type LibraryApplyAction = {
+  title: string;
+  detail: string;
+};
+
 export type LibraryArticle = {
   id: string;
   category: LibraryCategory;
@@ -31,6 +36,7 @@ export type LibraryArticle = {
   sections: readonly LibrarySection[];
   keyIdeas: readonly string[];
   trainingIdeas?: readonly string[];
+  applyActions?: readonly LibraryApplyAction[];
   references?: readonly LibraryReference[];
   /** Draft articles are hidden from the library UI until promoted. */
   status: 'draft' | 'active';

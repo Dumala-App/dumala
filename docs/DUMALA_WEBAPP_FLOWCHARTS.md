@@ -272,7 +272,7 @@ flowchart TD
     D --> E[Phase 4: Team Collaboration]
     E --> F[Phase 5: Public Profiles, Highlights, and Drafting]
     F --> G[Future Club Operations]
-    F --> H[Future Coach Education]
+    F --> H[Expanded Coaching Knowledge]
 
     B --> B1[Coach and Player Accounts]
     B --> B2[Cloud Team Identity]

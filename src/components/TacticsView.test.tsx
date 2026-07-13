@@ -76,18 +76,22 @@ afterEach(() => {
 });
 
 describe('Tactics knowledgebase', () => {
-  it('opens with the coach development workspace and credential boundary', () => {
+  it('opens directly into the searchable coaching knowledge library', () => {
     const html = renderToStaticMarkup(<CoachKnowledgeBase />);
 
     expect(html).toContain('Coaching Library');
-    expect(html).toContain('Learn. Apply. Reflect.');
+    expect(html).toContain('Knowledge that earns its place on the pitch.');
     expect(html).toContain(`${ACTIVE_LIBRARY_ARTICLES.length} articles`);
-    expect(html).toContain('Learning plans &amp; goals');
-    expect(html).toContain('Reflection journal');
-    expect(html).toContain('Official resource directory');
-    expect(html).toContain('Learning is not a licence');
-    expect(html).toContain('PFF Coach Courses');
-    expect(html).toContain('Knowledge library');
+    expect(html).toContain('Choose what you want to improve');
+    expect(html).toContain('Search the coaching library');
+    expect(html).toContain('All articles');
+    expect(html).toContain('Unread');
+    expect(html).toContain('Apply this idea');
+    expect(html).toContain('What evidence did you see?');
+    expect(html).toContain('Save review');
+    expect(html).not.toContain('My development');
+    expect(html).not.toContain('Learning plans &amp; goals');
+    expect(html).not.toContain('Reflection journal');
   });
 });
 
