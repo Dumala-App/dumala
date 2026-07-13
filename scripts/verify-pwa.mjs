@@ -69,6 +69,21 @@ for (const localFontPath of [
   }
 }
 
+const entryStylesheetIndex = builtIndex.indexOf('rel="stylesheet"');
+const entryScriptIndex = builtIndex.indexOf('<script type="module"');
+
+if (entryStylesheetIndex === -1) {
+  throw new Error('The production HTML is missing the entry stylesheet.');
+}
+
+if (entryScriptIndex === -1) {
+  throw new Error('The production HTML is missing the entry module script.');
+}
+
+if (entryStylesheetIndex > entryScriptIndex) {
+  throw new Error('The production HTML must discover the entry stylesheet before the entry module script.');
+}
+
 if (/fonts\.(?:googleapis|gstatic)\.com/.test(builtCss)) {
   throw new Error('The production CSS still contains an external Google Fonts dependency.');
 }
