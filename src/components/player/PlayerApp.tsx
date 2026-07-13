@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import type { CloudRuntime } from '../../cloud/runtime';
 import type { CloudAuthController } from '../../hooks/useCloudAuth';
-import { computeIsMinor, type PlayerDrillCompletion, type PlayerNotification, type PlayerProfile, type TeamScheduleEntry } from '../../cloud/player';
+import { computeIsMinor, type PlayerAchievement, type PlayerDrillCompletion, type PlayerNotification, type PlayerProfile, type PlayerWorkoutSession, type TeamScheduleEntry } from '../../cloud/player';
 import { computeStreakDays } from '../../player/progress';
 import TeamChat, { ChatConsentGate } from '../chat/TeamChat';
 import PlayerAppLayout, { type PlayerTab } from './PlayerAppLayout';
@@ -31,6 +31,8 @@ const PlayerApp = ({ runtime, userId, authController, preview = false }: PlayerA
   const [profile, setProfile] = useState<PlayerProfile | null>(null);
   const [linkedClubId, setLinkedClubId] = useState<string | null>(null);
   const [completions, setCompletions] = useState<PlayerDrillCompletion[]>([]);
+  const [workouts, setWorkouts] = useState<PlayerWorkoutSession[]>([]);
+  const [achievements, setAchievements] = useState<PlayerAchievement[]>([]);
   const [favorites, setFavorites] = useState<string[]>([]);
   const [notifications, setNotifications] = useState<PlayerNotification[]>([]);
   const [schedule, setSchedule] = useState<TeamScheduleEntry[]>([]);
@@ -41,20 +43,31 @@ const PlayerApp = ({ runtime, userId, authController, preview = false }: PlayerA
   const player = runtime.dataAccess.player;
 
   const reload = useCallback(async () => {
-    const [nextProfile, links, nextCompletions, nextFavorites, nextNotifications] = await Promise.all([
+    const [nextProfile, links, nextCompletions, nextFavorites, nextNotifications, nextWorkouts, nextAchievements] = await Promise.all([
       player.getMyProfile(userId),
       player.listMyLinks(),
       player.listDrillCompletions(),
       player.listFavorites(),
-      player.listNotifications()
+      player.listNotifications(),
+      player.listWorkoutSessions(),
+      player.listAchievements()
     ]);
     setProfile(nextProfile);
     setCompletions(nextCompletions);
     setFavorites(nextFavorites);
     setNotifications(nextNotifications);
+    setWorkouts(nextWorkouts);
+    setAchievements(nextAchievements);
     const clubId = links[0]?.club_id ?? null;
     setLinkedClubId(clubId);
     setSchedule(clubId ? await player.listMyTeamSchedule(clubId) : []);
+    // Grant any newly-earned badges from this activity, then refresh if any landed.
+    try {
+      const newlyEarned = await player.syncAchievements(computeStreakDays(nextCompletions));
+      if (newlyEarned.length > 0) setAchievements(await player.listAchievements());
+    } catch {
+      /* achievements are non-critical — never block the dashboard */
+    }
   }, [player, userId]);
 
   useEffect(() => {
@@ -84,6 +97,10 @@ const PlayerApp = ({ runtime, userId, authController, preview = false }: PlayerA
   }, []);
 
   const streakDays = useMemo(() => computeStreakDays(completions), [completions]);
+  const playerStats = useMemo(
+    () => ({ drills: completions.length, workouts: workouts.length, favorites: favorites.length, streak: streakDays }),
+    [completions.length, workouts.length, favorites.length, streakDays]
+  );
   const unreadCount = notifications.filter(notification => !notification.read_at).length;
   const nextFixture = useMemo(
     () => schedule.filter(entry => entry.status === 'upcoming')[0] ?? null,
@@ -135,7 +152,7 @@ const PlayerApp = ({ runtime, userId, authController, preview = false }: PlayerA
             onSaved={reload}
           />
         )}
-        {tab === 'progress' && <ProgressTab completions={completions} />}
+        {tab === 'progress' && <ProgressTab completions={completions} stats={playerStats} achievements={achievements} />}
         {tab === 'profile' && (
           <ProfileTab
             runtime={runtime}

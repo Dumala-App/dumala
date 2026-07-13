@@ -1,16 +1,23 @@
 import React, { useMemo } from 'react';
-import { Dumbbell, Flame, Timer, TrendingUp } from 'lucide-react';
-import type { PlayerDrillCompletion } from '../../cloud/player';
+import { Award, Dumbbell, Flame, Footprints, Heart, Target, Timer, TrendingUp, Zap } from 'lucide-react';
+import type { PlayerAchievement, PlayerDrillCompletion } from '../../cloud/player';
 import { getPlayerDrill } from '../../player/drillCatalog';
 import { computeStreakDays, weeklyTotals } from '../../player/progress';
+import { evaluateAchievements, type PlayerStats } from '../../player/achievements';
 import { apexCard, apexDisplay, apexEyebrow, apexMonoTight, apexSectionTitle } from './playerTheme';
 
 interface ProgressTabProps {
   completions: PlayerDrillCompletion[];
+  stats: PlayerStats;
+  achievements: PlayerAchievement[];
 }
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const WEEK_LABELS = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+
+const ACHIEVEMENT_ICONS: Record<string, React.ComponentType<{ size?: number; className?: string }>> = {
+  Footprints, Target, Award, Timer, Dumbbell, Flame, Zap, Heart
+};
 
 const Stat = ({ icon: Icon, value, label, accent }: {
   icon: React.ComponentType<{ size?: number; className?: string; fill?: string }>;
@@ -25,10 +32,16 @@ const Stat = ({ icon: Icon, value, label, accent }: {
   </div>
 );
 
-const ProgressTab = ({ completions }: ProgressTabProps) => {
+const ProgressTab = ({ completions, stats, achievements }: ProgressTabProps) => {
   const totals = weeklyTotals(completions);
   const streak = computeStreakDays(completions);
   const totalMinutes = Math.round(completions.reduce((sum, c) => sum + (c.duration_seconds ?? 0), 0) / 60);
+
+  const badges = useMemo(() => {
+    const earnedMap = new Map(achievements.map(a => [a.achievement_key, a.earned_at]));
+    return evaluateAchievements(stats, earnedMap);
+  }, [stats, achievements]);
+  const earnedBadges = badges.filter(b => b.earned).length;
 
   // Set of local-day timestamps that have at least one completion.
   const trainedDays = useMemo(() => {
@@ -95,6 +108,38 @@ const ProgressTab = ({ completions }: ProgressTabProps) => {
         <Stat icon={Dumbbell} value={totals.drills} label="This Week" />
         <Stat icon={Timer} value={`${totalMinutes}m`} label="All Time" />
       </div>
+
+      {/* Achievements */}
+      <section className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h3 className={apexSectionTitle}>Achievements</h3>
+          <span className={`${apexMonoTight} border-b border-[#ff6d00]/40 pb-0.5 text-[#ff6d00]`}>{earnedBadges} / {badges.length}</span>
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          {badges.map(badge => {
+            const Icon = ACHIEVEMENT_ICONS[badge.def.icon] ?? Award;
+            return (
+              <div key={badge.def.key} className={`${apexCard} p-4 ${badge.earned ? 'border-l-4 border-l-[#ff6d00]' : 'opacity-70'}`}>
+                <div className="flex items-center gap-2.5">
+                  <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded ${badge.earned ? 'bg-[#ff6d00]/15 text-[#ff6d00] shadow-lg shadow-[#ff6d00]/20' : 'bg-[#152031] text-[#c6c6cd]/40'}`}>
+                    <Icon size={17} />
+                  </span>
+                  <div className="min-w-0">
+                    <p className="truncate font-player-display text-sm font-semibold text-[#d8e3fb]">{badge.def.title}</p>
+                    <p className={`${apexMonoTight} text-[#c6c6cd]/60`}>{badge.earned ? 'Unlocked' : `${badge.current} / ${badge.threshold}`}</p>
+                  </div>
+                </div>
+                <p className="mt-2.5 text-xs leading-snug text-[#c6c6cd]/70">{badge.def.description}</p>
+                {!badge.earned && (
+                  <div className="mt-2.5 h-1 w-full overflow-hidden rounded-full bg-[#152031]">
+                    <div className="h-full rounded-full bg-[#ff6d00]/70" style={{ width: `${badge.percent}%` }} />
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </section>
 
       {/* Month grid */}
       <section className={`${apexCard} p-5`}>
