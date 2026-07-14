@@ -4,13 +4,15 @@ import type { CloudAuthController } from '../../hooks/useCloudAuth';
 import type { ChatMessage } from '../../cloud/chat';
 import type {
   PlayerAchievement,
+  ClubRosterPlayer,
   PlayerClubLink,
   PlayerDrillCompletion,
   PlayerLinkRequest,
   PlayerNotification,
   PlayerProfile,
   PlayerWorkoutSession,
-  TeamScheduleEntry
+  TeamScheduleEntry,
+  TeamTacticsSummary
 } from '../../cloud/player';
 import { PLAYER_ACHIEVEMENTS } from '../../player/achievements';
 
@@ -130,8 +132,38 @@ export const createDemoPlayerRepository = (): CloudPlayerRepository => {
   const schedule: TeamScheduleEntry[] = [
     { id: newId(), club_id: DEMO_CLUB_ID, opponent: 'Northside FC', event_date: ago(-3, 15).slice(0, 10), event_time: '15:00', location: 'Home Ground', status: 'upcoming', type: 'league', our_score: null, opponent_score: null, notes: null },
     { id: newId(), club_id: DEMO_CLUB_ID, opponent: '', event_date: ago(-1, 18).slice(0, 10), event_time: '18:00', location: 'Training Pitch B', status: 'upcoming', type: 'training', our_score: null, opponent_score: null, notes: null },
-    { id: newId(), club_id: DEMO_CLUB_ID, opponent: 'Harbor United', event_date: ago(-7, 11).slice(0, 10), event_time: '11:00', location: 'Away', status: 'upcoming', type: 'cup', our_score: null, opponent_score: null, notes: null }
+    { id: newId(), club_id: DEMO_CLUB_ID, opponent: 'Harbor United', event_date: ago(-7, 11).slice(0, 10), event_time: '11:00', location: 'Away', status: 'upcoming', type: 'cup', our_score: null, opponent_score: null, notes: null },
+    { id: newId(), club_id: DEMO_CLUB_ID, opponent: 'East End Athletic', event_date: ago(-10, 16).slice(0, 10), event_time: '16:00', location: 'Away', status: 'upcoming', type: 'friendly', our_score: null, opponent_score: null, notes: null },
+    { id: newId(), club_id: DEMO_CLUB_ID, opponent: '', event_date: ago(-12, 19).slice(0, 10), event_time: '19:00', location: 'Clubhouse', status: 'upcoming', type: 'meeting', our_score: null, opponent_score: null, notes: null }
   ];
+
+  const roster: ClubRosterPlayer[] = [
+    { id: 'demo-roster-1', name: 'Mason Lee', roster_number: 1, position: 'Goalkeeper' },
+    { id: 'demo-roster-2', name: 'Noah Santos', roster_number: 2, position: 'Defender' },
+    { id: 'demo-roster-4', name: 'Ethan Brooks', roster_number: 4, position: 'Defender' },
+    { id: 'demo-roster-5', name: 'Samir Khan', roster_number: 5, position: 'Defender' },
+    { id: 'demo-roster-6', name: 'Leo Martinez', roster_number: 6, position: 'Midfielder' },
+    { id: 'demo-roster-8', name: 'Jordan Miles', roster_number: 8, position: 'Midfielder' },
+    { id: 'demo-roster-10', name: 'Kai Bennett', roster_number: 10, position: 'Midfielder' },
+    { id: 'demo-roster-11', name: 'Alex Rivera', roster_number: 11, position: 'Forward' },
+    { id: 'demo-roster-17', name: 'Owen Clarke', roster_number: 17, position: 'Forward' },
+    { id: 'demo-roster-23', name: 'Daniel Park', roster_number: 23, position: 'Forward' }
+  ];
+
+  const tactics: TeamTacticsSummary = {
+    id: 'demo-tactics',
+    club_id: DEMO_CLUB_ID,
+    match_format: '11v11',
+    formation: '4-3-3',
+    playstyle: 'High press',
+    defensive_style: 'Compact mid block',
+    is_custom_strategy: false,
+    custom_playstyle_value: null,
+    custom_defensive_value: null,
+    custom_mentality_value: 'Positive',
+    custom_strategy_notes: 'Stretch the pitch in possession, counter-press for five seconds after losing the ball, and recover into a compact midfield three.',
+    updated_at: ago(0)
+  };
 
   return {
     getMyProfile: async () => profile,
@@ -164,9 +196,10 @@ export const createDemoPlayerRepository = (): CloudPlayerRepository => {
     listMyLinkRequests: async (): Promise<PlayerLinkRequest[]> => [],
     listMyLinks: async () => links,
     listMyTeamSchedule: async () => schedule,
+    getMyTeamTacticsSummary: async () => tactics,
     getOrCreateClubJoinCode: async () => 'DEMO1234',
     listClubLinkRequests: async () => [],
-    listClubRosterPlayers: async () => [],
+    listClubRosterPlayers: async () => roster,
     approveLink: async () => newId(),
     rejectLink: async () => undefined,
     logDrillCompletion: async (_userId, input) => {
@@ -255,7 +288,8 @@ export const createDemoChatRepository = (): CloudChatRepository => {
     },
     deleteMessage: async id => { messages = messages.map(m => m.id === id ? { ...m, deleted_at: new Date().toISOString() } : m); },
     reportMessage: async () => undefined,
-    markRead: async () => undefined
+    markRead: async () => undefined,
+    getCaptainUserId: async () => 'demo-teammate'
   };
 };
 

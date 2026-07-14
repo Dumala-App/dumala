@@ -86,6 +86,21 @@ export interface TeamScheduleEntry {
   notes: string | null;
 }
 
+export interface TeamTacticsSummary {
+  id: string;
+  club_id: string;
+  match_format: string;
+  formation: string;
+  playstyle: string;
+  defensive_style: string | null;
+  is_custom_strategy: boolean;
+  custom_playstyle_value: string | null;
+  custom_defensive_value: string | null;
+  custom_mentality_value: string | null;
+  custom_strategy_notes: string | null;
+  updated_at: string;
+}
+
 export interface PlayerDrillCompletion {
   id: string;
   user_id: string;
@@ -302,6 +317,25 @@ export const listMyTeamSchedule = async (
     'TEAM_SCHEDULE_READ_FAILED',
     'Failed to load the team schedule'
   ) as TeamScheduleEntry[] | null) ?? [];
+};
+
+export const getMyTeamTacticsSummary = async (
+  client: DumalaSupabaseClient,
+  clubId: string
+): Promise<TeamTacticsSummary | null> => {
+  const supabase = asUntypedClient(client);
+  const rows = (expectNoError(
+    await supabase
+      .from('tactics_workspaces')
+      .select('id, club_id, match_format, formation, playstyle, defensive_style, is_custom_strategy, custom_playstyle_value, custom_defensive_value, custom_mentality_value, custom_strategy_notes, updated_at')
+      .eq('club_id', clubId)
+      .is('deleted_at', null)
+      .order('updated_at', { ascending: false })
+      .limit(1),
+    'TEAM_TACTICS_READ_FAILED',
+    'Failed to load the team setup'
+  ) as TeamTacticsSummary[] | null) ?? [];
+  return rows[0] ?? null;
 };
 
 // --- Coach-facing operations -------------------------------------------------

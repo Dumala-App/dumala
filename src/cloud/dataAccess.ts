@@ -146,6 +146,7 @@ import {
   approvePlayerLink,
   getMyPlayerProfile,
   getOrCreateClubJoinCode,
+  getMyTeamTacticsSummary,
   listAchievements,
   listClubLinkRequests,
   listClubRosterPlayers,
@@ -181,6 +182,7 @@ import {
   type PlayerWorkoutSession,
   type RequestPlayerLinkInput,
   type TeamScheduleEntry,
+  type TeamTacticsSummary,
   type WorkoutSessionInput
 } from './player';
 import {
@@ -260,6 +262,7 @@ import {
 import {
   deleteMessage,
   ensureChannel,
+  getTeamChatCaptainUserId,
   listMessages,
   markChatRead,
   postMessage,
@@ -397,6 +400,7 @@ export interface CloudPlayerRepository {
   listMyLinkRequests(): Promise<PlayerLinkRequest[]>;
   listMyLinks(): Promise<PlayerClubLink[]>;
   listMyTeamSchedule(clubId: string): Promise<TeamScheduleEntry[]>;
+  getMyTeamTacticsSummary(clubId: string): Promise<TeamTacticsSummary | null>;
   getOrCreateClubJoinCode(clubId: string): Promise<string>;
   listClubLinkRequests(clubId: string): Promise<PlayerLinkRequest[]>;
   listClubRosterPlayers(clubId: string): Promise<ClubRosterPlayer[]>;
@@ -473,6 +477,7 @@ export interface CloudChatRepository {
   deleteMessage(messageId: string): Promise<void>;
   reportMessage(messageId: string, reason?: string | null): Promise<void>;
   markRead(channelId: string): Promise<void>;
+  getCaptainUserId(clubId: string): Promise<string | null>;
 }
 
 export interface CloudDataAccess {
@@ -609,6 +614,7 @@ export const createCloudDataAccess = (client: DumalaSupabaseClient): CloudDataAc
     listMyLinkRequests: () => listMyLinkRequests(client),
     listMyLinks: () => listMyPlayerLinks(client),
     listMyTeamSchedule: clubId => listMyTeamSchedule(client, clubId),
+    getMyTeamTacticsSummary: clubId => getMyTeamTacticsSummary(client, clubId),
     getOrCreateClubJoinCode: clubId => getOrCreateClubJoinCode(client, clubId),
     listClubLinkRequests: clubId => listClubLinkRequests(client, clubId),
     listClubRosterPlayers: clubId => listClubRosterPlayers(client, clubId),
@@ -679,6 +685,7 @@ export const createCloudDataAccess = (client: DumalaSupabaseClient): CloudDataAc
     postMessage: (clubId, body) => postMessage(client, clubId, body),
     deleteMessage: messageId => deleteMessage(client, messageId),
     reportMessage: (messageId, reason) => reportMessage(client, messageId, reason),
-    markRead: channelId => markChatRead(client, channelId)
+    markRead: channelId => markChatRead(client, channelId),
+    getCaptainUserId: clubId => getTeamChatCaptainUserId(client, clubId)
   }
 });

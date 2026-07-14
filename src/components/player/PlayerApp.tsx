@@ -12,6 +12,7 @@ import DrillsTab from './DrillsTab';
 import TimerTab, { type TimerPreset } from './TimerTab';
 import ProgressTab from './ProgressTab';
 import ProfileTab from './ProfileTab';
+import SquadTab from './SquadTab';
 import { readInitialPlayerInviteCode } from '../../player/inviteLink';
 
 interface PlayerAppProps {
@@ -177,6 +178,13 @@ const PlayerApp = ({
           />
         )}
         {tab === 'progress' && <ProgressTab completions={completions} stats={playerStats} achievements={achievements} />}
+        {tab === 'squad' && (
+          <SquadTab
+            runtime={runtime}
+            clubId={linkedClubId}
+            onGoToProfile={() => setTab('profile')}
+          />
+        )}
         {tab === 'chat' && (
           <div className="h-full pb-[calc(4.25rem+env(safe-area-inset-bottom))]">
             {!linkedClubId ? (
