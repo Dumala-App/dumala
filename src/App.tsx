@@ -90,8 +90,8 @@ import type { DayName } from './training/synchronization';
 import {
   bootstrapSignedInCloudAccount,
   clearPendingAppAuthRedirect,
+  getAppAuthReturnTarget,
   getOrCreateCloudDeviceId,
-  hasPendingAppAuthRedirect
 } from './components/CloudAccountGate';
 import { runCloudBackupFlow } from './cloud/workspaceBackupFlow';
 import { createContentFingerprint } from './migrations/localToCloud';
@@ -129,16 +129,10 @@ const EventRegistrationView = lazy(() => import('./components/league/EventRegist
 
 const getHashRoute = () => typeof window === 'undefined' ? '' : window.location.hash.replace(/^#\/?/, '');
 // Phase 6 persona apps live under their own hash roots (#/player, #/league).
-const isPlayerRoute = (route: string) => route === 'player' || route.startsWith('player/');
+const isPlayerRoute = (route: string) => route === 'player' || route.startsWith('player/') || route.startsWith('player?');
 const isLeagueRoute = (route: string) => route === 'league' || route.startsWith('league/');
 // Public event registration (a coach applies with a code — no account).
 const isRegisterRoute = (route: string) => route === 'register' || route.startsWith('register/');
-const isAppAuthRedirect = () => {
-  if (typeof window === 'undefined') return false;
-  return new URLSearchParams(window.location.search).get('dumalaAuth') === 'app';
-};
-const shouldRouteAuthReturnToApp = () => isAppAuthRedirect() || hasPendingAppAuthRedirect();
-
 const CLOUD_BACKUP_METADATA_PREFIX = 'dumala_cloud_backup__';
 
 interface LocalCloudBackupMetadata {
@@ -918,11 +912,12 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    if (!shouldRouteAuthReturnToApp() || cloudAuthController.state.status !== 'signedIn') return;
-    const nextUrl = `${window.location.pathname}#/app`;
+    const authReturnTarget = getAppAuthReturnTarget();
+    if (!authReturnTarget || cloudAuthController.state.status !== 'signedIn') return;
+    const nextUrl = `${window.location.pathname}#/${authReturnTarget}`;
     window.history.replaceState(null, '', nextUrl);
     clearPendingAppAuthRedirect();
-    setHashRoute('app');
+    setHashRoute(authReturnTarget);
   }, [cloudAuthController.state.status]);
 
   useEffect(() => {
@@ -1735,6 +1730,9 @@ export default function App() {
                   announcements={announcements}
                   assessments={assessments}
                   activation={activationState}
+                  cloudClubId={activeWorkspace?.cloudClubId ?? null}
+                  playerAppAvailable={cloudRuntime.enabled && cloudRuntime.phase6.playerAppEnabled}
+                  teamChatAvailable={cloudRuntime.enabled && cloudRuntime.phase6.chatEnabled}
                   onSelectPlayer={setSelectedPlayer}
                   onOpenTrainingSession={setSelectedTrainingSessionDay}
                   onUpdateTeamInfo={handleUpdateTeamInfo}

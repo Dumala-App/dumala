@@ -17,7 +17,8 @@ export const shouldLoadWorkspace = (
     : window.localStorage.getItem(APP_AUTH_PENDING_KEY)
 ) => {
   if (route !== '' && route !== 'landing') return true;
-  if (new URLSearchParams(search).get('dumalaAuth') === 'app') return true;
+  const authTarget = new URLSearchParams(search).get('dumalaAuth');
+  if (authTarget === 'app' || authTarget === 'player' || authTarget === 'league') return true;
 
   const startedAt = Number(pendingStartedAt);
   if (!Number.isFinite(startedAt) || startedAt <= 0) return false;

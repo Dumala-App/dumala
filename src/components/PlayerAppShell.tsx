@@ -1,47 +1,63 @@
 import React, { useEffect, useState } from 'react';
-import { Loader2 } from 'lucide-react';
+import { CalendarDays, Dumbbell, Loader2, TimerReset } from 'lucide-react';
 import { useCloudRuntime } from '../hooks/useCloudRuntime';
 import { useCloudAuth } from '../hooks/useCloudAuth';
-import { CloudAccountGate } from './CloudAccountGate';
+import { CloudAccountGate, getAppAuthRedirectUrl } from './CloudAccountGate';
 import type { AppDestination } from '../cloud/identity';
 import PlayerApp from './player/PlayerApp';
 import { createPreviewRuntime, createPreviewAuthController } from './player/demoPlayerData';
-import {
-  APEX_THEME_STYLE,
-  apexCard,
-  apexDisplay,
-  apexEyebrow,
-  apexShell
-} from './player/playerTheme';
+import PersonaAccessShell from './PersonaAccessShell';
 
 // Free Player app. This shell owns the Player registration door and, once signed
 // in, confirms the persona server-side and hands off to the full-screen mobile
-// PlayerApp. Styled with the "Apex Precision" player design system.
+// PlayerApp.
+
+const playerHighlights = [
+  {
+    icon: Dumbbell,
+    title: 'Solo drills',
+    text: 'Train with position-aware routines and keep favorite drills close.'
+  },
+  {
+    icon: TimerReset,
+    title: 'Workout timer',
+    text: 'Record intervals, streaks, and sessions from a phone-friendly flow.'
+  },
+  {
+    icon: CalendarDays,
+    title: 'Team link',
+    text: 'Claim your roster spot to see schedule, chat, and official updates.'
+  }
+];
 
 const CloudRequiredNotice = () => (
-  <div className={`${apexShell} flex items-center justify-center p-6`} style={APEX_THEME_STYLE}>
-    <div className={`${apexCard} max-w-md p-6 text-center`}>
-      <h1 className={`${apexDisplay} text-lg`}>Dumala for Players</h1>
-      <p className="mt-2 text-sm text-[#c6c6cd]">
-        The Player app needs a cloud connection. Open Dumala on an online device to sign in or create your free player account.
-      </p>
+  <PersonaAccessShell
+    variant="player"
+    eyebrow="Dumala Player"
+    title="Player access needs cloud."
+    description="Open Dumala with a cloud connection to create your free player account, claim your roster spot, and sync training progress."
+    badge="Free player workspace"
+    highlights={playerHighlights}
+  >
+    <div className="rounded-2xl border border-amber-300/20 bg-amber-300/10 px-5 py-4 text-sm leading-6 text-amber-100">
+      Cloud is not configured on this device yet. Add the Supabase public URL and publishable key, then reload this page.
     </div>
-  </div>
+  </PersonaAccessShell>
 );
 
 const ShellLoading = () => (
-  <div className="flex items-center justify-center p-6">
-    <span className="inline-flex items-center gap-2 text-sm text-[#c6c6cd]">
-      <Loader2 size={16} className="animate-spin" /> Loading your player workspace…
+  <div className="flex items-center justify-center rounded-2xl border border-cyan-300/15 bg-white/[0.045] p-6">
+    <span className="inline-flex items-center gap-2 text-sm text-slate-300">
+      <Loader2 size={16} className="animate-spin" /> Loading your player workspace...
     </span>
   </div>
 );
 
 const RedirectingNotice = ({ route }: { route: string }) => (
-  <div className={`${apexCard} p-6 text-center`}>
-    <h1 className={`${apexDisplay} text-lg`}>This isn't your app</h1>
-    <p className="mt-2 text-sm text-[#c6c6cd]">
-      Your account belongs to a different Dumala app. Taking you to <span className="font-semibold text-[#d8e3fb]">{route}</span>…
+  <div className="rounded-2xl border border-cyan-300/15 bg-white/[0.045] p-5 text-center">
+    <h1 className="font-display text-lg font-black text-white">This is not your app</h1>
+    <p className="mt-2 text-sm leading-6 text-slate-400">
+      Your account belongs to a different Dumala app. Taking you to <span className="font-semibold text-slate-100">{route}</span>...
     </p>
   </div>
 );
@@ -56,9 +72,6 @@ const PlayerAppShell = () => {
   const auth = useCloudAuth({ enabled: runtime.enabled, auth: runtime.dataAccess?.auth ?? null });
   const [destination, setDestination] = useState<AppDestination | null>(null);
   const [resolving, setResolving] = useState(false);
-  // Key resolution on the stable user id, not the whole auth.state object, so a
-  // new auth.state reference for the same user doesn't cancel an in-flight
-  // resolution and leave the shell stuck loading.
   const signedInUserId = auth.state.status === 'signedIn' ? auth.state.session.userId : null;
 
   useEffect(() => {
@@ -102,10 +115,7 @@ const PlayerAppShell = () => {
     }
   }, [destination]);
 
-  // Direct design mode: while the Player app is enabled for production rollout,
-  // skip the login gate and cloud entirely so the dashboard can be designed with
-  // stable in-memory sample data. Placed after all hooks so hook order stays stable.
-  if (runtime.phase6.playerAppEnabled || runtime.phase6.playerPreviewEnabled) {
+  if (runtime.phase6.playerPreviewEnabled) {
     if (!previewRuntimeSingleton) previewRuntimeSingleton = createPreviewRuntime(runtime.phase6);
     return (
       <PlayerApp runtime={previewRuntimeSingleton} userId="preview-player" authController={previewAuthController} preview />
@@ -114,7 +124,6 @@ const PlayerAppShell = () => {
 
   if (!runtime.enabled) return <CloudRequiredNotice />;
 
-  // Signed-in players get the full-screen mobile app.
   if (
     auth.state.status === 'signedIn' &&
     destination &&
@@ -126,36 +135,38 @@ const PlayerAppShell = () => {
   const signedIn = auth.state.status === 'signedIn';
 
   return (
-    <div className={apexShell} style={APEX_THEME_STYLE}>
-      <div className="mx-auto max-w-md px-4 py-12">
-        <header className="mb-6 space-y-5">
-          <div>
-            <p className={`${apexEyebrow} mb-1`}>Dumala Player</p>
-            <h1 className={`${apexDisplay} text-[28px]`}>Train. Track. Level up.</h1>
-            <p className="mt-2 text-sm leading-relaxed text-[#c6c6cd]">
-              Your free football workspace — solo drills, a workout timer, streaks, and your team schedule.
-            </p>
-          </div>
-          <CloudAccountGate
-            runtime={runtime}
-            authController={auth}
-            bootstrapAccount={false}
-            tone="dark"
-            layout="compact"
-          />
-        </header>
-
-        {!signedIn && (
-          <p className={`${apexCard} px-5 py-4 text-sm text-[#c6c6cd]`}>
-            Sign in above, or create your free player account, to open your workspace.
-          </p>
-        )}
-        {signedIn && (resolving || !destination) && <ShellLoading />}
-        {signedIn && destination && destination.authorizedRoute !== '/player' && (
-          <RedirectingNotice route={destination.authorizedRoute} />
-        )}
+    <PersonaAccessShell
+      variant="player"
+      eyebrow="Dumala Player"
+      title="Train. Track. Level up."
+      description="Your free football workspace for solo drills, a workout timer, training streaks, and your team schedule once your coach approves the link."
+      badge="Free player account"
+      highlights={playerHighlights}
+      footer="Players join through a coach invite link or club join code. Your coach controls official roster records."
+    >
+      <div className="rounded-2xl border border-white/10 bg-white/[0.045] p-4">
+        <p className="mb-3 text-xs font-black uppercase tracking-wide text-orange-200">Player sign in</p>
+        <CloudAccountGate
+          runtime={runtime}
+          authController={auth}
+          bootstrapAccount={false}
+          tone="dark"
+          layout="compact"
+          audience="player"
+          redirectTo={getAppAuthRedirectUrl('player')}
+        />
       </div>
-    </div>
+
+      {!signedIn && (
+        <p className="rounded-2xl border border-orange-300/15 bg-orange-300/10 px-5 py-4 text-sm leading-6 text-orange-50/90">
+          Sign in above, or create your free player account, to open your workspace.
+        </p>
+      )}
+      {signedIn && (resolving || !destination) && <ShellLoading />}
+      {signedIn && destination && destination.authorizedRoute !== '/player' && (
+        <RedirectingNotice route={destination.authorizedRoute} />
+      )}
+    </PersonaAccessShell>
   );
 };
 
