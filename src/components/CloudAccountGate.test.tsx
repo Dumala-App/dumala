@@ -6,6 +6,7 @@ import {
   clearPendingAppAuthRedirect,
   CloudAccountGate,
   getAppAuthRedirectUrl,
+  getAppAuthReturnTarget,
   getOrCreateCloudDeviceId,
   hasPendingAppAuthRedirect,
   hasOnboardingIntent,
@@ -31,9 +32,10 @@ const signedOutAuth = (): CloudAuthController => ({
 
 const stubWindow = (href = 'https://dumala.test/#/app') => {
   const values = new Map<string, string>();
+  const url = new URL(href);
 
   vi.stubGlobal('window', {
-    location: { href },
+    location: { href, search: url.search },
     localStorage: {
       getItem: vi.fn((key: string) => values.get(key) ?? null),
       setItem: vi.fn((key: string, value: string) => {
@@ -51,6 +53,16 @@ describe('CloudAccountGate', () => {
     stubWindow();
 
     expect(getAppAuthRedirectUrl()).toBe('https://dumala.test/?dumalaAuth=app');
+    expect(getAppAuthRedirectUrl('player')).toBe('https://dumala.test/?dumalaAuth=player');
+    expect(getAppAuthRedirectUrl('league')).toBe('https://dumala.test/?dumalaAuth=league');
+
+    vi.unstubAllGlobals();
+  });
+
+  it('reads persona-specific app auth return targets', () => {
+    stubWindow('https://dumala.test/?dumalaAuth=player');
+
+    expect(getAppAuthReturnTarget()).toBe('player');
 
     vi.unstubAllGlobals();
   });

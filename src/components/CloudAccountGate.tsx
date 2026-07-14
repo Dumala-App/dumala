@@ -14,6 +14,7 @@ const APP_AUTH_CALLBACK_PARAM = 'dumalaAuth';
 const APP_AUTH_PENDING_KEY = 'dumala_pending_app_auth_redirect';
 const APP_AUTH_PENDING_TTL_MS = 10 * 60 * 1000;
 export const ONBOARDING_INTENT_KEY = 'dumala_onboarding_intent';
+export type AppAuthTarget = 'app' | 'player' | 'league';
 
 export const markOnboardingIntent = () => {
   if (typeof window === 'undefined') return;
@@ -25,10 +26,10 @@ export const hasOnboardingIntent = () => {
   return window.localStorage.getItem(ONBOARDING_INTENT_KEY) !== null;
 };
 
-export const getAppAuthRedirectUrl = (): string | undefined => {
+export const getAppAuthRedirectUrl = (target: AppAuthTarget = 'app'): string | undefined => {
   if (typeof window === 'undefined') return undefined;
   const url = new URL(window.location.href);
-  url.searchParams.set(APP_AUTH_CALLBACK_PARAM, 'app');
+  url.searchParams.set(APP_AUTH_CALLBACK_PARAM, target);
   url.hash = '';
   return url.toString();
 };
@@ -54,6 +55,13 @@ export const clearPendingAppAuthRedirect = () => {
   window.localStorage.removeItem(APP_AUTH_PENDING_KEY);
 };
 
+export const getAppAuthReturnTarget = (): AppAuthTarget | null => {
+  if (typeof window === 'undefined') return null;
+  const target = new URLSearchParams(window.location.search).get(APP_AUTH_CALLBACK_PARAM);
+  if (target === 'player' || target === 'league' || target === 'app') return target;
+  return hasPendingAppAuthRedirect() ? 'app' : null;
+};
+
 export interface CloudAccountGateProps {
   clubName?: string;
   appVersion?: string;
@@ -61,7 +69,7 @@ export interface CloudAccountGateProps {
   bootstrapAccount?: boolean;
   tone?: 'light' | 'dark';
   layout?: 'default' | 'compact';
-  audience?: 'coach' | 'admin';
+  audience?: 'coach' | 'player' | 'admin';
   runtime?: CloudRuntime;
   authController?: CloudAuthController;
   onSignedOut?: () => void;
@@ -199,9 +207,20 @@ export const CloudAccountGate = ({
   const dark = tone === 'dark';
   const compact = layout === 'compact';
   const isAdmin = audience === 'admin';
-  const emailPlaceholder = isAdmin ? 'owner@example.com' : 'coach@example.com';
-  const connectedLabel = isAdmin ? 'Admin account connected' : compact ? 'Cloud connected' : 'Cloud account connected';
-  const googleHelper = isAdmin ? 'Owner access only.' : 'Fastest for new and returning coaches.';
+  const isPlayer = audience === 'player';
+  const emailPlaceholder = isAdmin ? 'owner@example.com' : isPlayer ? 'player@example.com' : 'coach@example.com';
+  const connectedLabel = isAdmin
+    ? 'Admin account connected'
+    : isPlayer
+      ? 'Player account connected'
+      : compact
+        ? 'Cloud connected'
+        : 'Cloud account connected';
+  const googleHelper = isAdmin
+    ? 'Owner access only.'
+    : isPlayer
+      ? 'Free for players. Use the same account whenever you train.'
+      : 'Fastest for new and returning coaches.';
 
   useEffect(() => {
     if (!bootstrapAccount) return;

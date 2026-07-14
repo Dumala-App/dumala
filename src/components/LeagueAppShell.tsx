@@ -1,57 +1,90 @@
 import React, { useEffect, useState } from 'react';
-import { Loader2 } from 'lucide-react';
+import { Loader2, ShieldCheck } from 'lucide-react';
 import { useCloudRuntime } from '../hooks/useCloudRuntime';
 import { useCloudAuth } from '../hooks/useCloudAuth';
-import { CloudAccountGate } from './CloudAccountGate';
 import RequestLeagueAccessForm from './RequestLeagueAccessForm';
 import type { AppDestination } from '../cloud/identity';
 import LeagueApp from './league/LeagueApp';
 import { createPreviewLeagueRuntime, createPreviewLeagueAuthController } from './league/demoLeagueData';
+import PersonaAccessShell from './PersonaAccessShell';
+import { AetherFlowBackdrop } from './ui/aether-flow-hero';
+import { GlowingEffect } from './ui/glowing-effect';
+import { ORANGE_NEW_CLASSES, ORANGE_NEW_GLOW_PROPS, ORANGE_NEW_THEME_STYLE } from '../theme/orangeNewTheme';
 
-// Paid League Owner app (free during the beta pilot). This is the Phase 6
-// identity shell: there is no open signup — owners request access and a Dumala
-// admin provisions the account and grants the league entitlement. Dashboards are
-// gated on that entitlement, not on a plan name.
-
-const shellClass = 'min-h-screen bg-[#04070f] text-slate-100';
+// Paid League Owner app (free during the beta pilot). There is no open signup:
+// owners request access and a Dumala admin provisions the account and entitlement.
 
 const CloudRequiredNotice = () => (
-  <div className={`${shellClass} flex items-center justify-center p-6`}>
-    <div className="max-w-md rounded-xl border border-slate-700 bg-[#080d17] p-6 text-center">
-      <h1 className="text-lg font-black">Dumala for Leagues</h1>
-      <p className="mt-2 text-sm text-slate-400">
-        The League app needs a cloud connection. Open Dumala on an online device to continue.
-      </p>
+  <PersonaAccessShell
+    variant="league"
+    eyebrow="Dumala League"
+    title="League access needs cloud."
+    description="A private workspace for league owners to manage competitions, events, and records."
+    badge="Admin-provisioned beta"
+    compact
+    singlePanel
+  >
+    <div className="rounded-2xl border border-amber-300/20 bg-amber-300/10 px-5 py-4 text-sm leading-6 text-amber-100">
+      Cloud is not configured on this device yet. Add the Supabase public URL and publishable key, then reload this page.
     </div>
-  </div>
+  </PersonaAccessShell>
 );
 
 const ShellLoading = () => (
-  <div className={`${shellClass} flex items-center justify-center p-6`}>
+  <div className="flex items-center justify-center rounded-2xl border border-cyan-300/15 bg-white/[0.045] p-6">
     <span className="inline-flex items-center gap-2 text-sm text-slate-300">
-      <Loader2 size={16} className="animate-spin" /> Loading your league workspace…
+      <Loader2 size={16} className="animate-spin" /> Loading your league workspace...
     </span>
   </div>
 );
 
 const RedirectingNotice = ({ route }: { route: string }) => (
-  <div className={`${shellClass} flex items-center justify-center p-6`}>
-    <div className="max-w-md rounded-xl border border-slate-700 bg-[#080d17] p-6 text-center">
-      <h1 className="text-lg font-black">This isn't your app</h1>
-      <p className="mt-2 text-sm text-slate-400">
-        Your account belongs to a different Dumala app. Taking you to <span className="font-semibold text-slate-200">{route}</span>…
-      </p>
-    </div>
+  <div className="rounded-2xl border border-cyan-300/15 bg-white/[0.045] p-5 text-center">
+    <h1 className="font-display text-lg font-black text-white">This is not your app</h1>
+    <p className="mt-2 text-sm leading-6 text-slate-400">
+      Your account belongs to a different Dumala app. Taking you to <span className="font-semibold text-slate-100">{route}</span>...
+    </p>
   </div>
 );
 
 const AccessPendingNotice = () => (
-  <div className="rounded-xl border border-amber-400/25 bg-amber-400/10 px-5 py-4 text-amber-100">
-    <h2 className="text-sm font-black uppercase tracking-wide">League access not active yet</h2>
-    <p className="mt-2 text-sm leading-relaxed text-amber-100/90">
-      Your account is registered, but League access hasn't been granted. A Dumala admin activates the league entitlement once your
-      request is approved. You'll get in as soon as it's switched on.
+  <div className="rounded-2xl border border-amber-400/25 bg-amber-400/10 px-5 py-4 text-amber-100">
+    <div className="flex items-center gap-2 text-sm font-black uppercase tracking-wide">
+      <ShieldCheck size={16} /> League access not active yet
+    </div>
+    <p className="mt-2 text-sm leading-6 text-amber-100/90">
+      Your account is registered, but League access has not been granted. A Dumala admin activates the league entitlement once your
+      request is approved.
     </p>
+  </div>
+);
+
+const LeagueWaitlistView = ({ runtime }: { runtime: ReturnType<typeof useCloudRuntime> }) => (
+  <div
+    className={`${ORANGE_NEW_CLASSES.accessShell} flex min-h-screen items-center justify-center p-4`}
+    style={ORANGE_NEW_THEME_STYLE}
+  >
+    <AetherFlowBackdrop
+      className="absolute inset-0 z-0"
+      particleColor="rgba(34,211,238,0.82)"
+      lineRGB="125,211,252"
+    />
+    <main className="relative z-10 w-full max-w-sm">
+      <div className={ORANGE_NEW_CLASSES.glowShellTight}>
+        <GlowingEffect {...ORANGE_NEW_GLOW_PROPS.shellTight} />
+        <section className="relative z-10 rounded-2xl border border-cyan-300/15 bg-[#07111f]/92 px-5 py-6 text-center text-slate-100 shadow-2xl shadow-black/45 backdrop-blur-xl sm:px-6">
+          <img
+            src="/dumala-onboarding-logo.png"
+            alt="Dumala"
+            className="mx-auto mb-3 h-auto w-24 object-contain"
+          />
+          <p className="mx-auto mb-4 max-w-[17rem] text-sm font-semibold leading-6 text-slate-300">
+            Join the private beta waitlist for Dumala league management.
+          </p>
+          <RequestLeagueAccessForm runtime={runtime} />
+        </section>
+      </div>
+    </main>
   </div>
 );
 
@@ -64,8 +97,6 @@ const LeagueAppShell = () => {
   const auth = useCloudAuth({ enabled: runtime.enabled, auth: runtime.dataAccess?.auth ?? null });
   const [destination, setDestination] = useState<AppDestination | null>(null);
   const [resolving, setResolving] = useState(false);
-  // Key resolution on the stable user id (see PlayerAppShell) so a new auth.state
-  // reference for the same user doesn't cancel an in-flight resolution.
   const signedInUserId = auth.state.status === 'signedIn' ? auth.state.session.userId : null;
 
   useEffect(() => {
@@ -100,10 +131,7 @@ const LeagueAppShell = () => {
     }
   }, [destination]);
 
-  // Direct design mode: while the League app is enabled for production rollout,
-  // skip login + entitlement and render the dashboard with in-memory sample data.
-  // After all hooks.
-  if (runtime.phase6.leagueAppEnabled || runtime.phase6.leaguePreviewEnabled) {
+  if (runtime.phase6.leaguePreviewEnabled) {
     if (!previewLeagueRuntimeSingleton) previewLeagueRuntimeSingleton = createPreviewLeagueRuntime(runtime.phase6);
     return (
       <LeagueApp runtime={previewLeagueRuntimeSingleton} userId="preview-owner" authController={previewLeagueAuthController} preview />
@@ -112,7 +140,6 @@ const LeagueAppShell = () => {
 
   if (!runtime.enabled) return <CloudRequiredNotice />;
 
-  // A signed-in, entitled League owner gets the full dashboard app.
   if (
     auth.state.status === 'signedIn' &&
     destination &&
@@ -124,27 +151,19 @@ const LeagueAppShell = () => {
 
   const signedIn = auth.state.status === 'signedIn';
 
-  return (
-    <div className={shellClass}>
-      <div className="mx-auto max-w-4xl px-4 py-8">
-        <header className="mb-6 space-y-4">
-          <div>
-            <p className="text-xs font-black uppercase tracking-[0.2em] text-indigo-300">Dumala League</p>
-            <h1 className="mt-1 text-2xl font-black">Run your seasons, tournaments, and league operations</h1>
-            <p className="mt-1 text-sm text-slate-400">
-              League accounts are provisioned by Dumala — there's no open signup. Sign in below, or request access.
-            </p>
-          </div>
-          <CloudAccountGate
-            runtime={runtime}
-            authController={auth}
-            bootstrapAccount={false}
-            tone="dark"
-            layout="compact"
-            audience="admin"
-          />
-        </header>
+  if (!signedIn) return <LeagueWaitlistView runtime={runtime} />;
 
+  return (
+    <PersonaAccessShell
+      variant="league"
+      eyebrow="Dumala League"
+      title="League Owner access"
+      description="Join the private beta waitlist for Dumala league management."
+      badge="Owner beta access"
+      compact
+      singlePanel
+    >
+      <div className="mx-auto w-full max-w-xl space-y-4">
         {signedIn && (resolving || !destination) && <ShellLoading />}
         {signedIn && destination && destination.persona !== 'league' && (
           <RedirectingNotice route={destination.authorizedRoute} />
@@ -152,20 +171,8 @@ const LeagueAppShell = () => {
         {signedIn && destination && destination.persona === 'league' && !destination.leagueEntitled && (
           <AccessPendingNotice />
         )}
-
-        {!signedIn && (
-          <section className="space-y-4 rounded-xl border border-slate-700 bg-[#080d17] p-5">
-            <div>
-              <h2 className="text-base font-black text-slate-100">Request League access</h2>
-              <p className="mt-1 text-sm text-slate-400">
-                Tell us about your league and we'll set up your account. Access is free during the beta pilot.
-              </p>
-            </div>
-            <RequestLeagueAccessForm runtime={runtime} />
-          </section>
-        )}
       </div>
-    </div>
+    </PersonaAccessShell>
   );
 };
 

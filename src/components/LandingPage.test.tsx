@@ -9,6 +9,8 @@ describe('LandingPage Premium CTA', () => {
 
     expect(html).toContain('Start free');
     expect(html).toContain('href="#/app"');
+    expect(html).not.toContain('href="#/player"');
+    expect(html).not.toContain('href="#/league"');
     expect(html).toContain('<button type="button" class="dc-joinbeta"');
     expect(html).toContain('Join the beta list</button>');
     expect(html).not.toContain('<a href="#/app" class="dc-joinbeta"');

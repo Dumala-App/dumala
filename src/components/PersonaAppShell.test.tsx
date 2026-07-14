@@ -26,7 +26,8 @@ vi.mock('../hooks/useCloudAuth', () => ({
 }));
 
 vi.mock('./CloudAccountGate', () => ({
-  CloudAccountGate: () => 'ACCOUNT_GATE'
+  CloudAccountGate: () => 'ACCOUNT_GATE',
+  getAppAuthRedirectUrl: (target = 'app') => `https://dumala.test/?dumalaAuth=${target}`
 }));
 
 vi.mock('./player/PlayerApp', () => ({
@@ -88,8 +89,29 @@ describe('persona app shells', () => {
     vi.clearAllMocks();
   });
 
-  it('opens the Player dashboard directly when the production app flag is enabled', () => {
+  it('opens the Player account door when the production app flag is enabled', () => {
     mockState.runtime = runtimeWith({ playerAppEnabled: true });
+
+    const html = renderToStaticMarkup(<PlayerAppShell />);
+
+    expect(html).toContain('ACCOUNT_GATE');
+    expect(html).toContain('Train. Track. Level up.');
+    expect(html).not.toContain('PLAYER_APP_PREVIEW');
+  });
+
+  it('opens the League waitlist when the production app flag is enabled', () => {
+    mockState.runtime = runtimeWith({ leagueAppEnabled: true });
+
+    const html = renderToStaticMarkup(<LeagueAppShell />);
+
+    expect(html).toContain('Join the private beta waitlist for Dumala league management.');
+    expect(html).toContain('Join waitlist');
+    expect(html).not.toContain('ACCOUNT_GATE');
+    expect(html).not.toContain('LEAGUE_APP_PREVIEW');
+  });
+
+  it('opens the Player preview dashboard only when the preview flag is enabled', () => {
+    mockState.runtime = runtimeWith({ playerPreviewEnabled: true });
 
     const html = renderToStaticMarkup(<PlayerAppShell />);
 
@@ -97,8 +119,8 @@ describe('persona app shells', () => {
     expect(html).not.toContain('ACCOUNT_GATE');
   });
 
-  it('opens the League dashboard directly when the production app flag is enabled', () => {
-    mockState.runtime = runtimeWith({ leagueAppEnabled: true });
+  it('opens the League preview dashboard only when the preview flag is enabled', () => {
+    mockState.runtime = runtimeWith({ leaguePreviewEnabled: true });
 
     const html = renderToStaticMarkup(<LeagueAppShell />);
 

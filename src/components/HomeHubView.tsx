@@ -39,6 +39,9 @@ interface HomeHubViewProps {
   announcements: Announcement[];
   assessments: AssessmentSession[];
   activation?: ActivationState;
+  cloudClubId?: string | null;
+  playerAppAvailable?: boolean;
+  teamChatAvailable?: boolean;
   onSelectPlayer: (player: Player) => void;
   onUpdateTeamInfo: (updated: TeamInfo) => void;
   onAddAnnouncement: (announcement: Announcement) => void;
@@ -90,6 +93,9 @@ export default function HomeHubView(props: HomeHubViewProps) {
             announcements={props.announcements}
             assessments={props.assessments}
             activation={props.activation}
+            cloudClubId={props.cloudClubId}
+            playerAppAvailable={props.playerAppAvailable}
+            teamChatAvailable={props.teamChatAvailable}
             onNavigate={props.onNavigate}
             onOpenTrainingSession={props.onOpenTrainingSession}
             onSelectPlayer={props.onSelectPlayer}

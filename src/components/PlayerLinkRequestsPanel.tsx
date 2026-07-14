@@ -3,6 +3,7 @@ import { Check, Copy, Loader2, UserPlus, X } from 'lucide-react';
 import { useCloudRuntime } from '../hooks/useCloudRuntime';
 import type { ClubRosterPlayer, PlayerLinkRequest } from '../cloud/player';
 import { Button } from './ui/button';
+import { buildPlayerInviteLink } from '../player/inviteLink';
 
 interface PlayerLinkRequestsPanelProps {
   clubId: string;
@@ -23,6 +24,7 @@ const PlayerLinkRequestsPanel = ({ clubId }: PlayerLinkRequestsPanelProps) => {
   const [busyId, setBusyId] = useState<string | null>(null);
   const [message, setMessage] = useState('');
   const [copied, setCopied] = useState(false);
+  const [copiedLink, setCopiedLink] = useState(false);
 
   const refresh = useCallback(async () => {
     if (!runtime.enabled) return;
@@ -56,11 +58,21 @@ const PlayerLinkRequestsPanel = ({ clubId }: PlayerLinkRequestsPanelProps) => {
 
   const pending = requests.filter(request => request.status === 'pending');
 
-  const handleCopy = async () => {
+  const handleCopyCode = async () => {
     try {
       await navigator.clipboard.writeText(joinCode);
       setCopied(true);
       setTimeout(() => setCopied(false), 1500);
+    } catch {
+      /* clipboard unavailable */
+    }
+  };
+
+  const handleCopyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(buildPlayerInviteLink(joinCode));
+      setCopiedLink(true);
+      setTimeout(() => setCopiedLink(false), 1500);
     } catch {
       /* clipboard unavailable */
     }
@@ -108,17 +120,20 @@ const PlayerLinkRequestsPanel = ({ clubId }: PlayerLinkRequestsPanelProps) => {
           <UserPlus size={18} className="text-orange-200" />
           <h2 className="text-sm font-black">Player app requests</h2>
         </div>
-        <div className="flex items-center gap-2 text-xs">
+        <div className="flex flex-wrap items-center gap-2 text-xs">
           <span className="text-slate-400">Club join code</span>
           <code className="rounded-md border border-cyan-300/15 bg-[#0b1726]/85 px-2 py-1 font-black tracking-widest text-orange-100">{joinCode || '……'}</code>
-          <Button type="button" variant="outline" size="sm" className="h-7 gap-1 px-2 text-[11px]" onClick={() => void handleCopy()}>
+          <Button type="button" variant="outline" size="sm" className="h-7 gap-1 px-2 text-[11px]" onClick={() => void handleCopyCode()}>
             {copied ? <Check size={12} /> : <Copy size={12} />} {copied ? 'Copied' : 'Copy'}
+          </Button>
+          <Button type="button" size="sm" className="h-7 gap-1 px-2 text-[11px]" onClick={() => void handleCopyLink()} disabled={!joinCode}>
+            {copiedLink ? <Check size={12} /> : <Copy size={12} />} {copiedLink ? 'Link copied' : 'Copy player link'}
           </Button>
         </div>
       </div>
 
       <p className="mb-3 text-xs text-slate-400">
-        Share the join code with your players. When they request to join, match them to their roster spot and approve.
+        Share the unique Player app link or join code with your players. When they request to join, match them to their roster spot and approve.
       </p>
 
       {loading ? (

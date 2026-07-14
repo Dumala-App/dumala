@@ -5,6 +5,7 @@ import type { PlayerClubLink, PlayerLinkRequest } from '../../cloud/player';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { apexCta, apexInput } from './playerTheme';
+import { readPlayerInviteCodeFromHash } from '../../player/inviteLink';
 
 interface JoinTeamPanelProps {
   runtime: Extract<CloudRuntime, { enabled: true }>;
@@ -21,7 +22,7 @@ const statusBadge: Record<PlayerLinkRequest['status'], string> = {
 const JoinTeamPanel = ({ runtime, onLinkedClubChange }: JoinTeamPanelProps) => {
   const [links, setLinks] = useState<PlayerClubLink[]>([]);
   const [requests, setRequests] = useState<PlayerLinkRequest[]>([]);
-  const [joinCode, setJoinCode] = useState('');
+  const [joinCode, setJoinCode] = useState(() => readPlayerInviteCodeFromHash());
   const [claimedName, setClaimedName] = useState('');
   const [rosterNumber, setRosterNumber] = useState('');
   const [message, setMessage] = useState('');
@@ -108,7 +109,7 @@ const JoinTeamPanel = ({ runtime, onLinkedClubChange }: JoinTeamPanelProps) => {
       ) : (
         <form onSubmit={handleSubmit} className="space-y-3" aria-label="Request to join a team">
           <p className="text-sm text-[#c6c6cd]/70">
-            Ask your coach for the club join code, then request to be linked to your roster spot.
+            Open your coach's invite link or enter the club join code, then request to be linked to your roster spot.
           </p>
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="space-y-1.5">
