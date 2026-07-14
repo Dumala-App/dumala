@@ -1,7 +1,7 @@
 import React, { FormEvent, useEffect, useState } from 'react';
 import { CheckCircle2, Loader2, ShieldCheck, UserRound } from 'lucide-react';
 import type { CloudRuntime } from '../../cloud/runtime';
-import { computeIsMinor, type PlayerProfile } from '../../cloud/player';
+import { computeIsMinor, type ClubRosterPlayer, type PlayerProfile } from '../../cloud/player';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { apexCta, apexGhost, apexInput } from './playerTheme';
@@ -9,12 +9,13 @@ import { apexCta, apexGhost, apexInput } from './playerTheme';
 interface PlayerProfileFormProps {
   runtime: Extract<CloudRuntime, { enabled: true }>;
   userId: string;
+  linkedPlayer: ClubRosterPlayer | null;
 }
 
 const fieldClass = 'space-y-1.5';
 const labelClass = 'text-slate-200';
 
-const PlayerProfileForm = ({ runtime, userId }: PlayerProfileFormProps) => {
+const PlayerProfileForm = ({ runtime, userId, linkedPlayer }: PlayerProfileFormProps) => {
   const [profile, setProfile] = useState<PlayerProfile | null>(null);
   const [displayName, setDisplayName] = useState('');
   const [dateOfBirth, setDateOfBirth] = useState('');
@@ -59,6 +60,16 @@ const PlayerProfileForm = ({ runtime, userId }: PlayerProfileFormProps) => {
       active = false;
     };
   }, [runtime, userId]);
+
+  useEffect(() => {
+    if (!linkedPlayer) return;
+    setDisplayName(current => current || linkedPlayer.name || '');
+    setDateOfBirth(current => current || linkedPlayer.date_of_birth || '');
+    setPosition(current => current || linkedPlayer.position || '');
+    setHeight(current => current || (linkedPlayer.height != null ? String(linkedPlayer.height) : ''));
+    setWeight(current => current || (linkedPlayer.weight != null ? String(linkedPlayer.weight) : ''));
+    setBio(current => current || linkedPlayer.bio || '');
+  }, [linkedPlayer]);
 
   const isMinor = computeIsMinor(dateOfBirth || null);
   const consentState = profile?.guardian_consent_state ?? 'not_required';
@@ -118,6 +129,11 @@ const PlayerProfileForm = ({ runtime, userId }: PlayerProfileFormProps) => {
         <UserRound size={18} className="text-[#dce7f8]" />
         <h2 className="font-player-display text-[13px] font-semibold uppercase tracking-widest text-[#d8e3fb]">Your profile</h2>
       </div>
+      {linkedPlayer && (
+        <p className="mb-4 rounded-lg border border-[#b9c8de]/20 bg-[#b9c8de]/[0.06] px-3 py-2 text-xs leading-5 text-[#c6c6cd]/80">
+          Coach-synced roster details have filled any empty fields. You can still update your personal profile notes.
+        </p>
+      )}
 
       <form onSubmit={handleSave} className="space-y-4" aria-label="Player profile">
         <div className="grid gap-4 sm:grid-cols-2">

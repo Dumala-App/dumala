@@ -2,6 +2,7 @@ import type { CloudChatRepository, CloudDataAccess, CloudPlayerRepository } from
 import type { CloudRuntime, Phase6Config } from '../../cloud/runtime';
 import type { CloudAuthController } from '../../hooks/useCloudAuth';
 import type { ChatMessage } from '../../cloud/chat';
+import type { AssessmentSession } from '../../types';
 import type {
   PlayerAchievement,
   ClubRosterPlayer,
@@ -140,7 +141,14 @@ export const createDemoPlayerRepository = (): CloudPlayerRepository => {
 
   const rosterPlayer = (row: Pick<ClubRosterPlayer, 'id' | 'name' | 'roster_number' | 'position'>, over: Partial<ClubRosterPlayer> = {}): ClubRosterPlayer => ({
     ...row,
+    bio: '',
     photo_url: '',
+    date_of_birth: null,
+    height: null,
+    weight: null,
+    fprds_role: null,
+    fprds_age_group_preference: null,
+    fprds_last_assessment_id: null,
     games_played: 0,
     goals: 0,
     assists: 0,
@@ -165,6 +173,13 @@ export const createDemoPlayerRepository = (): CloudPlayerRepository => {
     rosterPlayer(
       { id: 'demo-roster-11', name: 'Alex Rivera', roster_number: 11, position: 'Forward' },
       {
+        bio: 'Explosive wide forward with strong attacking 1v1 habits.',
+        date_of_birth: '2005-03-10',
+        height: 176,
+        weight: 68,
+        fprds_role: 'W',
+        fprds_age_group_preference: 'Adult',
+        fprds_last_assessment_id: 'demo-assessment-2',
         games_played: 6,
         goals: 4,
         assists: 3,
@@ -177,6 +192,103 @@ export const createDemoPlayerRepository = (): CloudPlayerRepository => {
     ),
     rosterPlayer({ id: 'demo-roster-17', name: 'Owen Clarke', roster_number: 17, position: 'Forward' }),
     rosterPlayer({ id: 'demo-roster-23', name: 'Daniel Park', roster_number: 23, position: 'Forward' })
+  ];
+
+  const assessmentScores = {
+    pace: 88,
+    stamina: 78,
+    agility: 86,
+    strength: 73,
+    firstTouch: 84,
+    shortPassing: 79,
+    finishingBox: 80,
+    shotPower: 76,
+    offensive1v1: 87,
+    attackingHeading: 68,
+    longPassing: 70,
+    visionPlaymaking: 72,
+    ballRetention: 73,
+    pressingInterceptions: 71,
+    tackling: 60,
+    defensiveHeading: 58,
+    positioningClearances: 61,
+    crossing: 81,
+    reflexes: 50,
+    handling: 50,
+    divingReach: 50,
+    distribution: 60
+  } as const;
+
+  const assessments: AssessmentSession[] = [
+    {
+      id: 'demo-assessment-1',
+      playerId: 'demo-roster-11',
+      assessmentDate: ago(24).slice(0, 10),
+      createdAt: ago(24),
+      assessmentType: 'Quick',
+      ageGroup: 'Adult',
+      role: 'W',
+      rawResults: {
+        role: 'W',
+        assessmentType: 'Quick',
+        base: {
+          sprint10mSeconds: 1.93,
+          sprint30mSeconds: 4.28,
+          yoyoMeters: 1320,
+          illinoisSeconds: 16.7,
+          broadJumpCm: 225,
+          medicineBallThrowCm: 610,
+          firstTouchSuccessesOutOf10: 8,
+          shortPassingSuccessesOutOf10: 8
+        },
+        roleSpecific: {
+          finishingGoalsOutOf6: 3,
+          finishingOnTargetOutOf6: 5,
+          offensive1v1TakeonsOutOf10: 7
+        }
+      },
+      attributeScores: { ...assessmentScores, pace: 84, agility: 82, offensive1v1: 82, finishingBox: 74 },
+      ovr: 78,
+      labels: { weakestAttributeId: 'attackingHeading', ovrTierLabel: 'Advanced' },
+      deltas: {},
+      benchmarkVersion: '1.0.0'
+    },
+    {
+      id: 'demo-assessment-2',
+      playerId: 'demo-roster-11',
+      assessmentDate: ago(4).slice(0, 10),
+      createdAt: ago(4),
+      assessmentType: 'Full',
+      ageGroup: 'Adult',
+      role: 'W',
+      rawResults: {
+        role: 'W',
+        assessmentType: 'Full',
+        base: {
+          sprint10mSeconds: 1.88,
+          sprint30mSeconds: 4.18,
+          yoyoMeters: 1480,
+          illinoisSeconds: 16.2,
+          broadJumpCm: 236,
+          medicineBallThrowCm: 640,
+          firstTouchSuccessesOutOf10: 9,
+          shortPassingSuccessesOutOf10: 8
+        },
+        roleSpecific: {
+          finishingGoalsOutOf6: 4,
+          finishingOnTargetOutOf6: 5,
+          shotPowerMaxControlledDistanceMeters: 24,
+          offensive1v1TakeonsOutOf10: 8,
+          attackingHeadingOnTargetOutOf10: 6
+        }
+      },
+      attributeScores: assessmentScores,
+      ovr: 82,
+      labels: { weakestAttributeId: 'attackingHeading', ovrTierLabel: 'Advanced' },
+      deltas: { previousSessionId: 'demo-assessment-1', ovrDelta: 4 },
+      coachNotes: 'Great change of pace in wide channels. Keep improving attacking heading.',
+      benchmarkVersion: '1.0.0'
+    }
   ];
 
   const tactics: TeamTacticsSummary = {
@@ -229,6 +341,7 @@ export const createDemoPlayerRepository = (): CloudPlayerRepository => {
     getOrCreateClubJoinCode: async () => 'DEMO1234',
     listClubLinkRequests: async () => [],
     listClubRosterPlayers: async () => roster,
+    listMyAssessmentSessions: async playerId => assessments.filter(assessment => assessment.playerId === playerId),
     approveLink: async () => newId(),
     rejectLink: async () => undefined,
     logDrillCompletion: async (_userId, input) => {

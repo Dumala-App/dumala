@@ -236,7 +236,7 @@ const PlayerApp = ({
           />
         )}
         {tab === 'chat' && (
-          <div className="h-full pb-[calc(4.25rem+env(safe-area-inset-bottom))]">
+          <div className="h-[calc(100vh-4rem-4.25rem-env(safe-area-inset-bottom))] min-h-0">
             {!linkedClubId ? (
               <div className="flex h-full flex-col items-center justify-center gap-3 p-8 text-center">
                 <MessageSquare size={28} className="text-[#dce7f8]" />
@@ -272,6 +272,7 @@ const PlayerApp = ({
             authController={authController}
             preview={preview}
             linkedClubId={linkedClubId}
+            linkedPlayer={linkedPlayer}
             onLinkedClubChange={handleLinkedClubChange}
             accountDisplayName={accountDisplayName}
             accountEmail={accountEmail}

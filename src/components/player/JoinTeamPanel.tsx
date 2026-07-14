@@ -210,7 +210,6 @@ const JoinTeamPanel = ({
           <span className="inline-flex items-center gap-2 font-semibold">
             <CheckCircle2 size={16} /> You're linked to your team.
           </span>
-          <span className="mt-1 block text-emerald-100/80">Your schedule appears below. Your coach controls your official records.</span>
         </p>
       ) : pendingRequests.length > 0 ? (
         <div className="rounded-lg border border-amber-400/25 bg-amber-400/10 px-4 py-4 text-sm text-amber-50">
