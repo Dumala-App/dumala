@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Check, Copy, Loader2, UserPlus, X } from 'lucide-react';
 import { useCloudRuntime } from '../hooks/useCloudRuntime';
 import type { ClubRosterPlayer, PlayerLinkRequest } from '../cloud/player';
@@ -8,6 +8,40 @@ import { buildPlayerInviteLink } from '../player/inviteLink';
 interface PlayerLinkRequestsPanelProps {
   clubId: string;
 }
+
+type RosterPlayerOption = ClubRosterPlayer & {
+  linked: boolean;
+};
+
+const rosterOptionKey = (player: ClubRosterPlayer): string => [
+  player.roster_number,
+  player.name.trim().replace(/\s+/g, ' ').toLowerCase(),
+  player.position.trim().replace(/\s+/g, ' ').toLowerCase()
+].join('::');
+
+export const getUniqueRosterPlayerOptions = (
+  roster: ClubRosterPlayer[],
+  linkedPlayerIds: ReadonlySet<string>
+): RosterPlayerOption[] => {
+  const grouped = new Map<string, RosterPlayerOption>();
+
+  for (const player of roster) {
+    const key = rosterOptionKey(player);
+    const existing = grouped.get(key);
+    const linked = linkedPlayerIds.has(player.id);
+
+    if (!existing) {
+      grouped.set(key, { ...player, linked });
+      continue;
+    }
+
+    if (linked) {
+      grouped.set(key, { ...existing, id: player.id, linked: true });
+    }
+  }
+
+  return Array.from(grouped.values());
+};
 
 // Coach-facing approval queue for the Player app. A player requests to join the
 // club with its join code; a coach picks the matching roster player and links the
@@ -109,8 +143,12 @@ const PlayerLinkRequestsPanel = ({ clubId }: PlayerLinkRequestsPanelProps) => {
     }
   };
 
-  const linkedPlayerIds = new Set(
+  const linkedPlayerIds = useMemo(() => new Set(
     requests.filter(request => request.status === 'approved' && request.target_player_id).map(request => request.target_player_id as string)
+  ), [requests]);
+  const rosterOptions = useMemo(
+    () => getUniqueRosterPlayerOptions(roster, linkedPlayerIds),
+    [roster, linkedPlayerIds]
   );
 
   return (
@@ -162,9 +200,9 @@ const PlayerLinkRequestsPanel = ({ clubId }: PlayerLinkRequestsPanelProps) => {
                 className="h-8 rounded-md border border-cyan-300/15 bg-[#0b1726]/85 px-2 text-xs text-slate-100"
               >
                 <option value="">Match roster player…</option>
-                {roster.map(player => (
-                  <option key={player.id} value={player.id} disabled={linkedPlayerIds.has(player.id)}>
-                    #{player.roster_number} {player.name}{linkedPlayerIds.has(player.id) ? ' (linked)' : ''}
+                {rosterOptions.map(player => (
+                  <option key={player.id} value={player.id} disabled={player.linked}>
+                    #{player.roster_number} {player.name}{player.linked ? ' (linked)' : ''}
                   </option>
                 ))}
               </select>

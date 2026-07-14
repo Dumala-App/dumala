@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { MessageSquare, X } from 'lucide-react';
 import { useCloudAuth } from '../hooks/useCloudAuth';
 import { useCloudRuntime } from '../hooks/useCloudRuntime';
+import { hasTeamChatRuntime } from '../cloud/chatAvailability';
 import TeamChat from './chat/TeamChat';
 
 interface CoachFloatingChatProps {
@@ -13,7 +14,7 @@ const CoachFloatingChat = ({ clubId }: CoachFloatingChatProps) => {
   const runtime = useCloudRuntime();
   const auth = useCloudAuth({ enabled: runtime.enabled, auth: runtime.dataAccess?.auth ?? null });
 
-  if (!clubId || !runtime.enabled || !runtime.phase6.chatEnabled) return null;
+  if (!clubId || !hasTeamChatRuntime(runtime)) return null;
 
   const userId = auth.state.status === 'signedIn' ? auth.state.session.userId : null;
 

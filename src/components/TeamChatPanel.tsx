@@ -1,6 +1,7 @@
 import React from 'react';
 import { useCloudRuntime } from '../hooks/useCloudRuntime';
 import { useCloudAuth } from '../hooks/useCloudAuth';
+import { hasTeamChatRuntime } from '../cloud/chatAvailability';
 import TeamChat from './chat/TeamChat';
 
 interface TeamChatPanelProps {
@@ -8,12 +9,12 @@ interface TeamChatPanelProps {
 }
 
 // Coach-side embedded team chat for the Squad hub. Staff can post and moderate.
-// Shown only for a cloud-backed club with the chat flag on.
+// Shown only for a cloud-backed club with chat data access.
 const TeamChatPanel = ({ clubId }: TeamChatPanelProps) => {
   const runtime = useCloudRuntime();
   const auth = useCloudAuth({ enabled: runtime.enabled, auth: runtime.dataAccess?.auth ?? null });
 
-  if (!runtime.enabled || !runtime.phase6.chatEnabled) return null;
+  if (!hasTeamChatRuntime(runtime)) return null;
 
   const userId = auth.state.status === 'signedIn' ? auth.state.session.userId : null;
 

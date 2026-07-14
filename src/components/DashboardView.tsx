@@ -688,7 +688,7 @@ export default function DashboardView({
   const [trainingStorageRefreshKey, setTrainingStorageRefreshKey] = useState(0);
   const [gamePlanOpen, setGamePlanOpen] = useState(false);
   const [gamePlanStorageRefreshKey, setGamePlanStorageRefreshKey] = useState(0);
-  const hasPlayerCollaborationFeatures = teamChatAvailable;
+  const hasPlayerCollaborationFeatures = teamChatAvailable || Boolean(cloudClubId);
 
   const presetLogos = [
     { key: 'shield', label: 'Classic Shield', icon: Shield },
@@ -1567,8 +1567,8 @@ export default function DashboardView({
               </div>
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex flex-wrap gap-2">
-                  <Badge variant={cloudClubId ? 'success' : 'outline'} className={cloudClubId ? dashboardSuccessBadgeClass : dashboardBadgeClass}>
-                    {cloudClubId ? 'Ready in Squad' : 'Cloud team required'}
+                  <Badge variant={cloudClubId && teamChatAvailable ? 'success' : 'outline'} className={cloudClubId && teamChatAvailable ? dashboardSuccessBadgeClass : dashboardBadgeClass}>
+                    {cloudClubId && teamChatAvailable ? 'Ready in Squad' : cloudClubId ? 'Chat unavailable' : 'Cloud team required'}
                   </Badge>
                   <Badge variant="info" className={dashboardInfoBadgeClass}>Shared channel</Badge>
                 </div>
@@ -1576,6 +1576,7 @@ export default function DashboardView({
                   type="button"
                   variant="outline"
                   onClick={() => onNavigate({ primary: 'squad' })}
+                  disabled={!cloudClubId || !teamChatAvailable}
                   className="rounded-xl border-cyan-300/15 bg-[#0b1726]/85 text-xs font-black text-slate-100 hover:border-orange-300/30 hover:bg-orange-300/10 hover:text-orange-100"
                 >
                   Open chat <ArrowRight size={14} />

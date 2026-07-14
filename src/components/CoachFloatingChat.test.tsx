@@ -58,9 +58,21 @@ describe('CoachFloatingChat', () => {
     expect(html).toContain('fixed bottom-4 right-4');
   });
 
-  it('stays hidden without a cloud club or enabled chat flag', () => {
+  it('stays hidden without a cloud club or chat data access', () => {
     expect(renderToStaticMarkup(<CoachFloatingChat clubId={null} />)).toBe('');
 
+    mockRuntime = {
+      enabled: true,
+      phase6: { ...phase6, chatEnabled: true },
+      dataAccess: {
+        auth: {}
+      }
+    } as CloudRuntime;
+
+    expect(renderToStaticMarkup(<CoachFloatingChat clubId="club-1" />)).toBe('');
+  });
+
+  it('keeps the launcher visible when chat data access exists before the display flag is enabled', () => {
     mockRuntime = {
       enabled: true,
       phase6: { ...phase6, chatEnabled: false },
@@ -70,6 +82,8 @@ describe('CoachFloatingChat', () => {
       }
     } as CloudRuntime;
 
-    expect(renderToStaticMarkup(<CoachFloatingChat clubId="club-1" />)).toBe('');
+    const html = renderToStaticMarkup(<CoachFloatingChat clubId="club-1" />);
+
+    expect(html).toContain('Open team chat');
   });
 });
