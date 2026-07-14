@@ -26,6 +26,10 @@ const TONE: Record<ChatTone, Record<string, string>> = {
     other: 'border border-white/5 bg-[#152031] text-[#d8e3fb]',
     coach: 'border border-[#b9c8de]/25 bg-[#1f2a3c] text-[#d8e3fb]',
     roleBadge: 'border border-[#b9c8de]/50 text-[#dce7f8]',
+    adminName: 'text-[#ff9440]',
+    adminBadge: 'border border-[#ff9440]/50 bg-[#ff6d00]/10 text-[#ff9440]',
+    captainName: 'text-[#8df2c7]',
+    captainBadge: 'border border-[#8df2c7]/45 bg-[#8df2c7]/10 text-[#8df2c7]',
     accent: 'text-[#dce7f8]',
     input: 'border border-[#45464d]/30 bg-[#040e1f] text-[#d8e3fb] placeholder:text-[#c6c6cd]/50 focus:border-[#b9c8de]/60',
     send: 'bg-[#ff6d00] text-white',
@@ -42,6 +46,10 @@ const TONE: Record<ChatTone, Record<string, string>> = {
     other: 'border border-cyan-300/10 bg-[#07111f]/85 text-slate-100',
     coach: 'border border-orange-300/20 bg-[#0b1726]/85 text-slate-100',
     roleBadge: 'border border-orange-300/50 text-orange-300',
+    adminName: 'text-orange-300',
+    adminBadge: 'border border-orange-300/50 bg-orange-300/10 text-orange-300',
+    captainName: 'text-cyan-300',
+    captainBadge: 'border border-cyan-300/45 bg-cyan-300/10 text-cyan-300',
     accent: 'text-orange-300',
     input: 'border border-cyan-300/12 bg-[#0b1726]/85 text-slate-100 placeholder:text-slate-500 focus:border-orange-300/60',
     send: 'bg-orange-400 text-slate-950',
@@ -72,6 +80,7 @@ const TeamChat = ({ runtime, clubId, selfUserId, tone = 'glass', canModerateAll 
   const [error, setError] = useState('');
   const [sending, setSending] = useState(false);
   const [menuFor, setMenuFor] = useState<string | null>(null);
+  const [captainUserId, setCaptainUserId] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const atBottomRef = useRef(true);
 
@@ -93,6 +102,9 @@ const TeamChat = ({ runtime, clubId, selfUserId, tone = 'glass', canModerateAll 
         const cid = await chat.ensureChannel(clubId);
         if (!active) return;
         setChannelId(cid);
+        chat.getCaptainUserId(clubId)
+          .then(id => { if (active) setCaptainUserId(id); })
+          .catch(() => undefined);
         await refresh();
         await chat.markRead(cid).catch(() => undefined);
       } catch (err) {
@@ -178,6 +190,7 @@ const TeamChat = ({ runtime, clubId, selfUserId, tone = 'glass', canModerateAll 
           messages.map(message => {
             const self = !!selfUserId && message.author_user_id === selfUserId;
             const staff = STAFF_ROLES.has(message.author_role);
+            const captain = !!captainUserId && message.author_user_id === captainUserId;
             const showDay = dayKey(message.created_at) !== lastDay;
             lastDay = dayKey(message.created_at);
             const canDelete = !message.deleted_at && (self || canModerateAll);
@@ -193,8 +206,9 @@ const TeamChat = ({ runtime, clubId, selfUserId, tone = 'glass', canModerateAll 
                   <div className={`max-w-[85%] ${self ? 'items-end' : 'items-start'}`}>
                     {!self && (
                       <div className="mb-1 flex items-center gap-2 px-1">
-                        <span className={`text-xs font-bold ${staff ? t.accent : t.muted}`}>{message.author_name}</span>
-                        {staff && <span className={`rounded px-1.5 py-0 text-[8px] font-bold uppercase ${t.roleBadge}`}>{message.author_role}</span>}
+                        <span className={`text-xs font-bold ${staff ? t.adminName : captain ? t.captainName : t.muted}`}>{message.author_name}</span>
+                        {staff && <span className={`rounded px-1.5 py-0 text-[8px] font-bold uppercase ${t.adminBadge}`}>{message.author_role}</span>}
+                        {!staff && captain && <span className={`rounded px-1.5 py-0 text-[8px] font-bold uppercase ${t.captainBadge}`}>captain</span>}
                       </div>
                     )}
                     <div className={`group relative rounded-2xl px-3.5 py-2.5 ${message.deleted_at ? `${t.other} italic opacity-60` : self ? t.self : staff ? t.coach : t.other}`}>

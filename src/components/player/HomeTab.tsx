@@ -7,7 +7,6 @@ import {
   apexCard,
   apexCardHero,
   apexCta,
-  apexDisplay,
   apexEyebrow,
   apexGhost,
   apexMono,
@@ -77,7 +76,7 @@ const HomeTab = ({
       {/* Headline */}
       <section>
         <p className={`${apexEyebrow} mb-1`}>This week · {totals.drills} drills · {totals.minutes} min</p>
-        <h2 className={`${apexDisplay} text-[30px]`}>{streakDays > 0 ? 'Keep the run alive' : 'Match day ready?'}</h2>
+        <h2 className="font-player-display text-[22px] font-bold leading-tight text-[#d8e3fb]">{streakDays > 0 ? 'Keep the run alive' : 'Match day ready?'}</h2>
       </section>
 
       {!linkedClubId && (
@@ -154,7 +153,7 @@ const HomeTab = ({
               {formatFixtureDate(nextFixture.event_date)}{nextFixture.event_time ? ` · ${nextFixture.event_time}` : ''}
             </span>
           </div>
-          <h4 className={`${apexDisplay} text-xl`}>
+          <h4 className="font-player-display text-lg font-bold leading-tight text-[#d8e3fb]">
             {nextFixture.type === 'training' || nextFixture.type === 'meeting'
               ? nextFixture.type
               : `vs ${nextFixture.opponent}`}
