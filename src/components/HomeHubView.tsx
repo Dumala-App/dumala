@@ -40,7 +40,6 @@ interface HomeHubViewProps {
   assessments: AssessmentSession[];
   activation?: ActivationState;
   cloudClubId?: string | null;
-  teamChatAvailable?: boolean;
   onSelectPlayer: (player: Player) => void;
   onUpdateTeamInfo: (updated: TeamInfo) => void;
   onAddAnnouncement: (announcement: Announcement) => void;
@@ -92,8 +91,6 @@ export default function HomeHubView(props: HomeHubViewProps) {
             announcements={props.announcements}
             assessments={props.assessments}
             activation={props.activation}
-            cloudClubId={props.cloudClubId}
-            teamChatAvailable={props.teamChatAvailable}
             onNavigate={props.onNavigate}
             onOpenTrainingSession={props.onOpenTrainingSession}
             onSelectPlayer={props.onSelectPlayer}
@@ -104,6 +101,7 @@ export default function HomeHubView(props: HomeHubViewProps) {
         {props.activeTab === 'bulletins' && (
           <AnnouncementsView
             announcements={props.announcements}
+            cloudClubId={props.cloudClubId}
             onAddAnnouncement={props.onAddAnnouncement}
             onDeleteAnnouncement={props.onDeleteAnnouncement}
           />

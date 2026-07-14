@@ -15,6 +15,7 @@ import {
 } from './ui/select';
 import { Textarea } from './ui/textarea';
 import { cn } from '../lib/utils';
+import TeamChatPanel from './TeamChatPanel';
 import {
   DARK_GLASS_CLASSES,
   DARK_GLASS_DASHBOARD_SURFACE_STYLE,
@@ -24,6 +25,7 @@ import {
 interface AnnouncementsViewProps {
   homeWorkspaceHeader?: ReactNode;
   announcements: Announcement[];
+  cloudClubId?: string | null;
   onAddAnnouncement: (newAnn: Announcement) => void;
   onDeleteAnnouncement: (id: string) => void;
 }
@@ -62,7 +64,7 @@ const announcementDescriptionClass = 'mt-1 text-sm font-medium leading-relaxed t
 const announcementLabelClass = 'text-[11px] font-black uppercase tracking-widest text-slate-500';
 const announcementActionClass = 'rounded-xl border-cyan-300/15 bg-[#0b1726]/85 text-sm font-medium text-slate-100 shadow-sm shadow-black/10 hover:border-orange-300/35 hover:bg-orange-300/10 hover:text-orange-100';
 
-export default function AnnouncementsView({ homeWorkspaceHeader, announcements, onAddAnnouncement, onDeleteAnnouncement }: AnnouncementsViewProps) {
+export default function AnnouncementsView({ homeWorkspaceHeader, announcements, cloudClubId, onAddAnnouncement, onDeleteAnnouncement }: AnnouncementsViewProps) {
   const [isAdding, setIsAdding] = useState(false);
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
@@ -120,6 +122,14 @@ export default function AnnouncementsView({ homeWorkspaceHeader, announcements, 
           {isAdding ? 'Cancel Post' : 'Post Announcement'}
         </Button>
       </div>
+
+      {cloudClubId && (
+        <TeamChatPanel
+          clubId={cloudClubId}
+          title="Team chat"
+          className="h-[32rem] rounded-2xl border-orange-300/15 bg-[#020713] shadow-xl shadow-black/25"
+        />
+      )}
 
       {/* Write Announcement Form */}
       {isAdding && (
