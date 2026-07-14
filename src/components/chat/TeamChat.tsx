@@ -1,7 +1,7 @@
 import React, { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ArrowLeft, BellOff, Check, Flag, Loader2, MoreVertical, RefreshCw, Send, Settings, ShieldCheck, Trash2 } from 'lucide-react';
 import type { CloudRuntime } from '../../cloud/runtime';
-import type { ChatMessage } from '../../cloud/chat';
+import { visibleChatMessages, type ChatMessage } from '../../cloud/chat';
 
 export type ChatTone = 'apex' | 'glass';
 
@@ -97,10 +97,7 @@ const TeamChat = ({ runtime, clubId, selfUserId, tone = 'glass', canModerateAll 
   const scrollRef = useRef<HTMLDivElement>(null);
   const atBottomRef = useRef(true);
   const skipNextMuteSaveRef = useRef(false);
-  const visibleMessages = useMemo(
-    () => canModerateAll ? messages.filter(message => !message.deleted_at) : messages,
-    [canModerateAll, messages]
-  );
+  const visibleMessages = useMemo(() => visibleChatMessages(messages), [messages]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -296,8 +293,8 @@ const TeamChat = ({ runtime, clubId, selfUserId, tone = 'glass', canModerateAll 
             const captain = !!captainUserId && message.author_user_id === captainUserId;
             const showDay = dayKey(message.created_at) !== lastDay;
             lastDay = dayKey(message.created_at);
-            const canDelete = !message.deleted_at && (self || canModerateAll);
-            const canReport = !message.deleted_at && !self;
+            const canDelete = self || canModerateAll;
+            const canReport = !self;
             const displayName = getChatDisplayName(message);
             return (
               <React.Fragment key={message.id}>
@@ -315,12 +312,8 @@ const TeamChat = ({ runtime, clubId, selfUserId, tone = 'glass', canModerateAll 
                         {!staff && captain && <span className={`rounded px-1.5 py-0 text-[8px] font-bold uppercase ${t.captainBadge}`}>captain</span>}
                       </div>
                     )}
-                    <div className={`group relative rounded-2xl px-3.5 py-2.5 ${message.deleted_at ? `${t.other} italic opacity-60` : self ? t.self : staff ? t.coach : t.other}`}>
-                      {message.deleted_at ? (
-                        <p className="text-sm">Message removed</p>
-                      ) : (
-                        <p className="whitespace-pre-wrap break-words text-sm leading-relaxed">{message.body}</p>
-                      )}
+                    <div className={`group relative rounded-2xl px-3.5 py-2.5 ${self ? t.self : staff ? t.coach : t.other}`}>
+                      <p className="whitespace-pre-wrap break-words text-sm leading-relaxed">{message.body}</p>
                       <div className={`mt-1 flex items-center justify-end gap-1.5 ${self ? 'text-black/60' : t.muted}`}>
                         <span className="text-[10px]">{timeLabel(message.created_at)}</span>
                         {(canDelete || canReport) && (
