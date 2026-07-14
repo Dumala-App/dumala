@@ -5,6 +5,7 @@
 @source "./RootRouter.tsx";
 @source "./components/LandingPage.tsx";
 @source "./components/ErrorBoundary.tsx";
+@source "./components/ui/dialog.tsx";
 @source "./components/ui/aether-flow-hero.tsx";
 @source "./components/ui/glowing-effect.tsx";
 @source "./ui/button.tsx";
