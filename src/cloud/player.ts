@@ -1,5 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { DumalaSupabaseClient } from './client';
+import type { AgeGroup, AssessmentRawResults, AssessmentSession, FprdsAttributeId, FprdsRole, Player } from '../types';
 
 // Phase 6 - Player foundation. Cloud-first player data: a personal profile with
 // guardian consent for minors, an invite-and-claim flow (player requests to join
@@ -358,7 +359,14 @@ export interface ClubRosterPlayer {
   name: string;
   roster_number: number;
   position: string;
+  bio?: string;
   photo_url: string;
+  date_of_birth?: string | null;
+  height?: number | null;
+  weight?: number | null;
+  fprds_role?: FprdsRole | null;
+  fprds_age_group_preference?: AgeGroup | null;
+  fprds_last_assessment_id?: string | null;
   games_played: number;
   goals: number;
   assists: number;
@@ -371,6 +379,94 @@ export interface ClubRosterPlayer {
   specialty_traits: unknown;
 }
 
+type CloudAssessmentSessionRow = {
+  id: string;
+  player_id: string;
+  assessment_date: string;
+  assessment_type: string;
+  age_group: string;
+  role: string;
+  ovr: number;
+  weakest_attribute_id: string;
+  ovr_tier_label: string;
+  previous_session_id: string | null;
+  benchmark_version: string | null;
+  raw_results: unknown;
+  attribute_scores: unknown;
+  attribute_deltas: unknown;
+  created_at: string;
+};
+
+const upperEnum = <T extends string>(value: string): T => value.toUpperCase() as T;
+const titleEnum = <T extends string>(value: string): T => (
+  value ? `${value.charAt(0).toUpperCase()}${value.slice(1).toLowerCase()}` : value
+) as T;
+const numericRecord = (value: unknown): Record<string, number> => {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return {};
+  return Object.fromEntries(
+    Object.entries(value).filter((entry): entry is [string, number] => typeof entry[1] === 'number' && Number.isFinite(entry[1]))
+  );
+};
+const stringArray = (value: unknown): string[] => (
+  Array.isArray(value) ? value.filter((entry): entry is string => typeof entry === 'string' && entry.trim().length > 0) : []
+);
+
+export const mapCloudAssessmentSession = (row: CloudAssessmentSessionRow): AssessmentSession => ({
+  id: row.id,
+  playerId: row.player_id,
+  assessmentDate: row.assessment_date,
+  createdAt: row.created_at,
+  assessmentType: titleEnum(row.assessment_type),
+  ageGroup: upperEnum(row.age_group),
+  role: upperEnum(row.role),
+  rawResults: row.raw_results as AssessmentRawResults,
+  attributeScores: numericRecord(row.attribute_scores) as Record<FprdsAttributeId, number>,
+  ovr: Math.round(Number(row.ovr)),
+  labels: {
+    weakestAttributeId: row.weakest_attribute_id as FprdsAttributeId,
+    ovrTierLabel: row.ovr_tier_label
+  },
+  deltas: {
+    previousSessionId: row.previous_session_id ?? undefined,
+    attributeDeltas: numericRecord(row.attribute_deltas) as Partial<Record<FprdsAttributeId, number>>
+  },
+  benchmarkVersion: row.benchmark_version ?? undefined
+});
+
+export const mapRosterPlayerToReportPlayer = (player: ClubRosterPlayer): Player => ({
+  id: player.id,
+  name: player.name,
+  number: player.roster_number,
+  position: player.position,
+  bio: player.bio ?? '',
+  photoUrl: player.photo_url,
+  dateOfBirth: player.date_of_birth ?? undefined,
+  height: player.height ?? undefined,
+  weight: player.weight ?? undefined,
+  fprdsRole: player.fprds_role ?? undefined,
+  fprdsAgeGroupPreference: player.fprds_age_group_preference ?? undefined,
+  fprdsLastAssessmentId: player.fprds_last_assessment_id ?? undefined,
+  gamesPlayed: player.games_played,
+  points: player.goals,
+  assists: player.assists,
+  cleanSheetsOrRebounds: player.clean_sheets,
+  minutesPlayed: player.minutes_played,
+  mvpAwards: 0,
+  yellowCards: player.yellow_cards,
+  redCards: player.red_cards,
+  baseAttributes: {
+    pace: numericRecord(player.base_attributes).pace ?? 50,
+    stamina: numericRecord(player.base_attributes).stamina ?? 50,
+    agility: numericRecord(player.base_attributes).agility ?? 50,
+    strength: numericRecord(player.base_attributes).strength ?? 50,
+    firstTouch: numericRecord(player.base_attributes).firstTouch ?? 50,
+    shortPassing: numericRecord(player.base_attributes).shortPassing ?? 50
+  },
+  positionAttributes: numericRecord(player.position_attributes),
+  specialtyTraits: stringArray(player.specialty_traits),
+  registrationStatus: 'Active'
+});
+
 export const listClubRosterPlayers = async (
   client: DumalaSupabaseClient,
   clubId: string
@@ -379,13 +475,31 @@ export const listClubRosterPlayers = async (
   return (expectNoError(
     await supabase
       .from('players')
-      .select('id, name, roster_number, position, photo_url, games_played, goals, assists, clean_sheets, minutes_played, yellow_cards, red_cards, base_attributes, position_attributes, specialty_traits')
+      .select('id, name, roster_number, position, bio, photo_url, date_of_birth, height, weight, fprds_role, fprds_age_group_preference, fprds_last_assessment_id, games_played, goals, assists, clean_sheets, minutes_played, yellow_cards, red_cards, base_attributes, position_attributes, specialty_traits')
       .eq('club_id', clubId)
       .is('deleted_at', null)
       .order('roster_number', { ascending: true }),
     'CLUB_ROSTER_READ_FAILED',
     'Failed to load the club roster'
   ) as ClubRosterPlayer[] | null) ?? [];
+};
+
+export const listMyAssessmentSessions = async (
+  client: DumalaSupabaseClient,
+  playerId: string
+): Promise<AssessmentSession[]> => {
+  const supabase = asUntypedClient(client);
+  const rows = (expectNoError(
+    await supabase
+      .from('assessment_sessions')
+      .select('id, player_id, assessment_date, assessment_type, age_group, role, ovr, weakest_attribute_id, ovr_tier_label, previous_session_id, benchmark_version, raw_results, attribute_scores, attribute_deltas, created_at')
+      .eq('player_id', playerId)
+      .is('deleted_at', null)
+      .order('assessment_date', { ascending: false }),
+    'PLAYER_ASSESSMENTS_READ_FAILED',
+    'Failed to load your FPRDS assessments'
+  ) as CloudAssessmentSessionRow[] | null) ?? [];
+  return rows.map(mapCloudAssessmentSession);
 };
 
 export const listClubLinkRequests = async (

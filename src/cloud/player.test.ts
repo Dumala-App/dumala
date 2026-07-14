@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { DumalaSupabaseClient } from './client';
 import { createCloudDataAccess } from './dataAccess';
-import { computeIsMinor, CloudPlayerError } from './player';
+import { computeIsMinor, CloudPlayerError, mapCloudAssessmentSession, mapRosterPlayerToReportPlayer } from './player';
 
 const createRpcStub = (result: unknown, error: unknown = null) => {
   const rpc = vi.fn().mockResolvedValue({ data: result, error });
@@ -26,6 +26,66 @@ describe('computeIsMinor', () => {
   it('returns false for missing or invalid dates', () => {
     expect(computeIsMinor(null, now)).toBe(false);
     expect(computeIsMinor('not-a-date', now)).toBe(false);
+  });
+});
+
+describe('player FPRDS mapping', () => {
+  it('maps cloud assessment rows into local report sessions', () => {
+    expect(mapCloudAssessmentSession({
+      id: 'assessment-1',
+      player_id: 'player-1',
+      assessment_date: '2026-07-10',
+      assessment_type: 'quick',
+      age_group: 'u18',
+      role: 'w',
+      ovr: 72,
+      weakest_attribute_id: 'strength',
+      ovr_tier_label: 'Developing',
+      previous_session_id: null,
+      benchmark_version: '1.0.0',
+      raw_results: { role: 'W', assessmentType: 'Quick', base: {}, roleSpecific: {} },
+      attribute_scores: { pace: 82, strength: 61 },
+      attribute_deltas: { pace: 3 },
+      created_at: '2026-07-10T10:00:00.000Z'
+    })).toMatchObject({
+      id: 'assessment-1',
+      playerId: 'player-1',
+      assessmentType: 'Quick',
+      ageGroup: 'U18',
+      role: 'W',
+      attributeScores: { pace: 82, strength: 61 },
+      deltas: { attributeDeltas: { pace: 3 } }
+    });
+  });
+
+  it('maps a linked roster player into the report player model', () => {
+    const player = mapRosterPlayerToReportPlayer({
+      id: 'player-1',
+      name: 'Alex Rivera',
+      roster_number: 11,
+      position: 'Forward',
+      photo_url: '',
+      games_played: 5,
+      goals: 3,
+      assists: 2,
+      clean_sheets: 0,
+      minutes_played: 350,
+      yellow_cards: 1,
+      red_cards: 0,
+      base_attributes: { pace: 88, stamina: 77, agility: 85, strength: 70, firstTouch: 82, shortPassing: 78 },
+      position_attributes: { Finishing: 80 },
+      specialty_traits: ['Wide runner']
+    });
+
+    expect(player).toMatchObject({
+      id: 'player-1',
+      name: 'Alex Rivera',
+      number: 11,
+      points: 3,
+      baseAttributes: { pace: 88 },
+      positionAttributes: { Finishing: 80 },
+      specialtyTraits: ['Wide runner']
+    });
   });
 });
 

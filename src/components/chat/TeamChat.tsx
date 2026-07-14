@@ -214,8 +214,8 @@ const TeamChat = ({ runtime, clubId, selfUserId, tone = 'glass', canModerateAll 
   let lastDay = '';
 
   return (
-    <div className={`flex h-full flex-col ${t.shell}`}>
-      <header className={`flex items-center gap-3 border-b px-4 py-3 backdrop-blur-md ${t.header}`}>
+    <div className={`flex h-full min-h-0 flex-col overflow-hidden ${t.shell}`}>
+      <header className={`shrink-0 flex items-center gap-3 border-b px-4 py-3 backdrop-blur-md ${t.header}`}>
         {onBack && (
           <button type="button" onClick={onBack} aria-label="Back" className={`flex h-9 w-9 items-center justify-center rounded-lg ${t.accent}`}>
             <ArrowLeft size={20} />
@@ -281,7 +281,7 @@ const TeamChat = ({ runtime, clubId, selfUserId, tone = 'glass', canModerateAll 
         )}
       </header>
 
-      <div ref={scrollRef} onScroll={onScroll} className="flex-1 space-y-3 overflow-y-auto px-4 py-4">
+      <div ref={scrollRef} onScroll={onScroll} className="min-h-0 flex-1 space-y-3 overflow-y-auto px-4 py-4">
         {loading ? (
           <div className={`flex items-center gap-2 text-sm ${t.muted}`}><Loader2 size={16} className="animate-spin" /> Loading messages...</div>
         ) : visibleMessages.length === 0 ? (
@@ -345,9 +345,9 @@ const TeamChat = ({ runtime, clubId, selfUserId, tone = 'glass', canModerateAll 
         )}
       </div>
 
-      {error && <p className={`px-4 py-1 text-xs ${t.muted}`} role="status">{error}</p>}
+      {error && <p className={`shrink-0 px-4 py-1 text-xs ${t.muted}`} role="status">{error}</p>}
 
-      <form onSubmit={send} className={`flex items-center gap-2 border-t px-3 py-3 ${t.header}`}>
+      <form onSubmit={send} className={`shrink-0 flex items-center gap-2 border-t px-3 py-3 ${t.header}`}>
         <input
           value={draft}
           onChange={e => setDraft(e.target.value)}

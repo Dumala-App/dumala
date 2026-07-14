@@ -147,6 +147,7 @@ import {
   getMyPlayerProfile,
   getOrCreateClubJoinCode,
   getMyTeamTacticsSummary,
+  listMyAssessmentSessions,
   listAchievements,
   listClubLinkRequests,
   listClubRosterPlayers,
@@ -269,6 +270,7 @@ import {
   reportMessage,
   type ChatMessage
 } from './chat';
+import type { AssessmentSession } from '../types';
 
 export interface CloudBulletinRepository {
   list(clubId: string): Promise<SharedBulletin[]>;
@@ -404,6 +406,7 @@ export interface CloudPlayerRepository {
   getOrCreateClubJoinCode(clubId: string): Promise<string>;
   listClubLinkRequests(clubId: string): Promise<PlayerLinkRequest[]>;
   listClubRosterPlayers(clubId: string): Promise<ClubRosterPlayer[]>;
+  listMyAssessmentSessions(playerId: string): Promise<AssessmentSession[]>;
   approveLink(requestId: string, targetPlayerId: string): Promise<string>;
   rejectLink(requestId: string, reason?: string | null): Promise<void>;
   logDrillCompletion(userId: string, input: DrillCompletionInput): Promise<PlayerDrillCompletion>;
@@ -618,6 +621,7 @@ export const createCloudDataAccess = (client: DumalaSupabaseClient): CloudDataAc
     getOrCreateClubJoinCode: clubId => getOrCreateClubJoinCode(client, clubId),
     listClubLinkRequests: clubId => listClubLinkRequests(client, clubId),
     listClubRosterPlayers: clubId => listClubRosterPlayers(client, clubId),
+    listMyAssessmentSessions: playerId => listMyAssessmentSessions(client, playerId),
     approveLink: (requestId, targetPlayerId) => approvePlayerLink(client, requestId, targetPlayerId),
     rejectLink: (requestId, reason) => rejectPlayerLink(client, requestId, reason),
     logDrillCompletion: (userId, input) => logDrillCompletion(client, userId, input),
