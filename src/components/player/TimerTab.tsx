@@ -74,9 +74,6 @@ const fmt = (ms: number) => {
   return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
 };
 
-const RING_RADIUS = 130;
-const RING_CIRCUMFERENCE = 2 * Math.PI * RING_RADIUS;
-
 const modeChip = (active: boolean) =>
   `min-w-0 rounded-lg px-2 py-2.5 font-player-mono text-[9px] font-bold uppercase tracking-[0.12em] transition-colors min-[380px]:text-[10px] ${
     active ? 'bg-[#dce7f8] text-[#0a1526]' : 'text-[#c6c6cd] hover:text-[#d8e3fb]'
@@ -357,7 +354,6 @@ const TimerTab = ({ runtime, userId, preset, onConsumePreset, onSaved }: TimerTa
       ? displayMs / phaseTotalMs
       : 0;
   const clampedFraction = Math.min(1, Math.max(0, ringFraction));
-  const dashOffset = RING_CIRCUMFERENCE * (1 - clampedFraction);
   const completedPercent = Math.round((mode === 'stopwatch' ? clampedFraction : 1 - clampedFraction) * 100);
   const remainingPercent = Math.round(clampedFraction * 100);
 
