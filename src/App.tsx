@@ -7,6 +7,7 @@ import PwaInstallControl from './components/PwaInstallControl';
 import PwaStatusBanners from './components/PwaStatusBanners';
 import WorkspaceIntegrityBanner from './components/WorkspaceIntegrityBanner';
 import AnnouncementBanner from './components/AnnouncementBanner';
+import CoachFloatingChat from './components/CoachFloatingChat';
 import WorkspaceStatusBar, { type CloudBackupStatus } from './components/WorkspaceStatusBar';
 import StartupRecoveryScreen from './components/StartupRecoveryScreen';
 import { ViewErrorBoundary } from './components/ErrorBoundary';
@@ -1878,6 +1879,8 @@ export default function App() {
           </Suspense>
         )}
       </AnimatePresence>
+
+      <CoachFloatingChat clubId={activeWorkspace?.cloudClubId ?? null} />
 
       {/* Application Footer */}
       <footer id="app-footer" className="relative z-10 mt-8 border-t border-cyan-300/10 bg-slate-950/55 px-4 py-2 text-center text-[11px] font-medium text-slate-300/75 shadow-[0_-10px_30px_rgba(2,8,23,0.18)] backdrop-blur-xl">
