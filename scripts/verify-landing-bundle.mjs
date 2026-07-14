@@ -27,10 +27,29 @@ if (initialStyles.length !== 1) {
 
 const initialStylePath = resolve('dist', initialStyles[0].replace(/^\//, ''));
 const { size: initialStyleBytes } = await stat(initialStylePath);
+const initialStyle = await readFile(initialStylePath, 'utf8');
 const MAX_LANDING_CSS_BYTES = 50 * 1024;
 if (initialStyleBytes > MAX_LANDING_CSS_BYTES) {
   throw new Error(
     `Landing stylesheet is ${(initialStyleBytes / 1024).toFixed(1)} KiB; expected at most ${MAX_LANDING_CSS_BYTES / 1024} KiB.`
+  );
+}
+
+const requiredDialogSelectors = [
+  { label: 'dialog fixed positioning', selector: '.fixed' },
+  { label: 'dialog horizontal centering', selector: '.left-1\\/2' },
+  { label: 'dialog vertical centering', selector: '.top-1\\/2' },
+  { label: 'dialog overlay/content stacking', selector: '.z-50' },
+  { label: 'dialog horizontal transform', selector: '.-translate-x-1\\/2' },
+  { label: 'dialog vertical transform', selector: '.-translate-y-1\\/2' },
+];
+const missingDialogSelectors = requiredDialogSelectors.filter(({ selector }) => !initialStyle.includes(selector));
+
+if (missingDialogSelectors.length > 0) {
+  throw new Error(
+    `Landing stylesheet is missing required dialog CSS:\n${missingDialogSelectors
+      .map(({ label, selector }) => `${label}: ${selector}`)
+      .join('\n')}`
   );
 }
 
