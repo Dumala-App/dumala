@@ -5,12 +5,13 @@ import {
   PLAYER_DRILLS,
   filterPlayerDrills,
   getDrillInstructions,
-  type DrillDifficulty,
-  type PlayerDrill,
-  type PositionGroup
+  getJugglingProgress,
+  serializeJugglingScoreNote,
+  JUGGLING_DRILL_ID,
+  type PlayerDrill
 } from '../../player/drillCatalog';
+import type { PlayerDrillCompletion } from '../../cloud/player';
 import {
-  apexBadge,
   apexCard,
   apexChip,
   apexCta,
@@ -26,12 +27,10 @@ interface DrillsTabProps {
   runtime: Extract<CloudRuntime, { enabled: true }>;
   userId: string;
   favorites: string[];
+  completions: PlayerDrillCompletion[];
   onChanged: () => Promise<void> | void;
   onStartWithTimer: (label: string, seconds: number) => void;
 }
-
-const DIFFICULTIES: Array<DrillDifficulty | 'all'> = ['all', 'Easy', 'Moderate', 'Hard'];
-const POSITIONS: PositionGroup[] = ['Forward', 'Midfield', 'Defender', 'Goalkeeper', 'General'];
 
 /** Short mono code for the card overlay chip, drill-library style (PAC/SHT/…). */
 const categoryCode = (category: string): string => {
@@ -40,19 +39,20 @@ const categoryCode = (category: string): string => {
   return words.map(word => word[0]).join('').slice(0, 3).toUpperCase();
 };
 
-const DrillsTab = ({ runtime, userId, favorites, onChanged, onStartWithTimer }: DrillsTabProps) => {
+const DrillsTab = ({ runtime, userId, favorites, completions, onChanged, onStartWithTimer }: DrillsTabProps) => {
   const [search, setSearch] = useState('');
-  const [difficulty, setDifficulty] = useState<DrillDifficulty | 'all'>('all');
-  const [position, setPosition] = useState<PositionGroup | 'all'>('all');
   const [favoritesOnly, setFavoritesOnly] = useState(false);
   const [selected, setSelected] = useState<PlayerDrill | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
+  const [jugglingScore, setJugglingScore] = useState('');
 
   const favoriteSet = useMemo(() => new Set(favorites), [favorites]);
   const drills = useMemo(
-    () => filterPlayerDrills(PLAYER_DRILLS, { search, difficulty, positionGroup: position, favoritesOnly }, favoriteSet),
-    [search, difficulty, position, favoritesOnly, favoriteSet]
+    () => filterPlayerDrills(PLAYER_DRILLS, { search, favoritesOnly }, favoriteSet),
+    [search, favoritesOnly, favoriteSet]
   );
+  const jugglingProgress = useMemo(() => getJugglingProgress(completions), [completions]);
+  const jugglingDrill = PLAYER_DRILLS.find(drill => drill.id === JUGGLING_DRILL_ID);
 
   const toggleFavorite = async (drill: PlayerDrill) => {
     setBusy(`fav-${drill.id}`);
@@ -75,11 +75,28 @@ const DrillsTab = ({ runtime, userId, favorites, onChanged, onStartWithTimer }: 
     }
   };
 
+  const recordJugglingScore = async () => {
+    const score = Number(jugglingScore);
+    if (!Number.isFinite(score) || score < 0 || !jugglingDrill) return;
+    setBusy('juggling-score');
+    try {
+      await runtime.dataAccess.player.logDrillCompletion(userId, {
+        drillId: JUGGLING_DRILL_ID,
+        durationSeconds: jugglingDrill.minutes * 60,
+        notes: serializeJugglingScoreNote(score)
+      });
+      setJugglingScore('');
+      await onChanged();
+    } finally {
+      setBusy(null);
+    }
+  };
+
   return (
     <div className="space-y-5">
       <div className="flex items-baseline justify-between">
         <h2 className={`${apexDisplay} text-2xl`}>Drill Library</h2>
-        <span className={`${apexMono} text-[#c6c6cd]`}>{drills.length} items</span>
+        <span className={`${apexMono} text-[#c6c6cd]`}>{drills.length} solo</span>
       </div>
 
       <div className="relative">
@@ -87,85 +104,122 @@ const DrillsTab = ({ runtime, userId, favorites, onChanged, onStartWithTimer }: 
         <input
           value={search}
           onChange={e => setSearch(e.target.value)}
-          placeholder="Search the drill database…"
+          placeholder="Search solo drills..."
           className="w-full rounded-lg border-none bg-[#2a3548] py-3.5 pl-12 pr-4 text-sm text-[#d8e3fb] outline-none transition-all placeholder:text-[#c6c6cd]/50 focus:ring-1 focus:ring-[#b9c8de]/50"
         />
       </div>
 
+      <section className={`${apexCard} p-4`}>
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <p className={`${apexMonoTight} mb-1 text-[#b9c8de]`}>Ball control tracker</p>
+            <h3 className="font-player-display text-lg font-bold text-[#d8e3fb]">Juggling score</h3>
+          </div>
+          <div className="grid grid-cols-2 gap-2 text-right">
+            <div>
+              <p className={`${apexMonoTight} text-[#c6c6cd]/55`}>Best</p>
+              <p className="font-player-display text-2xl font-bold text-[#d8e3fb]">{jugglingProgress.bestScore ?? '-'}</p>
+            </div>
+            <div>
+              <p className={`${apexMonoTight} text-[#c6c6cd]/55`}>Latest</p>
+              <p className="font-player-display text-2xl font-bold text-[#d8e3fb]">{jugglingProgress.latestScore ?? '-'}</p>
+            </div>
+          </div>
+        </div>
+        <div className="mt-4 grid grid-cols-[1fr_auto] gap-2">
+          <label className="sr-only" htmlFor="juggling-score">Juggling score</label>
+          <input
+            id="juggling-score"
+            type="number"
+            min={0}
+            step={1}
+            inputMode="numeric"
+            value={jugglingScore}
+            onChange={event => setJugglingScore(event.target.value)}
+            placeholder="Best unbroken count"
+            className="min-w-0 rounded-lg border border-[#45464d]/30 bg-[#040e1f] px-3 py-3 font-player-mono text-[11px] text-[#d8e3fb] outline-none placeholder:text-[#c6c6cd]/45 focus:border-[#b9c8de]/60"
+          />
+          <button
+            type="button"
+            onClick={() => void recordJugglingScore()}
+            disabled={busy === 'juggling-score' || !jugglingScore}
+            className="rounded-lg bg-[#dce7f8] px-4 py-3 font-player-mono text-[11px] font-bold uppercase tracking-wider text-[#0a1526] transition-all hover:brightness-110 active:scale-[0.98] disabled:opacity-40"
+          >
+            {busy === 'juggling-score' ? <Loader2 size={15} className="animate-spin" /> : 'Record'}
+          </button>
+        </div>
+        {jugglingProgress.attempts.length > 0 && (
+          <div className="mt-4 flex gap-2 overflow-x-auto pb-1">
+            {jugglingProgress.attempts.slice(0, 6).map(attempt => (
+              <span key={attempt.id} className="shrink-0 rounded border border-white/[0.08] bg-[#111c2d] px-3 py-2">
+                <span className="block font-player-display text-base font-bold text-[#d8e3fb]">{attempt.score}</span>
+                <span className={`${apexMonoTight} text-[#c6c6cd]/55`}>
+                  {new Date(attempt.completed_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                </span>
+              </span>
+            ))}
+          </div>
+        )}
+      </section>
+
       <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1">
         <button type="button" className={apexChip(favoritesOnly)} onClick={() => setFavoritesOnly(v => !v)}>♥ Saved</button>
-        {DIFFICULTIES.map(level => (
-          <button key={level} type="button" className={apexChip(difficulty === level)} onClick={() => setDifficulty(level)}>
-            {level === 'all' ? 'All Drills' : level}
-          </button>
-        ))}
-        {POSITIONS.map(pos => (
-          <button key={pos} type="button" className={apexChip(position === pos)} onClick={() => setPosition(position === pos ? 'all' : pos)}>
-            {pos}
-          </button>
-        ))}
       </div>
 
-      <ul className="space-y-5">
+      <ul className="grid grid-cols-2 gap-3">
         {drills.map(drill => {
           const fav = favoriteSet.has(drill.id);
           return (
             <li key={drill.id} className={`${apexCard} overflow-hidden`}>
-              {/* Gradient header (photo stand-in) */}
-              <button type="button" onClick={() => setSelected(drill)} className="relative block h-24 w-full text-left">
+              <button type="button" onClick={() => setSelected(drill)} className="relative block h-16 w-full text-left">
                 <div className={`absolute inset-0 bg-gradient-to-br ${drill.color} opacity-60`} />
                 <div className="absolute inset-0 bg-gradient-to-t from-[#081425] via-[#081425]/30 to-transparent" />
-                <div className="absolute bottom-3 left-4 flex flex-wrap gap-2">
+                <div className="absolute bottom-2 left-2 flex flex-wrap gap-2">
                   <span className="rounded border border-[#45464d]/30 bg-[#040e1f]/90 px-2 py-0.5 font-player-mono text-[10px] uppercase text-[#d8e3fb] backdrop-blur-md">
                     {categoryCode(drill.category)}
                   </span>
-                  <span className="rounded border border-[#45464d]/30 bg-[#040e1f]/90 px-2 py-0.5 font-player-mono text-[10px] uppercase text-[#d8e3fb] backdrop-blur-md">
-                    {drill.positionGroup}
-                  </span>
                 </div>
-                <span className={`${apexBadge} absolute right-3 top-3`}>{drill.difficulty}</span>
               </button>
 
-              <div className="p-4">
-                <div className="flex items-start justify-between gap-3">
-                  <button type="button" onClick={() => setSelected(drill)} className="min-w-0 flex-1 space-y-1.5 text-left">
-                    <h3 className="font-player-display text-[16px] font-semibold leading-tight text-[#d8e3fb]">{drill.name}</h3>
-                    <div className="flex items-center gap-3">
+              <div className="flex min-h-[8.5rem] flex-col p-3">
+                <button type="button" onClick={() => setSelected(drill)} className="min-w-0 flex-1 space-y-2 text-left">
+                  <h3 className="overflow-hidden font-player-display text-[13px] font-semibold leading-tight text-[#d8e3fb] [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:2]">
+                    {drill.name}
+                  </h3>
+                  <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
                       <span className="flex items-center gap-1">
-                        <Clock size={14} className="text-[#b9c8de]" />
+                        <Clock size={12} className="text-[#b9c8de]" />
                         <span className={`${apexMonoTight} text-[#d8e3fb]`}>{drill.minutes}m</span>
                       </span>
                       <span className="flex items-center gap-1">
-                        <Repeat size={14} className="text-[#b9c8de]" />
+                        <Repeat size={12} className="text-[#b9c8de]" />
                         <span className={`${apexMonoTight} text-[#d8e3fb]`}>Solo</span>
                       </span>
-                    </div>
-                  </button>
-                  <div className="flex shrink-0 items-center gap-1.5">
-                    <button
-                      type="button"
-                      aria-label={fav ? 'Remove favorite' : 'Add favorite'}
-                      onClick={() => void toggleFavorite(drill)}
-                      disabled={busy === `fav-${drill.id}`}
-                      className={`flex h-9 w-9 items-center justify-center rounded transition-colors ${fav ? 'text-[#ff6d00]' : 'text-[#c6c6cd]/50 hover:text-[#c6c6cd]'}`}
-                    >
-                      <Heart size={17} fill={fav ? 'currentColor' : 'none'} />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setSelected(drill)}
-                      className="rounded-lg bg-[#dce7f8] px-4 py-2.5 font-player-mono text-[11px] font-bold uppercase tracking-wider text-[#0a1526] transition-all hover:brightness-110 active:scale-[0.98]"
-                    >
-                      Start
-                    </button>
                   </div>
+                </button>
+
+                <div className="mt-3 flex items-center gap-2 border-t border-[#45464d]/20 pt-3">
+                  <button
+                    type="button"
+                    aria-label={fav ? 'Remove favorite' : 'Add favorite'}
+                    onClick={() => void toggleFavorite(drill)}
+                    disabled={busy === `fav-${drill.id}`}
+                    className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-white/[0.06] bg-[#111c2d]/70 transition-colors ${fav ? 'text-[#ff6d00]' : 'text-[#c6c6cd]/50 hover:text-[#c6c6cd]'}`}
+                  >
+                    <Heart size={16} fill={fav ? 'currentColor' : 'none'} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSelected(drill)}
+                    className="flex h-9 min-w-0 flex-1 items-center justify-center rounded-lg bg-[#dce7f8] px-2 font-player-mono text-[9px] font-bold uppercase tracking-wider text-[#0a1526] transition-all hover:brightness-110 active:scale-[0.98]"
+                  >
+                    Start
+                  </button>
                 </div>
 
                 {drill.equipment.length > 0 && (
-                  <div className="mt-4 flex flex-wrap gap-2 border-t border-[#45464d]/20 pt-3">
-                    {drill.equipment.slice(0, 3).map(item => (
-                      <span key={item} className={apexTag}>{item}</span>
-                    ))}
+                  <div className="mt-2 min-w-0">
+                    <span className={`${apexTag} inline-flex max-w-full truncate`}>{drill.equipment[0]}</span>
                   </div>
                 )}
               </div>
@@ -188,7 +242,6 @@ const DrillsTab = ({ runtime, userId, favorites, onChanged, onStartWithTimer }: 
                 <p className={`${apexMonoTight} mb-1 text-[#b9c8de]`}>{selected.category}</p>
                 <h2 className={`${apexDisplay} text-xl`}>{selected.name}</h2>
                 <div className="mt-2 flex items-center gap-2">
-                  <span className={apexBadge}>{selected.difficulty}</span>
                   <span className={`${apexMonoTight} flex items-center gap-1 text-[#c6c6cd]`}>
                     <Clock size={12} className="text-[#b9c8de]" /> {selected.minutes} min
                   </span>

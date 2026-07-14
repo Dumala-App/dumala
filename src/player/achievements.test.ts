@@ -2,7 +2,14 @@ import { describe, expect, it } from 'vitest';
 import { PLAYER_ACHIEVEMENTS, earnedCount, evaluateAchievements, type PlayerStats } from './achievements';
 
 const stats = (over: Partial<PlayerStats> = {}): PlayerStats => ({
-  drills: 0, workouts: 0, streak: 0, favorites: 0, ...over
+  drills: 0,
+  workouts: 0,
+  streak: 0,
+  favorites: 0,
+  jugglingAttempts: 0,
+  jugglingBest: 0,
+  totalMinutes: 0,
+  ...over
 });
 
 describe('evaluateAchievements', () => {
@@ -33,8 +40,26 @@ describe('evaluateAchievements', () => {
   });
 
   it('counts earned badges and covers the whole catalog', () => {
-    const views = evaluateAchievements(stats({ drills: 50, workouts: 10, streak: 7, favorites: 5 }));
+    const views = evaluateAchievements(stats({
+      drills: 100,
+      workouts: 25,
+      streak: 30,
+      favorites: 10,
+      jugglingAttempts: 5,
+      jugglingBest: 250,
+      totalMinutes: 300
+    }));
     expect(views).toHaveLength(PLAYER_ACHIEVEMENTS.length);
     expect(earnedCount(views)).toBe(PLAYER_ACHIEVEMENTS.length); // everything unlocked
+  });
+
+  it('includes an expanded achievement catalog with juggling milestones', () => {
+    expect(PLAYER_ACHIEVEMENTS.length).toBeGreaterThanOrEqual(20);
+    const views = evaluateAchievements(stats({ jugglingAttempts: 1, jugglingBest: 50 }));
+    const byKey = Object.fromEntries(views.map(v => [v.def.key, v]));
+    expect(byKey.juggling_first.earned).toBe(true);
+    expect(byKey.juggling_50.earned).toBe(true);
+    expect(byKey.juggling_100.earned).toBe(false);
+    expect(byKey.juggling_100.percent).toBe(50);
   });
 });
