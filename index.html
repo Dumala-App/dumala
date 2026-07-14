@@ -17,8 +17,24 @@
         var appName = isPlayerRoute ? 'Dumala Player' : 'Dumala';
         document.querySelector('meta[name="application-name"]').setAttribute('content', appName);
         document.querySelector('meta[name="apple-mobile-web-app-title"]').setAttribute('content', appName);
-        document.write('<link id="dumala-web-manifest" rel="manifest" href="' + manifestHref + '" />');
-        document.write('<link id="dumala-apple-touch-icon" rel="apple-touch-icon" sizes="192x192" href="' + appleIconHref + '" />');
+        var manifestLink = document.getElementById('dumala-web-manifest');
+        if (!manifestLink) {
+          manifestLink = document.createElement('link');
+          manifestLink.id = 'dumala-web-manifest';
+          document.head.appendChild(manifestLink);
+        }
+        manifestLink.setAttribute('rel', 'manifest');
+        manifestLink.setAttribute('href', manifestHref);
+
+        var appleIconLink = document.getElementById('dumala-apple-touch-icon');
+        if (!appleIconLink) {
+          appleIconLink = document.createElement('link');
+          appleIconLink.id = 'dumala-apple-touch-icon';
+          document.head.appendChild(appleIconLink);
+        }
+        appleIconLink.setAttribute('rel', 'apple-touch-icon');
+        appleIconLink.setAttribute('sizes', '192x192');
+        appleIconLink.setAttribute('href', appleIconHref);
       }());
     </script>
     <link rel="preload" href="/fonts/dm-sans/dm-sans-latin-variable.woff2" as="font" type="font/woff2" crossorigin />
