@@ -67,6 +67,42 @@ const formatAttributeLabel = (key: string) => (
     .replace(/\b\w/g, char => char.toUpperCase())
 );
 
+const clampAttributeScore = (value: number) => Math.max(0, Math.min(100, Math.round(value)));
+
+const getAttributeTone = (value: number) => {
+  const score = clampAttributeScore(value);
+  if (score >= 85) {
+    return {
+      label: 'Elite',
+      bar: 'from-[#b9c8de] via-[#dce7f8] to-white',
+      glow: 'shadow-[0_0_12px_rgba(220,231,248,0.35)]',
+      text: 'text-[#eef4ff]'
+    };
+  }
+  if (score >= 75) {
+    return {
+      label: 'Strong',
+      bar: 'from-[#7dd3fc] via-[#b9c8de] to-[#dce7f8]',
+      glow: 'shadow-[0_0_10px_rgba(125,211,252,0.22)]',
+      text: 'text-[#dce7f8]'
+    };
+  }
+  if (score >= 60) {
+    return {
+      label: 'Solid',
+      bar: 'from-[#67e8f9] via-[#93c5fd] to-[#b9c8de]',
+      glow: '',
+      text: 'text-[#c6d7f3]'
+    };
+  }
+  return {
+    label: 'Build',
+    bar: 'from-[#ff9440] via-[#fbbf24] to-[#b9c8de]',
+    glow: '',
+    text: 'text-[#ffcf9b]'
+  };
+};
+
 const shortPosition = (position: string | null | undefined) => {
   if (position === 'Goalkeeper') return 'GK';
   if (position === 'Defender') return 'DEF';
@@ -197,28 +233,64 @@ const PlayerProfileCard = ({ profile, linkedPlayer }: { profile: PlayerProfile |
   );
 };
 
-const AttributeRow = ({ label, value }: { label: string; value: number }) => (
-  <div className="space-y-1.5">
-    <div className="flex items-center justify-between gap-2">
-      <span className="min-w-0 flex-1 truncate font-player-mono text-[8px] font-bold uppercase tracking-[0.12em] text-[#c6c6cd]/65">
-        {label}
-      </span>
-      <span className="w-6 shrink-0 text-right font-player-mono text-[10px] font-black tabular-nums text-[#eef4ff]">{value}</span>
+const AttributeRow = ({ label, value }: { label: string; value: number }) => {
+  const score = clampAttributeScore(value);
+  const tone = getAttributeTone(score);
+
+  return (
+    <div className="space-y-1.5">
+      <div className="flex items-center justify-between gap-2">
+        <span className="min-w-0 flex-1 truncate font-player-mono text-[8px] font-bold uppercase tracking-[0.12em] text-[#c6c6cd]/65">
+          {label}
+        </span>
+        <span className={`w-7 shrink-0 text-right font-player-mono text-[10px] font-black tabular-nums ${tone.text}`}>{score}</span>
+      </div>
+      <div className="relative h-3 w-full overflow-hidden rounded-full border border-white/[0.06] bg-[#07111f]">
+        <div className="absolute inset-y-0 left-1/2 w-px bg-white/[0.08]" />
+        <div className="absolute inset-y-0 left-[75%] w-px bg-white/[0.12]" />
+        <div
+          className={`relative h-full rounded-full bg-gradient-to-r ${tone.bar} ${tone.glow}`}
+          style={{ width: `${score}%` }}
+          role="img"
+          aria-label={`${label} ${score} out of 100, ${tone.label}`}
+        >
+          <span className="absolute right-0 top-1/2 h-3 w-3 -translate-y-1/2 translate-x-1/2 rounded-full border border-[#07111f] bg-white shadow-[0_0_10px_rgba(255,255,255,0.45)]" />
+        </div>
+      </div>
+      <div className="flex justify-between font-player-mono text-[7px] font-bold uppercase tracking-[0.12em] text-[#7f8aa3]">
+        <span>0</span>
+        <span>{tone.label}</span>
+        <span>100</span>
+      </div>
     </div>
-    <div className="h-1.5 w-full overflow-hidden rounded-full bg-white/[0.08]">
-      <div className="h-full rounded-full bg-[#dce7f8]/80" style={{ width: `${Math.max(0, Math.min(100, value))}%` }} />
-    </div>
-  </div>
-);
+  );
+};
 
 const AttributeColumn = ({ title, attributes, emptyText }: { title: string; attributes: AttributeMap; emptyText: string }) => {
-  const entries = Object.entries(attributes);
+  const entries = Object.entries(attributes).sort((a, b) => b[1] - a[1]);
+  const averageScore = entries.length > 0 ? average(entries.map(([, value]) => value)) : null;
+  const topAttribute = entries[0] ?? null;
 
   return (
     <div className={`${apexCard} min-w-0 p-4`}>
-      <h4 className={`${apexMonoTight} mb-3 text-[#dce7f8]`}>{title}</h4>
+      <div className="mb-3 flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <h4 className={`${apexMonoTight} text-[#dce7f8]`}>{title}</h4>
+          {topAttribute && (
+            <p className="mt-1 truncate text-[10px] font-medium text-[#c6c6cd]/55">
+              Top: {formatAttributeLabel(topAttribute[0])}
+            </p>
+          )}
+        </div>
+        {averageScore !== null && (
+          <div className="shrink-0 rounded-lg border border-[#b9c8de]/20 bg-[#b9c8de]/10 px-2 py-1 text-right">
+            <p className="font-player-display text-base font-black leading-none text-[#eef4ff]">{averageScore}</p>
+            <p className="mt-0.5 font-player-mono text-[7px] font-black uppercase tracking-widest text-[#b9c8de]">AVG</p>
+          </div>
+        )}
+      </div>
       {entries.length > 0 ? (
-        <div className="space-y-2.5">
+        <div className="space-y-3">
           {entries.map(([key, value]) => (
             <AttributeRow key={key} label={formatAttributeLabel(key)} value={value} />
           ))}
@@ -318,7 +390,7 @@ const HomeTab = ({
         </div>
       </section>
 
-      <section className="space-y-4 pb-28">
+      <section className="space-y-4">
         <div className="flex items-end justify-between">
           <h3 className={apexSectionTitle}>Today's Training</h3>
           <button type="button" onClick={onGoToDrills} className={`${apexMono} text-[#b9c8de] transition-colors hover:text-[#dce7f8]`}>

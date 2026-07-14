@@ -31,6 +31,25 @@ const setupValue = (value: string | null | undefined, fallback = 'Not set') => {
   return trimmed || fallback;
 };
 
+const squadPlayerKey = (player: ClubRosterPlayer): string => [
+  player.roster_number,
+  player.name.trim().replace(/\s+/g, ' ').toLowerCase(),
+  player.position.trim().replace(/\s+/g, ' ').toLowerCase()
+].join('::');
+
+export const getUniqueSquadPlayers = (players: ClubRosterPlayer[]): ClubRosterPlayer[] => {
+  const grouped = new Map<string, ClubRosterPlayer>();
+
+  for (const player of players) {
+    const key = squadPlayerKey(player);
+    if (!grouped.has(key)) {
+      grouped.set(key, player);
+    }
+  }
+
+  return Array.from(grouped.values());
+};
+
 const TeamSetupPanel = ({ tactics }: { tactics: TeamTacticsSummary | null }) => {
   const attackingStyle = setupValue(tactics?.is_custom_strategy ? tactics.custom_playstyle_value : tactics?.playstyle);
   const defensiveStyle = setupValue(tactics?.custom_defensive_value ?? tactics?.defensive_style);
@@ -118,15 +137,17 @@ const SquadTab = ({ runtime, clubId, onGoToProfile }: SquadTabProps) => {
     };
   }, [runtime, clubId]);
 
+  const uniquePlayers = useMemo(() => getUniqueSquadPlayers(players), [players]);
+
   const filteredPlayers = useMemo(() => {
     const query = search.trim().toLowerCase();
-    if (!query) return players;
-    return players.filter(player => (
+    if (!query) return uniquePlayers;
+    return uniquePlayers.filter(player => (
       player.name.toLowerCase().includes(query)
       || player.position.toLowerCase().includes(query)
       || String(player.roster_number).includes(query)
     ));
-  }, [players, search]);
+  }, [uniquePlayers, search]);
 
   if (!clubId) {
     return (
@@ -191,7 +212,7 @@ const SquadTab = ({ runtime, clubId, onGoToProfile }: SquadTabProps) => {
           </div>
         ) : error ? (
           <p className={`${apexCard} p-5 text-sm text-amber-400`} role="alert">{error}</p>
-        ) : players.length === 0 ? (
+        ) : uniquePlayers.length === 0 ? (
           <p className={`${apexCard} p-5 text-sm text-[#c6c6cd]/70`}>No players are registered on this squad yet.</p>
         ) : filteredPlayers.length === 0 ? (
           <p className={`${apexCard} p-5 text-sm text-[#c6c6cd]/70`}>No squad members match that search.</p>
