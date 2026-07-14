@@ -1191,11 +1191,6 @@ export default function TrainingView({
                       <span className={`mt-0.5 block truncate text-[9px] font-black uppercase tracking-wider ${isToday ? 'text-amber-200' : 'text-slate-500'}`}>
                         {weekDaysMap[day].monthDate}
                       </span>
-                      {isToday && (
-                        <span className="mt-1 inline-flex rounded-full border border-cyan-200/40 bg-cyan-300/12 px-1.5 py-0.5 text-[7.5px] font-black uppercase tracking-wider text-cyan-100">
-                          Today
-                        </span>
-                      )}
                       <span className="mt-0.5 block truncate text-[9px] font-semibold text-slate-400">{duration} min</span>
                     </div>
                   </div>
