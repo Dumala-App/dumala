@@ -13,7 +13,7 @@ export const MOCK_WORKSPACE_CHOICES = Object.entries(mockWorkspaceModules)
     id: path,
     fileName: path.split('/').pop() ?? 'workspace.json',
     label: backup.core?.teamInfo?.name || fileLabel(path),
-    detail: `${backup.core?.players?.length ?? 0} players · ${backup.core?.games?.length ?? 0} games · ${backup.core?.assessments?.length ?? 0} FPRDS`,
+    detail: `${backup.core?.players?.length ?? 0} players - ${backup.core?.games?.length ?? 0} games - ${backup.core?.assessments?.length ?? 0} FPRDS`,
     backup
   }))
   .sort((a, b) => a.label.localeCompare(b.label));
