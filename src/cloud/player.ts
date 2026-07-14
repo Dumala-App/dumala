@@ -358,6 +358,17 @@ export interface ClubRosterPlayer {
   name: string;
   roster_number: number;
   position: string;
+  photo_url: string;
+  games_played: number;
+  goals: number;
+  assists: number;
+  clean_sheets: number;
+  minutes_played: number;
+  yellow_cards: number;
+  red_cards: number;
+  base_attributes: unknown;
+  position_attributes: unknown;
+  specialty_traits: unknown;
 }
 
 export const listClubRosterPlayers = async (
@@ -368,7 +379,7 @@ export const listClubRosterPlayers = async (
   return (expectNoError(
     await supabase
       .from('players')
-      .select('id, name, roster_number, position')
+      .select('id, name, roster_number, position, photo_url, games_played, goals, assists, clean_sheets, minutes_played, yellow_cards, red_cards, base_attributes, position_attributes, specialty_traits')
       .eq('club_id', clubId)
       .is('deleted_at', null)
       .order('roster_number', { ascending: true }),

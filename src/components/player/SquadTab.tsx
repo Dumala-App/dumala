@@ -166,6 +166,8 @@ const SquadTab = ({ runtime, clubId, onGoToProfile }: SquadTabProps) => {
 
       <TeamSetupPanel tactics={tactics} />
 
+      <PlayerSchedulePanel runtime={runtime} clubId={clubId} />
+
       <section className="space-y-3">
         <div className="flex items-center justify-between gap-3">
           <h3 className={apexSectionTitle}>Whole Squad</h3>
@@ -215,7 +217,6 @@ const SquadTab = ({ runtime, clubId, onGoToProfile }: SquadTabProps) => {
         )}
       </section>
 
-      <PlayerSchedulePanel runtime={runtime} clubId={clubId} />
     </div>
   );
 };
