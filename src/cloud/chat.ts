@@ -63,6 +63,10 @@ export const unreadCount = (
   }).length;
 };
 
+export const visibleChatMessages = (messages: ChatMessage[]): ChatMessage[] => (
+  messages.filter(message => !message.deleted_at)
+);
+
 // --- RPC wrappers ------------------------------------------------------------
 
 export const ensureChannel = async (client: DumalaSupabaseClient, clubId: string): Promise<string> => {
@@ -86,6 +90,7 @@ export const listMessages = async (
       .from('team_chat_messages')
       .select('*')
       .eq('club_id', clubId)
+      .is('deleted_at', null)
       .order('created_at', { ascending: true })
       .limit(limit),
     'CHAT_MESSAGES_READ_FAILED',
