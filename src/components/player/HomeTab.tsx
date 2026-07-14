@@ -19,8 +19,10 @@ interface HomeTabProps {
   streakDays: number;
   completions: PlayerDrillCompletion[];
   nextFixture: TeamScheduleEntry | null;
+  linkedClubId: string | null;
   onGoToDrills: () => void;
   onGoToTimer: () => void;
+  onGoToProfile: () => void;
 }
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -56,7 +58,15 @@ const formatFixtureDate = (value: string) => {
   return parsed.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
 };
 
-const HomeTab = ({ streakDays, completions, nextFixture, onGoToDrills, onGoToTimer }: HomeTabProps) => {
+const HomeTab = ({
+  streakDays,
+  completions,
+  nextFixture,
+  linkedClubId,
+  onGoToDrills,
+  onGoToTimer,
+  onGoToProfile
+}: HomeTabProps) => {
   const totals = weeklyTotals(completions);
   const percent = weeklyGoalPercent(totals);
   const week = useMemo(() => buildWeekRow(completions), [completions]);
@@ -69,6 +79,23 @@ const HomeTab = ({ streakDays, completions, nextFixture, onGoToDrills, onGoToTim
         <p className={`${apexEyebrow} mb-1`}>This week · {totals.drills} drills · {totals.minutes} min</p>
         <h2 className={`${apexDisplay} text-[30px]`}>{streakDays > 0 ? 'Keep the run alive' : 'Match day ready?'}</h2>
       </section>
+
+      {!linkedClubId && (
+        <section className={`${apexCard} border-orange-300/20 bg-orange-300/[0.08] p-5`}>
+          <div className="flex items-start gap-3">
+            <CalendarDays size={19} className="mt-0.5 shrink-0 text-[#ff9440]" />
+            <div className="min-w-0 flex-1">
+              <h3 className="font-player-display text-base font-bold text-[#d8e3fb]">Connect your team</h3>
+              <p className="mt-1 text-sm leading-5 text-[#c6c6cd]/75">
+                Use your coach invite link or club code once. Dumala will send the join request for review.
+              </p>
+              <button type="button" onClick={onGoToProfile} className={`${apexGhost} mt-3 px-4 py-2.5 font-player-mono text-[11px] font-bold uppercase tracking-wide`}>
+                Join team
+              </button>
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* Active streak card */}
       <section className={`${apexCardHero} p-5`}>
