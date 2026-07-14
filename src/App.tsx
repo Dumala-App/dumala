@@ -1733,7 +1733,6 @@ export default function App() {
                   assessments={assessments}
                   activation={activationState}
                   cloudClubId={activeWorkspace?.cloudClubId ?? null}
-                  teamChatAvailable={hasTeamChatRuntime(cloudRuntime)}
                   onSelectPlayer={setSelectedPlayer}
                   onOpenTrainingSession={setSelectedTrainingSessionDay}
                   onUpdateTeamInfo={handleUpdateTeamInfo}

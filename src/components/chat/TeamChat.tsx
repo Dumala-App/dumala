@@ -1,5 +1,5 @@
-import React, { FormEvent, useCallback, useEffect, useRef, useState } from 'react';
-import { ArrowLeft, Flag, Loader2, MoreVertical, Send, ShieldCheck, Trash2 } from 'lucide-react';
+import React, { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { ArrowLeft, BellOff, Check, Flag, Loader2, MoreVertical, RefreshCw, Send, Settings, ShieldCheck, Trash2 } from 'lucide-react';
 import type { CloudRuntime } from '../../cloud/runtime';
 import type { ChatMessage } from '../../cloud/chat';
 
@@ -54,7 +54,8 @@ const TONE: Record<ChatTone, Record<string, string>> = {
     input: 'border border-cyan-300/12 bg-[#0b1726]/85 text-slate-100 placeholder:text-slate-500 focus:border-orange-300/60',
     send: 'bg-orange-400 text-slate-950',
     muted: 'text-slate-400',
-    divider: 'bg-[#07111f] text-slate-400'
+    divider: 'bg-[#07111f] text-slate-400',
+    menu: 'border border-cyan-300/15 bg-[#07111f] text-slate-100'
   }
 };
 
@@ -69,6 +70,11 @@ const dayLabel = (iso: string) => {
   return d.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
 };
 const timeLabel = (iso: string) => new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+const firstName = (name: string) => name.trim().split(/\s+/)[0] || name;
+
+export const getChatDisplayName = (message: Pick<ChatMessage, 'author_name' | 'author_role'>): string => (
+  message.author_role === 'player' ? firstName(message.author_name) : message.author_name
+);
 
 const TeamChat = ({ runtime, clubId, selfUserId, tone = 'glass', canModerateAll = false, title = 'Team chat', onBack }: TeamChatProps) => {
   const t = TONE[tone];
@@ -81,8 +87,35 @@ const TeamChat = ({ runtime, clubId, selfUserId, tone = 'glass', canModerateAll 
   const [sending, setSending] = useState(false);
   const [menuFor, setMenuFor] = useState<string | null>(null);
   const [captainUserId, setCaptainUserId] = useState<string | null>(null);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [muted, setMuted] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    return window.localStorage.getItem(`dumala:team-chat-muted:${clubId}`) === 'true';
+  });
+  const [autoRefresh, setAutoRefresh] = useState(true);
+  const [clearing, setClearing] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const atBottomRef = useRef(true);
+  const skipNextMuteSaveRef = useRef(false);
+  const visibleMessages = useMemo(
+    () => canModerateAll ? messages.filter(message => !message.deleted_at) : messages,
+    [canModerateAll, messages]
+  );
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    skipNextMuteSaveRef.current = true;
+    setMuted(window.localStorage.getItem(`dumala:team-chat-muted:${clubId}`) === 'true');
+  }, [clubId]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (skipNextMuteSaveRef.current) {
+      skipNextMuteSaveRef.current = false;
+      return;
+    }
+    window.localStorage.setItem(`dumala:team-chat-muted:${clubId}`, String(muted));
+  }, [clubId, muted]);
 
   const scrollToBottom = () => {
     const el = scrollRef.current;
@@ -119,11 +152,12 @@ const TeamChat = ({ runtime, clubId, selfUserId, tone = 'glass', canModerateAll 
   // Poll for new messages while visible.
   useEffect(() => {
     const id = window.setInterval(() => {
+      if (!autoRefresh) return;
       if (typeof document !== 'undefined' && document.hidden) return;
       refresh().catch(() => undefined);
     }, POLL_MS);
     return () => window.clearInterval(id);
-  }, [refresh]);
+  }, [autoRefresh, refresh]);
 
   useEffect(() => {
     if (atBottomRef.current) scrollToBottom();
@@ -164,6 +198,21 @@ const TeamChat = ({ runtime, clubId, selfUserId, tone = 'glass', canModerateAll 
     try { await chat.reportMessage(id, null); setError('Reported to your coaches.'); }
     catch (err) { setError(err instanceof Error ? err.message : 'Could not report.'); }
   };
+  const clearVisibleMessages = async () => {
+    if (!canModerateAll || clearing || visibleMessages.length === 0) return;
+    setSettingsOpen(false);
+    setClearing(true);
+    setError('');
+    try {
+      await Promise.all(visibleMessages.map(message => chat.deleteMessage(message.id)));
+      await refresh();
+      setError('Team chat cleared for this channel.');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not clear chat.');
+    } finally {
+      setClearing(false);
+    }
+  };
 
   let lastDay = '';
 
@@ -175,19 +224,73 @@ const TeamChat = ({ runtime, clubId, selfUserId, tone = 'glass', canModerateAll 
             <ArrowLeft size={20} />
           </button>
         )}
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           <p className={t.eyebrow}>Team channel</p>
-          <h1 className={`${t.title} truncate text-base`}>{title}</h1>
+          <div className="flex flex-wrap items-center gap-2">
+            <h1 className={`${t.title} truncate text-base`}>{title}</h1>
+            {muted && <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${t.divider}`}>Muted</span>}
+          </div>
+          {canModerateAll && (
+            <p className={`mt-0.5 text-[11px] ${t.muted}`}>
+              Coach controls active - {visibleMessages.length} visible {visibleMessages.length === 1 ? 'message' : 'messages'}
+            </p>
+          )}
         </div>
+        {canModerateAll && (
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setSettingsOpen(open => !open)}
+              aria-label="Chat settings"
+              aria-expanded={settingsOpen}
+              className={`flex h-9 w-9 items-center justify-center rounded-xl border transition hover:bg-white/5 ${t.menu}`}
+            >
+              <Settings size={17} />
+            </button>
+            {settingsOpen && (
+              <div className={`absolute right-0 top-full z-20 mt-2 w-60 overflow-hidden rounded-xl text-xs shadow-2xl shadow-black/30 ${t.menu}`}>
+                <div className="border-b border-white/10 px-3 py-2">
+                  <p className="font-bold text-slate-100">Coach settings</p>
+                  <p className={t.muted}>Manage this official team channel.</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setMuted(current => !current)}
+                  className="flex w-full items-center justify-between gap-3 px-3 py-2.5 text-left hover:bg-white/5"
+                >
+                  <span className="flex items-center gap-2"><BellOff size={14} /> Mute channel</span>
+                  {muted && <Check size={14} className={t.accent} />}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setAutoRefresh(current => !current)}
+                  className="flex w-full items-center justify-between gap-3 px-3 py-2.5 text-left hover:bg-white/5"
+                >
+                  <span className="flex items-center gap-2"><RefreshCw size={14} /> Auto refresh</span>
+                  {autoRefresh && <Check size={14} className={t.accent} />}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void clearVisibleMessages()}
+                  disabled={clearing || visibleMessages.length === 0}
+                  className="flex w-full items-center gap-2 px-3 py-2.5 text-left text-rose-300 hover:bg-rose-300/10 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {clearing ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
+                  Clear chat
+                </button>
+              </div>
+            )}
+          </div>
+        )}
       </header>
 
       <div ref={scrollRef} onScroll={onScroll} className="flex-1 space-y-3 overflow-y-auto px-4 py-4">
         {loading ? (
-          <div className={`flex items-center gap-2 text-sm ${t.muted}`}><Loader2 size={16} className="animate-spin" /> Loading messages…</div>
-        ) : messages.length === 0 ? (
+          <div className={`flex items-center gap-2 text-sm ${t.muted}`}><Loader2 size={16} className="animate-spin" /> Loading messages...</div>
+        ) : visibleMessages.length === 0 ? (
           <p className={`py-10 text-center text-sm ${t.muted}`}>No messages yet. Say hello to your team.</p>
         ) : (
-          messages.map(message => {
+          visibleMessages.map(message => {
             const self = !!selfUserId && message.author_user_id === selfUserId;
             const staff = STAFF_ROLES.has(message.author_role);
             const captain = !!captainUserId && message.author_user_id === captainUserId;
@@ -195,6 +298,7 @@ const TeamChat = ({ runtime, clubId, selfUserId, tone = 'glass', canModerateAll 
             lastDay = dayKey(message.created_at);
             const canDelete = !message.deleted_at && (self || canModerateAll);
             const canReport = !message.deleted_at && !self;
+            const displayName = getChatDisplayName(message);
             return (
               <React.Fragment key={message.id}>
                 {showDay && (
@@ -206,7 +310,7 @@ const TeamChat = ({ runtime, clubId, selfUserId, tone = 'glass', canModerateAll 
                   <div className={`max-w-[85%] ${self ? 'items-end' : 'items-start'}`}>
                     {!self && (
                       <div className="mb-1 flex items-center gap-2 px-1">
-                        <span className={`text-xs font-bold ${staff ? t.adminName : captain ? t.captainName : t.muted}`}>{message.author_name}</span>
+                        <span className={`text-xs font-bold ${staff ? t.adminName : captain ? t.captainName : t.muted}`}>{displayName}</span>
                         {staff && <span className={`rounded px-1.5 py-0 text-[8px] font-bold uppercase ${t.adminBadge}`}>{message.author_role}</span>}
                         {!staff && captain && <span className={`rounded px-1.5 py-0 text-[8px] font-bold uppercase ${t.captainBadge}`}>captain</span>}
                       </div>
@@ -254,7 +358,7 @@ const TeamChat = ({ runtime, clubId, selfUserId, tone = 'glass', canModerateAll 
         <input
           value={draft}
           onChange={e => setDraft(e.target.value)}
-          placeholder="Message your team…"
+          placeholder={muted ? 'Channel muted for you' : 'Message your team...'}
           className={`h-11 flex-1 rounded-2xl px-4 text-sm outline-none ${t.input}`}
         />
         <button type="submit" disabled={sending || !draft.trim()} aria-label="Send" className={`flex h-11 w-11 items-center justify-center rounded-2xl ${t.send} disabled:opacity-40`}>
