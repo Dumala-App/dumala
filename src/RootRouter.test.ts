@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { getRootRoute, shouldLoadWorkspace } from './RootRouter';
+import { applyPwaMetadataForRoute, getPwaMetadataForRoute, getRootRoute, shouldLoadWorkspace } from './RootRouter';
 
 describe('RootRouter', () => {
   it('keeps public routes on the lightweight landing surface', () => {
@@ -15,5 +15,41 @@ describe('RootRouter', () => {
     expect(shouldLoadWorkspace('', '?dumalaAuth=player', null)).toBe(true);
     expect(shouldLoadWorkspace('', '?dumalaAuth=league', null)).toBe(true);
     expect(shouldLoadWorkspace('', '', Date.now().toString())).toBe(true);
+  });
+
+  it('uses player install metadata only for the player route', () => {
+    expect(getPwaMetadataForRoute('player').manifest).toBe('/player-manifest.webmanifest');
+    expect(getPwaMetadataForRoute('player?join=ABC123').manifest).toBe('/player-manifest.webmanifest');
+    expect(getPwaMetadataForRoute('app').manifest).toBe('/manifest.webmanifest');
+  });
+
+  it('applies route-specific PWA metadata to the document head', () => {
+    const elements = new Map<string, { attrs: Record<string, string>; setAttribute: (name: string, value: string) => void; getAttribute: (name: string) => string | undefined }>();
+    const createElement = (attrs: Record<string, string>) => {
+      const element = {
+        attrs,
+        setAttribute: (name: string, value: string) => {
+          element.attrs[name] = value;
+        },
+        getAttribute: (name: string) => element.attrs[name]
+      };
+      return element;
+    };
+    elements.set('link[rel="manifest"]', createElement({ href: '/manifest.webmanifest' }));
+    elements.set('link[rel="apple-touch-icon"]', createElement({ href: '/dumala-pwa-192.png' }));
+    elements.set('meta[name="application-name"]', createElement({ content: 'Dumala' }));
+    elements.set('meta[name="apple-mobile-web-app-title"]', createElement({ content: 'Dumala' }));
+    elements.set('meta[name="theme-color"]', createElement({ content: '#07111f' }));
+    const doc = {
+      title: 'Dumala',
+      querySelector: (selector: string) => elements.get(selector) ?? null
+    } as unknown as Document;
+
+    applyPwaMetadataForRoute('player', doc);
+
+    expect(doc.querySelector('link[rel="manifest"]')?.getAttribute('href')).toBe('/player-manifest.webmanifest');
+    expect(doc.querySelector('link[rel="apple-touch-icon"]')?.getAttribute('href')).toBe('/dumala-player-pwa-192.png');
+    expect(doc.querySelector('meta[name="apple-mobile-web-app-title"]')?.getAttribute('content')).toBe('Dumala Player');
+    expect(doc.title).toBe('Dumala Player');
   });
 });

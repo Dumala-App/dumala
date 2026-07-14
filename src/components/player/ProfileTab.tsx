@@ -5,7 +5,6 @@ import type { CloudAuthController } from '../../hooks/useCloudAuth';
 import { CloudAccountGate } from '../CloudAccountGate';
 import PlayerProfileForm from './PlayerProfileForm';
 import JoinTeamPanel from './JoinTeamPanel';
-import PlayerSchedulePanel from './PlayerSchedulePanel';
 import { apexMono } from './playerTheme';
 
 interface ProfileTabProps {
@@ -23,7 +22,6 @@ const ProfileTab = ({
   runtime,
   userId,
   authController,
-  linkedClubId,
   onLinkedClubChange,
   accountDisplayName,
   accountEmail,
@@ -51,7 +49,6 @@ const ProfileTab = ({
       accountEmail={accountEmail}
       onLinkedClubChange={onLinkedClubChange}
     />
-    <PlayerSchedulePanel runtime={runtime} clubId={linkedClubId} />
     <PlayerProfileForm runtime={runtime} userId={userId} />
   </div>
 );

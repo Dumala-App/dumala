@@ -86,6 +86,21 @@ export interface TeamScheduleEntry {
   notes: string | null;
 }
 
+export interface TeamTacticsSummary {
+  id: string;
+  club_id: string;
+  match_format: string;
+  formation: string;
+  playstyle: string;
+  defensive_style: string | null;
+  is_custom_strategy: boolean;
+  custom_playstyle_value: string | null;
+  custom_defensive_value: string | null;
+  custom_mentality_value: string | null;
+  custom_strategy_notes: string | null;
+  updated_at: string;
+}
+
 export interface PlayerDrillCompletion {
   id: string;
   user_id: string;
@@ -304,6 +319,25 @@ export const listMyTeamSchedule = async (
   ) as TeamScheduleEntry[] | null) ?? [];
 };
 
+export const getMyTeamTacticsSummary = async (
+  client: DumalaSupabaseClient,
+  clubId: string
+): Promise<TeamTacticsSummary | null> => {
+  const supabase = asUntypedClient(client);
+  const rows = (expectNoError(
+    await supabase
+      .from('tactics_workspaces')
+      .select('id, club_id, match_format, formation, playstyle, defensive_style, is_custom_strategy, custom_playstyle_value, custom_defensive_value, custom_mentality_value, custom_strategy_notes, updated_at')
+      .eq('club_id', clubId)
+      .is('deleted_at', null)
+      .order('updated_at', { ascending: false })
+      .limit(1),
+    'TEAM_TACTICS_READ_FAILED',
+    'Failed to load the team setup'
+  ) as TeamTacticsSummary[] | null) ?? [];
+  return rows[0] ?? null;
+};
+
 // --- Coach-facing operations -------------------------------------------------
 
 export const getOrCreateClubJoinCode = async (
@@ -324,6 +358,17 @@ export interface ClubRosterPlayer {
   name: string;
   roster_number: number;
   position: string;
+  photo_url: string;
+  games_played: number;
+  goals: number;
+  assists: number;
+  clean_sheets: number;
+  minutes_played: number;
+  yellow_cards: number;
+  red_cards: number;
+  base_attributes: unknown;
+  position_attributes: unknown;
+  specialty_traits: unknown;
 }
 
 export const listClubRosterPlayers = async (
@@ -334,7 +379,7 @@ export const listClubRosterPlayers = async (
   return (expectNoError(
     await supabase
       .from('players')
-      .select('id, name, roster_number, position')
+      .select('id, name, roster_number, position, photo_url, games_played, goals, assists, clean_sheets, minutes_played, yellow_cards, red_cards, base_attributes, position_attributes, specialty_traits')
       .eq('club_id', clubId)
       .is('deleted_at', null)
       .order('roster_number', { ascending: true }),

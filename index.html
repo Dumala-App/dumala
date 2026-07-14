@@ -9,11 +9,37 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Dumala" />
     <meta name="mobile-web-app-capable" content="yes" />
-    <link rel="manifest" href="/manifest.webmanifest" />
+    <script>
+      (function () {
+        var isPlayerRoute = /^#\/?player(?:[/?]|$)/.test(window.location.hash);
+        var manifestHref = isPlayerRoute ? '/player-manifest.webmanifest' : '/manifest.webmanifest';
+        var appleIconHref = isPlayerRoute ? '/dumala-player-pwa-192.png' : '/dumala-pwa-192.png';
+        var appName = isPlayerRoute ? 'Dumala Player' : 'Dumala';
+        document.querySelector('meta[name="application-name"]').setAttribute('content', appName);
+        document.querySelector('meta[name="apple-mobile-web-app-title"]').setAttribute('content', appName);
+        var manifestLink = document.getElementById('dumala-web-manifest');
+        if (!manifestLink) {
+          manifestLink = document.createElement('link');
+          manifestLink.id = 'dumala-web-manifest';
+          document.head.appendChild(manifestLink);
+        }
+        manifestLink.setAttribute('rel', 'manifest');
+        manifestLink.setAttribute('href', manifestHref);
+
+        var appleIconLink = document.getElementById('dumala-apple-touch-icon');
+        if (!appleIconLink) {
+          appleIconLink = document.createElement('link');
+          appleIconLink.id = 'dumala-apple-touch-icon';
+          document.head.appendChild(appleIconLink);
+        }
+        appleIconLink.setAttribute('rel', 'apple-touch-icon');
+        appleIconLink.setAttribute('sizes', '192x192');
+        appleIconLink.setAttribute('href', appleIconHref);
+      }());
+    </script>
     <link rel="preload" href="/fonts/dm-sans/dm-sans-latin-variable.woff2" as="font" type="font/woff2" crossorigin />
     <link rel="preload" href="/fonts/manrope/manrope-latin-variable.woff2" as="font" type="font/woff2" crossorigin />
     <link rel="icon" type="image/png" href="/dumala-browser-logo.png" />
-    <link rel="apple-touch-icon" sizes="192x192" href="/dumala-pwa-192.png" />
     <meta name="description" content="A data-driven football team management platform built for coaches." />
     <meta property="og:title" content="Dumala" />
     <meta property="og:description" content="A data-driven football team management platform built for coaches." />
