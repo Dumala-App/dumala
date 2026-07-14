@@ -901,6 +901,9 @@ export default function TacticsView({
     if (preset.wallPos) setWallPos(preset.wallPos);
     setWallRotation(preset.phase === 'Set Piece' ? 90 : 0);
     setIsDrawingMode(Boolean(preset.drawingMode));
+    if (isBoardFullscreen && preset.drawingMode) {
+      setIsFullscreenToolsetVisible(false);
+    }
   };
 
   const toggleDrawingLayerVisibility = (layer: DrawingLayer) => {
@@ -908,6 +911,147 @@ export default function TacticsView({
       ...prev,
       [layer]: !prev[layer]
     }));
+  };
+
+  const handleToggleDrawingMode = () => {
+    setIsDrawingMode((current) => {
+      const nextIsDrawingMode = !current;
+      if (isBoardFullscreen && nextIsDrawingMode) {
+        setIsFullscreenToolsetVisible(false);
+      }
+      return nextIsDrawingMode;
+    });
+  };
+
+  const renderBoardMarkingsTools = (variant: 'fullscreen-panel' | 'fullscreen-overlay') => {
+    const isOverlay = variant === 'fullscreen-overlay';
+
+    return (
+      <div
+        id={isOverlay ? 'fullscreen-board-markings-overlay' : undefined}
+        className={cn(isOverlay && 'space-y-2')}
+        onPointerDown={(event) => event.stopPropagation()}
+        onPointerMove={(event) => event.stopPropagation()}
+        onPointerUp={(event) => event.stopPropagation()}
+      >
+        <div className="flex items-center justify-between gap-2">
+          <span className="flex min-w-0 items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+            <Edit size={12} className="shrink-0" />
+            <span className="truncate">Board Markings</span>
+          </span>
+          <Button
+            type="button"
+            onClick={handleToggleDrawingMode}
+            variant="outline"
+            size="sm"
+            aria-pressed={isDrawingMode}
+            className={`h-8 shrink-0 rounded-lg px-3 text-[10px] font-bold uppercase tracking-wide ${
+              isDrawingMode
+                ? 'border-amber-400 bg-amber-400 text-slate-950'
+                : 'border-slate-800/80 bg-white/5 text-slate-400 hover:text-white'
+            }`}
+          >
+            {isDrawingMode ? 'Drawing On' : 'Drawing Off'}
+          </Button>
+        </div>
+
+        {isDrawingMode && (
+          <div className={cn(tacticsGlassInsetClass, 'space-y-2 p-2.5')}>
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-[9px] font-bold uppercase text-slate-400">Color</span>
+              <div className="flex gap-1.5">
+                {[
+                  { hex: '#fbbf24', label: 'Amber' },
+                  { hex: '#ef4444', label: 'Red' },
+                  { hex: '#38bdf8', label: 'Sky' },
+                  { hex: '#ffffff', label: 'White' },
+                  { hex: '#10b981', label: 'Lime' }
+                ].map((col) => (
+                  <Button
+                    key={col.hex}
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setBrushColor(col.hex)}
+                    style={{ backgroundColor: col.hex }}
+                    className={`size-4 rounded-full border p-0 hover:bg-transparent ${
+                      brushColor === col.hex ? 'scale-125 border-cyan-400 ring-1 ring-cyan-500/30' : 'border-black/50'
+                    }`}
+                    title={col.label}
+                    aria-label={`Set brush color to ${col.label}`}
+                  />
+                ))}
+              </div>
+            </div>
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-[9px] font-bold uppercase text-slate-400">Line</span>
+              <span className="rounded-full border border-slate-800 bg-slate-900 px-2 py-0.5 text-[8.5px] font-bold uppercase text-slate-300">Thin 0.7px</span>
+            </div>
+            <div className="grid grid-cols-3 gap-1">
+              {DRAWING_STROKE_STYLES.map((strokeStyle) => (
+                <Button
+                  key={strokeStyle}
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setDrawingStrokeStyle(strokeStyle)}
+                  className={`h-6 rounded px-2 text-[8.5px] font-bold ${
+                    drawingStrokeStyle === strokeStyle ? 'bg-amber-400 text-slate-950' : 'bg-slate-800 text-slate-400 hover:text-slate-100'
+                  }`}
+                >
+                  {strokeStyle}
+                </Button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <div className="grid grid-cols-2 gap-1.5">
+          <Button type="button" disabled={paths.length === 0} onClick={handleUndoDrawing} variant="outline" size="sm" className="h-8 rounded-lg border-slate-800/80 bg-slate-850 px-2 text-[9.5px] font-bold text-slate-300 hover:bg-slate-805 hover:text-white disabled:opacity-30">
+            <RefreshCw size={11} /> Undo
+          </Button>
+          <Button type="button" disabled={paths.length === 0} onClick={handleClearDrawings} variant="outline" size="sm" className="h-8 rounded-lg border-slate-800/80 bg-rose-500/5 px-2 text-[9.5px] font-bold text-rose-400 hover:bg-rose-500/10 hover:text-rose-300 disabled:opacity-30">
+            <Trash2 size={11} /> Ink
+          </Button>
+        </div>
+
+        {isDrawingMode && (
+          <div className={cn(tacticsGlassInsetClass, 'p-2.5')}>
+            <div className="mb-2 flex items-center justify-between gap-2">
+              <span className="text-[9px] font-black uppercase tracking-widest text-slate-400">Drawing Layers</span>
+              <span className="text-[8.5px] font-bold text-slate-600">draw / show</span>
+            </div>
+            <div className="grid grid-cols-2 gap-1.5">
+              {DRAWING_LAYERS.map((layer) => (
+                <div key={layer} className="grid grid-cols-[minmax(0,1fr)_3rem] overflow-hidden rounded-lg border border-slate-800 bg-slate-900">
+                  <button
+                    type="button"
+                    onClick={() => setActiveDrawingLayer(layer)}
+                    className={cn(
+                      'min-w-0 px-3 py-2 text-left text-[10px] font-black uppercase tracking-wide text-slate-400 hover:bg-slate-800 hover:text-white',
+                      activeDrawingLayer === layer && 'bg-indigo-500/20 text-indigo-200'
+                    )}
+                  >
+                    <span className="block truncate">{layer}</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => toggleDrawingLayerVisibility(layer)}
+                    className={cn(
+                      'border-l border-slate-800 text-[9px] font-black uppercase',
+                      visibleDrawingLayers[layer] ? 'text-emerald-300' : 'text-slate-600'
+                    )}
+                    aria-label={`${visibleDrawingLayers[layer] ? 'Hide' : 'Show'} ${layer} layer`}
+                  >
+                    {visibleDrawingLayers[layer] ? 'On' : 'Off'}
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    );
   };
 
   const handleRotateWall = () => {
@@ -1704,6 +1848,12 @@ export default function TacticsView({
           {/* Grass elegant radial texture */}
           <div className="absolute inset-0 bg-gradient-radial from-[#1e4a2a] via-[#13321d] to-[#0a1a0f] opacity-80 pointer-events-none" />
 
+          {isBoardFullscreen && isDrawingMode && (
+            <div className={cn(tacticsGlassPanelClass, 'absolute right-3 top-3 z-50 max-h-[calc(100%-1.5rem)] w-[min(23rem,calc(100%-1.5rem))] overflow-y-auto rounded-xl p-3 shadow-2xl')}>
+              {renderBoardMarkingsTools('fullscreen-overlay')}
+            </div>
+          )}
+
           {/* COACH DRAWING PATHS SVG LAYER (Absolute Overlay) */}
           <svg 
             viewBox="0 0 100 100" 
@@ -2174,82 +2324,7 @@ export default function TacticsView({
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between gap-2">
-                  <span className="flex min-w-0 items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-400"><Edit size={12} className="shrink-0" /> <span className="truncate">Board Markings</span></span>
-                  <Button
-                    type="button"
-                    onClick={() => setIsDrawingMode(!isDrawingMode)}
-                    variant="outline"
-                    size="sm"
-                    className={`h-8 shrink-0 rounded-lg px-3 text-[10px] font-bold uppercase tracking-wide ${
-                      isDrawingMode
-                        ? 'border-amber-400 bg-amber-400 text-slate-950'
-                        : 'border-slate-800/80 bg-white/5 text-slate-400 hover:text-white'
-                    }`}
-                  >
-                    {isDrawingMode ? 'Drawing On' : 'Drawing Off'}
-                  </Button>
-                </div>
-
-                {isDrawingMode && (
-                  <div className={cn(tacticsGlassInsetClass, 'space-y-2 p-2.5')}>
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="text-[9px] font-bold uppercase text-slate-400">Color</span>
-                      <div className="flex gap-1.5">
-                        {[
-                          { hex: '#fbbf24', label: 'Amber' },
-                          { hex: '#ef4444', label: 'Red' },
-                          { hex: '#38bdf8', label: 'Sky' },
-                          { hex: '#ffffff', label: 'White' },
-                          { hex: '#10b981', label: 'Lime' }
-                        ].map((col) => (
-                          <Button
-                            key={col.hex}
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => setBrushColor(col.hex)}
-                            style={{ backgroundColor: col.hex }}
-                            className={`size-4 rounded-full border p-0 hover:bg-transparent ${
-                              brushColor === col.hex ? 'scale-125 border-cyan-400 ring-1 ring-cyan-500/30' : 'border-black/50'
-                            }`}
-                            title={col.label}
-                            aria-label={`Set brush color to ${col.label}`}
-                          />
-                        ))}
-                      </div>
-                    </div>
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="text-[9px] font-bold uppercase text-slate-400">Line</span>
-                      <span className="rounded-full border border-slate-800 bg-slate-900 px-2 py-0.5 text-[8.5px] font-bold uppercase text-slate-300">Thin 0.7px</span>
-                    </div>
-                    <div className="grid grid-cols-3 gap-1">
-                      {DRAWING_STROKE_STYLES.map((strokeStyle) => (
-                        <Button
-                          key={strokeStyle}
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setDrawingStrokeStyle(strokeStyle)}
-                          className={`h-6 rounded px-2 text-[8.5px] font-bold ${
-                            drawingStrokeStyle === strokeStyle ? 'bg-amber-400 text-slate-950' : 'bg-slate-800 text-slate-400 hover:text-slate-100'
-                          }`}
-                        >
-                          {strokeStyle}
-                        </Button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                <div className="grid grid-cols-2 gap-1.5">
-                  <Button type="button" disabled={paths.length === 0} onClick={handleUndoDrawing} variant="outline" size="sm" className="h-8 rounded-lg border-slate-800/80 bg-slate-850 px-2 text-[9.5px] font-bold text-slate-300 hover:bg-slate-805 hover:text-white disabled:opacity-30">
-                    <RefreshCw size={11} /> Undo
-                  </Button>
-                  <Button type="button" disabled={paths.length === 0} onClick={handleClearDrawings} variant="outline" size="sm" className="h-8 rounded-lg border-slate-800/80 bg-rose-500/5 px-2 text-[9.5px] font-bold text-rose-400 hover:bg-rose-500/10 hover:text-rose-300 disabled:opacity-30">
-                    <Trash2 size={11} /> Ink
-                  </Button>
-                </div>
+                {renderBoardMarkingsTools('fullscreen-panel')}
 
                 <div className={cn(tacticsGlassInsetClass, 'p-2.5')}>
                   <div className="mb-2 flex items-center justify-between gap-2">
@@ -2287,40 +2362,6 @@ export default function TacticsView({
                       ))}
                     </SelectContent>
                   </Select>
-                </div>
-
-                <div className={cn(tacticsGlassInsetClass, 'p-2.5')}>
-                  <div className="mb-2 flex items-center justify-between gap-2">
-                    <span className="text-[9px] font-black uppercase tracking-widest text-slate-400">Drawing Layers</span>
-                    <span className="text-[8.5px] font-bold text-slate-600">draw / show</span>
-                  </div>
-                  <div className="grid grid-cols-2 gap-1.5">
-                    {DRAWING_LAYERS.map((layer) => (
-                      <div key={layer} className="grid grid-cols-[minmax(0,1fr)_3rem] overflow-hidden rounded-lg border border-slate-800 bg-slate-900">
-                        <button
-                          type="button"
-                          onClick={() => setActiveDrawingLayer(layer)}
-                          className={cn(
-                            'min-w-0 px-3 py-2 text-left text-[10px] font-black uppercase tracking-wide text-slate-400 hover:bg-slate-800 hover:text-white',
-                            activeDrawingLayer === layer && 'bg-indigo-500/20 text-indigo-200'
-                          )}
-                        >
-                          <span className="block truncate">{layer}</span>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => toggleDrawingLayerVisibility(layer)}
-                          className={cn(
-                            'border-l border-slate-800 text-[9px] font-black uppercase',
-                            visibleDrawingLayers[layer] ? 'text-emerald-300' : 'text-slate-600'
-                          )}
-                          aria-label={`${visibleDrawingLayers[layer] ? 'Hide' : 'Show'} ${layer} layer`}
-                        >
-                          {visibleDrawingLayers[layer] ? 'On' : 'Off'}
-                        </button>
-                      </div>
-                    ))}
-                  </div>
                 </div>
 
                 <div className="border-t border-slate-800/60 pt-3 space-y-2.5">
@@ -2427,9 +2468,10 @@ export default function TacticsView({
               <Button
                 id="btn-coach-draw-toggle"
                 type="button"
-                onClick={() => setIsDrawingMode(!isDrawingMode)}
+                onClick={handleToggleDrawingMode}
                 variant="outline"
                 size="sm"
+                aria-pressed={isDrawingMode}
                 className={`h-7 rounded-md px-2.5 text-[9px] font-extrabold uppercase tracking-wider ${
                   isDrawingMode
                     ? 'bg-amber-400 text-slate-950 border-amber-400 font-black shadow-md shadow-amber-400/10'

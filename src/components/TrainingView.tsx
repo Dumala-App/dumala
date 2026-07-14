@@ -424,6 +424,7 @@ export default function TrainingView({
 
   const weekDaysMap = useMemo(() => getWeekDaysMap(selectedWeekStart), [selectedWeekStart]);
   const weekRangeLabel = useMemo(() => getWeekRangeLabel(selectedWeekStart), [selectedWeekStart]);
+  const currentDateKey = toDateKey(new Date());
   const isCurrentWeek = selectedWeekKey === currentWeekKey;
   const activeTrainingDaySet = useMemo(() => new Set(activeTrainingDays), [activeTrainingDays]);
   const selectedWeekSessionMeta = trainingSessionMeta[selectedWeekKey] ?? {};
@@ -1150,6 +1151,7 @@ export default function TrainingView({
               {DAYS_OF_WEEK.map((day) => {
                 const load = getSessionLoadPoints(weeklySchedule[day]);
                 const duration = getSessionDuration(weeklySchedule[day]);
+                const isToday = weekDaysMap[day].dateStr === currentDateKey;
                 const maxPossibleLoad = 60;
                 const heightPercent = Math.min(100, Math.max(8, (load / maxPossibleLoad) * 100));
                 let barBg = 'bg-gradient-to-t from-emerald-600 to-emerald-300 shadow-[0_0_14px_rgba(16,185,129,0.34)]';
@@ -1175,17 +1177,25 @@ export default function TrainingView({
                 
                 return (
                   <div key={day} className="group flex min-w-0 flex-col items-center">
-                    <span className={`mb-1.5 text-[10px] font-mono font-bold transition-colors ${loadText}`}>
+                    <span className={`mb-1.5 text-[10px] font-mono font-bold transition-colors ${isToday ? 'text-cyan-100' : loadText}`}>
                       {load} pts
                     </span>
-                    <div className={`flex h-24 w-full max-w-11 items-end overflow-hidden rounded-t-lg border border-cyan-300/10 bg-[#07111f] transition-colors ${trackRing}`}>
+                    <div className={`flex h-24 w-full max-w-11 items-end overflow-hidden rounded-t-lg border bg-[#07111f] transition-colors ${isToday ? 'border-cyan-200/70 shadow-[0_0_18px_rgba(34,211,238,0.22)]' : `border-cyan-300/10 ${trackRing}`}`}>
                       <div 
                         style={{ height: `${heightPercent}%` }}
                         className={`w-full rounded-t-md transition-all duration-300 ${barBg}`}
                       />
                     </div>
                     <div className="mt-2 min-w-0 text-center">
-                      <span className="block text-[9px] font-black uppercase tracking-widest text-slate-500">{day.substring(0, 3)}</span>
+                      <span className={`block text-[9px] font-black uppercase tracking-widest ${isToday ? 'text-cyan-100' : 'text-slate-500'}`}>{day.substring(0, 3)}</span>
+                      <span className={`mt-0.5 block truncate text-[9px] font-black uppercase tracking-wider ${isToday ? 'text-amber-200' : 'text-slate-500'}`}>
+                        {weekDaysMap[day].monthDate}
+                      </span>
+                      {isToday && (
+                        <span className="mt-1 inline-flex rounded-full border border-cyan-200/40 bg-cyan-300/12 px-1.5 py-0.5 text-[7.5px] font-black uppercase tracking-wider text-cyan-100">
+                          Today
+                        </span>
+                      )}
                       <span className="mt-0.5 block truncate text-[9px] font-semibold text-slate-400">{duration} min</span>
                     </div>
                   </div>
