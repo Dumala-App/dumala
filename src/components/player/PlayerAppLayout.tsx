@@ -1,13 +1,15 @@
 import React from 'react';
-import { Bell, Dumbbell, Flame, Home, MessageSquare, Timer as TimerIcon, TrendingUp, User } from 'lucide-react';
-import { APEX_THEME_STYLE, apexHeader, apexMono, apexMonoTight, apexNav, apexShell, apexWordmark } from './playerTheme';
+import { Bell, Dumbbell, Flame, Home, MessageSquare, Timer as TimerIcon, TrendingUp, User, Users } from 'lucide-react';
+import { APEX_THEME_STYLE, apexHeader, apexMono, apexMonoTight, apexNav, apexShell } from './playerTheme';
+import PwaInstallControl from '../PwaInstallControl';
 
-export type PlayerTab = 'home' | 'drills' | 'timer' | 'chat' | 'progress' | 'profile';
+export type PlayerTab = 'home' | 'drills' | 'timer' | 'squad' | 'chat' | 'progress' | 'profile';
 
 const TABS: Array<{ id: PlayerTab; label: string; icon: React.ComponentType<{ size?: number; className?: string; fill?: string }> }> = [
   { id: 'home', label: 'Home', icon: Home },
   { id: 'drills', label: 'Drills', icon: Dumbbell },
   { id: 'timer', label: 'Timer', icon: TimerIcon },
+  { id: 'squad', label: 'Squad', icon: Users },
   { id: 'chat', label: 'Chat', icon: MessageSquare },
   { id: 'progress', label: 'Progress', icon: TrendingUp },
   { id: 'profile', label: 'Profile', icon: User }
@@ -44,15 +46,16 @@ const PlayerAppLayout = ({
     <div className="mx-auto flex min-h-screen max-w-md flex-col">
       <header className={apexHeader}>
         <div className="flex min-w-0 items-center gap-3">
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-[#bec6e0]/20 bg-[#152031] font-player-display text-xs font-bold text-[#bec6e0]">
-            {greeting.replace(/^Hey, /, '').charAt(0).toUpperCase() || 'D'}
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden">
+            <img src="/Dumala_logo.png" alt="Dumala" className="h-10 w-10 object-contain" />
           </div>
           <div className="min-w-0">
-            <h1 className={apexWordmark}>Dumala</h1>
+            <h1 className="font-player-display text-sm font-bold uppercase tracking-[0.18em] text-[#eef4ff]">Dumala</h1>
             <p className={`${apexMonoTight} truncate text-[#c6c6cd]/60`}>{subGreeting} · {greeting.replace(/^Hey, /, '')}</p>
           </div>
         </div>
         <div className="flex shrink-0 items-center gap-2">
+          <PwaInstallControl audience="player" tone="player" />
           {streakDays > 0 && (
             <span className="flex items-center gap-1 rounded border border-[#ff6d00]/25 bg-[#ff6d00]/[0.07] px-2 py-1 font-player-mono text-[11px] font-bold text-[#ff9440]">
               <Flame size={13} /> {streakDays}
@@ -77,7 +80,7 @@ const PlayerAppLayout = ({
       <main className={fillMain ? 'min-h-0 flex-1 overflow-hidden' : 'flex-1 overflow-y-auto px-4 pb-28 pt-5'}>{children}</main>
 
       <nav className={apexNav} aria-label="Player app sections">
-        <div className="grid grid-cols-6">
+        <div className="grid grid-cols-7">
           {TABS.map(tab => {
             const active = tab.id === activeTab;
             const Icon = tab.icon;
@@ -87,7 +90,7 @@ const PlayerAppLayout = ({
                 type="button"
                 onClick={() => onTabChange(tab.id)}
                 aria-current={active ? 'page' : undefined}
-                className={`relative flex min-h-14 flex-col items-center justify-center gap-1.5 px-1 pb-2 pt-1 transition-colors ${
+                className={`relative flex min-h-14 flex-col items-center justify-center gap-1 px-0.5 pb-2 pt-1 transition-colors ${
                   active ? 'text-[#eef4ff]' : 'text-[#c6c6cd]/60 hover:text-[#dce7f8]'
                 }`}
               >
@@ -97,7 +100,7 @@ const PlayerAppLayout = ({
                     <span className="absolute -right-1.5 -top-1 h-2 w-2 rounded-full bg-[#ff6d00] shadow-[0_0_6px_#ff6d00]" />
                   )}
                 </span>
-                <span className={`${apexMono} !text-[9px] ${active ? 'font-bold' : ''}`}>{tab.label}</span>
+                <span className={`${apexMono} !text-[8px] ${active ? 'font-bold' : ''}`}>{tab.label}</span>
                 {active && (
                   <span className="absolute bottom-0.5 h-0.5 w-5 rounded-full bg-[#dce7f8] shadow-[0_0_8px_rgba(220,231,248,0.7)]" />
                 )}

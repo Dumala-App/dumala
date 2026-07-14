@@ -1,47 +1,99 @@
 import React, { useMemo } from 'react';
-import { Award, Dumbbell, Flame, Footprints, Heart, Target, Timer, TrendingUp, Zap } from 'lucide-react';
-import type { PlayerAchievement, PlayerDrillCompletion } from '../../cloud/player';
+import { Award, Dumbbell, Flame, Footprints, Gauge, Heart, Sparkles, Target, Timer, Trophy, TrendingUp, Volleyball, Zap } from 'lucide-react';
+import type { PlayerAchievement, PlayerDrillCompletion, PlayerWorkoutSession } from '../../cloud/player';
 import { getPlayerDrill } from '../../player/drillCatalog';
 import { computeStreakDays, weeklyTotals } from '../../player/progress';
 import { evaluateAchievements, type PlayerStats } from '../../player/achievements';
-import { apexCard, apexDisplay, apexEyebrow, apexMonoTight, apexSectionTitle } from './playerTheme';
+import { apexCard, apexCardHero, apexEyebrow, apexMonoTight, apexSectionTitle } from './playerTheme';
 
 interface ProgressTabProps {
   completions: PlayerDrillCompletion[];
+  workouts: PlayerWorkoutSession[];
   stats: PlayerStats;
   achievements: PlayerAchievement[];
 }
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const WEEK_LABELS = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+const STREAK_WEEK_LABELS = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'];
 
 const ACHIEVEMENT_ICONS: Record<string, React.ComponentType<{ size?: number; className?: string }>> = {
-  Footprints, Target, Award, Timer, Dumbbell, Flame, Zap, Heart
+  Footprints, Target, Award, Timer, Dumbbell, Flame, Zap, Heart, Volleyball, Sparkles, Trophy, Gauge
 };
 
-const Stat = ({ icon: Icon, value, label, accent }: {
-  icon: React.ComponentType<{ size?: number; className?: string; fill?: string }>;
-  value: string | number;
-  label: string;
-  accent?: boolean;
-}) => (
-  <div className={`${apexCard} border-l-4 p-4 ${accent ? 'border-l-[#ff6d00]/70' : 'border-l-[#b9c8de]/70'}`}>
-    <Icon size={17} className={accent ? 'text-[#ff9440]' : 'text-[#b9c8de]'} fill={accent ? 'currentColor' : 'none'} />
-    <p className="mt-2 font-player-display text-2xl font-bold text-[#d8e3fb]">{value}</p>
-    <p className={`${apexMonoTight} mt-0.5 text-[#c6c6cd]/70`}>{label}</p>
-  </div>
-);
+/** Mon-start week model: which days trained, which is today, which are future. */
+const buildWeekRow = (completions: PlayerDrillCompletion[], now = new Date()) => {
+  const today = new Date(now);
+  today.setHours(0, 0, 0, 0);
+  const mondayOffset = (today.getDay() + 6) % 7;
+  const monday = today.getTime() - mondayOffset * DAY_MS;
 
-const ProgressTab = ({ completions, stats, achievements }: ProgressTabProps) => {
+  const trained = new Set<number>();
+  for (const completion of completions) {
+    const t = new Date(completion.completed_at);
+    if (Number.isNaN(t.getTime())) continue;
+    t.setHours(0, 0, 0, 0);
+    const index = Math.floor((t.getTime() - monday) / DAY_MS);
+    if (index >= 0 && index < 7) trained.add(index);
+  }
+
+  return STREAK_WEEK_LABELS.map((label, index) => ({
+    label,
+    trained: trained.has(index),
+    isToday: index === mondayOffset,
+    isFuture: index > mondayOffset
+  }));
+};
+
+const formatActivityDateTime = (value: string) => {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleString(undefined, {
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit'
+  });
+};
+
+const formatDuration = (seconds: number) => {
+  const rounded = Math.max(0, Math.round(seconds));
+  if (rounded < 60) return `${rounded}s`;
+  return `${Math.round(rounded / 60)} min`;
+};
+
+const ProgressTab = ({ completions, workouts, stats, achievements }: ProgressTabProps) => {
   const totals = weeklyTotals(completions);
   const streak = computeStreakDays(completions);
-  const totalMinutes = Math.round(completions.reduce((sum, c) => sum + (c.duration_seconds ?? 0), 0) / 60);
+  const streakWeek = useMemo(() => buildWeekRow(completions), [completions]);
 
   const badges = useMemo(() => {
     const earnedMap = new Map(achievements.map(a => [a.achievement_key, a.earned_at]));
     return evaluateAchievements(stats, earnedMap);
   }, [stats, achievements]);
   const earnedBadges = badges.filter(b => b.earned).length;
+  const visibleBadges = badges.slice(0, 4);
+  const remainingBadgeCount = Math.max(0, badges.length - visibleBadges.length);
+  const activityHistory = useMemo(() => {
+    const drillRows = completions.map(completion => ({
+      id: `drill-${completion.id}`,
+      kind: 'drill' as const,
+      at: completion.completed_at,
+      title: getPlayerDrill(completion.drill_id)?.name ?? completion.drill_id,
+      meta: completion.duration_seconds ? formatDuration(completion.duration_seconds) : ''
+    }));
+    const workoutRows = workouts.map(workout => ({
+      id: `workout-${workout.id}`,
+      kind: 'workout' as const,
+      at: workout.completed_at,
+      title: workout.label || `${workout.kind[0].toUpperCase()}${workout.kind.slice(1)} workout`,
+      meta: formatDuration(workout.total_seconds)
+    }));
+    return [...drillRows, ...workoutRows]
+      .sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime())
+      .slice(0, 25);
+  }, [completions, workouts]);
 
   // Set of local-day timestamps that have at least one completion.
   const trainedDays = useMemo(() => {
@@ -99,24 +151,54 @@ const ProgressTab = ({ completions, stats, achievements }: ProgressTabProps) => 
   return (
     <div className="space-y-7">
       <section>
-        <p className={`${apexEyebrow} mb-1`}>Consistency Report</p>
-        <h2 className={`${apexDisplay} text-2xl`}>Daily Discipline</h2>
+        <p className={`${apexEyebrow} mb-1`}>This week · {totals.drills} drills · {totals.minutes} min</p>
+        <h2 className="font-player-display text-[22px] font-bold leading-tight text-[#d8e3fb]">{streak > 0 ? 'Keep the run alive' : 'Match day ready?'}</h2>
       </section>
 
-      <div className="grid grid-cols-3 gap-3">
-        <Stat icon={Flame} value={streak} label="Day Streak" accent />
-        <Stat icon={Dumbbell} value={totals.drills} label="This Week" />
-        <Stat icon={Timer} value={`${totalMinutes}m`} label="All Time" />
-      </div>
+      <section className={`${apexCardHero} p-5`}>
+        <div className="mb-6 flex items-center justify-between">
+          <h3 className={apexSectionTitle}>Active Streak</h3>
+          <div className="flex items-center gap-2 text-[#ff9440]">
+            <Flame size={18} fill="currentColor" />
+            <span className="font-player-mono text-base font-bold">{streak} {streak === 1 ? 'DAY' : 'DAYS'}</span>
+          </div>
+        </div>
+        <div className="flex items-start justify-between px-1">
+          {streakWeek.map(day => (
+            <div
+              key={day.label}
+              className={`flex flex-col items-center gap-2 ${
+                day.trained || day.isToday ? 'text-[#dce7f8]' : day.isFuture ? 'text-[#b9c8de] opacity-30' : 'text-[#b9c8de]/50'
+              }`}
+            >
+              {day.isToday && !day.trained ? (
+                <span className="flex h-6 w-6 items-center justify-center rounded-full border-2 border-[#dce7f8]/70">
+                  <span className="h-2 w-2 animate-pulse rounded-full bg-[#ff6d00]" />
+                </span>
+              ) : (
+                <Volleyball size={20} fill={day.trained ? 'currentColor' : 'none'} />
+              )}
+              <span className={`${apexMonoTight} ${day.isToday ? 'font-bold' : ''}`}>{day.label}</span>
+            </div>
+          ))}
+        </div>
+      </section>
 
       {/* Achievements */}
       <section className="space-y-4">
         <div className="flex items-center justify-between">
           <h3 className={apexSectionTitle}>Achievements</h3>
-          <span className={`${apexMonoTight} border-b border-[#b9c8de]/40 pb-0.5 text-[#dce7f8]`}>{earnedBadges} / {badges.length}</span>
+          <div className="flex items-center gap-2">
+            <span className={`${apexMonoTight} border-b border-[#b9c8de]/40 pb-0.5 text-[#dce7f8]`}>{earnedBadges} / {badges.length}</span>
+            {remainingBadgeCount > 0 && (
+              <span className="rounded-full border border-[#b9c8de]/25 bg-[#b9c8de]/10 px-2.5 py-1 font-player-mono text-[9px] font-bold uppercase tracking-wider text-[#dce7f8]">
+                +{remainingBadgeCount} more
+              </span>
+            )}
+          </div>
         </div>
         <div className="grid grid-cols-2 gap-3">
-          {badges.map(badge => {
+          {visibleBadges.map(badge => {
             const Icon = ACHIEVEMENT_ICONS[badge.def.icon] ?? Award;
             return (
               <div key={badge.def.key} className={`${apexCard} p-4 ${badge.earned ? 'border-l-4 border-l-[#dce7f8]/70' : 'opacity-70'}`}>
@@ -214,26 +296,29 @@ const ProgressTab = ({ completions, stats, achievements }: ProgressTabProps) => 
       {/* History */}
       <section className="space-y-4">
         <h3 className={apexSectionTitle}>History</h3>
-        {completions.length === 0 ? (
+        {activityHistory.length === 0 ? (
           <p className={`${apexCard} px-4 py-8 text-center text-sm text-[#c6c6cd]`}>
-            Your completed drills will show up here.
+            Your completed drills and saved timer workouts will show up here.
           </p>
         ) : (
           <ul className="space-y-2">
-            {completions.slice(0, 25).map(completion => {
-              const drill = getPlayerDrill(completion.drill_id);
+            {activityHistory.map(activity => {
+              const isWorkout = activity.kind === 'workout';
               return (
-                <li key={completion.id} className={`${apexCard} flex items-center gap-3 px-4 py-3`}>
+                <li key={activity.id} className={`${apexCard} flex items-center gap-3 px-4 py-3`}>
                   <span className="flex h-9 w-9 items-center justify-center rounded bg-[#b9c8de]/10 text-[#dce7f8]">
-                    <Dumbbell size={16} />
+                    {isWorkout ? <Timer size={16} /> : <Dumbbell size={16} />}
                   </span>
                   <div className="min-w-0 flex-1">
-                    <p className="truncate font-player-display text-sm font-semibold text-[#d8e3fb]">{drill?.name ?? completion.drill_id}</p>
+                    <p className="truncate font-player-display text-sm font-semibold text-[#d8e3fb]">{activity.title}</p>
                     <p className={`${apexMonoTight} mt-0.5 text-[#c6c6cd]/60`}>
-                      {new Date(completion.completed_at).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}
-                      {completion.duration_seconds ? ` · ${Math.round(completion.duration_seconds / 60)} min` : ''}
+                      {formatActivityDateTime(activity.at)}
+                      {activity.meta ? ` · ${activity.meta}` : ''}
                     </p>
                   </div>
+                  <span className={`${apexMonoTight} shrink-0 rounded border border-white/[0.08] bg-white/[0.04] px-2 py-1 text-[#c6c6cd]/60`}>
+                    {isWorkout ? 'Timer' : 'Drill'}
+                  </span>
                 </li>
               );
             })}

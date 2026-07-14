@@ -1,12 +1,18 @@
 // Phase 6 - Player engagement: achievement catalog + display evaluator.
 //
-// The catalog is the display source (titles, descriptions, icons) and mirrors
-// the grant thresholds in the sync_player_achievements RPC
-// (supabase/migrations/202607100011). Keep the keys + thresholds in sync with
-// that migration. The server is the grant authority; this module only decides
-// what to show and how far along a locked badge is.
+// The server can still grant canonical achievement keys through the
+// sync_player_achievements RPC, but the full catalog is intentionally evaluated
+// client-side too so newer progress badges can appear before a migration adds
+// server-side grants.
 
-export type AchievementMetric = 'drills' | 'workouts' | 'streak' | 'favorites';
+export type AchievementMetric =
+  | 'drills'
+  | 'workouts'
+  | 'streak'
+  | 'favorites'
+  | 'jugglingAttempts'
+  | 'jugglingBest'
+  | 'totalMinutes';
 
 export interface AchievementDef {
   key: string;
@@ -19,13 +25,30 @@ export interface AchievementDef {
 
 export const PLAYER_ACHIEVEMENTS: AchievementDef[] = [
   { key: 'first_touch', title: 'First Touch', description: 'Complete your first drill', metric: 'drills', threshold: 1, icon: 'Footprints' },
+  { key: 'drill_5', title: 'Five Alive', description: 'Complete 5 solo drills', metric: 'drills', threshold: 5, icon: 'Target' },
   { key: 'drill_10', title: 'Perfect Ten', description: 'Complete 10 drills', metric: 'drills', threshold: 10, icon: 'Target' },
+  { key: 'drill_25', title: 'Training Habit', description: 'Complete 25 solo drills', metric: 'drills', threshold: 25, icon: 'Dumbbell' },
   { key: 'drill_50', title: 'Half Century', description: 'Complete 50 drills', metric: 'drills', threshold: 50, icon: 'Award' },
+  { key: 'drill_100', title: 'Century Club', description: 'Complete 100 drills', metric: 'drills', threshold: 100, icon: 'Trophy' },
   { key: 'first_workout', title: 'First Sweat', description: 'Log your first workout', metric: 'workouts', threshold: 1, icon: 'Timer' },
+  { key: 'workout_5', title: 'Clocked In', description: 'Save 5 timer workouts', metric: 'workouts', threshold: 5, icon: 'Timer' },
   { key: 'workout_10', title: 'Grinder', description: 'Log 10 workouts', metric: 'workouts', threshold: 10, icon: 'Dumbbell' },
+  { key: 'workout_25', title: 'Engine Room', description: 'Save 25 timer workouts', metric: 'workouts', threshold: 25, icon: 'Gauge' },
   { key: 'streak_3', title: 'On a Roll', description: 'Reach a 3-day streak', metric: 'streak', threshold: 3, icon: 'Flame' },
   { key: 'streak_7', title: 'Week Warrior', description: 'Reach a 7-day streak', metric: 'streak', threshold: 7, icon: 'Zap' },
-  { key: 'collector', title: 'Curator', description: 'Favorite 5 drills', metric: 'favorites', threshold: 5, icon: 'Heart' }
+  { key: 'streak_14', title: 'Fortnight Fire', description: 'Reach a 14-day streak', metric: 'streak', threshold: 14, icon: 'Flame' },
+  { key: 'streak_30', title: 'Month Machine', description: 'Reach a 30-day streak', metric: 'streak', threshold: 30, icon: 'Zap' },
+  { key: 'collector_3', title: 'Scout List', description: 'Favorite 3 drills', metric: 'favorites', threshold: 3, icon: 'Heart' },
+  { key: 'collector', title: 'Curator', description: 'Favorite 5 drills', metric: 'favorites', threshold: 5, icon: 'Heart' },
+  { key: 'collector_10', title: 'Personal Library', description: 'Favorite 10 drills', metric: 'favorites', threshold: 10, icon: 'Heart' },
+  { key: 'juggling_first', title: 'Keepy-Uppy Start', description: 'Record your first juggling score', metric: 'jugglingAttempts', threshold: 1, icon: 'Volleyball' },
+  { key: 'juggling_5_logs', title: 'Touch Journal', description: 'Record 5 juggling attempts', metric: 'jugglingAttempts', threshold: 5, icon: 'Volleyball' },
+  { key: 'juggling_25', title: 'Soft Touch', description: 'Reach 25 ball-control juggles', metric: 'jugglingBest', threshold: 25, icon: 'Sparkles' },
+  { key: 'juggling_50', title: 'Ball Magnet', description: 'Reach 50 ball-control juggles', metric: 'jugglingBest', threshold: 50, icon: 'Sparkles' },
+  { key: 'juggling_100', title: 'Hundred Touches', description: 'Reach 100 ball-control juggles', metric: 'jugglingBest', threshold: 100, icon: 'Trophy' },
+  { key: 'juggling_250', title: 'Touch Master', description: 'Reach 250 ball-control juggles', metric: 'jugglingBest', threshold: 250, icon: 'Trophy' },
+  { key: 'minutes_60', title: 'One Hour Banked', description: 'Train for 60 total minutes', metric: 'totalMinutes', threshold: 60, icon: 'Timer' },
+  { key: 'minutes_300', title: 'Five Hour Engine', description: 'Train for 300 total minutes', metric: 'totalMinutes', threshold: 300, icon: 'Gauge' }
 ];
 
 export interface PlayerStats {
@@ -33,6 +56,9 @@ export interface PlayerStats {
   workouts: number;
   streak: number;
   favorites: number;
+  jugglingAttempts: number;
+  jugglingBest: number;
+  totalMinutes: number;
 }
 
 export interface AchievementView {
@@ -50,6 +76,9 @@ const metricValue = (stats: PlayerStats, metric: AchievementMetric): number => {
     case 'workouts': return stats.workouts;
     case 'streak': return stats.streak;
     case 'favorites': return stats.favorites;
+    case 'jugglingAttempts': return stats.jugglingAttempts;
+    case 'jugglingBest': return stats.jugglingBest;
+    case 'totalMinutes': return stats.totalMinutes;
   }
 };
 

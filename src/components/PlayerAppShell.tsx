@@ -8,6 +8,7 @@ import PlayerApp from './player/PlayerApp';
 import { createPreviewRuntime, createPreviewAuthController } from './player/demoPlayerData';
 import PersonaAccessShell from './PersonaAccessShell';
 import { rememberPlayerInviteCodeFromHash } from '../player/inviteLink';
+import PwaInstallControl from './PwaInstallControl';
 
 // Free Player app. This shell owns the Player registration door and, once signed
 // in, confirms the persona server-side and hands off to the full-screen mobile
@@ -148,38 +149,43 @@ const PlayerAppShell = () => {
   const signedIn = auth.state.status === 'signedIn';
 
   return (
-    <PersonaAccessShell
-      variant="player"
-      eyebrow="Dumala Player"
-      title="Train. Track. Level up."
-      description="Your free football workspace for solo drills, a workout timer, training streaks, and your team schedule once your coach approves the link."
-      badge="Free player account"
-      highlights={playerHighlights}
-      footer="Players join through a coach invite link or club join code. Your coach controls official roster records."
-    >
-      <div className="rounded-2xl border border-white/10 bg-white/[0.045] p-4">
-        <p className="mb-3 text-xs font-black uppercase tracking-wide text-orange-200">Player sign in</p>
-        <CloudAccountGate
-          runtime={runtime}
-          authController={auth}
-          bootstrapAccount={false}
-          tone="dark"
-          layout="compact"
-          audience="player"
-          redirectTo={getAppAuthRedirectUrl('player')}
-        />
+    <>
+      <div className="fixed right-4 top-4 z-40">
+        <PwaInstallControl audience="player" tone="player" />
       </div>
+      <PersonaAccessShell
+        variant="player"
+        eyebrow="Dumala Player"
+        title="Train. Track. Level up."
+        description="Your free football workspace for solo drills, a workout timer, training streaks, and your team schedule once your coach approves the link."
+        badge="Free player account"
+        highlights={playerHighlights}
+        footer="Players join through a coach invite link or club join code. Your coach controls official roster records."
+      >
+        <div className="rounded-2xl border border-white/10 bg-white/[0.045] p-4">
+          <p className="mb-3 text-xs font-black uppercase tracking-wide text-orange-200">Player sign in</p>
+          <CloudAccountGate
+            runtime={runtime}
+            authController={auth}
+            bootstrapAccount={false}
+            tone="dark"
+            layout="compact"
+            audience="player"
+            redirectTo={getAppAuthRedirectUrl('player')}
+          />
+        </div>
 
-      {!signedIn && (
-        <p className="rounded-2xl border border-orange-300/15 bg-orange-300/10 px-5 py-4 text-sm leading-6 text-orange-50/90">
-          Sign in above, or create your free player account, to open your workspace.
-        </p>
-      )}
-      {signedIn && (resolving || !destination) && <ShellLoading />}
-      {signedIn && destination && destination.authorizedRoute !== '/player' && (
-        <RedirectingNotice route={destination.authorizedRoute} />
-      )}
-    </PersonaAccessShell>
+        {!signedIn && (
+          <p className="rounded-2xl border border-orange-300/15 bg-orange-300/10 px-5 py-4 text-sm leading-6 text-orange-50/90">
+            Sign in above, or create your free player account, to open your workspace.
+          </p>
+        )}
+        {signedIn && (resolving || !destination) && <ShellLoading />}
+        {signedIn && destination && destination.authorizedRoute !== '/player' && (
+          <RedirectingNotice route={destination.authorizedRoute} />
+        )}
+      </PersonaAccessShell>
+    </>
   );
 };
 

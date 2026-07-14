@@ -136,3 +136,16 @@ export const markChatRead = async (client: DumalaSupabaseClient, channelId: stri
     'Failed to update read state'
   );
 };
+
+export const getTeamChatCaptainUserId = async (
+  client: DumalaSupabaseClient,
+  clubId: string
+): Promise<string | null> => {
+  const supabase = asUntypedClient(client);
+  const data = expectNoError(
+    await supabase.rpc('get_team_chat_captain_user_id', { target_club_id: clubId }),
+    'CHAT_CAPTAIN_READ_FAILED',
+    'Failed to load the team captain'
+  );
+  return typeof data === 'string' && data ? data : null;
+};

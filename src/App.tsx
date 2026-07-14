@@ -8,6 +8,7 @@ import PwaStatusBanners from './components/PwaStatusBanners';
 import WorkspaceIntegrityBanner from './components/WorkspaceIntegrityBanner';
 import AnnouncementBanner from './components/AnnouncementBanner';
 import CoachFloatingChat from './components/CoachFloatingChat';
+import { hasTeamChatRuntime } from './cloud/chatAvailability';
 import WorkspaceStatusBar, { type CloudBackupStatus } from './components/WorkspaceStatusBar';
 import StartupRecoveryScreen from './components/StartupRecoveryScreen';
 import { ViewErrorBoundary } from './components/ErrorBoundary';
@@ -1732,7 +1733,7 @@ export default function App() {
                   assessments={assessments}
                   activation={activationState}
                   cloudClubId={activeWorkspace?.cloudClubId ?? null}
-                  teamChatAvailable={cloudRuntime.enabled && cloudRuntime.phase6.chatEnabled}
+                  teamChatAvailable={hasTeamChatRuntime(cloudRuntime)}
                   onSelectPlayer={setSelectedPlayer}
                   onOpenTrainingSession={setSelectedTrainingSessionDay}
                   onUpdateTeamInfo={handleUpdateTeamInfo}

@@ -2,7 +2,8 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { MessageSquare } from 'lucide-react';
 import type { CloudRuntime } from '../../cloud/runtime';
 import type { CloudAuthController } from '../../hooks/useCloudAuth';
-import { computeIsMinor, type PlayerAchievement, type PlayerDrillCompletion, type PlayerNotification, type PlayerProfile, type PlayerWorkoutSession, type TeamScheduleEntry } from '../../cloud/player';
+import { computeIsMinor, type ClubRosterPlayer, type PlayerAchievement, type PlayerDrillCompletion, type PlayerNotification, type PlayerProfile, type PlayerWorkoutSession, type TeamScheduleEntry } from '../../cloud/player';
+import { getJugglingProgress } from '../../player/drillCatalog';
 import { computeStreakDays } from '../../player/progress';
 import TeamChat, { ChatConsentGate } from '../chat/TeamChat';
 import PlayerAppLayout, { type PlayerTab } from './PlayerAppLayout';
@@ -12,6 +13,7 @@ import DrillsTab from './DrillsTab';
 import TimerTab, { type TimerPreset } from './TimerTab';
 import ProgressTab from './ProgressTab';
 import ProfileTab from './ProfileTab';
+import SquadTab from './SquadTab';
 import { readInitialPlayerInviteCode } from '../../player/inviteLink';
 
 interface PlayerAppProps {
@@ -41,6 +43,8 @@ const PlayerApp = ({
   const [tab, setTab] = useState<PlayerTab>(() => (readInitialPlayerInviteCode() ? 'profile' : 'home'));
   const [profile, setProfile] = useState<PlayerProfile | null>(null);
   const [linkedClubId, setLinkedClubId] = useState<string | null>(null);
+  const [linkedPlayerId, setLinkedPlayerId] = useState<string | null>(null);
+  const [linkedPlayer, setLinkedPlayer] = useState<ClubRosterPlayer | null>(null);
   const [completions, setCompletions] = useState<PlayerDrillCompletion[]>([]);
   const [workouts, setWorkouts] = useState<PlayerWorkoutSession[]>([]);
   const [achievements, setAchievements] = useState<PlayerAchievement[]>([]);
@@ -69,6 +73,7 @@ const PlayerApp = ({
     setWorkouts(nextWorkouts);
     setAchievements(nextAchievements);
     setLinkedClubId(links[0]?.club_id ?? null);
+    setLinkedPlayerId(links[0]?.player_id ?? null);
     // Grant any newly-earned badges from this activity, then refresh if any landed.
     try {
       const newlyEarned = await player.syncAchievements(computeStreakDays(nextCompletions));
@@ -88,6 +93,7 @@ const PlayerApp = ({
   useEffect(() => {
     if (!linkedClubId) {
       setSchedule([]);
+      setLinkedPlayer(null);
       return;
     }
     let active = true;
@@ -96,6 +102,22 @@ const PlayerApp = ({
       .catch(() => undefined);
     return () => { active = false; };
   }, [player, linkedClubId]);
+
+  useEffect(() => {
+    if (!linkedClubId || !linkedPlayerId) {
+      setLinkedPlayer(null);
+      return;
+    }
+    let active = true;
+    player.listClubRosterPlayers(linkedClubId)
+      .then(players => {
+        if (active) setLinkedPlayer(players.find(rosterPlayer => rosterPlayer.id === linkedPlayerId) ?? null);
+      })
+      .catch(() => {
+        if (active) setLinkedPlayer(null);
+      });
+    return () => { active = false; };
+  }, [player, linkedClubId, linkedPlayerId]);
 
   const reloadNotifications = useCallback(async () => {
     setNotifications(await player.listNotifications());
@@ -114,15 +136,41 @@ const PlayerApp = ({
     await reloadNotifications();
   }, [player, userId, reloadNotifications]);
 
+  const handleLinkedClubChange = useCallback((clubId: string | null) => {
+    setLinkedClubId(clubId);
+    if (!clubId) {
+      setLinkedPlayerId(null);
+      return;
+    }
+    player.listMyLinks()
+      .then(links => {
+        const activeLink = links.find(link => link.club_id === clubId) ?? links[0];
+        setLinkedPlayerId(activeLink?.player_id ?? null);
+      })
+      .catch(() => setLinkedPlayerId(null));
+  }, [player]);
+
   const startTimerForDrill = useCallback((label: string, seconds: number) => {
     setTimerPreset({ label, seconds });
     setTab('timer');
   }, []);
 
   const streakDays = useMemo(() => computeStreakDays(completions), [completions]);
+  const jugglingProgress = useMemo(() => getJugglingProgress(completions), [completions]);
   const playerStats = useMemo(
-    () => ({ drills: completions.length, workouts: workouts.length, favorites: favorites.length, streak: streakDays }),
-    [completions.length, workouts.length, favorites.length, streakDays]
+    () => ({
+      drills: completions.length,
+      workouts: workouts.length,
+      favorites: favorites.length,
+      streak: streakDays,
+      jugglingAttempts: jugglingProgress.attempts.length,
+      jugglingBest: jugglingProgress.bestScore ?? 0,
+      totalMinutes: Math.round((
+        completions.reduce((sum, completion) => sum + (completion.duration_seconds ?? 0), 0)
+        + workouts.reduce((sum, workout) => sum + workout.total_seconds, 0)
+      ) / 60)
+    }),
+    [completions, workouts, favorites.length, streakDays, jugglingProgress]
   );
   const unreadCount = notifications.filter(notification => !notification.read_at).length;
   const nextFixture = useMemo(
@@ -149,8 +197,10 @@ const PlayerApp = ({
       >
         {tab === 'home' && (
           <HomeTab
-            streakDays={streakDays}
+            profile={profile}
+            linkedPlayer={linkedPlayer}
             completions={completions}
+            stats={playerStats}
             nextFixture={nextFixture}
             linkedClubId={linkedClubId}
             onGoToDrills={() => setTab('drills')}
@@ -163,6 +213,7 @@ const PlayerApp = ({
             runtime={runtime}
             userId={userId}
             favorites={favorites}
+            completions={completions}
             onChanged={reload}
             onStartWithTimer={startTimerForDrill}
           />
@@ -176,7 +227,14 @@ const PlayerApp = ({
             onSaved={reload}
           />
         )}
-        {tab === 'progress' && <ProgressTab completions={completions} stats={playerStats} achievements={achievements} />}
+        {tab === 'progress' && <ProgressTab completions={completions} workouts={workouts} stats={playerStats} achievements={achievements} />}
+        {tab === 'squad' && (
+          <SquadTab
+            runtime={runtime}
+            clubId={linkedClubId}
+            onGoToProfile={() => setTab('profile')}
+          />
+        )}
         {tab === 'chat' && (
           <div className="h-full pb-[calc(4.25rem+env(safe-area-inset-bottom))]">
             {!linkedClubId ? (
@@ -214,7 +272,7 @@ const PlayerApp = ({
             authController={authController}
             preview={preview}
             linkedClubId={linkedClubId}
-            onLinkedClubChange={setLinkedClubId}
+            onLinkedClubChange={handleLinkedClubChange}
             accountDisplayName={accountDisplayName}
             accountEmail={accountEmail}
           />

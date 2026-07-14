@@ -4,15 +4,18 @@ import type { CloudAuthController } from '../../hooks/useCloudAuth';
 import type { ChatMessage } from '../../cloud/chat';
 import type {
   PlayerAchievement,
+  ClubRosterPlayer,
   PlayerClubLink,
   PlayerDrillCompletion,
   PlayerLinkRequest,
   PlayerNotification,
   PlayerProfile,
   PlayerWorkoutSession,
-  TeamScheduleEntry
+  TeamScheduleEntry,
+  TeamTacticsSummary
 } from '../../cloud/player';
 import { PLAYER_ACHIEVEMENTS } from '../../player/achievements';
+import { getJugglingProgress } from '../../player/drillCatalog';
 
 // In-memory sample data for the Player app "preview" mode. When the preview flag
 // is on, the app renders straight into a demo dashboard (no login, no cloud) so
@@ -52,28 +55,28 @@ export const createDemoPlayerRepository = (): CloudPlayerRepository => {
     updated_at: ago(1)
   };
 
-  const completion = (drillId: string, days: number, minutes: number): PlayerDrillCompletion => ({
+  const completion = (drillId: string, days: number, minutes: number, notes: string | null = null): PlayerDrillCompletion => ({
     id: newId(),
     user_id: 'preview-player',
     drill_id: drillId,
     completed_at: ago(days),
     duration_seconds: minutes * 60,
     perceived_exertion: null,
-    notes: null,
+    notes,
     created_at: ago(days)
   });
 
   // A 3-day streak (today/yesterday/2d) plus older sessions for the history + chart.
   let completions: PlayerDrillCompletion[] = [
-    completion('drill-shooting', 0, 22),
-    completion('drill-agility', 0, 14),
-    completion('drill-dribbling', 1, 18),
-    completion('drill-passing', 2, 16),
-    completion('drill-heading', 4, 12),
-    completion('drill-gym', 6, 30)
+    completion('solo-shooting-corners', 0, 18),
+    completion('solo-ball-control-juggling', 0, 10, 'juggling_score:42'),
+    completion('solo-dribble-slalom', 1, 15),
+    completion('solo-wall-pass-first-touch', 2, 15),
+    completion('solo-ball-control-juggling', 4, 10, 'juggling_score:31'),
+    completion('solo-endurance-ball-circuit', 6, 24)
   ];
 
-  let favorites = new Set<string>(['drill-agility', 'drill-shooting']);
+  let favorites = new Set<string>(['solo-dribble-slalom', 'solo-shooting-corners']);
   let achievements: PlayerAchievement[] = [];
 
   let workouts: PlayerWorkoutSession[] = [
@@ -130,8 +133,66 @@ export const createDemoPlayerRepository = (): CloudPlayerRepository => {
   const schedule: TeamScheduleEntry[] = [
     { id: newId(), club_id: DEMO_CLUB_ID, opponent: 'Northside FC', event_date: ago(-3, 15).slice(0, 10), event_time: '15:00', location: 'Home Ground', status: 'upcoming', type: 'league', our_score: null, opponent_score: null, notes: null },
     { id: newId(), club_id: DEMO_CLUB_ID, opponent: '', event_date: ago(-1, 18).slice(0, 10), event_time: '18:00', location: 'Training Pitch B', status: 'upcoming', type: 'training', our_score: null, opponent_score: null, notes: null },
-    { id: newId(), club_id: DEMO_CLUB_ID, opponent: 'Harbor United', event_date: ago(-7, 11).slice(0, 10), event_time: '11:00', location: 'Away', status: 'upcoming', type: 'cup', our_score: null, opponent_score: null, notes: null }
+    { id: newId(), club_id: DEMO_CLUB_ID, opponent: 'Harbor United', event_date: ago(-7, 11).slice(0, 10), event_time: '11:00', location: 'Away', status: 'upcoming', type: 'cup', our_score: null, opponent_score: null, notes: null },
+    { id: newId(), club_id: DEMO_CLUB_ID, opponent: 'East End Athletic', event_date: ago(-10, 16).slice(0, 10), event_time: '16:00', location: 'Away', status: 'upcoming', type: 'friendly', our_score: null, opponent_score: null, notes: null },
+    { id: newId(), club_id: DEMO_CLUB_ID, opponent: '', event_date: ago(-12, 19).slice(0, 10), event_time: '19:00', location: 'Clubhouse', status: 'upcoming', type: 'meeting', our_score: null, opponent_score: null, notes: null }
   ];
+
+  const rosterPlayer = (row: Pick<ClubRosterPlayer, 'id' | 'name' | 'roster_number' | 'position'>, over: Partial<ClubRosterPlayer> = {}): ClubRosterPlayer => ({
+    ...row,
+    photo_url: '',
+    games_played: 0,
+    goals: 0,
+    assists: 0,
+    clean_sheets: 0,
+    minutes_played: 0,
+    yellow_cards: 0,
+    red_cards: 0,
+    base_attributes: { pace: 62, stamina: 64, agility: 60, strength: 58, firstTouch: 61, shortPassing: 60 },
+    position_attributes: {},
+    specialty_traits: [],
+    ...over
+  });
+
+  const roster: ClubRosterPlayer[] = [
+    rosterPlayer({ id: 'demo-roster-1', name: 'Mason Lee', roster_number: 1, position: 'Goalkeeper' }),
+    rosterPlayer({ id: 'demo-roster-2', name: 'Noah Santos', roster_number: 2, position: 'Defender' }),
+    rosterPlayer({ id: 'demo-roster-4', name: 'Ethan Brooks', roster_number: 4, position: 'Defender' }),
+    rosterPlayer({ id: 'demo-roster-5', name: 'Samir Khan', roster_number: 5, position: 'Defender' }),
+    rosterPlayer({ id: 'demo-roster-6', name: 'Leo Martinez', roster_number: 6, position: 'Midfielder' }),
+    rosterPlayer({ id: 'demo-roster-8', name: 'Jordan Miles', roster_number: 8, position: 'Midfielder' }),
+    rosterPlayer({ id: 'demo-roster-10', name: 'Kai Bennett', roster_number: 10, position: 'Midfielder' }),
+    rosterPlayer(
+      { id: 'demo-roster-11', name: 'Alex Rivera', roster_number: 11, position: 'Forward' },
+      {
+        games_played: 6,
+        goals: 4,
+        assists: 3,
+        minutes_played: 428,
+        yellow_cards: 1,
+        base_attributes: { pace: 88, stamina: 76, agility: 84, strength: 72, firstTouch: 82, shortPassing: 78 },
+        position_attributes: { Finishing: 80, 'Long Shots': 74, 'Offensive 1v1': 86, 'Attacking Heading': 68 },
+        specialty_traits: ['Overlap runs', 'Recovery pace']
+      }
+    ),
+    rosterPlayer({ id: 'demo-roster-17', name: 'Owen Clarke', roster_number: 17, position: 'Forward' }),
+    rosterPlayer({ id: 'demo-roster-23', name: 'Daniel Park', roster_number: 23, position: 'Forward' })
+  ];
+
+  const tactics: TeamTacticsSummary = {
+    id: 'demo-tactics',
+    club_id: DEMO_CLUB_ID,
+    match_format: '11v11',
+    formation: '4-3-3',
+    playstyle: 'High press',
+    defensive_style: 'Compact mid block',
+    is_custom_strategy: false,
+    custom_playstyle_value: null,
+    custom_defensive_value: null,
+    custom_mentality_value: 'Positive',
+    custom_strategy_notes: 'Stretch the pitch in possession, counter-press for five seconds after losing the ball, and recover into a compact midfield three.',
+    updated_at: ago(0)
+  };
 
   return {
     getMyProfile: async () => profile,
@@ -164,9 +225,10 @@ export const createDemoPlayerRepository = (): CloudPlayerRepository => {
     listMyLinkRequests: async (): Promise<PlayerLinkRequest[]> => [],
     listMyLinks: async () => links,
     listMyTeamSchedule: async () => schedule,
+    getMyTeamTacticsSummary: async () => tactics,
     getOrCreateClubJoinCode: async () => 'DEMO1234',
     listClubLinkRequests: async () => [],
-    listClubRosterPlayers: async () => [],
+    listClubRosterPlayers: async () => roster,
     approveLink: async () => newId(),
     rejectLink: async () => undefined,
     logDrillCompletion: async (_userId, input) => {
@@ -216,14 +278,29 @@ export const createDemoPlayerRepository = (): CloudPlayerRepository => {
     },
     listAchievements: async () => achievements,
     syncAchievements: async streak => {
-      const stats = { drills: completions.length, workouts: workouts.length, favorites: favorites.size, streak };
+      const jugglingProgress = getJugglingProgress(completions);
+      const stats = {
+        drills: completions.length,
+        workouts: workouts.length,
+        favorites: favorites.size,
+        streak,
+        jugglingAttempts: jugglingProgress.attempts.length,
+        jugglingBest: jugglingProgress.bestScore ?? 0,
+        totalMinutes: Math.round((
+          completions.reduce((sum, completion) => sum + (completion.duration_seconds ?? 0), 0)
+          + workouts.reduce((sum, workout) => sum + workout.total_seconds, 0)
+        ) / 60)
+      };
       const earnedKeys = new Set(achievements.map(a => a.achievement_key));
       const newly: string[] = [];
       for (const def of PLAYER_ACHIEVEMENTS) {
         const val = def.metric === 'drills' ? stats.drills
           : def.metric === 'workouts' ? stats.workouts
           : def.metric === 'streak' ? stats.streak
-          : stats.favorites;
+          : def.metric === 'favorites' ? stats.favorites
+          : def.metric === 'jugglingAttempts' ? stats.jugglingAttempts
+          : def.metric === 'jugglingBest' ? stats.jugglingBest
+          : stats.totalMinutes;
         if (val >= def.threshold && !earnedKeys.has(def.key)) {
           const at = new Date().toISOString();
           achievements = [...achievements, { user_id: profile.user_id, achievement_key: def.key, earned_at: at, created_at: at }];
@@ -255,7 +332,8 @@ export const createDemoChatRepository = (): CloudChatRepository => {
     },
     deleteMessage: async id => { messages = messages.map(m => m.id === id ? { ...m, deleted_at: new Date().toISOString() } : m); },
     reportMessage: async () => undefined,
-    markRead: async () => undefined
+    markRead: async () => undefined,
+    getCaptainUserId: async () => 'demo-teammate'
   };
 };
 
