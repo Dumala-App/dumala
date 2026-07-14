@@ -171,9 +171,24 @@ for (const headerMarker of [
 }
 
 const cspHeader = vercelConfig.match(/"key": "Content-Security-Policy"[\s\S]*?"value": "([^"]+)"/)?.[1] ?? '';
-for (const forbiddenCspSource of ["script-src 'self' 'unsafe-inline'", "script-src 'self' 'unsafe-eval'", "style-src 'self' 'unsafe-inline'", ' data:']) {
+const cspDirectives = Object.fromEntries(cspHeader.split(';').map(directive => {
+  const [name, ...sources] = directive.trim().split(/\s+/);
+  return [name, sources];
+}).filter(([name]) => name));
+
+if (!cspDirectives['img-src']?.includes('data:')) {
+  failures.push('Content-Security-Policy img-src must allow data: for locally uploaded team logos and player photos.');
+}
+
+for (const forbiddenCspSource of ["script-src 'self' 'unsafe-inline'", "script-src 'self' 'unsafe-eval'", "style-src 'self' 'unsafe-inline'"]) {
   if (cspHeader.includes(forbiddenCspSource)) {
     failures.push(`Content-Security-Policy must not include ${forbiddenCspSource}.`);
+  }
+}
+
+for (const [directive, sources] of Object.entries(cspDirectives)) {
+  if (directive !== 'img-src' && sources.includes('data:')) {
+    failures.push(`Content-Security-Policy must not include data: in ${directive}.`);
   }
 }
 

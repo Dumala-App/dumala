@@ -68,6 +68,7 @@ import weatherCloudyUrl from '../assets/weather/cloudy.png';
 import weatherFogUrl from '../assets/weather/fog.png';
 import weatherRainUrl from '../assets/weather/rain.png';
 import weatherStormUrl from '../assets/weather/storm.png';
+import { LocalImageUploadError, prepareLocalImageDataUrl } from '../images/localImageUpload';
 
 type MatchOutcome = 'W' | 'D' | 'L';
 type DashboardChartPoint = {
@@ -736,40 +737,29 @@ export default function DashboardView({
     );
   };
 
-  const processFile = (file: File) => {
-    if (!file.type.startsWith('image/')) {
-      alert('Please upload a valid image file (PNG, JPG, SVG, GIF, WebP).');
-      return;
-    }
-    
-    // limit size to 1.5MB to avoid localStorage quota issues
-    if (file.size > 1.5 * 1024 * 1024) {
-      alert('Logo size is too big! Please select an image under 1.5MB to save storage.');
-      return;
-    }
-
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const base64 = e.target?.result as string;
-      if (base64) {
-        onUpdateTeamInfo({
-          ...teamInfo,
-          logoUrl: base64
-        });
-        setLogoStatus('success');
-        setTimeout(() => setLogoStatus('idle'), 2500);
-      }
-    };
-    reader.onerror = () => {
+  const processFile = async (file: File) => {
+    try {
+      const logoUrl = await prepareLocalImageDataUrl(file, {
+        maxDimension: 720,
+        maxBytes: 420 * 1024,
+        outputType: 'image/webp'
+      });
+      onUpdateTeamInfo({
+        ...teamInfo,
+        logoUrl
+      });
+      setLogoStatus('success');
+      setTimeout(() => setLogoStatus('idle'), 2500);
+    } catch (error) {
       setLogoStatus('error');
-    };
-    reader.readAsDataURL(file);
+      alert(error instanceof LocalImageUploadError ? error.message : 'The selected logo could not be uploaded.');
+    }
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (files && files[0]) {
-      processFile(files[0]);
+      void processFile(files[0]);
     }
     e.target.value = '';
   };
@@ -788,7 +778,7 @@ export default function DashboardView({
     setDragOver(false);
     const files = e.dataTransfer.files;
     if (files && files[0]) {
-      processFile(files[0]);
+      void processFile(files[0]);
     }
   };
 
