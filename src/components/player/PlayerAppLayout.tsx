@@ -1,6 +1,7 @@
 import React from 'react';
 import { Bell, Dumbbell, Flame, Home, MessageSquare, Timer as TimerIcon, TrendingUp, User, Users } from 'lucide-react';
 import { APEX_THEME_STYLE, apexHeader, apexMono, apexMonoTight, apexNav, apexShell } from './playerTheme';
+import PwaInstallControl from '../PwaInstallControl';
 
 export type PlayerTab = 'home' | 'drills' | 'timer' | 'squad' | 'chat' | 'progress' | 'profile';
 
@@ -54,6 +55,7 @@ const PlayerAppLayout = ({
           </div>
         </div>
         <div className="flex shrink-0 items-center gap-2">
+          <PwaInstallControl audience="player" tone="player" />
           {streakDays > 0 && (
             <span className="flex items-center gap-1 rounded border border-[#ff6d00]/25 bg-[#ff6d00]/[0.07] px-2 py-1 font-player-mono text-[11px] font-bold text-[#ff9440]">
               <Flame size={13} /> {streakDays}
