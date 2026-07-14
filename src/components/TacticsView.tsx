@@ -3290,7 +3290,7 @@ export default function TacticsView({
                           key={guidance.id}
                           type="button"
                           onClick={() => setPlaystyle(guidance.styleValue)}
-                          className={`block w-full min-w-0 whitespace-normal rounded-lg border border-l-2 px-4 py-3 text-left align-top transition ${
+                          className={`block w-full min-w-0 shrink-0 whitespace-normal rounded-lg border border-l-2 px-4 py-3 text-left align-top transition ${
                             selected
                             ? 'border-indigo-300 bg-indigo-500/15 shadow-sm shadow-indigo-500/10'
                               : 'border-slate-700/60 bg-[#0b1726]/66 hover:border-cyan-300/30 hover:bg-cyan-300/[0.08]'
@@ -3328,7 +3328,7 @@ export default function TacticsView({
                           key={guidance.id}
                           type="button"
                           onClick={() => setDefensiveStyle(guidance.styleValue)}
-                          className={`block w-full min-w-0 whitespace-normal rounded-lg border border-l-2 px-4 py-3 text-left align-top transition ${
+                          className={`block w-full min-w-0 shrink-0 whitespace-normal rounded-lg border border-l-2 px-4 py-3 text-left align-top transition ${
                             selected
                             ? 'border-emerald-300 bg-emerald-500/15 shadow-sm shadow-emerald-500/10'
                               : 'border-slate-700/60 bg-[#0b1726]/66 hover:border-cyan-300/30 hover:bg-cyan-300/[0.08]'

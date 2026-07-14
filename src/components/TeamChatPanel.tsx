@@ -11,7 +11,7 @@ interface TeamChatPanelProps {
   title?: string;
 }
 
-// Coach-side embedded team chat for the Squad hub. Staff can post and moderate.
+// Coach-side embedded team chat for Bulletins. Staff can post and moderate.
 // Shown only for a cloud-backed club with chat data access.
 const TeamChatPanel = ({ clubId, className, title = 'Team chat' }: TeamChatPanelProps) => {
   const runtime = useCloudRuntime();
