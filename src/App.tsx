@@ -1731,7 +1731,6 @@ export default function App() {
                   assessments={assessments}
                   activation={activationState}
                   cloudClubId={activeWorkspace?.cloudClubId ?? null}
-                  playerAppAvailable={cloudRuntime.enabled && cloudRuntime.phase6.playerAppEnabled}
                   teamChatAvailable={cloudRuntime.enabled && cloudRuntime.phase6.chatEnabled}
                   onSelectPlayer={setSelectedPlayer}
                   onOpenTrainingSession={setSelectedTrainingSessionDay}
