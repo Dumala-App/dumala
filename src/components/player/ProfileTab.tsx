@@ -14,10 +14,21 @@ interface ProfileTabProps {
   authController: CloudAuthController;
   linkedClubId: string | null;
   onLinkedClubChange: (clubId: string | null) => void;
+  accountDisplayName?: string;
+  accountEmail?: string;
   preview?: boolean;
 }
 
-const ProfileTab = ({ runtime, userId, authController, linkedClubId, onLinkedClubChange, preview = false }: ProfileTabProps) => (
+const ProfileTab = ({
+  runtime,
+  userId,
+  authController,
+  linkedClubId,
+  onLinkedClubChange,
+  accountDisplayName,
+  accountEmail,
+  preview = false
+}: ProfileTabProps) => (
   <div className="space-y-3 pt-1">
     {preview ? (
       <div className="flex items-center gap-2 rounded-lg border border-[#b9c8de]/25 bg-[#b9c8de]/[0.06] px-4 py-3">
@@ -33,9 +44,15 @@ const ProfileTab = ({ runtime, userId, authController, linkedClubId, onLinkedClu
         layout="compact"
       />
     )}
-    <PlayerProfileForm runtime={runtime} userId={userId} />
-    <JoinTeamPanel runtime={runtime} onLinkedClubChange={onLinkedClubChange} />
+    <JoinTeamPanel
+      runtime={runtime}
+      userId={userId}
+      accountDisplayName={accountDisplayName}
+      accountEmail={accountEmail}
+      onLinkedClubChange={onLinkedClubChange}
+    />
     <PlayerSchedulePanel runtime={runtime} clubId={linkedClubId} />
+    <PlayerProfileForm runtime={runtime} userId={userId} />
   </div>
 );
 

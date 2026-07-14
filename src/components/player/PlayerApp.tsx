@@ -12,11 +12,14 @@ import DrillsTab from './DrillsTab';
 import TimerTab, { type TimerPreset } from './TimerTab';
 import ProgressTab from './ProgressTab';
 import ProfileTab from './ProfileTab';
+import { readInitialPlayerInviteCode } from '../../player/inviteLink';
 
 interface PlayerAppProps {
   runtime: Extract<CloudRuntime, { enabled: true }>;
   userId: string;
   authController: CloudAuthController;
+  accountDisplayName?: string;
+  accountEmail?: string;
   /** Demo/preview mode: no login, in-memory data; hides account controls. */
   preview?: boolean;
 }
@@ -27,8 +30,15 @@ const firstName = (profile: PlayerProfile | null): string => {
   return name.split(/\s+/)[0];
 };
 
-const PlayerApp = ({ runtime, userId, authController, preview = false }: PlayerAppProps) => {
-  const [tab, setTab] = useState<PlayerTab>('home');
+const PlayerApp = ({
+  runtime,
+  userId,
+  authController,
+  accountDisplayName,
+  accountEmail,
+  preview = false
+}: PlayerAppProps) => {
+  const [tab, setTab] = useState<PlayerTab>(() => (readInitialPlayerInviteCode() ? 'profile' : 'home'));
   const [profile, setProfile] = useState<PlayerProfile | null>(null);
   const [linkedClubId, setLinkedClubId] = useState<string | null>(null);
   const [completions, setCompletions] = useState<PlayerDrillCompletion[]>([]);
@@ -142,8 +152,10 @@ const PlayerApp = ({ runtime, userId, authController, preview = false }: PlayerA
             streakDays={streakDays}
             completions={completions}
             nextFixture={nextFixture}
+            linkedClubId={linkedClubId}
             onGoToDrills={() => setTab('drills')}
             onGoToTimer={() => setTab('timer')}
+            onGoToProfile={() => setTab('profile')}
           />
         )}
         {tab === 'drills' && (
@@ -203,6 +215,8 @@ const PlayerApp = ({ runtime, userId, authController, preview = false }: PlayerA
             preview={preview}
             linkedClubId={linkedClubId}
             onLinkedClubChange={setLinkedClubId}
+            accountDisplayName={accountDisplayName}
+            accountEmail={accountEmail}
           />
         )}
       </PlayerAppLayout>

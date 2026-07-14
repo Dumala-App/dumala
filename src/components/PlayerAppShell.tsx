@@ -7,6 +7,7 @@ import type { AppDestination } from '../cloud/identity';
 import PlayerApp from './player/PlayerApp';
 import { createPreviewRuntime, createPreviewAuthController } from './player/demoPlayerData';
 import PersonaAccessShell from './PersonaAccessShell';
+import { rememberPlayerInviteCodeFromHash } from '../player/inviteLink';
 
 // Free Player app. This shell owns the Player registration door and, once signed
 // in, confirms the persona server-side and hands off to the full-screen mobile
@@ -75,6 +76,10 @@ const PlayerAppShell = () => {
   const signedInUserId = auth.state.status === 'signedIn' ? auth.state.session.userId : null;
 
   useEffect(() => {
+    rememberPlayerInviteCodeFromHash();
+  }, []);
+
+  useEffect(() => {
     if (!runtime.enabled || !signedInUserId) {
       setDestination(null);
       return;
@@ -129,7 +134,15 @@ const PlayerAppShell = () => {
     destination &&
     destination.authorizedRoute === '/player'
   ) {
-    return <PlayerApp runtime={runtime} userId={auth.state.session.userId} authController={auth} />;
+    return (
+      <PlayerApp
+        runtime={runtime}
+        userId={auth.state.session.userId}
+        authController={auth}
+        accountDisplayName={auth.state.session.displayName}
+        accountEmail={auth.state.session.email}
+      />
+    );
   }
 
   const signedIn = auth.state.status === 'signedIn';
