@@ -127,13 +127,13 @@ const PlayerLinkRequestsPanel = ({ clubId }: PlayerLinkRequestsPanelProps) => {
             {copied ? <Check size={12} /> : <Copy size={12} />} {copied ? 'Copied' : 'Copy'}
           </Button>
           <Button type="button" size="sm" className="h-7 gap-1 px-2 text-[11px]" onClick={() => void handleCopyLink()} disabled={!joinCode}>
-            {copiedLink ? <Check size={12} /> : <Copy size={12} />} {copiedLink ? 'Link copied' : 'Copy player link'}
+            {copiedLink ? <Check size={12} /> : <Copy size={12} />} {copiedLink ? 'Link copied' : 'Copy invite link'}
           </Button>
         </div>
       </div>
 
       <p className="mb-3 text-xs text-slate-400">
-        Share the unique Player app link or join code with your players. When they request to join, match them to their roster spot and approve.
+        Share the invite link with your players. The join code is available as a fallback if a player opens the Player app manually.
       </p>
 
       {loading ? (

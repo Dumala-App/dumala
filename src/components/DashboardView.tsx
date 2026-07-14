@@ -628,7 +628,6 @@ interface DashboardViewProps {
   announcements: Announcement[];
   assessments: AssessmentSession[];
   cloudClubId?: string | null;
-  playerAppAvailable?: boolean;
   teamChatAvailable?: boolean;
   onNavigate: (target: {
     primary: 'home' | 'squad' | 'tactics' | 'development' | 'league_updates';
@@ -652,7 +651,6 @@ export default function DashboardView({
   announcements, 
   assessments,
   cloudClubId,
-  playerAppAvailable = false,
   teamChatAvailable = false,
   onNavigate,
   onOpenTrainingSession,
@@ -689,7 +687,7 @@ export default function DashboardView({
   const [trainingStorageRefreshKey, setTrainingStorageRefreshKey] = useState(0);
   const [gamePlanOpen, setGamePlanOpen] = useState(false);
   const [gamePlanStorageRefreshKey, setGamePlanStorageRefreshKey] = useState(0);
-  const hasPlayerCollaborationFeatures = playerAppAvailable || teamChatAvailable;
+  const hasPlayerCollaborationFeatures = teamChatAvailable;
 
   const presetLogos = [
     { key: 'shield', label: 'Classic Shield', icon: Shield },
@@ -1567,34 +1565,6 @@ export default function DashboardView({
 
       {hasPlayerCollaborationFeatures && (
         <section className="grid grid-cols-1 gap-3 lg:grid-cols-2" aria-label="Player collaboration tools">
-          {playerAppAvailable && (
-            <div className={`${dashboardCardClass} flex flex-col justify-between gap-4`}>
-              <div className={dashboardHeaderClass}>
-                <h3 className={dashboardSectionTitleClass}>
-                  <Link className="text-orange-300" size={18} aria-hidden="true" /> Player invite link
-                </h3>
-                <p className={dashboardSectionDescriptionClass}>
-                  Send players a unique Player app link, then approve their roster connection from the Squad workspace.
-                </p>
-              </div>
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <div className="flex flex-wrap gap-2">
-                  <Badge variant={cloudClubId ? 'success' : 'outline'} className={cloudClubId ? dashboardSuccessBadgeClass : dashboardBadgeClass}>
-                    {cloudClubId ? 'Cloud team linked' : 'Cloud team required'}
-                  </Badge>
-                  <Badge variant="info" className={dashboardInfoBadgeClass}>Player app</Badge>
-                </div>
-                <Button
-                  type="button"
-                  onClick={() => onNavigate({ primary: 'squad' })}
-                  className="rounded-xl text-xs font-black"
-                >
-                  Manage invites <ArrowRight size={14} />
-                </Button>
-              </div>
-            </div>
-          )}
-
           {teamChatAvailable && (
             <div className={`${dashboardCardClass} flex flex-col justify-between gap-4`}>
               <div className={dashboardHeaderClass}>
