@@ -41,6 +41,7 @@ import {
   DARK_GLASS_DASHBOARD_SURFACE_STYLE,
   DARK_GLASS_THEME_STYLE
 } from '../theme/darkGlassTheme';
+import { LocalImageUploadError, prepareLocalImageDataUrl } from '../images/localImageUpload';
 
 interface RosterViewProps {
   players: Player[];
@@ -123,6 +124,26 @@ export default function RosterView({
   const [backupMessageType, setBackupMessageType] = useState<'success' | 'error' | 'info'>('info');
   const importInputRef = useRef<HTMLInputElement>(null);
   const addPlayerFormRef = useRef<HTMLFormElement | null>(null);
+
+  const handleLocalPhotoUpload = async (
+    file: File | undefined,
+    onPrepared: (dataUrl: string) => void,
+    input?: HTMLInputElement
+  ) => {
+    if (!file) return;
+    try {
+      const dataUrl = await prepareLocalImageDataUrl(file, {
+        maxDimension: 760,
+        maxBytes: 520 * 1024,
+        outputType: 'image/webp'
+      });
+      onPrepared(dataUrl);
+    } catch (error) {
+      alert(error instanceof LocalImageUploadError ? error.message : 'The selected photo could not be uploaded.');
+    } finally {
+      if (input) input.value = '';
+    }
+  };
 
   useEffect(() => {
     if (!highlightPlayerId) return;
@@ -624,18 +645,7 @@ export default function RosterView({
                       id="new-staff-photo"
                       type="file"
                       accept="image/*"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (file) {
-                          const reader = new FileReader();
-                          reader.onloadend = () => {
-                            if (typeof reader.result === 'string') {
-                              setNewStaffPhoto(reader.result);
-                            }
-                          };
-                          reader.readAsDataURL(file);
-                        }
-                      }}
+                      onChange={(e) => void handleLocalPhotoUpload(e.target.files?.[0], setNewStaffPhoto, e.currentTarget)}
                       className="hidden"
                     />
                     <Button
@@ -892,18 +902,7 @@ export default function RosterView({
                       id="new-player-photo"
                       type="file"
                       accept="image/*"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (file) {
-                          const reader = new FileReader();
-                          reader.onloadend = () => {
-                            if (typeof reader.result === 'string') {
-                              setNewPlayerPhoto(reader.result);
-                            }
-                          };
-                          reader.readAsDataURL(file);
-                        }
-                      }}
+                      onChange={(e) => void handleLocalPhotoUpload(e.target.files?.[0], setNewPlayerPhoto, e.currentTarget)}
                       className="hidden"
                     />
                     <Button

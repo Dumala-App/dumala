@@ -32,6 +32,7 @@ import {
   CartesianGrid,
   Tooltip
 } from 'recharts';
+import { LocalImageUploadError, prepareLocalImageDataUrl } from '../images/localImageUpload';
 
 type PlayerProgressPoint = {
   name: string;
@@ -163,6 +164,22 @@ export default function PlayerProfileModal({ player, onClose, onUpdate, onRemove
   const [staffPhone, setStaffPhone] = useState(legacyStaffFields.phone || '');
   const [staffSince, setStaffSince] = useState(legacyStaffFields.since || '');
   const [staffBio, setStaffBio] = useState(bio);
+
+  const handlePhotoUpload = async (file: File | undefined, input?: HTMLInputElement) => {
+    if (!file) return;
+    try {
+      const dataUrl = await prepareLocalImageDataUrl(file, {
+        maxDimension: 860,
+        maxBytes: 560 * 1024,
+        outputType: 'image/webp'
+      });
+      setPhotoUrl(dataUrl);
+    } catch (error) {
+      alert(error instanceof LocalImageUploadError ? error.message : 'The selected photo could not be uploaded.');
+    } finally {
+      if (input) input.value = '';
+    }
+  };
 
   const [baseAttributes, setBaseAttributes] = useState(player.baseAttributes || { pace: 50, stamina: 50, agility: 50, strength: 50, firstTouch: 50, shortPassing: 50 });
   const [positionAttributes, setPositionAttributes] = useState(player.positionAttributes || {});
@@ -948,18 +965,7 @@ export default function PlayerProfileModal({ player, onClose, onUpdate, onRemove
                         id="profile-photo-upload-input"
                         type="file"
                         accept="image/*"
-                        onChange={(e) => {
-                          const file = e.target.files?.[0];
-                          if (file) {
-                            const reader = new FileReader();
-                            reader.onloadend = () => {
-                              if (typeof reader.result === 'string') {
-                                setPhotoUrl(reader.result);
-                              }
-                            };
-                            reader.readAsDataURL(file);
-                          }
-                        }}
+                        onChange={(e) => void handlePhotoUpload(e.target.files?.[0], e.currentTarget)}
                         className="hidden"
                       />
                       <Button
