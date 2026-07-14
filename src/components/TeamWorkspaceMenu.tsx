@@ -150,6 +150,7 @@ export default function TeamWorkspaceMenu({
       setMockImportStatus(`Added ${choice.label}: ${summary.players} players, ${summary.staff} staff, ${summary.games} games.`);
       resetAddForm();
       setAddOpen(false);
+      setManageOpen(false);
       setMenuOpen(false);
     } catch (error) {
       setMockImportStatus(error instanceof Error ? error.message : `Could not add ${choice.label}.`);
@@ -157,6 +158,42 @@ export default function TeamWorkspaceMenu({
       setIsImportingMock(false);
     }
   };
+
+  const mockTeamChooser = (
+    <div className="space-y-3 rounded-lg border border-cyan-300/15 bg-[#0b1726] p-3">
+      <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <p className="text-xs font-black uppercase tracking-wide text-orange-200">Use a mock team</p>
+          <p className="text-xs text-slate-400">Choose a bundled workspace from the mock folder and add it as a separate team.</p>
+        </div>
+        <Sparkles size={18} className="hidden text-orange-300 sm:block" aria-hidden="true" />
+      </div>
+      <div className="grid gap-2 sm:grid-cols-[1fr_auto]">
+        <Select value={selectedMockId} onValueChange={setSelectedMockId} disabled={MOCK_WORKSPACE_CHOICES.length === 0}>
+          <SelectTrigger className={selectTriggerClass} aria-label="Mock team">
+            <SelectValue placeholder="Select a mock team" />
+          </SelectTrigger>
+          <SelectContent className={selectContentClass}>
+            {MOCK_WORKSPACE_CHOICES.map(choice => (
+              <SelectItem key={choice.id} className={selectItemClass} value={choice.id}>
+                {choice.label} - {choice.detail}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Button
+          type="button"
+          onClick={() => void handleImportMockWorkspace()}
+          disabled={!selectedMockId || isImportingMock}
+          className={primaryButtonClass}
+        >
+          {isImportingMock ? <Loader2 size={15} className="animate-spin" aria-hidden="true" /> : <Upload size={15} aria-hidden="true" />}
+          Add mock team
+        </Button>
+      </div>
+      {mockImportStatus && <p className="text-xs font-semibold text-slate-300">{mockImportStatus}</p>}
+    </div>
+  );
 
   return (
     <>
@@ -332,9 +369,10 @@ export default function TeamWorkspaceMenu({
         <DialogContent className="max-w-3xl border-cyan-300/15 bg-[#07111f] text-slate-100 shadow-2xl shadow-black/60 [&_.text-muted-foreground]:text-slate-400">
           <DialogHeader>
             <DialogTitle className="text-slate-100">Manage teams</DialogTitle>
-            <DialogDescription>Switch, rename, import, export, or remove local team workspaces.</DialogDescription>
+            <DialogDescription>Switch, rename, import, add mock teams, export, or remove local team workspaces.</DialogDescription>
           </DialogHeader>
-          <div className="max-h-[60vh] space-y-3 overflow-y-auto pr-1">
+          {mockTeamChooser}
+          <div className="max-h-[52vh] space-y-3 overflow-y-auto pr-1">
             {workspaces.map(workspace => {
               const renameValue = renameValues[workspace.id] ?? workspace.name;
               const isActive = workspace.id === activeWorkspaceId;
