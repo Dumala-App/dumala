@@ -1567,8 +1567,8 @@ export default function DashboardView({
               </div>
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex flex-wrap gap-2">
-                  <Badge variant={cloudClubId && teamChatAvailable ? 'success' : 'outline'} className={cloudClubId && teamChatAvailable ? dashboardSuccessBadgeClass : dashboardBadgeClass}>
-                    {cloudClubId && teamChatAvailable ? 'Ready in Squad' : cloudClubId ? 'Chat unavailable' : 'Cloud team required'}
+                  <Badge variant={cloudClubId ? 'success' : 'outline'} className={cloudClubId ? dashboardSuccessBadgeClass : dashboardBadgeClass}>
+                    {cloudClubId ? 'Ready in Squad' : 'Cloud team required'}
                   </Badge>
                   <Badge variant="info" className={dashboardInfoBadgeClass}>Shared channel</Badge>
                 </div>
