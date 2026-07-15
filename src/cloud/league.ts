@@ -24,6 +24,8 @@ export interface League {
   timezone: string;
   currency: string;
   state: 'active' | 'archived';
+  coach_seat_limit: number;
+  coach_invite_code: string;
   created_at: string;
   updated_at: string;
 }
@@ -1341,4 +1343,598 @@ export const deleteIncident = async (client: DumalaSupabaseClient, incidentId: s
     'INCIDENT_DELETE_FAILED',
     'Failed to remove the incident'
   );
+};
+
+// --- Cross-event dashboard rollup --------------------------------------------
+// League-wide reads (every table carries league_id) plus a pure helper that
+// rolls the per-event teams, fixtures, and stats up into one live-competition
+// snapshot for the Overview. Standings/scorers/match-day are all derived by the
+// existing pure helpers, so there is nothing extra to keep in sync.
+
+/** Every team across the league's events, in one read. */
+export const listLeagueEventTeams = async (client: DumalaSupabaseClient, leagueId: string): Promise<EventTeam[]> => {
+  const supabase = asUntypedClient(client);
+  return (expectNoError(
+    await supabase.from('event_teams').select('*').eq('league_id', leagueId).order('created_at', { ascending: true }),
+    'LEAGUE_TEAMS_READ_FAILED',
+    'Failed to load teams'
+  ) as EventTeam[] | null) ?? [];
+};
+
+/** Every fixture across the league's events, in one read. */
+export const listLeagueFixtures = async (client: DumalaSupabaseClient, leagueId: string): Promise<EventFixture[]> => {
+  const supabase = asUntypedClient(client);
+  return (expectNoError(
+    await supabase.from('event_fixtures').select('*').eq('league_id', leagueId)
+      .order('round', { ascending: true }).order('sequence', { ascending: true }),
+    'LEAGUE_FIXTURES_READ_FAILED',
+    'Failed to load fixtures'
+  ) as EventFixture[] | null) ?? [];
+};
+
+/** Every stat event across the league's events, in one read. */
+export const listLeagueStatEvents = async (client: DumalaSupabaseClient, leagueId: string): Promise<FixtureStatEvent[]> => {
+  const supabase = asUntypedClient(client);
+  return (expectNoError(
+    await supabase.from('fixture_stat_events').select('*').eq('league_id', leagueId).order('created_at', { ascending: true }),
+    'LEAGUE_STATS_READ_FAILED',
+    'Failed to load statistics'
+  ) as FixtureStatEvent[] | null) ?? [];
+};
+
+export interface CompetitionStanding {
+  eventId: string;
+  eventName: string;
+  status: LeagueEventStatus;
+  category: string | null;
+  leaders: StandingRow[];
+  playedFixtures: number;
+  totalFixtures: number;
+}
+
+export interface LeagueScorerRow {
+  teamId: string;
+  teamName: string;
+  eventId: string;
+  eventName: string;
+  playerName: string;
+  goals: number;
+  assists: number;
+}
+
+export interface CompetitionResult {
+  fixtureId: string;
+  eventId: string;
+  eventName: string;
+  round: number;
+  homeTeamName: string;
+  awayTeamName: string;
+  homeScore: number;
+  awayScore: number;
+  updatedAt: string;
+}
+
+export interface CompetitionSummary {
+  liveMatchday: MatchdaySummary;
+  standings: CompetitionStanding[];
+  scorers: LeagueScorerRow[];
+  recentResults: CompetitionResult[];
+  activeEventCount: number;
+  hasActivity: boolean;
+}
+
+export interface CompetitionSummaryOptions {
+  scorerLimit?: number;
+  resultLimit?: number;
+  leaderLimit?: number;
+}
+
+/**
+ * Roll per-event teams/fixtures/stats into one league-wide live snapshot:
+ * match-day readiness across active events, standings leaders per running or
+ * finished event, a league-wide top-scorer board, and recent results. Pure.
+ */
+export const summarizeCompetition = (
+  events: LeagueEvent[],
+  teams: EventTeam[],
+  fixtures: EventFixture[],
+  statEvents: FixtureStatEvent[],
+  options: CompetitionSummaryOptions = {}
+): CompetitionSummary => {
+  const scorerLimit = options.scorerLimit ?? 5;
+  const resultLimit = options.resultLimit ?? 5;
+  const leaderLimit = options.leaderLimit ?? 3;
+
+  const eventById = new Map(events.map(e => [e.id, e]));
+  const teamById = new Map(teams.map(t => [t.id, t]));
+  const teamsByEvent = new Map<string, EventTeam[]>();
+  const fixturesByEvent = new Map<string, EventFixture[]>();
+  for (const team of teams) {
+    const list = teamsByEvent.get(team.event_id);
+    if (list) list.push(team); else teamsByEvent.set(team.event_id, [team]);
+  }
+  for (const fixture of fixtures) {
+    const list = fixturesByEvent.get(fixture.event_id);
+    if (list) list.push(fixture); else fixturesByEvent.set(fixture.event_id, [fixture]);
+  }
+
+  // Live match-day readiness is scoped to fixtures of currently-active events.
+  const activeEventIds = new Set(events.filter(e => e.status === 'active').map(e => e.id));
+  const liveMatchday = summarizeMatchday(fixtures.filter(f => activeEventIds.has(f.event_id)));
+
+  // Standings leaders for any event that has at least one recorded result.
+  const standings: CompetitionStanding[] = [];
+  for (const event of events) {
+    const evFixtures = fixturesByEvent.get(event.id) ?? [];
+    const playedFixtures = evFixtures.filter(f => f.status === 'completed').length;
+    if (playedFixtures === 0) continue;
+    const table = computeStandings(teamsByEvent.get(event.id) ?? [], evFixtures);
+    standings.push({
+      eventId: event.id,
+      eventName: event.name,
+      status: event.status,
+      category: event.category,
+      leaders: table.filter(r => r.played > 0).slice(0, leaderLimit),
+      playedFixtures,
+      totalFixtures: evFixtures.length
+    });
+  }
+  standings.sort((a, b) =>
+    (a.status === 'active' ? 0 : 1) - (b.status === 'active' ? 0 : 1) ||
+    b.playedFixtures - a.playedFixtures ||
+    a.eventName.localeCompare(b.eventName));
+
+  // A team belongs to exactly one event, so team ids never collide across
+  // events and computeScorers over every stat row yields a league-wide board.
+  const scorers: LeagueScorerRow[] = computeScorers(statEvents).slice(0, scorerLimit).map(row => {
+    const team = teamById.get(row.teamId);
+    const event = team ? eventById.get(team.event_id) : undefined;
+    return {
+      teamId: row.teamId,
+      teamName: team?.name ?? 'Unknown team',
+      eventId: event?.id ?? '',
+      eventName: event?.name ?? '',
+      playerName: row.playerName,
+      goals: row.goals,
+      assists: row.assists
+    };
+  });
+
+  const recentResults: CompetitionResult[] = fixtures
+    .filter(f => f.status === 'completed' && f.home_score !== null && f.away_score !== null)
+    .slice()
+    .sort((a, b) => b.updated_at.localeCompare(a.updated_at))
+    .slice(0, resultLimit)
+    .map(f => ({
+      fixtureId: f.id,
+      eventId: f.event_id,
+      eventName: eventById.get(f.event_id)?.name ?? '',
+      round: f.round,
+      homeTeamName: teamById.get(f.home_team_id)?.name ?? 'TBD',
+      awayTeamName: teamById.get(f.away_team_id)?.name ?? 'TBD',
+      homeScore: f.home_score as number,
+      awayScore: f.away_score as number,
+      updatedAt: f.updated_at
+    }));
+
+  return {
+    liveMatchday,
+    standings,
+    scorers,
+    recentResults,
+    activeEventCount: activeEventIds.size,
+    hasActivity: standings.length > 0 || scorers.length > 0 || recentResults.length > 0 || liveMatchday.total > 0
+  };
+};
+
+// --- Statistics database -----------------------------------------------------
+// A verifiable per-player / per-team record built from the raw stat events. A
+// player is keyed by club + name so their record merges across the events a
+// club enters within the selected scope (a season, an event, or everything).
+
+export interface PlayerStatLine {
+  key: string;
+  playerName: string;
+  teamName: string;
+  goals: number;
+  assists: number;
+  ownGoals: number;
+  yellow: number;
+  red: number;
+  goalContributions: number;
+  matches: number;
+  events: number;
+}
+
+export interface TeamStatLine {
+  key: string;
+  teamName: string;
+  players: number;
+  goals: number;
+  assists: number;
+  ownGoals: number;
+  yellow: number;
+  red: number;
+}
+
+export interface StatDatabaseTotals {
+  goals: number;
+  assists: number;
+  ownGoals: number;
+  yellow: number;
+  red: number;
+  records: number;
+  players: number;
+  teams: number;
+  matches: number;
+}
+
+export interface StatDatabase {
+  players: PlayerStatLine[];
+  teams: TeamStatLine[];
+  totals: StatDatabaseTotals;
+}
+
+/** Aggregate raw stat events into a sortable per-player and per-team record. Pure. */
+export const buildStatDatabase = (statEvents: FixtureStatEvent[], teams: EventTeam[]): StatDatabase => {
+  const teamNameById = new Map(teams.map(t => [t.id, t.name]));
+  interface PlayerAcc extends PlayerStatLine { fixtures: Set<string>; eventIds: Set<string>; }
+  interface TeamAcc extends TeamStatLine { playerKeys: Set<string>; }
+  const players = new Map<string, PlayerAcc>();
+  const teamAcc = new Map<string, TeamAcc>();
+
+  for (const event of statEvents) {
+    const teamName = teamNameById.get(event.team_id) ?? 'Unknown team';
+    const teamKey = teamName.trim().toLowerCase();
+    const playerName = event.player_name.trim();
+    const playerKey = `${teamKey}::${playerName.toLowerCase()}`;
+
+    let player = players.get(playerKey);
+    if (!player) {
+      player = {
+        key: playerKey, playerName, teamName, goals: 0, assists: 0, ownGoals: 0, yellow: 0, red: 0,
+        goalContributions: 0, matches: 0, events: 0, fixtures: new Set(), eventIds: new Set()
+      };
+      players.set(playerKey, player);
+    }
+    let team = teamAcc.get(teamKey);
+    if (!team) {
+      team = { key: teamKey, teamName, players: 0, goals: 0, assists: 0, ownGoals: 0, yellow: 0, red: 0, playerKeys: new Set() };
+      teamAcc.set(teamKey, team);
+    }
+    player.fixtures.add(event.fixture_id);
+    player.eventIds.add(event.event_id);
+    team.playerKeys.add(playerKey);
+
+    switch (event.stat_type) {
+      case 'goal': player.goals += 1; team.goals += 1; break;
+      case 'assist': player.assists += 1; team.assists += 1; break;
+      case 'own_goal': player.ownGoals += 1; team.ownGoals += 1; break;
+      case 'yellow_card': player.yellow += 1; team.yellow += 1; break;
+      case 'red_card': player.red += 1; team.red += 1; break;
+    }
+  }
+
+  const playerRows: PlayerStatLine[] = [...players.values()]
+    .map(({ fixtures, eventIds, ...row }) => ({
+      ...row, goalContributions: row.goals + row.assists, matches: fixtures.size, events: eventIds.size
+    }))
+    .sort((a, b) =>
+      b.goals - a.goals || b.assists - a.assists || b.goalContributions - a.goalContributions ||
+      a.playerName.localeCompare(b.playerName));
+
+  const teamRows: TeamStatLine[] = [...teamAcc.values()]
+    .map(({ playerKeys, ...row }) => ({ ...row, players: playerKeys.size }))
+    .sort((a, b) => b.goals - a.goals || b.assists - a.assists || a.teamName.localeCompare(b.teamName));
+
+  const totals: StatDatabaseTotals = {
+    goals: 0, assists: 0, ownGoals: 0, yellow: 0, red: 0,
+    records: statEvents.length, players: playerRows.length, teams: teamRows.length,
+    matches: new Set(statEvents.map(e => e.fixture_id)).size
+  };
+  for (const p of playerRows) {
+    totals.goals += p.goals; totals.assists += p.assists; totals.ownGoals += p.ownGoals;
+    totals.yellow += p.yellow; totals.red += p.red;
+  }
+
+  return { players: playerRows, teams: teamRows, totals };
+};
+
+// --- League coach organization -----------------------------------------------
+// A league carries a coach seat quota + a shareable invite code. Coaches apply
+// through the code and the owner reviews each; a seat is consumed on approval.
+// Affiliation is directory-only and never grants access to a coach's club data.
+
+export type LeagueCoachStatus = 'pending' | 'active' | 'declined' | 'removed';
+
+export interface LeagueCoachMembership {
+  id: string;
+  league_id: string;
+  coach_user_id: string;
+  coach_name: string;
+  coach_email: string;
+  message: string | null;
+  status: LeagueCoachStatus;
+  review_note: string | null;
+  reviewed_by: string | null;
+  reviewed_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface LeagueCoachApplyInput {
+  code: string;
+  coachName: string;
+  coachEmail: string;
+  message?: string | null;
+}
+
+/** Minimal org info returned by the public `resolve_league_org_invite` RPC. */
+export interface LeagueCoachInviteLookup {
+  found: boolean;
+  leagueId?: string;
+  leagueName?: string;
+  location?: string | null;
+  seatLimit?: number;
+  seatsRemaining?: number;
+  open?: boolean;
+}
+
+export interface CoachSeatSummary {
+  seatLimit: number;
+  active: number;
+  pending: number;
+  remaining: number;
+  full: boolean;
+}
+
+export const LEAGUE_COACH_STATUS_LABELS: Record<LeagueCoachStatus, string> = {
+  pending: 'Pending',
+  active: 'Active',
+  declined: 'Declined',
+  removed: 'Removed'
+};
+
+/** Seat usage from a league's memberships. Pure. */
+export const summarizeCoachSeats = (memberships: LeagueCoachMembership[], seatLimit: number): CoachSeatSummary => {
+  let active = 0;
+  let pending = 0;
+  for (const m of memberships) {
+    if (m.status === 'active') active += 1;
+    else if (m.status === 'pending') pending += 1;
+  }
+  return { seatLimit, active, pending, remaining: Math.max(0, seatLimit - active), full: active >= seatLimit };
+};
+
+export const listCoachMemberships = async (client: DumalaSupabaseClient, leagueId: string): Promise<LeagueCoachMembership[]> => {
+  const supabase = asUntypedClient(client);
+  return (expectNoError(
+    await supabase.from('league_coach_memberships').select('*').eq('league_id', leagueId).order('created_at', { ascending: false }),
+    'LEAGUE_COACHES_READ_FAILED',
+    'Failed to load organization coaches'
+  ) as LeagueCoachMembership[] | null) ?? [];
+};
+
+export const resolveLeagueOrgInvite = async (client: DumalaSupabaseClient, code: string): Promise<LeagueCoachInviteLookup> => {
+  const supabase = asUntypedClient(client);
+  const data = expectNoError(
+    await supabase.rpc('resolve_league_org_invite', { code: code.trim().toUpperCase() }),
+    'LEAGUE_ORG_LOOKUP_FAILED',
+    'Failed to look up the organization'
+  );
+  return (data as LeagueCoachInviteLookup | null) ?? { found: false };
+};
+
+export const applyToLeagueOrg = async (client: DumalaSupabaseClient, input: LeagueCoachApplyInput): Promise<string> => {
+  const supabase = asUntypedClient(client);
+  return expectNoError(
+    await supabase.rpc('apply_to_league_org', {
+      code: input.code.trim().toUpperCase(),
+      coach_name: input.coachName.trim(),
+      coach_email: input.coachEmail.trim(),
+      message: input.message?.trim() || null
+    }),
+    'LEAGUE_ORG_APPLY_FAILED',
+    'Failed to submit your application'
+  ) as string;
+};
+
+export const reviewCoachMembership = async (
+  client: DumalaSupabaseClient,
+  membershipId: string,
+  nextStatus: Extract<LeagueCoachStatus, 'active' | 'declined' | 'removed'>,
+  note?: string | null
+): Promise<LeagueCoachStatus> => {
+  const supabase = asUntypedClient(client);
+  expectNoError(
+    await supabase.rpc('review_league_coach_membership', {
+      membership_id: membershipId,
+      next_status: nextStatus,
+      note: note?.trim() || null
+    }),
+    'LEAGUE_COACH_REVIEW_FAILED',
+    'Failed to update the coach application'
+  );
+  return nextStatus;
+};
+
+export const rotateCoachInvite = async (client: DumalaSupabaseClient, leagueId: string): Promise<string> => {
+  const supabase = asUntypedClient(client);
+  return expectNoError(
+    await supabase.rpc('rotate_league_coach_invite', { target_league_id: leagueId }),
+    'LEAGUE_INVITE_ROTATE_FAILED',
+    'Failed to rotate the invite code'
+  ) as string;
+};
+
+export const setCoachSeatLimit = async (client: DumalaSupabaseClient, leagueId: string, seatLimit: number): Promise<League> => {
+  const supabase = asUntypedClient(client);
+  const clamped = Math.max(0, Math.min(1000, Math.round(seatLimit)));
+  return expectNoError(
+    await supabase.from('leagues').update({ coach_seat_limit: clamped }).eq('id', leagueId).select('*').single(),
+    'LEAGUE_SEAT_LIMIT_FAILED',
+    'Failed to update the seat limit'
+  ) as League;
+};
+
+// --- Fixtures calendar + venue conflicts -------------------------------------
+// A league-wide operating calendar built from the fixtures' kickoff time and
+// venue (columns already on event_fixtures). "Double booking" = two fixtures at
+// the same venue whose kickoff times fall within a short window of each other.
+
+export interface FixtureSchedulePatch {
+  kickoffAt?: string | null;
+  venueId?: string | null;
+}
+
+/** Set (or clear) a fixture's kickoff time and venue. Owner-scoped by RLS. */
+export const setFixtureSchedule = async (
+  client: DumalaSupabaseClient,
+  fixtureId: string,
+  patch: FixtureSchedulePatch
+): Promise<EventFixture> => {
+  const supabase = asUntypedClient(client);
+  const row: Record<string, unknown> = {};
+  if (patch.kickoffAt !== undefined) row.kickoff_at = patch.kickoffAt || null;
+  if (patch.venueId !== undefined) row.venue_id = patch.venueId || null;
+  return expectNoError(
+    await supabase.from('event_fixtures').update(row).eq('id', fixtureId).select('*').single(),
+    'FIXTURE_SCHEDULE_FAILED',
+    'Failed to update the fixture schedule'
+  ) as EventFixture;
+};
+
+export interface CalendarFixtureItem {
+  fixtureId: string;
+  eventId: string;
+  eventName: string;
+  round: number;
+  homeTeamName: string;
+  awayTeamName: string;
+  venueId: string | null;
+  venueName: string | null;
+  kickoffAt: string | null;
+  status: EventFixtureStatus;
+  homeScore: number | null;
+  awayScore: number | null;
+  conflict: boolean;
+}
+
+export interface CalendarDay {
+  date: string;      // YYYY-MM-DD (local)
+  items: CalendarFixtureItem[];
+}
+
+export interface FixtureCalendar {
+  days: CalendarDay[];
+  unscheduled: CalendarFixtureItem[];
+  scheduledCount: number;
+  conflictCount: number;
+  venueConflicts: Array<{ venueId: string; venueName: string | null; fixtureIds: string[] }>;
+}
+
+/** Two fixtures at one venue within this many minutes count as a double-booking. */
+export const FIXTURE_CONFLICT_WINDOW_MINUTES = 120;
+
+const localDayKey = (iso: string): string => {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return iso.slice(0, 10);
+  const y = d.getFullYear();
+  const m = `${d.getMonth() + 1}`.padStart(2, '0');
+  const day = `${d.getDate()}`.padStart(2, '0');
+  return `${y}-${m}-${day}`;
+};
+
+/**
+ * Build a league operating calendar from fixtures. Scheduled fixtures (with a
+ * kickoff time) are grouped by local day; the rest are returned as `unscheduled`.
+ * A fixture is flagged `conflict` when another fixture shares its venue within
+ * FIXTURE_CONFLICT_WINDOW_MINUTES. Pure.
+ */
+export const buildFixtureCalendar = (
+  fixtures: EventFixture[],
+  teams: EventTeam[],
+  events: LeagueEvent[],
+  venues: LeagueVenue[],
+  options: { windowMinutes?: number } = {}
+): FixtureCalendar => {
+  const windowMs = (options.windowMinutes ?? FIXTURE_CONFLICT_WINDOW_MINUTES) * 60_000;
+  const teamName = new Map(teams.map(t => [t.id, t.name]));
+  const eventName = new Map(events.map(e => [e.id, e.name]));
+  const venueName = new Map(venues.map(v => [v.id, v.name]));
+
+  // Detect venue double-bookings among scheduled, non-cancelled fixtures.
+  const conflictIds = new Set<string>();
+  const venueConflictMap = new Map<string, Set<string>>();
+  const byVenue = new Map<string, EventFixture[]>();
+  for (const f of fixtures) {
+    if (f.status === 'cancelled' || !f.kickoff_at || !f.venue_id) continue;
+    const list = byVenue.get(f.venue_id);
+    if (list) list.push(f); else byVenue.set(f.venue_id, [f]);
+  }
+  for (const [venueId, list] of byVenue) {
+    const sorted = list.slice().sort((a, b) => new Date(a.kickoff_at as string).getTime() - new Date(b.kickoff_at as string).getTime());
+    for (let i = 0; i < sorted.length; i += 1) {
+      for (let j = i + 1; j < sorted.length; j += 1) {
+        const gap = Math.abs(new Date(sorted[j].kickoff_at as string).getTime() - new Date(sorted[i].kickoff_at as string).getTime());
+        if (gap < windowMs) {
+          conflictIds.add(sorted[i].id);
+          conflictIds.add(sorted[j].id);
+          const set = venueConflictMap.get(venueId) ?? new Set<string>();
+          set.add(sorted[i].id); set.add(sorted[j].id);
+          venueConflictMap.set(venueId, set);
+        } else {
+          break; // sorted by time — no later fixture can be within the window of i
+        }
+      }
+    }
+  }
+
+  const toItem = (f: EventFixture): CalendarFixtureItem => ({
+    fixtureId: f.id,
+    eventId: f.event_id,
+    eventName: eventName.get(f.event_id) ?? '—',
+    round: f.round,
+    homeTeamName: teamName.get(f.home_team_id) ?? 'TBD',
+    awayTeamName: teamName.get(f.away_team_id) ?? 'TBD',
+    venueId: f.venue_id,
+    venueName: f.venue_id ? venueName.get(f.venue_id) ?? 'Unknown venue' : null,
+    kickoffAt: f.kickoff_at,
+    status: f.status,
+    homeScore: f.home_score,
+    awayScore: f.away_score,
+    conflict: conflictIds.has(f.id)
+  });
+
+  const dayMap = new Map<string, CalendarFixtureItem[]>();
+  const unscheduled: CalendarFixtureItem[] = [];
+  for (const f of fixtures) {
+    const item = toItem(f);
+    if (f.kickoff_at) {
+      const key = localDayKey(f.kickoff_at);
+      const list = dayMap.get(key);
+      if (list) list.push(item); else dayMap.set(key, [item]);
+    } else {
+      unscheduled.push(item);
+    }
+  }
+
+  const days: CalendarDay[] = [...dayMap.entries()]
+    .map(([date, items]) => ({
+      date,
+      items: items.sort((a, b) => (a.kickoffAt ?? '').localeCompare(b.kickoffAt ?? '') || a.eventName.localeCompare(b.eventName))
+    }))
+    .sort((a, b) => a.date.localeCompare(b.date));
+
+  return {
+    days,
+    unscheduled,
+    scheduledCount: fixtures.filter(f => f.kickoff_at).length,
+    conflictCount: conflictIds.size,
+    venueConflicts: [...venueConflictMap.entries()].map(([venueId, ids]) => ({
+      venueId,
+      venueName: venueName.get(venueId) ?? null,
+      fixtureIds: [...ids]
+    }))
+  };
 };

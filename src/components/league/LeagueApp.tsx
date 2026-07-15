@@ -1,12 +1,16 @@
 import React, { FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
 import {
+  CalendarClock,
   CalendarRange,
   Check,
   ChevronLeft,
   ChevronRight,
   Clock,
   Copy,
+  Database,
   Eye,
+  FileDown,
+  FileJson,
   Gauge,
   Activity,
   AlertTriangle,
@@ -21,6 +25,7 @@ import {
   RefreshCw,
   Receipt,
   Save,
+  Search,
   Settings,
   Shield,
   Shuffle,
@@ -51,12 +56,21 @@ import {
   nextEventStatuses,
   nextSeasonStatuses,
   spotsRemaining,
+  buildFixtureCalendar,
+  buildStatDatabase,
   suggestAwards,
+  summarizeCoachSeats,
+  summarizeCompetition,
   summarizeLedger,
   summarizeMatchday,
+  LEAGUE_COACH_STATUS_LABELS,
   type AwardRecipientType,
+  type CalendarFixtureItem,
+  type CompetitionStanding,
+  type CompetitionSummary,
   type EventAward,
   type EventFixture,
+  type LeagueCoachMembership,
   type EventIncident,
   type EventIncidentInput,
   type EventInvoice,
@@ -79,6 +93,7 @@ import {
   type LedgerDirection,
   type LedgerEntry
 } from '../../cloud/league';
+import { renderStatDatabaseReportHtml } from '../../cloud/leagueStatsReport';
 import {
   DARK_GLASS_THEME_STYLE,
   DARK_GLASS_DASHBOARD_SURFACE_STYLE
@@ -92,12 +107,15 @@ interface LeagueAppProps {
   preview?: boolean;
 }
 
-type LeagueSection = 'overview' | 'seasons' | 'events' | 'venues' | 'finance' | 'settings';
+type LeagueSection = 'overview' | 'seasons' | 'events' | 'calendar' | 'statistics' | 'coaches' | 'venues' | 'finance' | 'settings';
 
 const NAV: Array<{ id: LeagueSection; label: string; icon: React.ComponentType<{ size?: number; className?: string }> }> = [
   { id: 'overview', label: 'Overview', icon: Gauge },
   { id: 'seasons', label: 'Seasons', icon: CalendarRange },
   { id: 'events', label: 'Events', icon: Trophy },
+  { id: 'calendar', label: 'Calendar', icon: CalendarClock },
+  { id: 'statistics', label: 'Statistics', icon: Database },
+  { id: 'coaches', label: 'Coaches', icon: UserCheck },
   { id: 'venues', label: 'Venues', icon: MapPin },
   { id: 'finance', label: 'Finance', icon: Wallet },
   { id: 'settings', label: 'Settings', icon: Settings }
@@ -195,6 +213,9 @@ const LeagueApp = ({ runtime, userId, authController, preview = false }: LeagueA
   const [events, setEvents] = useState<LeagueEvent[]>([]);
   const [ledger, setLedger] = useState<LedgerEntry[]>([]);
   const [invoices, setInvoices] = useState<EventInvoice[]>([]);
+  const [eventTeams, setEventTeams] = useState<EventTeam[]>([]);
+  const [leagueFixtures, setLeagueFixtures] = useState<EventFixture[]>([]);
+  const [leagueStats, setLeagueStats] = useState<FixtureStatEvent[]>([]);
   const [section, setSection] = useState<LeagueSection>('overview');
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState('');
@@ -202,18 +223,24 @@ const LeagueApp = ({ runtime, userId, authController, preview = false }: LeagueA
   const activeLeague = useMemo(() => leagues.find(l => l.id === activeLeagueId) ?? null, [leagues, activeLeagueId]);
 
   const loadLeagueData = useCallback(async (leagueId: string) => {
-    const [nextSeasons, nextVenues, nextEvents, nextLedger, nextInvoices] = await Promise.all([
+    const [nextSeasons, nextVenues, nextEvents, nextLedger, nextInvoices, nextTeams, nextFixtures, nextStats] = await Promise.all([
       league.listSeasons(leagueId),
       league.listVenues(leagueId),
       league.listEvents(leagueId),
       league.listLedgerEntries(leagueId),
-      league.listInvoices(leagueId)
+      league.listInvoices(leagueId),
+      league.listLeagueEventTeams(leagueId),
+      league.listLeagueFixtures(leagueId),
+      league.listLeagueStatEvents(leagueId)
     ]);
     setSeasons(nextSeasons);
     setVenues(nextVenues);
     setEvents(nextEvents);
     setLedger(nextLedger);
     setInvoices(nextInvoices);
+    setEventTeams(nextTeams);
+    setLeagueFixtures(nextFixtures);
+    setLeagueStats(nextStats);
   }, [league]);
 
   const reload = useCallback(async () => {
@@ -222,7 +249,7 @@ const LeagueApp = ({ runtime, userId, authController, preview = false }: LeagueA
     const target = nextLeagues.find(l => l.id === activeLeagueId) ?? nextLeagues[0] ?? null;
     setActiveLeagueId(target?.id ?? null);
     if (target) await loadLeagueData(target.id);
-    else { setSeasons([]); setVenues([]); setEvents([]); setLedger([]); setInvoices([]); }
+    else { setSeasons([]); setVenues([]); setEvents([]); setLedger([]); setInvoices([]); setEventTeams([]); setLeagueFixtures([]); setLeagueStats([]); }
   }, [league, activeLeagueId, loadLeagueData]);
 
   useEffect(() => {
@@ -313,6 +340,9 @@ const LeagueApp = ({ runtime, userId, authController, preview = false }: LeagueA
                 events={events}
                 ledger={ledger}
                 invoices={invoices}
+                eventTeams={eventTeams}
+                fixtures={leagueFixtures}
+                statEvents={leagueStats}
                 onAdvance={(seasonId, next) => withError(async () => { await league.advanceSeasonStatus(seasonId, next); await loadLeagueData(activeLeague.id); })}
                 onGoToSeasons={() => setSection('seasons')}
                 onGoToEvents={() => setSection('events')}
@@ -337,6 +367,34 @@ const LeagueApp = ({ runtime, userId, authController, preview = false }: LeagueA
                 onAdvance={(eventId, next) => withError(async () => { await league.advanceEventStatus(eventId, next); await loadLeagueData(activeLeague.id); })}
                 onAfterReview={() => loadLeagueData(activeLeague.id)}
                 onGoToSeasons={() => setSection('seasons')}
+              />
+            )}
+            {section === 'calendar' && (
+              <CalendarSection
+                league={league}
+                fixtures={leagueFixtures}
+                teams={eventTeams}
+                events={events}
+                venues={venues}
+                runError={withError}
+                onAfter={() => loadLeagueData(activeLeague.id)}
+              />
+            )}
+            {section === 'statistics' && (
+              <StatisticsSection
+                leagueName={activeLeague.name}
+                seasons={seasons}
+                events={events}
+                teams={eventTeams}
+                statEvents={leagueStats}
+                fixtures={leagueFixtures}
+              />
+            )}
+            {section === 'coaches' && (
+              <CoachesSection
+                league={league}
+                activeLeague={activeLeague}
+                runError={withError}
               />
             )}
             {section === 'venues' && (
@@ -374,19 +432,26 @@ const LeagueApp = ({ runtime, userId, authController, preview = false }: LeagueA
 
 // --- Overview ----------------------------------------------------------------
 
-const OverviewSection = ({ league, seasons, venues, events, ledger, invoices, onAdvance, onGoToSeasons, onGoToEvents, onGoToVenues, onGoToFinance }: {
+const OverviewSection = ({ league, seasons, venues, events, ledger, invoices, eventTeams, fixtures, statEvents, onAdvance, onGoToSeasons, onGoToEvents, onGoToVenues, onGoToFinance }: {
   league: League;
   seasons: LeagueSeason[];
   venues: LeagueVenue[];
   events: LeagueEvent[];
   ledger: LedgerEntry[];
   invoices: EventInvoice[];
+  eventTeams: EventTeam[];
+  fixtures: EventFixture[];
+  statEvents: FixtureStatEvent[];
   onAdvance: (seasonId: string, next: LeagueSeasonStatus) => void;
   onGoToSeasons: () => void;
   onGoToEvents: () => void;
   onGoToVenues: () => void;
   onGoToFinance: () => void;
 }) => {
+  const competition = useMemo(
+    () => summarizeCompetition(events, eventTeams, fixtures, statEvents),
+    [events, eventTeams, fixtures, statEvents]
+  );
   const activeSeasons = seasons.filter(s => s.status === 'active').length;
   const focus = seasons.find(s => s.status === 'active') ?? seasons.find(s => s.status === 'registration_open') ?? seasons[0] ?? null;
   const openEvents = events.filter(event => event.status === 'registration_open');
@@ -542,6 +607,11 @@ const OverviewSection = ({ league, seasons, venues, events, ledger, invoices, on
           )}
         </div>
       </section>
+
+      {competition.hasActivity && (
+        <LiveCompetitionSection league={league} competition={competition} onGoToEvents={onGoToEvents} />
+      )}
+
       <section className="grid gap-4 lg:grid-cols-[1fr_0.9fr]">
         <div className={panel}>
           <div className={sectionHeader}>
@@ -707,6 +777,168 @@ const OverviewSection = ({ league, seasons, venues, events, ledger, invoices, on
           )}
         </div>
       </section>
+    </div>
+  );
+};
+
+// --- Live competition rollup (dashboard) -------------------------------------
+
+const MatchdayTile = ({ label: tileLabel, value, tone }: { label: string; value: number; tone: string }) => (
+  <div className={`rounded-xl border px-3 py-2.5 ${tone}`}>
+    <p className="font-display text-xl font-black leading-none">{value}</p>
+    <p className="mt-1 text-[10px] font-bold uppercase tracking-wide opacity-80">{tileLabel}</p>
+  </div>
+);
+
+const StandingsLeaders = ({ standing, onGoToEvents }: { standing: CompetitionStanding; onGoToEvents: () => void }) => (
+  <button
+    type="button"
+    onClick={onGoToEvents}
+    className={`${subtleCard} block w-full px-4 py-3 text-left transition hover:border-sky-300/35 hover:bg-sky-300/10`}
+  >
+    <span className="flex flex-wrap items-center justify-between gap-2">
+      <span className="flex items-center gap-2">
+        <span className="font-display text-sm font-black text-white">{standing.eventName}</span>
+        <EventStatusBadge status={standing.status} />
+      </span>
+      <span className="text-[11px] font-bold text-slate-400">{standing.playedFixtures}/{standing.totalFixtures} played</span>
+    </span>
+    <span className="mt-2 block space-y-1">
+      {standing.leaders.map((row, index) => (
+        <span key={row.teamId} className="grid grid-cols-[1.25rem_1fr_auto] items-center gap-2 text-xs">
+          <span className={`text-center font-black ${index === 0 ? 'text-amber-300' : 'text-slate-500'}`}>{index + 1}</span>
+          <span className="truncate font-bold text-slate-100">{row.name}</span>
+          <span className="text-slate-400">
+            {row.played} PL · <span className="font-black text-white">{row.points}</span> PTS
+            <span className="ml-1 text-slate-500">({row.goalDifference >= 0 ? '+' : ''}{row.goalDifference})</span>
+          </span>
+        </span>
+      ))}
+    </span>
+  </button>
+);
+
+const LiveCompetitionSection = ({ league, competition, onGoToEvents }: {
+  league: League;
+  competition: CompetitionSummary;
+  onGoToEvents: () => void;
+}) => {
+  const { liveMatchday, standings, scorers, recentResults } = competition;
+  const readinessPct = liveMatchday.total > 0
+    ? Math.round(((liveMatchday.ready + liveMatchday.completed) / liveMatchday.total) * 100)
+    : 0;
+
+  return (
+    <div className="space-y-4">
+      <section className="grid gap-4 lg:grid-cols-2">
+        <div className={panel}>
+          <div className={sectionHeader}>
+            <Activity size={16} className="text-sky-200" />
+            <h2 className="font-display text-sm font-black text-white">Live match day</h2>
+            {competition.activeEventCount > 0 && (
+              <span className="ml-auto text-[11px] font-bold text-slate-400">
+                {competition.activeEventCount} active event{competition.activeEventCount === 1 ? '' : 's'}
+              </span>
+            )}
+          </div>
+          <div className="space-y-4 p-4">
+            {liveMatchday.total === 0 ? (
+              <p className="text-sm text-slate-400">No fixtures in an active event yet. Activate an event and generate its schedule to run match day here.</p>
+            ) : (
+              <>
+                <ProgressMeter value={readinessPct} label="Fixtures ready or played" />
+                <div className="grid grid-cols-3 gap-2">
+                  <MatchdayTile label="Ready" value={liveMatchday.ready} tone="border-emerald-300/30 bg-emerald-400/10 text-emerald-100" />
+                  <MatchdayTile label="Awaiting" value={liveMatchday.awaitingCheckin} tone="border-amber-300/30 bg-amber-400/10 text-amber-100" />
+                  <MatchdayTile label="Completed" value={liveMatchday.completed} tone="border-white/10 bg-white/[0.05] text-slate-200" />
+                </div>
+                <button type="button" onClick={onGoToEvents} className={ghostBtn}>
+                  Open match-day control <ChevronRight size={14} />
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+
+        <div className={panel}>
+          <div className={sectionHeader}>
+            <Swords size={16} className="text-sky-200" />
+            <h2 className="font-display text-sm font-black text-white">Recent results</h2>
+          </div>
+          <div className="p-4">
+            {recentResults.length === 0 ? (
+              <p className="text-sm text-slate-400">No results recorded yet. Enter scores from an event's Fixtures tab.</p>
+            ) : (
+              <ul className="space-y-2">
+                {recentResults.map(result => (
+                  <li key={result.fixtureId} className={`${subtleCard} px-4 py-2.5`}>
+                    <div className="flex items-center gap-2 text-sm">
+                      <span className="flex-1 truncate text-right font-bold text-slate-100">{result.homeTeamName}</span>
+                      <span className="rounded-lg border border-white/10 bg-black/25 px-2 py-0.5 font-display text-sm font-black text-white">
+                        {result.homeScore}–{result.awayScore}
+                      </span>
+                      <span className="flex-1 truncate font-bold text-slate-100">{result.awayTeamName}</span>
+                    </div>
+                    <p className="mt-1 truncate text-center text-[11px] text-slate-500">{result.eventName} · Round {result.round}</p>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </div>
+      </section>
+
+      {(standings.length > 0 || scorers.length > 0) && (
+        <section className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
+          <div className={panel}>
+            <div className={sectionHeader}>
+              <ListOrdered size={16} className="text-sky-200" />
+              <h2 className="font-display text-sm font-black text-white">Standings leaders</h2>
+            </div>
+            <div className="space-y-2 p-4">
+              {standings.length === 0 ? (
+                <p className="text-sm text-slate-400">Standings appear once an active or completed event has a result.</p>
+              ) : (
+                standings.map(standing => (
+                  <StandingsLeaders key={standing.eventId} standing={standing} onGoToEvents={onGoToEvents} />
+                ))
+              )}
+            </div>
+          </div>
+
+          <div className={panel}>
+            <div className={sectionHeader}>
+              <Target size={16} className="text-sky-200" />
+              <h2 className="font-display text-sm font-black text-white">Top scorers</h2>
+              <span className="ml-auto text-[11px] font-bold uppercase tracking-wide text-slate-500">{league.name}</span>
+            </div>
+            <div className="p-4">
+              {scorers.length === 0 ? (
+                <p className="text-sm text-slate-400">No goals recorded yet. Log goals from an event's Stats tab.</p>
+              ) : (
+                <ul className="space-y-2">
+                  {scorers.map((scorer, index) => (
+                    <li key={`${scorer.teamId}-${scorer.playerName}`} className={`${subtleCard} flex items-center gap-3 px-4 py-2.5`}>
+                      <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-black ${index === 0 ? 'bg-amber-400/20 text-amber-200' : 'bg-white/[0.06] text-slate-400'}`}>
+                        {index + 1}
+                      </span>
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-sm font-black text-white">{scorer.playerName}</span>
+                        <span className="block truncate text-[11px] text-slate-500">{scorer.teamName}{scorer.eventName ? ` · ${scorer.eventName}` : ''}</span>
+                      </span>
+                      <span className="shrink-0 text-right">
+                        <span className="font-display text-base font-black text-white">{scorer.goals}</span>
+                        <span className="ml-1 text-[11px] font-bold text-slate-500">G</span>
+                        {scorer.assists > 0 && <span className="ml-2 text-[11px] text-slate-500">{scorer.assists} A</span>}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </div>
+        </section>
+      )}
     </div>
   );
 };
@@ -1834,6 +2066,717 @@ const IncidentForm = ({ fixtures, teamName, onAdd }: {
 };
 
 // --- Venues ------------------------------------------------------------------
+
+// --- Fixtures calendar -------------------------------------------------------
+
+const toLocalInput = (iso: string): string => {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '';
+  const p = (n: number) => `${n}`.padStart(2, '0');
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
+};
+const formatClock = (iso: string | null): string => {
+  if (!iso) return 'Time TBD';
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return 'Time TBD';
+  return new Intl.DateTimeFormat(undefined, { hour: 'numeric', minute: '2-digit' }).format(d);
+};
+const formatDayHeading = (dateKey: string): string => {
+  const d = new Date(`${dateKey}T00:00:00`);
+  if (Number.isNaN(d.getTime())) return dateKey;
+  return new Intl.DateTimeFormat(undefined, { weekday: 'short', month: 'short', day: 'numeric' }).format(d);
+};
+
+const CalendarSection = ({ league, fixtures, teams, events, venues, runError, onAfter }: {
+  league: CloudLeagueRepository;
+  fixtures: EventFixture[];
+  teams: EventTeam[];
+  events: LeagueEvent[];
+  venues: LeagueVenue[];
+  runError: (fn: () => Promise<unknown>) => Promise<void>;
+  onAfter: () => Promise<void> | void;
+}) => {
+  const calendar = useMemo(() => buildFixtureCalendar(fixtures, teams, events, venues), [fixtures, teams, events, venues]);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editAt, setEditAt] = useState('');
+  const [editVenue, setEditVenue] = useState('');
+
+  const startEdit = (item: CalendarFixtureItem) => {
+    setEditingId(item.fixtureId);
+    setEditAt(item.kickoffAt ? toLocalInput(item.kickoffAt) : '');
+    setEditVenue(item.venueId ?? '');
+  };
+  const save = (fixtureId: string) =>
+    runError(async () => {
+      await league.setFixtureSchedule(fixtureId, {
+        kickoffAt: editAt ? new Date(editAt).toISOString() : null,
+        venueId: editVenue || null
+      });
+      setEditingId(null);
+      await onAfter();
+    });
+  const clearSchedule = (fixtureId: string) =>
+    runError(async () => { await league.setFixtureSchedule(fixtureId, { kickoffAt: null, venueId: null }); setEditingId(null); await onAfter(); });
+
+  const editor = (item: CalendarFixtureItem) => (
+    <div className="mt-3 grid gap-2 border-t border-white/10 pt-3 sm:grid-cols-[1fr_1fr_auto]">
+      <div className="space-y-1">
+        <label className={label}>Kick-off</label>
+        <input type="datetime-local" className={inputClass} value={editAt} onChange={e => setEditAt(e.target.value)} />
+      </div>
+      <div className="space-y-1">
+        <label className={label}>Venue</label>
+        <select className={selectClass} value={editVenue} onChange={e => setEditVenue(e.target.value)}>
+          <option value="">No venue</option>
+          {venues.map(v => <option key={v.id} value={v.id}>{v.name}</option>)}
+        </select>
+      </div>
+      <div className="flex items-end gap-2">
+        <button type="button" className={primaryBtn} onClick={() => save(item.fixtureId)}><Save size={14} /> Save</button>
+        <button type="button" className={ghostBtn} onClick={() => setEditingId(null)}><X size={14} /></button>
+      </div>
+    </div>
+  );
+
+  const fixtureRow = (item: CalendarFixtureItem, showTime: boolean) => {
+    const isEditing = editingId === item.fixtureId;
+    return (
+      <div key={item.fixtureId} className={`${subtleCard} p-4 ${item.conflict ? 'border-rose-300/40 bg-rose-400/5' : ''}`}>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              {showTime && <span className="font-display text-sm font-black text-sky-100">{formatClock(item.kickoffAt)}</span>}
+              <span className="text-sm font-black text-white">{item.homeTeamName}</span>
+              {item.status === 'completed'
+                ? <span className="rounded-lg border border-white/10 bg-black/25 px-2 py-0.5 font-display text-xs font-black text-white">{item.homeScore}–{item.awayScore}</span>
+                : <span className="text-xs text-slate-500">vs</span>}
+              <span className="text-sm font-black text-white">{item.awayTeamName}</span>
+            </div>
+            <p className="mt-1 flex flex-wrap items-center gap-x-2 text-xs text-slate-400">
+              <span>{item.eventName} · Round {item.round}</span>
+              {item.venueName && <span className="inline-flex items-center gap-1"><MapPin size={11} /> {item.venueName}</span>}
+              {item.conflict && (
+                <span className="inline-flex items-center gap-1 font-bold text-rose-200"><AlertTriangle size={11} /> Venue double-booked</span>
+              )}
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            {item.kickoffAt && !isEditing && (
+              <button type="button" className="text-[11px] font-bold text-slate-500 hover:text-rose-200" onClick={() => clearSchedule(item.fixtureId)}>Unschedule</button>
+            )}
+            <button type="button" className={ghostBtn} onClick={() => (isEditing ? setEditingId(null) : startEdit(item))}>
+              <CalendarClock size={13} /> {item.kickoffAt ? 'Reschedule' : 'Schedule'}
+            </button>
+          </div>
+        </div>
+        {isEditing && editor(item)}
+      </div>
+    );
+  };
+
+  const noFixtures = fixtures.length === 0;
+
+  return (
+    <div className="space-y-4">
+      <div>
+        <h2 className="font-display text-sm font-black uppercase tracking-wide text-white">Fixtures calendar</h2>
+        <p className="mt-1 text-xs text-slate-400">Your whole league's match schedule in one place, with automatic venue double-booking checks.</p>
+      </div>
+
+      {noFixtures ? (
+        <div className={`${panel} p-8 text-center`}>
+          <CalendarClock size={22} className="mx-auto text-slate-500" />
+          <p className="mt-3 text-sm font-bold text-white">No fixtures yet</p>
+          <p className="mx-auto mt-1 max-w-md text-xs leading-5 text-slate-400">
+            Generate a schedule from an event's <span className="font-bold text-sky-200">Fixtures</span> tab, then set each match's kick-off time and venue here.
+          </p>
+        </div>
+      ) : (
+        <>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <StatTile label="Scheduled" value={calendar.scheduledCount} detail={`${fixtures.length} fixtures total`} />
+            <StatTile label="Unscheduled" value={calendar.unscheduled.length} detail="Need a time" />
+            <StatTile label="Conflicts" value={calendar.conflictCount} detail="Venue clashes" />
+            <StatTile label="Venues" value={venues.length} detail="Available" />
+          </div>
+
+          {calendar.conflictCount > 0 && (
+            <div className="flex items-start gap-2 rounded-2xl border border-rose-300/25 bg-rose-400/10 px-4 py-3 text-sm text-rose-100">
+              <AlertTriangle size={16} className="mt-0.5 shrink-0" />
+              <span>
+                {calendar.conflictCount} fixture{calendar.conflictCount === 1 ? '' : 's'} clash on a venue within {' '}2 hours
+                {calendar.venueConflicts.length > 0 && <> — {calendar.venueConflicts.map(v => v.venueName ?? 'a venue').join(', ')}</>}. Reschedule or move them to clear the conflict.
+              </span>
+            </div>
+          )}
+
+          {venues.length === 0 && (
+            <p className="rounded-xl border border-amber-300/20 bg-amber-400/10 px-3 py-2 text-xs text-amber-100">
+              Add venues in the Venues tab to assign them to matches and enable double-booking checks.
+            </p>
+          )}
+
+          {calendar.days.map(day => (
+            <section key={day.date} className={panel}>
+              <div className={sectionHeader}>
+                <CalendarRange size={16} className="text-sky-200" />
+                <h2 className="font-display text-sm font-black text-white">{formatDayHeading(day.date)}</h2>
+                <span className="ml-auto text-[11px] font-bold text-slate-500">{day.items.length} match{day.items.length === 1 ? '' : 'es'}</span>
+              </div>
+              <div className="space-y-2 p-4">
+                {day.items.map(item => fixtureRow(item, true))}
+              </div>
+            </section>
+          ))}
+
+          {calendar.unscheduled.length > 0 && (
+            <section className={panel}>
+              <div className={sectionHeader}>
+                <Clock size={16} className="text-sky-200" />
+                <h2 className="font-display text-sm font-black text-white">Unscheduled</h2>
+                <span className="ml-auto text-[11px] font-bold text-slate-500">{calendar.unscheduled.length}</span>
+              </div>
+              <div className="space-y-2 p-4">
+                {calendar.unscheduled.map(item => fixtureRow(item, false))}
+              </div>
+            </section>
+          )}
+        </>
+      )}
+    </div>
+  );
+};
+
+// --- Coach organization ------------------------------------------------------
+
+const coachStatusTone: Record<LeagueCoachMembership['status'], string> = {
+  pending: 'border-amber-300/30 bg-amber-400/10 text-amber-100',
+  active: 'border-emerald-300/30 bg-emerald-400/10 text-emerald-100',
+  declined: 'border-rose-300/30 bg-rose-400/10 text-rose-100',
+  removed: 'border-slate-500/30 bg-slate-500/10 text-slate-400'
+};
+
+const CoachAvatar = ({ name }: { name: string }) => {
+  const initials = name.split(/\s+/).filter(Boolean).slice(0, 2).map(w => w[0]?.toUpperCase() ?? '').join('') || '?';
+  return (
+    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/[0.06] text-xs font-black text-sky-200">
+      {initials}
+    </span>
+  );
+};
+
+const CoachesSection = ({ league, activeLeague, runError }: {
+  league: CloudLeagueRepository;
+  activeLeague: League;
+  runError: (fn: () => Promise<unknown>) => Promise<void>;
+}) => {
+  const [memberships, setMemberships] = useState<LeagueCoachMembership[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [seatLimit, setSeatLimit] = useState(activeLeague.coach_seat_limit);
+  const [inviteCode, setInviteCode] = useState(activeLeague.coach_invite_code);
+  const [limitDraft, setLimitDraft] = useState(String(activeLeague.coach_seat_limit));
+  const [copied, setCopied] = useState<'code' | 'link' | null>(null);
+
+  const refresh = useCallback(async () => {
+    setMemberships(await league.listCoachMemberships(activeLeague.id));
+  }, [league, activeLeague.id]);
+
+  useEffect(() => {
+    setSeatLimit(activeLeague.coach_seat_limit);
+    setInviteCode(activeLeague.coach_invite_code);
+    setLimitDraft(String(activeLeague.coach_seat_limit));
+  }, [activeLeague.id, activeLeague.coach_seat_limit, activeLeague.coach_invite_code]);
+
+  useEffect(() => {
+    let active = true;
+    setLoading(true);
+    refresh().finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
+  }, [refresh]);
+
+  const seats = summarizeCoachSeats(memberships, seatLimit);
+  const pending = memberships.filter(m => m.status === 'pending');
+  const activeCoaches = memberships.filter(m => m.status === 'active');
+  const inviteUrl = typeof window !== 'undefined' ? `${window.location.origin}/#/join-league` : '/#/join-league';
+  const filledPct = seatLimit > 0 ? Math.round((seats.active / seatLimit) * 100) : 0;
+
+  const copy = async (text: string, which: 'code' | 'link') => {
+    try {
+      if (typeof navigator !== 'undefined' && navigator.clipboard) {
+        await navigator.clipboard.writeText(text);
+        setCopied(which);
+        window.setTimeout(() => setCopied(null), 1800);
+      }
+    } catch { /* clipboard unavailable — the code is shown for manual copy */ }
+  };
+
+  const review = (id: string, status: 'active' | 'declined' | 'removed') =>
+    runError(async () => { await league.reviewCoachMembership(id, status); await refresh(); });
+  const saveLimit = () =>
+    runError(async () => {
+      const next = await league.setCoachSeatLimit(activeLeague.id, Number(limitDraft) || 0);
+      setSeatLimit(next.coach_seat_limit);
+      setLimitDraft(String(next.coach_seat_limit));
+    });
+  const rotate = () =>
+    runError(async () => { const code = await league.rotateCoachInvite(activeLeague.id); setInviteCode(code); });
+
+  const limitDirty = String(seatLimit) !== limitDraft.trim();
+
+  return (
+    <div className="space-y-4">
+      <div>
+        <h2 className="font-display text-sm font-black uppercase tracking-wide text-white">Coach organization</h2>
+        <p className="mt-1 text-xs text-slate-400">
+          Affiliate coaches under {activeLeague.name}. Share your invite link, review each application, and manage your seats.
+        </p>
+      </div>
+
+      <section className="grid gap-4 lg:grid-cols-[0.9fr_1.1fr]">
+        <div className={panel}>
+          <div className={sectionHeader}>
+            <UserCheck size={16} className="text-sky-200" />
+            <h2 className="font-display text-sm font-black text-white">Coach seats</h2>
+          </div>
+          <div className="space-y-4 p-4">
+            <ProgressMeter value={filledPct} label={`${seats.active} of ${seatLimit} seats filled`} />
+            <div className="grid grid-cols-3 gap-2">
+              <StatTile label="Active" value={seats.active} detail="Affiliated" />
+              <StatTile label="Pending" value={seats.pending} detail="Awaiting review" />
+              <StatTile label="Open" value={seats.remaining} detail="Seats left" />
+            </div>
+            <div className="flex items-end gap-2 border-t border-white/10 pt-4">
+              <div className="space-y-1">
+                <label className={label}>Seat limit</label>
+                <input
+                  className={`${inputClass} w-28`}
+                  type="number"
+                  min={0}
+                  max={1000}
+                  value={limitDraft}
+                  onChange={e => setLimitDraft(e.target.value)}
+                />
+              </div>
+              <button type="button" className={primaryBtn} onClick={saveLimit} disabled={!limitDirty}>
+                <Save size={14} /> Update
+              </button>
+            </div>
+            <p className="text-[11px] leading-4 text-slate-500">Change the number of coach seats anytime. Lowering it below your active count keeps current coaches but blocks new approvals until a seat frees up.</p>
+          </div>
+        </div>
+
+        <div className={panel}>
+          <div className={sectionHeader}>
+            <Copy size={16} className="text-sky-200" />
+            <h2 className="font-display text-sm font-black text-white">Invite link</h2>
+          </div>
+          <div className="space-y-3 p-4">
+            <div className="rounded-2xl border border-white/10 bg-white/[0.035] p-4">
+              <p className="text-[11px] font-black uppercase text-slate-400">Invite code</p>
+              <p className="mt-1 font-display text-2xl font-black tracking-[0.28em] text-white">{inviteCode}</p>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <button type="button" className={ghostBtn} onClick={() => copy(inviteCode, 'code')}>
+                {copied === 'code' ? <><Check size={14} /> Copied</> : <><Copy size={14} /> Copy code</>}
+              </button>
+              <button type="button" className={ghostBtn} onClick={() => copy(`${inviteUrl}?code=${inviteCode}`, 'link')}>
+                {copied === 'link' ? <><Check size={14} /> Copied</> : <><Copy size={14} /> Copy link</>}
+              </button>
+              <button type="button" className={ghostBtn} onClick={rotate}>
+                <RefreshCw size={14} /> Rotate
+              </button>
+            </div>
+            <p className="text-[11px] leading-4 text-slate-500">
+              Share <span className="text-sky-200">{inviteUrl}</span> and this code. A coach — new or existing — opens it from their Dumala coach account and applies; you approve each one below. Rotating invalidates the old link.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {loading ? (
+        <div className="flex items-center gap-2 p-2 text-sm text-slate-300"><Loader2 size={16} className="animate-spin" /> Loading coaches…</div>
+      ) : (
+        <>
+          <section className={panel}>
+            <div className={sectionHeader}>
+              <Clock size={16} className="text-sky-200" />
+              <h2 className="font-display text-sm font-black text-white">Pending applications</h2>
+              <span className="ml-auto text-[11px] font-bold text-slate-500">{pending.length}</span>
+            </div>
+            <div className="space-y-2 p-4">
+              {pending.length === 0 ? (
+                <p className="text-sm text-slate-400">No applications waiting. Share your invite link to bring coaches into the organization.</p>
+              ) : (
+                pending.map(coach => (
+                  <div key={coach.id} className={`${subtleCard} flex flex-wrap items-center justify-between gap-3 p-4`}>
+                    <div className="flex items-start gap-3">
+                      <CoachAvatar name={coach.coach_name} />
+                      <div className="min-w-0">
+                        <p className="font-display text-sm font-black text-white">{coach.coach_name}</p>
+                        <p className="text-xs text-slate-400">{coach.coach_email}</p>
+                        {coach.message && <p className="mt-1 max-w-md text-xs italic leading-5 text-slate-400">“{coach.message}”</p>}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        className={primaryBtn}
+                        onClick={() => review(coach.id, 'active')}
+                        disabled={seats.full}
+                        title={seats.full ? 'No seats left — raise the seat limit first' : undefined}
+                      >
+                        <Check size={14} /> Approve
+                      </button>
+                      <button type="button" className={ghostBtn} onClick={() => review(coach.id, 'declined')}>
+                        <X size={14} /> Decline
+                      </button>
+                    </div>
+                  </div>
+                ))
+              )}
+              {seats.full && pending.length > 0 && (
+                <p className="rounded-xl border border-amber-300/20 bg-amber-400/10 px-3 py-2 text-xs text-amber-100">
+                  All {seatLimit} seats are filled. Raise the seat limit or remove a coach to approve more.
+                </p>
+              )}
+            </div>
+          </section>
+
+          <section className={panel}>
+            <div className={sectionHeader}>
+              <Users size={16} className="text-sky-200" />
+              <h2 className="font-display text-sm font-black text-white">Affiliated coaches</h2>
+              <span className="ml-auto text-[11px] font-bold text-slate-500">{activeCoaches.length}</span>
+            </div>
+            <div className="space-y-2 p-4">
+              {activeCoaches.length === 0 ? (
+                <p className="text-sm text-slate-400">No affiliated coaches yet. Approved coaches appear here.</p>
+              ) : (
+                activeCoaches.map(coach => (
+                  <div key={coach.id} className={`${subtleCard} flex flex-wrap items-center justify-between gap-3 p-4`}>
+                    <div className="flex items-center gap-3">
+                      <CoachAvatar name={coach.coach_name} />
+                      <div className="min-w-0">
+                        <p className="flex items-center gap-2 font-display text-sm font-black text-white">
+                          {coach.coach_name}
+                          <span className={`rounded-full border px-2 py-0.5 text-[10px] font-bold ${coachStatusTone.active}`}>
+                            {LEAGUE_COACH_STATUS_LABELS.active}
+                          </span>
+                        </p>
+                        <p className="text-xs text-slate-400">{coach.coach_email}</p>
+                      </div>
+                    </div>
+                    <button type="button" className={ghostBtn} onClick={() => review(coach.id, 'removed')}>
+                      <Trash2 size={14} /> Remove
+                    </button>
+                  </div>
+                ))
+              )}
+            </div>
+          </section>
+        </>
+      )}
+    </div>
+  );
+};
+
+// --- Statistics database -----------------------------------------------------
+
+const STAT_KIND_TONE: Record<FixtureStatType, string> = {
+  goal: 'border-emerald-300/30 bg-emerald-400/10 text-emerald-100',
+  assist: 'border-sky-300/30 bg-sky-400/10 text-sky-100',
+  own_goal: 'border-orange-300/30 bg-orange-400/10 text-orange-100',
+  yellow_card: 'border-amber-300/30 bg-amber-400/10 text-amber-100',
+  red_card: 'border-rose-300/30 bg-rose-400/10 text-rose-100'
+};
+
+const slugify = (value: string) => value.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'league';
+
+const triggerReportDownload = (content: string, mimeType: string, fileName: string) => {
+  if (typeof document === 'undefined') return;
+  const blob = new Blob([content], { type: mimeType });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = fileName;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+};
+
+const th = 'px-3 py-2 text-[10px] font-bold uppercase tracking-wide text-slate-500';
+const thNum = `${th} text-right`;
+const td = 'px-3 py-2 text-sm text-slate-200';
+const tdNum = `${td} text-right font-variant-numeric tabular-nums`;
+
+const StatisticsSection = ({ leagueName, seasons, events, teams, statEvents, fixtures }: {
+  leagueName: string;
+  seasons: LeagueSeason[];
+  events: LeagueEvent[];
+  teams: EventTeam[];
+  statEvents: FixtureStatEvent[];
+  fixtures: EventFixture[];
+}) => {
+  const [seasonId, setSeasonId] = useState<string>('all');
+  const [eventId, setEventId] = useState<string>('all');
+  const [query, setQuery] = useState('');
+
+  const scopedEvents = useMemo(
+    () => (seasonId === 'all' ? events : events.filter(e => e.season_id === seasonId)),
+    [events, seasonId]
+  );
+  // Guard against a stale event selection when the season filter narrows the list.
+  const effectiveEventId = eventId !== 'all' && scopedEvents.some(e => e.id === eventId) ? eventId : 'all';
+  const scopedEventIds = useMemo(() => new Set(scopedEvents.map(e => e.id)), [scopedEvents]);
+
+  const filteredStats = useMemo(
+    () => statEvents.filter(s => (effectiveEventId !== 'all' ? s.event_id === effectiveEventId : scopedEventIds.has(s.event_id))),
+    [statEvents, effectiveEventId, scopedEventIds]
+  );
+
+  const db = useMemo(() => buildStatDatabase(filteredStats, teams), [filteredStats, teams]);
+
+  const scopeLabel = effectiveEventId !== 'all'
+    ? (events.find(e => e.id === effectiveEventId)?.name ?? 'Selected event')
+    : seasonId !== 'all'
+      ? (seasons.find(s => s.id === seasonId)?.name ?? 'Selected season')
+      : 'All competitions';
+
+  const q = query.trim().toLowerCase();
+  const matchesQuery = (a: string, b: string) => !q || a.toLowerCase().includes(q) || b.toLowerCase().includes(q);
+  const visiblePlayers = db.players.filter(p => matchesQuery(p.playerName, p.teamName));
+  const visibleTeams = db.teams.filter(t => matchesQuery(t.teamName, t.teamName));
+
+  const teamNameById = useMemo(() => new Map(teams.map(t => [t.id, t.name])), [teams]);
+  const eventNameById = useMemo(() => new Map(events.map(e => [e.id, e.name])), [events]);
+  const fixtureById = useMemo(() => new Map(fixtures.map(f => [f.id, f])), [fixtures]);
+
+  const records = useMemo(() => filteredStats
+    .map(s => ({
+      id: s.id,
+      eventName: eventNameById.get(s.event_id) ?? '—',
+      round: fixtureById.get(s.fixture_id)?.round ?? null,
+      teamName: teamNameById.get(s.team_id) ?? 'Unknown team',
+      playerName: s.player_name,
+      statType: s.stat_type,
+      minute: s.minute,
+      createdAt: s.created_at
+    }))
+    .filter(r => matchesQuery(r.playerName, r.teamName))
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+    .slice(0, 250),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [filteredStats, eventNameById, fixtureById, teamNameById, q]
+  );
+
+  const handleDownloadHtml = () => {
+    const html = renderStatDatabaseReportHtml(db, { leagueName, scopeLabel, generatedAt: new Date().toISOString() });
+    triggerReportDownload(html, 'text/html;charset=utf-8', `${slugify(leagueName)}-${slugify(scopeLabel)}-statistics.html`);
+  };
+  const handleExportJson = () => {
+    const payload = { league: leagueName, scope: scopeLabel, generatedAt: new Date().toISOString(), ...db };
+    triggerReportDownload(JSON.stringify(payload, null, 2), 'application/json', `${slugify(leagueName)}-${slugify(scopeLabel)}-statistics.json`);
+  };
+
+  const hasAnyStats = statEvents.length > 0;
+
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h2 className="font-display text-sm font-black uppercase tracking-wide text-white">Statistics database</h2>
+          <p className="mt-1 text-xs text-slate-400">Verifiable goal, assist, and card records across your competitions — {scopeLabel}.</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <button type="button" className={ghostBtn} onClick={handleExportJson} disabled={db.totals.records === 0}>
+            <FileJson size={14} /> Data (JSON)
+          </button>
+          <button type="button" className={primaryBtn} onClick={handleDownloadHtml} disabled={db.totals.records === 0}>
+            <FileDown size={14} /> Download report
+          </button>
+        </div>
+      </div>
+
+      {!hasAnyStats ? (
+        <div className={`${panel} p-8 text-center`}>
+          <Database size={22} className="mx-auto text-slate-500" />
+          <p className="mt-3 text-sm font-bold text-white">No statistics recorded yet</p>
+          <p className="mx-auto mt-1 max-w-md text-xs leading-5 text-slate-400">
+            Record goals, assists, and cards from an event's <span className="font-bold text-sky-200">Stats</span> tab.
+            They will roll up here into a searchable, printable player and team record.
+          </p>
+        </div>
+      ) : (
+        <>
+          <div className={`${panel} grid gap-3 p-4 sm:grid-cols-[1fr_1fr_1.4fr]`}>
+            <div className="space-y-1">
+              <label className={label}>Season</label>
+              <select className={selectClass} value={seasonId} onChange={e => { setSeasonId(e.target.value); setEventId('all'); }}>
+                <option value="all">All seasons</option>
+                {seasons.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+              </select>
+            </div>
+            <div className="space-y-1">
+              <label className={label}>Event</label>
+              <select className={selectClass} value={effectiveEventId} onChange={e => setEventId(e.target.value)}>
+                <option value="all">All events</option>
+                {scopedEvents.map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
+              </select>
+            </div>
+            <div className="space-y-1">
+              <label className={label}>Search player or team</label>
+              <div className="relative">
+                <Search size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+                <input className={`${inputClass} pl-9`} value={query} onChange={e => setQuery(e.target.value)} placeholder="e.g. Ramos or Bayside" />
+              </div>
+            </div>
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-6">
+            <StatTile label="Goals" value={db.totals.goals} detail={`${db.totals.records} records`} />
+            <StatTile label="Assists" value={db.totals.assists} detail={`${db.totals.matches} matches`} />
+            <StatTile label="Yellow cards" value={db.totals.yellow} detail="Cautions" />
+            <StatTile label="Red cards" value={db.totals.red} detail="Dismissals" />
+            <StatTile label="Players" value={db.totals.players} detail="Tracked" />
+            <StatTile label="Teams" value={db.totals.teams} detail="With records" />
+          </div>
+
+          <div className={panel}>
+            <div className={sectionHeader}>
+              <Target size={16} className="text-sky-200" />
+              <h2 className="font-display text-sm font-black text-white">Player statistics</h2>
+              <span className="ml-auto text-[11px] font-bold text-slate-500">{visiblePlayers.length} of {db.players.length}</span>
+            </div>
+            <div className="overflow-x-auto p-2">
+              <table className="w-full min-w-[640px] border-collapse">
+                <thead>
+                  <tr className="border-b border-white/10">
+                    <th className={thNum}>#</th>
+                    <th className={th}>Player</th>
+                    <th className={th}>Team</th>
+                    <th className={thNum} title="Matches with a recorded stat">MP</th>
+                    <th className={thNum} title="Events">Ev</th>
+                    <th className={thNum}>G</th>
+                    <th className={thNum}>A</th>
+                    <th className={thNum} title="Goal contributions">G+A</th>
+                    <th className={thNum}>Y</th>
+                    <th className={thNum}>R</th>
+                    <th className={thNum} title="Own goals">OG</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {visiblePlayers.length === 0 ? (
+                    <tr><td className={`${td} text-center text-slate-400`} colSpan={11}>No players match your filters.</td></tr>
+                  ) : (
+                    visiblePlayers.map((p, index) => (
+                      <tr key={p.key} className="border-b border-white/[0.05] last:border-0 hover:bg-white/[0.03]">
+                        <td className={`${tdNum} ${index === 0 ? 'text-amber-300 font-black' : 'text-slate-500'}`}>{index + 1}</td>
+                        <td className={`${td} font-bold text-white`}>{p.playerName}</td>
+                        <td className={`${td} text-slate-400`}>{p.teamName}</td>
+                        <td className={tdNum}>{p.matches}</td>
+                        <td className={tdNum}>{p.events}</td>
+                        <td className={`${tdNum} font-black text-white`}>{p.goals}</td>
+                        <td className={tdNum}>{p.assists}</td>
+                        <td className={tdNum}>{p.goalContributions}</td>
+                        <td className={`${tdNum} ${p.yellow ? 'text-amber-200' : 'text-slate-500'}`}>{p.yellow}</td>
+                        <td className={`${tdNum} ${p.red ? 'text-rose-200' : 'text-slate-500'}`}>{p.red}</td>
+                        <td className={tdNum}>{p.ownGoals}</td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div className={panel}>
+            <div className={sectionHeader}>
+              <Shield size={16} className="text-sky-200" />
+              <h2 className="font-display text-sm font-black text-white">Team statistics</h2>
+            </div>
+            <div className="overflow-x-auto p-2">
+              <table className="w-full min-w-[520px] border-collapse">
+                <thead>
+                  <tr className="border-b border-white/10">
+                    <th className={thNum}>#</th>
+                    <th className={th}>Team</th>
+                    <th className={thNum}>Players</th>
+                    <th className={thNum}>G</th>
+                    <th className={thNum}>A</th>
+                    <th className={thNum}>Y</th>
+                    <th className={thNum}>R</th>
+                    <th className={thNum}>OG</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {visibleTeams.length === 0 ? (
+                    <tr><td className={`${td} text-center text-slate-400`} colSpan={8}>No teams match your filters.</td></tr>
+                  ) : (
+                    visibleTeams.map((t, index) => (
+                      <tr key={t.key} className="border-b border-white/[0.05] last:border-0 hover:bg-white/[0.03]">
+                        <td className={`${tdNum} text-slate-500`}>{index + 1}</td>
+                        <td className={`${td} font-bold text-white`}>{t.teamName}</td>
+                        <td className={tdNum}>{t.players}</td>
+                        <td className={`${tdNum} font-black text-white`}>{t.goals}</td>
+                        <td className={tdNum}>{t.assists}</td>
+                        <td className={`${tdNum} ${t.yellow ? 'text-amber-200' : 'text-slate-500'}`}>{t.yellow}</td>
+                        <td className={`${tdNum} ${t.red ? 'text-rose-200' : 'text-slate-500'}`}>{t.red}</td>
+                        <td className={tdNum}>{t.ownGoals}</td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div className={panel}>
+            <div className={sectionHeader}>
+              <ListOrdered size={16} className="text-sky-200" />
+              <h2 className="font-display text-sm font-black text-white">Match records</h2>
+              <span className="ml-auto text-[11px] font-bold text-slate-500">{records.length} entr{records.length === 1 ? 'y' : 'ies'}</span>
+            </div>
+            <div className="max-h-[26rem] overflow-auto p-2">
+              <table className="w-full min-w-[620px] border-collapse">
+                <thead className="sticky top-0 bg-slate-950/80 backdrop-blur">
+                  <tr className="border-b border-white/10">
+                    <th className={th}>Event</th>
+                    <th className={thNum}>Rnd</th>
+                    <th className={th}>Team</th>
+                    <th className={th}>Player</th>
+                    <th className={th}>Statistic</th>
+                    <th className={thNum}>Min</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {records.length === 0 ? (
+                    <tr><td className={`${td} text-center text-slate-400`} colSpan={6}>No records match your filters.</td></tr>
+                  ) : (
+                    records.map(r => (
+                      <tr key={r.id} className="border-b border-white/[0.05] last:border-0 hover:bg-white/[0.03]">
+                        <td className={`${td} text-slate-300`}>{r.eventName}</td>
+                        <td className={`${tdNum} text-slate-400`}>{r.round ?? '—'}</td>
+                        <td className={`${td} text-slate-400`}>{r.teamName}</td>
+                        <td className={`${td} font-bold text-white`}>{r.playerName}</td>
+                        <td className={td}>
+                          <span className={`rounded-full border px-2 py-0.5 text-[11px] font-bold ${STAT_KIND_TONE[r.statType]}`}>
+                            {STAT_TYPE_LABELS[r.statType]}
+                          </span>
+                        </td>
+                        <td className={`${tdNum} text-slate-400`}>{r.minute != null ? `${r.minute}'` : '—'}</td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </>
+      )}
+    </div>
+  );
+};
 
 const VenuesSection = ({ venues, onCreate, onDelete }: {
   venues: LeagueVenue[];

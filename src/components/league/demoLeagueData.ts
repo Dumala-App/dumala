@@ -14,6 +14,7 @@ import {
   type EventTeam,
   type FixtureStatEvent,
   type League,
+  type LeagueCoachMembership,
   type LeagueEvent,
   type LeagueSeason,
   type LeagueVenue,
@@ -49,6 +50,8 @@ const buildDemoLeagueRepository = (): CloudLeagueRepository => {
       timezone: 'Asia/Manila',
       currency: 'PHP',
       state: 'active',
+      coach_seat_limit: 10,
+      coach_invite_code: 'MYLCOACH',
       created_at: now(),
       updated_at: now()
     }
@@ -142,14 +145,22 @@ const buildDemoLeagueRepository = (): CloudLeagueRepository => {
     'demo-team-1|demo-team-2': [2, 1],
     'demo-team-3|demo-team-4': [0, 0]
   };
+  // Pre-schedule the first few fixtures onto match day. The first two share a
+  // venue an hour apart, so the calendar surfaces a venue double-booking.
+  const seededSchedule: Record<number, { at: string; venue: string }> = {
+    0: { at: '2026-08-15T09:00:00', venue: 'demo-venue-1' },
+    1: { at: '2026-08-15T10:00:00', venue: 'demo-venue-1' },
+    2: { at: '2026-08-15T13:00:00', venue: 'demo-venue-2' }
+  };
   let fixtures: EventFixture[] = roundRobinRounds(teams.map(t => t.id)).map((p, index) => {
     const key = `${p.homeTeamId}|${p.awayTeamId}`;
     const result = seededResults[key];
+    const schedule = seededSchedule[index];
     return {
       id: `demo-fixture-${index + 1}`, event_id: 'demo-event-1', league_id: LEAGUE_ID,
       round: p.round, sequence: p.sequence, home_team_id: p.homeTeamId, away_team_id: p.awayTeamId,
       status: result ? 'completed' : 'scheduled', home_score: result ? result[0] : null,
-      away_score: result ? result[1] : null, kickoff_at: null, venue_id: null,
+      away_score: result ? result[1] : null, kickoff_at: schedule ? schedule.at : null, venue_id: schedule ? schedule.venue : null,
       home_checked_in: !!result, away_checked_in: !!result, official_name: result ? 'Ref Santos' : null,
       created_at: now(), updated_at: now()
     };
@@ -214,6 +225,22 @@ const buildDemoLeagueRepository = (): CloudLeagueRepository => {
     }
   ];
 
+  const coachRow = (
+    id: string, name: string, email: string, status: LeagueCoachMembership['status'], message: string | null
+  ): LeagueCoachMembership => ({
+    id, league_id: LEAGUE_ID, coach_user_id: `preview-coach-${id}`, coach_name: name, coach_email: email,
+    message, status, review_note: null,
+    reviewed_by: status === 'active' ? 'preview-owner' : null,
+    reviewed_at: status === 'active' ? now() : null,
+    created_at: now(), updated_at: now()
+  });
+  let coachMemberships: LeagueCoachMembership[] = [
+    coachRow('cm1', 'Coach Ramirez', 'ramirez@bayside.example', 'active', 'Head coach, Bayside FC youth.'),
+    coachRow('cm2', 'Coach Delgado', 'delgado@northstars.example', 'active', null),
+    coachRow('cm3', 'Coach Ferrer', 'ferrer@metrounited.example', 'pending', 'Would love to bring our U16s into the league.'),
+    coachRow('cm4', 'Coach Santos', 'santos@harbourcity.example', 'pending', null)
+  ];
+
   return {
     listLeagues: async () => leagues,
     createLeague: async (ownerUserId, input) => {
@@ -222,7 +249,7 @@ const buildDemoLeagueRepository = (): CloudLeagueRepository => {
         short_name: input.shortName?.trim() || null, logo_color: input.logoColor?.trim() || '#f97316',
         contact_email: input.contactEmail?.trim() || null, location: input.location?.trim() || null,
         description: input.description?.trim() || null, timezone: 'Asia/Manila', currency: 'PHP', state: 'active',
-        created_at: now(), updated_at: now()
+        coach_seat_limit: 10, coach_invite_code: genCode(), created_at: now(), updated_at: now()
       };
       leagues = [...leagues, row];
       return row;
@@ -360,6 +387,11 @@ const buildDemoLeagueRepository = (): CloudLeagueRepository => {
       return row.id;
     },
     listEventTeams: async eventId => teams.filter(t => t.event_id === eventId),
+    listLeagueEventTeams: async leagueId => teams.filter(t => t.league_id === leagueId),
+    listLeagueFixtures: async leagueId => fixtures
+      .filter(f => f.league_id === leagueId)
+      .sort((a, b) => a.round - b.round || (a.sequence ?? 0) - (b.sequence ?? 0)),
+    listLeagueStatEvents: async leagueId => statEvents.filter(s => s.league_id === leagueId),
     addEventTeam: async (leagueId, eventId, input) => {
       const row = teamRow(newId(), input.name.trim(), input.registrationId ?? null);
       row.event_id = eventId;
@@ -408,6 +440,15 @@ const buildDemoLeagueRepository = (): CloudLeagueRepository => {
       fixtures = fixtures.map(f => f.id === fixtureId
         ? { ...f, home_score: homeScore, away_score: awayScore, status: 'completed', updated_at: now() }
         : f);
+      return fixtures.find(f => f.id === fixtureId)!;
+    },
+    setFixtureSchedule: async (fixtureId, patch) => {
+      fixtures = fixtures.map(f => f.id === fixtureId ? {
+        ...f,
+        kickoff_at: patch.kickoffAt !== undefined ? (patch.kickoffAt || null) : f.kickoff_at,
+        venue_id: patch.venueId !== undefined ? (patch.venueId || null) : f.venue_id,
+        updated_at: now()
+      } : f);
       return fixtures.find(f => f.id === fixtureId)!;
     },
     listStatEvents: async eventId => statEvents.filter(s => s.event_id === eventId),
@@ -504,6 +545,48 @@ const buildDemoLeagueRepository = (): CloudLeagueRepository => {
     },
     deleteIncident: async incidentId => {
       incidents = incidents.filter(i => i.id !== incidentId);
+    },
+    listCoachMemberships: async leagueId => coachMemberships.filter(m => m.league_id === leagueId),
+    resolveLeagueOrgInvite: async code => {
+      const league = leagues.find(l => l.coach_invite_code === code.trim().toUpperCase());
+      if (!league) return { found: false };
+      const active = coachMemberships.filter(m => m.league_id === league.id && m.status === 'active').length;
+      return {
+        found: true, leagueId: league.id, leagueName: league.name, location: league.location,
+        seatLimit: league.coach_seat_limit, seatsRemaining: Math.max(0, league.coach_seat_limit - active),
+        open: active < league.coach_seat_limit
+      };
+    },
+    applyToLeagueOrg: async input => {
+      const league = leagues.find(l => l.coach_invite_code === input.code.trim().toUpperCase());
+      if (!league) throw new Error('INVALID_INVITE_CODE');
+      const row = coachRow(newId(), input.coachName.trim(), input.coachEmail.trim(), 'pending', input.message?.trim() || null);
+      row.league_id = league.id;
+      coachMemberships = [row, ...coachMemberships];
+      return row.id;
+    },
+    reviewCoachMembership: async (membershipId, nextStatus) => {
+      const member = coachMemberships.find(m => m.id === membershipId);
+      if (!member) throw new Error('MEMBERSHIP_NOT_FOUND');
+      if (nextStatus === 'active' && member.status !== 'active') {
+        const league = leagues.find(l => l.id === member.league_id);
+        const active = coachMemberships.filter(m => m.league_id === member.league_id && m.status === 'active').length;
+        if (league && active >= league.coach_seat_limit) throw new Error('SEAT_LIMIT_REACHED');
+      }
+      coachMemberships = coachMemberships.map(m => m.id === membershipId
+        ? { ...m, status: nextStatus, reviewed_by: 'preview-owner', reviewed_at: now(), updated_at: now() }
+        : m);
+      return nextStatus;
+    },
+    rotateCoachInvite: async leagueId => {
+      const code = genCode();
+      leagues = leagues.map(l => l.id === leagueId ? { ...l, coach_invite_code: code, updated_at: now() } : l);
+      return code;
+    },
+    setCoachSeatLimit: async (leagueId, seatLimit) => {
+      const clamped = Math.max(0, Math.min(1000, Math.round(seatLimit)));
+      leagues = leagues.map(l => l.id === leagueId ? { ...l, coach_seat_limit: clamped, updated_at: now() } : l);
+      return leagues.find(l => l.id === leagueId)!;
     }
   };
 };

@@ -195,6 +195,7 @@ import {
   addStatEvent,
   advanceEventStatus,
   advanceSeasonStatus,
+  applyToLeagueOrg,
   clearFixtures,
   createEvent,
   createLeague,
@@ -209,12 +210,16 @@ import {
   deleteVenue,
   generateFixtures,
   listAwards,
+  listCoachMemberships,
   listEvents,
   listEventTeams,
   listFixtures,
   listIncidents,
   listInvoices,
+  listLeagueEventTeams,
+  listLeagueFixtures,
   listLeagues,
+  listLeagueStatEvents,
   listLedgerEntries,
   listRegistrations,
   listSeasons,
@@ -222,8 +227,13 @@ import {
   listVenues,
   lookupEventRegistration,
   recordFixtureResult,
+  resolveLeagueOrgInvite,
+  reviewCoachMembership,
   reviewRegistration,
+  rotateCoachInvite,
+  setCoachSeatLimit,
   setFixtureOps,
+  setFixtureSchedule,
   settleInvoice,
   submitEventRegistration,
   syncApprovedTeams,
@@ -244,10 +254,15 @@ import {
   type EventRegistrationStatus,
   type EventTeam,
   type FixtureOpsPatch,
+  type FixtureSchedulePatch,
   type FixtureStatEvent,
   type FixtureStatInput,
   type InvoiceStatus,
   type League,
+  type LeagueCoachApplyInput,
+  type LeagueCoachInviteLookup,
+  type LeagueCoachMembership,
+  type LeagueCoachStatus,
   type LeagueEvent,
   type LeagueEventInput,
   type LeagueEventStatus,
@@ -448,6 +463,9 @@ export interface CloudLeagueRepository {
   lookupEventRegistration(code: string): Promise<EventRegistrationLookup>;
   submitEventRegistration(input: EventRegistrationInput): Promise<string>;
   listEventTeams(eventId: string): Promise<EventTeam[]>;
+  listLeagueEventTeams(leagueId: string): Promise<EventTeam[]>;
+  listLeagueFixtures(leagueId: string): Promise<EventFixture[]>;
+  listLeagueStatEvents(leagueId: string): Promise<FixtureStatEvent[]>;
   addEventTeam(leagueId: string, eventId: string, input: { name: string; seed?: number | null; registrationId?: string | null }): Promise<EventTeam>;
   deleteEventTeam(teamId: string): Promise<void>;
   syncApprovedTeams(leagueId: string, eventId: string): Promise<EventTeam[]>;
@@ -455,6 +473,7 @@ export interface CloudLeagueRepository {
   generateFixtures(leagueId: string, eventId: string): Promise<EventFixture[]>;
   clearFixtures(eventId: string): Promise<void>;
   recordFixtureResult(fixtureId: string, homeScore: number, awayScore: number): Promise<EventFixture>;
+  setFixtureSchedule(fixtureId: string, patch: FixtureSchedulePatch): Promise<EventFixture>;
   listStatEvents(eventId: string): Promise<FixtureStatEvent[]>;
   addStatEvent(leagueId: string, eventId: string, input: FixtureStatInput): Promise<FixtureStatEvent>;
   deleteStatEvent(statEventId: string): Promise<void>;
@@ -472,6 +491,12 @@ export interface CloudLeagueRepository {
   listIncidents(eventId: string): Promise<EventIncident[]>;
   addIncident(leagueId: string, eventId: string, input: EventIncidentInput): Promise<EventIncident>;
   deleteIncident(incidentId: string): Promise<void>;
+  listCoachMemberships(leagueId: string): Promise<LeagueCoachMembership[]>;
+  resolveLeagueOrgInvite(code: string): Promise<LeagueCoachInviteLookup>;
+  applyToLeagueOrg(input: LeagueCoachApplyInput): Promise<string>;
+  reviewCoachMembership(membershipId: string, nextStatus: Extract<LeagueCoachStatus, 'active' | 'declined' | 'removed'>, note?: string | null): Promise<LeagueCoachStatus>;
+  rotateCoachInvite(leagueId: string): Promise<string>;
+  setCoachSeatLimit(leagueId: string, seatLimit: number): Promise<League>;
 }
 
 export interface CloudChatRepository {
@@ -660,6 +685,9 @@ export const createCloudDataAccess = (client: DumalaSupabaseClient): CloudDataAc
     lookupEventRegistration: code => lookupEventRegistration(client, code),
     submitEventRegistration: input => submitEventRegistration(client, input),
     listEventTeams: eventId => listEventTeams(client, eventId),
+    listLeagueEventTeams: leagueId => listLeagueEventTeams(client, leagueId),
+    listLeagueFixtures: leagueId => listLeagueFixtures(client, leagueId),
+    listLeagueStatEvents: leagueId => listLeagueStatEvents(client, leagueId),
     addEventTeam: (leagueId, eventId, input) => addEventTeam(client, leagueId, eventId, input),
     deleteEventTeam: teamId => deleteEventTeam(client, teamId),
     syncApprovedTeams: (leagueId, eventId) => syncApprovedTeams(client, leagueId, eventId),
@@ -667,6 +695,7 @@ export const createCloudDataAccess = (client: DumalaSupabaseClient): CloudDataAc
     generateFixtures: (leagueId, eventId) => generateFixtures(client, leagueId, eventId),
     clearFixtures: eventId => clearFixtures(client, eventId),
     recordFixtureResult: (fixtureId, homeScore, awayScore) => recordFixtureResult(client, fixtureId, homeScore, awayScore),
+    setFixtureSchedule: (fixtureId, patch) => setFixtureSchedule(client, fixtureId, patch),
     listStatEvents: eventId => listStatEvents(client, eventId),
     addStatEvent: (leagueId, eventId, input) => addStatEvent(client, leagueId, eventId, input),
     deleteStatEvent: statEventId => deleteStatEvent(client, statEventId),
@@ -683,7 +712,13 @@ export const createCloudDataAccess = (client: DumalaSupabaseClient): CloudDataAc
     setFixtureOps: (fixtureId, patch) => setFixtureOps(client, fixtureId, patch),
     listIncidents: eventId => listIncidents(client, eventId),
     addIncident: (leagueId, eventId, input) => addIncident(client, leagueId, eventId, input),
-    deleteIncident: incidentId => deleteIncident(client, incidentId)
+    deleteIncident: incidentId => deleteIncident(client, incidentId),
+    listCoachMemberships: leagueId => listCoachMemberships(client, leagueId),
+    resolveLeagueOrgInvite: code => resolveLeagueOrgInvite(client, code),
+    applyToLeagueOrg: input => applyToLeagueOrg(client, input),
+    reviewCoachMembership: (membershipId, nextStatus, note) => reviewCoachMembership(client, membershipId, nextStatus, note),
+    rotateCoachInvite: leagueId => rotateCoachInvite(client, leagueId),
+    setCoachSeatLimit: (leagueId, seatLimit) => setCoachSeatLimit(client, leagueId, seatLimit)
   },
   chat: {
     ensureChannel: clubId => ensureChannel(client, clubId),
