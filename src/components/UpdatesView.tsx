@@ -38,6 +38,62 @@ export default function UpdatesView() {
 
   const changelogEntries = [
     {
+      id: 'july_15_team_chat_player_onboarding',
+      date: '2026-07-15',
+      title: 'Team Chat, Player App Progress, and Easier Team Onboarding',
+      badge: 'New Features Added',
+      summary: 'Coaches now have a lightweight shared Team Chat with official announcements, while the Player app continues to become a useful place for players to join, train, track progress, and stay connected to the team.',
+      accent: 'border-orange-400/20 bg-slate-950/90 text-slate-100',
+      renderContent: () => (
+        <div className="space-y-4">
+          <p className="text-sm text-slate-300 leading-relaxed">
+            This update focuses on reducing friction between coach and squad. Team Chat gives coaches and players one simple official channel, announcements keep important updates visible in the same feed, and the Player app now has more of the foundations needed for players to join a team and stay engaged between sessions.
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {[
+              {
+                icon: Megaphone,
+                title: 'Team Chat',
+                desc: 'A shared Coach and Player chat channel for quick team communication, with moderation and youth-safety safeguards already built in.'
+              },
+              {
+                icon: Sparkles,
+                title: 'Official announcements',
+                desc: 'Coaches can post a message as a team announcement so key updates stand out without adding a separate email or attachment system.'
+              },
+              {
+                icon: Users,
+                title: 'Frictionless team joining',
+                desc: 'Each team can use a unique join code/link flow so players can request access and coaches can approve the right roster match from the Squad area.'
+              },
+              {
+                icon: Target,
+                title: 'Player app momentum',
+                desc: 'Players get a mobile-first space for solo drills, workouts, streaks, achievements, schedule visibility, notifications, and team connection.'
+              }
+            ].map(item => {
+              const Icon = item.icon;
+
+              return (
+                <div key={item.title} className="rounded-xl border border-orange-400/20 bg-slate-900/80 p-4 shadow-sm shadow-black/20">
+                  <div className="mb-2 flex items-center gap-2">
+                    <span className="flex h-8 w-8 items-center justify-center rounded-lg border border-orange-400/30 bg-orange-400/10 text-orange-200">
+                      <Icon size={16} aria-hidden="true" />
+                    </span>
+                    <h5 className="text-xs font-black uppercase tracking-wider text-orange-100">{item.title}</h5>
+                  </div>
+                  <p className="text-xs text-slate-400 leading-relaxed">{item.desc}</p>
+                </div>
+              );
+            })}
+          </div>
+          <p className="text-xs text-slate-500 leading-relaxed">
+            Attachments and email delivery are intentionally deferred for now. The goal is a simple, useful team communication loop first.
+          </p>
+        </div>
+      )
+    },
+    {
       id: 'july_13_coaching_library_focus',
       date: '2026-07-13',
       title: 'Coaching Library Focused on Useful Knowledge',
@@ -158,21 +214,21 @@ export default function UpdatesView() {
     {
       id: 'july_10_phase6_identity_authorization',
       date: '2026-07-10',
-      title: 'Phase 6 Foundation: Player and League Identity',
+      title: 'Phase 6 Foundation: Coach and Player Access',
       badge: 'Cloud Foundation',
-      summary: 'Groundwork for Dumala becoming three apps on one backend — Coach, a free Player app, and a League Owner app. Your Coach workspace is unchanged; the new apps are switched off by default while we build them.',
+      summary: 'Groundwork for keeping Coach and Player access cleanly separated while the Player app is built out. Your Coach workspace is unchanged, and Player access remains gated while the experience is in preview.',
       accent: 'border-blue-400/20 bg-slate-950/90 text-slate-100',
       renderContent: () => (
         <div className="space-y-4">
           <p className="text-sm text-slate-300 leading-relaxed">
-            This release lays the identity and access foundation for Phase 6. Every account now belongs to exactly one app, decided by the door it registered through — your existing Coach account stays a Coach account, and nothing about your workspace changes. The Player and League doors ship switched off until those experiences are ready.
+            This release lays the identity and access foundation for the Player app. Every account is routed through the right door, your existing Coach account stays a Coach account, and nothing about your workspace changes while Player access is built out behind preview controls.
           </p>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {[
               {
                 icon: Users,
-                title: 'One account, one app',
-                desc: 'Coach, Player, and League accounts are separate. Your Coach login and club data are untouched and behave exactly as before.'
+                title: 'Cleaner account routing',
+                desc: 'Coach and Player access are kept separate so each person lands in the right experience without exposing the wrong workspace.'
               },
               {
                 icon: Sparkles,
@@ -181,13 +237,13 @@ export default function UpdatesView() {
               },
               {
                 icon: Award,
-                title: 'League Owner app (invite-based)',
-                desc: 'No open signup: owners request access and a Dumala admin provisions the account. Free during the beta pilot.'
+                title: 'Coach data stays official',
+                desc: 'Player activity can support engagement, but official roster, match, assessment, and team records remain controlled from the Coach workspace.'
               },
               {
                 icon: Cloud,
                 title: 'Secure by design',
-                desc: 'The app each account can reach is decided on the server and gated by entitlements, so no app can reach another app’s protected records.'
+                desc: 'The app each account can reach is decided on the server, keeping protected Coach and Player records behind the right access rules.'
               }
             ].map(item => {
               const Icon = item.icon;
