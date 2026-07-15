@@ -128,6 +128,7 @@ const AdminConsoleView = lazy(() => import('./components/AdminConsoleView'));
 const PlayerAppShell = lazy(() => import('./components/PlayerAppShell'));
 const LeagueAppShell = lazy(() => import('./components/LeagueAppShell'));
 const EventRegistrationView = lazy(() => import('./components/league/EventRegistrationForm'));
+const LeagueCoachJoinView = lazy(() => import('./components/league/LeagueCoachJoinForm'));
 
 const getHashRoute = () => typeof window === 'undefined' ? '' : window.location.hash.replace(/^#\/?/, '');
 // Phase 6 persona apps live under their own hash roots (#/player, #/league).
@@ -135,6 +136,8 @@ const isPlayerRoute = (route: string) => route === 'player' || route.startsWith(
 const isLeagueRoute = (route: string) => route === 'league' || route.startsWith('league/');
 // Public event registration (a coach applies with a code — no account).
 const isRegisterRoute = (route: string) => route === 'register' || route.startsWith('register/');
+// Public coach-org join (a coach applies to a league organization with a code).
+const isJoinLeagueRoute = (route: string) => route === 'join-league' || route.startsWith('join-league/') || route.startsWith('join-league?');
 const CLOUD_BACKUP_METADATA_PREFIX = 'dumala_cloud_backup__';
 
 interface LocalCloudBackupMetadata {
@@ -1461,6 +1464,17 @@ export default function App() {
         <PwaStatusBanners />
         <Suspense fallback={<ViewLoadingFallback label="event registration" />}>
           <EventRegistrationView />
+        </Suspense>
+      </>
+    );
+  }
+
+  if (isJoinLeagueRoute(hashRoute) && (phase6Config.leagueAppEnabled || phase6Config.leagueRequestEnabled || phase6Config.leaguePreviewEnabled)) {
+    return (
+      <>
+        <PwaStatusBanners />
+        <Suspense fallback={<ViewLoadingFallback label="league organization" />}>
+          <LeagueCoachJoinView />
         </Suspense>
       </>
     );
