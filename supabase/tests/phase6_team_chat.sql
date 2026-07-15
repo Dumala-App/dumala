@@ -2,7 +2,7 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 
-select plan(18);
+select plan(21);
 
 -- Actors -----------------------------------------------------------------------
 insert into auth.users (id, aud, role, email, email_confirmed_at, created_at, updated_at)
@@ -50,7 +50,13 @@ select set_config('test.chan', public.ensure_team_channel('e2000000-0000-4000-80
 select isnt(current_setting('test.chan'), '', 'staff ensures the team channel');
 select set_config('test.msg_owner', (public.post_team_chat_message('e2000000-0000-4000-8000-000000000001', 'Briefing at 3pm')).id::text, false);
 select isnt(current_setting('test.msg_owner'), '', 'staff posts a message');
-select is((select count(*)::int from public.team_chat_messages), 1, 'staff reads the channel');
+select set_config('test.ann_owner', (public.post_team_chat_announcement('e2000000-0000-4000-8000-000000000001', 'Kickoff moved to 4pm')).id::text, false);
+select is(
+  (select message_kind from public.team_chat_messages where id = current_setting('test.ann_owner')::uuid),
+  'announcement',
+  'staff posts an official announcement'
+);
+select is((select count(*)::int from public.team_chat_messages), 2, 'staff reads the channel');
 
 -- === Consented (adult) linked player reads + posts ============================
 set local role authenticated;
@@ -59,7 +65,11 @@ select set_config('request.jwt.claims', '{"sub":"e1000000-0000-4000-8000-0000000
 select is(public.can_access_team_chat('e2000000-0000-4000-8000-000000000001'), true, 'an adult linked player can access chat');
 select set_config('test.msg_player', (public.post_team_chat_message('e2000000-0000-4000-8000-000000000001', 'On my way')).id::text, false);
 select isnt(current_setting('test.msg_player'), '', 'a linked player posts a message');
-select is((select count(*)::int from public.team_chat_messages), 2, 'a linked player reads the channel');
+select throws_ok(
+  $$ select public.post_team_chat_announcement('e2000000-0000-4000-8000-000000000001', 'Players cannot pin this') $$,
+  '42501', null, 'a linked player cannot post an announcement'
+);
+select is((select count(*)::int from public.team_chat_messages), 3, 'a linked player reads the channel');
 
 -- === Unconsented minor is blocked (read + post) ===============================
 set local role authenticated;
@@ -103,6 +113,10 @@ select throws_ok(
 select lives_ok(
   format($$ select public.report_team_chat_message(%L::uuid, 'spam') $$, current_setting('test.msg_owner')),
   'a member can report a message'
+);
+select lives_ok(
+  format($$ select public.report_team_chat_message(%L::uuid, 'schedule question') $$, current_setting('test.ann_owner')),
+  'a member can report an announcement'
 );
 select lives_ok(
   $$ select public.mark_team_chat_read(current_setting('test.chan')::uuid) $$,

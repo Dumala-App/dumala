@@ -428,8 +428,8 @@ export const createDemoPlayerRepository = (): CloudPlayerRepository => {
 /** A stub auth controller (unused in preview — the account card is hidden). */
 export const createDemoChatRepository = (): CloudChatRepository => {
   let messages: ChatMessage[] = [
-    { id: newId(), channel_id: 'demo-chan', club_id: 'demo-club', author_user_id: 'demo-coach', author_name: 'Coach Rivera', author_role: 'coach', body: 'Tactical briefing 15 mins before kickoff on Saturday. Bring your A-game. 🔥', deleted_at: null, deleted_by: null, created_at: ago(0, 8) },
-    { id: newId(), channel_id: 'demo-chan', club_id: 'demo-club', author_user_id: 'demo-teammate', author_name: 'Jordan M.', author_role: 'player', body: 'On it, coach. Just finished my shooting drills.', deleted_at: null, deleted_by: null, created_at: ago(0, 9) }
+    { id: newId(), channel_id: 'demo-chan', club_id: 'demo-club', author_user_id: 'demo-coach', author_name: 'Coach Rivera', author_role: 'coach', body: 'Tactical briefing 15 mins before kickoff on Saturday.', message_kind: 'announcement', deleted_at: null, deleted_by: null, created_at: ago(0, 8) },
+    { id: newId(), channel_id: 'demo-chan', club_id: 'demo-club', author_user_id: 'demo-teammate', author_name: 'Jordan M.', author_role: 'player', body: 'On it, coach. Just finished my shooting drills.', message_kind: 'message', deleted_at: null, deleted_by: null, created_at: ago(0, 9) }
   ];
   return {
     ensureChannel: async () => 'demo-chan',
@@ -437,8 +437,17 @@ export const createDemoChatRepository = (): CloudChatRepository => {
     postMessage: async (_clubId, body) => {
       const row: ChatMessage = {
         id: newId(), channel_id: 'demo-chan', club_id: 'demo-club', author_user_id: 'preview-player',
-        author_name: 'Alex Rivera', author_role: 'player', body: body.trim(), deleted_at: null, deleted_by: null,
+        author_name: 'Alex Rivera', author_role: 'player', body: body.trim(), message_kind: 'message', deleted_at: null, deleted_by: null,
         created_at: new Date().toISOString()
+      };
+      messages = [...messages, row];
+      return row;
+    },
+    postAnnouncement: async (_clubId, body) => {
+      const row: ChatMessage = {
+        id: newId(), channel_id: 'demo-chan', club_id: 'demo-club', author_user_id: 'demo-coach',
+        author_name: 'Coach Rivera', author_role: 'coach', body: body.trim(), message_kind: 'announcement',
+        deleted_at: null, deleted_by: null, created_at: new Date().toISOString()
       };
       messages = [...messages, row];
       return row;
