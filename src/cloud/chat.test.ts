@@ -10,7 +10,7 @@ const createRpcStub = (result: unknown, error: unknown = null) => {
 
 const msg = (over: Partial<ChatMessage>): ChatMessage => ({
   id: 'm', channel_id: 'c', club_id: 'club', author_user_id: 'other', author_name: 'A',
-  author_role: 'player', body: 'hi', deleted_at: null, deleted_by: null,
+  author_role: 'player', body: 'hi', message_kind: 'message', deleted_at: null, deleted_by: null,
   created_at: '2026-07-10T10:00:00.000Z', ...over
 });
 
@@ -70,6 +70,13 @@ describe('cloud chat repository', () => {
     const { client, rpc } = createRpcStub(saved);
     await expect(createCloudDataAccess(client).chat.postMessage('club-1', '  Ready  ')).resolves.toEqual(saved);
     expect(rpc).toHaveBeenCalledWith('post_team_chat_message', { target_club_id: 'club-1', body: 'Ready' });
+  });
+
+  it('posts a trimmed announcement through the staff-only RPC', async () => {
+    const saved = msg({ id: 'new-announcement', body: 'Kickoff moved', message_kind: 'announcement' });
+    const { client, rpc } = createRpcStub(saved);
+    await expect(createCloudDataAccess(client).chat.postAnnouncement('club-1', '  Kickoff moved  ')).resolves.toEqual(saved);
+    expect(rpc).toHaveBeenCalledWith('post_team_chat_announcement', { target_club_id: 'club-1', body: 'Kickoff moved' });
   });
 
   it('ensures a channel and returns its id', async () => {

@@ -1,7 +1,7 @@
 import React, { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ArrowLeft, BellOff, Check, Flag, Loader2, MoreVertical, RefreshCw, Send, Settings, ShieldCheck, Trash2 } from 'lucide-react';
+import { ArrowLeft, BellOff, Check, Flag, Loader2, Megaphone, MoreVertical, RefreshCw, Send, Settings, ShieldCheck, Trash2 } from 'lucide-react';
 import type { CloudRuntime } from '../../cloud/runtime';
-import { visibleChatMessages, type ChatMessage } from '../../cloud/chat';
+import { chatMessageKind, visibleChatMessages, type ChatMessage } from '../../cloud/chat';
 
 export type ChatTone = 'apex' | 'glass';
 
@@ -35,7 +35,8 @@ const TONE: Record<ChatTone, Record<string, string>> = {
     send: 'bg-[#ff6d00] text-white',
     muted: 'text-[#c6c6cd]/70',
     divider: 'bg-[#152031] text-[#c6c6cd]',
-    menu: 'border border-[#45464d]/40 bg-[#111c2d] text-[#d8e3fb]'
+    menu: 'border border-[#45464d]/40 bg-[#111c2d] text-[#d8e3fb]',
+    announcement: 'border border-[#ff9440]/45 bg-[#ff6d00]/12 text-[#f4f7fb]'
   },
   glass: {
     shell: 'bg-[#020713] text-slate-100',
@@ -55,7 +56,8 @@ const TONE: Record<ChatTone, Record<string, string>> = {
     send: 'bg-orange-400 text-slate-950',
     muted: 'text-slate-400',
     divider: 'bg-[#07111f] text-slate-400',
-    menu: 'border border-cyan-300/15 bg-[#07111f] text-slate-100'
+    menu: 'border border-cyan-300/15 bg-[#07111f] text-slate-100',
+    announcement: 'border border-orange-300/35 bg-orange-300/10 text-orange-50'
   }
 };
 
@@ -94,6 +96,7 @@ const TeamChat = ({ runtime, clubId, selfUserId, tone = 'glass', canModerateAll 
   });
   const [autoRefresh, setAutoRefresh] = useState(true);
   const [clearing, setClearing] = useState(false);
+  const [announcementMode, setAnnouncementMode] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const atBottomRef = useRef(true);
   const skipNextMuteSaveRef = useRef(false);
@@ -173,8 +176,10 @@ const TeamChat = ({ runtime, clubId, selfUserId, tone = 'glass', canModerateAll 
     setSending(true);
     setError('');
     try {
-      await chat.postMessage(clubId, body);
+      if (announcementMode && canModerateAll) await chat.postAnnouncement(clubId, body);
+      else await chat.postMessage(clubId, body);
       setDraft('');
+      setAnnouncementMode(false);
       atBottomRef.current = true;
       await refresh();
       if (channelId) await chat.markRead(channelId).catch(() => undefined);
@@ -290,6 +295,7 @@ const TeamChat = ({ runtime, clubId, selfUserId, tone = 'glass', canModerateAll 
           visibleMessages.map(message => {
             const self = !!selfUserId && message.author_user_id === selfUserId;
             const staff = STAFF_ROLES.has(message.author_role);
+            const announcement = chatMessageKind(message) === 'announcement';
             const captain = !!captainUserId && message.author_user_id === captainUserId;
             const showDay = dayKey(message.created_at) !== lastDay;
             lastDay = dayKey(message.created_at);
@@ -312,7 +318,13 @@ const TeamChat = ({ runtime, clubId, selfUserId, tone = 'glass', canModerateAll 
                         {!staff && captain && <span className={`rounded px-1.5 py-0 text-[8px] font-bold uppercase ${t.captainBadge}`}>captain</span>}
                       </div>
                     )}
-                    <div className={`group relative rounded-2xl px-3.5 py-2.5 ${self ? t.self : staff ? t.coach : t.other}`}>
+                    <div className={`group relative rounded-2xl px-3.5 py-2.5 ${announcement ? t.announcement : self ? t.self : staff ? t.coach : t.other}`}>
+                      {announcement && (
+                        <div className="mb-1.5 flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider">
+                          <Megaphone size={13} aria-hidden="true" />
+                          Team announcement
+                        </div>
+                      )}
                       <p className="whitespace-pre-wrap break-words text-sm leading-relaxed">{message.body}</p>
                       <div className={`mt-1 flex items-center justify-end gap-1.5 ${self ? 'text-black/60' : t.muted}`}>
                         <span className="text-[10px]">{timeLabel(message.created_at)}</span>
@@ -348,10 +360,23 @@ const TeamChat = ({ runtime, clubId, selfUserId, tone = 'glass', canModerateAll 
       {error && <p className={`shrink-0 px-4 py-1 text-xs ${t.muted}`} role="status">{error}</p>}
 
       <form onSubmit={send} className={`shrink-0 flex items-center gap-2 border-t px-3 py-3 ${t.header}`}>
+        {canModerateAll && (
+          <button
+            type="button"
+            onClick={() => setAnnouncementMode(current => !current)}
+            aria-pressed={announcementMode}
+            aria-label="Toggle announcement mode"
+            className={`flex h-11 w-11 items-center justify-center rounded-2xl border transition ${
+              announcementMode ? t.announcement : t.menu
+            }`}
+          >
+            <Megaphone size={17} />
+          </button>
+        )}
         <input
           value={draft}
           onChange={e => setDraft(e.target.value)}
-          placeholder={muted ? 'Channel muted for you' : 'Message your team...'}
+          placeholder={muted ? 'Channel muted for you' : announcementMode ? 'Post a team announcement...' : 'Message your team...'}
           className={`h-11 flex-1 rounded-2xl px-4 text-sm outline-none ${t.input}`}
         />
         <button type="submit" disabled={sending || !draft.trim()} aria-label="Send" className={`flex h-11 w-11 items-center justify-center rounded-2xl ${t.send} disabled:opacity-40`}>

@@ -13,6 +13,7 @@ export interface ChatMessage {
   author_name: string;
   author_role: 'owner' | 'admin' | 'coach' | 'staff' | 'player';
   body: string;
+  message_kind: 'message' | 'announcement';
   deleted_at: string | null;
   deleted_by: string | null;
   created_at: string;
@@ -67,6 +68,10 @@ export const visibleChatMessages = (messages: ChatMessage[]): ChatMessage[] => (
   messages.filter(message => !message.deleted_at)
 );
 
+export const chatMessageKind = (message: Pick<ChatMessage, 'message_kind'>): ChatMessage['message_kind'] => (
+  message.message_kind === 'announcement' ? 'announcement' : 'message'
+);
+
 // --- RPC wrappers ------------------------------------------------------------
 
 export const ensureChannel = async (client: DumalaSupabaseClient, clubId: string): Promise<string> => {
@@ -108,6 +113,19 @@ export const postMessage = async (
     await supabase.rpc('post_team_chat_message', { target_club_id: clubId, body: body.trim() }),
     'CHAT_POST_FAILED',
     'Failed to send your message'
+  ) as ChatMessage;
+};
+
+export const postAnnouncement = async (
+  client: DumalaSupabaseClient,
+  clubId: string,
+  body: string
+): Promise<ChatMessage> => {
+  const supabase = asUntypedClient(client);
+  return expectNoError(
+    await supabase.rpc('post_team_chat_announcement', { target_club_id: clubId, body: body.trim() }),
+    'CHAT_ANNOUNCEMENT_FAILED',
+    'Failed to post the team announcement'
   ) as ChatMessage;
 };
 

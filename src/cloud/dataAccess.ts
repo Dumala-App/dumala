@@ -266,6 +266,7 @@ import {
   getTeamChatCaptainUserId,
   listMessages,
   markChatRead,
+  postAnnouncement,
   postMessage,
   reportMessage,
   type ChatMessage
@@ -477,6 +478,7 @@ export interface CloudChatRepository {
   ensureChannel(clubId: string): Promise<string>;
   listMessages(clubId: string, limit?: number): Promise<ChatMessage[]>;
   postMessage(clubId: string, body: string): Promise<ChatMessage>;
+  postAnnouncement(clubId: string, body: string): Promise<ChatMessage>;
   deleteMessage(messageId: string): Promise<void>;
   reportMessage(messageId: string, reason?: string | null): Promise<void>;
   markRead(channelId: string): Promise<void>;
@@ -687,6 +689,7 @@ export const createCloudDataAccess = (client: DumalaSupabaseClient): CloudDataAc
     ensureChannel: clubId => ensureChannel(client, clubId),
     listMessages: (clubId, limit) => listMessages(client, clubId, limit),
     postMessage: (clubId, body) => postMessage(client, clubId, body),
+    postAnnouncement: (clubId, body) => postAnnouncement(client, clubId, body),
     deleteMessage: messageId => deleteMessage(client, messageId),
     reportMessage: (messageId, reason) => reportMessage(client, messageId, reason),
     markRead: channelId => markChatRead(client, channelId),
