@@ -330,6 +330,7 @@ export interface LeagueEvent {
   starts_on: string | null;
   ends_on: string | null;
   registration_code: string;
+  is_public: boolean;
   notes: string | null;
   created_at: string;
   updated_at: string;
@@ -491,6 +492,68 @@ export const advanceEventStatus = async (
     'Failed to update the event status'
   );
   return (typeof data === 'string' ? data : nextStatus) as LeagueEventStatus;
+};
+
+/** Publish or unpublish an event's public results page. */
+export const setEventPublic = async (
+  client: DumalaSupabaseClient,
+  eventId: string,
+  isPublic: boolean
+): Promise<LeagueEvent> => {
+  const supabase = asUntypedClient(client);
+  return expectNoError(
+    await supabase.from('league_events').update({ is_public: isPublic }).eq('id', eventId).select('*').single(),
+    'EVENT_PUBLISH_FAILED',
+    'Failed to update the public page'
+  ) as LeagueEvent;
+};
+
+// --- Public event page (no login) --------------------------------------------
+
+export interface PublicEventInfo {
+  id: string;
+  name: string;
+  format: LeagueEventFormat;
+  category: string | null;
+  status: LeagueEventStatus;
+  starts_on: string | null;
+  ends_on: string | null;
+}
+
+export interface PublicEventBundle {
+  found: boolean;
+  leagueName?: string;
+  event?: PublicEventInfo;
+  teams: EventTeam[];
+  fixtures: EventFixture[];
+  statEvents: FixtureStatEvent[];
+}
+
+/** Read a published event's public data by its code (anonymous-safe RPC). */
+export const getPublicEvent = async (client: DumalaSupabaseClient, code: string): Promise<PublicEventBundle> => {
+  const supabase = asUntypedClient(client);
+  const data = expectNoError(
+    await supabase.rpc('get_public_event', { code: code.trim().toUpperCase() }),
+    'PUBLIC_EVENT_READ_FAILED',
+    'Failed to load the public page'
+  ) as {
+    found: boolean;
+    leagueName?: string;
+    event?: PublicEventInfo;
+    teams?: EventTeam[];
+    fixtures?: EventFixture[];
+    stats?: FixtureStatEvent[];
+  } | null;
+
+  if (!data || !data.found) return { found: false, teams: [], fixtures: [], statEvents: [] };
+  return {
+    found: true,
+    leagueName: data.leagueName,
+    event: data.event,
+    teams: data.teams ?? [],
+    fixtures: data.fixtures ?? [],
+    statEvents: data.stats ?? []
+  };
 };
 
 // --- Owner: registrations ----------------------------------------------------

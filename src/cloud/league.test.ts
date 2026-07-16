@@ -314,7 +314,7 @@ describe('matchday readiness helper', () => {
 describe('competition rollup helper', () => {
   const event = (id: string, status: LeagueEvent['status'], name = id): LeagueEvent => ({
     id, league_id: 'l', season_id: 's', name, format: 'round_robin', category: 'U14', status,
-    team_cap: null, starts_on: null, ends_on: null, registration_code: id.toUpperCase(), notes: null,
+    team_cap: null, starts_on: null, ends_on: null, registration_code: id.toUpperCase(), is_public: false, notes: null,
     created_at: '', updated_at: ''
   });
   const team = (id: string, eventId: string, name: string): EventTeam => ({
@@ -451,7 +451,7 @@ describe('statistics database helper', () => {
 describe('fixtures calendar helper', () => {
   const ev = (id: string, name: string): LeagueEvent => ({
     id, league_id: 'l', season_id: 's', name, format: 'round_robin', category: null, status: 'active',
-    team_cap: null, starts_on: null, ends_on: null, registration_code: id.toUpperCase(), notes: null, created_at: '', updated_at: ''
+    team_cap: null, starts_on: null, ends_on: null, registration_code: id.toUpperCase(), is_public: false, notes: null, created_at: '', updated_at: ''
   });
   const tm = (id: string, name: string): EventTeam => ({
     id, event_id: 'e1', league_id: 'l', registration_id: null, name, seed: null, created_at: '', updated_at: ''

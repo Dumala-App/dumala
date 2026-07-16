@@ -1236,19 +1236,24 @@ const EventDetail = ({ league, event, runError, onBack, onAdvance, onAfterReview
   const spots = spotsRemaining(event.team_cap, approvedCount);
   const nexts = nextEventStatuses(event.status);
   const registerUrl = typeof window !== 'undefined' ? `${window.location.origin}/#/register` : '/#/register';
+  const publicUrl = typeof window !== 'undefined' ? `${window.location.origin}/#/l/${event.registration_code}` : `/#/l/${event.registration_code}`;
   const teamName = (id: string) => teams.find(t => t.id === id)?.name ?? 'TBD';
+  const [publicCopied, setPublicCopied] = useState(false);
 
-  const copyCode = async () => {
+  const copyText = async (text: string, done: (v: boolean) => void) => {
     try {
       if (typeof navigator !== 'undefined' && navigator.clipboard) {
-        await navigator.clipboard.writeText(event.registration_code);
-        setCopied(true);
-        window.setTimeout(() => setCopied(false), 1800);
+        await navigator.clipboard.writeText(text);
+        done(true);
+        window.setTimeout(() => done(false), 1800);
       }
     } catch {
-      /* clipboard unavailable — the code is shown for manual copy */
+      /* clipboard unavailable — the value is shown for manual copy */
     }
   };
+  const copyCode = () => copyText(event.registration_code, setCopied);
+  const setPublic = (isPublic: boolean) =>
+    runError(async () => { await league.setEventPublic(event.id, isPublic); await refresh(); onAfterReview(); });
 
   const review = (registrationId: string, status: EventRegistrationStatus) =>
     runError(async () => { await league.reviewRegistration(registrationId, status); await refresh(); onAfterReview(); });
@@ -1324,6 +1329,32 @@ const EventDetail = ({ league, event, runError, onBack, onAdvance, onAfterReview
             <button type="button" className={ghostBtn} onClick={copyCode}>
               {copied ? <><Check size={14} /> Copied</> : <><Copy size={14} /> Copy code</>}
             </button>
+          </div>
+
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-white/10 bg-white/[0.035] p-4">
+            <div className="min-w-0">
+              <p className="flex items-center gap-2 text-[11px] font-black uppercase text-slate-400">
+                Public results page
+                <span className={`rounded-full border px-2 py-0.5 text-[10px] font-bold ${event.is_public ? 'border-emerald-300/30 bg-emerald-400/10 text-emerald-100' : 'border-white/15 bg-white/[0.04] text-slate-400'}`}>
+                  {event.is_public ? 'Live' : 'Private'}
+                </span>
+              </p>
+              <p className="mt-1 text-xs text-slate-400">
+                {event.is_public
+                  ? <>Anyone can view standings & results at <span className="text-sky-200">{publicUrl}</span></>
+                  : 'Publish a read-only page of standings, results, and scorers — no login needed.'}
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              {event.is_public && (
+                <button type="button" className={ghostBtn} onClick={() => copyText(publicUrl, setPublicCopied)}>
+                  {publicCopied ? <><Check size={14} /> Copied</> : <><Copy size={14} /> Copy link</>}
+                </button>
+              )}
+              <button type="button" className={event.is_public ? ghostBtn : primaryBtn} onClick={() => setPublic(!event.is_public)}>
+                {event.is_public ? <><Eye size={14} /> Make private</> : <><Eye size={14} /> Publish</>}
+              </button>
+            </div>
           </div>
 
           {nexts.length > 0 ? (
