@@ -60,6 +60,7 @@ import {
   bracketWinnerId,
   buildFixtureCalendar,
   buildStatDatabase,
+  groupStageStandings,
   suggestAwards,
   summarizeCoachSeats,
   summarizeCompetition,
@@ -1257,18 +1258,23 @@ const EventDetail = ({ league, event, runError, onBack, onAdvance, onAfterReview
   const removeTeam = (teamId: string) =>
     runError(async () => { await league.deleteEventTeam(teamId); await refresh(); });
   const isKnockout = event.format === 'single_elimination';
+  const isGroupKnockout = event.format === 'group_knockout';
   const generateFixtures = () =>
     runError(async () => {
       if (isKnockout) await league.generateBracket(event.league_id, event.id);
       else await league.generateFixtures(event.league_id, event.id);
       await refresh();
     });
+  const drawGroupStage = (groupCount: number) =>
+    runError(async () => { await league.drawGroupStage(event.league_id, event.id, groupCount); await refresh(); });
+  const generateKnockout = (advancePerGroup: number) =>
+    runError(async () => { await league.generateKnockoutFromGroups(event.league_id, event.id, advancePerGroup); await refresh(); });
   const clearFixtures = () =>
     runError(async () => { await league.clearFixtures(event.id); await refresh(); });
   const recordResult = (fixtureId: string, home: number, away: number) =>
     runError(async () => {
       await league.recordFixtureResult(fixtureId, home, away);
-      if (isKnockout) await league.syncBracket(event.id);
+      if (isKnockout || isGroupKnockout) await league.syncBracket(event.id);
       await refresh();
     });
   const addStat = (input: FixtureStatInput) =>
@@ -1352,12 +1358,16 @@ const EventDetail = ({ league, event, runError, onBack, onAdvance, onAfterReview
         <>
           {tab === 'applications' && <ApplicationsPanel registrations={registrations} onReview={review} />}
           {tab === 'teams' && <TeamsPanel teams={teams} approvedCount={approvedCount} onAdd={addTeam} onAddApproved={addApprovedTeams} onRemove={removeTeam} />}
-          {tab === 'fixtures' && (isKnockout
-            ? <BracketPanel fixtures={fixtures} teamCount={teams.length} teamName={teamName} onGenerate={generateFixtures} onClear={clearFixtures} onRecord={recordResult} />
-            : <FixturesPanel fixtures={fixtures} teamCount={teams.length} teamName={teamName} onGenerate={generateFixtures} onClear={clearFixtures} onRecord={recordResult} />)}
+          {tab === 'fixtures' && (isGroupKnockout
+            ? <GroupKnockoutPanel fixtures={fixtures} teams={teams} teamCount={teams.length} teamName={teamName} onDrawGroups={drawGroupStage} onGenerateKnockout={generateKnockout} onClear={clearFixtures} onRecord={recordResult} />
+            : isKnockout
+              ? <BracketPanel fixtures={fixtures} teamCount={teams.length} teamName={teamName} onGenerate={generateFixtures} onClear={clearFixtures} onRecord={recordResult} />
+              : <FixturesPanel fixtures={fixtures} teamCount={teams.length} teamName={teamName} onGenerate={generateFixtures} onClear={clearFixtures} onRecord={recordResult} />)}
           {tab === 'table' && (isKnockout
             ? <BracketTablePanel fixtures={fixtures} teamName={teamName} />
-            : <TablePanel standings={computeStandings(teams, fixtures)} />)}
+            : isGroupKnockout
+              ? <BracketTablePanel fixtures={fixtures.filter(f => f.stage === 'knockout')} teamName={teamName} />
+              : <TablePanel standings={computeStandings(teams, fixtures)} />)}
           {tab === 'stats' && (
             <StatsPanel
               teams={teams}
@@ -1706,6 +1716,158 @@ const BracketTablePanel = ({ fixtures, teamName }: { fixtures: EventFixture[]; t
         )}
       </div>
     </section>
+  );
+};
+
+// --- Group -> knockout UI ----------------------------------------------------
+
+const GroupStandingsTable = ({ rows, teamName }: { rows: ReturnType<typeof computeStandings>; teamName: (id: string) => string }) => (
+  <div className="overflow-x-auto">
+    <table className="w-full text-xs">
+      <thead>
+        <tr className="text-[10px] font-black uppercase text-slate-500">
+          <th className="px-2 py-1 text-left">#</th>
+          <th className="px-2 py-1 text-left">Team</th>
+          <th className="px-2 py-1 text-right">P</th>
+          <th className="px-2 py-1 text-right">W</th>
+          <th className="px-2 py-1 text-right">D</th>
+          <th className="px-2 py-1 text-right">L</th>
+          <th className="px-2 py-1 text-right">GD</th>
+          <th className="px-2 py-1 text-right">Pts</th>
+        </tr>
+      </thead>
+      <tbody>
+        {rows.map((row, index) => (
+          <tr key={row.teamId} className="border-t border-white/[0.06]">
+            <td className={`px-2 py-1 font-black ${index === 0 ? 'text-emerald-300' : 'text-slate-500'}`}>{index + 1}</td>
+            <td className="px-2 py-1 font-bold text-white">{teamName(row.teamId)}</td>
+            <td className="px-2 py-1 text-right text-slate-300">{row.played}</td>
+            <td className="px-2 py-1 text-right text-slate-300">{row.won}</td>
+            <td className="px-2 py-1 text-right text-slate-300">{row.drawn}</td>
+            <td className="px-2 py-1 text-right text-slate-300">{row.lost}</td>
+            <td className="px-2 py-1 text-right text-slate-300">{row.goalDifference}</td>
+            <td className="px-2 py-1 text-right font-black text-white">{row.points}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </div>
+);
+
+const GroupKnockoutPanel = ({ fixtures, teams, teamCount, teamName, onDrawGroups, onGenerateKnockout, onClear, onRecord }: {
+  fixtures: EventFixture[];
+  teams: EventTeam[];
+  teamCount: number;
+  teamName: (id: string) => string;
+  onDrawGroups: (groupCount: number) => void;
+  onGenerateKnockout: (advancePerGroup: number) => void;
+  onClear: () => void;
+  onRecord: (fixtureId: string, home: number, away: number) => void;
+}) => {
+  const groupFixtures = fixtures.filter(f => f.stage === 'group');
+  const knockoutFixtures = fixtures.filter(f => f.stage === 'knockout');
+  const standings = useMemo(() => groupStageStandings(teams, groupFixtures), [teams, groupFixtures]);
+  const groupComplete = groupFixtures.length > 0 && groupFixtures.every(f => f.status === 'completed');
+  const minGroupSize = standings.length ? Math.min(...standings.map(g => g.rows.length)) : 0;
+  const maxGroups = Math.max(2, Math.floor(teamCount / 2));
+  const koRounds = [...new Set(knockoutFixtures.map(f => f.round))].sort((a, b) => a - b);
+  const koTotalRounds = koRounds.length ? Math.max(...koRounds) : 0;
+
+  const [groupCount, setGroupCount] = useState(2);
+  const [advance, setAdvance] = useState(2);
+  const advanceOptions = Array.from({ length: Math.max(1, minGroupSize) }, (_, i) => i + 1);
+
+  if (groupFixtures.length === 0) {
+    return (
+      <section className={panel}>
+        <div className={sectionHeader}><Users size={16} className="text-sky-200" /><h2 className="font-display text-sm font-black text-white">Group stage</h2></div>
+        <div className="space-y-3 p-4 text-center">
+          <p className="text-sm text-slate-400">
+            {teamCount < 4
+              ? 'Add at least four teams to draw groups.'
+              : 'Split the teams into groups. Each group plays a round robin, then the top finishers advance to a knockout bracket.'}
+          </p>
+          {teamCount >= 4 && (
+            <div className="flex flex-wrap items-center justify-center gap-2">
+              <label className={label}>Groups</label>
+              <select className={`${selectClass} w-20`} value={groupCount} onChange={e => setGroupCount(Number(e.target.value))}>
+                {Array.from({ length: maxGroups - 1 }, (_, i) => i + 2).map(n => <option key={n} value={n}>{n}</option>)}
+              </select>
+              <button type="button" className={primaryBtn} onClick={() => onDrawGroups(groupCount)}><Shuffle size={14} /> Draw groups</button>
+            </div>
+          )}
+        </div>
+      </section>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      <section className={panel}>
+        <div className={`${sectionHeader} justify-between`}>
+          <div className="flex items-center gap-2"><Users size={16} className="text-sky-200" /><h2 className="font-display text-sm font-black text-white">Group stage</h2></div>
+          <button type="button" className={`${ghostBtn} !py-1.5`} onClick={onClear}><RefreshCw size={13} /> Clear &amp; redraw</button>
+        </div>
+        <div className="grid gap-3 p-4 md:grid-cols-2">
+          {standings.map(group => (
+            <div key={group.label} className={`${subtleCard} p-4`}>
+              <h3 className="mb-2 font-display text-sm font-black text-white">Group {group.label}</h3>
+              <GroupStandingsTable rows={group.rows} teamName={teamName} />
+              <div className="mt-3 space-y-1.5">
+                {groupFixtures.filter(f => f.group_label === group.label).map(f => (
+                  <FixtureRow key={f.id} fixture={f} teamName={teamName} onRecord={onRecord} />
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section className={panel}>
+        <div className={`${sectionHeader} justify-between`}>
+          <div className="flex items-center gap-2"><Swords size={16} className="text-sky-200" /><h2 className="font-display text-sm font-black text-white">Knockout stage</h2></div>
+          {knockoutFixtures.length > 0 && groupComplete && (
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] text-slate-500">Top</span>
+              <select className={`${selectClass} w-16`} value={advance} onChange={e => setAdvance(Number(e.target.value))}>
+                {advanceOptions.map(n => <option key={n} value={n}>{n}</option>)}
+              </select>
+              <button type="button" className={`${ghostBtn} !py-1.5`} onClick={() => onGenerateKnockout(advance)}><RefreshCw size={13} /> Regenerate</button>
+            </div>
+          )}
+        </div>
+        <div className="p-4">
+          {knockoutFixtures.length === 0 ? (
+            <div className="space-y-3 text-center">
+              <p className="text-sm text-slate-400">
+                {groupComplete
+                  ? 'Group stage complete. Choose how many advance from each group and build the bracket.'
+                  : 'Finish every group match to unlock the knockout draw.'}
+              </p>
+              <div className="flex flex-wrap items-center justify-center gap-2">
+                <label className={label}>Advance</label>
+                <select className={`${selectClass} w-16`} value={advance} onChange={e => setAdvance(Number(e.target.value))}>
+                  {advanceOptions.map(n => <option key={n} value={n}>{n}</option>)}
+                </select>
+                <span className="text-xs text-slate-500">per group</span>
+                <button type="button" className={primaryBtn} disabled={!groupComplete} onClick={() => onGenerateKnockout(advance)}><Shuffle size={14} /> Generate knockout</button>
+              </div>
+            </div>
+          ) : (
+            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+              {koRounds.map(round => (
+                <div key={round} className="space-y-2">
+                  <p className="text-[11px] font-black uppercase tracking-wide text-sky-200/80">{bracketRoundName(round, koTotalRounds)}</p>
+                  {knockoutFixtures.filter(f => f.round === round).map(f => (
+                    <BracketMatch key={f.id} fixture={f} teamName={teamName} onRecord={onRecord} />
+                  ))}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </section>
+    </div>
   );
 };
 

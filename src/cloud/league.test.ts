@@ -11,7 +11,11 @@ import {
   computeDiscipline,
   computeScorers,
   computeStandings,
+  drawGroups,
   formatMoney,
+  groupStageFixtureSpecs,
+  groupStageStandings,
+  qualifiers,
   nextPowerOfTwo,
   seedPositions,
   singleEliminationBracket,
@@ -100,7 +104,7 @@ describe('tournament pure helpers', () => {
   ): EventFixture => ({
     id: `${home}-${away}`, event_id: 'e', league_id: 'l', round: 1, sequence: 1,
     home_team_id: home, away_team_id: away, status, home_score: hs, away_score: as,
-    kickoff_at: null, venue_id: null, home_checked_in: false, away_checked_in: false, official_name: null,
+    kickoff_at: null, venue_id: null, home_checked_in: false, away_checked_in: false, official_name: null, stage: null, group_label: null,
     created_at: '', updated_at: ''
   });
 
@@ -185,7 +189,7 @@ describe('knockout bracket helpers', () => {
   const fixture = (home: string | null, away: string | null, hs: number | null, as: number | null, status: EventFixture['status'] = 'completed'): EventFixture => ({
     id: 'f', event_id: 'e', league_id: 'l', round: 1, sequence: 1, home_team_id: home, away_team_id: away,
     status, home_score: hs, away_score: as, kickoff_at: null, venue_id: null,
-    home_checked_in: false, away_checked_in: false, official_name: null, created_at: '', updated_at: ''
+    home_checked_in: false, away_checked_in: false, official_name: null, stage: null, group_label: null, created_at: '', updated_at: ''
   });
 
   it('resolves a decisive winner but not a draw or an unplayed match', () => {
@@ -200,6 +204,50 @@ describe('knockout bracket helpers', () => {
     expect(bracketRoundName(2, 3)).toBe('Semi-finals');
     expect(bracketRoundName(1, 3)).toBe('Quarter-finals');
     expect(bracketRoundName(1, 4)).toBe('Round of 16');
+  });
+});
+
+describe('group stage helpers', () => {
+  const team = (id: string, name: string): EventTeam => ({
+    id, event_id: 'e', league_id: 'l', registration_id: null, name, seed: null, created_at: '', updated_at: ''
+  });
+  const groupFixture = (group: string, home: string, away: string, hs: number, as: number): EventFixture => ({
+    id: `${group}-${home}-${away}`, event_id: 'e', league_id: 'l', round: 1, sequence: 1,
+    home_team_id: home, away_team_id: away, status: 'completed', home_score: hs, away_score: as,
+    kickoff_at: null, venue_id: null, home_checked_in: false, away_checked_in: false, official_name: null,
+    stage: 'group', group_label: group, created_at: '', updated_at: ''
+  });
+
+  it('distributes teams across groups round-robin, clamping to at most n/2 groups', () => {
+    const groups = drawGroups(['a', 'b', 'c', 'd', 'e', 'f'], 2);
+    expect(groups.map(g => g.label)).toEqual(['A', 'B']);
+    expect(groups[0].teamIds).toEqual(['a', 'c', 'e']);
+    expect(groups[1].teamIds).toEqual(['b', 'd', 'f']);
+    // Asking for more groups than teams allow is clamped so each group has >= 2.
+    expect(drawGroups(['a', 'b', 'c', 'd'], 9)).toHaveLength(2);
+  });
+
+  it('generates a round robin within each group', () => {
+    const specs = groupStageFixtureSpecs(drawGroups(['a', 'b', 'c', 'd'], 2));
+    // Two groups of two → one match each.
+    expect(specs).toHaveLength(2);
+    expect(new Set(specs.map(s => s.groupLabel))).toEqual(new Set(['A', 'B']));
+    expect(specs.every(s => s.homeTeamId && s.awayTeamId)).toBe(true);
+  });
+
+  it('builds per-group standings and cross-seeds the qualifiers', () => {
+    const teams = ['a', 'b', 'c', 'd'].map(id => team(id, id.toUpperCase()));
+    // Group A: a beats b. Group B: c beats d.
+    const fixtures = [groupFixture('A', 'a', 'b', 3, 0), groupFixture('B', 'c', 'd', 2, 1)];
+    const standings = groupStageStandings(teams, fixtures);
+    expect(standings.map(s => s.label)).toEqual(['A', 'B']);
+    expect(standings[0].rows[0].teamId).toBe('a'); // A winner
+    expect(standings[1].rows[0].teamId).toBe('c'); // B winner
+
+    // Advance 2 per group → winners first, then runners-up: [A1, B1, A2, B2].
+    expect(qualifiers(standings, 2)).toEqual(['a', 'c', 'b', 'd']);
+    // Advance 1 per group → just the winners.
+    expect(qualifiers(standings, 1)).toEqual(['a', 'c']);
   });
 });
 
@@ -248,7 +296,7 @@ describe('matchday readiness helper', () => {
   const fx = (status: EventFixture['status'], home: boolean, away: boolean): EventFixture => ({
     id: `${status}-${home}-${away}-${Math.random()}`, event_id: 'e', league_id: 'l', round: 1, sequence: 1,
     home_team_id: 'a', away_team_id: 'b', status, home_score: null, away_score: null, kickoff_at: null, venue_id: null,
-    home_checked_in: home, away_checked_in: away, official_name: null, created_at: '', updated_at: ''
+    home_checked_in: home, away_checked_in: away, official_name: null, stage: null, group_label: null, created_at: '', updated_at: ''
   });
 
   it('counts completed, ready (both checked in), and awaiting check-in', () => {
@@ -277,7 +325,7 @@ describe('competition rollup helper', () => {
   ): EventFixture => ({
     id, event_id: eventId, league_id: 'l', round: 1, sequence: 1, home_team_id: home, away_team_id: away,
     status, home_score: hs, away_score: as, kickoff_at: null, venue_id: null,
-    home_checked_in: false, away_checked_in: false, official_name: null, created_at: '', updated_at: updatedAt
+    home_checked_in: false, away_checked_in: false, official_name: null, stage: null, group_label: null, created_at: '', updated_at: updatedAt
   });
   const stat = (eventId: string, teamId: string, player: string, type: FixtureStatEvent['stat_type']): FixtureStatEvent => ({
     id: `${teamId}-${player}-${type}-${Math.random()}`, fixture_id: 'f', event_id: eventId, league_id: 'l',
@@ -416,7 +464,7 @@ describe('fixtures calendar helper', () => {
   ): EventFixture => ({
     id, event_id: 'e1', league_id: 'l', round: 1, sequence: 1, home_team_id: home, away_team_id: away,
     status, home_score: null, away_score: null, kickoff_at: kickoff, venue_id: venue,
-    home_checked_in: false, away_checked_in: false, official_name: null, created_at: '', updated_at: ''
+    home_checked_in: false, away_checked_in: false, official_name: null, stage: null, group_label: null, created_at: '', updated_at: ''
   });
 
   const events = [ev('e1', 'Metro Cup')];
