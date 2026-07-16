@@ -597,6 +597,9 @@ export interface EventFixture {
   home_checked_in: boolean;
   away_checked_in: boolean;
   official_name: string | null;
+  // group_knockout only: 'group' or 'knockout' (null for round_robin / single_elim).
+  stage: 'group' | 'knockout' | null;
+  group_label: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -803,6 +806,95 @@ export const bracketRoundName = (round: number, totalRounds: number): string => 
   return `Round of ${2 ** (fromFinal + 1)}`;
 };
 
+// --- Group stage (group -> knockout) -----------------------------------------
+// Teams split into groups that each play a round robin; the top finishers then
+// advance into a single-elimination bracket. Group membership is derived from
+// the group fixtures, so only fixtures carry the stage/group data.
+
+export const GROUP_LABELS = 'ABCDEFGHIJKLMNOP'.split('');
+
+export interface GroupDraw {
+  label: string;
+  teamIds: string[];
+}
+
+export interface GroupFixtureSpec {
+  groupLabel: string;
+  round: number;
+  sequence: number;
+  homeTeamId: string;
+  awayTeamId: string;
+}
+
+export interface GroupStanding {
+  label: string;
+  rows: StandingRow[];
+}
+
+/** Distribute (seed-ordered) teams across `groupCount` groups, round-robin style. */
+export const drawGroups = (teamIds: string[], groupCount: number): GroupDraw[] => {
+  const maxGroups = Math.max(1, Math.floor(teamIds.length / 2));
+  const count = Math.max(1, Math.min(Math.round(groupCount), maxGroups));
+  const groups: GroupDraw[] = Array.from({ length: count }, (_, i) => ({ label: GROUP_LABELS[i], teamIds: [] }));
+  teamIds.forEach((id, i) => { groups[i % count].teamIds.push(id); });
+  return groups;
+};
+
+/** Round-robin fixture specs for every group. */
+export const groupStageFixtureSpecs = (groups: GroupDraw[]): GroupFixtureSpec[] => {
+  const specs: GroupFixtureSpec[] = [];
+  for (const group of groups) {
+    for (const pairing of roundRobinRounds(group.teamIds)) {
+      specs.push({
+        groupLabel: group.label,
+        round: pairing.round,
+        sequence: pairing.sequence,
+        homeTeamId: pairing.homeTeamId,
+        awayTeamId: pairing.awayTeamId
+      });
+    }
+  }
+  return specs;
+};
+
+/** Per-group standings derived from the group fixtures (teams inferred from them). */
+export const groupStageStandings = (teams: EventTeam[], groupFixtures: EventFixture[]): GroupStanding[] => {
+  const byLabel = new Map<string, EventFixture[]>();
+  for (const fixture of groupFixtures) {
+    if (!fixture.group_label) continue;
+    const list = byLabel.get(fixture.group_label);
+    if (list) list.push(fixture); else byLabel.set(fixture.group_label, [fixture]);
+  }
+  const teamById = new Map(teams.map(t => [t.id, t]));
+  return [...byLabel.entries()]
+    .sort((a, b) => a[0].localeCompare(b[0]))
+    .map(([label, fixtures]) => {
+      const ids = new Set<string>();
+      for (const f of fixtures) {
+        if (f.home_team_id) ids.add(f.home_team_id);
+        if (f.away_team_id) ids.add(f.away_team_id);
+      }
+      const groupTeams = [...ids].map(id => teamById.get(id)).filter((t): t is EventTeam => Boolean(t));
+      return { label, rows: computeStandings(groupTeams, fixtures) };
+    });
+};
+
+/**
+ * The qualifying team ids, ordered for bracket seeding: every group's winner
+ * first, then every runner-up, and so on. Fed to singleEliminationBracket this
+ * cross-pairs group winners against other groups' runners-up.
+ */
+export const qualifiers = (standings: GroupStanding[], advancePerGroup: number): string[] => {
+  const out: string[] = [];
+  for (let pos = 0; pos < advancePerGroup; pos += 1) {
+    for (const group of standings) {
+      const row = group.rows[pos];
+      if (row) out.push(row.teamId);
+    }
+  }
+  return out;
+};
+
 // --- Owner: teams ------------------------------------------------------------
 
 export const listEventTeams = async (client: DumalaSupabaseClient, eventId: string): Promise<EventTeam[]> => {
@@ -948,6 +1040,73 @@ export const syncBracket = async (client: DumalaSupabaseClient, eventId: string)
     'Failed to advance the bracket'
   );
   return typeof data === 'number' ? data : 0;
+};
+
+/** Draw the group stage: split teams into groups and generate their round robins. */
+export const drawGroupStage = async (
+  client: DumalaSupabaseClient,
+  leagueId: string,
+  eventId: string,
+  groupCount: number
+): Promise<EventFixture[]> => {
+  const supabase = asUntypedClient(client);
+  const teams = await listEventTeams(client, eventId);
+  if (teams.length < 4) {
+    throw new CloudLeagueError('Add at least four teams to draw groups.', 'NOT_ENOUGH_TEAMS');
+  }
+  await clearFixtures(client, eventId);
+  const ordered = teams.slice().sort((a, b) => (a.seed ?? 9999) - (b.seed ?? 9999));
+  const groups = drawGroups(ordered.map(t => t.id), groupCount);
+  const rows = groupStageFixtureSpecs(groups).map(spec => ({
+    league_id: leagueId, event_id: eventId, stage: 'group', group_label: spec.groupLabel,
+    round: spec.round, sequence: spec.sequence, home_team_id: spec.homeTeamId, away_team_id: spec.awayTeamId
+  }));
+  const inserted = expectNoError(
+    await supabase.from('event_fixtures').insert(rows).select('*')
+      .order('group_label', { ascending: true }).order('round', { ascending: true }).order('sequence', { ascending: true }),
+    'GROUP_DRAW_FAILED',
+    'Failed to draw the group stage'
+  ) as EventFixture[] | null;
+  return inserted ?? [];
+};
+
+/** Seed a knockout bracket from the group standings once every group match is played. */
+export const generateKnockoutFromGroups = async (
+  client: DumalaSupabaseClient,
+  leagueId: string,
+  eventId: string,
+  advancePerGroup: number
+): Promise<EventFixture[]> => {
+  const supabase = asUntypedClient(client);
+  const [teams, fixtures] = await Promise.all([listEventTeams(client, eventId), listFixtures(client, eventId)]);
+  const groupFixtures = fixtures.filter(f => f.stage === 'group');
+  if (groupFixtures.length === 0) {
+    throw new CloudLeagueError('Draw the group stage first.', 'NO_GROUP_STAGE');
+  }
+  if (groupFixtures.some(f => f.status !== 'completed')) {
+    throw new CloudLeagueError('Finish every group match before generating the knockout.', 'GROUP_STAGE_INCOMPLETE');
+  }
+  const qualifierIds = qualifiers(groupStageStandings(teams, groupFixtures), advancePerGroup);
+  if (qualifierIds.length < 2) {
+    throw new CloudLeagueError('Not enough qualifiers to build a knockout.', 'NOT_ENOUGH_QUALIFIERS');
+  }
+  // Replace any previous knockout stage, keeping the group fixtures intact.
+  expectNoError(
+    await supabase.from('event_fixtures').delete().eq('event_id', eventId).eq('stage', 'knockout'),
+    'KNOCKOUT_CLEAR_FAILED',
+    'Failed to reset the knockout stage'
+  );
+  const rows = singleEliminationBracket(qualifierIds).map(spec => ({
+    league_id: leagueId, event_id: eventId, stage: 'knockout', group_label: null,
+    round: spec.round, sequence: spec.sequence, home_team_id: spec.homeTeamId, away_team_id: spec.awayTeamId
+  }));
+  const inserted = expectNoError(
+    await supabase.from('event_fixtures').insert(rows).select('*')
+      .order('round', { ascending: true }).order('sequence', { ascending: true }),
+    'KNOCKOUT_GENERATE_FAILED',
+    'Failed to generate the knockout bracket'
+  ) as EventFixture[] | null;
+  return inserted ?? [];
 };
 
 export const recordFixtureResult = async (

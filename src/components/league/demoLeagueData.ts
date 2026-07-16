@@ -2,8 +2,12 @@ import type { CloudDataAccess, CloudLeagueRepository } from '../../cloud/dataAcc
 import type { CloudRuntime, Phase6Config } from '../../cloud/runtime';
 import type { CloudAuthController } from '../../hooks/useCloudAuth';
 import {
+  drawGroups,
+  groupStageFixtureSpecs,
+  groupStageStandings,
   nextEventStatuses,
   nextSeasonStatuses,
+  qualifiers,
   roundRobinRounds,
   singleEliminationBracket,
   spotsRemaining,
@@ -103,7 +107,7 @@ const buildDemoLeagueRepository = (): CloudLeagueRepository => {
   let events: LeagueEvent[] = [
     {
       id: 'demo-event-1', league_id: LEAGUE_ID, season_id: 'demo-season-1', name: 'Metro Cup Qualifiers',
-      format: 'group_knockout', category: 'U14', status: 'registration_open', team_cap: 8,
+      format: 'round_robin', category: 'U14', status: 'registration_open', team_cap: 8,
       starts_on: '2026-08-01', ends_on: '2026-08-30', registration_code: 'METROCUP',
       notes: 'Open to all metro clubs. Share the code below to invite teams.', created_at: now(), updated_at: now()
     },
@@ -116,6 +120,11 @@ const buildDemoLeagueRepository = (): CloudLeagueRepository => {
       id: 'demo-event-3', league_id: LEAGUE_ID, season_id: 'demo-season-1', name: 'Metro Knockout Cup',
       format: 'single_elimination', category: 'U16', status: 'active', team_cap: 8,
       starts_on: '2026-09-01', ends_on: '2026-09-15', registration_code: 'KNOCKOUT', notes: null, created_at: now(), updated_at: now()
+    },
+    {
+      id: 'demo-event-4', league_id: LEAGUE_ID, season_id: 'demo-season-1', name: 'Metro Champions Cup',
+      format: 'group_knockout', category: 'U18', status: 'active', team_cap: 8,
+      starts_on: '2026-10-01', ends_on: '2026-10-20', registration_code: 'CHAMPIONS', notes: null, created_at: now(), updated_at: now()
     }
   ];
 
@@ -168,7 +177,7 @@ const buildDemoLeagueRepository = (): CloudLeagueRepository => {
       status: result ? 'completed' : 'scheduled', home_score: result ? result[0] : null,
       away_score: result ? result[1] : null, kickoff_at: schedule ? schedule.at : null, venue_id: schedule ? schedule.venue : null,
       home_checked_in: !!result, away_checked_in: !!result, official_name: result ? 'Ref Santos' : null,
-      created_at: now(), updated_at: now()
+      stage: null, group_label: null, created_at: now(), updated_at: now()
     };
   });
 
@@ -187,24 +196,27 @@ const buildDemoLeagueRepository = (): CloudLeagueRepository => {
     id: `demo-elim-fixture-${++elimSeq}`, event_id: 'demo-event-3', league_id: LEAGUE_ID,
     round: spec.round, sequence: spec.sequence, home_team_id: spec.homeTeamId, away_team_id: spec.awayTeamId,
     status: 'scheduled', home_score: null, away_score: null, kickoff_at: null, venue_id: null,
-    home_checked_in: false, away_checked_in: false, official_name: null, created_at: now(), updated_at: now()
+    home_checked_in: false, away_checked_in: false, official_name: null, stage: null, group_label: null, created_at: now(), updated_at: now()
   }));
   fixtures = [...fixtures, ...elimFixtures];
 
   // Recompute downstream bracket slots from feeder results (mirrors sync_bracket).
+  // Scoped to the knockout stage so group fixtures (which reuse round/sequence
+  // numbers) are never treated as feeders.
   const advanceBracketFor = (eventId: string): number => {
+    const isKnockout = (f: EventFixture) => (f.stage ?? 'knockout') === 'knockout';
     const winnerOf = (f: EventFixture | undefined): string | null =>
       f && f.status === 'completed' && f.home_score !== null && f.away_score !== null && f.home_score !== f.away_score
         ? (f.home_score > f.away_score ? f.home_team_id : f.away_team_id)
         : null;
     const downstream = fixtures
-      .filter(f => f.event_id === eventId && f.round > 1 && f.status !== 'completed')
+      .filter(f => f.event_id === eventId && isKnockout(f) && f.round > 1 && f.status !== 'completed')
       .sort((a, b) => a.round - b.round || (a.sequence ?? 0) - (b.sequence ?? 0));
     let updated = 0;
     for (const p of downstream) {
       const seq = p.sequence ?? 0;
-      const homeFeeder = fixtures.find(f => f.event_id === eventId && f.round === p.round - 1 && f.sequence === seq * 2 - 1);
-      const awayFeeder = fixtures.find(f => f.event_id === eventId && f.round === p.round - 1 && f.sequence === seq * 2);
+      const homeFeeder = fixtures.find(f => f.event_id === eventId && isKnockout(f) && f.round === p.round - 1 && f.sequence === seq * 2 - 1);
+      const awayFeeder = fixtures.find(f => f.event_id === eventId && isKnockout(f) && f.round === p.round - 1 && f.sequence === seq * 2);
       const nextHome = homeFeeder ? winnerOf(homeFeeder) : p.home_team_id;
       const nextAway = awayFeeder ? winnerOf(awayFeeder) : p.away_team_id;
       if (nextHome !== p.home_team_id || nextAway !== p.away_team_id) {
@@ -223,6 +235,39 @@ const buildDemoLeagueRepository = (): CloudLeagueRepository => {
   playElim('demo-elim-fixture-1', 2, 1);
   playElim('demo-elim-fixture-2', 0, 3);
   advanceBracketFor('demo-event-3');
+
+  // --- Group -> knockout demo event (demo-event-4) ---------------------------
+  // Six teams in two groups of three. Every group match is played (stronger seed
+  // wins), and the knockout is already drawn from the top two of each group, so
+  // the semi-finals show real qualifiers and the final is still TBD.
+  const gkTeams: EventTeam[] = ['Falcons', 'Sharks', 'Wolves', 'Bears', 'Eagles', 'Lions'].map((name, i) => ({
+    id: `demo-gk-team-${i + 1}`, event_id: 'demo-event-4', league_id: LEAGUE_ID, registration_id: null,
+    name, seed: i + 1, created_at: now(), updated_at: now()
+  }));
+  teams = [...teams, ...gkTeams];
+  const gkSeed = new Map(gkTeams.map(t => [t.id, t.seed ?? 99]));
+  let gkSeq = 0;
+  const gkGroupFixtures: EventFixture[] = groupStageFixtureSpecs(drawGroups(gkTeams.map(t => t.id), 2)).map(spec => {
+    const homeStronger = (gkSeed.get(spec.homeTeamId) ?? 99) < (gkSeed.get(spec.awayTeamId) ?? 99);
+    return {
+      id: `demo-gk-fixture-${++gkSeq}`, event_id: 'demo-event-4', league_id: LEAGUE_ID, stage: 'group', group_label: spec.groupLabel,
+      round: spec.round, sequence: spec.sequence, home_team_id: spec.homeTeamId, away_team_id: spec.awayTeamId,
+      status: 'completed', home_score: homeStronger ? 2 : 1, away_score: homeStronger ? 1 : 2,
+      kickoff_at: null, venue_id: null, home_checked_in: true, away_checked_in: true, official_name: null,
+      created_at: now(), updated_at: now()
+    };
+  });
+  fixtures = [...fixtures, ...gkGroupFixtures];
+  let gkKoSeq = 0;
+  const gkKnockoutFixtures: EventFixture[] = singleEliminationBracket(
+    qualifiers(groupStageStandings(gkTeams, gkGroupFixtures), 2)
+  ).map(spec => ({
+    id: `demo-gk-ko-${++gkKoSeq}`, event_id: 'demo-event-4', league_id: LEAGUE_ID, stage: 'knockout', group_label: null,
+    round: spec.round, sequence: spec.sequence, home_team_id: spec.homeTeamId, away_team_id: spec.awayTeamId,
+    status: 'scheduled', home_score: null, away_score: null, kickoff_at: null, venue_id: null,
+    home_checked_in: false, away_checked_in: false, official_name: null, created_at: now(), updated_at: now()
+  }));
+  fixtures = [...fixtures, ...gkKnockoutFixtures];
 
   const statRow = (teamId: string, playerName: string, statType: FixtureStatEvent['stat_type']): FixtureStatEvent => ({
     id: newId(), fixture_id: 'demo-fixture-1', event_id: 'demo-event-1', league_id: LEAGUE_ID,
@@ -486,7 +531,7 @@ const buildDemoLeagueRepository = (): CloudLeagueRepository => {
         id: newId(), event_id: eventId, league_id: leagueId, round: p.round, sequence: p.sequence,
         home_team_id: p.homeTeamId, away_team_id: p.awayTeamId, status: 'scheduled',
         home_score: null, away_score: null, kickoff_at: null, venue_id: null,
-        home_checked_in: false, away_checked_in: false, official_name: null, created_at: now(), updated_at: now()
+        home_checked_in: false, away_checked_in: false, official_name: null, stage: null, group_label: null, created_at: now(), updated_at: now()
       }));
       fixtures = [...fixtures, ...generated];
       return generated;
@@ -500,12 +545,43 @@ const buildDemoLeagueRepository = (): CloudLeagueRepository => {
         id: newId(), event_id: eventId, league_id: leagueId, round: spec.round, sequence: spec.sequence,
         home_team_id: spec.homeTeamId, away_team_id: spec.awayTeamId, status: 'scheduled',
         home_score: null, away_score: null, kickoff_at: null, venue_id: null,
-        home_checked_in: false, away_checked_in: false, official_name: null, created_at: now(), updated_at: now()
+        home_checked_in: false, away_checked_in: false, official_name: null, stage: null, group_label: null, created_at: now(), updated_at: now()
       }));
       fixtures = [...fixtures, ...generated];
       return generated;
     },
     syncBracket: async eventId => advanceBracketFor(eventId),
+    drawGroupStage: async (leagueId, eventId, groupCount) => {
+      const eventTeams = teams.filter(t => t.event_id === eventId);
+      if (eventTeams.length < 4) throw new Error('NOT_ENOUGH_TEAMS');
+      fixtures = fixtures.filter(f => f.event_id !== eventId);
+      const ordered = eventTeams.slice().sort((a, b) => (a.seed ?? 9999) - (b.seed ?? 9999));
+      const generated: EventFixture[] = groupStageFixtureSpecs(drawGroups(ordered.map(t => t.id), groupCount)).map(spec => ({
+        id: newId(), event_id: eventId, league_id: leagueId, stage: 'group', group_label: spec.groupLabel,
+        round: spec.round, sequence: spec.sequence, home_team_id: spec.homeTeamId, away_team_id: spec.awayTeamId,
+        status: 'scheduled', home_score: null, away_score: null, kickoff_at: null, venue_id: null,
+        home_checked_in: false, away_checked_in: false, official_name: null, created_at: now(), updated_at: now()
+      }));
+      fixtures = [...fixtures, ...generated];
+      return generated;
+    },
+    generateKnockoutFromGroups: async (leagueId, eventId, advancePerGroup) => {
+      const eventTeams = teams.filter(t => t.event_id === eventId);
+      const groupFixtures = fixtures.filter(f => f.event_id === eventId && f.stage === 'group');
+      if (groupFixtures.length === 0) throw new Error('NO_GROUP_STAGE');
+      if (groupFixtures.some(f => f.status !== 'completed')) throw new Error('GROUP_STAGE_INCOMPLETE');
+      const qualifierIds = qualifiers(groupStageStandings(eventTeams, groupFixtures), advancePerGroup);
+      if (qualifierIds.length < 2) throw new Error('NOT_ENOUGH_QUALIFIERS');
+      fixtures = fixtures.filter(f => !(f.event_id === eventId && f.stage === 'knockout'));
+      const generated: EventFixture[] = singleEliminationBracket(qualifierIds).map(spec => ({
+        id: newId(), event_id: eventId, league_id: leagueId, stage: 'knockout', group_label: null,
+        round: spec.round, sequence: spec.sequence, home_team_id: spec.homeTeamId, away_team_id: spec.awayTeamId,
+        status: 'scheduled', home_score: null, away_score: null, kickoff_at: null, venue_id: null,
+        home_checked_in: false, away_checked_in: false, official_name: null, created_at: now(), updated_at: now()
+      }));
+      fixtures = [...fixtures, ...generated];
+      return generated;
+    },
     clearFixtures: async eventId => {
       fixtures = fixtures.filter(f => f.event_id !== eventId);
     },

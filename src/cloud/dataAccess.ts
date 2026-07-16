@@ -208,8 +208,10 @@ import {
   deleteLedgerEntry,
   deleteStatEvent,
   deleteVenue,
+  drawGroupStage,
   generateBracket,
   generateFixtures,
+  generateKnockoutFromGroups,
   listAwards,
   listCoachMemberships,
   listEvents,
@@ -474,6 +476,8 @@ export interface CloudLeagueRepository {
   listFixtures(eventId: string): Promise<EventFixture[]>;
   generateFixtures(leagueId: string, eventId: string): Promise<EventFixture[]>;
   generateBracket(leagueId: string, eventId: string): Promise<EventFixture[]>;
+  drawGroupStage(leagueId: string, eventId: string, groupCount: number): Promise<EventFixture[]>;
+  generateKnockoutFromGroups(leagueId: string, eventId: string, advancePerGroup: number): Promise<EventFixture[]>;
   syncBracket(eventId: string): Promise<number>;
   clearFixtures(eventId: string): Promise<void>;
   recordFixtureResult(fixtureId: string, homeScore: number, awayScore: number): Promise<EventFixture>;
@@ -698,6 +702,8 @@ export const createCloudDataAccess = (client: DumalaSupabaseClient): CloudDataAc
     listFixtures: eventId => listFixtures(client, eventId),
     generateFixtures: (leagueId, eventId) => generateFixtures(client, leagueId, eventId),
     generateBracket: (leagueId, eventId) => generateBracket(client, leagueId, eventId),
+    drawGroupStage: (leagueId, eventId, groupCount) => drawGroupStage(client, leagueId, eventId, groupCount),
+    generateKnockoutFromGroups: (leagueId, eventId, advancePerGroup) => generateKnockoutFromGroups(client, leagueId, eventId, advancePerGroup),
     syncBracket: eventId => syncBracket(client, eventId),
     clearFixtures: eventId => clearFixtures(client, eventId),
     recordFixtureResult: (fixtureId, homeScore, awayScore) => recordFixtureResult(client, fixtureId, homeScore, awayScore),
