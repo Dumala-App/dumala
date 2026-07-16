@@ -95,7 +95,7 @@ describe('persona app shells', () => {
     const html = renderToStaticMarkup(<PlayerAppShell />);
 
     expect(html).toContain('ACCOUNT_GATE');
-    expect(html).toContain('Train. Track. Level up.');
+    expect(html).toContain('Dumala Player');
     expect(html).not.toContain('PLAYER_APP_PREVIEW');
   });
 

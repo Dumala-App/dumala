@@ -7,6 +7,9 @@ import type { AppDestination } from '../cloud/identity';
 import PlayerApp from './player/PlayerApp';
 import { createPreviewRuntime, createPreviewAuthController } from './player/demoPlayerData';
 import PersonaAccessShell from './PersonaAccessShell';
+import { AetherFlowBackdrop } from './ui/aether-flow-hero';
+import { GlowingEffect } from './ui/glowing-effect';
+import { ORANGE_NEW_CLASSES, ORANGE_NEW_GLOW_PROPS, ORANGE_NEW_THEME_STYLE } from '../theme/orangeNewTheme';
 import { rememberPlayerInviteCodeFromHash } from '../player/inviteLink';
 import PwaInstallControl from './PwaInstallControl';
 
@@ -153,38 +156,45 @@ const PlayerAppShell = () => {
       <div className="fixed right-4 top-4 z-40">
         <PwaInstallControl audience="player" tone="player" />
       </div>
-      <PersonaAccessShell
-        variant="player"
-        eyebrow="Dumala Player"
-        title="Train. Track. Level up."
-        description="Your free football workspace for solo drills, a workout timer, training streaks, and your team schedule once your coach approves the link."
-        badge="Free player account"
-        highlights={playerHighlights}
-        footer="Players join through a coach invite link or club join code. Your coach controls official roster records."
+      <div
+        className={`${ORANGE_NEW_CLASSES.accessShell} flex min-h-screen items-center justify-center p-4`}
+        style={ORANGE_NEW_THEME_STYLE}
       >
-        <div className="rounded-2xl border border-white/10 bg-white/[0.045] p-4">
-          <p className="mb-3 text-xs font-black uppercase tracking-wide text-orange-200">Player sign in</p>
-          <CloudAccountGate
-            runtime={runtime}
-            authController={auth}
-            bootstrapAccount={false}
-            tone="dark"
-            layout="compact"
-            audience="player"
-            redirectTo={getAppAuthRedirectUrl('player')}
-          />
-        </div>
+        <AetherFlowBackdrop className="fixed inset-0 z-0" particleColor="rgba(255,109,0,0.86)" lineRGB="255,179,126" />
+        <main className="relative z-10 w-full max-w-sm">
+          <div className={ORANGE_NEW_CLASSES.glowShellTight}>
+            <GlowingEffect {...ORANGE_NEW_GLOW_PROPS.shellTight} />
+            <section className="relative z-10 overflow-hidden rounded-2xl border border-white/10 bg-[#07111f]/92 p-6 text-slate-100 shadow-2xl shadow-black/45 backdrop-blur-xl">
+              <div className="flex flex-col items-center text-center">
+                <img src="/dumala-onboarding-logo.png" alt="Dumala" className="h-14 w-auto object-contain" />
+                <p className={`mt-3 ${ORANGE_NEW_CLASSES.eyebrowLabel}`}>Dumala Player</p>
+                <p className="mt-1 text-xs font-semibold text-slate-500">Free player account</p>
+              </div>
 
-        {!signedIn && (
-          <p className="rounded-2xl border border-orange-300/15 bg-orange-300/10 px-5 py-4 text-sm leading-6 text-orange-50/90">
-            Sign in above, or create your free player account, to open your workspace.
-          </p>
-        )}
-        {signedIn && (resolving || !destination) && <ShellLoading />}
-        {signedIn && destination && destination.authorizedRoute !== '/player' && (
-          <RedirectingNotice route={destination.authorizedRoute} />
-        )}
-      </PersonaAccessShell>
+              <div className="mt-5">
+                <CloudAccountGate
+                  runtime={runtime}
+                  authController={auth}
+                  bootstrapAccount={false}
+                  tone="dark"
+                  layout="compact"
+                  audience="player"
+                  redirectTo={getAppAuthRedirectUrl('player')}
+                />
+              </div>
+
+              {signedIn && (resolving || !destination) && <div className="mt-4"><ShellLoading /></div>}
+              {signedIn && destination && destination.authorizedRoute !== '/player' && (
+                <div className="mt-4"><RedirectingNotice route={destination.authorizedRoute} /></div>
+              )}
+
+              <p className="mt-5 border-t border-white/10 pt-3 text-center text-[11px] leading-5 text-slate-500">
+                Join with a coach invite link or club join code.
+              </p>
+            </section>
+          </div>
+        </main>
+      </div>
     </>
   );
 };
