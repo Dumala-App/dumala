@@ -56,6 +56,8 @@ import {
   nextEventStatuses,
   nextSeasonStatuses,
   spotsRemaining,
+  bracketRoundName,
+  bracketWinnerId,
   buildFixtureCalendar,
   buildStatDatabase,
   suggestAwards,
@@ -1254,12 +1256,21 @@ const EventDetail = ({ league, event, runError, onBack, onAdvance, onAfterReview
     runError(async () => { await league.syncApprovedTeams(event.league_id, event.id); await refresh(); });
   const removeTeam = (teamId: string) =>
     runError(async () => { await league.deleteEventTeam(teamId); await refresh(); });
+  const isKnockout = event.format === 'single_elimination';
   const generateFixtures = () =>
-    runError(async () => { await league.generateFixtures(event.league_id, event.id); await refresh(); });
+    runError(async () => {
+      if (isKnockout) await league.generateBracket(event.league_id, event.id);
+      else await league.generateFixtures(event.league_id, event.id);
+      await refresh();
+    });
   const clearFixtures = () =>
     runError(async () => { await league.clearFixtures(event.id); await refresh(); });
   const recordResult = (fixtureId: string, home: number, away: number) =>
-    runError(async () => { await league.recordFixtureResult(fixtureId, home, away); await refresh(); });
+    runError(async () => {
+      await league.recordFixtureResult(fixtureId, home, away);
+      if (isKnockout) await league.syncBracket(event.id);
+      await refresh();
+    });
   const addStat = (input: FixtureStatInput) =>
     runError(async () => { await league.addStatEvent(event.league_id, event.id, input); await refresh(); });
   const deleteStat = (statEventId: string) =>
@@ -1341,8 +1352,12 @@ const EventDetail = ({ league, event, runError, onBack, onAdvance, onAfterReview
         <>
           {tab === 'applications' && <ApplicationsPanel registrations={registrations} onReview={review} />}
           {tab === 'teams' && <TeamsPanel teams={teams} approvedCount={approvedCount} onAdd={addTeam} onAddApproved={addApprovedTeams} onRemove={removeTeam} />}
-          {tab === 'fixtures' && <FixturesPanel fixtures={fixtures} teamCount={teams.length} teamName={teamName} onGenerate={generateFixtures} onClear={clearFixtures} onRecord={recordResult} />}
-          {tab === 'table' && <TablePanel standings={computeStandings(teams, fixtures)} />}
+          {tab === 'fixtures' && (isKnockout
+            ? <BracketPanel fixtures={fixtures} teamCount={teams.length} teamName={teamName} onGenerate={generateFixtures} onClear={clearFixtures} onRecord={recordResult} />
+            : <FixturesPanel fixtures={fixtures} teamCount={teams.length} teamName={teamName} onGenerate={generateFixtures} onClear={clearFixtures} onRecord={recordResult} />)}
+          {tab === 'table' && (isKnockout
+            ? <BracketTablePanel fixtures={fixtures} teamName={teamName} />
+            : <TablePanel standings={computeStandings(teams, fixtures)} />)}
           {tab === 'stats' && (
             <StatsPanel
               teams={teams}
@@ -1561,6 +1576,136 @@ const FixtureRow = ({ fixture, teamName, onRecord }: {
         {fixture.status === 'completed' && !dirty ? <Check size={16} /> : <Save size={16} />}
       </button>
     </div>
+  );
+};
+
+// --- Knockout bracket UI -----------------------------------------------------
+
+const BracketMatch = ({ fixture, teamName, onRecord }: {
+  fixture: EventFixture;
+  teamName: (id: string) => string;
+  onRecord: (fixtureId: string, home: number, away: number) => void;
+}) => {
+  const bothTeams = Boolean(fixture.home_team_id) && Boolean(fixture.away_team_id);
+  const [home, setHome] = useState(fixture.home_score?.toString() ?? '');
+  const [away, setAway] = useState(fixture.away_score?.toString() ?? '');
+  const dirty = home !== (fixture.home_score?.toString() ?? '') || away !== (fixture.away_score?.toString() ?? '');
+  const equal = home !== '' && away !== '' && Number(home) === Number(away);
+  const canSave = bothTeams && home !== '' && away !== '' && !equal && dirty;
+  const winner = bracketWinnerId(fixture);
+  const scoreInput = 'h-8 w-11 rounded-lg border border-white/10 bg-[#0b1726]/85 text-center font-display text-sm font-black text-white disabled:opacity-40';
+
+  const teamCell = (id: string | null, align: 'left' | 'right') => (
+    <span className={`flex-1 truncate text-sm font-bold ${align === 'right' ? 'text-right' : ''} ${id && winner === id ? 'text-emerald-200' : id ? 'text-white' : 'italic text-slate-500'}`}>
+      {id ? teamName(id) : 'TBD'}
+    </span>
+  );
+
+  return (
+    <div className="rounded-xl border border-white/10 bg-white/[0.035] px-3 py-2">
+      <div className="flex items-center gap-2">
+        {teamCell(fixture.home_team_id, 'right')}
+        <input aria-label="Home score" type="number" min={0} disabled={!bothTeams} className={scoreInput} value={home} onChange={e => setHome(e.target.value)} />
+        <span className="text-xs text-slate-500">v</span>
+        <input aria-label="Away score" type="number" min={0} disabled={!bothTeams} className={scoreInput} value={away} onChange={e => setAway(e.target.value)} />
+        {teamCell(fixture.away_team_id, 'left')}
+        <button
+          type="button"
+          aria-label="Save result"
+          disabled={!canSave}
+          onClick={() => onRecord(fixture.id, Number(home), Number(away))}
+          className={`flex h-8 w-8 items-center justify-center rounded-lg ${canSave ? 'text-emerald-300 hover:bg-emerald-300/10' : 'text-slate-600'}`}
+        >
+          {fixture.status === 'completed' && !dirty ? <Check size={16} /> : <Save size={16} />}
+        </button>
+      </div>
+      {equal && <p className="mt-1 text-right text-[11px] text-amber-300">A knockout match needs a winner.</p>}
+    </div>
+  );
+};
+
+const BracketPanel = ({ fixtures, teamCount, teamName, onGenerate, onClear, onRecord }: {
+  fixtures: EventFixture[];
+  teamCount: number;
+  teamName: (id: string) => string;
+  onGenerate: () => void;
+  onClear: () => void;
+  onRecord: (fixtureId: string, home: number, away: number) => void;
+}) => {
+  const rounds = [...new Set(fixtures.map(f => f.round))].sort((a, b) => a - b);
+  const totalRounds = rounds.length ? Math.max(...rounds) : 0;
+
+  return (
+    <section className={panel}>
+      <div className={`${sectionHeader} justify-between`}>
+        <div className="flex items-center gap-2">
+          <Swords size={16} className="text-sky-200" />
+          <h2 className="font-display text-sm font-black text-white">Bracket</h2>
+        </div>
+        {fixtures.length > 0 && (
+          <button type="button" className={`${ghostBtn} !py-1.5`} onClick={onClear}><RefreshCw size={13} /> Clear & regenerate</button>
+        )}
+      </div>
+      <div className="space-y-4 p-4">
+        {fixtures.length === 0 ? (
+          <div className="space-y-3 text-center">
+            <p className="text-sm text-slate-400">
+              {teamCount < 2 ? 'Add at least two teams to draw a bracket.' : 'Generate a single-elimination bracket — winners advance, and odd fields get byes.'}
+            </p>
+            <button type="button" className={primaryBtn} disabled={teamCount < 2} onClick={onGenerate}>
+              <Shuffle size={14} /> Generate bracket
+            </button>
+          </div>
+        ) : (
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {rounds.map(round => (
+              <div key={round} className="space-y-2">
+                <p className="text-[11px] font-black uppercase tracking-wide text-sky-200/80">{bracketRoundName(round, totalRounds)}</p>
+                {fixtures.filter(f => f.round === round).map(fixture => (
+                  <BracketMatch key={fixture.id} fixture={fixture} teamName={teamName} onRecord={onRecord} />
+                ))}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </section>
+  );
+};
+
+const BracketTablePanel = ({ fixtures, teamName }: { fixtures: EventFixture[]; teamName: (id: string) => string }) => {
+  const totalRounds = fixtures.length ? Math.max(...fixtures.map(f => f.round)) : 0;
+  const final = fixtures.find(f => f.round === totalRounds && (f.sequence ?? 1) === 1) ?? null;
+  const champion = final ? bracketWinnerId(final) : null;
+
+  return (
+    <section className={panel}>
+      <div className={sectionHeader}>
+        <Trophy size={16} className="text-sky-200" />
+        <h2 className="font-display text-sm font-black text-white">Bracket result</h2>
+      </div>
+      <div className="p-4">
+        {!final ? (
+          <p className="text-sm text-slate-400">Generate the bracket and record results to crown a champion.</p>
+        ) : champion ? (
+          <div className="rounded-2xl border border-amber-300/30 bg-amber-400/10 p-5 text-center">
+            <Medal size={22} className="mx-auto text-amber-300" />
+            <p className="mt-2 text-[11px] font-black uppercase tracking-wide text-amber-200/80">Champion</p>
+            <p className="mt-1 font-display text-2xl font-black text-white">{teamName(champion)}</p>
+            <p className="mt-2 text-xs text-slate-400">
+              Final: {teamName(final.home_team_id)} {final.home_score}–{final.away_score} {teamName(final.away_team_id)}
+            </p>
+          </div>
+        ) : (
+          <p className="text-sm leading-6 text-slate-400">
+            The champion is crowned in the final
+            {final.home_team_id && final.away_team_id
+              ? <>: <span className="font-bold text-white">{teamName(final.home_team_id)}</span> vs <span className="font-bold text-white">{teamName(final.away_team_id)}</span>.</>
+              : ' once both finalists are known.'}
+          </p>
+        )}
+      </div>
+    </section>
   );
 };
 
