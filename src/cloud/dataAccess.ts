@@ -213,6 +213,7 @@ import {
   generateBracket,
   generateFixtures,
   generateKnockoutFromGroups,
+  getPublicEvent,
   listAwards,
   listCoachMemberships,
   listEvents,
@@ -236,6 +237,7 @@ import {
   reviewRegistration,
   rotateCoachInvite,
   setCoachSeatLimit,
+  setEventPublic,
   setFixtureOps,
   setFixtureSchedule,
   settleInvoice,
@@ -277,6 +279,7 @@ import {
   type LeagueSeasonInput,
   type LeagueSeasonStatus,
   type LeagueVenue,
+  type PublicEventBundle,
   type LeagueVenueInput,
   type LedgerEntry,
   type LedgerEntryInput
@@ -460,6 +463,8 @@ export interface CloudLeagueRepository {
   createEvent(leagueId: string, input: LeagueEventInput): Promise<LeagueEvent>;
   updateEvent(eventId: string, input: LeagueEventInput): Promise<LeagueEvent>;
   advanceEventStatus(eventId: string, nextStatus: LeagueEventStatus): Promise<LeagueEventStatus>;
+  setEventPublic(eventId: string, isPublic: boolean): Promise<LeagueEvent>;
+  getPublicEvent(code: string): Promise<PublicEventBundle>;
   listRegistrations(eventId: string): Promise<EventRegistration[]>;
   reviewRegistration(
     registrationId: string,
@@ -690,6 +695,8 @@ export const createCloudDataAccess = (client: DumalaSupabaseClient): CloudDataAc
     createEvent: (leagueId, input) => createEvent(client, leagueId, input),
     updateEvent: (eventId, input) => updateEvent(client, eventId, input),
     advanceEventStatus: (eventId, nextStatus) => advanceEventStatus(client, eventId, nextStatus),
+    setEventPublic: (eventId, isPublic) => setEventPublic(client, eventId, isPublic),
+    getPublicEvent: code => getPublicEvent(client, code),
     listRegistrations: eventId => listRegistrations(client, eventId),
     reviewRegistration: (registrationId, nextStatus, note) =>
       reviewRegistration(client, registrationId, nextStatus, note),

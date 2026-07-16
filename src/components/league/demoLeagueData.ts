@@ -108,23 +108,23 @@ const buildDemoLeagueRepository = (): CloudLeagueRepository => {
     {
       id: 'demo-event-1', league_id: LEAGUE_ID, season_id: 'demo-season-1', name: 'Metro Cup Qualifiers',
       format: 'round_robin', category: 'U14', status: 'registration_open', team_cap: 8,
-      starts_on: '2026-08-01', ends_on: '2026-08-30', registration_code: 'METROCUP',
+      starts_on: '2026-08-01', ends_on: '2026-08-30', registration_code: 'METROCUP', is_public: true,
       notes: 'Open to all metro clubs. Share the code below to invite teams.', created_at: now(), updated_at: now()
     },
     {
       id: 'demo-event-2', league_id: LEAGUE_ID, season_id: 'demo-season-1', name: 'Founders Invitational',
       format: 'round_robin', category: 'U16', status: 'draft', team_cap: 6,
-      starts_on: null, ends_on: null, registration_code: 'FOUNDERS1', notes: null, created_at: now(), updated_at: now()
+      starts_on: null, ends_on: null, registration_code: 'FOUNDERS1', is_public: false, notes: null, created_at: now(), updated_at: now()
     },
     {
       id: 'demo-event-3', league_id: LEAGUE_ID, season_id: 'demo-season-1', name: 'Metro Knockout Cup',
       format: 'single_elimination', category: 'U16', status: 'active', team_cap: 8,
-      starts_on: '2026-09-01', ends_on: '2026-09-15', registration_code: 'KNOCKOUT', notes: null, created_at: now(), updated_at: now()
+      starts_on: '2026-09-01', ends_on: '2026-09-15', registration_code: 'KNOCKOUT', is_public: true, notes: null, created_at: now(), updated_at: now()
     },
     {
       id: 'demo-event-4', league_id: LEAGUE_ID, season_id: 'demo-season-1', name: 'Metro Champions Cup',
       format: 'group_knockout', category: 'U18', status: 'active', team_cap: 8,
-      starts_on: '2026-10-01', ends_on: '2026-10-20', registration_code: 'CHAMPIONS', notes: null, created_at: now(), updated_at: now()
+      starts_on: '2026-10-01', ends_on: '2026-10-20', registration_code: 'CHAMPIONS', is_public: true, notes: null, created_at: now(), updated_at: now()
     }
   ];
 
@@ -234,7 +234,11 @@ const buildDemoLeagueRepository = (): CloudLeagueRepository => {
   };
   playElim('demo-elim-fixture-1', 2, 1);
   playElim('demo-elim-fixture-2', 0, 3);
-  advanceBracketFor('demo-event-3');
+  advanceBracketFor('demo-event-3'); // fill the semi-finals
+  playElim('demo-elim-fixture-3', 3, 1);
+  playElim('demo-elim-fixture-4', 2, 0);
+  advanceBracketFor('demo-event-3'); // fill the final
+  playElim('demo-elim-fixture-5', 2, 1); // crown a champion
 
   // --- Group -> knockout demo event (demo-event-4) ---------------------------
   // Six teams in two groups of three. Every group match is played (stronger seed
@@ -421,7 +425,7 @@ const buildDemoLeagueRepository = (): CloudLeagueRepository => {
         id: newId(), league_id: leagueId, season_id: input.seasonId, name: input.name.trim(),
         format: input.format ?? 'round_robin', category: input.category?.trim() || null, status: 'draft',
         team_cap: input.teamCap ?? null, starts_on: input.startsOn || null, ends_on: input.endsOn || null,
-        registration_code: genCode(), notes: input.notes?.trim() || null, created_at: now(), updated_at: now()
+        registration_code: genCode(), is_public: false, notes: input.notes?.trim() || null, created_at: now(), updated_at: now()
       };
       events = [row, ...events];
       return row;
@@ -441,6 +445,25 @@ const buildDemoLeagueRepository = (): CloudLeagueRepository => {
       }
       events = events.map(e => e.id === eventId ? { ...e, status: nextStatus, updated_at: now() } : e);
       return nextStatus;
+    },
+    setEventPublic: async (eventId, isPublic) => {
+      events = events.map(e => e.id === eventId ? { ...e, is_public: isPublic, updated_at: now() } : e);
+      return events.find(e => e.id === eventId)!;
+    },
+    getPublicEvent: async code => {
+      const event = events.find(e => e.registration_code === code.trim().toUpperCase() && e.is_public);
+      if (!event) return { found: false, teams: [], fixtures: [], statEvents: [] };
+      return {
+        found: true,
+        leagueName: leagues.find(l => l.id === event.league_id)?.name,
+        event: {
+          id: event.id, name: event.name, format: event.format, category: event.category,
+          status: event.status, starts_on: event.starts_on, ends_on: event.ends_on
+        },
+        teams: teams.filter(t => t.event_id === event.id),
+        fixtures: fixtures.filter(f => f.event_id === event.id).sort((a, b) => a.round - b.round || (a.sequence ?? 0) - (b.sequence ?? 0)),
+        statEvents: statEvents.filter(s => s.event_id === event.id)
+      };
     },
     listRegistrations: async eventId => registrations.filter(r => r.event_id === eventId),
     reviewRegistration: async (registrationId, nextStatus, note) => {
