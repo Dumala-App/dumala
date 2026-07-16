@@ -56,11 +56,13 @@ import {
   nextEventStatuses,
   nextSeasonStatuses,
   spotsRemaining,
+  autoScheduleFixtures,
   bracketRoundName,
   bracketWinnerId,
   buildFixtureCalendar,
   buildStatDatabase,
   groupStageStandings,
+  DEFAULT_MATCH_MINUTES,
   suggestAwards,
   summarizeCoachSeats,
   summarizeCompetition,
@@ -2408,6 +2410,28 @@ const CalendarSection = ({ league, fixtures, teams, events, venues, runError, on
   const [editAt, setEditAt] = useState('');
   const [editVenue, setEditVenue] = useState('');
 
+  const [autoOpen, setAutoOpen] = useState(false);
+  const [autoStart, setAutoStart] = useState(new Date().toISOString().slice(0, 10));
+  const [autoFirst, setAutoFirst] = useState('09:00');
+  const [autoLast, setAutoLast] = useState('17:00');
+  const [autoMinutes, setAutoMinutes] = useState(String(DEFAULT_MATCH_MINUTES));
+  const [autoScope, setAutoScope] = useState<'unscheduled' | 'all'>('unscheduled');
+
+  const runAutoSchedule = () =>
+    runError(async () => {
+      const opts = { startDate: autoStart, firstKickoff: autoFirst, lastKickoff: autoLast, slotMinutes: Number(autoMinutes) || DEFAULT_MATCH_MINUTES };
+      const active = fixtures.filter(f => f.status !== 'cancelled');
+      const toSchedule = autoScope === 'unscheduled'
+        ? active.filter(f => f.status !== 'completed' && !f.kickoff_at)
+        : active.filter(f => f.status !== 'completed');
+      const toScheduleIds = new Set(toSchedule.map(f => f.id));
+      const busy = active.filter(f => f.kickoff_at && f.venue_id && !toScheduleIds.has(f.id));
+      const assignments = autoScheduleFixtures(toSchedule, venues, busy, opts);
+      await league.applyFixtureSchedules(assignments);
+      setAutoOpen(false);
+      await onAfter();
+    });
+
   const startEdit = (item: CalendarFixtureItem) => {
     setEditingId(item.fixtureId);
     setEditAt(item.kickoffAt ? toLocalInput(item.kickoffAt) : '');
@@ -2485,10 +2509,40 @@ const CalendarSection = ({ league, fixtures, teams, events, venues, runError, on
 
   return (
     <div className="space-y-4">
-      <div>
-        <h2 className="font-display text-sm font-black uppercase tracking-wide text-white">Fixtures calendar</h2>
-        <p className="mt-1 text-xs text-slate-400">Your whole league's match schedule in one place, with automatic venue double-booking checks.</p>
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h2 className="font-display text-sm font-black uppercase tracking-wide text-white">Fixtures calendar</h2>
+          <p className="mt-1 text-xs text-slate-400">Your whole league's match schedule in one place, with automatic venue double-booking checks.</p>
+        </div>
+        {!noFixtures && (
+          <button type="button" className={primaryBtn} onClick={() => setAutoOpen(v => !v)} disabled={venues.length === 0}>
+            <Shuffle size={14} /> Auto-schedule
+          </button>
+        )}
       </div>
+
+      {autoOpen && !noFixtures && (
+        <div className={`${panel} space-y-3 p-4`}>
+          <p className="text-xs text-slate-400">Place matches across your venues automatically — no venue double-booked, and no team playing twice at once.</p>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+            <div className="space-y-1"><label className={label}>Start date</label><input type="date" className={inputClass} value={autoStart} onChange={e => setAutoStart(e.target.value)} /></div>
+            <div className="space-y-1"><label className={label}>First kick-off</label><input type="time" className={inputClass} value={autoFirst} onChange={e => setAutoFirst(e.target.value)} /></div>
+            <div className="space-y-1"><label className={label}>Last kick-off</label><input type="time" className={inputClass} value={autoLast} onChange={e => setAutoLast(e.target.value)} /></div>
+            <div className="space-y-1"><label className={label}>Minutes / match</label><input type="number" min={15} step={15} className={inputClass} value={autoMinutes} onChange={e => setAutoMinutes(e.target.value)} /></div>
+            <div className="space-y-1">
+              <label className={label}>Scope</label>
+              <select className={selectClass} value={autoScope} onChange={e => setAutoScope(e.target.value as 'unscheduled' | 'all')}>
+                <option value="unscheduled">Unscheduled only</option>
+                <option value="all">All unplayed matches</option>
+              </select>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <button type="button" className={primaryBtn} onClick={runAutoSchedule}><CalendarClock size={14} /> Schedule matches</button>
+            <button type="button" className={ghostBtn} onClick={() => setAutoOpen(false)}>Cancel</button>
+          </div>
+        </div>
+      )}
 
       {noFixtures ? (
         <div className={`${panel} p-8 text-center`}>

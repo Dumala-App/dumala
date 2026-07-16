@@ -4,6 +4,7 @@ import { createCloudDataAccess } from './dataAccess';
 import {
   CloudLeagueError,
   EVENT_STATUS_LABELS,
+  autoScheduleFixtures,
   buildFixtureCalendar,
   buildStatDatabase,
   bracketRoundName,
@@ -503,6 +504,46 @@ describe('fixtures calendar helper', () => {
       fx('f2', 'c', 'd', '2026-08-15T09:00:00.000Z', null)
     ], teams, events, venues);
     expect(cal.conflictCount).toBe(0);
+  });
+
+  const options = { startDate: '2026-08-15', firstKickoff: '09:00', lastKickoff: '17:00', slotMinutes: 120 };
+
+  it('auto-schedules a round robin with no venue or team clashes', () => {
+    // 4 teams → 6 fixtures. Two venues, so the calendar must come out clean.
+    const fixtures = [
+      fx('f1', 'a', 'b', null, null), fx('f2', 'c', 'd', null, null),
+      fx('f3', 'a', 'c', null, null), fx('f4', 'b', 'd', null, null),
+      fx('f5', 'a', 'd', null, null), fx('f6', 'b', 'c', null, null)
+    ];
+    const assignments = autoScheduleFixtures(fixtures, venues, [], options);
+    expect(assignments).toHaveLength(6);
+
+    // Apply and confirm the calendar detects zero conflicts.
+    const byId = new Map(assignments.map(a => [a.fixtureId, a]));
+    const scheduled = fixtures.map(f => ({ ...f, kickoff_at: byId.get(f.id)!.kickoffAt, venue_id: byId.get(f.id)!.venueId }));
+    expect(buildFixtureCalendar(scheduled, teams, events, venues).conflictCount).toBe(0);
+
+    // No team is placed in two matches within one match window.
+    const perTeam = new Map<string, number[]>();
+    for (const f of scheduled) {
+      for (const t of [f.home_team_id, f.away_team_id]) {
+        const list = perTeam.get(t) ?? []; list.push(new Date(f.kickoff_at).getTime()); perTeam.set(t, list);
+      }
+    }
+    for (const times of perTeam.values()) {
+      times.sort((x, y) => x - y);
+      for (let i = 1; i < times.length; i += 1) expect(times[i] - times[i - 1]).toBeGreaterThanOrEqual(120 * 60_000);
+    }
+  });
+
+  it('works around already-busy slots and returns nothing without venues', () => {
+    const busy = [fx('b1', 'a', 'b', '2026-08-15T09:00:00.000Z', 'v1')];
+    const assignments = autoScheduleFixtures([fx('f1', 'c', 'd', null, null)], venues, busy, options);
+    expect(assignments).toHaveLength(1);
+    // v1 at 09:00 is taken; the fixture must avoid clashing (different venue or a later slot).
+    const a = assignments[0];
+    expect(a.venueId === 'v2' || new Date(a.kickoffAt).getTime() !== new Date('2026-08-15T09:00:00.000Z').getTime()).toBe(true);
+    expect(autoScheduleFixtures([fx('f1', 'c', 'd', null, null)], [], [], options)).toEqual([]);
   });
 });
 

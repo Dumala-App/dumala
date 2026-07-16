@@ -195,6 +195,7 @@ import {
   addStatEvent,
   advanceEventStatus,
   advanceSeasonStatus,
+  applyFixtureSchedules,
   applyToLeagueOrg,
   clearFixtures,
   createEvent,
@@ -260,6 +261,7 @@ import {
   type FixtureOpsPatch,
   type FixtureSchedulePatch,
   type FixtureStatEvent,
+  type ScheduleAssignment,
   type FixtureStatInput,
   type InvoiceStatus,
   type League,
@@ -482,6 +484,7 @@ export interface CloudLeagueRepository {
   clearFixtures(eventId: string): Promise<void>;
   recordFixtureResult(fixtureId: string, homeScore: number, awayScore: number): Promise<EventFixture>;
   setFixtureSchedule(fixtureId: string, patch: FixtureSchedulePatch): Promise<EventFixture>;
+  applyFixtureSchedules(assignments: ScheduleAssignment[]): Promise<number>;
   listStatEvents(eventId: string): Promise<FixtureStatEvent[]>;
   addStatEvent(leagueId: string, eventId: string, input: FixtureStatInput): Promise<FixtureStatEvent>;
   deleteStatEvent(statEventId: string): Promise<void>;
@@ -708,6 +711,7 @@ export const createCloudDataAccess = (client: DumalaSupabaseClient): CloudDataAc
     clearFixtures: eventId => clearFixtures(client, eventId),
     recordFixtureResult: (fixtureId, homeScore, awayScore) => recordFixtureResult(client, fixtureId, homeScore, awayScore),
     setFixtureSchedule: (fixtureId, patch) => setFixtureSchedule(client, fixtureId, patch),
+    applyFixtureSchedules: assignments => applyFixtureSchedules(client, assignments),
     listStatEvents: eventId => listStatEvents(client, eventId),
     addStatEvent: (leagueId, eventId, input) => addStatEvent(client, leagueId, eventId, input),
     deleteStatEvent: statEventId => deleteStatEvent(client, statEventId),
