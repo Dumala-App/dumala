@@ -600,6 +600,13 @@ const buildDemoLeagueRepository = (): CloudLeagueRepository => {
       } : f);
       return fixtures.find(f => f.id === fixtureId)!;
     },
+    applyFixtureSchedules: async assignments => {
+      const byId = new Map(assignments.map(a => [a.fixtureId, a]));
+      fixtures = fixtures.map(f => byId.has(f.id)
+        ? { ...f, kickoff_at: byId.get(f.id)!.kickoffAt, venue_id: byId.get(f.id)!.venueId, updated_at: now() }
+        : f);
+      return assignments.length;
+    },
     listStatEvents: async eventId => statEvents.filter(s => s.event_id === eventId),
     addStatEvent: async (leagueId, eventId, input) => {
       const row: FixtureStatEvent = {

@@ -1940,6 +1940,98 @@ export const buildStatDatabase = (statEvents: FixtureStatEvent[], teams: EventTe
   return { players: playerRows, teams: teamRows, totals };
 };
 
+// --- Conflict-aware auto-scheduling ------------------------------------------
+// Greedily place fixtures onto (time, venue) slots so no venue is double-booked
+// and no team plays two matches at once. Pairs with buildFixtureCalendar, which
+// detects the same conflicts. Pure — the caller persists the result.
+
+export interface ScheduleOptions {
+  startDate: string;    // 'YYYY-MM-DD'
+  firstKickoff: string; // 'HH:MM'
+  lastKickoff: string;  // 'HH:MM'
+  slotMinutes: number;  // gap between kickoffs at a venue, and the match footprint
+}
+
+export interface ScheduleAssignment {
+  fixtureId: string;
+  kickoffAt: string; // ISO
+  venueId: string;
+}
+
+export const DEFAULT_MATCH_MINUTES = 120;
+
+const parseHm = (value: string): number => {
+  const [h, m] = value.split(':').map(Number);
+  return (Number.isFinite(h) ? h : 0) * 60 + (Number.isFinite(m) ? m : 0);
+};
+
+/**
+ * Assign each fixture the earliest (time, venue) slot with no clash: the venue
+ * must be free and neither team already playing within one match's window. Times
+ * run from firstKickoff to lastKickoff each day, stepping by slotMinutes, from
+ * startDate onward. `busy` fixtures (e.g. already-played) hold their slots fixed.
+ * Fixtures are placed in round then sequence order.
+ */
+export const autoScheduleFixtures = (
+  toSchedule: EventFixture[],
+  venues: LeagueVenue[],
+  busy: EventFixture[],
+  options: ScheduleOptions
+): ScheduleAssignment[] => {
+  if (venues.length === 0 || toSchedule.length === 0) return [];
+  const stepMinutes = Math.max(15, Math.round(options.slotMinutes) || DEFAULT_MATCH_MINUTES);
+  const windowMs = stepMinutes * 60_000;
+  const firstMin = parseHm(options.firstKickoff);
+  const lastMin = Math.max(firstMin, parseHm(options.lastKickoff));
+
+  const placed: Array<{ time: number; venueId: string; home: string | null; away: string | null }> = [];
+  for (const b of busy) {
+    if (b.kickoff_at && b.venue_id) {
+      const time = new Date(b.kickoff_at).getTime();
+      if (!Number.isNaN(time)) placed.push({ time, venueId: b.venue_id, home: b.home_team_id, away: b.away_team_id });
+    }
+  }
+
+  // Candidate kickoff times in chronological order.
+  const slotTimes: number[] = [];
+  const start = new Date(`${options.startDate}T00:00:00`);
+  if (Number.isNaN(start.getTime())) return [];
+  const MAX_DAYS = 180;
+  for (let day = 0; day < MAX_DAYS; day += 1) {
+    for (let minute = firstMin; minute <= lastMin; minute += stepMinutes) {
+      const dt = new Date(start);
+      dt.setDate(start.getDate() + day);
+      dt.setHours(0, minute, 0, 0);
+      slotTimes.push(dt.getTime());
+    }
+  }
+
+  const clashes = (time: number, venueId: string, home: string | null, away: string | null): boolean =>
+    placed.some(p => Math.abs(p.time - time) < windowMs && (
+      p.venueId === venueId ||
+      (home !== null && (p.home === home || p.away === home)) ||
+      (away !== null && (p.home === away || p.away === away))
+    ));
+
+  const ordered = toSchedule.slice().sort((a, b) => a.round - b.round || (a.sequence ?? 0) - (b.sequence ?? 0));
+  const assignments: ScheduleAssignment[] = [];
+  for (const fixture of ordered) {
+    let done = false;
+    for (const time of slotTimes) {
+      for (const venue of venues) {
+        if (!clashes(time, venue.id, fixture.home_team_id, fixture.away_team_id)) {
+          placed.push({ time, venueId: venue.id, home: fixture.home_team_id, away: fixture.away_team_id });
+          assignments.push({ fixtureId: fixture.id, kickoffAt: new Date(time).toISOString(), venueId: venue.id });
+          done = true;
+          break;
+        }
+      }
+      if (done) break;
+    }
+  }
+  return assignments;
+};
+
 // --- League coach organization -----------------------------------------------
 // A league carries a coach seat quota + a shareable invite code. Coaches apply
 // through the code and the owner reviews each; a seat is consumed on approval.
@@ -2102,6 +2194,15 @@ export const setFixtureSchedule = async (
     'FIXTURE_SCHEDULE_FAILED',
     'Failed to update the fixture schedule'
   ) as EventFixture;
+};
+
+/** Apply a batch of schedule assignments (e.g. from autoScheduleFixtures). */
+export const applyFixtureSchedules = async (
+  client: DumalaSupabaseClient,
+  assignments: ScheduleAssignment[]
+): Promise<number> => {
+  await Promise.all(assignments.map(a => setFixtureSchedule(client, a.fixtureId, { kickoffAt: a.kickoffAt, venueId: a.venueId })));
+  return assignments.length;
 };
 
 export interface CalendarFixtureItem {
