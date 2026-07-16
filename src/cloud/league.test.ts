@@ -6,10 +6,15 @@ import {
   EVENT_STATUS_LABELS,
   buildFixtureCalendar,
   buildStatDatabase,
+  bracketRoundName,
+  bracketWinnerId,
   computeDiscipline,
   computeScorers,
   computeStandings,
   formatMoney,
+  nextPowerOfTwo,
+  seedPositions,
+  singleEliminationBracket,
   nextEventStatuses,
   nextSeasonStatuses,
   roundRobinRounds,
@@ -133,6 +138,68 @@ describe('tournament pure helpers', () => {
     expect(table[0]).toMatchObject({ played: 2, won: 1, drawn: 1, lost: 0, points: 4, goalDifference: 1 });
     expect(table[1]).toMatchObject({ points: 3, goalDifference: 2 });
     expect(table[2]).toMatchObject({ points: 1, goalDifference: -3 });
+  });
+});
+
+describe('knockout bracket helpers', () => {
+  const pairKey = (s: { homeTeamId: string | null; awayTeamId: string | null }) =>
+    [s.homeTeamId, s.awayTeamId].sort().join('-');
+
+  it('rounds up to the next power of two', () => {
+    expect([1, 2, 3, 5, 8, 9].map(nextPowerOfTwo)).toEqual([1, 2, 4, 8, 8, 16]);
+  });
+
+  it('produces standard seed slot orders', () => {
+    expect(seedPositions(2)).toEqual([1, 2]);
+    expect(seedPositions(4)).toEqual([1, 4, 2, 3]);
+    expect(seedPositions(8)).toEqual([1, 8, 4, 5, 2, 7, 3, 6]);
+  });
+
+  it('builds a full bracket for a power-of-two field', () => {
+    const specs = singleEliminationBracket(['a', 'b', 'c', 'd']);
+    const r1 = specs.filter(s => s.round === 1);
+    const r2 = specs.filter(s => s.round === 2);
+    expect(r1).toHaveLength(2);
+    expect(r2).toHaveLength(1);
+    // Top seed a meets bottom seed d; b meets c. The final starts empty.
+    expect(new Set(r1.map(pairKey))).toEqual(new Set(['a-d', 'b-c']));
+    expect(r2[0]).toMatchObject({ homeTeamId: null, awayTeamId: null });
+  });
+
+  it('gives odd fields a bye that pre-advances into round two', () => {
+    // 3 teams → bracket of 4, one bye. Seed 1 (a) draws the bye and skips to the final.
+    const specs = singleEliminationBracket(['a', 'b', 'c']);
+    const r1 = specs.filter(s => s.round === 1);
+    const final = specs.find(s => s.round === 2)!;
+    expect(r1).toHaveLength(1);                 // only b vs c is actually played
+    expect(pairKey(r1[0])).toBe('b-c');
+    expect(final.homeTeamId).toBe('a');         // a pre-advanced via the bye
+    expect(final.awayTeamId).toBeNull();        // awaits the b/c winner
+  });
+
+  it('returns nothing for fewer than two teams', () => {
+    expect(singleEliminationBracket([])).toEqual([]);
+    expect(singleEliminationBracket(['solo'])).toEqual([]);
+  });
+
+  const fixture = (home: string | null, away: string | null, hs: number | null, as: number | null, status: EventFixture['status'] = 'completed'): EventFixture => ({
+    id: 'f', event_id: 'e', league_id: 'l', round: 1, sequence: 1, home_team_id: home, away_team_id: away,
+    status, home_score: hs, away_score: as, kickoff_at: null, venue_id: null,
+    home_checked_in: false, away_checked_in: false, official_name: null, created_at: '', updated_at: ''
+  });
+
+  it('resolves a decisive winner but not a draw or an unplayed match', () => {
+    expect(bracketWinnerId(fixture('a', 'b', 2, 1))).toBe('a');
+    expect(bracketWinnerId(fixture('a', 'b', 0, 3))).toBe('b');
+    expect(bracketWinnerId(fixture('a', 'b', 1, 1))).toBeNull();
+    expect(bracketWinnerId(fixture('a', 'b', null, null, 'scheduled'))).toBeNull();
+  });
+
+  it('names rounds from the end of the bracket', () => {
+    expect(bracketRoundName(3, 3)).toBe('Final');
+    expect(bracketRoundName(2, 3)).toBe('Semi-finals');
+    expect(bracketRoundName(1, 3)).toBe('Quarter-finals');
+    expect(bracketRoundName(1, 4)).toBe('Round of 16');
   });
 });
 

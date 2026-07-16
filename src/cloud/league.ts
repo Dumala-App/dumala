@@ -585,8 +585,10 @@ export interface EventFixture {
   league_id: string;
   round: number;
   sequence: number | null;
-  home_team_id: string;
-  away_team_id: string;
+  // Nullable for knockout brackets: a future-round fixture has no teams until
+  // winners advance into it. Round-robin fixtures always have both.
+  home_team_id: string | null;
+  away_team_id: string | null;
   status: EventFixtureStatus;
   home_score: number | null;
   away_score: number | null;
@@ -699,6 +701,108 @@ export const computeStandings = (teams: EventTeam[], fixtures: EventFixture[]): 
   return rows;
 };
 
+// --- Knockout bracket (single elimination) -----------------------------------
+// A bracket is stored as ordinary fixtures: round 1 holds the opening matchups
+// (byes pre-advanced), later rounds start with empty team slots. Winners feed
+// forward: fixture (round r, sequence s) advances into (r+1, ceil(s/2)) — the
+// home slot when s is odd, the away slot when s is even.
+
+export interface BracketFixtureSpec {
+  round: number;
+  sequence: number;
+  homeTeamId: string | null;
+  awayTeamId: string | null;
+}
+
+/** Smallest power of two >= n (>= 1). */
+export const nextPowerOfTwo = (n: number): number => {
+  let p = 1;
+  while (p < n) p *= 2;
+  return p;
+};
+
+/**
+ * Standard single-elimination seed slot order for a bracket of `size` (a power
+ * of two). Pairs the top seed with the bottom, spreading seeds so they only meet
+ * in later rounds — e.g. size 4 → [1,4,2,3], size 8 → [1,8,4,5,2,7,3,6].
+ */
+export const seedPositions = (size: number): number[] => {
+  let seeds = [1, 2];
+  while (seeds.length < size) {
+    const round = seeds.length * 2;
+    const next: number[] = [];
+    for (const s of seeds) {
+      next.push(s);
+      next.push(round + 1 - s);
+    }
+    seeds = next;
+  }
+  return seeds;
+};
+
+/**
+ * Build a single-elimination bracket for the given (seed-ordered) team ids.
+ * Odd fields get byes: a team drawn against a bye is pre-advanced into round 2
+ * and no round-1 fixture is created for it. Later-round fixtures start empty and
+ * fill in as winners advance. Returns fixture specs across every round.
+ */
+export const singleEliminationBracket = (teamIds: string[]): BracketFixtureSpec[] => {
+  const n = teamIds.length;
+  if (n < 2) return [];
+  const size = nextPowerOfTwo(n);
+  const totalRounds = Math.round(Math.log2(size));
+  const positions = seedPositions(size);
+  const teamAt = (pos: number): string | null => (pos <= n ? teamIds[pos - 1] : null);
+
+  const specs: BracketFixtureSpec[] = [];
+  // Round-2 slots pre-filled by a bye winner: sequence -> { home?, away? }.
+  const prefill = new Map<number, { home?: string; away?: string }>();
+
+  const round1Slots = size / 2;
+  for (let i = 0; i < round1Slots; i += 1) {
+    const seq = i + 1;
+    const a = teamAt(positions[i * 2]);
+    const b = teamAt(positions[i * 2 + 1]);
+    if (a !== null && b !== null) {
+      specs.push({ round: 1, sequence: seq, homeTeamId: a, awayTeamId: b });
+    } else {
+      const advancer = a ?? b; // the real team (the other side is a bye)
+      if (advancer !== null) {
+        const parentSeq = Math.ceil(seq / 2);
+        const entry = prefill.get(parentSeq) ?? {};
+        if (seq % 2 === 1) entry.home = advancer; else entry.away = advancer;
+        prefill.set(parentSeq, entry);
+      }
+    }
+  }
+
+  for (let round = 2; round <= totalRounds; round += 1) {
+    const slots = size / 2 ** round;
+    for (let seq = 1; seq <= slots; seq += 1) {
+      const pre = round === 2 ? prefill.get(seq) : undefined;
+      specs.push({ round, sequence: seq, homeTeamId: pre?.home ?? null, awayTeamId: pre?.away ?? null });
+    }
+  }
+
+  return specs;
+};
+
+/** The winning team id of a fixture, or null when it isn't decided (unplayed or drawn). */
+export const bracketWinnerId = (fixture: EventFixture): string | null => {
+  if (fixture.status !== 'completed' || fixture.home_score === null || fixture.away_score === null) return null;
+  if (fixture.home_score === fixture.away_score) return null;
+  return fixture.home_score > fixture.away_score ? fixture.home_team_id : fixture.away_team_id;
+};
+
+/** Human label for a knockout round given the total number of rounds. */
+export const bracketRoundName = (round: number, totalRounds: number): string => {
+  const fromFinal = totalRounds - round;
+  if (fromFinal <= 0) return 'Final';
+  if (fromFinal === 1) return 'Semi-finals';
+  if (fromFinal === 2) return 'Quarter-finals';
+  return `Round of ${2 ** (fromFinal + 1)}`;
+};
+
 // --- Owner: teams ------------------------------------------------------------
 
 export const listEventTeams = async (client: DumalaSupabaseClient, eventId: string): Promise<EventTeam[]> => {
@@ -807,6 +911,43 @@ export const generateFixtures = async (
     'Failed to generate fixtures'
   ) as EventFixture[] | null;
   return inserted ?? [];
+};
+
+/** Regenerate a single-elimination bracket for the event's teams (clears existing first). */
+export const generateBracket = async (
+  client: DumalaSupabaseClient,
+  leagueId: string,
+  eventId: string
+): Promise<EventFixture[]> => {
+  const supabase = asUntypedClient(client);
+  const teams = await listEventTeams(client, eventId);
+  if (teams.length < 2) {
+    throw new CloudLeagueError('Add at least two teams before generating a bracket.', 'NOT_ENOUGH_TEAMS');
+  }
+  await clearFixtures(client, eventId);
+  const ordered = teams.slice().sort((a, b) => (a.seed ?? 9999) - (b.seed ?? 9999));
+  const rows = singleEliminationBracket(ordered.map(t => t.id)).map(spec => ({
+    league_id: leagueId, event_id: eventId, round: spec.round, sequence: spec.sequence,
+    home_team_id: spec.homeTeamId, away_team_id: spec.awayTeamId
+  }));
+  const inserted = expectNoError(
+    await supabase.from('event_fixtures').insert(rows).select('*')
+      .order('round', { ascending: true }).order('sequence', { ascending: true }),
+    'BRACKET_GENERATE_FAILED',
+    'Failed to generate the bracket'
+  ) as EventFixture[] | null;
+  return inserted ?? [];
+};
+
+/** Advance winners into later bracket rounds. Idempotent; returns slots updated. */
+export const syncBracket = async (client: DumalaSupabaseClient, eventId: string): Promise<number> => {
+  const supabase = asUntypedClient(client);
+  const data = expectNoError(
+    await supabase.rpc('sync_bracket', { target_event_id: eventId }),
+    'BRACKET_SYNC_FAILED',
+    'Failed to advance the bracket'
+  );
+  return typeof data === 'number' ? data : 0;
 };
 
 export const recordFixtureResult = async (

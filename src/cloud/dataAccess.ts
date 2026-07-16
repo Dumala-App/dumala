@@ -208,6 +208,7 @@ import {
   deleteLedgerEntry,
   deleteStatEvent,
   deleteVenue,
+  generateBracket,
   generateFixtures,
   listAwards,
   listCoachMemberships,
@@ -237,6 +238,7 @@ import {
   settleInvoice,
   submitEventRegistration,
   syncApprovedTeams,
+  syncBracket,
   updateEvent,
   updateLeague,
   updateSeason,
@@ -471,6 +473,8 @@ export interface CloudLeagueRepository {
   syncApprovedTeams(leagueId: string, eventId: string): Promise<EventTeam[]>;
   listFixtures(eventId: string): Promise<EventFixture[]>;
   generateFixtures(leagueId: string, eventId: string): Promise<EventFixture[]>;
+  generateBracket(leagueId: string, eventId: string): Promise<EventFixture[]>;
+  syncBracket(eventId: string): Promise<number>;
   clearFixtures(eventId: string): Promise<void>;
   recordFixtureResult(fixtureId: string, homeScore: number, awayScore: number): Promise<EventFixture>;
   setFixtureSchedule(fixtureId: string, patch: FixtureSchedulePatch): Promise<EventFixture>;
@@ -693,6 +697,8 @@ export const createCloudDataAccess = (client: DumalaSupabaseClient): CloudDataAc
     syncApprovedTeams: (leagueId, eventId) => syncApprovedTeams(client, leagueId, eventId),
     listFixtures: eventId => listFixtures(client, eventId),
     generateFixtures: (leagueId, eventId) => generateFixtures(client, leagueId, eventId),
+    generateBracket: (leagueId, eventId) => generateBracket(client, leagueId, eventId),
+    syncBracket: eventId => syncBracket(client, eventId),
     clearFixtures: eventId => clearFixtures(client, eventId),
     recordFixtureResult: (fixtureId, homeScore, awayScore) => recordFixtureResult(client, fixtureId, homeScore, awayScore),
     setFixtureSchedule: (fixtureId, patch) => setFixtureSchedule(client, fixtureId, patch),
