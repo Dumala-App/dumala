@@ -505,7 +505,7 @@ export const deleteDocumentRequirement = async (client: DumalaSupabaseClient, re
 // review (approve/reject/waitlist) with team-cap enforcement.
 
 export type LeagueEventFormat = 'round_robin' | 'single_elimination' | 'group_knockout';
-export type LeagueEventStatus = 'draft' | 'registration_open' | 'active' | 'completed';
+export type LeagueEventStatus = 'draft' | 'registration_open' | 'active' | 'completed' | 'archived';
 export type EventRegistrationStatus =
   | 'submitted'
   | 'approved'
@@ -591,14 +591,16 @@ const EVENT_FLOW: Record<LeagueEventStatus, LeagueEventStatus | null> = {
   draft: 'registration_open',
   registration_open: 'active',
   active: 'completed',
-  completed: null
+  completed: 'archived',
+  archived: null
 };
 
 export const EVENT_STATUS_LABELS: Record<LeagueEventStatus, string> = {
   draft: 'Draft',
   registration_open: 'Registration open',
   active: 'Active',
-  completed: 'Completed'
+  completed: 'Completed',
+  archived: 'Archived'
 };
 
 export const EVENT_FORMAT_LABELS: Record<LeagueEventFormat, string> = {
@@ -614,6 +616,10 @@ export const REGISTRATION_STATUS_LABELS: Record<EventRegistrationStatus, string>
   waitlisted: 'Waitlisted',
   withdrawn: 'Withdrawn'
 };
+
+/** True once an event has finished its run — completed, or filed away. */
+export const isEventFinished = (status: LeagueEventStatus): boolean =>
+  status === 'completed' || status === 'archived';
 
 /** The single status an event may advance to next (or [] when terminal). */
 export const nextEventStatuses = (status: LeagueEventStatus): LeagueEventStatus[] => {

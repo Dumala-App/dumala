@@ -5531,6 +5531,7 @@ export type Database = {
         | "registration_open"
         | "active"
         | "completed"
+        | "archived"
       league_requirement_scope: "league" | "season" | "event"
       league_requirement_target: "team" | "player" | "coach" | "staff"
       league_season_status:

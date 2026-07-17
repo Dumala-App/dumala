@@ -2,7 +2,7 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 
-select plan(18);
+select plan(22);
 
 -- Actors -----------------------------------------------------------------------
 insert into auth.users (id, aud, role, email, email_confirmed_at, created_at, updated_at)
@@ -166,6 +166,29 @@ select throws_ok(
   '22023',
   null,
   'an application to a closed event is rejected'
+);
+
+-- === Archiving a finished event ===============================================
+select lives_ok(
+  $$ select public.advance_event_status('dc000000-0000-4000-8000-000000000201', 'completed') $$,
+  'active advances to completed'
+);
+select is(
+  public.advance_event_status('dc000000-0000-4000-8000-000000000201', 'archived')::text,
+  'archived',
+  'completed advances to archived'
+);
+select throws_ok(
+  $$ select public.advance_event_status('dc000000-0000-4000-8000-000000000201', 'active') $$,
+  '22023',
+  null,
+  'an archived event cannot be reopened'
+);
+select throws_ok(
+  $$ select public.advance_event_status('dc000000-0000-4000-8000-000000000202', 'archived') $$,
+  '22023',
+  null,
+  'an event cannot jump straight to archived'
 );
 
 select finish();

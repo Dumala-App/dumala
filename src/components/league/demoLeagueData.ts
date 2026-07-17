@@ -98,6 +98,23 @@ const buildDemoLeagueRepository = (): CloudLeagueRepository => {
       notes: 'Knockout cup — dates to be confirmed.',
       created_at: now(),
       updated_at: now()
+    },
+    {
+      id: 'demo-season-0',
+      league_id: LEAGUE_ID,
+      name: 'Season 2025',
+      year: 2025,
+      status: 'archived',
+      starts_on: '2025-06-01',
+      ends_on: '2025-11-30',
+      registration_opens_on: '2025-04-01',
+      registration_closes_on: '2025-05-15',
+      roster_deadline: '2025-05-25',
+      transfer_window_opens_on: null,
+      transfer_window_closes_on: null,
+      notes: 'Wrapped and archived.',
+      created_at: now(),
+      updated_at: now()
     }
   ];
 
@@ -159,6 +176,12 @@ const buildDemoLeagueRepository = (): CloudLeagueRepository => {
       id: 'demo-event-4', league_id: LEAGUE_ID, season_id: 'demo-season-1', name: 'Metro Champions Cup',
       format: 'group_knockout', category: 'U18', status: 'active', team_cap: 8,
       starts_on: '2026-10-01', ends_on: '2026-10-20', registration_code: 'CHAMPIONS', is_public: true, notes: null, created_at: now(), updated_at: now()
+    },
+    {
+      id: 'demo-event-0', league_id: LEAGUE_ID, season_id: 'demo-season-0', name: 'Metro Cup Qualifiers 2025',
+      format: 'round_robin', category: 'U14', status: 'archived', team_cap: 8,
+      starts_on: '2025-08-01', ends_on: '2025-08-30', registration_code: 'METRO2025', is_public: true,
+      notes: 'Last season — kept for reference.', created_at: now(), updated_at: now()
     }
   ];
 
