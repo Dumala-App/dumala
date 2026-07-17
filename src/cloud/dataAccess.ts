@@ -285,6 +285,14 @@ import {
   type LedgerEntryInput
 } from './league';
 import {
+  getClubPublicPage,
+  getPublicTeam,
+  saveClubPublicPage,
+  type ClubPublicPage,
+  type ClubPublicPageInput,
+  type PublicTeamBundle
+} from './teamPage';
+import {
   deleteMessage,
   ensureChannel,
   getTeamChatCaptainUserId,
@@ -515,6 +523,12 @@ export interface CloudLeagueRepository {
   setCoachSeatLimit(leagueId: string, seatLimit: number): Promise<League>;
 }
 
+export interface CloudTeamPageRepository {
+  getSettings(clubId: string): Promise<ClubPublicPage | null>;
+  saveSettings(clubId: string, input: ClubPublicPageInput): Promise<ClubPublicPage>;
+  getPublicTeam(slug: string): Promise<PublicTeamBundle>;
+}
+
 export interface CloudChatRepository {
   ensureChannel(clubId: string): Promise<string>;
   listMessages(clubId: string, limit?: number): Promise<ChatMessage[]>;
@@ -539,6 +553,7 @@ export interface CloudDataAccess {
   identity: CloudIdentityRepository;
   player: CloudPlayerRepository;
   league: CloudLeagueRepository;
+  teamPage: CloudTeamPageRepository;
   chat: CloudChatRepository;
 }
 
@@ -742,6 +757,11 @@ export const createCloudDataAccess = (client: DumalaSupabaseClient): CloudDataAc
     reviewCoachMembership: (membershipId, nextStatus, note) => reviewCoachMembership(client, membershipId, nextStatus, note),
     rotateCoachInvite: leagueId => rotateCoachInvite(client, leagueId),
     setCoachSeatLimit: (leagueId, seatLimit) => setCoachSeatLimit(client, leagueId, seatLimit)
+  },
+  teamPage: {
+    getSettings: clubId => getClubPublicPage(client, clubId),
+    saveSettings: (clubId, input) => saveClubPublicPage(client, clubId, input),
+    getPublicTeam: slug => getPublicTeam(client, slug)
   },
   chat: {
     ensureChannel: clubId => ensureChannel(client, clubId),

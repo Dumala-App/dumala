@@ -18,6 +18,8 @@ import {
 } from '../forms/validation';
 import SquadPaymentsPanel from './SquadPaymentsPanel';
 import PlayerLinkRequestsPanel from './PlayerLinkRequestsPanel';
+import TeamPublicPagePanel from './TeamPublicPagePanel';
+import { useCloudRuntime } from '../hooks/useCloudRuntime';
 import { Button } from './ui/button';
 import {
   WORKSPACE_SEGMENTED_LIST_CLASS,
@@ -59,16 +61,23 @@ interface RosterViewProps {
   onUpdatePaymentLedgerEntry: (entry: PaymentLedgerEntry) => void;
   onVoidPaymentLedgerEntry: (entryId: string, reason: string) => void;
   cloudClubId?: string | null;
+  teamName?: string;
 }
 
 type PlayerFormField = 'name' | 'number' | 'position' | 'age' | 'height' | 'weight';
-type SquadSection = 'players' | 'staff' | 'payments';
+type SquadSection = 'players' | 'staff' | 'page' | 'payments';
 
+// The Public Page tab is feature-flagged (VITE_DUMALA_TEAM_PAGE_ENABLED) and
+// filtered out of this list until the flag is on.
 const SQUAD_SECTION_OPTIONS: Array<SegmentedTabOption<SquadSection>> = [
   { value: 'players', label: 'Players' },
   { value: 'staff', label: 'Staff' },
+  { value: 'page', label: 'Public Page' },
   { value: 'payments', label: 'Payments' }
 ];
+
+export const getSquadSectionOptions = (teamPageEnabled: boolean): Array<SegmentedTabOption<SquadSection>> =>
+  teamPageEnabled ? SQUAD_SECTION_OPTIONS : SQUAD_SECTION_OPTIONS.filter(section => section.value !== 'page');
 
 const PLAYER_POSITIONS = ['Forward', 'Midfielder', 'Defender', 'Goalkeeper'] as const;
 const STAFF_ROLE_OPTIONS = [
@@ -109,8 +118,11 @@ export default function RosterView({
   onAddPaymentLedgerEntry,
   onAddBulkPaymentLedgerEntries,
   onVoidPaymentLedgerEntry,
-  cloudClubId
+  cloudClubId,
+  teamName
 }: RosterViewProps) {
+  const cloudRuntime = useCloudRuntime();
+  const squadSectionOptions = getSquadSectionOptions(cloudRuntime.phase6.teamPageEnabled);
   const [activeSection, setActiveSection] = useState<SquadSection>('players');
   // Search & Basic Filter State
   const [searchTerm, setSearchTerm] = useState("");
@@ -123,6 +135,12 @@ export default function RosterView({
   const [backupMessageType, setBackupMessageType] = useState<'success' | 'error' | 'info'>('info');
   const importInputRef = useRef<HTMLInputElement>(null);
   const addPlayerFormRef = useRef<HTMLFormElement | null>(null);
+
+  useEffect(() => {
+    if (!cloudRuntime.phase6.teamPageEnabled && activeSection === 'page') {
+      setActiveSection('players');
+    }
+  }, [activeSection, cloudRuntime.phase6.teamPageEnabled]);
 
   const handleLocalPhotoUpload = async (
     file: File | undefined,
@@ -424,7 +442,7 @@ export default function RosterView({
     >
       <nav className={WORKSPACE_SEGMENTED_TABS_CLASS} aria-label="Squad workspace sections">
         <div className={WORKSPACE_SEGMENTED_LIST_CLASS}>
-          {SQUAD_SECTION_OPTIONS.map((section) => (
+          {squadSectionOptions.map((section) => (
             <button
               key={section.value}
               type="button"
@@ -1315,6 +1333,10 @@ export default function RosterView({
             </div>
           )}
         </div>}
+
+        {activeSection === 'page' && (
+          <TeamPublicPagePanel clubId={cloudClubId} teamName={teamName || 'Your team'} />
+        )}
 
         {activeSection === 'payments' && (
           <SquadPaymentsPanel

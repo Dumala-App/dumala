@@ -80,6 +80,7 @@ const runtimeWith = (phase6: Partial<CloudRuntime['phase6']>): CloudRuntime => (
     playerPreviewEnabled: false,
     leaguePreviewEnabled: false,
     chatEnabled: false,
+    teamPageEnabled: false,
     ...phase6
   }
 });

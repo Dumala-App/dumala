@@ -8,15 +8,15 @@ describe('cloud config', () => {
       enabled: false,
       supabaseUrl: undefined,
       supabasePublishableKey: undefined,
-      phase6: { playerAppEnabled: false, leagueAppEnabled: false, leagueRequestEnabled: false, playerPreviewEnabled: false, leaguePreviewEnabled: false, chatEnabled: false }
+      phase6: { playerAppEnabled: false, leagueAppEnabled: false, leagueRequestEnabled: false, playerPreviewEnabled: false, leaguePreviewEnabled: false, chatEnabled: false, teamPageEnabled: false }
     });
-    expect(createDumalaSupabaseClient({ enabled: false, phase6: { playerAppEnabled: false, leagueAppEnabled: false, leagueRequestEnabled: false, playerPreviewEnabled: false, leaguePreviewEnabled: false, chatEnabled: false } })).toBeNull();
+    expect(createDumalaSupabaseClient({ enabled: false, phase6: { playerAppEnabled: false, leagueAppEnabled: false, leagueRequestEnabled: false, playerPreviewEnabled: false, leaguePreviewEnabled: false, chatEnabled: false, teamPageEnabled: false } })).toBeNull();
   });
 
   it('requires Supabase values when cloud is enabled', () => {
     expect(() => assertCloudConfigReady({
       enabled: true,
-      phase6: { playerAppEnabled: false, leagueAppEnabled: false, leagueRequestEnabled: false, playerPreviewEnabled: false, leaguePreviewEnabled: false, chatEnabled: false }
+      phase6: { playerAppEnabled: false, leagueAppEnabled: false, leagueRequestEnabled: false, playerPreviewEnabled: false, leaguePreviewEnabled: false, chatEnabled: false, teamPageEnabled: false }
     })).toThrow(
       'Cloud sync is enabled, but Supabase URL or publishable key is missing.'
     );
@@ -31,7 +31,7 @@ describe('cloud config', () => {
       enabled: true,
       supabaseUrl: 'http://127.0.0.1:54321',
       supabasePublishableKey: 'sb_publishable_test',
-      phase6: { playerAppEnabled: false, leagueAppEnabled: false, leagueRequestEnabled: false, playerPreviewEnabled: false, leaguePreviewEnabled: false, chatEnabled: false }
+      phase6: { playerAppEnabled: false, leagueAppEnabled: false, leagueRequestEnabled: false, playerPreviewEnabled: false, leaguePreviewEnabled: false, chatEnabled: false, teamPageEnabled: false }
     });
   });
 
@@ -45,7 +45,7 @@ describe('cloud config', () => {
       enabled: true,
       supabaseUrl: 'http://127.0.0.1:54321',
       supabasePublishableKey: 'sb_publishable_test',
-      phase6: { playerAppEnabled: false, leagueAppEnabled: false, leagueRequestEnabled: false, playerPreviewEnabled: false, leaguePreviewEnabled: false, chatEnabled: false }
+      phase6: { playerAppEnabled: false, leagueAppEnabled: false, leagueRequestEnabled: false, playerPreviewEnabled: false, leaguePreviewEnabled: false, chatEnabled: false, teamPageEnabled: false }
     });
   });
 
@@ -59,7 +59,7 @@ describe('cloud config', () => {
       enabled: false,
       supabaseUrl: 'http://127.0.0.1:54321',
       supabasePublishableKey: 'sb_publishable_test',
-      phase6: { playerAppEnabled: false, leagueAppEnabled: false, leagueRequestEnabled: false, playerPreviewEnabled: false, leaguePreviewEnabled: false, chatEnabled: false }
+      phase6: { playerAppEnabled: false, leagueAppEnabled: false, leagueRequestEnabled: false, playerPreviewEnabled: false, leaguePreviewEnabled: false, chatEnabled: false, teamPageEnabled: false }
     });
   });
 
@@ -72,7 +72,7 @@ describe('cloud config', () => {
       enabled: false,
       supabaseUrl: 'http://127.0.0.1:54321',
       supabasePublishableKey: 'sb_publishable_test',
-      phase6: { playerAppEnabled: false, leagueAppEnabled: false, leagueRequestEnabled: false, playerPreviewEnabled: false, leaguePreviewEnabled: false, chatEnabled: false }
+      phase6: { playerAppEnabled: false, leagueAppEnabled: false, leagueRequestEnabled: false, playerPreviewEnabled: false, leaguePreviewEnabled: false, chatEnabled: false, teamPageEnabled: false }
     });
   });
 
@@ -90,7 +90,8 @@ describe('cloud config', () => {
       leagueRequestEnabled: true,
       playerPreviewEnabled: false,
       leaguePreviewEnabled: false,
-      chatEnabled: false
+      chatEnabled: false,
+      teamPageEnabled: false
     });
   });
 
@@ -104,12 +105,18 @@ describe('cloud config', () => {
       leagueRequestEnabled: true,
       playerPreviewEnabled: false,
       leaguePreviewEnabled: false,
-      chatEnabled: false
+      chatEnabled: false,
+      teamPageEnabled: false
     });
   });
 
   it('enables team chat from its flag', () => {
     expect(readCloudConfig({ VITE_DUMALA_CHAT_ENABLED: 'true' }).phase6.chatEnabled).toBe(true);
+  });
+
+  it('enables the public team page from its flag', () => {
+    expect(readCloudConfig({ VITE_DUMALA_TEAM_PAGE_ENABLED: 'true' }).phase6.teamPageEnabled).toBe(true);
+    expect(readCloudConfig({}).phase6.teamPageEnabled).toBe(false);
   });
 
   it('enables player and league preview modes from their flags', () => {

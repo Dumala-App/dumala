@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { applyPwaMetadataForRoute, getPwaMetadataForRoute, getRootRoute, shouldLoadWorkspace } from './RootRouter';
+import {
+  applyPwaMetadataForRoute,
+  getPwaMetadataForRoute,
+  getRootRoute,
+  isPublicTeamRootRoute,
+  isTeamPageEnabled,
+  shouldLoadWorkspace
+} from './RootRouter';
 
 describe('RootRouter', () => {
   it('keeps public routes on the lightweight landing surface', () => {
@@ -7,6 +14,7 @@ describe('RootRouter', () => {
     expect(getRootRoute('#/landing')).toBe('landing');
     expect(shouldLoadWorkspace('', '', null)).toBe(false);
     expect(shouldLoadWorkspace('landing', '', null)).toBe(false);
+    expect(shouldLoadWorkspace('t/blue-eagles-fc', '', null)).toBe(false);
   });
 
   it('loads the workspace for app and authentication callback routes', () => {
@@ -15,6 +23,21 @@ describe('RootRouter', () => {
     expect(shouldLoadWorkspace('', '?dumalaAuth=player', null)).toBe(true);
     expect(shouldLoadWorkspace('', '?dumalaAuth=league', null)).toBe(true);
     expect(shouldLoadWorkspace('', '', Date.now().toString())).toBe(true);
+  });
+
+  it('recognizes public team page routes', () => {
+    expect(isPublicTeamRootRoute('t/blue-eagles-fc')).toBe(true);
+    expect(isPublicTeamRootRoute('t?team=blue-eagles-fc')).toBe(true);
+    expect(isPublicTeamRootRoute('t')).toBe(true);
+    expect(isPublicTeamRootRoute('training')).toBe(false);
+    expect(isPublicTeamRootRoute('team')).toBe(false);
+    expect(isPublicTeamRootRoute('')).toBe(false);
+  });
+
+  it('keeps the public team page dark unless its flag is on', () => {
+    expect(isTeamPageEnabled({ VITE_DUMALA_TEAM_PAGE_ENABLED: 'true' })).toBe(true);
+    expect(isTeamPageEnabled({ VITE_DUMALA_TEAM_PAGE_ENABLED: 'false' })).toBe(false);
+    expect(isTeamPageEnabled({})).toBe(false);
   });
 
   it('uses player install metadata only for the player route', () => {

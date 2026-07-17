@@ -1794,6 +1794,7 @@ export default function App() {
                   onUpdatePaymentLedgerEntry={handleUpdatePaymentLedgerEntry}
                   onVoidPaymentLedgerEntry={handleVoidPaymentLedgerEntry}
                   cloudClubId={activeWorkspace?.cloudClubId ?? null}
+                  teamName={teamInfo?.name || 'Apex Rangers'}
                 />
               </ViewErrorBoundary>
             )}

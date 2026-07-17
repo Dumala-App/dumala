@@ -22,7 +22,8 @@ const phase6 = {
   leagueRequestEnabled: false,
   playerPreviewEnabled: false,
   leaguePreviewEnabled: false,
-  chatEnabled: true
+  chatEnabled: true,
+  teamPageEnabled: false
 };
 
 describe('CoachFloatingChat', () => {
