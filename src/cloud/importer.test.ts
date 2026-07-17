@@ -374,7 +374,7 @@ describe('cloud importer', () => {
         }
       ]
     }, storage);
-    const existingPlayerId = toCloudUuid(payload.importId, 'players', 'player-1');
+    const existingPlayerId = toCloudUuid('club-1', 'players', 'player-1');
     const { client, operations } = createClient({
       existingRows: {
         player_availability: [{
@@ -394,7 +394,7 @@ describe('cloud importer', () => {
     expect(availabilityWrite?.rows).toHaveLength(1);
     expect(availabilityWrite?.rows?.[0]).toMatchObject({
       event_id: 'game-1',
-      player_id: toCloudUuid(payload.importId, 'players', 'player-new')
+      player_id: toCloudUuid('club-1', 'players', 'player-new')
     });
   });
 

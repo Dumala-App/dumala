@@ -205,10 +205,15 @@ export const createContentFingerprint = (value: unknown): string => `fnv1a:${fnv
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
-export const toCloudUuid = (importId: string, table: string, sourceId: string): string => {
+/**
+ * Derive a cloud UUID for a local record. `namespace` must be stable for the
+ * lifetime of the record, or a re-upload mints a fresh id and inserts a
+ * duplicate row instead of updating the existing one.
+ */
+export const toCloudUuid = (namespace: string, table: string, sourceId: string): string => {
   if (UUID_PATTERN.test(sourceId)) return sourceId.toLowerCase();
 
-  const seed = `${importId}:${table}:${sourceId}`;
+  const seed = `${namespace}:${table}:${sourceId}`;
   const parts = [
     fnv1a(`${seed}:0`),
     fnv1a(`${seed}:1`),
@@ -307,7 +312,12 @@ export const createCloudImportPayload = (
   const parsedManifest = cloudMigrationManifestSchema.parse(manifest);
   const records: CloudImportRecord[] = [];
   const importId = parsedManifest.importId;
-  const clubId = toCloudUuid(importId, 'clubs', parsedManifest.targetClubId);
+  // Namespace derived ids by the club, never by the import. Every backup run
+  // mints a fresh importId, so seeding ids with it gave the same local player a
+  // new cloud id each run and the id-keyed upsert inserted a duplicate instead
+  // of updating the row.
+  const idNamespace = parsedManifest.targetClubId;
+  const clubId = toCloudUuid(idNamespace, 'clubs', parsedManifest.targetClubId);
   const sourceIdMap: Record<string, string> = {
     [`clubs:${parsedManifest.targetClubId}`]: clubId
   };
@@ -315,7 +325,7 @@ export const createCloudImportPayload = (
   const mapId = (table: string, sourceId: string | undefined): string | undefined => {
     if (!sourceId) return undefined;
     const key = `${table}:${sourceId}`;
-    sourceIdMap[key] ??= toCloudUuid(importId, table, sourceId);
+    sourceIdMap[key] ??= toCloudUuid(idNamespace, table, sourceId);
     return sourceIdMap[key];
   };
 
@@ -716,7 +726,7 @@ export const verifyCloudMigrationPackage = (
     ));
   }
 
-  if (payload.clubId !== toCloudUuid(manifest.importId, 'clubs', manifest.targetClubId)) {
+  if (payload.clubId !== toCloudUuid(manifest.targetClubId, 'clubs', manifest.targetClubId)) {
     findings.push(finding(
       'PAYLOAD_CLUB_ID_MISMATCH',
       'failed',
