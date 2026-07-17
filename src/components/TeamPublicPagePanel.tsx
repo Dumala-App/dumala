@@ -39,7 +39,7 @@ type SectionKey = 'showRoster' | 'showStaff' | 'showLineup' | 'showResults';
 const SECTION_TOGGLES: Array<{ key: SectionKey; label: string; hint: string }> = [
   { key: 'showRoster', label: 'Squad list', hint: 'Names, numbers, and positions only' },
   { key: 'showLineup', label: 'Starting lineup', hint: 'Latest formation from Tactics' },
-  { key: 'showResults', label: 'Recent results', hint: 'Last 10 completed matches' },
+  { key: 'showResults', label: 'Recent results', hint: 'Last 5 completed matches' },
   { key: 'showStaff', label: 'Coaching staff', hint: 'Names and roles only' }
 ];
 
