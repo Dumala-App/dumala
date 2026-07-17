@@ -177,11 +177,11 @@ select ok(
   'public stats omit notes and tenant fields'
 );
 
--- Anon cannot read the underlying table directly (only the RPC exposes data).
-select is(
-  (select count(*)::int from public.league_events),
-  0,
-  'RLS still hides the events table from anonymous direct reads'
+select throws_ok(
+  $$ select count(*)::int from public.league_events $$,
+  '42501',
+  null,
+  'anonymous direct reads of the events table are blocked'
 );
 
 select finish();

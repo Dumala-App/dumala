@@ -152,11 +152,16 @@ select is(
   'owner with MFA can restore a recoverable workspace'
 );
 
+reset role;
 select results_eq(
   $$ select club_state from public.clubs where id = 'aaaaaaaa-eeee-4aaa-8aaa-aaaaaaaaaaaa' $$,
   $$ values ('active'::public.club_state) $$,
   'restored workspace is active again'
 );
+set local role authenticated;
+select set_config('request.jwt.claim.role', 'authenticated', true);
+select set_config('request.jwt.claim.sub', '11111111-eeee-4111-8111-111111111111', true);
+select set_config('request.jwt.claims', '{"sub":"11111111-eeee-4111-8111-111111111111","role":"authenticated","aal":"aal2"}', true);
 
 select results_eq(
   $$ select count(*)::int from public.fprds_beta_submissions $$,
