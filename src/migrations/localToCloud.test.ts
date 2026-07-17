@@ -319,7 +319,7 @@ describe('local-to-cloud migration package', () => {
   it('builds a structured import payload with stable idempotency keys', () => {
     const migration = createCloudMigrationPackage(core, createStorage(), options);
     const byTable = (table: string) => migration.payload.records.filter(item => item.table === table);
-    const mappedClubId = toCloudUuid(options.importId, 'clubs', options.targetClubId);
+    const mappedClubId = toCloudUuid(options.targetClubId, 'clubs', options.targetClubId);
 
     expect(migration.payload.importId).toBe(options.importId);
     expect(migration.payload.clubId).toBe(mappedClubId);
@@ -371,8 +371,8 @@ describe('local-to-cloud migration package', () => {
       assessments: [latestAssessment, previousAssessment]
     }, createStorage(), options);
     const byTable = (table: string) => migration.payload.records.filter(item => item.table === table);
-    const previousCloudId = toCloudUuid(options.importId, 'assessment_sessions', previousAssessment.id);
-    const latestCloudId = toCloudUuid(options.importId, 'assessment_sessions', latestAssessment.id);
+    const previousCloudId = toCloudUuid(options.targetClubId, 'assessment_sessions', previousAssessment.id);
+    const latestCloudId = toCloudUuid(options.targetClubId, 'assessment_sessions', latestAssessment.id);
     const latestRow = byTable('assessment_sessions').find(item => item.sourceId === latestAssessment.id)!.data;
     const playerRow = byTable('players')[0].data;
 
@@ -388,6 +388,24 @@ describe('local-to-cloud migration package', () => {
     expect(toCloudUuid('import-1', 'players', uuid)).toBe(uuid);
     expect(toCloudUuid('import-1', 'players', 'player-1')).toBe(toCloudUuid('import-1', 'players', 'player-1'));
     expect(toCloudUuid('import-1', 'players', 'player-1')).not.toBe(toCloudUuid('import-1', 'staff_members', 'player-1'));
+  });
+
+  it('gives a local player the same cloud id on every backup run', () => {
+    const laterBackup = createCloudImportPayload(
+      createCloudMigrationPackage(core, createStorage(), options).rollback.backup,
+      createCloudMigrationManifest(createCloudMigrationPackage(core, createStorage(), options).backup, {
+        ...options,
+        importId: 'import-2',
+        sourceDeviceId: 'device-2'
+      })
+    );
+    const firstBackup = createCloudMigrationPackage(core, createStorage(), options).payload;
+
+    const playerIds = (payload: typeof firstBackup) =>
+      payload.records.filter(entry => entry.table === 'players').map(entry => entry.data.id);
+
+    expect(playerIds(laterBackup)).toEqual(playerIds(firstBackup));
+    expect(playerIds(firstBackup).length).toBeGreaterThan(0);
   });
 
   it('can rebuild the same payload from a saved backup and manifest', () => {
