@@ -88,6 +88,65 @@ export interface LeagueVenueInput {
   notes?: string | null;
 }
 
+export type LeagueRequirementScope = 'league' | 'season' | 'event';
+export type LeagueRequirementTarget = 'team' | 'player' | 'coach' | 'staff';
+
+export interface LeagueEligibilityRule {
+  id: string;
+  league_id: string;
+  season_id: string | null;
+  event_id: string | null;
+  scope: LeagueRequirementScope;
+  target: LeagueRequirementTarget;
+  title: string;
+  description: string | null;
+  min_age: number | null;
+  max_age: number | null;
+  effective_from: string | null;
+  effective_until: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface LeagueEligibilityRuleInput {
+  scope: LeagueRequirementScope;
+  target: LeagueRequirementTarget;
+  title: string;
+  description?: string | null;
+  seasonId?: string | null;
+  eventId?: string | null;
+  minAge?: number | null;
+  maxAge?: number | null;
+  effectiveFrom?: string | null;
+  effectiveUntil?: string | null;
+}
+
+export interface LeagueDocumentRequirement {
+  id: string;
+  league_id: string;
+  season_id: string | null;
+  event_id: string | null;
+  scope: LeagueRequirementScope;
+  target: LeagueRequirementTarget;
+  title: string;
+  instructions: string | null;
+  required: boolean;
+  expires: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface LeagueDocumentRequirementInput {
+  scope: LeagueRequirementScope;
+  target: LeagueRequirementTarget;
+  title: string;
+  instructions?: string | null;
+  seasonId?: string | null;
+  eventId?: string | null;
+  required?: boolean;
+  expires?: boolean;
+}
+
 const asUntypedClient = (client: DumalaSupabaseClient): SupabaseClient => client as unknown as SupabaseClient;
 
 const getErrorMessage = (error: unknown) => {
@@ -301,6 +360,142 @@ export const deleteVenue = async (client: DumalaSupabaseClient, venueId: string)
     await supabase.from('league_venues').delete().eq('id', venueId),
     'VENUE_DELETE_FAILED',
     'Failed to remove the venue'
+  );
+};
+
+// --- Eligibility + document requirements ------------------------------------
+
+export const REQUIREMENT_SCOPE_LABELS: Record<LeagueRequirementScope, string> = {
+  league: 'League-wide',
+  season: 'Season',
+  event: 'Event'
+};
+
+export const REQUIREMENT_TARGET_LABELS: Record<LeagueRequirementTarget, string> = {
+  team: 'Team',
+  player: 'Player',
+  coach: 'Coach',
+  staff: 'Staff'
+};
+
+const scopedIds = (scope: LeagueRequirementScope, seasonId?: string | null, eventId?: string | null) => ({
+  season_id: scope === 'season' ? seasonId || null : null,
+  event_id: scope === 'event' ? eventId || null : null
+});
+
+const eligibilityRuleRow = (input: LeagueEligibilityRuleInput) => ({
+  scope: input.scope,
+  target: input.target,
+  title: input.title.trim(),
+  description: input.description?.trim() || null,
+  ...scopedIds(input.scope, input.seasonId, input.eventId),
+  min_age: input.minAge ?? null,
+  max_age: input.maxAge ?? null,
+  effective_from: input.effectiveFrom || null,
+  effective_until: input.effectiveUntil || null
+});
+
+const documentRequirementRow = (input: LeagueDocumentRequirementInput) => ({
+  scope: input.scope,
+  target: input.target,
+  title: input.title.trim(),
+  instructions: input.instructions?.trim() || null,
+  ...scopedIds(input.scope, input.seasonId, input.eventId),
+  required: input.required ?? true,
+  expires: input.expires ?? false
+});
+
+export const listEligibilityRules = async (
+  client: DumalaSupabaseClient,
+  leagueId: string
+): Promise<LeagueEligibilityRule[]> => {
+  const supabase = asUntypedClient(client);
+  return (expectNoError(
+    await supabase.from('league_eligibility_rules').select('*').eq('league_id', leagueId).order('created_at', { ascending: false }),
+    'ELIGIBILITY_RULES_READ_FAILED',
+    'Failed to load eligibility rules'
+  ) as LeagueEligibilityRule[] | null) ?? [];
+};
+
+export const createEligibilityRule = async (
+  client: DumalaSupabaseClient,
+  leagueId: string,
+  input: LeagueEligibilityRuleInput
+): Promise<LeagueEligibilityRule> => {
+  const supabase = asUntypedClient(client);
+  return expectNoError(
+    await supabase.from('league_eligibility_rules').insert({ league_id: leagueId, ...eligibilityRuleRow(input) }).select('*').single(),
+    'ELIGIBILITY_RULE_CREATE_FAILED',
+    'Failed to create the eligibility rule'
+  ) as LeagueEligibilityRule;
+};
+
+export const updateEligibilityRule = async (
+  client: DumalaSupabaseClient,
+  ruleId: string,
+  input: LeagueEligibilityRuleInput
+): Promise<LeagueEligibilityRule> => {
+  const supabase = asUntypedClient(client);
+  return expectNoError(
+    await supabase.from('league_eligibility_rules').update(eligibilityRuleRow(input)).eq('id', ruleId).select('*').single(),
+    'ELIGIBILITY_RULE_UPDATE_FAILED',
+    'Failed to update the eligibility rule'
+  ) as LeagueEligibilityRule;
+};
+
+export const deleteEligibilityRule = async (client: DumalaSupabaseClient, ruleId: string): Promise<void> => {
+  const supabase = asUntypedClient(client);
+  expectNoError(
+    await supabase.from('league_eligibility_rules').delete().eq('id', ruleId),
+    'ELIGIBILITY_RULE_DELETE_FAILED',
+    'Failed to remove the eligibility rule'
+  );
+};
+
+export const listDocumentRequirements = async (
+  client: DumalaSupabaseClient,
+  leagueId: string
+): Promise<LeagueDocumentRequirement[]> => {
+  const supabase = asUntypedClient(client);
+  return (expectNoError(
+    await supabase.from('league_document_requirements').select('*').eq('league_id', leagueId).order('created_at', { ascending: false }),
+    'DOCUMENT_REQUIREMENTS_READ_FAILED',
+    'Failed to load document requirements'
+  ) as LeagueDocumentRequirement[] | null) ?? [];
+};
+
+export const createDocumentRequirement = async (
+  client: DumalaSupabaseClient,
+  leagueId: string,
+  input: LeagueDocumentRequirementInput
+): Promise<LeagueDocumentRequirement> => {
+  const supabase = asUntypedClient(client);
+  return expectNoError(
+    await supabase.from('league_document_requirements').insert({ league_id: leagueId, ...documentRequirementRow(input) }).select('*').single(),
+    'DOCUMENT_REQUIREMENT_CREATE_FAILED',
+    'Failed to create the document requirement'
+  ) as LeagueDocumentRequirement;
+};
+
+export const updateDocumentRequirement = async (
+  client: DumalaSupabaseClient,
+  requirementId: string,
+  input: LeagueDocumentRequirementInput
+): Promise<LeagueDocumentRequirement> => {
+  const supabase = asUntypedClient(client);
+  return expectNoError(
+    await supabase.from('league_document_requirements').update(documentRequirementRow(input)).eq('id', requirementId).select('*').single(),
+    'DOCUMENT_REQUIREMENT_UPDATE_FAILED',
+    'Failed to update the document requirement'
+  ) as LeagueDocumentRequirement;
+};
+
+export const deleteDocumentRequirement = async (client: DumalaSupabaseClient, requirementId: string): Promise<void> => {
+  const supabase = asUntypedClient(client);
+  expectNoError(
+    await supabase.from('league_document_requirements').delete().eq('id', requirementId),
+    'DOCUMENT_REQUIREMENT_DELETE_FAILED',
+    'Failed to remove the document requirement'
   );
 };
 

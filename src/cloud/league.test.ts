@@ -652,6 +652,58 @@ describe('cloud league repository', () => {
     }));
   });
 
+  it('creates an eligibility rule with scoped ids and normalized fields', async () => {
+    const { client, from, query } = createTableStub({ id: 'rule-1' });
+    await createCloudDataAccess(client).league.createEligibilityRule('league-1', {
+      scope: 'event',
+      eventId: 'event-1',
+      seasonId: 'season-1',
+      target: 'player',
+      title: '  U14 age window  ',
+      description: '  Born inside the league window.  ',
+      minAge: 11,
+      maxAge: 14
+    });
+    expect(from).toHaveBeenCalledWith('league_eligibility_rules');
+    expect(query.insert).toHaveBeenCalledWith(expect.objectContaining({
+      league_id: 'league-1',
+      scope: 'event',
+      target: 'player',
+      title: 'U14 age window',
+      description: 'Born inside the league window.',
+      season_id: null,
+      event_id: 'event-1',
+      min_age: 11,
+      max_age: 14
+    }));
+  });
+
+  it('creates a document requirement with scoped ids and requirement flags', async () => {
+    const { client, from, query } = createTableStub({ id: 'doc-1' });
+    await createCloudDataAccess(client).league.createDocumentRequirement('league-1', {
+      scope: 'season',
+      seasonId: 'season-1',
+      eventId: 'event-1',
+      target: 'team',
+      title: ' Proof of age ',
+      instructions: ' Upload a readable copy. ',
+      required: false,
+      expires: true
+    });
+    expect(from).toHaveBeenCalledWith('league_document_requirements');
+    expect(query.insert).toHaveBeenCalledWith(expect.objectContaining({
+      league_id: 'league-1',
+      scope: 'season',
+      target: 'team',
+      title: 'Proof of age',
+      instructions: 'Upload a readable copy.',
+      season_id: 'season-1',
+      event_id: null,
+      required: false,
+      expires: true
+    }));
+  });
+
   it('advances an event status through the RPC', async () => {
     const { client, rpc } = createTableStub('registration_open');
     await expect(

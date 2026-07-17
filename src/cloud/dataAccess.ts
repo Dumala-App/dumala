@@ -199,10 +199,14 @@ import {
   applyToLeagueOrg,
   clearFixtures,
   createEvent,
+  createDocumentRequirement,
+  createEligibilityRule,
   createLeague,
   createSeason,
   createVenue,
   deleteAward,
+  deleteDocumentRequirement,
+  deleteEligibilityRule,
   deleteEventTeam,
   deleteIncident,
   deleteInvoice,
@@ -216,6 +220,8 @@ import {
   getPublicEvent,
   listAwards,
   listCoachMemberships,
+  listDocumentRequirements,
+  listEligibilityRules,
   listEvents,
   listEventTeams,
   listFixtures,
@@ -245,6 +251,8 @@ import {
   syncApprovedTeams,
   syncBracket,
   updateEvent,
+  updateDocumentRequirement,
+  updateEligibilityRule,
   updateLeague,
   updateSeason,
   updateVenue,
@@ -271,6 +279,10 @@ import {
   type LeagueCoachInviteLookup,
   type LeagueCoachMembership,
   type LeagueCoachStatus,
+  type LeagueDocumentRequirement,
+  type LeagueDocumentRequirementInput,
+  type LeagueEligibilityRule,
+  type LeagueEligibilityRuleInput,
   type LeagueEvent,
   type LeagueEventInput,
   type LeagueEventStatus,
@@ -467,6 +479,14 @@ export interface CloudLeagueRepository {
   createVenue(leagueId: string, input: LeagueVenueInput): Promise<LeagueVenue>;
   updateVenue(venueId: string, input: LeagueVenueInput): Promise<LeagueVenue>;
   deleteVenue(venueId: string): Promise<void>;
+  listEligibilityRules(leagueId: string): Promise<LeagueEligibilityRule[]>;
+  createEligibilityRule(leagueId: string, input: LeagueEligibilityRuleInput): Promise<LeagueEligibilityRule>;
+  updateEligibilityRule(ruleId: string, input: LeagueEligibilityRuleInput): Promise<LeagueEligibilityRule>;
+  deleteEligibilityRule(ruleId: string): Promise<void>;
+  listDocumentRequirements(leagueId: string): Promise<LeagueDocumentRequirement[]>;
+  createDocumentRequirement(leagueId: string, input: LeagueDocumentRequirementInput): Promise<LeagueDocumentRequirement>;
+  updateDocumentRequirement(requirementId: string, input: LeagueDocumentRequirementInput): Promise<LeagueDocumentRequirement>;
+  deleteDocumentRequirement(requirementId: string): Promise<void>;
   listEvents(leagueId: string): Promise<LeagueEvent[]>;
   createEvent(leagueId: string, input: LeagueEventInput): Promise<LeagueEvent>;
   updateEvent(eventId: string, input: LeagueEventInput): Promise<LeagueEvent>;
@@ -706,6 +726,14 @@ export const createCloudDataAccess = (client: DumalaSupabaseClient): CloudDataAc
     createVenue: (leagueId, input) => createVenue(client, leagueId, input),
     updateVenue: (venueId, input) => updateVenue(client, venueId, input),
     deleteVenue: venueId => deleteVenue(client, venueId),
+    listEligibilityRules: leagueId => listEligibilityRules(client, leagueId),
+    createEligibilityRule: (leagueId, input) => createEligibilityRule(client, leagueId, input),
+    updateEligibilityRule: (ruleId, input) => updateEligibilityRule(client, ruleId, input),
+    deleteEligibilityRule: ruleId => deleteEligibilityRule(client, ruleId),
+    listDocumentRequirements: leagueId => listDocumentRequirements(client, leagueId),
+    createDocumentRequirement: (leagueId, input) => createDocumentRequirement(client, leagueId, input),
+    updateDocumentRequirement: (requirementId, input) => updateDocumentRequirement(client, requirementId, input),
+    deleteDocumentRequirement: requirementId => deleteDocumentRequirement(client, requirementId),
     listEvents: leagueId => listEvents(client, leagueId),
     createEvent: (leagueId, input) => createEvent(client, leagueId, input),
     updateEvent: (eventId, input) => updateEvent(client, eventId, input),

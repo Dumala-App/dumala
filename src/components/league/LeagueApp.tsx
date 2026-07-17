@@ -5,12 +5,14 @@ import {
   Check,
   ChevronLeft,
   ChevronRight,
+  ClipboardCheck,
   Clock,
   Copy,
   Database,
   Eye,
   FileDown,
   FileJson,
+  FileText,
   Gauge,
   Activity,
   AlertTriangle,
@@ -46,6 +48,8 @@ import {
   EVENT_STATUS_LABELS,
   INVOICE_STATUS_LABELS,
   REGISTRATION_STATUS_LABELS,
+  REQUIREMENT_SCOPE_LABELS,
+  REQUIREMENT_TARGET_LABELS,
   SEASON_STATUS_LABELS,
   INCIDENT_KIND_LABELS,
   STAT_TYPE_LABELS,
@@ -92,6 +96,10 @@ import {
   type LeagueEvent,
   type LeagueEventFormat,
   type LeagueEventStatus,
+  type LeagueDocumentRequirement,
+  type LeagueEligibilityRule,
+  type LeagueRequirementScope,
+  type LeagueRequirementTarget,
   type LeagueSeason,
   type LeagueSeasonStatus,
   type LeagueVenue,
@@ -112,7 +120,7 @@ interface LeagueAppProps {
   preview?: boolean;
 }
 
-type LeagueSection = 'overview' | 'seasons' | 'events' | 'calendar' | 'statistics' | 'coaches' | 'venues' | 'finance' | 'settings';
+type LeagueSection = 'overview' | 'seasons' | 'events' | 'calendar' | 'statistics' | 'coaches' | 'compliance' | 'venues' | 'finance' | 'settings';
 
 const NAV: Array<{ id: LeagueSection; label: string; icon: React.ComponentType<{ size?: number; className?: string }> }> = [
   { id: 'overview', label: 'Overview', icon: Gauge },
@@ -121,6 +129,7 @@ const NAV: Array<{ id: LeagueSection; label: string; icon: React.ComponentType<{
   { id: 'calendar', label: 'Calendar', icon: CalendarClock },
   { id: 'statistics', label: 'Statistics', icon: Database },
   { id: 'coaches', label: 'Coaches', icon: UserCheck },
+  { id: 'compliance', label: 'Compliance', icon: ClipboardCheck },
   { id: 'venues', label: 'Venues', icon: MapPin },
   { id: 'finance', label: 'Finance', icon: Wallet },
   { id: 'settings', label: 'Settings', icon: Settings }
@@ -221,6 +230,8 @@ const LeagueApp = ({ runtime, userId, authController, preview = false }: LeagueA
   const [eventTeams, setEventTeams] = useState<EventTeam[]>([]);
   const [leagueFixtures, setLeagueFixtures] = useState<EventFixture[]>([]);
   const [leagueStats, setLeagueStats] = useState<FixtureStatEvent[]>([]);
+  const [eligibilityRules, setEligibilityRules] = useState<LeagueEligibilityRule[]>([]);
+  const [documentRequirements, setDocumentRequirements] = useState<LeagueDocumentRequirement[]>([]);
   const [section, setSection] = useState<LeagueSection>('overview');
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState('');
@@ -228,7 +239,7 @@ const LeagueApp = ({ runtime, userId, authController, preview = false }: LeagueA
   const activeLeague = useMemo(() => leagues.find(l => l.id === activeLeagueId) ?? null, [leagues, activeLeagueId]);
 
   const loadLeagueData = useCallback(async (leagueId: string) => {
-    const [nextSeasons, nextVenues, nextEvents, nextLedger, nextInvoices, nextTeams, nextFixtures, nextStats] = await Promise.all([
+    const [nextSeasons, nextVenues, nextEvents, nextLedger, nextInvoices, nextTeams, nextFixtures, nextStats, nextRules, nextDocs] = await Promise.all([
       league.listSeasons(leagueId),
       league.listVenues(leagueId),
       league.listEvents(leagueId),
@@ -236,7 +247,9 @@ const LeagueApp = ({ runtime, userId, authController, preview = false }: LeagueA
       league.listInvoices(leagueId),
       league.listLeagueEventTeams(leagueId),
       league.listLeagueFixtures(leagueId),
-      league.listLeagueStatEvents(leagueId)
+      league.listLeagueStatEvents(leagueId),
+      league.listEligibilityRules(leagueId),
+      league.listDocumentRequirements(leagueId)
     ]);
     setSeasons(nextSeasons);
     setVenues(nextVenues);
@@ -246,6 +259,8 @@ const LeagueApp = ({ runtime, userId, authController, preview = false }: LeagueA
     setEventTeams(nextTeams);
     setLeagueFixtures(nextFixtures);
     setLeagueStats(nextStats);
+    setEligibilityRules(nextRules);
+    setDocumentRequirements(nextDocs);
   }, [league]);
 
   const reload = useCallback(async () => {
@@ -254,7 +269,10 @@ const LeagueApp = ({ runtime, userId, authController, preview = false }: LeagueA
     const target = nextLeagues.find(l => l.id === activeLeagueId) ?? nextLeagues[0] ?? null;
     setActiveLeagueId(target?.id ?? null);
     if (target) await loadLeagueData(target.id);
-    else { setSeasons([]); setVenues([]); setEvents([]); setLedger([]); setInvoices([]); setEventTeams([]); setLeagueFixtures([]); setLeagueStats([]); }
+    else {
+      setSeasons([]); setVenues([]); setEvents([]); setLedger([]); setInvoices([]); setEventTeams([]);
+      setLeagueFixtures([]); setLeagueStats([]); setEligibilityRules([]); setDocumentRequirements([]);
+    }
   }, [league, activeLeagueId, loadLeagueData]);
 
   useEffect(() => {
@@ -400,6 +418,18 @@ const LeagueApp = ({ runtime, userId, authController, preview = false }: LeagueA
                 league={league}
                 activeLeague={activeLeague}
                 runError={withError}
+              />
+            )}
+            {section === 'compliance' && (
+              <ComplianceSection
+                seasons={seasons}
+                events={events}
+                eligibilityRules={eligibilityRules}
+                documentRequirements={documentRequirements}
+                onCreateRule={input => withError(async () => { await league.createEligibilityRule(activeLeague.id, input); await loadLeagueData(activeLeague.id); })}
+                onDeleteRule={ruleId => withError(async () => { await league.deleteEligibilityRule(ruleId); await loadLeagueData(activeLeague.id); })}
+                onCreateDocument={input => withError(async () => { await league.createDocumentRequirement(activeLeague.id, input); await loadLeagueData(activeLeague.id); })}
+                onDeleteDocument={requirementId => withError(async () => { await league.deleteDocumentRequirement(requirementId); await loadLeagueData(activeLeague.id); })}
               />
             )}
             {section === 'venues' && (
@@ -3167,6 +3197,253 @@ const StatisticsSection = ({ leagueName, seasons, events, teams, statEvents, fix
         </>
       )}
     </div>
+  );
+};
+
+// --- Compliance --------------------------------------------------------------
+
+const REQUIREMENT_SCOPES: LeagueRequirementScope[] = ['league', 'season', 'event'];
+const REQUIREMENT_TARGETS: LeagueRequirementTarget[] = ['team', 'player', 'coach', 'staff'];
+
+const scopeDetail = (
+  item: { scope: LeagueRequirementScope; season_id: string | null; event_id: string | null },
+  seasons: LeagueSeason[],
+  events: LeagueEvent[]
+) => {
+  if (item.scope === 'season') return seasons.find(s => s.id === item.season_id)?.name ?? 'Season removed';
+  if (item.scope === 'event') return events.find(e => e.id === item.event_id)?.name ?? 'Event removed';
+  return 'Applies across the league';
+};
+
+const ComplianceSection = ({ seasons, events, eligibilityRules, documentRequirements, onCreateRule, onDeleteRule, onCreateDocument, onDeleteDocument }: {
+  seasons: LeagueSeason[];
+  events: LeagueEvent[];
+  eligibilityRules: LeagueEligibilityRule[];
+  documentRequirements: LeagueDocumentRequirement[];
+  onCreateRule: (input: {
+    scope: LeagueRequirementScope; target: LeagueRequirementTarget; title: string; description?: string | null;
+    seasonId?: string | null; eventId?: string | null; minAge?: number | null; maxAge?: number | null;
+    effectiveFrom?: string | null; effectiveUntil?: string | null;
+  }) => void;
+  onDeleteRule: (ruleId: string) => void;
+  onCreateDocument: (input: {
+    scope: LeagueRequirementScope; target: LeagueRequirementTarget; title: string; instructions?: string | null;
+    seasonId?: string | null; eventId?: string | null; required?: boolean; expires?: boolean;
+  }) => void;
+  onDeleteDocument: (requirementId: string) => void;
+}) => (
+  <div className="space-y-4">
+    <div>
+      <h2 className="font-display text-sm font-black uppercase tracking-wide text-white">Eligibility and documents</h2>
+      <p className="mt-1 text-xs text-slate-400">Define competition rules and required document templates before registration opens.</p>
+    </div>
+
+    <div className="grid gap-4 xl:grid-cols-2">
+      <section className={panel}>
+        <div className={sectionHeader}>
+          <ClipboardCheck size={16} className="text-sky-200" />
+          <h3 className="font-display text-sm font-black text-white">Eligibility rules</h3>
+        </div>
+        <div className="space-y-4 p-4">
+          <EligibilityRuleForm seasons={seasons} events={events} onAdd={onCreateRule} />
+          {eligibilityRules.length === 0 ? (
+            <p className="rounded-xl border border-white/10 bg-white/[0.035] p-4 text-sm text-slate-400">No eligibility rules yet.</p>
+          ) : (
+            <ul className="space-y-2">
+              {eligibilityRules.map(rule => (
+                <li key={rule.id} className="rounded-xl border border-white/10 bg-white/[0.035] p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="font-display text-sm font-black text-white">{rule.title}</p>
+                        <span className="rounded-full border border-sky-300/30 bg-sky-400/10 px-2 py-0.5 text-[11px] font-bold text-sky-100">{REQUIREMENT_TARGET_LABELS[rule.target]}</span>
+                      </div>
+                      <p className="mt-1 text-xs text-slate-400">{REQUIREMENT_SCOPE_LABELS[rule.scope]} · {scopeDetail(rule, seasons, events)}</p>
+                      {rule.description && <p className="mt-2 text-sm text-slate-300">{rule.description}</p>}
+                      <p className="mt-2 text-[11px] font-bold uppercase tracking-wide text-slate-500">
+                        {[rule.min_age != null || rule.max_age != null ? `Age ${rule.min_age ?? 'any'}-${rule.max_age ?? 'any'}` : null, rule.effective_from ? `From ${rule.effective_from}` : null, rule.effective_until ? `Until ${rule.effective_until}` : null].filter(Boolean).join(' · ') || 'No age/date bounds'}
+                      </p>
+                    </div>
+                    <button type="button" aria-label="Remove eligibility rule" className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-slate-400 hover:text-rose-300" onClick={() => onDeleteRule(rule.id)}>
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </section>
+
+      <section className={panel}>
+        <div className={sectionHeader}>
+          <FileText size={16} className="text-sky-200" />
+          <h3 className="font-display text-sm font-black text-white">Required documents</h3>
+        </div>
+        <div className="space-y-4 p-4">
+          <DocumentRequirementForm seasons={seasons} events={events} onAdd={onCreateDocument} />
+          {documentRequirements.length === 0 ? (
+            <p className="rounded-xl border border-white/10 bg-white/[0.035] p-4 text-sm text-slate-400">No document requirements yet.</p>
+          ) : (
+            <ul className="space-y-2">
+              {documentRequirements.map(doc => (
+                <li key={doc.id} className="rounded-xl border border-white/10 bg-white/[0.035] p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="font-display text-sm font-black text-white">{doc.title}</p>
+                        <span className="rounded-full border border-emerald-300/30 bg-emerald-400/10 px-2 py-0.5 text-[11px] font-bold text-emerald-100">{REQUIREMENT_TARGET_LABELS[doc.target]}</span>
+                        {!doc.required && <span className="rounded-full border border-slate-400/30 bg-slate-400/10 px-2 py-0.5 text-[11px] font-bold text-slate-200">Optional</span>}
+                        {doc.expires && <span className="rounded-full border border-amber-300/30 bg-amber-400/10 px-2 py-0.5 text-[11px] font-bold text-amber-100">Expiry tracked</span>}
+                      </div>
+                      <p className="mt-1 text-xs text-slate-400">{REQUIREMENT_SCOPE_LABELS[doc.scope]} · {scopeDetail(doc, seasons, events)}</p>
+                      {doc.instructions && <p className="mt-2 text-sm text-slate-300">{doc.instructions}</p>}
+                    </div>
+                    <button type="button" aria-label="Remove document requirement" className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-slate-400 hover:text-rose-300" onClick={() => onDeleteDocument(doc.id)}>
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </section>
+    </div>
+  </div>
+);
+
+const ScopeFields = ({ scope, seasonId, eventId, seasons, events, onScope, onSeason, onEvent }: {
+  scope: LeagueRequirementScope;
+  seasonId: string;
+  eventId: string;
+  seasons: LeagueSeason[];
+  events: LeagueEvent[];
+  onScope: (scope: LeagueRequirementScope) => void;
+  onSeason: (seasonId: string) => void;
+  onEvent: (eventId: string) => void;
+}) => (
+  <>
+    <div className="space-y-1">
+      <label className={label}>Scope</label>
+      <select className={selectClass} value={scope} onChange={e => onScope(e.target.value as LeagueRequirementScope)}>
+        {REQUIREMENT_SCOPES.map(s => <option key={s} value={s}>{REQUIREMENT_SCOPE_LABELS[s]}</option>)}
+      </select>
+    </div>
+    {scope === 'season' && (
+      <div className="space-y-1">
+        <label className={label}>Season</label>
+        <select className={selectClass} required value={seasonId} onChange={e => onSeason(e.target.value)}>
+          <option value="">Choose season</option>
+          {seasons.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+        </select>
+      </div>
+    )}
+    {scope === 'event' && (
+      <div className="space-y-1">
+        <label className={label}>Event</label>
+        <select className={selectClass} required value={eventId} onChange={e => onEvent(e.target.value)}>
+          <option value="">Choose event</option>
+          {events.map(ev => <option key={ev.id} value={ev.id}>{ev.name}</option>)}
+        </select>
+      </div>
+    )}
+  </>
+);
+
+const EligibilityRuleForm = ({ seasons, events, onAdd }: {
+  seasons: LeagueSeason[];
+  events: LeagueEvent[];
+  onAdd: (input: {
+    scope: LeagueRequirementScope; target: LeagueRequirementTarget; title: string; description?: string | null;
+    seasonId?: string | null; eventId?: string | null; minAge?: number | null; maxAge?: number | null;
+    effectiveFrom?: string | null; effectiveUntil?: string | null;
+  }) => void;
+}) => {
+  const [scope, setScope] = useState<LeagueRequirementScope>('league');
+  const [target, setTarget] = useState<LeagueRequirementTarget>('team');
+  const [seasonId, setSeasonId] = useState('');
+  const [eventId, setEventId] = useState('');
+  const [title, setTitle] = useState('');
+  const [description, setDescription] = useState('');
+  const [minAge, setMinAge] = useState('');
+  const [maxAge, setMaxAge] = useState('');
+
+  const submit = (e: FormEvent) => {
+    e.preventDefault();
+    if (!title.trim()) return;
+    onAdd({
+      scope, target, title, description: description || null,
+      seasonId: scope === 'season' ? seasonId : null,
+      eventId: scope === 'event' ? eventId : null,
+      minAge: minAge ? Number(minAge) : null,
+      maxAge: maxAge ? Number(maxAge) : null
+    });
+    setTitle(''); setDescription(''); setMinAge(''); setMaxAge('');
+  };
+
+  return (
+    <form onSubmit={submit} className="grid gap-3 sm:grid-cols-2">
+      <ScopeFields scope={scope} seasonId={seasonId} eventId={eventId} seasons={seasons} events={events} onScope={setScope} onSeason={setSeasonId} onEvent={setEventId} />
+      <div className="space-y-1">
+        <label className={label}>Applies to</label>
+        <select className={selectClass} value={target} onChange={e => setTarget(e.target.value as LeagueRequirementTarget)}>
+          {REQUIREMENT_TARGETS.map(t => <option key={t} value={t}>{REQUIREMENT_TARGET_LABELS[t]}</option>)}
+        </select>
+      </div>
+      <div className="space-y-1 sm:col-span-2"><label className={label}>Rule title</label><input className={inputClass} required value={title} onChange={e => setTitle(e.target.value)} placeholder="Roster eligibility rule" /></div>
+      <div className="space-y-1"><label className={label}>Minimum age</label><input className={inputClass} type="number" min={0} max={99} value={minAge} onChange={e => setMinAge(e.target.value)} /></div>
+      <div className="space-y-1"><label className={label}>Maximum age</label><input className={inputClass} type="number" min={0} max={99} value={maxAge} onChange={e => setMaxAge(e.target.value)} /></div>
+      <div className="space-y-1 sm:col-span-2"><label className={label}>Description</label><textarea className={inputClass} rows={2} value={description} onChange={e => setDescription(e.target.value)} placeholder="What the league checks before approval" /></div>
+      <button type="submit" className={`${primaryBtn} sm:col-span-2`}><Plus size={14} /> Add rule</button>
+    </form>
+  );
+};
+
+const DocumentRequirementForm = ({ seasons, events, onAdd }: {
+  seasons: LeagueSeason[];
+  events: LeagueEvent[];
+  onAdd: (input: {
+    scope: LeagueRequirementScope; target: LeagueRequirementTarget; title: string; instructions?: string | null;
+    seasonId?: string | null; eventId?: string | null; required?: boolean; expires?: boolean;
+  }) => void;
+}) => {
+  const [scope, setScope] = useState<LeagueRequirementScope>('league');
+  const [target, setTarget] = useState<LeagueRequirementTarget>('team');
+  const [seasonId, setSeasonId] = useState('');
+  const [eventId, setEventId] = useState('');
+  const [title, setTitle] = useState('');
+  const [instructions, setInstructions] = useState('');
+  const [required, setRequired] = useState(true);
+  const [expires, setExpires] = useState(false);
+
+  const submit = (e: FormEvent) => {
+    e.preventDefault();
+    if (!title.trim()) return;
+    onAdd({
+      scope, target, title, instructions: instructions || null,
+      seasonId: scope === 'season' ? seasonId : null,
+      eventId: scope === 'event' ? eventId : null,
+      required, expires
+    });
+    setTitle(''); setInstructions(''); setRequired(true); setExpires(false);
+  };
+
+  return (
+    <form onSubmit={submit} className="grid gap-3 sm:grid-cols-2">
+      <ScopeFields scope={scope} seasonId={seasonId} eventId={eventId} seasons={seasons} events={events} onScope={setScope} onSeason={setSeasonId} onEvent={setEventId} />
+      <div className="space-y-1">
+        <label className={label}>Applies to</label>
+        <select className={selectClass} value={target} onChange={e => setTarget(e.target.value as LeagueRequirementTarget)}>
+          {REQUIREMENT_TARGETS.map(t => <option key={t} value={t}>{REQUIREMENT_TARGET_LABELS[t]}</option>)}
+        </select>
+      </div>
+      <div className="space-y-1 sm:col-span-2"><label className={label}>Document title</label><input className={inputClass} required value={title} onChange={e => setTitle(e.target.value)} placeholder="Proof of age" /></div>
+      <div className="space-y-1 sm:col-span-2"><label className={label}>Instructions</label><textarea className={inputClass} rows={2} value={instructions} onChange={e => setInstructions(e.target.value)} placeholder="Accepted file or evidence details" /></div>
+      <label className="flex items-center gap-2 text-xs font-bold text-slate-300"><input type="checkbox" checked={required} onChange={e => setRequired(e.target.checked)} /> Required</label>
+      <label className="flex items-center gap-2 text-xs font-bold text-slate-300"><input type="checkbox" checked={expires} onChange={e => setExpires(e.target.checked)} /> Has expiry date</label>
+      <button type="submit" className={`${primaryBtn} sm:col-span-2`}><Plus size={14} /> Add document</button>
+    </form>
   );
 };
 
