@@ -2,7 +2,7 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 
-select plan(21);
+select plan(27);
 
 -- Actors -----------------------------------------------------------------------
 insert into auth.users (id, aud, role, email, email_confirmed_at, created_at, updated_at)
@@ -178,6 +178,50 @@ select is(
   (public.resolve_app_destination() -> 'league_entitled')::text,
   'true',
   'a provisioned league owner reports the league entitlement'
+);
+
+-- 22..27) The Admin Console entitlement toggle: grant, re-grant, revoke ----------
+-- These call admin_grant_entitlement/admin_revoke_entitlement directly. Both take
+-- an `entitlement` parameter that shadows user_entitlements.entitlement, and both
+-- were unusable ("column reference \"entitlement\" is ambiguous") until the
+-- references were qualified.
+set local role authenticated;
+select set_config('request.jwt.claim.role', 'authenticated', true);
+select set_config('request.jwt.claim.sub', 'a0000000-0000-4000-8000-000000000001', true);
+select set_config('request.jwt.claims', '{"sub":"a0000000-0000-4000-8000-000000000001","role":"authenticated","aal":"aal2"}', true);
+
+select lives_ok(
+  $$ select public.admin_grant_entitlement('a0000000-0000-4000-8000-000000000006', 'league_pilot', null, 'Granted from Admin Access tab') $$,
+  'an owner admin grants an entitlement without an ambiguous column reference'
+);
+select is(
+  public.is_entitled('league_pilot', 'a0000000-0000-4000-8000-000000000006'),
+  true,
+  'the granted entitlement is active'
+);
+
+-- Re-granting takes the update branch and must stay a single active row.
+select lives_ok(
+  $$ select public.admin_grant_entitlement('a0000000-0000-4000-8000-000000000006', 'league_pilot', null, 'Re-granted') $$,
+  're-granting an existing entitlement updates it in place'
+);
+select is(
+  (select count(*)::int from public.user_entitlements
+   where user_id = 'a0000000-0000-4000-8000-000000000006'
+     and entitlement = 'league_pilot'
+     and revoked_at is null),
+  1,
+  're-granting leaves exactly one active grant'
+);
+
+select lives_ok(
+  $$ select public.admin_revoke_entitlement('a0000000-0000-4000-8000-000000000006', 'league_pilot') $$,
+  'an owner admin revokes an entitlement without an ambiguous column reference'
+);
+select is(
+  public.is_entitled('league_pilot', 'a0000000-0000-4000-8000-000000000006'),
+  false,
+  'the revoked entitlement is no longer active'
 );
 
 select finish();
