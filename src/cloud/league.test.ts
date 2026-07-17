@@ -16,6 +16,7 @@ import {
   formatMoney,
   groupStageFixtureSpecs,
   groupStageStandings,
+  isEventFinished,
   qualifiers,
   nextPowerOfTwo,
   seedPositions,
@@ -74,16 +75,25 @@ describe('season lifecycle helper', () => {
 });
 
 describe('event lifecycle + capacity helpers', () => {
-  it('advances an event forward one step at a time and stops when completed', () => {
+  it('advances an event forward one step at a time and stops when archived', () => {
     expect(nextEventStatuses('draft')).toEqual(['registration_open']);
     expect(nextEventStatuses('registration_open')).toEqual(['active']);
     expect(nextEventStatuses('active')).toEqual(['completed']);
-    expect(nextEventStatuses('completed')).toEqual([]);
+    expect(nextEventStatuses('completed')).toEqual(['archived']);
+    expect(nextEventStatuses('archived')).toEqual([]);
+  });
+
+  it('treats only completed and archived events as finished', () => {
+    expect(isEventFinished('draft')).toBe(false);
+    expect(isEventFinished('registration_open')).toBe(false);
+    expect(isEventFinished('active')).toBe(false);
+    expect(isEventFinished('completed')).toBe(true);
+    expect(isEventFinished('archived')).toBe(true);
   });
 
   it('labels every event status', () => {
     expect(EVENT_STATUS_LABELS.registration_open).toBe('Registration open');
-    expect(Object.keys(EVENT_STATUS_LABELS)).toHaveLength(4);
+    expect(Object.keys(EVENT_STATUS_LABELS)).toHaveLength(5);
   });
 
   it('computes spots remaining, clamping at zero and passing through an uncapped event', () => {

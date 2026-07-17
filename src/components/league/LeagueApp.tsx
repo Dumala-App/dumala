@@ -16,6 +16,7 @@ import {
   Gauge,
   Activity,
   AlertTriangle,
+  Archive,
   ArrowDownLeft,
   ArrowUpRight,
   Award,
@@ -57,6 +58,7 @@ import {
   computeScorers,
   computeStandings,
   formatMoney,
+  isEventFinished,
   nextEventStatuses,
   nextSeasonStatuses,
   spotsRemaining,
@@ -120,12 +122,13 @@ interface LeagueAppProps {
   preview?: boolean;
 }
 
-type LeagueSection = 'overview' | 'seasons' | 'events' | 'calendar' | 'statistics' | 'coaches' | 'compliance' | 'venues' | 'finance' | 'settings';
+type LeagueSection = 'overview' | 'seasons' | 'events' | 'archived' | 'calendar' | 'statistics' | 'coaches' | 'compliance' | 'venues' | 'finance' | 'settings';
 
 const NAV: Array<{ id: LeagueSection; label: string; icon: React.ComponentType<{ size?: number; className?: string }> }> = [
   { id: 'overview', label: 'Overview', icon: Gauge },
   { id: 'seasons', label: 'Seasons', icon: CalendarRange },
   { id: 'events', label: 'Events', icon: Trophy },
+  { id: 'archived', label: 'Archived', icon: Archive },
   { id: 'calendar', label: 'Calendar', icon: CalendarClock },
   { id: 'statistics', label: 'Statistics', icon: Database },
   { id: 'coaches', label: 'Coaches', icon: UserCheck },
@@ -147,7 +150,8 @@ const eventStatusTone: Record<LeagueEventStatus, string> = {
   draft: 'border-slate-300/20 bg-slate-300/8 text-slate-300',
   registration_open: 'border-sky-300/30 bg-sky-400/10 text-sky-100',
   active: 'border-emerald-300/30 bg-emerald-400/10 text-emerald-100',
-  completed: 'border-indigo-300/30 bg-indigo-400/10 text-indigo-100'
+  completed: 'border-indigo-300/30 bg-indigo-400/10 text-indigo-100',
+  archived: 'border-slate-500/30 bg-slate-500/10 text-slate-400'
 };
 
 const registrationTone: Record<EventRegistrationStatus, string> = {
@@ -175,6 +179,68 @@ const StatusBadge = ({ status }: { status: LeagueSeasonStatus }) => (
     {SEASON_STATUS_LABELS[status]}
   </span>
 );
+
+// --- Lifecycle confirmation --------------------------------------------------
+// Every lifecycle step is one-way, so a misclick on a season or event card is
+// not something the owner can undo from the dashboard. The steps that shut
+// something off -- closing registration, ending the run, filing it away -- ask
+// again first. Opening registration (draft -> registration_open) does not: it
+// grants access rather than removing it, and the next step already re-confirms.
+
+const CONFIRMED_ADVANCES: ReadonlySet<string> = new Set(['active', 'completed', 'archived']);
+
+const EVENT_ADVANCE_WARNING: Partial<Record<LeagueEventStatus, string>> = {
+  active: 'Registration closes the moment the event goes Active. Clubs holding the registration link will no longer be able to apply, and registration cannot be reopened.',
+  completed: 'Completing the event ends its run. It drops out of your upcoming events and capacity lists, and the only step left is archiving.',
+  archived: 'Archiving files the event away. It moves out of Events and into the Archived tab, where it stays readable but can no longer be advanced.'
+};
+
+const SEASON_ADVANCE_WARNING: Partial<Record<LeagueSeasonStatus, string>> = {
+  active: 'Moving the season to Active is a one-way step — it cannot be returned to Registration open.',
+  completed: 'Completing the season ends it. The only step left is archiving.',
+  archived: 'Archiving files the season away for review. It becomes read-only and this cannot be undone.'
+};
+
+const ConfirmAdvanceDialog = ({ title, warning, confirmLabel, onConfirm, onCancel }: {
+  title: string;
+  warning: string;
+  confirmLabel: string;
+  onConfirm: () => void;
+  onCancel: () => void;
+}) => {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onCancel(); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onCancel]);
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/75 p-4 backdrop-blur-sm"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="confirm-advance-title"
+      onClick={onCancel}
+    >
+      <div className={`${panel} w-full max-w-md p-5`} onClick={e => e.stopPropagation()}>
+        <div className="flex items-start gap-3">
+          <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-amber-300/30 bg-amber-400/10 text-amber-200">
+            <AlertTriangle size={16} />
+          </span>
+          <div className="min-w-0">
+            <h2 id="confirm-advance-title" className="font-display text-sm font-black text-white">{title}</h2>
+            <p className="mt-2 text-xs leading-relaxed text-slate-300">{warning}</p>
+            <p className="mt-2 text-xs font-bold text-slate-400">This cannot be undone from the dashboard.</p>
+          </div>
+        </div>
+        <div className="mt-5 flex justify-end gap-2">
+          <button type="button" className={ghostBtn} onClick={onCancel}>Cancel</button>
+          <button type="button" className={primaryBtn} autoFocus onClick={onConfirm}>{confirmLabel}</button>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 const StatTile = ({ label: tileLabel, value, detail }: { label: string; value: string | number; detail: string }) => (
   <div className={`${subtleCard} p-4`}>
@@ -392,6 +458,17 @@ const LeagueApp = ({ runtime, userId, authController, preview = false }: LeagueA
                 onGoToSeasons={() => setSection('seasons')}
               />
             )}
+            {section === 'archived' && (
+              <ArchivedSection
+                league={league}
+                events={events}
+                seasons={seasons}
+                runError={withError}
+                onAdvance={(eventId, next) => withError(async () => { await league.advanceEventStatus(eventId, next); await loadLeagueData(activeLeague.id); })}
+                onAfterReview={() => loadLeagueData(activeLeague.id)}
+                onGoToEvents={() => setSection('events')}
+              />
+            )}
             {section === 'calendar' && (
               <CalendarSection
                 league={league}
@@ -492,7 +569,7 @@ const OverviewSection = ({ league, seasons, venues, events, ledger, invoices, ev
   const openEvents = events.filter(event => event.status === 'registration_open');
   const activeEvents = events.filter(event => event.status === 'active');
   const upcomingEvents = events
-    .filter(event => event.status !== 'completed')
+    .filter(event => !isEventFinished(event.status))
     .slice()
     .sort((a, b) => (a.starts_on ?? '9999-12-31').localeCompare(b.starts_on ?? '9999-12-31'))
     .slice(0, 3);
@@ -544,7 +621,7 @@ const OverviewSection = ({ league, seasons, venues, events, ledger, invoices, ev
     .sort((a, b) => a.date.localeCompare(b.date))
     .slice(0, 5);
   const capacityEvents = events
-    .filter(event => event.status !== 'completed')
+    .filter(event => !isEventFinished(event.status))
     .slice()
     .sort((a, b) => {
       const aPriority = a.status === 'registration_open' ? 0 : a.status === 'active' ? 1 : 2;
@@ -979,13 +1056,32 @@ const LiveCompetitionSection = ({ league, competition, onGoToEvents }: {
 };
 
 const SeasonAdvance = ({ season, onAdvance }: { season: LeagueSeason; onAdvance: (seasonId: string, next: LeagueSeasonStatus) => void }) => {
+  const [confirming, setConfirming] = useState(false);
   const nexts = nextSeasonStatuses(season.status);
   if (nexts.length === 0) return <span className="text-xs text-slate-500">Archived — read-only</span>;
   const next = nexts[0];
+  const warning = SEASON_ADVANCE_WARNING[next];
+  const needsConfirm = CONFIRMED_ADVANCES.has(next) && Boolean(warning);
+
   return (
-    <button type="button" className={primaryBtn} onClick={() => onAdvance(season.id, next)}>
-      Advance to {SEASON_STATUS_LABELS[next]} <ChevronRight size={14} />
-    </button>
+    <>
+      <button
+        type="button"
+        className={primaryBtn}
+        onClick={() => (needsConfirm ? setConfirming(true) : onAdvance(season.id, next))}
+      >
+        Advance to {SEASON_STATUS_LABELS[next]} <ChevronRight size={14} />
+      </button>
+      {confirming && warning && (
+        <ConfirmAdvanceDialog
+          title={`Move ${season.name} to ${SEASON_STATUS_LABELS[next]}?`}
+          warning={warning}
+          confirmLabel={`Yes, move to ${SEASON_STATUS_LABELS[next]}`}
+          onCancel={() => setConfirming(false)}
+          onConfirm={() => { setConfirming(false); onAdvance(season.id, next); }}
+        />
+      )}
+    </>
   );
 };
 
@@ -1060,6 +1156,36 @@ const EventStatusBadge = ({ status }: { status: LeagueEventStatus }) => (
   </span>
 );
 
+const EventAdvance = ({ event, onAdvance }: { event: LeagueEvent; onAdvance: (eventId: string, next: LeagueEventStatus) => void }) => {
+  const [confirming, setConfirming] = useState(false);
+  const nexts = nextEventStatuses(event.status);
+  if (nexts.length === 0) return <p className="text-xs text-slate-500">This event is archived — read-only.</p>;
+  const next = nexts[0];
+  const warning = EVENT_ADVANCE_WARNING[next];
+  const needsConfirm = CONFIRMED_ADVANCES.has(next) && Boolean(warning);
+
+  return (
+    <>
+      <button
+        type="button"
+        className={primaryBtn}
+        onClick={() => (needsConfirm ? setConfirming(true) : onAdvance(event.id, next))}
+      >
+        Advance to {EVENT_STATUS_LABELS[next]} <ChevronRight size={14} />
+      </button>
+      {confirming && warning && (
+        <ConfirmAdvanceDialog
+          title={`Move ${event.name} to ${EVENT_STATUS_LABELS[next]}?`}
+          warning={warning}
+          confirmLabel={`Yes, move to ${EVENT_STATUS_LABELS[next]}`}
+          onCancel={() => setConfirming(false)}
+          onConfirm={() => { setConfirming(false); onAdvance(event.id, next); }}
+        />
+      )}
+    </>
+  );
+};
+
 const EVENT_FORMATS: LeagueEventFormat[] = ['round_robin', 'single_elimination', 'group_knockout'];
 
 interface EventCreateInput {
@@ -1083,6 +1209,9 @@ const EventsSection = ({ league, events, seasons, runError, onCreate, onAdvance,
   onGoToSeasons: () => void;
 }) => {
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  // Archived events live in their own section, but an event archived from the
+  // detail view below stays open so the owner sees the result of the step.
+  const liveEvents = useMemo(() => events.filter(e => e.status !== 'archived'), [events]);
   const selected = useMemo(() => events.find(e => e.id === selectedId) ?? null, [events, selectedId]);
 
   if (selected) {
@@ -1100,12 +1229,132 @@ const EventsSection = ({ league, events, seasons, runError, onCreate, onAdvance,
 
   return (
     <EventsList
-      events={events}
+      events={liveEvents}
       seasons={seasons}
       onCreate={onCreate}
       onOpen={setSelectedId}
       onGoToSeasons={onGoToSeasons}
     />
+  );
+};
+
+// --- Archived ----------------------------------------------------------------
+// A read-only shelf for finished work: events the owner archived, and seasons
+// that reached the end of their own lifecycle. Events open into the same detail
+// view as live ones -- fixtures, tables, and stats all stay reviewable -- but
+// the lifecycle button there is spent, so nothing can be advanced back out.
+
+const ArchivedSection = ({ league, events, seasons, runError, onAdvance, onAfterReview, onGoToEvents }: {
+  league: CloudLeagueRepository;
+  events: LeagueEvent[];
+  seasons: LeagueSeason[];
+  runError: (fn: () => Promise<unknown>) => Promise<void>;
+  onAdvance: (eventId: string, next: LeagueEventStatus) => void;
+  onAfterReview: () => void;
+  onGoToEvents: () => void;
+}) => {
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const archivedEvents = useMemo(
+    () => events.filter(e => e.status === 'archived').slice().sort((a, b) => (b.starts_on ?? '').localeCompare(a.starts_on ?? '')),
+    [events]
+  );
+  const archivedSeasons = useMemo(() => seasons.filter(s => s.status === 'archived'), [seasons]);
+  const selected = useMemo(() => archivedEvents.find(e => e.id === selectedId) ?? null, [archivedEvents, selectedId]);
+
+  if (selected) {
+    return (
+      <EventDetail
+        league={league}
+        event={selected}
+        runError={runError}
+        onBack={() => setSelectedId(null)}
+        onAdvance={onAdvance}
+        onAfterReview={onAfterReview}
+      />
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      <div>
+        <h2 className="font-display text-sm font-black uppercase tracking-wide text-white">Archived</h2>
+        <p className="mt-1 text-xs text-slate-400">
+          Finished events and seasons, kept for review. Archive a completed event from its page in{' '}
+          <button type="button" onClick={onGoToEvents} className={inlineLink}>Events</button>.
+        </p>
+      </div>
+
+      <section className={panel}>
+        <div className={sectionHeader}>
+          <Trophy size={16} className="text-sky-200" />
+          <h3 className="font-display text-sm font-black text-white">Events</h3>
+          <span className="ml-auto text-[11px] font-bold uppercase tracking-wide text-slate-500">{archivedEvents.length}</span>
+        </div>
+        <div className="p-4">
+          {archivedEvents.length === 0 ? (
+            <p className="text-sm text-slate-400">No archived events yet. Once an event is completed, you can archive it to file it away here.</p>
+          ) : (
+            <ul className="space-y-2">
+              {archivedEvents.map(event => (
+                <li key={event.id}>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedId(event.id)}
+                    className={`${subtleCard} flex w-full flex-wrap items-center justify-between gap-3 p-4 text-left transition hover:border-sky-300/35`}
+                  >
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-display text-sm font-black text-white">{event.name}</span>
+                        <EventStatusBadge status={event.status} />
+                      </div>
+                      <p className="mt-1 text-xs text-slate-400">
+                        {[EVENT_FORMAT_LABELS[event.format], event.category, seasons.find(s => s.id === event.season_id)?.name].filter(Boolean).join(' · ')}
+                        {event.starts_on ? ` · ${event.starts_on}` : ''}
+                      </p>
+                    </div>
+                    <ChevronRight size={16} className="text-slate-500" />
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </section>
+
+      <section className={panel}>
+        <div className={sectionHeader}>
+          <CalendarRange size={16} className="text-sky-200" />
+          <h3 className="font-display text-sm font-black text-white">Seasons</h3>
+          <span className="ml-auto text-[11px] font-bold uppercase tracking-wide text-slate-500">{archivedSeasons.length}</span>
+        </div>
+        <div className="p-4">
+          {archivedSeasons.length === 0 ? (
+            <p className="text-sm text-slate-400">No archived seasons yet.</p>
+          ) : (
+            <ul className="space-y-2">
+              {archivedSeasons.map(season => {
+                const seasonEvents = events.filter(e => e.season_id === season.id).length;
+                return (
+                  <li key={season.id} className={`${subtleCard} flex flex-wrap items-center justify-between gap-3 p-4`}>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-display text-sm font-black text-white">{season.name}</span>
+                        <StatusBadge status={season.status} />
+                      </div>
+                      <p className="mt-1 text-xs text-slate-400">
+                        {season.year ? `${season.year} · ` : ''}
+                        {season.starts_on ? `${season.starts_on} → ${season.ends_on ?? 'TBD'}` : 'Dates not set'}
+                        {` · ${seasonEvents} event${seasonEvents === 1 ? '' : 's'}`}
+                      </p>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </div>
+      </section>
+    </div>
   );
 };
 
@@ -1264,7 +1513,6 @@ const EventDetail = ({ league, event, runError, onBack, onAdvance, onAfterReview
 
   const approvedCount = registrations.filter(r => r.status === 'approved').length;
   const spots = spotsRemaining(event.team_cap, approvedCount);
-  const nexts = nextEventStatuses(event.status);
   const registerUrl = typeof window !== 'undefined' ? `${window.location.origin}/#/register` : '/#/register';
   const publicUrl = typeof window !== 'undefined' ? `${window.location.origin}/#/l/${event.registration_code}` : `/#/l/${event.registration_code}`;
   const teamName = (id: string) => teams.find(t => t.id === id)?.name ?? 'TBD';
@@ -1387,13 +1635,7 @@ const EventDetail = ({ league, event, runError, onBack, onAdvance, onAfterReview
             </div>
           </div>
 
-          {nexts.length > 0 ? (
-            <button type="button" className={primaryBtn} onClick={() => onAdvance(event.id, nexts[0])}>
-              Advance to {EVENT_STATUS_LABELS[nexts[0]]} <ChevronRight size={14} />
-            </button>
-          ) : (
-            <p className="text-xs text-slate-500">This event is completed — read-only.</p>
-          )}
+          <EventAdvance event={event} onAdvance={onAdvance} />
         </div>
       </section>
 
