@@ -177,6 +177,30 @@ const planBadgeTone = (planCode: string) =>
     ? 'border-slate-300/20 bg-slate-300/10 text-slate-200'
     : 'border-emerald-300/25 bg-emerald-300/10 text-emerald-100';
 
+// Accounts bootstrapped before personas existed have no persona value; they
+// were all coach accounts, so coach is the display default everywhere.
+const managedUserPersona = (user: AdminManagedUser): AccountPersona => user.persona ?? 'coach';
+
+const personaLabel: Record<AccountPersona, string> = {
+  coach: 'Coach',
+  player: 'Player',
+  league: 'League owner'
+};
+
+const accountPersonas: AccountPersona[] = ['coach', 'player', 'league'];
+
+const personaBadgeTone: Record<AccountPersona, string> = {
+  coach: 'border-cyan-300/25 bg-cyan-300/10 text-cyan-100',
+  player: 'border-emerald-300/25 bg-emerald-300/10 text-emerald-100',
+  league: 'border-amber-300/25 bg-amber-300/10 text-amber-100'
+};
+
+const PersonaBadge = ({ persona }: { persona: AccountPersona }) => (
+  <span className={`inline-flex rounded-md border px-2 py-1 text-[10px] font-black uppercase ${personaBadgeTone[persona]}`}>
+    {personaLabel[persona]}
+  </span>
+);
+
 const ADMIN_PANEL_CLASS = ADMIN_THEME.classes.panel;
 const ADMIN_PANEL_HEADER_CLASS = ADMIN_THEME.classes.panelHeader;
 const ADMIN_SUBTLE_CARD_CLASS = ADMIN_THEME.classes.subtleCard;
@@ -1605,14 +1629,29 @@ const UsersPanel = ({
   onSearch: () => void;
   onManage: (user: AdminManagedUser) => void;
 }) => {
+  const [personaFilter, setPersonaFilter] = useState<'all' | AccountPersona>('all');
   const bannedCount = users.filter(user => user.bannedAt).length;
   const mutedCount = users.filter(isManagedUserMuted).length;
   const paidCount = users.filter(user => user.planCode !== 'free').length;
+  const personaCounts = users.reduce<Record<AccountPersona, number>>(
+    (counts, user) => {
+      counts[managedUserPersona(user)] += 1;
+      return counts;
+    },
+    { coach: 0, player: 0, league: 0 }
+  );
+  const visibleUsers = personaFilter === 'all'
+    ? users
+    : users.filter(user => managedUserPersona(user) === personaFilter);
 
   return (
     <div className="space-y-4">
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
-        <StatTile label="Users" value={metrics?.users.total ?? users.length} detail="Cloud user profiles." />
+        <StatTile
+          label="Users"
+          value={metrics?.users.total ?? users.length}
+          detail={`${personaCounts.coach} coaches · ${personaCounts.league} league owners · ${personaCounts.player} players loaded.`}
+        />
         <StatTile label="New 7d" value={metrics?.users.new7d ?? 0} detail={`${metrics?.users.newToday ?? 0} joined today.`} />
         <StatTile label="Banned / muted" value={`${bannedCount} / ${mutedCount}`} detail="Moderated accounts in the loaded directory." />
         <StatTile label="Paid plans" value={paidCount} detail="Loaded users on a non-free plan." />
@@ -1633,6 +1672,17 @@ const UsersPanel = ({
             placeholder="Search by email, display name, or user id"
             className={`${ADMIN_INPUT_CLASS} flex-1`}
           />
+          <select
+            aria-label="Filter users by role"
+            value={personaFilter}
+            onChange={event => setPersonaFilter(event.target.value as typeof personaFilter)}
+            className={ADMIN_SELECT_CLASS}
+          >
+            <option value="all">All roles ({users.length})</option>
+            {accountPersonas.map(persona => (
+              <option key={persona} value={persona}>{personaLabel[persona]}s ({personaCounts[persona]})</option>
+            ))}
+          </select>
           <Button type="submit" variant="outline" disabled={usersState === 'loading'} className={ADMIN_SECONDARY_ACTION_BUTTON_CLASS}>
             {usersState === 'loading' ? <Loader2 size={14} className="animate-spin" /> : <Search size={14} />} Search
           </Button>
@@ -1645,14 +1695,17 @@ const UsersPanel = ({
           <EmptyState title="User directory unavailable" detail="The managed users query failed. Search again to retry." />
         ) : users.length === 0 ? (
           <EmptyState title="No users found" detail="Clear the search or wait for cloud accounts to bootstrap." />
+        ) : visibleUsers.length === 0 ? (
+          <EmptyState title={`No ${personaLabel[personaFilter as AccountPersona].toLowerCase()} accounts loaded`} detail="Choose another role filter or broaden the search." />
         ) : (
-          <CompactTable headers={['User', 'Status', 'Plan', 'Workspaces', 'Devices', 'Last active', '']} scrollHeightClassName="max-h-[30rem]">
-            {users.map(user => (
+          <CompactTable headers={['User', 'Role', 'Status', 'Plan', 'Workspaces', 'Devices', 'Last active', '']} scrollHeightClassName="max-h-[30rem]">
+            {visibleUsers.map(user => (
               <tr key={user.userId}>
                 <td className="px-3 py-2">
                   <p className="font-bold text-foreground">{managedUserLabel(user)}</p>
                   <p className="mt-0.5 max-w-[16rem] truncate text-[11px] text-muted-foreground">{user.email || user.userId}</p>
                 </td>
+                <td className="px-3 py-2"><PersonaBadge persona={managedUserPersona(user)} /></td>
                 <td className="px-3 py-2"><ManagedUserStatusBadges user={user} /></td>
                 <td className="px-3 py-2">
                   <span className={`inline-flex rounded-md border px-2 py-1 text-[10px] font-black uppercase ${planBadgeTone(user.planCode)}`}>
@@ -1777,6 +1830,7 @@ const ManageUserDialog = ({
         </DialogHeader>
 
         <div className="flex flex-wrap items-center gap-2">
+          <PersonaBadge persona={managedUserPersona(user)} />
           <ManagedUserStatusBadges user={user} />
           <span className={`inline-flex rounded-md border px-2 py-1 text-[10px] font-black uppercase ${planBadgeTone(user.planCode)}`}>
             {user.planCode}
@@ -2066,14 +2120,6 @@ const leagueRequestStatusLabel: Record<LeagueAccessRequestStatus, string> = {
   provisioned: 'Provisioned',
   withdrawn: 'Withdrawn'
 };
-
-const personaLabel: Record<AccountPersona, string> = {
-  coach: 'Coach',
-  player: 'Player',
-  league: 'League'
-};
-
-const accountPersonas: AccountPersona[] = ['coach', 'player', 'league'];
 
 const hasLeaguePilot = (user: AdminManagedUser) =>
   (user.entitlements ?? []).includes(LEAGUE_PILOT_ENTITLEMENT);
