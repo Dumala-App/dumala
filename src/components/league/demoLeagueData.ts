@@ -20,6 +20,8 @@ import {
   type FixtureStatEvent,
   type League,
   type LeagueCoachMembership,
+  type LeagueDocumentRequirement,
+  type LeagueEligibilityRule,
   type LeagueEvent,
   type LeagueSeason,
   type LeagueVenue,
@@ -102,6 +104,38 @@ const buildDemoLeagueRepository = (): CloudLeagueRepository => {
   let venues: LeagueVenue[] = [
     { id: 'demo-venue-1', league_id: LEAGUE_ID, name: 'Rizal Memorial Pitch A', address: 'Malate, Manila', capacity: 4000, notes: null, created_at: now(), updated_at: now() },
     { id: 'demo-venue-2', league_id: LEAGUE_ID, name: 'McKinley Field 2', address: 'Taguig', capacity: 800, notes: 'Artificial turf', created_at: now(), updated_at: now() }
+  ];
+
+  let eligibilityRules: LeagueEligibilityRule[] = [
+    {
+      id: 'demo-rule-1', league_id: LEAGUE_ID, season_id: 'demo-season-1', event_id: null,
+      scope: 'season', target: 'player', title: 'U14 player age window',
+      description: 'Players must be born within the approved U14 season window.',
+      min_age: 11, max_age: 14, effective_from: '2026-06-01', effective_until: '2026-11-30',
+      created_at: now(), updated_at: now()
+    },
+    {
+      id: 'demo-rule-2', league_id: LEAGUE_ID, season_id: null, event_id: 'demo-event-1',
+      scope: 'event', target: 'team', title: 'Maximum match-day roster',
+      description: 'Teams may dress up to 18 players for each qualifier fixture.',
+      min_age: null, max_age: null, effective_from: null, effective_until: null,
+      created_at: now(), updated_at: now()
+    }
+  ];
+
+  let documentRequirements: LeagueDocumentRequirement[] = [
+    {
+      id: 'demo-doc-1', league_id: LEAGUE_ID, season_id: 'demo-season-1', event_id: null,
+      scope: 'season', target: 'player', title: 'Player proof of age',
+      instructions: 'Birth certificate, passport, or school ID with birth date.',
+      required: true, expires: false, created_at: now(), updated_at: now()
+    },
+    {
+      id: 'demo-doc-2', league_id: LEAGUE_ID, season_id: null, event_id: 'demo-event-1',
+      scope: 'event', target: 'team', title: 'Tournament waiver',
+      instructions: 'Signed team waiver before the first match.',
+      required: true, expires: true, created_at: now(), updated_at: now()
+    }
   ];
 
   let events: LeagueEvent[] = [
@@ -418,6 +452,54 @@ const buildDemoLeagueRepository = (): CloudLeagueRepository => {
     },
     deleteVenue: async venueId => {
       venues = venues.filter(v => v.id !== venueId);
+    },
+    listEligibilityRules: async leagueId => eligibilityRules.filter(r => r.league_id === leagueId),
+    createEligibilityRule: async (leagueId, input) => {
+      const row: LeagueEligibilityRule = {
+        id: newId(), league_id: leagueId, season_id: input.scope === 'season' ? input.seasonId || null : null,
+        event_id: input.scope === 'event' ? input.eventId || null : null, scope: input.scope, target: input.target,
+        title: input.title.trim(), description: input.description?.trim() || null, min_age: input.minAge ?? null,
+        max_age: input.maxAge ?? null, effective_from: input.effectiveFrom || null, effective_until: input.effectiveUntil || null,
+        created_at: now(), updated_at: now()
+      };
+      eligibilityRules = [row, ...eligibilityRules];
+      return row;
+    },
+    updateEligibilityRule: async (ruleId, input) => {
+      eligibilityRules = eligibilityRules.map(r => r.id === ruleId ? {
+        ...r, season_id: input.scope === 'season' ? input.seasonId || null : null,
+        event_id: input.scope === 'event' ? input.eventId || null : null, scope: input.scope, target: input.target,
+        title: input.title.trim(), description: input.description?.trim() || null, min_age: input.minAge ?? null,
+        max_age: input.maxAge ?? null, effective_from: input.effectiveFrom || null, effective_until: input.effectiveUntil || null,
+        updated_at: now()
+      } : r);
+      return eligibilityRules.find(r => r.id === ruleId)!;
+    },
+    deleteEligibilityRule: async ruleId => {
+      eligibilityRules = eligibilityRules.filter(r => r.id !== ruleId);
+    },
+    listDocumentRequirements: async leagueId => documentRequirements.filter(d => d.league_id === leagueId),
+    createDocumentRequirement: async (leagueId, input) => {
+      const row: LeagueDocumentRequirement = {
+        id: newId(), league_id: leagueId, season_id: input.scope === 'season' ? input.seasonId || null : null,
+        event_id: input.scope === 'event' ? input.eventId || null : null, scope: input.scope, target: input.target,
+        title: input.title.trim(), instructions: input.instructions?.trim() || null,
+        required: input.required ?? true, expires: input.expires ?? false, created_at: now(), updated_at: now()
+      };
+      documentRequirements = [row, ...documentRequirements];
+      return row;
+    },
+    updateDocumentRequirement: async (requirementId, input) => {
+      documentRequirements = documentRequirements.map(d => d.id === requirementId ? {
+        ...d, season_id: input.scope === 'season' ? input.seasonId || null : null,
+        event_id: input.scope === 'event' ? input.eventId || null : null, scope: input.scope, target: input.target,
+        title: input.title.trim(), instructions: input.instructions?.trim() || null,
+        required: input.required ?? true, expires: input.expires ?? false, updated_at: now()
+      } : d);
+      return documentRequirements.find(d => d.id === requirementId)!;
+    },
+    deleteDocumentRequirement: async requirementId => {
+      documentRequirements = documentRequirements.filter(d => d.id !== requirementId);
     },
     listEvents: async leagueId => events.filter(e => e.league_id === leagueId),
     createEvent: async (leagueId, input) => {
