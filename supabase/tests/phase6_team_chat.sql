@@ -2,7 +2,7 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 
-select plan(21);
+select plan(25);
 
 -- Actors -----------------------------------------------------------------------
 insert into auth.users (id, aud, role, email, email_confirmed_at, created_at, updated_at)
@@ -82,10 +82,35 @@ select throws_ok(
 );
 select is((select count(*)::int from public.team_chat_messages), 0, 'an unconsented minor cannot read messages');
 
--- Guardian consent unlocks the chat for the minor.
+-- Self-service guardian details do not unlock chat for the minor.
 select set_config('test.msg_minor', 'x', false);
-select is(public.set_guardian_consent('Parent Guardian', 'parent@example.test', 'Mother')::text, 'granted', 'the minor records guardian consent');
-select is(public.can_access_team_chat('e2000000-0000-4000-8000-000000000001'), true, 'a consented minor can access chat');
+select is(public.set_guardian_consent('Parent Guardian', 'parent@example.test', 'Mother')::text, 'pending', 'the minor records guardian details but consent remains pending');
+select is(public.can_access_team_chat('e2000000-0000-4000-8000-000000000001'), false, 'minor self-service guardian details do not unlock chat');
+select throws_ok(
+  $$ update public.player_profiles
+     set guardian_consent_state = 'granted',
+         guardian_consent_at = now()
+     where user_id = 'e1000000-0000-4000-8000-000000000003' $$,
+  '42501', null, 'a minor cannot directly grant consent to unlock chat'
+);
+select is(public.can_access_team_chat('e2000000-0000-4000-8000-000000000001'), false, 'direct consent tampering does not unlock chat');
+select throws_ok(
+  $$ select public.post_team_chat_message('e2000000-0000-4000-8000-000000000001', 'still blocked') $$,
+  '42501', null, 'minor self-service guardian details do not unlock posting'
+);
+
+reset role;
+select set_config('dumala.guardian_consent_grant_authorized', 'on', false);
+update public.player_profiles
+set guardian_consent_state = 'granted',
+    guardian_consent_at = now()
+where user_id = 'e1000000-0000-4000-8000-000000000003';
+select set_config('dumala.guardian_consent_grant_authorized', 'off', false);
+
+set local role authenticated;
+select set_config('request.jwt.claim.sub', 'e1000000-0000-4000-8000-000000000003', true);
+select set_config('request.jwt.claims', '{"sub":"e1000000-0000-4000-8000-000000000003","role":"authenticated","aal":"aal1"}', true);
+select is(public.can_access_team_chat('e2000000-0000-4000-8000-000000000001'), true, 'a trusted consent grant unlocks chat for a minor');
 select set_config('test.msg_minor', (public.post_team_chat_message('e2000000-0000-4000-8000-000000000001', 'Ready coach')).id::text, false);
 
 -- === Non-member is fully blocked ==============================================

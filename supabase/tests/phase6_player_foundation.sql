@@ -2,7 +2,7 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 
-select plan(19);
+select plan(23);
 
 -- Actors -----------------------------------------------------------------------
 insert into auth.users (id, aud, role, email, email_confirmed_at, created_at, updated_at)
@@ -84,12 +84,51 @@ select throws_ok(
 
 select is(
   public.set_guardian_consent('Parent Guardian', 'parent@example.test', 'Mother')::text,
-  'granted',
-  'the minor records guardian consent'
+  'pending',
+  'the minor records guardian details but consent remains pending'
+);
+select is(
+  (select guardian_name from public.player_profiles where user_id = 'b0000000-0000-4000-8000-000000000002'),
+  'Parent Guardian',
+  'the minor guardian name is stored for verification'
+);
+select throws_ok(
+  $$ update public.player_profiles
+     set guardian_consent_state = 'granted',
+         guardian_consent_at = now()
+     where user_id = 'b0000000-0000-4000-8000-000000000002' $$,
+  '42501',
+  null,
+  'a minor cannot directly grant guardian consent on their own profile'
+);
+select throws_ok(
+  $$ update public.player_profiles
+     set guardian_consent_at = now()
+     where user_id = 'b0000000-0000-4000-8000-000000000002' $$,
+  '42501',
+  null,
+  'a minor cannot directly set their guardian consent timestamp'
+);
+select throws_ok(
+  $$ select public.request_player_link('JOINCODE1', 'Kid Striker', 7, null) $$,
+  '42501',
+  null,
+  'minor direct consent tampering does not unlock link requests'
 );
 
+reset role;
+select set_config('dumala.guardian_consent_grant_authorized', 'on', false);
+update public.player_profiles
+set guardian_consent_state = 'granted',
+    guardian_consent_at = now()
+where user_id = 'b0000000-0000-4000-8000-000000000002';
+select set_config('dumala.guardian_consent_grant_authorized', 'off', false);
+
+set local role authenticated;
+select set_config('request.jwt.claim.sub', 'b0000000-0000-4000-8000-000000000002', true);
+select set_config('request.jwt.claims', '{"sub":"b0000000-0000-4000-8000-000000000002","role":"authenticated","aal":"aal1"}', true);
 select set_config('test.req1', public.request_player_link('JOINCODE1', 'Kid Striker', 7, null)::text, false);
-select isnt(current_setting('test.req1'), '', 'a minor with consent can request a link');
+select isnt(current_setting('test.req1'), '', 'a minor with trusted consent can request a link');
 
 select throws_ok(
   $$ select public.request_player_link('JOINCODE1', 'Kid Striker', 7, null) $$,

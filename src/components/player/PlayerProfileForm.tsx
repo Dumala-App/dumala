@@ -74,6 +74,7 @@ const PlayerProfileForm = ({ runtime, userId, linkedPlayer }: PlayerProfileFormP
   const isMinor = computeIsMinor(dateOfBirth || null);
   const consentState = profile?.guardian_consent_state ?? 'not_required';
   const consentGranted = consentState === 'granted';
+  const consentPending = consentState === 'pending';
 
   const handleSave = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -106,12 +107,20 @@ const PlayerProfileForm = ({ runtime, userId, linkedPlayer }: PlayerProfileFormP
         guardianEmail: guardianEmail || null,
         guardianRelationship: guardianRelationship || null
       });
-      setProfile(current => (current ? { ...current, guardian_consent_state: state } : current));
+      setProfile(current => (current ? {
+        ...current,
+        guardian_name: guardianName,
+        guardian_email: guardianEmail || null,
+        guardian_relationship: guardianRelationship || null,
+        guardian_consent_state: state
+      } : current));
       setStatus('saved');
-      setMessage('Guardian consent recorded.');
+      setMessage(state === 'granted'
+        ? 'Guardian consent verified.'
+        : 'Guardian details saved. Consent is pending guardian or club verification.');
     } catch (error) {
       setStatus('error');
-      setMessage(error instanceof Error ? error.message : 'Could not record guardian consent.');
+      setMessage(error instanceof Error ? error.message : 'Could not save guardian details.');
     }
   };
 
@@ -183,11 +192,14 @@ const PlayerProfileForm = ({ runtime, userId, linkedPlayer }: PlayerProfileFormP
             <ShieldCheck size={16} />
             <h3 className="text-sm font-black uppercase tracking-wide">Guardian consent</h3>
             {consentGranted && (
-              <span className="ml-auto rounded-full border border-emerald-400/40 bg-emerald-400/15 px-2 py-0.5 text-[11px] font-bold text-emerald-100">Granted</span>
+              <span className="ml-auto rounded-full border border-emerald-400/40 bg-emerald-400/15 px-2 py-0.5 text-[11px] font-bold text-emerald-100">Verified</span>
+            )}
+            {!consentGranted && consentPending && (
+              <span className="ml-auto rounded-full border border-amber-200/40 bg-amber-200/10 px-2 py-0.5 text-[11px] font-bold text-amber-100">Pending</span>
             )}
           </div>
           <p className="mt-2 text-xs leading-relaxed text-amber-100/90">
-            Because you're under 18, a parent or guardian must consent before you can join a team or share activity.
+            Because you're under 18, guardian details must be verified before you can join a team or share activity.
           </p>
           <div className="mt-3 grid gap-3 sm:grid-cols-3">
             <div className={fieldClass}>
@@ -210,7 +222,7 @@ const PlayerProfileForm = ({ runtime, userId, linkedPlayer }: PlayerProfileFormP
             onClick={() => void handleConsent()}
           >
             {status === 'saving' ? <Loader2 size={16} className="animate-spin" /> : <ShieldCheck size={16} />}
-            {consentGranted ? 'Consent recorded' : 'Record guardian consent'}
+            {consentGranted ? 'Consent verified' : 'Save guardian details'}
           </button>
         </div>
       )}

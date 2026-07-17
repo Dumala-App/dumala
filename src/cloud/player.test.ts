@@ -110,8 +110,8 @@ describe('cloud player repository', () => {
     });
   });
 
-  it('records guardian consent through the RPC', async () => {
-    const { client, rpc } = createRpcStub('granted');
+  it('records guardian details and returns the resulting consent state', async () => {
+    const { client, rpc } = createRpcStub('pending');
 
     await expect(
       createCloudDataAccess(client).player.setGuardianConsent({
@@ -119,7 +119,7 @@ describe('cloud player repository', () => {
         guardianEmail: ' parent@example.test ',
         guardianRelationship: ' Mother '
       })
-    ).resolves.toBe('granted');
+    ).resolves.toBe('pending');
 
     expect(rpc).toHaveBeenCalledWith('set_guardian_consent', {
       p_guardian_name: 'Parent',
