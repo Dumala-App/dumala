@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Loader2, ShieldCheck } from 'lucide-react';
 import { useCloudRuntime } from '../hooks/useCloudRuntime';
 import { useCloudAuth } from '../hooks/useCloudAuth';
-import RequestLeagueAccessForm from './RequestLeagueAccessForm';
+import { CloudAccountGate, getAppAuthRedirectUrl } from './CloudAccountGate';
 import type { AppDestination } from '../cloud/identity';
 import LeagueApp from './league/LeagueApp';
 import { createPreviewLeagueRuntime, createPreviewLeagueAuthController } from './league/demoLeagueData';
@@ -12,7 +12,8 @@ import { GlowingEffect } from './ui/glowing-effect';
 import { ORANGE_NEW_CLASSES, ORANGE_NEW_GLOW_PROPS, ORANGE_NEW_THEME_STYLE } from '../theme/orangeNewTheme';
 
 // Paid League Owner app (free during the beta pilot). There is no open signup:
-// owners request access and a Dumala admin provisions the account and entitlement.
+// the door signs owners in, and a Dumala admin provisions the league entitlement
+// before the dashboard unlocks.
 
 const CloudRequiredNotice = () => (
   <PersonaAccessShell
@@ -59,7 +60,13 @@ const AccessPendingNotice = () => (
   </div>
 );
 
-const LeagueWaitlistView = ({ runtime }: { runtime: ReturnType<typeof useCloudRuntime> }) => (
+const LeagueSignInView = ({
+  runtime,
+  auth
+}: {
+  runtime: ReturnType<typeof useCloudRuntime>;
+  auth: ReturnType<typeof useCloudAuth>;
+}) => (
   <div
     className={`${ORANGE_NEW_CLASSES.accessShell} flex min-h-screen items-center justify-center p-4`}
     style={ORANGE_NEW_THEME_STYLE}
@@ -72,16 +79,32 @@ const LeagueWaitlistView = ({ runtime }: { runtime: ReturnType<typeof useCloudRu
     <main className="relative z-10 w-full max-w-sm">
       <div className={ORANGE_NEW_CLASSES.glowShellTight}>
         <GlowingEffect {...ORANGE_NEW_GLOW_PROPS.shellTight} />
-        <section className="relative z-10 rounded-2xl border border-cyan-300/15 bg-[#07111f]/92 px-5 py-6 text-center text-slate-100 shadow-2xl shadow-black/45 backdrop-blur-xl sm:px-6">
-          <img
-            src="/dumala-onboarding-logo.png"
-            alt="Dumala"
-            className="mx-auto mb-3 h-auto w-24 object-contain"
-          />
-          <p className="mx-auto mb-4 max-w-[17rem] text-sm font-semibold leading-6 text-slate-300">
-            Join the private beta waitlist for Dumala league management.
+        <section className="relative z-10 rounded-2xl border border-cyan-300/15 bg-[#07111f]/92 px-5 py-6 text-slate-100 shadow-2xl shadow-black/45 backdrop-blur-xl sm:px-6">
+          <div className="flex flex-col items-center text-center">
+            <img
+              src="/dumala-onboarding-logo.png"
+              alt="Dumala"
+              className="h-auto w-24 object-contain"
+            />
+            <p className={`mt-3 ${ORANGE_NEW_CLASSES.eyebrowLabel}`}>Dumala League</p>
+            <p className="mt-1 text-xs font-semibold text-slate-500">League owner sign-in</p>
+          </div>
+
+          <div className="mt-5">
+            <CloudAccountGate
+              runtime={runtime}
+              authController={auth}
+              bootstrapAccount={false}
+              tone="dark"
+              layout="compact"
+              audience="admin"
+              redirectTo={getAppAuthRedirectUrl('league')}
+            />
+          </div>
+
+          <p className="mt-5 border-t border-white/10 pt-3 text-center text-[11px] leading-5 text-slate-500">
+            League accounts are provisioned by a Dumala admin.
           </p>
-          <RequestLeagueAccessForm runtime={runtime} />
         </section>
       </div>
     </main>
@@ -151,14 +174,14 @@ const LeagueAppShell = () => {
 
   const signedIn = auth.state.status === 'signedIn';
 
-  if (!signedIn) return <LeagueWaitlistView runtime={runtime} />;
+  if (!signedIn) return <LeagueSignInView runtime={runtime} auth={auth} />;
 
   return (
     <PersonaAccessShell
       variant="league"
       eyebrow="Dumala League"
       title="League Owner access"
-      description="Join the private beta waitlist for Dumala league management."
+      description="Sign in to manage your competitions, events, and records."
       badge="Owner beta access"
       compact
       singlePanel
