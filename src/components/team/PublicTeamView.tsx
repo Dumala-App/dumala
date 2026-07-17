@@ -181,12 +181,13 @@ const PublicTeamBody = ({ bundle }: { bundle: PublicTeamBundle }) => {
                 {roster.length} player{roster.length === 1 ? '' : 's'}
               </span>
             </div>
+            {/* No position column: the name gets the whole row and wraps rather
+                than truncating, so a long one still reads in full. */}
             <div className="mt-3 grid grid-cols-1 gap-x-3 gap-y-1.5 sm:grid-cols-2">
               {roster.map(player => (
-                <div key={`${player.number}-${player.name}`} className="grid min-w-0 grid-cols-[1.5rem_minmax(0,1fr)_2.5rem] items-center gap-2 border-b border-white/[0.055] py-1.5 last:border-b-0">
+                <div key={`${player.number}-${player.name}`} className="grid min-w-0 grid-cols-[1.5rem_minmax(0,1fr)] items-baseline gap-2 border-b border-white/[0.055] py-1.5 last:border-b-0">
                   <span className="text-[9px] font-black tabular-nums text-slate-600">{String(player.number).padStart(2, '0')}</span>
-                  <span className="min-w-0 truncate text-[11px] font-bold text-slate-100">{player.name}</span>
-                  <span className="truncate text-right text-[8px] font-black uppercase text-orange-200">{player.position}</span>
+                  <span className="min-w-0 text-[11px] font-bold leading-snug text-slate-100">{player.name}</span>
                 </div>
               ))}
             </div>
