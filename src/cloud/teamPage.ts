@@ -169,6 +169,7 @@ export interface PublicTeamClub {
   stadium: string | null;
   league: string | null;
   logoColor: string;
+  logoUrl: string | null;
 }
 
 export interface PublicTeamRosterEntry {

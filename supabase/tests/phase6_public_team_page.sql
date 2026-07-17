@@ -2,7 +2,7 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 
-select plan(21);
+select plan(22);
 
 -- Actors + data ----------------------------------------------------------------
 insert into auth.users (id, aud, role, email, email_confirmed_at, created_at, updated_at)
@@ -13,10 +13,10 @@ insert into public.user_profiles (user_id) values
   ('ef000000-0000-4000-8000-000000000001'),
   ('ef000000-0000-4000-8000-000000000002');
 
-insert into public.clubs (id, name, short_name, founded, stadium, league, owner_user_id)
+insert into public.clubs (id, name, short_name, founded, stadium, league, logo_url, owner_user_id)
 values
-  ('ef000000-0000-4000-8000-00000000000a', 'Blue Eagles FC', 'BEFC', '2019', 'Rizal Field', 'Sunday League', 'ef000000-0000-4000-8000-000000000001'),
-  ('ef000000-0000-4000-8000-00000000000b', 'Attacker United', 'AU', null, null, null, 'ef000000-0000-4000-8000-000000000002');
+  ('ef000000-0000-4000-8000-00000000000a', 'Blue Eagles FC', 'BEFC', '2019', 'Rizal Field', 'Sunday League', 'data:image/webp;base64,Y3Jlc3Q=', 'ef000000-0000-4000-8000-000000000001'),
+  ('ef000000-0000-4000-8000-00000000000b', 'Attacker United', 'AU', null, null, null, null, 'ef000000-0000-4000-8000-000000000002');
 insert into public.club_memberships (club_id, user_id, role, membership_state)
 values
   ('ef000000-0000-4000-8000-00000000000a', 'ef000000-0000-4000-8000-000000000001', 'owner', 'active'),
@@ -127,6 +127,11 @@ select is(
   public.get_public_team('phase6-public-eagles')->'club'->>'name',
   'Blue Eagles FC',
   'the public bundle includes the club profile'
+);
+select is(
+  public.get_public_team('phase6-public-eagles')->'club'->>'logoUrl',
+  'data:image/webp;base64,Y3Jlc3Q=',
+  'the public bundle includes the club logo'
 );
 select is(
   public.get_public_team('phase6-public-eagles')->'page'->>'headline',
