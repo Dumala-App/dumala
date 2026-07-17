@@ -100,14 +100,14 @@ describe('persona app shells', () => {
     expect(html).not.toContain('PLAYER_APP_PREVIEW');
   });
 
-  it('opens the League waitlist when the production app flag is enabled', () => {
+  it('opens the League account door when the production app flag is enabled', () => {
     mockState.runtime = runtimeWith({ leagueAppEnabled: true });
 
     const html = renderToStaticMarkup(<LeagueAppShell />);
 
-    expect(html).toContain('Join the private beta waitlist for Dumala league management.');
-    expect(html).toContain('Join waitlist');
-    expect(html).not.toContain('ACCOUNT_GATE');
+    expect(html).toContain('ACCOUNT_GATE');
+    expect(html).toContain('Dumala League');
+    expect(html).not.toContain('Join waitlist');
     expect(html).not.toContain('LEAGUE_APP_PREVIEW');
   });
 
