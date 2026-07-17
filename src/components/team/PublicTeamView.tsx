@@ -28,6 +28,28 @@ import {
 // archive. The RPC sends up to 10 so the cut stays a display choice.
 const MAX_VISIBLE_RESULTS = 5;
 
+// Who runs the team goes first; everyone else keeps the RPC's name order. Roles
+// are free text (onboarding writes "Manager / Coach" or "Head Coach", the roster
+// editor adds "Founder", "Team Owner", and friends), so match loosely and let
+// anything unrecognised fall to the back rather than dropping it.
+const STAFF_ROLE_PRIORITY = [
+  'team manager',
+  'manager / coach',
+  'manager',
+  'head coach',
+  'coach',
+  'assistant coach'
+];
+
+const staffRank = (role: string): number => {
+  const index = STAFF_ROLE_PRIORITY.indexOf(role.trim().toLowerCase());
+  return index === -1 ? STAFF_ROLE_PRIORITY.length : index;
+};
+
+/** Leadership first, then the rest of the staff in the order the RPC sent them. */
+export const orderStaffByRole = <T extends { role: string }>(staff: readonly T[]): T[] =>
+  [...staff].sort((a, b) => staffRank(a.role) - staffRank(b.role));
+
 const getPublicTeamSlug = (): string | undefined =>
   typeof window === 'undefined' ? undefined : parsePublicTeamSlug(window.location.hash);
 
@@ -107,7 +129,7 @@ const PublicTeamBody = ({ bundle }: { bundle: PublicTeamBundle }) => {
             <div className="mt-6 space-y-3">
               <span className={`${eyebrowClass} text-slate-500`}>Coaching staff</span>
               <div className="space-y-2">
-                {staff.map(member => (
+                {orderStaffByRole(staff).map(member => (
                   <div key={`${member.role}-${member.name}`} className="flex min-w-0 items-center justify-between gap-3 border-b border-white/[0.06] pb-2 last:border-b-0">
                     <span className="shrink-0 text-[8px] font-black uppercase tracking-widest text-slate-500">{member.role}</span>
                     <span className="min-w-0 truncate text-[11px] font-bold text-slate-100">{member.name}</span>
@@ -116,21 +138,6 @@ const PublicTeamBody = ({ bundle }: { bundle: PublicTeamBundle }) => {
               </div>
             </div>
           )}
-
-          <div className="mt-6 grid grid-cols-2 gap-2">
-            <div className="rounded-xl border border-cyan-300/10 bg-[#07111f]/45 p-3">
-              <span className="text-[8px] font-black uppercase tracking-widest text-slate-500">Squad</span>
-              <p className="mt-1 text-[11px] font-semibold text-slate-300">
-                {roster.length} player{roster.length === 1 ? '' : 's'}
-              </p>
-            </div>
-            <div className="rounded-xl border border-cyan-300/10 bg-[#07111f]/45 p-3">
-              <span className="text-[8px] font-black uppercase tracking-widest text-slate-500">Last {visibleResults.length}</span>
-              <p className="mt-1 text-[11px] font-semibold text-slate-300">
-                {visibleResults.length > 0 ? `${wins}W · ${draws}D · ${losses}L` : 'No results yet'}
-              </p>
-            </div>
-          </div>
         </aside>
 
         {hasLineup && (
@@ -147,6 +154,21 @@ const PublicTeamBody = ({ bundle }: { bundle: PublicTeamBundle }) => {
                   <span className="min-w-0 truncate text-[11px] font-bold text-slate-100">{slot.name}</span>
                 </div>
               ))}
+            </div>
+
+            <div className="mt-5 grid grid-cols-2 gap-2 border-t border-cyan-300/10 pt-4">
+              <div className="rounded-xl border border-cyan-300/10 bg-[#07111f]/45 p-3">
+                <span className="text-[8px] font-black uppercase tracking-widest text-slate-500">Squad</span>
+                <p className="mt-1 text-[11px] font-semibold text-slate-300">
+                  {roster.length} player{roster.length === 1 ? '' : 's'}
+                </p>
+              </div>
+              <div className="rounded-xl border border-cyan-300/10 bg-[#07111f]/45 p-3">
+                <span className="text-[8px] font-black uppercase tracking-widest text-slate-500">Last {visibleResults.length}</span>
+                <p className="mt-1 text-[11px] font-semibold text-slate-300">
+                  {visibleResults.length > 0 ? `${wins}W · ${draws}D · ${losses}L` : 'No results yet'}
+                </p>
+              </div>
             </div>
           </section>
         )}
@@ -225,15 +247,7 @@ const PublicTeamView = () => {
       <div aria-hidden="true" className="fixed inset-0 z-0" style={DARK_GLASS_DASHBOARD_SURFACE_STYLE} />
 
       <div className="relative z-10">
-        <header className="sticky top-0 z-20 border-b border-cyan-300/10 bg-[#020713]/80 backdrop-blur-xl">
-          <div className="mx-auto flex max-w-5xl items-center gap-2.5 px-4 py-3">
-            {club && <TeamLogo club={club} className="h-7 w-7 shrink-0 rounded-lg text-[10px]" />}
-            <p className="text-xs font-bold text-slate-300">{club?.name ?? 'Dumala'}</p>
-            <span className="text-xs font-medium text-slate-600">Team page</span>
-          </div>
-        </header>
-
-        <main className="mx-auto max-w-5xl px-4 py-8">
+        <main className="mx-auto max-w-5xl px-4 py-10">
           {loading ? (
             <div className="flex items-center gap-2 text-sm text-slate-400"><Loader2 size={16} className="animate-spin" /> Loading team page…</div>
           ) : !bundle || !bundle.found || !club ? (
@@ -257,7 +271,14 @@ const PublicTeamView = () => {
               <PublicTeamBody bundle={bundle} />
 
               <footer className="mt-10 border-t border-white/[0.06] pt-6">
-                <p className="text-[10px] font-bold uppercase tracking-widest text-slate-600">Team page powered by Dumala</p>
+                <a
+                  href="https://dumala.asia"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-[10px] font-bold uppercase tracking-widest text-slate-500 underline-offset-4 transition-colors hover:text-orange-300 hover:underline"
+                >
+                  Powered by dumala.asia
+                </a>
               </footer>
             </>
           )}
