@@ -9,7 +9,7 @@ Status values: **Done**, **In Progress**, **Next**, **Planned**, **Long Term**.
 Progress is calculated from the completed capabilities and open checklist items in this document. The roadmap bars track implementation, while Release Validation tracks the latest verified build checks.
 
 ```text
-Overall roadmap                 [########--]  83%  96 / 116
+Overall roadmap                 [########--]  83%  97 / 117
 
 Shipped beta foundation         [##########] 100%  20 / 20
 Current Beta: Reliability       [##########] 100%  24 / 24
@@ -19,7 +19,7 @@ Phase 2: Mobile and tablet      [##########] 100%   4 / 4
 Phase 3: Cloud and sync         [##########] 100%   6 / 6
 Phase 4: Team collaboration     [##########] 100%   5 / 5
 Phase 5: Profiles and drafting  [----------]   0%   0 / 6
-Phase 6: Player & League        [###-------]  27%   3 / 11
+Phase 6: Player & League        [###-------]  33%   4 / 12
 Future: Club operations         [##--------]  17%   1 / 6
 Commercial validation           [########--]  83%   5 / 6
 Release: App stores             [----------]   0%   0 / 1
@@ -37,7 +37,7 @@ Release validation              [##########] 100%  14 / 14
 | Phase 3: Cloud accounts and synchronization | 6 | 6 | 100% | Done |
 | Phase 4: Team collaboration | 5 | 5 | 100% | Done |
 | Phase 5: Public profiles and drafting | 0 | 6 | 0% | Long Term |
-| Phase 6: Player and League platform expansion | 3 | 11 | 27% | In Progress |
+| Phase 6: Player and League platform expansion | 4 | 12 | 33% | In Progress |
 | Future Expansion: Club operations | 1 | 6 | 17% | Long Term |
 | Commercial validation and SaaS packaging | 5 | 6 | 83% | In Progress |
 | Future Release: App store distribution | 0 | 1 | 0% | Deferred |
@@ -45,6 +45,10 @@ Release validation              [##########] 100%  14 / 14
 The FPRDS total includes twenty completed capabilities: the five shipped assessment features plus interpolation, role-weighting, age-transition, required-field validation coverage, true historical progress charts, player/session comparison reports, the evidence-based development doctrine, training evidence naming, removal of direct training-to-rating mutation, reassessment recommendations, rating confidence labels, the opt-in FPRDS beta results database with aggregate benchmark analysis and correction review, downloadable player assessment and development reports, a coach-review data export, and benchmark versioning that stamps every session with the benchmark table version it was scored under. Practitioner benchmark review is deferred until qualified external reviewers are available, so it is not counted in the twenty.
 
 ## Recent changes
+
+### Completed: 2026-07-17
+
+- [x] Shipped the Phase 6 **Public team page** slice behind `VITE_DUMALA_TEAM_PAGE_ENABLED`. Added a coach-managed Squad > Public Page settings panel with publish/private state, unique slug, optional headline, compressed team photo, and section toggles; a login-free `#/t/<slug>` public route in its own small chunk; and a privacy-first Supabase `club_public_pages` table plus `get_public_team` security-definer RPC that exposes only showcase-safe club, roster, staff, lineup, and recent-result fields. Covered by unit tests for slug helpers, config/runtime, routing, panel visibility, and the cloud repository, plus a 21-check pgTAP suite for RLS, anonymous reads, hidden private fields, slug uniqueness, and server-side photo constraints.
 
 ### Completed: 2026-07-15
 
@@ -369,6 +373,7 @@ Full plan: `docs/PLAYER_AND_LEAGUE_PLATFORM_EXPANSION.md`. Each item is independ
 - [x] **Done:** Identity and authorization — three separate apps on one shared backend with one account type per account, a separate registration door per app (Coach existing signup untouched; Player free self-serve plus invite-and-claim; League Owner request/waitlist with admin provisioning, no open signup), admin-granted League pilot entitlements, server-side destination resolution, dashboard shells, permissions, and audit foundation.
 - [x] **Done:** Player foundation — profile, invite-and-claim, guardian consent, schedule, solo drills, workout timer, progress dashboard, and notifications.
 - [x] **Done:** Shared communication — Coach/Player Team Chat, moderation and youth safeguards, and dashboard announcements. Attachments and email delivery are intentionally deferred out of this lightweight team-chat scope.
+- [x] **Done:** Public team page — feature-flagged coach publishing controls, unique public links, a login-free team showcase route, and a privacy-first anonymous Supabase RPC exposing only safe roster, staff, lineup, and recent-result fields.
 - [ ] **Planned:** League and season foundation — League Database, fresh-season lifecycle, independent events, roles, venues, eligibility rules, and documents.
 - [ ] **Planned:** Registration and rosters — unique links, Coach account creation, applications, approvals, roster controls, and transfer windows.
 - [ ] **Planned:** Tournament engine — formats, draws, brackets, groups, fixtures, conflict detection, and calendar publication.

@@ -80,7 +80,8 @@ describe('submitLeagueAccessRequest', () => {
         leagueRequestEnabled: true,
         playerPreviewEnabled: false,
         leaguePreviewEnabled: false,
-        chatEnabled: false
+        chatEnabled: false,
+        teamPageEnabled: false
       }
     }, {
       contactName: 'Ada Owner',

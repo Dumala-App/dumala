@@ -7,6 +7,13 @@
       "runtimeArgs": ["vite", "--port", "3170", "--strictPort"],
       "port": 3170,
       "autoPort": true
+    },
+    {
+      "name": "dumala-teampage",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["vite", "--mode", "teampage", "--port", "3171", "--strictPort"],
+      "port": 3171,
+      "autoPort": true
     }
   ]
 }

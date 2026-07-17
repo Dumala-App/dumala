@@ -128,7 +128,7 @@ describe('CloudAccountGate', () => {
   it('renders nothing when cloud runtime is disabled', () => {
     const html = renderToStaticMarkup(
       <CloudAccountGate
-        runtime={{ enabled: false, dataAccess: null, phase6: { playerAppEnabled: false, leagueAppEnabled: false, leagueRequestEnabled: false, playerPreviewEnabled: false, leaguePreviewEnabled: false, chatEnabled: false } }}
+        runtime={{ enabled: false, dataAccess: null, phase6: { playerAppEnabled: false, leagueAppEnabled: false, leagueRequestEnabled: false, playerPreviewEnabled: false, leaguePreviewEnabled: false, chatEnabled: false, teamPageEnabled: false } }}
         authController={signedOutAuth()}
       />
     );

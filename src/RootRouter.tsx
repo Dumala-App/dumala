@@ -2,6 +2,7 @@ import React, { lazy, Suspense, useEffect, useState } from 'react';
 
 const LandingPage = lazy(() => import('./components/LandingPage'));
 const WorkspaceApp = lazy(() => import('./App'));
+const PublicTeamView = lazy(() => import('./components/team/PublicTeamView'));
 
 const APP_AUTH_PENDING_KEY = 'dumala_pending_app_auth_redirect';
 const APP_AUTH_PENDING_TTL_MS = 10 * 60 * 1000;
@@ -23,6 +24,16 @@ export const getRootRoute = (hash = typeof window === 'undefined' ? '' : window.
 
 export const isPlayerRootRoute = (route: string) =>
   route === 'player' || route.startsWith('player/') || route.startsWith('player?');
+
+// Public team page (#/t/<slug>): a login-free showcase page served from its own
+// small chunk so visitors never download the workspace app. Feature-flagged so
+// it stays dark until an operator flips VITE_DUMALA_TEAM_PAGE_ENABLED.
+export const isPublicTeamRootRoute = (route: string) =>
+  route === 't' || route.startsWith('t/') || route.startsWith('t?');
+
+export const isTeamPageEnabled = (
+  env: Record<string, string | boolean | undefined> = import.meta.env
+) => env.VITE_DUMALA_TEAM_PAGE_ENABLED === 'true';
 
 export const getPwaMetadataForRoute = (route: string) =>
   isPlayerRootRoute(route) ? PLAYER_PWA_METADATA : DEFAULT_PWA_METADATA;
@@ -50,6 +61,7 @@ export const shouldLoadWorkspace = (
     ? null
     : window.localStorage.getItem(APP_AUTH_PENDING_KEY)
 ) => {
+  if (isPublicTeamRootRoute(route)) return false;
   if (route !== '' && route !== 'landing') return true;
   const authTarget = new URLSearchParams(search).get('dumalaAuth');
   if (authTarget === 'app' || authTarget === 'player' || authTarget === 'league') return true;
@@ -84,6 +96,14 @@ export default function RootRouter() {
   useEffect(() => {
     applyPwaMetadataForRoute(route);
   }, [route]);
+
+  if (isPublicTeamRootRoute(route) && isTeamPageEnabled()) {
+    return (
+      <Suspense fallback={<RouteLoadingFallback label="team page" />}>
+        <PublicTeamView />
+      </Suspense>
+    );
+  }
 
   if (!shouldLoadWorkspace(route)) {
     return (

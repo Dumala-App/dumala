@@ -8,9 +8,9 @@ describe('cloud runtime', () => {
     const createClient = vi.fn();
 
     expect(createCloudRuntime({
-      config: { enabled: false, phase6: { playerAppEnabled: false, leagueAppEnabled: false, leagueRequestEnabled: false, playerPreviewEnabled: false, leaguePreviewEnabled: false, chatEnabled: false } },
+      config: { enabled: false, phase6: { playerAppEnabled: false, leagueAppEnabled: false, leagueRequestEnabled: false, playerPreviewEnabled: false, leaguePreviewEnabled: false, chatEnabled: false, teamPageEnabled: false } },
       createClient
-    })).toEqual({ enabled: false, dataAccess: null, phase6: { playerAppEnabled: false, leagueAppEnabled: false, leagueRequestEnabled: false, playerPreviewEnabled: false, leaguePreviewEnabled: false, chatEnabled: false } });
+    })).toEqual({ enabled: false, dataAccess: null, phase6: { playerAppEnabled: false, leagueAppEnabled: false, leagueRequestEnabled: false, playerPreviewEnabled: false, leaguePreviewEnabled: false, chatEnabled: false, teamPageEnabled: false } });
     expect(createClient).not.toHaveBeenCalled();
   });
 
@@ -25,11 +25,11 @@ describe('cloud runtime', () => {
         enabled: true,
         supabaseUrl: 'http://127.0.0.1:54321',
         supabasePublishableKey: 'sb_publishable_test',
-        phase6: { playerAppEnabled: false, leagueAppEnabled: false, leagueRequestEnabled: false, playerPreviewEnabled: false, leaguePreviewEnabled: false, chatEnabled: false }
+        phase6: { playerAppEnabled: false, leagueAppEnabled: false, leagueRequestEnabled: false, playerPreviewEnabled: false, leaguePreviewEnabled: false, chatEnabled: false, teamPageEnabled: false }
       },
       createClient,
       createDataAccess
-    })).toEqual({ enabled: true, dataAccess, phase6: { playerAppEnabled: false, leagueAppEnabled: false, leagueRequestEnabled: false, playerPreviewEnabled: false, leaguePreviewEnabled: false, chatEnabled: false } });
+    })).toEqual({ enabled: true, dataAccess, phase6: { playerAppEnabled: false, leagueAppEnabled: false, leagueRequestEnabled: false, playerPreviewEnabled: false, leaguePreviewEnabled: false, chatEnabled: false, teamPageEnabled: false } });
     expect(createClient).toHaveBeenCalledOnce();
     expect(createDataAccess).toHaveBeenCalledWith(client);
   });
