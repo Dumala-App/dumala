@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import type { Announcement, AssessmentSession, Game, PaymentLedgerEntry, Player, StaffMember, Standing, TeamInfo } from '../types';
 import {
+  activationFlagsSchema,
   announcementsSchema,
   assessmentsSchema,
   availabilitySchema,
@@ -9,6 +10,7 @@ import {
   draggedPositionsSchema,
   drawingPathsSchema,
   gamesSchema,
+  gamePlansSchema,
   matchFormatSchema,
   migrateLegacyRoster,
   playerExtrasSchema,
@@ -24,6 +26,8 @@ import {
   tacticsLineupSchema,
   tacticsNotesSchema,
   teamInfoSchema,
+  trainingSessionMetaMapSchema,
+  weeklyScheduleWeeksSchema,
   weeklyScheduleSchema
 } from './schemas';
 import {
@@ -61,16 +65,21 @@ const tacticsSchema = z.object({
   notes: tacticsNotesSchema,
   draggedPositions: draggedPositionsSchema,
   drawings: drawingPathsSchema,
-  boardSnapshots: tacticsBoardSnapshotsSchema.default([])
+  boardSnapshots: tacticsBoardSnapshotsSchema.default([]),
+  gamePlans: gamePlansSchema.default([])
 });
 
 const featureStateSchema = z.object({
   availability: availabilitySchema,
   coachNotes: coachNotesSchema,
   weeklyTraining: weeklyScheduleSchema,
+  weeklyScheduleWeeks: weeklyScheduleWeeksSchema.default({}),
   weeklyTrainingHistory: weeklyScheduleSchema.nullable(),
+  weeklyScheduleCadence: stringSchema.default('weekdays'),
+  trainingSessionMeta: trainingSessionMetaMapSchema.default({}),
   standingsBackups: standingsBackupsSchema,
   standingsPreferences: z.object({ sundayBackupEnabled: booleanSchema }),
+  activation: activationFlagsSchema.default({}),
   tactics: tacticsSchema
 });
 
@@ -178,13 +187,17 @@ export const collectFeatureState = (storage: StorageLike = window.localStorage):
   availability: readJsonStorage(STORAGE_KEYS.availability, availabilitySchema, {}, 'Match availability', storage),
   coachNotes: readJsonStorage(STORAGE_KEYS.coachNotes, coachNotesSchema, {}, 'Coach notes', storage),
   weeklyTraining: readJsonStorage(STORAGE_KEYS.weeklySchedule, weeklyScheduleSchema, emptyWeeklySchedule, 'Weekly training', storage),
+  weeklyScheduleWeeks: readJsonStorage(STORAGE_KEYS.weeklyScheduleWeeks, weeklyScheduleWeeksSchema, {}, 'Weekly training weeks', storage),
   weeklyTrainingHistory: storage.getItem(STORAGE_KEYS.weeklyScheduleHistory) === null
     ? null
     : readJsonStorage(STORAGE_KEYS.weeklyScheduleHistory, weeklyScheduleSchema, emptyWeeklySchedule, 'Training history', storage),
+  weeklyScheduleCadence: readStringStorage(STORAGE_KEYS.weeklyScheduleCadence, stringSchema, 'weekdays', 'Training schedule cadence', storage),
+  trainingSessionMeta: readJsonStorage(STORAGE_KEYS.trainingSessionMeta, trainingSessionMetaMapSchema, {}, 'Training session notes', storage),
   standingsBackups: readJsonStorage(STORAGE_KEYS.standingsBackups, standingsBackupsSchema, [], 'Standings history', storage),
   standingsPreferences: {
     sundayBackupEnabled: readBooleanStorage(STORAGE_KEYS.sundayBackupEnabled, true, 'Standings preferences', storage)
   },
+  activation: readJsonStorage(STORAGE_KEYS.activation, activationFlagsSchema, {}, 'Getting started', storage),
   tactics: {
     matchFormat: readStringStorage(STORAGE_KEYS.matchFormat, matchFormatSchema, defaultTactics.matchFormat, 'Tactics match format', storage),
     formation: readStringStorage(STORAGE_KEYS.formation, stringSchema, defaultTactics.formation, 'Tactics formation', storage),
@@ -208,7 +221,8 @@ export const collectFeatureState = (storage: StorageLike = window.localStorage):
     notes: readJsonStorage(STORAGE_KEYS.tacticsNotes, tacticsNotesSchema, [], 'Tactics notes', storage),
     draggedPositions: readJsonStorage(STORAGE_KEYS.draggedPositions, draggedPositionsSchema, {}, 'Tactics positions', storage),
     drawings: readJsonStorage(STORAGE_KEYS.drawingPaths, drawingPathsSchema, [], 'Tactics drawings', storage),
-    boardSnapshots: readJsonStorage(STORAGE_KEYS.tacticsBoardSnapshots, tacticsBoardSnapshotsSchema, [], 'Tactics board snapshots', storage)
+    boardSnapshots: readJsonStorage(STORAGE_KEYS.tacticsBoardSnapshots, tacticsBoardSnapshotsSchema, [], 'Tactics board snapshots', storage),
+    gamePlans: readJsonStorage(STORAGE_KEYS.gamePlans, gamePlansSchema, [], 'Tactics game plans', storage)
   }
 });
 
@@ -313,8 +327,12 @@ const writesForBackup = (backup: WorkspaceBackupV4): Array<[string, unknown, 'js
   [STORAGE_KEYS.availability, backup.featureState.availability, 'json'],
   [STORAGE_KEYS.coachNotes, backup.featureState.coachNotes, 'json'],
   [STORAGE_KEYS.weeklySchedule, backup.featureState.weeklyTraining, 'json'],
+  [STORAGE_KEYS.weeklyScheduleWeeks, backup.featureState.weeklyScheduleWeeks, 'json'],
+  [STORAGE_KEYS.weeklyScheduleCadence, backup.featureState.weeklyScheduleCadence, 'string'],
+  [STORAGE_KEYS.trainingSessionMeta, backup.featureState.trainingSessionMeta, 'json'],
   [STORAGE_KEYS.standingsBackups, backup.featureState.standingsBackups, 'json'],
   [STORAGE_KEYS.sundayBackupEnabled, backup.featureState.standingsPreferences.sundayBackupEnabled, 'boolean'],
+  [STORAGE_KEYS.activation, backup.featureState.activation, 'json'],
   [STORAGE_KEYS.matchFormat, backup.featureState.tactics.matchFormat, 'string'],
   [STORAGE_KEYS.formation, backup.featureState.tactics.formation, 'string'],
   [STORAGE_KEYS.opponentFormation, backup.featureState.tactics.opponentFormation, 'string'],
@@ -337,7 +355,8 @@ const writesForBackup = (backup: WorkspaceBackupV4): Array<[string, unknown, 'js
   [STORAGE_KEYS.tacticsNotes, backup.featureState.tactics.notes, 'json'],
   [STORAGE_KEYS.draggedPositions, backup.featureState.tactics.draggedPositions, 'json'],
   [STORAGE_KEYS.drawingPaths, backup.featureState.tactics.drawings, 'json'],
-  [STORAGE_KEYS.tacticsBoardSnapshots, backup.featureState.tactics.boardSnapshots, 'json']
+  [STORAGE_KEYS.tacticsBoardSnapshots, backup.featureState.tactics.boardSnapshots, 'json'],
+  [STORAGE_KEYS.gamePlans, backup.featureState.tactics.gamePlans, 'json']
 ];
 
 export const applyWorkspaceBackup = (backup: WorkspaceBackupV4, storage: StorageLike = window.localStorage) => {

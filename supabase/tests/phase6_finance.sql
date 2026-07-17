@@ -2,7 +2,7 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 
-select plan(13);
+select plan(36);
 
 -- Actors -----------------------------------------------------------------------
 insert into auth.users (id, aud, role, email, email_confirmed_at, created_at, updated_at)
@@ -37,6 +37,25 @@ values ('ea000000-0000-4000-8000-000000000401', 'ea000000-0000-4000-8000-0000000
 insert into public.event_invoices (id, league_id, event_id, team_id, bill_to, amount_cents)
 values ('ea000000-0000-4000-8000-000000000501', 'ea000000-0000-4000-8000-00000000000a', 'ea000000-0000-4000-8000-000000000201', 'ea000000-0000-4000-8000-000000000301', 'Alpha FC', 50000);
 
+select is(
+  (
+    select count(*)::int
+    from pg_constraint
+    where conrelid = 'public.league_ledger_entries'::regclass
+      and confrelid = 'public.event_invoices'::regclass
+      and contype = 'f'
+      and conname = 'league_ledger_entries_invoice_id_fk'
+      and conkey = array[
+        (select attnum from pg_attribute where attrelid = 'public.league_ledger_entries'::regclass and attname = 'invoice_id')
+      ]
+      and confkey = array[
+        (select attnum from pg_attribute where attrelid = 'public.event_invoices'::regclass and attname = 'id')
+      ]
+  ),
+  1,
+  'ledger invoice_id has a foreign key to event invoices'
+);
+
 -- === Owner A ==================================================================
 set local role authenticated;
 select set_config('request.jwt.claim.role', 'authenticated', true);
@@ -62,14 +81,133 @@ select is(
   'settling an invoice marks it paid'
 );
 select is((select count(*)::int from public.league_ledger_entries), 3, 'paying an invoice posts a reconciling ledger entry');
--- Re-settle the already-paid invoice: must not post a second ledger entry.
-select public.settle_invoice('ea000000-0000-4000-8000-000000000501', 'paid', current_date);
-select is((select count(*)::int from public.league_ledger_entries), 3, 're-paying a paid invoice does not double-post');
+select throws_ok(
+  $$ select public.settle_invoice('ea000000-0000-4000-8000-000000000501', 'paid', current_date) $$,
+  '22023',
+  'INVOICE_ALREADY_SETTLED',
+  're-paying a paid invoice is rejected'
+);
+select throws_ok(
+  $$ select public.settle_invoice('ea000000-0000-4000-8000-000000000501', 'waived') $$,
+  '22023',
+  'INVOICE_ALREADY_SETTLED',
+  'a stale paid invoice cannot be waived'
+);
+select is(
+  (select status::text from public.event_invoices where id = 'ea000000-0000-4000-8000-000000000501'),
+  'paid',
+  'a stale waive attempt leaves the invoice paid'
+);
+select is((select count(*)::int from public.league_ledger_entries), 3, 're-settling a paid invoice does not change the ledger');
 select throws_ok(
   $$ select public.settle_invoice('ea000000-0000-4000-8000-000000000501', 'unpaid') $$,
   '22023',
   null,
   'settling to an invalid status is rejected'
+);
+select throws_ok(
+  $$ update public.event_invoices set status = 'waived', paid_on = null where id = 'ea000000-0000-4000-8000-000000000501' $$,
+  '22023',
+  'INVOICE_ALREADY_SETTLED',
+  'a direct owner update cannot waive a paid invoice'
+);
+select is(
+  (select status::text from public.event_invoices where id = 'ea000000-0000-4000-8000-000000000501'),
+  'paid',
+  'a blocked direct waive leaves the invoice paid'
+);
+select is((select count(*)::int from public.league_ledger_entries), 3, 'a blocked direct waive leaves ledger entries unchanged');
+select throws_ok(
+  $$ delete from public.event_invoices where id = 'ea000000-0000-4000-8000-000000000501' $$,
+  '42501',
+  'INVOICE_REVERSAL_RPC_REQUIRED',
+  'a direct owner delete cannot remove a paid invoice'
+);
+select throws_ok(
+  $$ with spoof as (select set_config('dumala.invoice_reversal_authorized', 'on', true))
+     delete from public.event_invoices
+     where id = 'ea000000-0000-4000-8000-000000000501'
+       and exists (select 1 from spoof) $$,
+  '42501',
+  'INVOICE_REVERSAL_RPC_REQUIRED',
+  'set_config cannot authorize a direct paid invoice delete'
+);
+select throws_ok(
+  $$ insert into public.league_ledger_entries (league_id, invoice_id, direction, category, amount_cents)
+     values ('ea000000-0000-4000-8000-00000000000a', 'ea000000-0000-4000-8000-000000000599', 'income', 'Fake invoice', 100) $$,
+  '42501',
+  'INVOICE_LEDGER_RPC_REQUIRED',
+  'a direct owner insert cannot create invoice-linked ledger income'
+);
+select throws_ok(
+  $$ update public.league_ledger_entries set amount_cents = 1 where invoice_id = 'ea000000-0000-4000-8000-000000000501' $$,
+  '42501',
+  'INVOICE_LEDGER_REVERSAL_RPC_REQUIRED',
+  'a direct owner update cannot mutate invoice-linked ledger income'
+);
+select throws_ok(
+  $$ with spoof as (select set_config('dumala.invoice_reversal_authorized', 'on', true))
+     update public.league_ledger_entries
+     set amount_cents = 1
+     where invoice_id = 'ea000000-0000-4000-8000-000000000501'
+       and exists (select 1 from spoof) $$,
+  '42501',
+  'INVOICE_LEDGER_REVERSAL_RPC_REQUIRED',
+  'set_config cannot authorize a direct invoice-linked ledger update'
+);
+select throws_ok(
+  $$ delete from public.league_ledger_entries where invoice_id = 'ea000000-0000-4000-8000-000000000501' $$,
+  '42501',
+  'INVOICE_LEDGER_REVERSAL_RPC_REQUIRED',
+  'a direct owner delete cannot remove invoice-linked ledger income'
+);
+select lives_ok(
+  $$ insert into public.event_invoices (id, league_id, event_id, team_id, bill_to, amount_cents) values ('ea000000-0000-4000-8000-000000000502', 'ea000000-0000-4000-8000-00000000000a', 'ea000000-0000-4000-8000-000000000201', 'ea000000-0000-4000-8000-000000000301', 'Beta FC', 40000) $$,
+  'a League owner can still create an unpaid invoice directly'
+);
+select lives_ok(
+  $$ update public.event_invoices set description = 'Updated memo', due_on = current_date + 14 where id = 'ea000000-0000-4000-8000-000000000502' $$,
+  'a League owner can still edit ordinary unpaid invoice fields directly'
+);
+select throws_ok(
+  $$ update public.event_invoices set status = 'paid', paid_on = current_date where id = 'ea000000-0000-4000-8000-000000000502' $$,
+  '42501',
+  'INVOICE_SETTLEMENT_RPC_REQUIRED',
+  'a direct owner update cannot mark an unpaid invoice paid'
+);
+select throws_ok(
+  $$ with spoof as (select set_config('dumala.invoice_settlement_authorized', 'on', true))
+     update public.event_invoices
+     set status = 'paid', paid_on = current_date
+     where id = 'ea000000-0000-4000-8000-000000000502'
+       and exists (select 1 from spoof) $$,
+  '42501',
+  'INVOICE_SETTLEMENT_RPC_REQUIRED',
+  'set_config cannot authorize a direct paid invoice update'
+);
+select is(
+  (select status::text from public.event_invoices where id = 'ea000000-0000-4000-8000-000000000502'),
+  'unpaid',
+  'a blocked direct paid update leaves the invoice unpaid'
+);
+select is((select count(*)::int from public.league_ledger_entries), 3, 'a blocked direct paid update does not post ledger income');
+select throws_ok(
+  $$ update public.event_invoices set status = 'waived' where id = 'ea000000-0000-4000-8000-000000000502' $$,
+  '42501',
+  'INVOICE_SETTLEMENT_RPC_REQUIRED',
+  'a direct owner update cannot mark an unpaid invoice waived'
+);
+select lives_ok(
+  $$ delete from public.event_invoices where id = 'ea000000-0000-4000-8000-000000000502' $$,
+  'a League owner can still delete an unpaid invoice directly'
+);
+select lives_ok(
+  $$ update public.league_ledger_entries set category = 'Sponsorships' where id = 'ea000000-0000-4000-8000-000000000401' $$,
+  'a League owner can still edit a manual ledger entry'
+);
+select lives_ok(
+  $$ delete from public.league_ledger_entries where id = 'ea000000-0000-4000-8000-000000000401' $$,
+  'a League owner can still delete a manual ledger entry'
 );
 
 -- === Owner B is isolated ======================================================

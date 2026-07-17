@@ -25,6 +25,7 @@ import {
   tacticsNotesSchema,
   teamInfoSchema,
   trainingSessionMetaMapSchema,
+  weeklyScheduleWeeksSchema,
   weeklyScheduleSchema
 } from './schemas';
 
@@ -95,6 +96,7 @@ export const storageSchemas = {
   [STORAGE_KEYS.availability]: availabilitySchema,
   [STORAGE_KEYS.coachNotes]: coachNotesSchema,
   [STORAGE_KEYS.weeklySchedule]: weeklyScheduleSchema,
+  [STORAGE_KEYS.weeklyScheduleWeeks]: weeklyScheduleWeeksSchema,
   [STORAGE_KEYS.weeklyScheduleHistory]: weeklyScheduleSchema,
   [STORAGE_KEYS.weeklyScheduleCadence]: stringSchema,
   [STORAGE_KEYS.trainingSessionMeta]: trainingSessionMetaMapSchema,

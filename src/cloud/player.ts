@@ -251,9 +251,9 @@ export const setGuardianConsent = async (
       p_guardian_relationship: input.guardianRelationship?.trim() || null
     }),
     'GUARDIAN_CONSENT_FAILED',
-    'Failed to record guardian consent'
+    'Failed to save guardian details'
   );
-  return (typeof data === 'string' ? data : 'granted') as GuardianConsentState;
+  return (typeof data === 'string' ? data : 'pending') as GuardianConsentState;
 };
 
 export const requestPlayerLink = async (

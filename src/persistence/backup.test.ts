@@ -193,6 +193,99 @@ const paymentEntry = {
   createdAt: '2026-06-21T00:00:00.000Z'
 };
 
+const weeklySchedule = {
+  Monday: [{
+    id: 'scheduled-drill-1',
+    drillId: 'passing-drill',
+    name: 'Passing Circuit',
+    fatigueIncrease: 3
+  }],
+  Tuesday: [],
+  Wednesday: [],
+  Thursday: [],
+  Friday: [],
+  Saturday: [],
+  Sunday: []
+};
+
+const weeklyScheduleWeeks = {
+  '2026-06-15': weeklySchedule
+};
+
+const trainingSessionMeta = {
+  '2026-06-15': {
+    Monday: {
+      status: 'completed' as const,
+      completedAt: '2026-06-16T18:00:00.000Z',
+      reflection: 'Good tempo and spacing'
+    }
+  }
+};
+
+const gamePlans = [{
+  id: 'plan-1',
+  gameId: 'g1',
+  opponent: 'Opponent FC',
+  gameDate: '2026-06-21',
+  gameTime: '10:00',
+  gameType: 'League' as const,
+  location: 'Test Ground',
+  updatedAt: '2026-06-20T12:00:00.000Z',
+  matchFormat: '11-a-side' as const,
+  formation: '4-3-3',
+  opponentFormation: '4-4-2',
+  playstyle: 'Quick Counter',
+  defensiveStyle: 'High Press',
+  phase: 'Out of Possession' as const,
+  strategyContext: {
+    matchState: 'balanced' as const,
+    matchPhase: 'first-half' as const,
+    teamCondition: 'fresh' as const,
+    opponentBehavior: 'direct-play' as const,
+    riskLevel: 'balanced' as const
+  },
+  recommendation: {
+    attackTitle: 'Attack the channels',
+    attackIntent: 'Release wide runners early',
+    defenseTitle: 'Compact press',
+    defenseIntent: 'Force play outside',
+    cues: ['Press on backwards passes'],
+    watchout: 'Second balls around midfield'
+  },
+  lineup: [{
+    slot: 9,
+    role: 'CF',
+    playerId: 'p1',
+    name: 'Test Player',
+    rating: 70,
+    position: 'Forward'
+  }],
+  roles: {
+    captain: 'p1',
+    penaltyTaker: 'p1'
+  },
+  board: {
+    draggedPositions: {},
+    drawingPaths: [],
+    ballPos: { left: 50, top: 30 },
+    wallPos: { left: 50, top: 72 },
+    wallRotation: 0,
+    showBall: true,
+    showWall: false
+  },
+  notes: [{
+    id: 'plan-note-1',
+    title: 'Press cue',
+    content: 'Jump when their center back opens hips',
+    category: 'Strategy' as const
+  }]
+}];
+
+const activation = {
+  roster_created: '2026-06-21T00:00:00.000Z',
+  first_report_downloaded: '2026-06-22T00:00:00.000Z'
+};
+
 const core = {
   teamInfo,
   players: [player],
@@ -209,20 +302,12 @@ describe('workspace backup V4', () => {
     const storage = new MemoryStorage();
     storage.setItem(STORAGE_KEYS.availability, JSON.stringify({ g1: { p1: 'yes' } }));
     storage.setItem(STORAGE_KEYS.coachNotes, JSON.stringify({ g1: 'Press early' }));
-    storage.setItem(STORAGE_KEYS.weeklySchedule, JSON.stringify({
-      Monday: [{
-        id: 'scheduled-drill-1',
-        drillId: 'passing-drill',
-        name: 'Passing Circuit',
-        fatigueIncrease: 3
-      }],
-      Tuesday: [],
-      Wednesday: [],
-      Thursday: [],
-      Friday: [],
-      Saturday: [],
-      Sunday: []
-    }));
+    storage.setItem(STORAGE_KEYS.weeklySchedule, JSON.stringify(weeklySchedule));
+    storage.setItem(STORAGE_KEYS.weeklyScheduleWeeks, JSON.stringify(weeklyScheduleWeeks));
+    storage.setItem(STORAGE_KEYS.weeklyScheduleCadence, 'mwf');
+    storage.setItem(STORAGE_KEYS.trainingSessionMeta, JSON.stringify(trainingSessionMeta));
+    storage.setItem(STORAGE_KEYS.gamePlans, JSON.stringify(gamePlans));
+    storage.setItem(STORAGE_KEYS.activation, JSON.stringify(activation));
     storage.setItem(STORAGE_KEYS.lineup, JSON.stringify({
       CF: {
         id: 'p1',
@@ -262,8 +347,13 @@ describe('workspace backup V4', () => {
     }]));
     const backup = createWorkspaceBackup(core, storage, '2026-06-21T00:00:00.000Z');
     expect(workspaceBackupV4Schema.parse(backup)).toEqual(backup);
+    expect(backup.featureState.weeklyScheduleWeeks).toEqual(weeklyScheduleWeeks);
+    expect(backup.featureState.weeklyScheduleCadence).toBe('mwf');
+    expect(backup.featureState.trainingSessionMeta).toEqual(trainingSessionMeta);
+    expect(backup.featureState.activation).toEqual(activation);
     expect(backup.featureState.tactics.opponentFormation).toBe('3-5-2');
     expect(backup.featureState.tactics.boardSnapshots).toHaveLength(1);
+    expect(backup.featureState.tactics.gamePlans).toEqual(gamePlans);
 
     const restored = new MemoryStorage();
     applyWorkspaceBackup(backup, restored);
@@ -273,10 +363,15 @@ describe('workspace backup V4', () => {
     expect(JSON.parse(restored.getItem(STORAGE_KEYS.availability)!)).toEqual({ g1: { p1: 'yes' } });
     expect(JSON.parse(restored.getItem(STORAGE_KEYS.coachNotes)!)).toEqual({ g1: 'Press early' });
     expect(JSON.parse(restored.getItem(STORAGE_KEYS.weeklySchedule)!).Monday).toHaveLength(1);
+    expect(JSON.parse(restored.getItem(STORAGE_KEYS.weeklyScheduleWeeks)!)).toEqual(weeklyScheduleWeeks);
+    expect(restored.getItem(STORAGE_KEYS.weeklyScheduleCadence)).toBe('mwf');
+    expect(JSON.parse(restored.getItem(STORAGE_KEYS.trainingSessionMeta)!)).toEqual(trainingSessionMeta);
+    expect(JSON.parse(restored.getItem(STORAGE_KEYS.activation)!)).toEqual(activation);
     expect(JSON.parse(restored.getItem(STORAGE_KEYS.lineup)!).CF.id).toBe('p1');
     expect(JSON.parse(restored.getItem(STORAGE_KEYS.tacticsNotes)!)).toHaveLength(1);
     expect(restored.getItem(STORAGE_KEYS.opponentFormation)).toBe('3-5-2');
     expect(JSON.parse(restored.getItem(STORAGE_KEYS.tacticsBoardSnapshots)!)[0].name).toBe('Press Trap vs 4-4-2');
+    expect(JSON.parse(restored.getItem(STORAGE_KEYS.gamePlans)!)).toEqual(gamePlans);
   });
 
   it('parses a current V4 backup without legacy migration and preserves payment ledger records', () => {

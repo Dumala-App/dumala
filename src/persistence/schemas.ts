@@ -333,6 +333,7 @@ export const weeklyScheduleSchema = z.object({
   Saturday: z.array(scheduledDrillSchema),
   Sunday: z.array(scheduledDrillSchema)
 });
+export const weeklyScheduleWeeksSchema = z.record(z.string(), weeklyScheduleSchema);
 
 export const trainingSessionMetaSchema = z.object({
   status: z.enum(['planned', 'in_progress', 'completed']).optional(),
