@@ -132,29 +132,17 @@ select ok(
   'revoking league_pilot removes owns_league access'
 );
 select is((select count(*)::int from public.leagues), 0, 'a revoked League owner cannot read their league');
-select is(
-  (
-    with updated as (
-      update public.leagues
-      set name = 'Renamed After Revocation'
-      where id = 'da000000-0000-4000-8000-00000000000a'
-      returning 1
-    )
-    select count(*)::int from updated
-  ),
-  0,
+select is_empty(
+  $$ update public.leagues
+     set name = 'Renamed After Revocation'
+     where id = 'da000000-0000-4000-8000-00000000000a'
+     returning 1 $$,
   'a revoked League owner cannot update their league'
 );
-select is(
-  (
-    with deleted as (
-      delete from public.leagues
-      where id = 'da000000-0000-4000-8000-00000000000a'
-      returning 1
-    )
-    select count(*)::int from deleted
-  ),
-  0,
+select is_empty(
+  $$ delete from public.leagues
+     where id = 'da000000-0000-4000-8000-00000000000a'
+     returning 1 $$,
   'a revoked League owner cannot delete their league'
 );
 select is((select count(*)::int from public.league_seasons), 0, 'a revoked League owner cannot read seasons');
