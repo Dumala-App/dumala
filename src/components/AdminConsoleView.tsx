@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import {
   Activity,
   AlertCircle,
+  AppWindow,
   Ban,
   BarChart3,
   Bell,
@@ -10,6 +11,7 @@ import {
   CreditCard,
   Database,
   Download,
+  ExternalLink,
   Eye,
   FileText,
   FlaskConical,
@@ -72,9 +74,11 @@ import type {
   PromotionRecord
 } from '../cloud/marketing';
 import type {
+  AccountPersona,
   LeagueAccessRequestRecord,
   LeagueAccessRequestStatus
 } from '../cloud/identity';
+import { LEAGUE_PILOT_ENTITLEMENT } from '../cloud/identity';
 import { PLAN_OPTIONS } from '../billing/plans';
 import { derivePremiumLeads, isPremiumLeadFeedback, type PremiumLeadSummary } from '../landing/premiumLeadCapture';
 import type { MfaChallenge, MfaFactor, TotpEnrollment } from '../cloud/auth';
@@ -95,7 +99,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Textarea } from './ui/textarea';
 import { DARK_GLASS_THEME, type DarkGlassThemeId } from '../theme/darkGlassTheme';
 
-type AdminTab = 'overview' | 'users' | 'recovery' | 'storage' | 'security' | 'usage' | 'feedback' | 'leads' | 'fprds' | 'benchmarks' | 'online' | 'billing' | 'marketing' | 'league-access' | 'exports' | 'alerts';
+type AdminTab = 'overview' | 'access' | 'users' | 'recovery' | 'storage' | 'security' | 'usage' | 'feedback' | 'leads' | 'fprds' | 'benchmarks' | 'online' | 'billing' | 'marketing' | 'league-access' | 'exports' | 'alerts';
 
 const ADMIN_AUTH_REDIRECT_URL = 'https://dumala.asia/?returnTo=admin';
 
@@ -109,6 +113,7 @@ const ADMIN_THEME_STYLE = ADMIN_THEME.style;
 
 const adminTabs: Array<{ id: AdminTab; label: string; icon: React.ComponentType<{ size?: number; className?: string }> }> = [
   { id: 'overview', label: 'Overview', icon: Gauge },
+  { id: 'access', label: 'Access', icon: AppWindow },
   { id: 'users', label: 'Users', icon: UsersRound },
   { id: 'recovery', label: 'Recovery', icon: RefreshCcw },
   { id: 'storage', label: 'Storage', icon: Database },
@@ -2062,6 +2067,253 @@ const leagueRequestStatusLabel: Record<LeagueAccessRequestStatus, string> = {
   withdrawn: 'Withdrawn'
 };
 
+const personaLabel: Record<AccountPersona, string> = {
+  coach: 'Coach',
+  player: 'Player',
+  league: 'League'
+};
+
+const accountPersonas: AccountPersona[] = ['coach', 'player', 'league'];
+
+const hasLeaguePilot = (user: AdminManagedUser) =>
+  (user.entitlements ?? []).includes(LEAGUE_PILOT_ENTITLEMENT);
+
+const getAppUrl = (hashRoute: string) => {
+  if (typeof window === 'undefined') return hashRoute;
+  return `${window.location.origin}${window.location.pathname}${hashRoute}`;
+};
+
+const AccessPanel = ({
+  adminProfile,
+  phase6,
+  users,
+  usersState,
+  search,
+  requests,
+  requestsState,
+  busyUserId,
+  actionId,
+  onSearchChange,
+  onSearch,
+  onPersonaChange,
+  onToggleLeaguePilot,
+  onRefreshRequests,
+  onProvision,
+  onReview
+}: {
+  adminProfile: AppAdminProfile | null;
+  phase6: ReturnType<typeof useCloudRuntime>['phase6'];
+  users: AdminManagedUser[];
+  usersState: 'idle' | 'loading' | 'ready' | 'error';
+  search: string;
+  requests: LeagueAccessRequestRecord[];
+  requestsState: 'idle' | 'loading' | 'ready' | 'error';
+  busyUserId: string | null;
+  actionId: string | null;
+  onSearchChange: (value: string) => void;
+  onSearch: () => void;
+  onPersonaChange: (user: AdminManagedUser, persona: AccountPersona) => Promise<void>;
+  onToggleLeaguePilot: (user: AdminManagedUser, enabled: boolean) => Promise<void>;
+  onRefreshRequests: () => void;
+  onProvision: (request: LeagueAccessRequestRecord) => Promise<void>;
+  onReview: (request: LeagueAccessRequestRecord, status: LeagueAccessRequestStatus) => Promise<void>;
+}) => {
+  const appCards = [
+    {
+      id: 'coach',
+      label: 'Coach App',
+      route: '#/app',
+      enabled: true,
+      status: 'Enabled',
+      detail: 'Current team workspace experience.'
+    },
+    {
+      id: 'league',
+      label: 'League App',
+      route: '#/league',
+      enabled: phase6.leagueAppEnabled || phase6.leagueRequestEnabled,
+      status: phase6.leagueAppEnabled ? 'Enabled' : phase6.leagueRequestEnabled ? 'Request only' : 'Disabled',
+      preview: phase6.leaguePreviewEnabled,
+      detail: 'League Owner dashboard gated by persona and entitlement.'
+    },
+    {
+      id: 'player',
+      label: 'Player App',
+      route: '#/player',
+      enabled: phase6.playerAppEnabled,
+      status: phase6.playerAppEnabled ? 'Enabled' : 'Disabled',
+      preview: phase6.playerPreviewEnabled,
+      detail: 'Player personal training and team experience.'
+    }
+  ];
+  const pendingRequests = requests.filter(request => request.status === 'pending');
+
+  return (
+    <div className="space-y-4">
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <StatTile label="Admin role" value={adminProfile ? roleLabel[adminProfile.role] : '-'} detail="Current owner-console permission." />
+        <StatTile label="Coach door" value="Online" detail="Default app surface." />
+        <StatTile label="League door" value={phase6.leagueAppEnabled ? 'Online' : phase6.leagueRequestEnabled ? 'Request only' : 'Off'} detail={phase6.leaguePreviewEnabled ? 'Preview mode enabled.' : 'Production gate enforced.'} />
+        <StatTile label="Player door" value={phase6.playerAppEnabled ? 'Online' : 'Off'} detail={phase6.playerPreviewEnabled ? 'Preview mode enabled.' : 'Persona gate enforced.'} />
+      </div>
+
+      <Section title="App doors" icon={AppWindow}>
+        <div className="grid gap-3 lg:grid-cols-3">
+          {appCards.map(app => (
+            <div key={app.id} className={`${ADMIN_SUBTLE_CARD_CLASS} p-4`}>
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-sm font-black text-slate-100">{app.label}</p>
+                  <p className="mt-1 text-xs leading-relaxed text-slate-400">{app.detail}</p>
+                </div>
+                <Badge variant={app.enabled ? 'secondary' : 'outline'}>{app.status}</Badge>
+              </div>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <Button type="button" size="sm" variant="outline" className={ADMIN_SECONDARY_ACTION_BUTTON_CLASS} onClick={() => window.open(getAppUrl(app.route), '_blank', 'noopener,noreferrer')}>
+                  <ExternalLink size={14} /> Open
+                </Button>
+                {'preview' in app && (
+                  <Button type="button" size="sm" variant="outline" className={ADMIN_SECONDARY_ACTION_BUTTON_CLASS} disabled={!app.preview} onClick={() => window.open(getAppUrl(app.route), '_blank', 'noopener,noreferrer')}>
+                    <Eye size={14} /> Demo
+                  </Button>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      </Section>
+
+      <Section title="Persona and entitlements" icon={KeyRound}>
+        <form
+          className="mb-4 flex flex-col gap-2 sm:flex-row"
+          onSubmit={event => {
+            event.preventDefault();
+            onSearch();
+          }}
+        >
+          <input
+            type="search"
+            value={search}
+            onChange={event => onSearchChange(event.target.value)}
+            placeholder="Search users by email, display name, or user id"
+            className={`${ADMIN_INPUT_CLASS} flex-1`}
+          />
+          <Button type="submit" variant="outline" disabled={usersState === 'loading'} className={ADMIN_SECONDARY_ACTION_BUTTON_CLASS}>
+            {usersState === 'loading' ? <Loader2 size={14} className="animate-spin" /> : <Search size={14} />} Search
+          </Button>
+        </form>
+
+        {usersState === 'loading' && users.length === 0 ? (
+          <div className="flex items-center gap-2 rounded-lg border border-white/10 bg-white/[0.03] p-4 text-sm font-semibold text-slate-300">
+            <Loader2 size={16} className="animate-spin" /> Loading access directory...
+          </div>
+        ) : usersState === 'error' ? (
+          <EmptyState title="Access directory unavailable" detail="The managed users query failed. Search again to retry." />
+        ) : users.length === 0 ? (
+          <EmptyState title="No users found" detail="Search for a cloud account before changing persona or entitlements." />
+        ) : (
+          <CompactTable headers={['User', 'Persona', 'League pilot', 'State', 'Last active']} scrollHeightClassName="max-h-[30rem]">
+            {users.map(user => {
+              const busy = busyUserId === user.userId;
+              const leaguePilot = hasLeaguePilot(user);
+              return (
+                <tr key={user.userId}>
+                  <td className="px-3 py-2">
+                    <p className="font-bold text-foreground">{managedUserLabel(user)}</p>
+                    <p className="mt-0.5 max-w-[18rem] truncate text-[11px] text-muted-foreground">{user.email || user.userId}</p>
+                  </td>
+                  <td className="px-3 py-2">
+                    <Select
+                      value={user.persona ?? 'coach'}
+                      onValueChange={value => void onPersonaChange(user, value as AccountPersona)}
+                      disabled={busy}
+                    >
+                      <SelectTrigger className={`${ADMIN_SELECT_CLASS} h-8 w-32 text-xs`}>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className={ADMIN_DIALOG_SELECT_CONTENT_CLASS}>
+                        {accountPersonas.map(persona => (
+                          <SelectItem key={persona} value={persona} className={ADMIN_DIALOG_SELECT_ITEM_CLASS}>
+                            {personaLabel[persona]}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </td>
+                  <td className="px-3 py-2">
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant={leaguePilot ? 'outline' : 'default'}
+                      className={leaguePilot ? ADMIN_SECONDARY_ACTION_BUTTON_CLASS : undefined}
+                      disabled={busy}
+                      onClick={() => void onToggleLeaguePilot(user, !leaguePilot)}
+                    >
+                      {busy ? <Loader2 size={13} className="animate-spin" /> : leaguePilot ? <ShieldCheck size={13} /> : <KeyRound size={13} />}
+                      {leaguePilot ? 'Revoke' : 'Grant'}
+                    </Button>
+                  </td>
+                  <td className="px-3 py-2"><ManagedUserStatusBadges user={user} /></td>
+                  <td className="px-3 py-2 text-muted-foreground">{user.lastActiveAt ? formatRelativeTime(user.lastActiveAt) : '-'}</td>
+                </tr>
+              );
+            })}
+          </CompactTable>
+        )}
+      </Section>
+
+      <div className="grid gap-4 xl:grid-cols-[1.15fr_0.85fr]">
+        <Section title="League requests" icon={Trophy}>
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+            <p className="text-xs font-medium text-slate-400">{pendingRequests.length} pending request{pendingRequests.length === 1 ? '' : 's'} awaiting review.</p>
+            <Button type="button" variant="outline" size="sm" className={ADMIN_SECONDARY_ACTION_BUTTON_CLASS} onClick={onRefreshRequests} disabled={requestsState === 'loading'}>
+              {requestsState === 'loading' ? <Loader2 size={14} className="animate-spin" /> : <RefreshCcw size={14} />} Refresh
+            </Button>
+          </div>
+          {requests.length === 0 ? (
+            <EmptyState title={requestsState === 'loading' ? 'Loading requests...' : 'No League requests'} detail="Public League access submissions appear here and in the dedicated League access tab." />
+          ) : (
+            <CompactTable headers={['Status', 'Contact', 'League', 'Actions']} scrollHeightClassName="max-h-[20rem]">
+              {requests.slice(0, 8).map(request => {
+                const busy = actionId === request.id;
+                return (
+                  <tr key={request.id}>
+                    <td className="px-3 py-2"><Badge variant="secondary">{leagueRequestStatusLabel[request.status]}</Badge></td>
+                    <td className="px-3 py-2">
+                      <p className="font-bold text-slate-100">{request.contact_name}</p>
+                      <p className="text-[11px] text-slate-400">{request.contact_email}</p>
+                    </td>
+                    <td className="px-3 py-2 text-muted-foreground">{request.league_name ?? request.organization ?? '-'}</td>
+                    <td className="px-3 py-2">
+                      <div className="flex flex-wrap gap-1.5">
+                        <Button type="button" size="sm" className="h-7 gap-1 px-2 text-[11px]" disabled={busy || request.status === 'provisioned'} onClick={() => void onProvision(request)}>
+                          {busy ? <Loader2 size={12} className="animate-spin" /> : <ShieldCheck size={12} />} Provision
+                        </Button>
+                        <Button type="button" variant="outline" size="sm" className="h-7 gap-1 px-2 text-[11px]" disabled={busy || request.status === 'provisioned'} onClick={() => void onReview(request, 'rejected')}>
+                          Reject
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </CompactTable>
+          )}
+        </Section>
+
+        <Section title="Test account checklist" icon={ClipboardList}>
+          <div className="space-y-2 text-xs font-medium leading-relaxed text-slate-300">
+            <p className="rounded-xl border border-cyan-300/10 bg-white/[0.035] p-3">Owner: use this console at <span className="font-black text-slate-100">/#admin</span>.</p>
+            <p className="rounded-xl border border-cyan-300/10 bg-white/[0.035] p-3">Coach tester: keep persona <span className="font-black text-slate-100">Coach</span> and open <span className="font-black text-slate-100">/#/app</span>.</p>
+            <p className="rounded-xl border border-cyan-300/10 bg-white/[0.035] p-3">League tester: set persona <span className="font-black text-slate-100">League</span>, grant <span className="font-black text-slate-100">league_pilot</span>, then open <span className="font-black text-slate-100">/#/league</span>.</p>
+            <p className="rounded-xl border border-cyan-300/10 bg-white/[0.035] p-3">Player tester: set persona <span className="font-black text-slate-100">Player</span> and open <span className="font-black text-slate-100">/#/player</span>.</p>
+          </div>
+        </Section>
+      </div>
+    </div>
+  );
+};
+
 const LeagueAccessPanel = ({
   requests,
   loadState,
@@ -3029,6 +3281,7 @@ export default function AdminConsoleView() {
   const [managedUsersState, setManagedUsersState] = useState<'idle' | 'loading' | 'ready' | 'error'>('idle');
   const [managedUserSearch, setManagedUserSearch] = useState('');
   const [selectedManagedUser, setSelectedManagedUser] = useState<AdminManagedUser | null>(null);
+  const [accessActionUserId, setAccessActionUserId] = useState<string | null>(null);
   const [promotions, setPromotions] = useState<PromotionRecord[]>([]);
   const [announcements, setAnnouncements] = useState<AnnouncementRecord[]>([]);
   const [marketingLoadState, setMarketingLoadState] = useState<'idle' | 'loading' | 'ready' | 'error'>('idle');
@@ -3130,6 +3383,13 @@ export default function AdminConsoleView() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab, loadState, managedUsersState, adminProfile]);
+
+  useEffect(() => {
+    if (activeTab !== 'access' || loadState !== 'ready' || adminProfile?.role !== 'owner') return;
+    if (managedUsersState === 'idle') void loadManagedUsers();
+    if (leagueAccessLoadState === 'idle') void loadLeagueAccessRequests();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab, loadState, adminProfile, managedUsersState, leagueAccessLoadState]);
 
   useEffect(() => {
     if (activeTab === 'marketing' && loadState === 'ready' && marketingLoadState === 'idle') {
@@ -3509,6 +3769,62 @@ export default function AdminConsoleView() {
     applyManagedUserUpdate(await requireAdminRepo().setUserNotes(user.userId, notes.trim() || null));
   };
 
+  const applyAccessUserPatch = (userId: string, patch: Partial<AdminManagedUser>) => {
+    setManagedUsers(current => current.map(item => item.userId === userId ? { ...item, ...patch } : item));
+    setSelectedManagedUser(current => current && current.userId === userId ? { ...current, ...patch } : current);
+  };
+
+  const recordAccessAudit = (eventType: string, metadata: Record<string, unknown>) => {
+    if (!runtime.enabled) return;
+    void runtime.dataAccess.admin.recordAuditEvent(eventType, metadata).catch(() => undefined);
+  };
+
+  const handleAccessPersonaChange = async (user: AdminManagedUser, persona: AccountPersona) => {
+    if ((user.persona ?? 'coach') === persona) return;
+    setAccessActionUserId(user.userId);
+    setMessage('');
+    try {
+      await requireIdentityRepo().setUserPersona(user.userId, persona);
+      applyAccessUserPatch(user.userId, { persona });
+      recordAccessAudit('admin_access_persona_changed', {
+        targetUserId: user.userId,
+        previousPersona: user.persona ?? 'coach',
+        persona
+      });
+      setMessage(`${managedUserLabel(user)} is now a ${personaLabel[persona]} account.`);
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : 'Could not change the account persona.');
+    } finally {
+      setAccessActionUserId(null);
+    }
+  };
+
+  const handleAccessLeaguePilotToggle = async (user: AdminManagedUser, enabled: boolean) => {
+    setAccessActionUserId(user.userId);
+    setMessage('');
+    try {
+      if (enabled) {
+        await requireIdentityRepo().grantEntitlement(user.userId, LEAGUE_PILOT_ENTITLEMENT, null, 'Granted from Admin Access tab');
+      } else {
+        await requireIdentityRepo().revokeEntitlement(user.userId, LEAGUE_PILOT_ENTITLEMENT);
+      }
+      const currentEntitlements = user.entitlements ?? [];
+      const entitlements = enabled
+        ? Array.from(new Set([...currentEntitlements, LEAGUE_PILOT_ENTITLEMENT])).sort()
+        : currentEntitlements.filter(entitlement => entitlement !== LEAGUE_PILOT_ENTITLEMENT);
+      applyAccessUserPatch(user.userId, { entitlements });
+      recordAccessAudit(enabled ? 'admin_access_league_pilot_granted' : 'admin_access_league_pilot_revoked', {
+        targetUserId: user.userId,
+        entitlement: LEAGUE_PILOT_ENTITLEMENT
+      });
+      setMessage(`${enabled ? 'Granted' : 'Revoked'} league pilot access for ${managedUserLabel(user)}.`);
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : 'Could not update league pilot access.');
+    } finally {
+      setAccessActionUserId(null);
+    }
+  };
+
   const loadMarketingData = async () => {
     if (!runtime.enabled) return;
     setMarketingLoadState('loading');
@@ -3842,6 +4158,26 @@ export default function AdminConsoleView() {
             </nav>
 
             {activeTab === 'overview' && <OverviewPanel snapshot={snapshot} growthMetrics={growthMetrics} />}
+            {activeTab === 'access' && (
+              <AccessPanel
+                adminProfile={adminProfile}
+                phase6={runtime.phase6}
+                users={managedUsers}
+                usersState={managedUsersState}
+                search={managedUserSearch}
+                requests={leagueRequests}
+                requestsState={leagueAccessLoadState}
+                busyUserId={accessActionUserId}
+                actionId={leagueActionId}
+                onSearchChange={setManagedUserSearch}
+                onSearch={() => void loadManagedUsers()}
+                onPersonaChange={handleAccessPersonaChange}
+                onToggleLeaguePilot={handleAccessLeaguePilotToggle}
+                onRefreshRequests={() => void loadLeagueAccessRequests()}
+                onProvision={handleProvisionLeagueOwner}
+                onReview={handleReviewLeagueRequest}
+              />
+            )}
             {activeTab === 'users' && (
               <UsersPanel
                 metrics={growthMetrics}

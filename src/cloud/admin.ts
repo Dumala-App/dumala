@@ -1,5 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { DumalaSupabaseClient } from './client';
+import type { AccountPersona } from './identity';
 import type { BetaDrillResultInput } from '../fprds/betaDrillResults';
 import { CURRENT_BENCHMARK_VERSION, CURRENT_SCORING_VERSION, CURRENT_WEIGHTING_VERSION } from '../fprds/benchmarks';
 import { getSession } from './auth';
@@ -109,6 +110,8 @@ export interface AdminManagedUser {
   userId: string;
   email?: string | null;
   displayName?: string | null;
+  persona?: AccountPersona;
+  entitlements?: string[];
   accountState: string;
   createdAt: string;
   lastActiveAt?: string | null;
