@@ -1104,8 +1104,10 @@ export default function AssessmentsView({
   }, [ageGroup, assessmentDate, assessmentType, role, scorePreview, selectedPlayerId, step]);
 
   // The sidebar (player card preview + follow-up) helps while scanning and
-  // reviewing, but is hidden on the Record step so results entry runs full-width.
-  const showSidebar = step !== 3;
+  // reviewing, but is hidden on the Record step so results entry runs full-width,
+  // and on the Review step until a player is selected so the team assessment
+  // history spans the full width instead of a long two-column scroll.
+  const showSidebar = step !== 3 && (step !== 4 || !!selectedPlayer);
 
   const goToStep = (target: AssessmentStep) => {
     if (target === step) return;
@@ -1665,6 +1667,24 @@ export default function AssessmentsView({
               </div>
 
               <div className="flex flex-col gap-3">
+                  <div className="rounded-2xl border border-amber-300/20 bg-amber-300/[0.06] p-4 sm:p-5">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="flex h-8 w-8 items-center justify-center rounded-xl border border-amber-300/30 bg-amber-300/10">
+                        <FlaskConical size={16} className="text-amber-200" />
+                      </span>
+                      <h4 className="text-sm font-display font-black text-slate-100">About the FPRDS rating system</h4>
+                      <span className="rounded-full border border-amber-300/30 bg-amber-300/15 px-2 py-0.5 text-[9px] font-black uppercase tracking-widest text-amber-100">Beta</span>
+                    </div>
+                    <div className="mt-3 space-y-2 text-xs font-medium leading-relaxed text-slate-300">
+                      <p>
+                        The <strong className="font-black text-slate-100">Football Player Rating &amp; Development System (FPRDS)</strong> turns standardized drill results into FIFA/eFootball-style ratings. Scores are role-weighted, compared against age-group benchmarks, and tracked across sessions so a player&apos;s progress is measured objectively rather than from opinion.
+                      </p>
+                      <p>
+                        <strong className="font-black text-amber-100">It is still in the beta phase.</strong> The assessment framework is already functional, but the benchmark values and rating scales are still being refined. As more coaches use the platform and more real-world training data is collected, these benchmarks will be calibrated and validated so they&apos;re backed by actual performance data before the platform is fully released to the public.
+                      </p>
+                    </div>
+                  </div>
+
                   {!selectedPlayer && assessedPlayerSummaries.length === 0 && (
                     <div className="rounded-2xl border border-cyan-300/10 bg-white/[0.03] p-5 text-sm text-slate-400 font-semibold">
                       No team assessments saved yet. Start a new assessment from the player roster to build history.
