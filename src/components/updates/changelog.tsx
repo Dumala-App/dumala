@@ -1835,7 +1835,8 @@ export const changelogEntries: ChangelogEntry[] = [
               'Introduce three separate apps on one shared platform, one account per app: the existing Coach app (untouched), a free Player app, and a paid League Owner app, with each account type set by its own registration door.',
               'Ship the free Player app with profile, invite-and-claim, guardian consent, team schedule, solo drills, fitness tracking, badges, a workout timer, and a progress dashboard.',
               'Add shared Team Chat and dashboard announcements across the Coach and Player apps with moderation and youth safeguards.',
-              'Build the paid League Owner app (accounts created by request and admin approval, free during the beta pilot): fresh-season lifecycle, independent tournaments, a central League database, registration links, and roster and transfer controls.',
+              'Build the paid League Owner app (accounts created by request and admin approval, free during the beta pilot): fresh-season lifecycle, independent tournaments, a central League database, reusable public tournament registration pages, and roster and transfer controls.',
+              'Use the public registration-page metadata as the future contract for a tournaments directory that can list registration-enabled events from multiple League Owners without exposing private operations data.',
               'Add the tournament engine with round robin, single elimination with byes, and group-into-knockout formats, draws, brackets, and conflict-aware scheduling.',
               'Run live events with an On-the-Day command center, delegated staff, check-in, match sheets, results, and an offline-tolerant match-day queue.',
               'Verify statistics through League staff, aggregate season totals and awards, and extend the ledger to League fees, reconciliation, and reporting.'

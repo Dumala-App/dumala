@@ -1,6 +1,6 @@
 # Dumala Product Roadmap
 
-Updated: 2026-07-10
+Updated: 2026-07-18
 
 ## Source of truth
 
@@ -138,6 +138,7 @@ Full plan: [docs/PLAYER_AND_LEAGUE_PLATFORM_EXPANSION.md](PLAYER_AND_LEAGUE_PLAT
 - Ship the free Player App: profile, invite-and-claim, guardian consent, team schedule, solo drills library, fitness tracking, badges, workout timer, and progress dashboard, keeping self-recorded activity visibly distinct from verified records.
 - Add shared Team Chat and dashboard announcements across the Coach and Player apps with moderation, read/acknowledgement state, and youth safeguards.
 - Build the paid League Owner App foundation: fresh-season lifecycle (Draft → Registration open → Active → Completed → Archived), independent events, the League Database, roles, venues, eligibility rules, and documents, with every new season starting empty.
+- Add reusable public tournament registration pages with direct `#/register/<code>` links, owner-managed event details, eligibility/document previews, and embedded applications; keep the generic code-entry form as a fallback and use the same public metadata shape later for a tournaments directory listing events from multiple League Owners.
 - Add tournament registration links plus the tournament engine (round robin, single elimination with automatic byes, group stage into knockout), draws, brackets, groups, and conflict-aware scheduling.
 - Run live events through an On-the-Day command center with delegated staff, check-in, match sheets, results, incidents, and an offline-tolerant match-day queue.
 - Verify statistics through assigned League staff, aggregate event and season totals and awards, and keep provisional, verified, disputed, corrected, and locked records clearly distinct while preserving historical club attribution across transfers.

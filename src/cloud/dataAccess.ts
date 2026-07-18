@@ -189,6 +189,7 @@ import {
 import {
   addAward,
   addEventTeam,
+  addEventRosterPlayer,
   addIncident,
   addInvoice,
   addLedgerEntry,
@@ -208,6 +209,7 @@ import {
   deleteDocumentRequirement,
   deleteEligibilityRule,
   deleteEventTeam,
+  removeEventRosterPlayer,
   deleteIncident,
   deleteInvoice,
   deleteLedgerEntry,
@@ -224,6 +226,7 @@ import {
   listEligibilityRules,
   listEvents,
   listEventTeams,
+  listEventRosterPlayers,
   listFixtures,
   listIncidents,
   listInvoices,
@@ -238,6 +241,8 @@ import {
   listVenues,
   lookupEventRegistration,
   recordFixtureResult,
+  lockEventTeamRoster,
+  markEventRosterPlayerStatus,
   resolveLeagueOrgInvite,
   reviewCoachMembership,
   reviewRegistration,
@@ -267,6 +272,9 @@ import {
   type EventRegistrationInput,
   type EventRegistrationLookup,
   type EventRegistrationStatus,
+  type EventRosterPlayer,
+  type EventRosterPlayerInput,
+  type EventRosterPlayerStatus,
   type EventTeam,
   type FixtureOpsPatch,
   type FixtureSchedulePatch,
@@ -502,12 +510,17 @@ export interface CloudLeagueRepository {
   lookupEventRegistration(code: string): Promise<EventRegistrationLookup>;
   submitEventRegistration(input: EventRegistrationInput): Promise<string>;
   listEventTeams(eventId: string): Promise<EventTeam[]>;
+  listEventRosterPlayers(eventId: string): Promise<EventRosterPlayer[]>;
   listLeagueEventTeams(leagueId: string): Promise<EventTeam[]>;
   listLeagueFixtures(leagueId: string): Promise<EventFixture[]>;
   listLeagueStatEvents(leagueId: string): Promise<FixtureStatEvent[]>;
   addEventTeam(leagueId: string, eventId: string, input: { name: string; seed?: number | null; registrationId?: string | null }): Promise<EventTeam>;
   deleteEventTeam(teamId: string): Promise<void>;
   syncApprovedTeams(leagueId: string, eventId: string): Promise<EventTeam[]>;
+  addEventRosterPlayer(input: EventRosterPlayerInput): Promise<EventRosterPlayer>;
+  removeEventRosterPlayer(playerId: string): Promise<void>;
+  lockEventTeamRoster(teamId: string): Promise<EventTeam>;
+  markEventRosterPlayerStatus(playerId: string, status: Exclude<EventRosterPlayerStatus, 'active'>, note?: string | null): Promise<EventRosterPlayer>;
   listFixtures(eventId: string): Promise<EventFixture[]>;
   generateFixtures(leagueId: string, eventId: string): Promise<EventFixture[]>;
   generateBracket(leagueId: string, eventId: string): Promise<EventFixture[]>;
@@ -746,12 +759,17 @@ export const createCloudDataAccess = (client: DumalaSupabaseClient): CloudDataAc
     lookupEventRegistration: code => lookupEventRegistration(client, code),
     submitEventRegistration: input => submitEventRegistration(client, input),
     listEventTeams: eventId => listEventTeams(client, eventId),
+    listEventRosterPlayers: eventId => listEventRosterPlayers(client, eventId),
     listLeagueEventTeams: leagueId => listLeagueEventTeams(client, leagueId),
     listLeagueFixtures: leagueId => listLeagueFixtures(client, leagueId),
     listLeagueStatEvents: leagueId => listLeagueStatEvents(client, leagueId),
     addEventTeam: (leagueId, eventId, input) => addEventTeam(client, leagueId, eventId, input),
     deleteEventTeam: teamId => deleteEventTeam(client, teamId),
     syncApprovedTeams: (leagueId, eventId) => syncApprovedTeams(client, leagueId, eventId),
+    addEventRosterPlayer: input => addEventRosterPlayer(client, input),
+    removeEventRosterPlayer: playerId => removeEventRosterPlayer(client, playerId),
+    lockEventTeamRoster: teamId => lockEventTeamRoster(client, teamId),
+    markEventRosterPlayerStatus: (playerId, status, note) => markEventRosterPlayerStatus(client, playerId, status, note),
     listFixtures: eventId => listFixtures(client, eventId),
     generateFixtures: (leagueId, eventId) => generateFixtures(client, leagueId, eventId),
     generateBracket: (leagueId, eventId) => generateBracket(client, leagueId, eventId),

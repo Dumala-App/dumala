@@ -1,6 +1,6 @@
 # Player and League Platform Expansion
 
-Updated: 2026-07-10
+Updated: 2026-07-18
 
 Status: Proposed platform plan (pre-implementation)
 
@@ -216,6 +216,17 @@ data throughout.
 
 - Create unique, revocable, expiring, or capacity-limited registration links per
   event.
+- Each registration link opens a reusable public tournament page rather than a
+  bare code prompt. The page can show owner-managed tournament details, headline,
+  dates, format, category, capacity/spots, contact notes, terms, eligibility
+  rules, and required document previews, with a direct no-account application
+  form embedded on the page.
+- Keep a generic `#/register` code-entry fallback for coaches who receive only a
+  code verbally or through a poster.
+- Design the public registration payload as a future tournaments-directory
+  contract: a later discovery page can list registration-enabled events from
+  multiple League Owners without exposing private applications, rosters, finance,
+  incidents, or operational notes.
 - Coaches can sign in or create a Coach account from the registration experience.
 - A full application includes club details, team category, roster, staff,
   required documents, terms, waivers, and fee acknowledgement.
@@ -381,8 +392,9 @@ Each stage is independently shippable behind feature flags and entitlements.
    announcements, and email delivery.
 4. **League and season foundation:** League Database, fresh-season lifecycle,
    independent events, roles, venues, eligibility rules, and documents.
-5. **Registration and rosters:** unique links, Coach account creation,
-   applications, approvals, roster controls, and transfer windows.
+5. **Registration and rosters:** direct public tournament registration pages,
+   unique links, Coach account creation, applications, approvals, roster controls,
+   document/eligibility previews, and transfer windows.
 6. **Tournament engine:** formats, draws, brackets, groups, fixtures, conflict
    detection, and calendar publication.
 7. **Live operations:** On-the-Day command center, delegated staff, check-in,
