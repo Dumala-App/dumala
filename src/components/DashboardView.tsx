@@ -639,6 +639,7 @@ interface DashboardViewProps {
   onSelectPlayer: (player: Player) => void;
   onUpdateTeamInfo: (updated: TeamInfo) => void;
   activation?: ActivationState;
+  onReplayTour?: () => void;
 }
 
 export default function DashboardView({ 
@@ -653,7 +654,8 @@ export default function DashboardView({
   onOpenTrainingSession,
   onSelectPlayer,
   onUpdateTeamInfo,
-  activation
+  activation,
+  onReplayTour
 }: DashboardViewProps) {
   
   // Team logo management states
@@ -1316,7 +1318,7 @@ export default function DashboardView({
 
       {homeWorkspaceHeader}
 
-      {activation && <GettingStartedChecklist state={activation} onNavigate={onNavigate} />}
+      {activation && <GettingStartedChecklist state={activation} onNavigate={onNavigate} onReplayTour={onReplayTour} />}
 
       <Dialog open={gamePlanOpen} onOpenChange={setGamePlanOpen}>
         <DialogContent className="grid max-h-[90vh] w-[calc(100vw-1.5rem)] max-w-[1180px] grid-rows-[auto_minmax(0,1fr)_auto] gap-4 overflow-y-auto border-cyan-300/10 bg-[#07111f] p-4 text-slate-100 shadow-2xl shadow-black/40 sm:p-5 lg:h-[min(660px,88vh)] lg:overflow-hidden">

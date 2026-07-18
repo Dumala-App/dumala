@@ -68,6 +68,10 @@ const expectAppShell = async (page, label) => {
 };
 
 const workspaceEntries = {
+  // The first-run coach tour renders a full-screen overlay ~800ms after the
+  // workspace mounts; pre-seeding its seen flag keeps it from intercepting the
+  // clicks this script performs.
+  dumala_coach_tour_seen_v1: '2026-01-01T00:00:00.000Z',
   stack_team_onboarded: 'true',
   stack_team_info: JSON.stringify({
     name: 'Offline Validation FC',

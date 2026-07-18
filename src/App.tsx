@@ -6,6 +6,8 @@ import ViewLoadingFallback from './components/ViewLoadingFallback';
 import PwaInstallControl from './components/PwaInstallControl';
 import PwaStatusBanners from './components/PwaStatusBanners';
 import WorkspaceIntegrityBanner from './components/WorkspaceIntegrityBanner';
+import CoachTourOverlay from './components/CoachTourOverlay';
+import { COACH_TOUR_STEPS, hasSeenCoachTour, markCoachTourSeen } from './onboarding/coachTour';
 import AnnouncementBanner from './components/AnnouncementBanner';
 import CoachFloatingChat from './components/CoachFloatingChat';
 import { hasTeamChatRuntime } from './cloud/chatAvailability';
@@ -348,6 +350,23 @@ export default function App() {
   const [selectedTrainingSessionDay, setSelectedTrainingSessionDay] = useState<DayName | null>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [preselectedAssessmentsPlayerId, setPreselectedAssessmentsPlayerId] = useState<string | null>(null);
+  const [showCoachTour, setShowCoachTour] = useState(false);
+
+  // First-run tour: pops once per device after the coach lands in a workspace,
+  // then never again unless replayed from the setup strip.
+  const hasActiveWorkspace = isOnboarded && Boolean(teamInfo);
+  useEffect(() => {
+    if (!hasActiveWorkspace || hasSeenCoachTour()) return;
+    const timer = window.setTimeout(() => setShowCoachTour(true), 800);
+    return () => window.clearTimeout(timer);
+  }, [hasActiveWorkspace]);
+
+  const handleCloseCoachTour = useCallback(() => {
+    markCoachTourSeen();
+    setShowCoachTour(false);
+  }, []);
+
+  const handleReplayCoachTour = useCallback(() => setShowCoachTour(true), []);
 
   const loadWorkspaceStateFromStorage = useCallback(() => {
     const next = readPersistedWorkspaceState();
@@ -1760,6 +1779,7 @@ export default function App() {
                   announcements={announcements}
                   assessments={assessments}
                   activation={activationState}
+                  onReplayTour={handleReplayCoachTour}
                   cloudClubId={activeWorkspace?.cloudClubId ?? null}
                   onSelectPlayer={setSelectedPlayer}
                   onOpenTrainingSession={setSelectedTrainingSessionDay}
@@ -1910,6 +1930,10 @@ export default function App() {
       </AnimatePresence>
 
       <CoachFloatingChat clubId={activeWorkspace?.cloudClubId ?? null} />
+
+      {showCoachTour && !isMatchLayoutFullscreen && (
+        <CoachTourOverlay steps={COACH_TOUR_STEPS} onClose={handleCloseCoachTour} />
+      )}
 
       {/* Application Footer */}
       <footer id="app-footer" className="relative z-10 mt-8 border-t border-cyan-300/10 bg-slate-950/55 px-4 py-2 text-center text-[11px] font-medium text-slate-300/75 shadow-[0_-10px_30px_rgba(2,8,23,0.18)] backdrop-blur-xl">
