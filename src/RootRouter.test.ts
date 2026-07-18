@@ -3,6 +3,8 @@ import {
   applyPwaMetadataForRoute,
   getPwaMetadataForRoute,
   getRootRoute,
+  isDevlogRootRoute,
+  isLandingRootRoute,
   isPublicTeamRootRoute,
   isTeamPageEnabled,
   shouldLoadWorkspace
@@ -15,6 +17,23 @@ describe('RootRouter', () => {
     expect(shouldLoadWorkspace('', '', null)).toBe(false);
     expect(shouldLoadWorkspace('landing', '', null)).toBe(false);
     expect(shouldLoadWorkspace('t/blue-eagles-fc', '', null)).toBe(false);
+    expect(shouldLoadWorkspace('devlog', '', null)).toBe(false);
+    expect(shouldLoadWorkspace('landing/features', '', null)).toBe(false);
+  });
+
+  it('recognizes the public devlog route without catching workspace routes', () => {
+    expect(isDevlogRootRoute('devlog')).toBe(true);
+    expect(isDevlogRootRoute('devlog/entry')).toBe(false);
+    expect(isDevlogRootRoute('development')).toBe(false);
+    expect(isDevlogRootRoute('')).toBe(false);
+  });
+
+  it('treats devlog section hand-offs as landing routes', () => {
+    expect(getRootRoute('#/landing/features')).toBe('landing/features');
+    expect(isLandingRootRoute('')).toBe(true);
+    expect(isLandingRootRoute('landing')).toBe(true);
+    expect(isLandingRootRoute('landing/pricing-plans')).toBe(true);
+    expect(isLandingRootRoute('app')).toBe(false);
   });
 
   it('loads the workspace for app and authentication callback routes', () => {

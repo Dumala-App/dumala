@@ -3,6 +3,7 @@ import React, { lazy, Suspense, useEffect, useState } from 'react';
 const LandingPage = lazy(() => import('./components/LandingPage'));
 const WorkspaceApp = lazy(() => import('./App'));
 const PublicTeamView = lazy(() => import('./components/team/PublicTeamView'));
+const DevlogPage = lazy(() => import('./components/DevlogPage'));
 
 const APP_AUTH_PENDING_KEY = 'dumala_pending_app_auth_redirect';
 const APP_AUTH_PENDING_TTL_MS = 10 * 60 * 1000;
@@ -30,6 +31,16 @@ export const isPlayerRootRoute = (route: string) =>
 // it stays dark until an operator flips VITE_DUMALA_TEAM_PAGE_ENABLED.
 export const isPublicTeamRootRoute = (route: string) =>
   route === 't' || route.startsWith('t/') || route.startsWith('t?');
+
+// Public devlog (#/devlog): the workspace's Updates tab on the marketing site,
+// no login. Its own chunk, so the landing page does not carry the changelog.
+export const isDevlogRootRoute = (route: string) => route === 'devlog';
+
+// The landing page also answers on #/landing/<section>, which is how the devlog
+// links back to a marketing section: there is nothing to scroll to until the
+// landing page has mounted, so the target rides along in the route.
+export const isLandingRootRoute = (route: string) =>
+  route === '' || route === 'landing' || route.startsWith('landing/');
 
 export const isTeamPageEnabled = (
   env: Record<string, string | boolean | undefined> = import.meta.env
@@ -62,7 +73,8 @@ export const shouldLoadWorkspace = (
     : window.localStorage.getItem(APP_AUTH_PENDING_KEY)
 ) => {
   if (isPublicTeamRootRoute(route)) return false;
-  if (route !== '' && route !== 'landing') return true;
+  if (isDevlogRootRoute(route)) return false;
+  if (!isLandingRootRoute(route)) return true;
   const authTarget = new URLSearchParams(search).get('dumalaAuth');
   if (authTarget === 'app' || authTarget === 'player' || authTarget === 'league') return true;
 
@@ -101,6 +113,14 @@ export default function RootRouter() {
     return (
       <Suspense fallback={<RouteLoadingFallback label="team page" />}>
         <PublicTeamView />
+      </Suspense>
+    );
+  }
+
+  if (isDevlogRootRoute(route)) {
+    return (
+      <Suspense fallback={<RouteLoadingFallback label="the devlog" />}>
+        <DevlogPage />
       </Suspense>
     );
   }

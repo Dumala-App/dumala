@@ -16,6 +16,13 @@ describe('LandingPage Premium CTA', () => {
     expect(html).not.toContain('<a href="#/app" class="dc-joinbeta"');
   });
 
+  it('links the devlog from the header and footer navigation', () => {
+    const html = renderToStaticMarkup(<LandingPage />);
+
+    expect(html).toContain('href="#/devlog"');
+    expect(html).toContain('Devlog</a>');
+  });
+
   it('does not render account access below the hero', () => {
     const html = renderToStaticMarkup(<LandingPage />);
 
