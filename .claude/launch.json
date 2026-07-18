@@ -9,6 +9,13 @@
       "autoPort": true
     },
     {
+      "name": "dumala-localonly",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["vite", "--mode", "localonly", "--port", "3173", "--strictPort"],
+      "port": 3173,
+      "autoPort": true
+    },
+    {
       "name": "dumala-teampage",
       "runtimeExecutable": "npx",
       "runtimeArgs": ["vite", "--mode", "teampage", "--port", "3171", "--strictPort"],
