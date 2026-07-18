@@ -245,6 +245,27 @@ export default function LandingPage() {
     return () => obs.disconnect();
   }, []);
 
+  // Coming back from the devlog, which links here as #/landing/<section>. Read
+  // the target at first render, not inside the effect: the effect clears the
+  // hash, and React runs effects twice in development, so a re-read would find
+  // the hash already gone and skip the scroll.
+  const pendingSectionRef = useRef<string | null>(
+    typeof window === 'undefined'
+      ? null
+      : /^#\/landing\/([a-z-]+)$/.exec(window.location.hash)?.[1] ?? null
+  );
+
+  // Scroll to that section, then put the hash back so refreshing or sharing the
+  // URL afterwards lands at the top like any other visit. Every section is in
+  // the DOM by the time effects run, and the scroll-reveal transforms only move
+  // a section's children, so the section's own position is already final here.
+  useEffect(() => {
+    const section = pendingSectionRef.current;
+    if (!section) return;
+    window.history.replaceState(null, '', `${window.location.pathname}${window.location.search}#/`);
+    scrollToId(section);
+  }, []);
+
   return (
     <div
       ref={rootRef}
@@ -270,6 +291,7 @@ export default function LandingPage() {
             <button type="button" onClick={() => scrollToId('features')} className="dc-nav-link">Features</button>
             <button type="button" onClick={scrollToPricingPlans} className="dc-nav-link">Pricing</button>
             <button type="button" onClick={() => scrollToId('fit')} className="dc-nav-link">Why Dumala</button>
+            <a href="#/devlog" className="dc-nav-link" style={{ textDecoration: 'none' }}>Devlog</a>
           </nav>
           <a href="#/app" className="dc-openapp">Open app</a>
         </div>
@@ -562,6 +584,7 @@ export default function LandingPage() {
                 <button type="button" onClick={() => scrollToId('features')} className="dc-foot-link" style={{ textAlign: 'left' }}>Inside the app</button>
                 <button type="button" onClick={scrollToPricingPlans} className="dc-foot-link" style={{ textAlign: 'left' }}>Pricing</button>
                 <button type="button" onClick={() => scrollToId('fit')} className="dc-foot-link" style={{ textAlign: 'left' }}>Why Dumala</button>
+                <a href="#/devlog" className="dc-foot-link" style={{ textAlign: 'left', textDecoration: 'none' }}>Devlog</a>
               </nav>
             </div>
 
