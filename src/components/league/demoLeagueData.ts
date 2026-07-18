@@ -16,6 +16,9 @@ import {
   type EventIncident,
   type EventInvoice,
   type EventRegistration,
+  type EventRosterPlayer,
+  type EventRosterPlayerInput,
+  type EventRosterPlayerStatus,
   type EventTeam,
   type FixtureStatEvent,
   type League,
@@ -75,9 +78,9 @@ const buildDemoLeagueRepository = (): CloudLeagueRepository => {
       ends_on: '2026-11-30',
       registration_opens_on: '2026-04-01',
       registration_closes_on: '2026-05-15',
-      roster_deadline: '2026-05-25',
-      transfer_window_opens_on: null,
-      transfer_window_closes_on: null,
+      roster_deadline: '2026-08-25',
+      transfer_window_opens_on: '2026-07-01',
+      transfer_window_closes_on: '2026-08-31',
       notes: null,
       created_at: now(),
       updated_at: now()
@@ -160,27 +163,39 @@ const buildDemoLeagueRepository = (): CloudLeagueRepository => {
       id: 'demo-event-1', league_id: LEAGUE_ID, season_id: 'demo-season-1', name: 'Metro Cup Qualifiers',
       format: 'round_robin', category: 'U14', status: 'registration_open', team_cap: 8,
       starts_on: '2026-08-01', ends_on: '2026-08-30', registration_code: 'METROCUP', is_public: true,
+      registration_page_enabled: true,
+      registration_headline: 'Register your U14 squad for a month-long Metro Cup qualifier.',
+      registration_details: 'Open to grassroots clubs with U14 teams. Matches run on weekends across approved Metro Youth League venues, with standings updated publicly after results are verified.',
+      registration_contact_note: 'Questions before applying? Contact the league operations desk at ops@metroyouth.example.',
+      registration_terms: 'Applications are reviewed by the league owner. Approved teams must complete roster confirmation before the published roster deadline.',
       notes: 'Open to all metro clubs. Share the code below to invite teams.', created_at: now(), updated_at: now()
     },
     {
       id: 'demo-event-2', league_id: LEAGUE_ID, season_id: 'demo-season-1', name: 'Founders Invitational',
       format: 'round_robin', category: 'U16', status: 'draft', team_cap: 6,
-      starts_on: null, ends_on: null, registration_code: 'FOUNDERS1', is_public: false, notes: null, created_at: now(), updated_at: now()
+      starts_on: null, ends_on: null, registration_code: 'FOUNDERS1', is_public: false,
+      registration_page_enabled: true, registration_headline: null, registration_details: null, registration_contact_note: null, registration_terms: null,
+      notes: null, created_at: now(), updated_at: now()
     },
     {
       id: 'demo-event-3', league_id: LEAGUE_ID, season_id: 'demo-season-1', name: 'Metro Knockout Cup',
       format: 'single_elimination', category: 'U16', status: 'active', team_cap: 8,
-      starts_on: '2026-09-01', ends_on: '2026-09-15', registration_code: 'KNOCKOUT', is_public: true, notes: null, created_at: now(), updated_at: now()
+      starts_on: '2026-09-01', ends_on: '2026-09-15', registration_code: 'KNOCKOUT', is_public: true,
+      registration_page_enabled: true, registration_headline: null, registration_details: null, registration_contact_note: null, registration_terms: null,
+      notes: null, created_at: now(), updated_at: now()
     },
     {
       id: 'demo-event-4', league_id: LEAGUE_ID, season_id: 'demo-season-1', name: 'Metro Champions Cup',
       format: 'group_knockout', category: 'U18', status: 'active', team_cap: 8,
-      starts_on: '2026-10-01', ends_on: '2026-10-20', registration_code: 'CHAMPIONS', is_public: true, notes: null, created_at: now(), updated_at: now()
+      starts_on: '2026-10-01', ends_on: '2026-10-20', registration_code: 'CHAMPIONS', is_public: true,
+      registration_page_enabled: true, registration_headline: null, registration_details: null, registration_contact_note: null, registration_terms: null,
+      notes: null, created_at: now(), updated_at: now()
     },
     {
       id: 'demo-event-0', league_id: LEAGUE_ID, season_id: 'demo-season-0', name: 'Metro Cup Qualifiers 2025',
       format: 'round_robin', category: 'U14', status: 'archived', team_cap: 8,
       starts_on: '2025-08-01', ends_on: '2025-08-30', registration_code: 'METRO2025', is_public: true,
+      registration_page_enabled: false, registration_headline: null, registration_details: null, registration_contact_note: null, registration_terms: null,
       notes: 'Last season — kept for reference.', created_at: now(), updated_at: now()
     }
   ];
@@ -202,6 +217,7 @@ const buildDemoLeagueRepository = (): CloudLeagueRepository => {
 
   const teamRow = (id: string, name: string, registrationId: string | null): EventTeam => ({
     id, event_id: 'demo-event-1', league_id: LEAGUE_ID, registration_id: registrationId, name, seed: null,
+    roster_locked: false, roster_locked_at: null, roster_locked_by: null,
     created_at: now(), updated_at: now()
   });
   let teams: EventTeam[] = [
@@ -209,6 +225,16 @@ const buildDemoLeagueRepository = (): CloudLeagueRepository => {
     teamRow('demo-team-2', 'North Stars', null),
     teamRow('demo-team-3', 'Metro United', null),
     teamRow('demo-team-4', 'Harbour City', null)
+  ];
+  let rosterPlayers: EventRosterPlayer[] = [
+    {
+      id: 'demo-roster-1', event_id: 'demo-event-1', league_id: LEAGUE_ID, team_id: 'demo-team-1', registration_id: 'demo-reg-1',
+      full_name: 'Marco Santos', birthdate: '2013-04-12', shirt_number: 9, status: 'active', transfer_note: null, created_at: now(), updated_at: now()
+    },
+    {
+      id: 'demo-roster-2', event_id: 'demo-event-1', league_id: LEAGUE_ID, team_id: 'demo-team-1', registration_id: 'demo-reg-1',
+      full_name: 'Luis Reyes', birthdate: '2013-10-03', shirt_number: 6, status: 'active', transfer_note: null, created_at: now(), updated_at: now()
+    }
   ];
 
   // A pre-generated round-robin with the first two matches already played, so
@@ -530,7 +556,13 @@ const buildDemoLeagueRepository = (): CloudLeagueRepository => {
         id: newId(), league_id: leagueId, season_id: input.seasonId, name: input.name.trim(),
         format: input.format ?? 'round_robin', category: input.category?.trim() || null, status: 'draft',
         team_cap: input.teamCap ?? null, starts_on: input.startsOn || null, ends_on: input.endsOn || null,
-        registration_code: genCode(), is_public: false, notes: input.notes?.trim() || null, created_at: now(), updated_at: now()
+        registration_code: genCode(), is_public: false,
+        registration_page_enabled: input.registrationPageEnabled ?? true,
+        registration_headline: input.registrationHeadline?.trim() || null,
+        registration_details: input.registrationDetails?.trim() || null,
+        registration_contact_note: input.registrationContactNote?.trim() || null,
+        registration_terms: input.registrationTerms?.trim() || null,
+        notes: input.notes?.trim() || null, created_at: now(), updated_at: now()
       };
       events = [row, ...events];
       return row;
@@ -539,7 +571,13 @@ const buildDemoLeagueRepository = (): CloudLeagueRepository => {
       events = events.map(e => e.id === eventId ? {
         ...e, season_id: input.seasonId, name: input.name.trim(), format: input.format ?? e.format,
         category: input.category?.trim() || null, team_cap: input.teamCap ?? null,
-        starts_on: input.startsOn || null, ends_on: input.endsOn || null, notes: input.notes?.trim() || null, updated_at: now()
+        starts_on: input.startsOn || null, ends_on: input.endsOn || null,
+        registration_page_enabled: input.registrationPageEnabled ?? e.registration_page_enabled,
+        registration_headline: input.registrationHeadline?.trim() || null,
+        registration_details: input.registrationDetails?.trim() || null,
+        registration_contact_note: input.registrationContactNote?.trim() || null,
+        registration_terms: input.registrationTerms?.trim() || null,
+        notes: input.notes?.trim() || null, updated_at: now()
       } : e);
       return events.find(e => e.id === eventId)!;
     },
@@ -584,18 +622,30 @@ const buildDemoLeagueRepository = (): CloudLeagueRepository => {
       registrations = registrations.map(r => r.id === registrationId
         ? { ...r, status: nextStatus, review_note: note?.trim() || null, reviewed_by: 'preview-owner', reviewed_at: now(), updated_at: now() }
         : r);
+      if (nextStatus === 'approved' && !teams.some(t => t.event_id === reg.event_id && t.registration_id === reg.id)) {
+        const row = teamRow(newId(), reg.team_name?.trim() || reg.club_name.trim(), reg.id);
+        row.event_id = reg.event_id;
+        row.league_id = reg.league_id;
+        teams = [...teams, row];
+      }
       return nextStatus;
     },
     lookupEventRegistration: async code => {
       const event = events.find(e => e.registration_code === code.trim().toUpperCase());
-      if (!event) return { found: false };
-      if (event.status !== 'registration_open') {
-        return { found: true, open: false, name: event.name, status: event.status };
-      }
+      if (!event || !event.registration_page_enabled) return { found: false };
       const approved = registrations.filter(r => r.event_id === event.id && r.status === 'approved').length;
+      const league = leagues.find(l => l.id === event.league_id);
+      const scopedRules = eligibilityRules.filter(r => r.league_id === event.league_id && (r.scope === 'league' || r.event_id === event.id || r.season_id === event.season_id));
+      const scopedDocs = documentRequirements.filter(d => d.league_id === event.league_id && (d.scope === 'league' || d.event_id === event.id || d.season_id === event.season_id));
       return {
-        found: true, open: true, eventId: event.id, name: event.name, category: event.category,
-        format: event.format, teamCap: event.team_cap, spotsRemaining: spotsRemaining(event.team_cap, approved)
+        found: true, open: event.status === 'registration_open', eventId: event.id, leagueId: event.league_id,
+        leagueName: league?.name, leagueLocation: league?.location ?? null,
+        name: event.name, category: event.category, format: event.format, teamCap: event.team_cap,
+        spotsRemaining: spotsRemaining(event.team_cap, approved), status: event.status,
+        startsOn: event.starts_on, endsOn: event.ends_on, headline: event.registration_headline,
+        details: event.registration_details, contactNote: event.registration_contact_note, terms: event.registration_terms,
+        eligibilityRules: scopedRules.map(r => ({ id: r.id, target: r.target, title: r.title, description: r.description, minAge: r.min_age, maxAge: r.max_age })),
+        documentRequirements: scopedDocs.map(d => ({ id: d.id, target: d.target, title: d.title, instructions: d.instructions, required: d.required, expires: d.expires }))
       };
     },
     submitEventRegistration: async input => {
@@ -618,6 +668,7 @@ const buildDemoLeagueRepository = (): CloudLeagueRepository => {
       return row.id;
     },
     listEventTeams: async eventId => teams.filter(t => t.event_id === eventId),
+    listEventRosterPlayers: async eventId => rosterPlayers.filter(p => p.event_id === eventId),
     listLeagueEventTeams: async leagueId => teams.filter(t => t.league_id === leagueId),
     listLeagueFixtures: async leagueId => fixtures
       .filter(f => f.league_id === leagueId)
@@ -633,6 +684,7 @@ const buildDemoLeagueRepository = (): CloudLeagueRepository => {
     },
     deleteEventTeam: async teamId => {
       teams = teams.filter(t => t.id !== teamId);
+      rosterPlayers = rosterPlayers.filter(p => p.team_id !== teamId);
       fixtures = fixtures.filter(f => f.home_team_id !== teamId && f.away_team_id !== teamId);
     },
     syncApprovedTeams: async (leagueId, eventId) => {
@@ -647,6 +699,56 @@ const buildDemoLeagueRepository = (): CloudLeagueRepository => {
         });
       teams = [...teams, ...additions];
       return teams.filter(t => t.event_id === eventId);
+    },
+    addEventRosterPlayer: async (input: EventRosterPlayerInput) => {
+      const team = teams.find(t => t.id === input.teamId);
+      if (!team) throw new Error('TEAM_NOT_FOUND');
+      const event = events.find(e => e.id === team.event_id);
+      const season = seasons.find(s => s.id === event?.season_id);
+      if (team.roster_locked) throw new Error('ROSTER_LOCKED');
+      if (season?.roster_deadline && new Date(`${season.roster_deadline}T00:00:00`) < new Date()) {
+        throw new Error('ROSTER_DEADLINE_PASSED');
+      }
+      const row: EventRosterPlayer = {
+        id: newId(),
+        event_id: team.event_id,
+        league_id: team.league_id,
+        team_id: team.id,
+        registration_id: team.registration_id,
+        full_name: input.fullName.trim(),
+        birthdate: input.birthdate || null,
+        shirt_number: input.shirtNumber ?? null,
+        status: 'active',
+        transfer_note: null,
+        created_at: now(),
+        updated_at: now()
+      };
+      rosterPlayers = [...rosterPlayers, row];
+      return row;
+    },
+    removeEventRosterPlayer: async playerId => {
+      const player = rosterPlayers.find(p => p.id === playerId);
+      const team = player ? teams.find(t => t.id === player.team_id) : null;
+      if (team?.roster_locked) throw new Error('ROSTER_LOCKED');
+      rosterPlayers = rosterPlayers.filter(p => p.id !== playerId);
+    },
+    lockEventTeamRoster: async teamId => {
+      teams = teams.map(t => t.id === teamId
+        ? { ...t, roster_locked: true, roster_locked_at: now(), roster_locked_by: 'preview-owner', updated_at: now() }
+        : t);
+      return teams.find(t => t.id === teamId)!;
+    },
+    markEventRosterPlayerStatus: async (playerId, status: Exclude<EventRosterPlayerStatus, 'active'>, note) => {
+      const player = rosterPlayers.find(p => p.id === playerId);
+      const event = player ? events.find(e => e.id === player.event_id) : null;
+      const season = seasons.find(s => s.id === event?.season_id);
+      const today = new Date();
+      if (season?.transfer_window_opens_on && new Date(`${season.transfer_window_opens_on}T00:00:00`) > today) throw new Error('TRANSFER_WINDOW_CLOSED');
+      if (season?.transfer_window_closes_on && new Date(`${season.transfer_window_closes_on}T00:00:00`) < today) throw new Error('TRANSFER_WINDOW_CLOSED');
+      rosterPlayers = rosterPlayers.map(p => p.id === playerId
+        ? { ...p, status, transfer_note: note?.trim() || null, updated_at: now() }
+        : p);
+      return rosterPlayers.find(p => p.id === playerId)!;
     },
     listFixtures: async eventId => fixtures
       .filter(f => f.event_id === eventId)

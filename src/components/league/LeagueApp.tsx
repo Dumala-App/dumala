@@ -22,6 +22,7 @@ import {
   Award,
   ListOrdered,
   Loader2,
+  Lock,
   MapPin,
   Medal,
   Plus,
@@ -49,6 +50,7 @@ import {
   EVENT_STATUS_LABELS,
   INVOICE_STATUS_LABELS,
   REGISTRATION_STATUS_LABELS,
+  ROSTER_PLAYER_STATUS_LABELS,
   REQUIREMENT_SCOPE_LABELS,
   REQUIREMENT_TARGET_LABELS,
   SEASON_STATUS_LABELS,
@@ -74,6 +76,7 @@ import {
   summarizeCompetition,
   summarizeLedger,
   summarizeMatchday,
+  summarizeRoster,
   LEAGUE_COACH_STATUS_LABELS,
   type AwardRecipientType,
   type CalendarFixtureItem,
@@ -87,6 +90,9 @@ import {
   type EventInvoice,
   type EventRegistration,
   type EventRegistrationStatus,
+  type EventRosterPlayer,
+  type EventRosterPlayerInput,
+  type EventRosterPlayerStatus,
   type EventTeam,
   type FixtureOpsPatch,
   type FixtureStatEvent,
@@ -1213,12 +1219,14 @@ const EventsSection = ({ league, events, seasons, runError, onCreate, onAdvance,
   // detail view below stays open so the owner sees the result of the step.
   const liveEvents = useMemo(() => events.filter(e => e.status !== 'archived'), [events]);
   const selected = useMemo(() => events.find(e => e.id === selectedId) ?? null, [events, selectedId]);
+  const selectedSeason = useMemo(() => seasons.find(s => s.id === selected?.season_id) ?? null, [seasons, selected?.season_id]);
 
   if (selected) {
     return (
       <EventDetail
         league={league}
         event={selected}
+        season={selectedSeason}
         runError={runError}
         onBack={() => setSelectedId(null)}
         onAdvance={onAdvance}
@@ -1260,12 +1268,14 @@ const ArchivedSection = ({ league, events, seasons, runError, onAdvance, onAfter
   );
   const archivedSeasons = useMemo(() => seasons.filter(s => s.status === 'archived'), [seasons]);
   const selected = useMemo(() => archivedEvents.find(e => e.id === selectedId) ?? null, [archivedEvents, selectedId]);
+  const selectedSeason = useMemo(() => seasons.find(s => s.id === selected?.season_id) ?? null, [seasons, selected?.season_id]);
 
   if (selected) {
     return (
       <EventDetail
         league={league}
         event={selected}
+        season={selectedSeason}
         runError={runError}
         onBack={() => setSelectedId(null)}
         onAdvance={onAdvance}
@@ -1469,9 +1479,10 @@ const EVENT_TABS: Array<{ id: EventTab; label: string; icon: React.ComponentType
   { id: 'matchday', label: 'Match day', icon: Activity }
 ];
 
-const EventDetail = ({ league, event, runError, onBack, onAdvance, onAfterReview }: {
+const EventDetail = ({ league, event, season, runError, onBack, onAdvance, onAfterReview }: {
   league: CloudLeagueRepository;
   event: LeagueEvent;
+  season: LeagueSeason | null;
   runError: (fn: () => Promise<unknown>) => Promise<void>;
   onBack: () => void;
   onAdvance: (eventId: string, next: LeagueEventStatus) => void;
@@ -1479,6 +1490,7 @@ const EventDetail = ({ league, event, runError, onBack, onAdvance, onAfterReview
 }) => {
   const [registrations, setRegistrations] = useState<EventRegistration[]>([]);
   const [teams, setTeams] = useState<EventTeam[]>([]);
+  const [rosterPlayers, setRosterPlayers] = useState<EventRosterPlayer[]>([]);
   const [fixtures, setFixtures] = useState<EventFixture[]>([]);
   const [statEvents, setStatEvents] = useState<FixtureStatEvent[]>([]);
   const [awards, setAwards] = useState<EventAward[]>([]);
@@ -1488,9 +1500,10 @@ const EventDetail = ({ league, event, runError, onBack, onAdvance, onAfterReview
   const [tab, setTab] = useState<EventTab>('applications');
 
   const refresh = useCallback(async () => {
-    const [regs, tms, fxs, stats, aws, incs] = await Promise.all([
+    const [regs, tms, roster, fxs, stats, aws, incs] = await Promise.all([
       league.listRegistrations(event.id),
       league.listEventTeams(event.id),
+      league.listEventRosterPlayers(event.id),
       league.listFixtures(event.id),
       league.listStatEvents(event.id),
       league.listAwards(event.id),
@@ -1498,6 +1511,7 @@ const EventDetail = ({ league, event, runError, onBack, onAdvance, onAfterReview
     ]);
     setRegistrations(regs);
     setTeams(tms);
+    setRosterPlayers(roster);
     setFixtures(fxs);
     setStatEvents(stats);
     setAwards(aws);
@@ -1514,9 +1528,11 @@ const EventDetail = ({ league, event, runError, onBack, onAdvance, onAfterReview
   const approvedCount = registrations.filter(r => r.status === 'approved').length;
   const spots = spotsRemaining(event.team_cap, approvedCount);
   const registerUrl = typeof window !== 'undefined' ? `${window.location.origin}/#/register` : '/#/register';
+  const registrationPageUrl = typeof window !== 'undefined' ? `${window.location.origin}/#/register/${event.registration_code}` : `/#/register/${event.registration_code}`;
   const publicUrl = typeof window !== 'undefined' ? `${window.location.origin}/#/l/${event.registration_code}` : `/#/l/${event.registration_code}`;
   const teamName = (id: string) => teams.find(t => t.id === id)?.name ?? 'TBD';
   const [publicCopied, setPublicCopied] = useState(false);
+  const [registrationCopied, setRegistrationCopied] = useState(false);
 
   const copyText = async (text: string, done: (v: boolean) => void) => {
     try {
@@ -1532,6 +1548,32 @@ const EventDetail = ({ league, event, runError, onBack, onAdvance, onAfterReview
   const copyCode = () => copyText(event.registration_code, setCopied);
   const setPublic = (isPublic: boolean) =>
     runError(async () => { await league.setEventPublic(event.id, isPublic); await refresh(); onAfterReview(); });
+  const saveRegistrationPage = (input: {
+    enabled: boolean;
+    headline?: string | null;
+    details?: string | null;
+    contactNote?: string | null;
+    terms?: string | null;
+  }) =>
+    runError(async () => {
+      await league.updateEvent(event.id, {
+        seasonId: event.season_id,
+        name: event.name,
+        format: event.format,
+        category: event.category,
+        teamCap: event.team_cap,
+        startsOn: event.starts_on,
+        endsOn: event.ends_on,
+        notes: event.notes,
+        registrationPageEnabled: input.enabled,
+        registrationHeadline: input.headline ?? null,
+        registrationDetails: input.details ?? null,
+        registrationContactNote: input.contactNote ?? null,
+        registrationTerms: input.terms ?? null
+      });
+      await refresh();
+      onAfterReview();
+    });
 
   const review = (registrationId: string, status: EventRegistrationStatus) =>
     runError(async () => { await league.reviewRegistration(registrationId, status); await refresh(); onAfterReview(); });
@@ -1542,6 +1584,14 @@ const EventDetail = ({ league, event, runError, onBack, onAdvance, onAfterReview
     runError(async () => { await league.syncApprovedTeams(event.league_id, event.id); await refresh(); });
   const removeTeam = (teamId: string) =>
     runError(async () => { await league.deleteEventTeam(teamId); await refresh(); });
+  const addRosterPlayer = (input: EventRosterPlayerInput) =>
+    runError(async () => { await league.addEventRosterPlayer(input); await refresh(); });
+  const removeRosterPlayer = (playerId: string) =>
+    runError(async () => { await league.removeEventRosterPlayer(playerId); await refresh(); });
+  const lockRoster = (teamId: string) =>
+    runError(async () => { await league.lockEventTeamRoster(teamId); await refresh(); onAfterReview(); });
+  const markRosterPlayerStatus = (playerId: string, status: Exclude<EventRosterPlayerStatus, 'active'>) =>
+    runError(async () => { await league.markEventRosterPlayerStatus(playerId, status); await refresh(); });
   const isKnockout = event.format === 'single_elimination';
   const isGroupKnockout = event.format === 'group_knockout';
   const generateFixtures = () =>
@@ -1600,14 +1650,21 @@ const EventDetail = ({ league, event, runError, onBack, onAdvance, onAfterReview
               <p className="mt-1 font-display text-xl font-black tracking-[0.2em] text-white">{event.registration_code}</p>
               <p className="mt-1 text-xs text-slate-400">
                 {event.status === 'registration_open'
-                  ? <>Share <span className="text-sky-200">{registerUrl}</span> and this code with clubs.</>
+                  ? <>Share <span className="text-sky-200">{registrationPageUrl}</span> with clubs, or use <span className="text-sky-200">{registerUrl}</span> as the code-entry fallback.</>
                   : 'Applications open only while the event is in Registration open.'}
               </p>
             </div>
-            <button type="button" className={ghostBtn} onClick={copyCode}>
-              {copied ? <><Check size={14} /> Copied</> : <><Copy size={14} /> Copy code</>}
-            </button>
+            <div className="flex items-center gap-2">
+              <button type="button" className={ghostBtn} onClick={() => copyText(registrationPageUrl, setRegistrationCopied)}>
+                {registrationCopied ? <><Check size={14} /> Copied</> : <><Copy size={14} /> Copy page</>}
+              </button>
+              <button type="button" className={ghostBtn} onClick={copyCode}>
+                {copied ? <><Check size={14} /> Copied</> : <><Copy size={14} /> Copy code</>}
+              </button>
+            </div>
           </div>
+
+          <RegistrationPagePanel event={event} pageUrl={registrationPageUrl} onSave={saveRegistrationPage} />
 
           <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-white/10 bg-white/[0.035] p-4">
             <div className="min-w-0">
@@ -1662,7 +1719,21 @@ const EventDetail = ({ league, event, runError, onBack, onAdvance, onAfterReview
       ) : (
         <>
           {tab === 'applications' && <ApplicationsPanel registrations={registrations} onReview={review} />}
-          {tab === 'teams' && <TeamsPanel teams={teams} approvedCount={approvedCount} onAdd={addTeam} onAddApproved={addApprovedTeams} onRemove={removeTeam} />}
+          {tab === 'teams' && (
+            <TeamsPanel
+              teams={teams}
+              rosterPlayers={rosterPlayers}
+              season={season}
+              approvedCount={approvedCount}
+              onAdd={addTeam}
+              onAddApproved={addApprovedTeams}
+              onRemove={removeTeam}
+              onAddPlayer={addRosterPlayer}
+              onRemovePlayer={removeRosterPlayer}
+              onLockRoster={lockRoster}
+              onMarkPlayerStatus={markRosterPlayerStatus}
+            />
+          )}
           {tab === 'fixtures' && (isGroupKnockout
             ? <GroupKnockoutPanel fixtures={fixtures} teams={teams} teamCount={teams.length} teamName={teamName} onDrawGroups={drawGroupStage} onGenerateKnockout={generateKnockout} onClear={clearFixtures} onRecord={recordResult} />
             : isKnockout
@@ -1700,6 +1771,78 @@ const EventDetail = ({ league, event, runError, onBack, onAdvance, onAfterReview
         </>
       )}
     </div>
+  );
+};
+
+const RegistrationPagePanel = ({ event, pageUrl, onSave }: {
+  event: LeagueEvent;
+  pageUrl: string;
+  onSave: (input: { enabled: boolean; headline?: string | null; details?: string | null; contactNote?: string | null; terms?: string | null }) => void;
+}) => {
+  const [enabled, setEnabled] = useState(event.registration_page_enabled ?? true);
+  const [headline, setHeadline] = useState(event.registration_headline ?? '');
+  const [details, setDetails] = useState(event.registration_details ?? '');
+  const [contactNote, setContactNote] = useState(event.registration_contact_note ?? '');
+  const [terms, setTerms] = useState(event.registration_terms ?? '');
+
+  useEffect(() => {
+    setEnabled(event.registration_page_enabled ?? true);
+    setHeadline(event.registration_headline ?? '');
+    setDetails(event.registration_details ?? '');
+    setContactNote(event.registration_contact_note ?? '');
+    setTerms(event.registration_terms ?? '');
+  }, [event.id, event.registration_page_enabled, event.registration_headline, event.registration_details, event.registration_contact_note, event.registration_terms]);
+
+  const submit = (e: FormEvent) => {
+    e.preventDefault();
+    onSave({
+      enabled,
+      headline: headline || null,
+      details: details || null,
+      contactNote: contactNote || null,
+      terms: terms || null
+    });
+  };
+
+  return (
+    <form onSubmit={submit} className="rounded-2xl border border-white/10 bg-white/[0.035] p-4">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <p className="flex items-center gap-2 text-[11px] font-black uppercase text-slate-400">
+            Registration page
+            <span className={`rounded-full border px-2 py-0.5 text-[10px] font-bold ${enabled ? 'border-emerald-300/30 bg-emerald-400/10 text-emerald-100' : 'border-white/15 bg-white/[0.04] text-slate-400'}`}>
+              {enabled ? 'Published' : 'Hidden'}
+            </span>
+          </p>
+          <p className="mt-1 text-xs text-slate-400">A shareable tournament page where coaches can review details and apply directly.</p>
+          <p className="mt-1 break-all text-xs text-sky-200">{pageUrl}</p>
+        </div>
+        <label className="flex items-center gap-2 text-xs font-bold text-slate-300">
+          <input type="checkbox" checked={enabled} onChange={e => setEnabled(e.target.checked)} />
+          Show page
+        </label>
+      </div>
+
+      <div className="mt-4 grid gap-3 sm:grid-cols-2">
+        <div className="space-y-1 sm:col-span-2">
+          <label className={label}>Headline</label>
+          <input className={inputClass} maxLength={180} value={headline} onChange={e => setHeadline(e.target.value)} placeholder="Register for the Metro Cup Qualifiers" />
+        </div>
+        <div className="space-y-1 sm:col-span-2">
+          <label className={label}>Tournament details</label>
+          <textarea className={inputClass} rows={4} maxLength={4000} value={details} onChange={e => setDetails(e.target.value)} placeholder="Who can enter, when matches run, and what coaches should know before applying." />
+        </div>
+        <div className="space-y-1">
+          <label className={label}>Contact note</label>
+          <textarea className={inputClass} rows={3} maxLength={1000} value={contactNote} onChange={e => setContactNote(e.target.value)} placeholder="Questions, contact person, or league email." />
+        </div>
+        <div className="space-y-1">
+          <label className={label}>Terms / acknowledgement</label>
+          <textarea className={inputClass} rows={3} maxLength={2000} value={terms} onChange={e => setTerms(e.target.value)} placeholder="Application review, roster deadlines, fee acknowledgement, or waiver expectations." />
+        </div>
+      </div>
+      <button type="submit" className={`${primaryBtn} mt-4`}><Save size={14} /> Save registration page</button>
+    </form>
   );
 };
 
@@ -1749,16 +1892,37 @@ const ApplicationsPanel = ({ registrations, onReview }: {
   </section>
 );
 
-const TeamsPanel = ({ teams, approvedCount, onAdd, onAddApproved, onRemove }: {
+const rosterTone: Record<EventRosterPlayerStatus, string> = {
+  active: 'border-emerald-300/30 bg-emerald-400/10 text-emerald-100',
+  transferred: 'border-violet-300/30 bg-violet-400/10 text-violet-100',
+  released: 'border-slate-500/30 bg-slate-500/10 text-slate-300'
+};
+
+const TeamsPanel = ({ teams, rosterPlayers, season, approvedCount, onAdd, onAddApproved, onRemove, onAddPlayer, onRemovePlayer, onLockRoster, onMarkPlayerStatus }: {
   teams: EventTeam[];
+  rosterPlayers: EventRosterPlayer[];
+  season: LeagueSeason | null;
   approvedCount: number;
   onAdd: (name: string) => void;
   onAddApproved: () => void;
   onRemove: (teamId: string) => void;
+  onAddPlayer: (input: EventRosterPlayerInput) => void;
+  onRemovePlayer: (playerId: string) => void;
+  onLockRoster: (teamId: string) => void;
+  onMarkPlayerStatus: (playerId: string, status: Exclude<EventRosterPlayerStatus, 'active'>) => void;
 }) => {
   const [name, setName] = useState('');
   const linkedCount = teams.filter(t => t.registration_id).length;
   const pendingApproved = Math.max(0, approvedCount - linkedCount);
+  const summary = summarizeRoster(teams, rosterPlayers, season);
+  const playersByTeam = useMemo(() => {
+    const map = new Map<string, EventRosterPlayer[]>();
+    for (const player of rosterPlayers) {
+      const list = map.get(player.team_id);
+      if (list) list.push(player); else map.set(player.team_id, [player]);
+    }
+    return map;
+  }, [rosterPlayers]);
 
   const submit = (e: FormEvent) => {
     e.preventDefault();
@@ -1771,9 +1935,16 @@ const TeamsPanel = ({ teams, approvedCount, onAdd, onAddApproved, onRemove }: {
     <section className={panel}>
       <div className={sectionHeader}>
         <Shield size={16} className="text-sky-200" />
-        <h2 className="font-display text-sm font-black text-white">Teams</h2>
+        <h2 className="font-display text-sm font-black text-white">Teams and rosters</h2>
       </div>
       <div className="space-y-4 p-4">
+        <div className="grid gap-3 sm:grid-cols-4">
+          <StatTile label="Active players" value={summary.active} detail={`${summary.transferred} transferred, ${summary.released} released`} />
+          <StatTile label="Roster locks" value={`${summary.lockedTeams} / ${summary.totalTeams}`} detail="Teams locked" />
+          <StatTile label="Roster deadline" value={season?.roster_deadline ? formatShortDate(season.roster_deadline) : 'Open'} detail={summary.rosterWindowOpen ? 'Edits allowed' : 'Deadline passed'} />
+          <StatTile label="Transfer window" value={summary.transferWindowOpen ? 'Open' : 'Closed'} detail={season?.transfer_window_closes_on ? `Until ${formatShortDate(season.transfer_window_closes_on)}` : 'No close date'} />
+        </div>
+
         <div className="flex flex-wrap items-end justify-between gap-3">
           <form onSubmit={submit} className="flex flex-1 items-end gap-2">
             <div className="flex-1 space-y-1">
@@ -1784,31 +1955,132 @@ const TeamsPanel = ({ teams, approvedCount, onAdd, onAddApproved, onRemove }: {
           </form>
           {pendingApproved > 0 && (
             <button type="button" className={ghostBtn} onClick={onAddApproved}>
-              <Plus size={14} /> Add {pendingApproved} approved
+              <Plus size={14} /> Sync {pendingApproved} approved
             </button>
           )}
         </div>
 
         {teams.length === 0 ? (
-          <p className="text-sm text-slate-400">No teams yet. Add them by hand, or pull in approved applicants.</p>
+          <p className="text-sm text-slate-400">No teams yet. Approving an application now creates its team automatically, or you can add a team by hand.</p>
         ) : (
           <ul className="space-y-2">
             {teams.map((team, index) => (
-              <li key={team.id} className="flex items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/[0.035] px-4 py-3">
-                <div className="flex items-center gap-3">
-                  <span className="font-display text-xs font-black text-slate-500">{index + 1}</span>
-                  <span className="font-display text-sm font-black text-white">{team.name}</span>
-                  {team.registration_id && <span className="rounded-full border border-emerald-400/40 bg-emerald-400/15 px-2 py-0.5 text-[10px] font-bold text-emerald-100">Registered</span>}
+              <li key={team.id} className="rounded-2xl border border-white/10 bg-white/[0.035] p-4">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div className="flex items-center gap-3">
+                    <span className="font-display text-xs font-black text-slate-500">{index + 1}</span>
+                    <div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="font-display text-sm font-black text-white">{team.name}</span>
+                        {team.registration_id && <span className="rounded-full border border-emerald-400/40 bg-emerald-400/15 px-2 py-0.5 text-[10px] font-bold text-emerald-100">Registered</span>}
+                        {team.roster_locked && <span className="inline-flex items-center gap-1 rounded-full border border-sky-300/30 bg-sky-400/10 px-2 py-0.5 text-[10px] font-bold text-sky-100"><Lock size={11} /> Locked</span>}
+                      </div>
+                      <p className="mt-1 text-xs text-slate-500">{(playersByTeam.get(team.id) ?? []).filter(p => p.status === 'active').length} active roster players</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    {!team.roster_locked && (
+                      <button type="button" className={`${ghostBtn} !px-2.5`} onClick={() => onLockRoster(team.id)}><Lock size={14} /> Lock</button>
+                    )}
+                    <button type="button" aria-label="Remove team" className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 hover:text-rose-300" onClick={() => onRemove(team.id)}>
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
                 </div>
-                <button type="button" aria-label="Remove team" className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 hover:text-rose-300" onClick={() => onRemove(team.id)}>
-                  <Trash2 size={16} />
-                </button>
+                <RosterTeamControls
+                  team={team}
+                  players={playersByTeam.get(team.id) ?? []}
+                  rosterWindowOpen={summary.rosterWindowOpen}
+                  transferWindowOpen={summary.transferWindowOpen}
+                  onAddPlayer={onAddPlayer}
+                  onRemovePlayer={onRemovePlayer}
+                  onMarkPlayerStatus={onMarkPlayerStatus}
+                />
               </li>
             ))}
           </ul>
         )}
       </div>
     </section>
+  );
+};
+
+const RosterTeamControls = ({ team, players, rosterWindowOpen, transferWindowOpen, onAddPlayer, onRemovePlayer, onMarkPlayerStatus }: {
+  team: EventTeam;
+  players: EventRosterPlayer[];
+  rosterWindowOpen: boolean;
+  transferWindowOpen: boolean;
+  onAddPlayer: (input: EventRosterPlayerInput) => void;
+  onRemovePlayer: (playerId: string) => void;
+  onMarkPlayerStatus: (playerId: string, status: Exclude<EventRosterPlayerStatus, 'active'>) => void;
+}) => {
+  const [fullName, setFullName] = useState('');
+  const [birthdate, setBirthdate] = useState('');
+  const [shirtNumber, setShirtNumber] = useState('');
+  const canEdit = rosterWindowOpen && !team.roster_locked;
+
+  const submit = (e: FormEvent) => {
+    e.preventDefault();
+    if (!fullName.trim() || !canEdit) return;
+    onAddPlayer({
+      teamId: team.id,
+      fullName,
+      birthdate: birthdate || null,
+      shirtNumber: shirtNumber ? Number(shirtNumber) : null
+    });
+    setFullName(''); setBirthdate(''); setShirtNumber('');
+  };
+
+  return (
+    <div className="mt-4 space-y-3 border-t border-white/10 pt-4">
+      <form onSubmit={submit} className="grid gap-2 sm:grid-cols-[2fr_1fr_0.7fr_auto] sm:items-end">
+        <div className="space-y-1">
+          <label className={label}>Player name</label>
+          <input className={inputClass} disabled={!canEdit} value={fullName} onChange={e => setFullName(e.target.value)} placeholder={canEdit ? 'Add roster player' : 'Roster edits closed'} />
+        </div>
+        <div className="space-y-1">
+          <label className={label}>Birthdate</label>
+          <input className={inputClass} disabled={!canEdit} type="date" value={birthdate} onChange={e => setBirthdate(e.target.value)} />
+        </div>
+        <div className="space-y-1">
+          <label className={label}>No.</label>
+          <input className={inputClass} disabled={!canEdit} type="number" min={0} max={999} value={shirtNumber} onChange={e => setShirtNumber(e.target.value)} />
+        </div>
+        <button type="submit" className={primaryBtn} disabled={!canEdit}><Plus size={14} /> Add</button>
+      </form>
+
+      {players.length === 0 ? (
+        <p className="text-xs text-slate-500">No roster players yet.</p>
+      ) : (
+        <ul className="space-y-2">
+          {players.map(player => (
+            <li key={player.id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-white/10 bg-black/15 px-3 py-2">
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="font-display text-sm font-black text-white">{player.full_name}</span>
+                  <span className={`rounded-full border px-2 py-0.5 text-[10px] font-bold ${rosterTone[player.status]}`}>{ROSTER_PLAYER_STATUS_LABELS[player.status]}</span>
+                  {player.shirt_number !== null && <span className="text-xs font-bold text-slate-400">#{player.shirt_number}</span>}
+                </div>
+                <p className="mt-0.5 text-xs text-slate-500">{player.birthdate ? `Born ${player.birthdate}` : 'Birthdate not set'}{player.transfer_note ? ` · ${player.transfer_note}` : ''}</p>
+              </div>
+              <div className="flex items-center gap-1.5">
+                {player.status === 'active' && transferWindowOpen && (
+                  <>
+                    <button type="button" className={`${ghostBtn} !px-2.5`} onClick={() => onMarkPlayerStatus(player.id, 'transferred')}>Transfer</button>
+                    <button type="button" className={`${ghostBtn} !px-2.5`} onClick={() => onMarkPlayerStatus(player.id, 'released')}>Release</button>
+                  </>
+                )}
+                {canEdit && (
+                  <button type="button" aria-label="Remove roster player" className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 hover:text-rose-300" onClick={() => onRemovePlayer(player.id)}>
+                    <Trash2 size={16} />
+                  </button>
+                )}
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
   );
 };
 

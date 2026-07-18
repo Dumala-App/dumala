@@ -27,12 +27,14 @@ import {
   SEASON_STATUS_LABELS,
   spotsRemaining,
   suggestAwards,
+  summarizeRoster,
   summarizeCoachSeats,
   summarizeCompetition,
   summarizeLedger,
   summarizeMatchday,
   type EventFixture,
   type EventInvoice,
+  type EventRosterPlayer,
   type FixtureStatEvent,
   type EventTeam,
   type LeagueCoachMembership,
@@ -153,6 +155,55 @@ describe('tournament pure helpers', () => {
     expect(table[0]).toMatchObject({ played: 2, won: 1, drawn: 1, lost: 0, points: 4, goalDifference: 1 });
     expect(table[1]).toMatchObject({ points: 3, goalDifference: 2 });
     expect(table[2]).toMatchObject({ points: 1, goalDifference: -3 });
+  });
+});
+
+describe('event roster helpers', () => {
+  const team = (id: string, locked = false): EventTeam => ({
+    id, event_id: 'e', league_id: 'l', registration_id: null, name: id.toUpperCase(), seed: null,
+    roster_locked: locked, roster_locked_at: locked ? '2026-07-18T00:00:00Z' : null, roster_locked_by: locked ? 'u' : null,
+    created_at: '', updated_at: ''
+  });
+  const player = (status: EventRosterPlayer['status']): EventRosterPlayer => ({
+    id: `${status}-${Math.random()}`, event_id: 'e', league_id: 'l', team_id: 'a', registration_id: null,
+    full_name: 'Player', birthdate: null, shirt_number: null, status, transfer_note: null, created_at: '', updated_at: ''
+  });
+
+  it('summarizes roster statuses, locks, and season windows', () => {
+    const summary = summarizeRoster(
+      [team('a', true), team('b')],
+      [player('active'), player('active'), player('transferred'), player('released')],
+      {
+        roster_deadline: '2026-07-20',
+        transfer_window_opens_on: '2026-07-01',
+        transfer_window_closes_on: '2026-07-31'
+      },
+      new Date('2026-07-18T12:00:00Z')
+    );
+    expect(summary).toEqual({
+      active: 2,
+      transferred: 1,
+      released: 1,
+      lockedTeams: 1,
+      totalTeams: 2,
+      rosterWindowOpen: true,
+      transferWindowOpen: true
+    });
+  });
+
+  it('closes roster and transfer windows from season dates', () => {
+    const summary = summarizeRoster(
+      [],
+      [],
+      {
+        roster_deadline: '2026-07-10',
+        transfer_window_opens_on: '2026-07-01',
+        transfer_window_closes_on: '2026-07-10'
+      },
+      new Date('2026-07-18T12:00:00Z')
+    );
+    expect(summary.rosterWindowOpen).toBe(false);
+    expect(summary.transferWindowOpen).toBe(false);
   });
 });
 
@@ -740,6 +791,38 @@ describe('cloud league repository', () => {
       team_name: null,
       roster_size: null
     }));
+  });
+
+  it('adds a roster player through the guarded RPC', async () => {
+    const saved = { id: 'player-1', full_name: 'Player One' };
+    const { client, rpc } = createTableStub(saved);
+    await expect(
+      createCloudDataAccess(client).league.addEventRosterPlayer({
+        teamId: 'team-1',
+        fullName: ' Player One ',
+        birthdate: '2014-02-01',
+        shirtNumber: 9
+      })
+    ).resolves.toEqual(saved);
+    expect(rpc).toHaveBeenCalledWith('add_event_roster_player', {
+      team_id: 'team-1',
+      full_name: 'Player One',
+      birthdate: '2014-02-01',
+      shirt_number: 9
+    });
+  });
+
+  it('marks a roster player transferred through the guarded RPC', async () => {
+    const saved = { id: 'player-1', status: 'transferred' };
+    const { client, rpc } = createTableStub(saved);
+    await expect(
+      createCloudDataAccess(client).league.markEventRosterPlayerStatus('player-1', 'transferred', ' Moved after approval ')
+    ).resolves.toEqual(saved);
+    expect(rpc).toHaveBeenCalledWith('mark_event_roster_player_status', {
+      player_id: 'player-1',
+      next_status: 'transferred',
+      note: 'Moved after approval'
+    });
   });
 
   it('surfaces errors as CloudLeagueError', async () => {

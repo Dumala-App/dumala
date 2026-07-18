@@ -1,6 +1,6 @@
 # Dumala Delivery Tasks
 
-Updated: 2026-07-13
+Updated: 2026-07-18
 
 Status values: **Done**, **In Progress**, **Next**, **Planned**, **Long Term**.
 
@@ -45,6 +45,11 @@ Release validation              [##########] 100%  14 / 14
 The FPRDS total includes twenty completed capabilities: the five shipped assessment features plus interpolation, role-weighting, age-transition, required-field validation coverage, true historical progress charts, player/session comparison reports, the evidence-based development doctrine, training evidence naming, removal of direct training-to-rating mutation, reassessment recommendations, rating confidence labels, the opt-in FPRDS beta results database with aggregate benchmark analysis and correction review, downloadable player assessment and development reports, a coach-review data export, and benchmark versioning that stamps every session with the benchmark table version it was scored under. Practitioner benchmark review is deferred until qualified external reviewers are available, so it is not counted in the twenty.
 
 ## Recent changes
+
+### Completed: 2026-07-18
+
+- [x] Shipped the Phase 6 **Registration page upgrade** slice. Event registration now supports a direct public tournament page at `#/register/<code>` instead of only a generic code-entry form. League owners can manage registration-page visibility, headline, tournament details, contact notes, and terms from the event page; the public page shows league/event metadata, format, dates, capacity/spots, eligibility rules, required documents, and an embedded no-account team application form. The old `#/register` code-entry flow remains as a fallback. The public lookup payload is designed so a future tournaments directory can list registration-enabled events from multiple League Owners without exposing private operations data.
+- [x] Shipped the Phase 6 **Registration and rosters backbone** slice. Approval now creates or links the event team automatically; owners can manage event roster players, lock team rosters, and mark players transferred or released inside the configured transfer window. Added owner-scoped roster tables/RPCs, RLS, pgTAP coverage, cloud repository methods, unit-tested roster summary helpers, and an expanded League dashboard Teams tab for roster controls. Coach account creation from registration remains deferred.
 
 ### Completed: 2026-07-17
 
@@ -376,7 +381,7 @@ Full plan: `docs/PLAYER_AND_LEAGUE_PLATFORM_EXPANSION.md`. Each item is independ
 - [x] **Done:** Shared communication — Coach/Player Team Chat, moderation and youth safeguards, and dashboard announcements. Attachments and email delivery are intentionally deferred out of this lightweight team-chat scope.
 - [x] **Done:** Public team page — feature-flagged coach publishing controls, unique public links, a login-free team showcase route, and a privacy-first anonymous Supabase RPC exposing only safe roster, staff, lineup, and recent-result fields.
 - [x] **Done:** League and season foundation — League Database, fresh-season lifecycle, independent events, coach organization, venues, eligibility rules, and required document templates.
-- [ ] **Planned:** Registration and rosters — unique links, Coach account creation, applications, approvals, roster controls, and transfer windows.
+- [ ] **In Progress:** Registration and rosters — direct public tournament registration pages, unique links, applications, approvals, roster controls, and transfer windows are underway; Coach account creation from registration, document upload/verification, and richer transfer workflows remain.
 - [ ] **Planned:** Tournament engine — formats, draws, brackets, groups, fixtures, conflict detection, and calendar publication.
 - [ ] **Planned:** Live operations — On-the-Day command center, delegated staff, check-in, match sheets, results, incidents, and offline queue.
 - [ ] **Planned:** Statistics and awards — verification workflow, event and season aggregates, leaderboards, awards, and certificates.

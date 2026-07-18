@@ -526,6 +526,11 @@ export interface LeagueEvent {
   ends_on: string | null;
   registration_code: string;
   is_public: boolean;
+  registration_page_enabled?: boolean;
+  registration_headline?: string | null;
+  registration_details?: string | null;
+  registration_contact_note?: string | null;
+  registration_terms?: string | null;
   notes: string | null;
   created_at: string;
   updated_at: string;
@@ -539,6 +544,11 @@ export interface LeagueEventInput {
   teamCap?: number | null;
   startsOn?: string | null;
   endsOn?: string | null;
+  registrationPageEnabled?: boolean;
+  registrationHeadline?: string | null;
+  registrationDetails?: string | null;
+  registrationContactNote?: string | null;
+  registrationTerms?: string | null;
   notes?: string | null;
 }
 
@@ -577,12 +587,37 @@ export interface EventRegistrationLookup {
   found: boolean;
   open?: boolean;
   eventId?: string;
+  leagueId?: string;
+  leagueName?: string;
+  leagueLocation?: string | null;
   name?: string;
   category?: string | null;
   format?: LeagueEventFormat;
   teamCap?: number | null;
   spotsRemaining?: number | null;
   status?: LeagueEventStatus;
+  startsOn?: string | null;
+  endsOn?: string | null;
+  headline?: string | null;
+  details?: string | null;
+  contactNote?: string | null;
+  terms?: string | null;
+  eligibilityRules?: Array<{
+    id: string;
+    target: LeagueRequirementTarget;
+    title: string;
+    description: string | null;
+    minAge: number | null;
+    maxAge: number | null;
+  }>;
+  documentRequirements?: Array<{
+    id: string;
+    target: LeagueRequirementTarget;
+    title: string;
+    instructions: string | null;
+    required: boolean;
+    expires: boolean;
+  }>;
 }
 
 // --- Pure helpers (unit-testable) --------------------------------------------
@@ -643,6 +678,11 @@ const eventRow = (input: LeagueEventInput) => ({
   team_cap: input.teamCap ?? null,
   starts_on: input.startsOn || null,
   ends_on: input.endsOn || null,
+  registration_page_enabled: input.registrationPageEnabled ?? true,
+  registration_headline: input.registrationHeadline?.trim() || null,
+  registration_details: input.registrationDetails?.trim() || null,
+  registration_contact_note: input.registrationContactNote?.trim() || null,
+  registration_terms: input.registrationTerms?.trim() || null,
   notes: input.notes?.trim() || null
 });
 
@@ -839,8 +879,45 @@ export interface EventTeam {
   registration_id: string | null;
   name: string;
   seed: number | null;
+  roster_locked?: boolean;
+  roster_locked_at?: string | null;
+  roster_locked_by?: string | null;
   created_at: string;
   updated_at: string;
+}
+
+export type EventRosterPlayerStatus = 'active' | 'transferred' | 'released';
+
+export interface EventRosterPlayer {
+  id: string;
+  event_id: string;
+  league_id: string;
+  team_id: string;
+  registration_id: string | null;
+  full_name: string;
+  birthdate: string | null;
+  shirt_number: number | null;
+  status: EventRosterPlayerStatus;
+  transfer_note: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface EventRosterPlayerInput {
+  teamId: string;
+  fullName: string;
+  birthdate?: string | null;
+  shirtNumber?: number | null;
+}
+
+export interface RosterSummary {
+  active: number;
+  transferred: number;
+  released: number;
+  lockedTeams: number;
+  totalTeams: number;
+  rosterWindowOpen: boolean;
+  transferWindowOpen: boolean;
 }
 
 export interface EventFixture {
@@ -880,6 +957,12 @@ export interface StandingRow {
   goalDifference: number;
   points: number;
 }
+
+export const ROSTER_PLAYER_STATUS_LABELS: Record<EventRosterPlayerStatus, string> = {
+  active: 'Active',
+  transferred: 'Transferred',
+  released: 'Released'
+};
 
 /** A single generated pairing (team ids, or null for a bye). */
 export interface FixturePairing {
@@ -966,6 +1049,39 @@ export const computeStandings = (teams: EventTeam[], fixtures: EventFixture[]): 
     b.goalsFor - a.goalsFor ||
     a.name.localeCompare(b.name));
   return rows;
+};
+
+const todayKey = (now = new Date()): string => {
+  const y = now.getFullYear();
+  const m = `${now.getMonth() + 1}`.padStart(2, '0');
+  const d = `${now.getDate()}`.padStart(2, '0');
+  return `${y}-${m}-${d}`;
+};
+
+export const summarizeRoster = (
+  teams: EventTeam[],
+  players: EventRosterPlayer[],
+  season: Pick<LeagueSeason, 'roster_deadline' | 'transfer_window_opens_on' | 'transfer_window_closes_on'> | null,
+  now = new Date()
+): RosterSummary => {
+  const today = todayKey(now);
+  const rosterWindowOpen = !season?.roster_deadline || today <= season.roster_deadline;
+  const transferWindowOpen =
+    (!season?.transfer_window_opens_on || today >= season.transfer_window_opens_on) &&
+    (!season?.transfer_window_closes_on || today <= season.transfer_window_closes_on);
+
+  return players.reduce<RosterSummary>((summary, player) => {
+    summary[player.status] += 1;
+    return summary;
+  }, {
+    active: 0,
+    transferred: 0,
+    released: 0,
+    lockedTeams: teams.filter(t => t.roster_locked).length,
+    totalTeams: teams.length,
+    rosterWindowOpen,
+    transferWindowOpen
+  });
 };
 
 // --- Knockout bracket (single elimination) -----------------------------------
@@ -1221,6 +1337,78 @@ export const syncApprovedTeams = async (
     'Failed to add approved teams'
   ) as EventTeam[] | null;
   return [...existing, ...(inserted ?? [])];
+};
+
+export const listEventRosterPlayers = async (
+  client: DumalaSupabaseClient,
+  eventId: string
+): Promise<EventRosterPlayer[]> => {
+  const supabase = asUntypedClient(client);
+  return (expectNoError(
+    await supabase.from('event_roster_players').select('*').eq('event_id', eventId)
+      .order('team_id', { ascending: true }).order('full_name', { ascending: true }),
+    'ROSTER_PLAYERS_READ_FAILED',
+    'Failed to load roster players'
+  ) as EventRosterPlayer[] | null) ?? [];
+};
+
+export const addEventRosterPlayer = async (
+  client: DumalaSupabaseClient,
+  input: EventRosterPlayerInput
+): Promise<EventRosterPlayer> => {
+  const supabase = asUntypedClient(client);
+  return expectNoError(
+    await supabase.rpc('add_event_roster_player', {
+      team_id: input.teamId,
+      full_name: input.fullName.trim(),
+      birthdate: input.birthdate || null,
+      shirt_number: input.shirtNumber ?? null
+    }),
+    'ROSTER_PLAYER_CREATE_FAILED',
+    'Failed to add the roster player'
+  ) as EventRosterPlayer;
+};
+
+export const removeEventRosterPlayer = async (
+  client: DumalaSupabaseClient,
+  playerId: string
+): Promise<void> => {
+  const supabase = asUntypedClient(client);
+  expectNoError(
+    await supabase.rpc('remove_event_roster_player', { player_id: playerId }),
+    'ROSTER_PLAYER_DELETE_FAILED',
+    'Failed to remove the roster player'
+  );
+};
+
+export const lockEventTeamRoster = async (
+  client: DumalaSupabaseClient,
+  teamId: string
+): Promise<EventTeam> => {
+  const supabase = asUntypedClient(client);
+  return expectNoError(
+    await supabase.rpc('lock_event_team_roster', { team_id: teamId }),
+    'ROSTER_LOCK_FAILED',
+    'Failed to lock the roster'
+  ) as EventTeam;
+};
+
+export const markEventRosterPlayerStatus = async (
+  client: DumalaSupabaseClient,
+  playerId: string,
+  status: Exclude<EventRosterPlayerStatus, 'active'>,
+  note?: string | null
+): Promise<EventRosterPlayer> => {
+  const supabase = asUntypedClient(client);
+  return expectNoError(
+    await supabase.rpc('mark_event_roster_player_status', {
+      player_id: playerId,
+      next_status: status,
+      note: note?.trim() || null
+    }),
+    'ROSTER_PLAYER_STATUS_FAILED',
+    'Failed to update the roster player'
+  ) as EventRosterPlayer;
 };
 
 // --- Owner: fixtures + results -----------------------------------------------
