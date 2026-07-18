@@ -2,6 +2,10 @@ import {chromium} from '@playwright/test';
 import {preview} from 'vite';
 
 const seedWorkspace = {
+  // The first-run coach tour renders a full-screen overlay ~800ms after the
+  // workspace mounts; pre-seeding its seen flag keeps it from intercepting the
+  // taps this script performs.
+  dumala_coach_tour_seen_v1: '2026-01-01T00:00:00.000Z',
   stack_team_onboarded: 'true',
   stack_team_info: JSON.stringify({
     name: 'Mobile Tablet Validation FC',
@@ -171,9 +175,26 @@ const assertNoPageOverflow = async (page, label) => {
   }
 };
 
+// Scrolls the element into view and waits for its position to settle. The
+// inline add-player/add-game forms open with a framer-motion height animation,
+// so scrolling once can land on a still-growing layout and leave the element
+// below the fold. Re-scroll until two consecutive measurements agree.
+const scrollIntoStableView = async locator => {
+  let previous = null;
+  for (let attempt = 0; attempt < 12; attempt += 1) {
+    await locator.scrollIntoViewIfNeeded();
+    const box = await locator.boundingBox();
+    if (box && previous && Math.abs(box.y - previous.y) < 1 && Math.abs(box.height - previous.height) < 1) {
+      return box;
+    }
+    previous = box;
+    await locator.page().waitForTimeout(100);
+  }
+  return previous;
+};
+
 const assertElementReachable = async (locator, label) => {
-  await locator.scrollIntoViewIfNeeded();
-  const box = await locator.boundingBox();
+  const box = await scrollIntoStableView(locator);
   if (!box) throw new Error(`${label} is not visible.`);
   const viewport = locator.page().viewportSize();
   if (!viewport) throw new Error(`No viewport available while checking ${label}.`);
@@ -250,7 +271,9 @@ try {
     });
     await withSeededStorage(context);
     const page = await context.newPage();
-    await page.goto('http://127.0.0.1:4173', {waitUntil: 'networkidle'});
+    // The root URL now serves the marketing landing page; the workspace shell
+    // only mounts on a non-landing hash route (see shouldLoadWorkspace).
+    await page.goto('http://127.0.0.1:4173/#/app', {waitUntil: 'networkidle'});
 
     await verifyOrientation(page, scenario);
     await verifyKeyboardFlow(page, scenario);
