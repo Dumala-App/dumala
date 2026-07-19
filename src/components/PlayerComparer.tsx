@@ -1,5 +1,6 @@
 import React from 'react';
 import { Player } from '../types';
+import { getPlayerPhoto } from '../playerPlaceholders';
 import { 
   Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, 
   ResponsiveContainer, Legend, Tooltip 
@@ -257,9 +258,9 @@ export default function PlayerComparer({
 
             {player1 ? (
               <div id="compare-player-1-card" className={`${comparerGlassInsetClass} relative flex items-start gap-3.5 p-3`}>
-                <img 
-                  src={player1.photoUrl} 
-                  alt={player1.name} 
+                <img
+                  src={getPlayerPhoto(player1)}
+                  alt={player1.name}
                   className="h-13 w-13 shrink-0 rounded-full border border-cyan-300/15 object-cover shadow-inner"
                   referrerPolicy="no-referrer"
                 />
@@ -326,9 +327,9 @@ export default function PlayerComparer({
 
             {player2 ? (
               <div id="compare-player-2-card" className={`${comparerGlassInsetClass} relative flex items-start gap-3.5 p-3`}>
-                <img 
-                  src={player2.photoUrl} 
-                  alt={player2.name} 
+                <img
+                  src={getPlayerPhoto(player2)}
+                  alt={player2.name}
                   className="h-13 w-13 shrink-0 rounded-full border border-cyan-300/15 object-cover shadow-inner"
                   referrerPolicy="no-referrer"
                 />

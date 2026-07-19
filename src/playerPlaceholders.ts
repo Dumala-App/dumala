@@ -10,3 +10,7 @@ export const STAFF_PLACEHOLDER = '/placeholders/staff-placeholder.png';
 export const getPlayerPlaceholder = (position: string): string => {
   return PLAYER_PLACEHOLDERS[position] || PLAYER_PLACEHOLDERS.Forward;
 };
+
+export const getPlayerPhoto = (player: { photoUrl: string; position: string }): string => {
+  return player.photoUrl || getPlayerPlaceholder(player.position);
+};

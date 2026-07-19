@@ -813,8 +813,8 @@ export default function RosterView({
                     className="group relative flex flex-col justify-between overflow-hidden rounded-2xl border border-cyan-300/10 bg-[#07111f]/88 shadow-lg shadow-black/20 backdrop-blur-xl transition-all"
                   >
                     <div className="relative h-44 bg-slate-800 overflow-hidden">
-                      <img 
-                        src={staff.photoUrl} 
+                      <img
+                        src={staff.photoUrl || STAFF_PLACEHOLDER}
                         alt={staff.name}
                         onClick={() => onSelectStaff(staff)}
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 cursor-pointer opacity-80"

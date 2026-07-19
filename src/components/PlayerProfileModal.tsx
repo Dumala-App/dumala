@@ -3,6 +3,7 @@ import { AssessmentSession, Player, SPECIALTY_TRAITS, SpecialtyTrait, STAFF_POSI
 import { Briefcase, Calendar, Edit2, Mail, Phone, Save, Shield, Trash2, User, X, Zap } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useDialogAccessibility } from '../hooks/useDialogAccessibility';
+import { getPlayerPlaceholder } from '../playerPlaceholders';
 import { FieldError, FormErrorSummary } from './FormValidation';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
@@ -954,7 +955,7 @@ export default function PlayerProfileModal({ player, onClose, onUpdate, onRemove
                 <div className={cn('relative shrink-0 self-start', isEditing ? 'w-36 sm:w-44' : 'w-32 sm:w-[150px]')}>
                   <img
                     id="player-profile-img"
-                    src={photoUrl}
+                    src={photoUrl || getPlayerPlaceholder(position)}
                     alt={player.name}
                     className="aspect-[3/4] w-full rounded-xl border border-white/10 object-cover object-top shadow-lg shadow-black/30"
                     referrerPolicy="no-referrer"

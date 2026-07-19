@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { z } from 'zod';
 import { Player, Game, AssessmentSession } from '../types';
+import { getPlayerPhoto } from '../playerPlaceholders';
 import { selectLatestAssessmentForPlayer } from '../fprds/assessmentService';
 import { trainingSessionMetaMapSchema, weeklyScheduleSchema } from '../persistence/schemas';
 import { readJsonStorage, readStringStorage, STORAGE_KEYS, writeJsonStorage, writeStringStorage } from '../persistence/storage';
@@ -1727,7 +1728,7 @@ export default function TrainingView({
                 <div className="flex items-center gap-3">
                   <div className="relative shrink-0">
                     <img
-                      src={recommendedPlayer.photoUrl}
+                      src={getPlayerPhoto(recommendedPlayer)}
                       alt=""
                       className="size-12 rounded-xl border border-cyan-300/10 object-cover"
                       referrerPolicy="no-referrer"
@@ -1936,7 +1937,7 @@ export default function TrainingView({
                   <div className="flex items-center gap-3">
                     <div className="relative shrink-0">
                       <img
-                        src={recommendedPlayer.photoUrl}
+                        src={getPlayerPhoto(recommendedPlayer)}
                         alt={recommendedPlayer.name}
                         className="w-14 h-14 rounded-xl object-cover border border-slate-700"
                         referrerPolicy="no-referrer"

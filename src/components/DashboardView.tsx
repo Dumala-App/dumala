@@ -2,6 +2,7 @@ import React, { type ReactNode, useEffect, useMemo, useState } from 'react';
 import { z } from 'zod';
 import { AssessmentSession, Game, GamePlan, Player, Standing, Announcement, TeamInfo } from '../types';
 import type { ActivationState } from '../activation/milestones';
+import { getPlayerPhoto, getPlayerPlaceholder } from '../playerPlaceholders';
 import GettingStartedChecklist from './GettingStartedChecklist';
 import {findUserStanding, sortStandings} from '../standings';
 import { Calendar, MapPin, Trophy, Shield, Megaphone, Star, Award, Zap, ArrowRight, CornerRightDown, TrendingUp, Edit, Upload, Link, Check, X, Image, Crown, Target, Flame, AlertCircle, Table, Users, ClipboardList, CloudSun, CloudRain, Wind, MoreHorizontal, Clock, Route, Package } from 'lucide-react';
@@ -337,7 +338,7 @@ const toTacticsPlayer = (player: Player): TacticsPlayer => {
     rating,
     position: player.position === 'Forward' ? 'CF' : player.position === 'Midfielder' ? 'AMF' : player.position === 'Defender' ? 'CB' : 'GK',
     condition: 'B',
-    photoUrl: player.photoUrl,
+    photoUrl: player.photoUrl || getPlayerPlaceholder(player.position),
     isLegend: false,
     attributes,
     number: player.number,
@@ -2371,9 +2372,9 @@ export default function DashboardView({
                       <td className="py-2.5 pr-2 font-mono font-bold text-muted-foreground">{p.number || '—'}</td>
                       <td className="py-2.5 pr-2">
                         <div className="flex items-center gap-2">
-                          <img 
-                            src={p.photoUrl} 
-                            alt="" 
+                          <img
+                            src={getPlayerPhoto(p)}
+                            alt=""
                             className="w-6 h-6 rounded-full object-cover shrink-0 border border-border"
                             referrerPolicy="no-referrer"
                           />
@@ -2488,7 +2489,7 @@ export default function DashboardView({
                 >
                   <div className="flex items-center gap-2.5 min-w-0">
                     <span className="font-display font-black text-muted-foreground/55 text-xs w-4 shrink-0">#{idx + 1}</span>
-                    <img src={player.photoUrl} alt="" className="w-7 h-7 rounded-full object-cover border border-border shrink-0" referrerPolicy="no-referrer" />
+                    <img src={getPlayerPhoto(player)} alt="" className="w-7 h-7 rounded-full object-cover border border-border shrink-0" referrerPolicy="no-referrer" />
                     <div className="min-w-0">
                       <p className="text-xs font-black text-foreground truncate">{player.name}</p>
                       <p className="text-[10px] text-slate-500 font-semibold truncate">{player.position} • {session.role}</p>
@@ -2521,7 +2522,7 @@ export default function DashboardView({
                 >
                   <div className="flex items-center gap-2.5 min-w-0">
                     <span className="font-display font-black text-muted-foreground/55 text-xs w-4 shrink-0">#{idx + 1}</span>
-                    <img src={player.photoUrl} alt="" className="w-7 h-7 rounded-full object-cover border border-border shrink-0" referrerPolicy="no-referrer" />
+                    <img src={getPlayerPhoto(player)} alt="" className="w-7 h-7 rounded-full object-cover border border-border shrink-0" referrerPolicy="no-referrer" />
                     <div className="min-w-0">
                       <p className="text-xs font-black text-foreground truncate">{player.name}</p>
                       <p className="text-[10px] text-slate-500 font-semibold truncate">{session.assessmentDate} • {session.assessmentType}</p>
@@ -2558,7 +2559,7 @@ export default function DashboardView({
                     className={dashboardListButtonClass}
                   >
                     <div className="flex items-center gap-2.5 min-w-0">
-                      <img src={player.photoUrl} alt="" className="w-7 h-7 rounded-full object-cover border border-border shrink-0" referrerPolicy="no-referrer" />
+                      <img src={getPlayerPhoto(player)} alt="" className="w-7 h-7 rounded-full object-cover border border-border shrink-0" referrerPolicy="no-referrer" />
                       <div className="min-w-0">
                         <p className="text-xs font-black text-foreground truncate">{player.name}</p>
                         <p className="text-[10px] text-slate-500 font-semibold truncate">{s.assessmentDate} • {s.role} • {s.assessmentType}</p>
@@ -2607,9 +2608,9 @@ export default function DashboardView({
                 >
                   <div className="flex items-center gap-2.5">
                     <span className="font-display font-black text-muted-foreground/55 text-xs w-4">#{idx+1}</span>
-                    <img 
-                      src={player.photoUrl} 
-                      alt={player.name} 
+                    <img
+                      src={getPlayerPhoto(player)}
+                      alt={player.name}
                       className="w-8 h-8 rounded-full border border-border object-cover shadow-inner"
                       referrerPolicy="no-referrer"
                     />
@@ -2643,9 +2644,9 @@ export default function DashboardView({
                 >
                   <div className="flex items-center gap-2.5">
                     <span className="font-display font-black text-muted-foreground/55 text-xs w-4">#{idx+1}</span>
-                    <img 
-                      src={player.photoUrl} 
-                      alt={player.name} 
+                    <img
+                      src={getPlayerPhoto(player)}
+                      alt={player.name}
                       className="w-8 h-8 rounded-full border border-border object-cover shadow-inner"
                       referrerPolicy="no-referrer"
                     />
@@ -2679,9 +2680,9 @@ export default function DashboardView({
                 >
                   <div className="flex items-center gap-2.5">
                     <span className="font-display font-black text-muted-foreground/55 text-xs w-4">#{idx+1}</span>
-                    <img 
-                      src={player.photoUrl} 
-                      alt={player.name} 
+                    <img
+                      src={getPlayerPhoto(player)}
+                      alt={player.name}
                       className="w-8 h-8 rounded-full border border-border object-cover shadow-inner"
                       referrerPolicy="no-referrer"
                     />

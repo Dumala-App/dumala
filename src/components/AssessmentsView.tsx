@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import type { AgeGroup, AssessmentRawResults, AssessmentSession, FprdsAttributeId, FprdsRole, Player } from '../types';
+import { getPlayerPhoto } from '../playerPlaceholders';
 import {
   AlertCircle,
   Calendar,
@@ -1301,7 +1302,7 @@ export default function AssessmentsView({
                     >
                       <div className="flex items-center gap-3">
                         <img
-                          src={p.photoUrl}
+                          src={getPlayerPhoto(p)}
                           alt=""
                           className="w-10 h-10 rounded-xl object-cover border border-cyan-300/10"
                           referrerPolicy="no-referrer"
@@ -1473,7 +1474,7 @@ export default function AssessmentsView({
                 <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-cyan-300/10 bg-[#0b1726]/70 px-4 py-3">
                   <div className="flex min-w-0 items-center gap-3">
                     <img
-                      src={selectedPlayer.photoUrl}
+                      src={getPlayerPhoto(selectedPlayer)}
                       alt=""
                       className="h-10 w-10 shrink-0 rounded-xl border border-cyan-300/10 object-cover"
                       referrerPolicy="no-referrer"
@@ -1782,7 +1783,7 @@ export default function AssessmentsView({
                               >
                                 <div className="flex min-w-0 items-center gap-3">
                                   <img
-                                    src={player.photoUrl}
+                                    src={getPlayerPhoto(player)}
                                     alt=""
                                     className="h-11 w-11 shrink-0 rounded-xl border border-cyan-300/10 object-cover"
                                     referrerPolicy="no-referrer"
@@ -1834,7 +1835,7 @@ export default function AssessmentsView({
               <div className="order-1 flex flex-col gap-4 rounded-2xl border border-cyan-300/10 bg-[#07111f]/88 p-5 shadow-lg shadow-black/20 backdrop-blur-xl sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex min-w-0 items-center gap-4">
                   <img
-                    src={selectedPlayer.photoUrl}
+                    src={getPlayerPhoto(selectedPlayer)}
                     alt=""
                     className="h-14 w-14 shrink-0 rounded-2xl border border-cyan-300/15 object-cover"
                     referrerPolicy="no-referrer"
