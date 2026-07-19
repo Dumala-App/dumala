@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import { DEFAULT_STRATEGY_CONTEXT } from './strategyContext';
-import { analyzeFormation, recommendMatchupStrategy } from './recommendations';
+import {
+  analyzeFormation,
+  assessCurrentPlan,
+  pickCoherentPair,
+  recommendMatchupStrategy,
+  type RankedStrategyCard
+} from './recommendations';
+import { ATTACK_STRATEGY_CARDS, DEFENSE_STRATEGY_CARDS } from './strategyLibrary';
 
 describe('formation analysis', () => {
   it('detects common formation traits', () => {
@@ -148,5 +155,183 @@ describe('matchup recommendations', () => {
     });
 
     expect(['Anti-Overload Slide', 'Back-Five Shift', 'Wide Trap']).toContain(recommendation.recommendedDefense.title);
+  });
+});
+
+describe('format-aware scoring', () => {
+  it('never recommends structurally impossible plans in small-sided formats', () => {
+    const recommendation = recommendMatchupStrategy({
+      ourFormation: '2-2-1',
+      opponentFormation: '1-2-2',
+      matchFormat: '6-a-side'
+    });
+
+    expect(['Back-Five Shift', 'Compact 4-5-1 Block']).not.toContain(recommendation.recommendedDefense.title);
+    expect(['Inverted Fullback Build', 'Box Midfield Rotation', 'False Nine Overload', 'Half-Space Overload'])
+      .not.toContain(recommendation.recommendedAttack.title);
+  });
+
+  it('penalizes complex plans in small-sided formats with a format warning', () => {
+    const recommendation = recommendMatchupStrategy({
+      ourFormation: '2-2-1',
+      opponentFormation: '1-2-2',
+      matchFormat: '6-a-side'
+    });
+
+    const boxMidfield = recommendation.attackScores.find(entry => entry.card.id === 'attack-rotation-box-midfield');
+    expect(boxMidfield?.reasons.some(reason => reason.label === 'Format' && reason.tone === 'warning')).toBe(true);
+
+    const backFive = recommendation.defenseScores.find(entry => entry.card.id === 'defense-back-five-shift');
+    expect(backFive?.reasons.some(reason => reason.label === 'Format' && reason.tone === 'warning')).toBe(true);
+  });
+
+  it('leaves 11-a-side scoring unchanged', () => {
+    const recommendation = recommendMatchupStrategy({
+      ourFormation: '4-3-3',
+      opponentFormation: '3-5-2',
+      matchFormat: '11-a-side'
+    });
+
+    const formatReasons = [...recommendation.attackScores, ...recommendation.defenseScores]
+      .flatMap(entry => entry.reasons)
+      .filter(reason => reason.label === 'Format');
+    expect(formatReasons).toEqual([]);
+  });
+});
+
+describe('pair coherence', () => {
+  const rank = (card: RankedStrategyCard['card'], score: number): RankedStrategyCard => ({ card, score, reasons: [] });
+  const possessionGame = ATTACK_STRATEGY_CARDS.find(card => card.id === 'attack-possession-game')!;
+  const lowBlock = DEFENSE_STRATEGY_CARDS.find(card => card.id === 'defense-low-block')!;
+  const halfPress = DEFENSE_STRATEGY_CARDS.find(card => card.id === 'defense-half-press')!;
+
+  it('keeps a classic protect-lead pairing coherent', () => {
+    const recommendation = recommendMatchupStrategy({
+      ourFormation: '4-2-3-1',
+      opponentFormation: '4-4-2',
+      matchFormat: '11-a-side',
+      context: {
+        ...DEFAULT_STRATEGY_CONTEXT,
+        matchState: 'protect-lead',
+        matchPhase: 'last-15',
+        teamCondition: 'tired',
+        opponentBehavior: 'direct-play',
+        riskLevel: 'safe'
+      }
+    });
+
+    expect(recommendation.pairCoherence.status).toBe('coherent');
+  });
+
+  it('swaps the defense when a sustained attack tops a deep block within the margin', () => {
+    const result = pickCoherentPair(
+      [rank(possessionGame, 20)],
+      [rank(lowBlock, 18), rank(halfPress, 15)]
+    );
+
+    expect(result.attack?.card.id).toBe('attack-possession-game');
+    expect(result.defense?.card.id).toBe('defense-half-press');
+    expect(result.coherence.status).toBe('adjusted');
+    expect(result.coherence.note).toContain('Half Press');
+  });
+
+  it('flags tension when no compatible alternative is close enough', () => {
+    const result = pickCoherentPair(
+      [rank(possessionGame, 20)],
+      [rank(lowBlock, 18), rank(halfPress, 10)]
+    );
+
+    expect(result.attack?.card.id).toBe('attack-possession-game');
+    expect(result.defense?.card.id).toBe('defense-low-block');
+    expect(result.coherence.status).toBe('tension');
+    expect(result.coherence.note).toBeTruthy();
+  });
+});
+
+describe('coach lens', () => {
+  it('applies lens boosts to matching strategy cards with reasons', () => {
+    const base = { ourFormation: '4-4-2', opponentFormation: '4-4-2', matchFormat: '11-a-side' as const };
+    const withoutLens = recommendMatchupStrategy(base);
+    const withLens = recommendMatchupStrategy({ ...base, coachLensId: 'mourinho-pragmatic-transition' });
+
+    const before = withoutLens.attackScores.find(entry => entry.card.id === 'attack-quick-counter')!;
+    const after = withLens.attackScores.find(entry => entry.card.id === 'attack-quick-counter')!;
+    expect(after.score - before.score).toBe(3);
+    expect(after.reasons.some(reason => reason.label === 'Coach lens' && reason.value.includes('Mourinho'))).toBe(true);
+
+    const defenseBefore = withoutLens.defenseScores.find(entry => entry.card.id === 'defense-low-block')!;
+    const defenseAfter = withLens.defenseScores.find(entry => entry.card.id === 'defense-low-block')!;
+    expect(defenseAfter.score - defenseBefore.score).toBe(3);
+
+    expect(withLens.coachLens).toEqual({
+      id: 'mourinho-pragmatic-transition',
+      coachName: 'Jose Mourinho',
+      modelName: 'Compact block and transition attack'
+    });
+    expect(withoutLens.coachLens).toBeNull();
+  });
+
+  it('ignores unknown lens ids and leaves scoring untouched', () => {
+    const base = { ourFormation: '4-3-3', opponentFormation: '3-5-2', matchFormat: '11-a-side' as const };
+    const withoutLens = recommendMatchupStrategy(base);
+    const bogusLens = recommendMatchupStrategy({ ...base, coachLensId: 'not-a-real-model' });
+
+    expect(bogusLens.coachLens).toBeNull();
+    expect(bogusLens.recommendedAttack.id).toBe(withoutLens.recommendedAttack.id);
+    expect(bogusLens.attackScores.map(entry => entry.score)).toEqual(withoutLens.attackScores.map(entry => entry.score));
+    expect(bogusLens.defenseScores.map(entry => entry.score)).toEqual(withoutLens.defenseScores.map(entry => entry.score));
+  });
+});
+
+describe('current plan check', () => {
+  const protectLeadTiredContext = {
+    ...DEFAULT_STRATEGY_CONTEXT,
+    matchState: 'protect-lead' as const,
+    matchPhase: 'last-15' as const,
+    teamCondition: 'tired' as const,
+    opponentBehavior: 'direct-play' as const,
+    riskLevel: 'safe' as const
+  };
+
+  it('flags a high press as risky when protecting a lead with a tired team', () => {
+    const recommendation = recommendMatchupStrategy({
+      ourFormation: '4-2-3-1',
+      opponentFormation: '4-4-2',
+      matchFormat: '11-a-side',
+      context: protectLeadTiredContext
+    });
+
+    const check = assessCurrentPlan(recommendation, 'Long Ball Counter', 'High Press');
+    expect(check.defense?.verdict).toBe('risky');
+    expect(check.defense?.note).toBeTruthy();
+    expect(['top-pick', 'solid']).toContain(check.attack?.verdict);
+  });
+
+  it('marks the recommended plan as the top pick', () => {
+    const recommendation = recommendMatchupStrategy({
+      ourFormation: '4-3-3',
+      opponentFormation: '3-5-2',
+      matchFormat: '11-a-side'
+    });
+
+    const check = assessCurrentPlan(
+      recommendation,
+      recommendation.recommendedAttack.styleValue,
+      recommendation.recommendedDefense.styleValue
+    );
+    expect(check.attack?.verdict).toBe('top-pick');
+    expect(check.defense?.verdict).toBe('top-pick');
+  });
+
+  it('returns null for styles that are not in the library', () => {
+    const recommendation = recommendMatchupStrategy({
+      ourFormation: '4-3-3',
+      opponentFormation: '3-5-2',
+      matchFormat: '11-a-side'
+    });
+
+    const check = assessCurrentPlan(recommendation, 'Not A Real Style', 'Also Not Real');
+    expect(check.attack).toBeNull();
+    expect(check.defense).toBeNull();
   });
 });

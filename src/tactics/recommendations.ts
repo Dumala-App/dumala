@@ -1,6 +1,7 @@
 import { ATTACK_STRATEGY_CARDS, DEFENSE_STRATEGY_CARDS, type TacticalStrategyCard } from './strategyLibrary';
 import type { MatchFormat } from './formations';
 import { DEFAULT_STRATEGY_CONTEXT, STRATEGY_CONTEXT_LABELS, type StrategyContext } from './strategyContext';
+import { findCoachModelById, type CoachModel } from './knowledge/coachModels';
 
 export type FormationTraits = {
   formation: string;
@@ -31,6 +32,8 @@ export type MatchupRecommendation = {
   defenseScores: RankedStrategyCard[];
   context: StrategyContext;
   contextReasons: StrategyScoreReason[];
+  pairCoherence: PairCoherence;
+  coachLens: CoachLensSummary | null;
   opponentThreats: string[];
   exploitableSpaces: string[];
   playerInstructions: string[];
@@ -49,6 +52,26 @@ export type RankedStrategyCard = {
   card: TacticalStrategyCard;
   score: number;
   reasons: StrategyScoreReason[];
+};
+
+export type PairCoherence = {
+  status: 'coherent' | 'adjusted' | 'tension';
+  note?: string;
+};
+
+export type CoachLensSummary = {
+  id: string;
+  coachName: string;
+  modelName: string;
+};
+
+export type CurrentPlanVerdict = 'top-pick' | 'solid' | 'off-context' | 'risky';
+
+export type CurrentPlanCheck = {
+  phase: 'attack' | 'defense';
+  title: string;
+  verdict: CurrentPlanVerdict;
+  note: string;
 };
 
 export type ShapeImpactCard = {
@@ -215,6 +238,130 @@ const scoreContextFit = (
   return { score, reasons };
 };
 
+const SMALL_SIDED_FORMATS: readonly MatchFormat[] = ['7-a-side', '6-a-side', '5-a-side'];
+const MEDIUM_SIDED_FORMATS: readonly MatchFormat[] = ['9-a-side', '8-a-side'];
+
+const scoreFormatFit = (
+  card: TacticalStrategyCard,
+  matchFormat: MatchFormat
+): { score: number; reasons: StrategyScoreReason[] } => {
+  if (card.formatAvoid?.includes(matchFormat)) {
+    return {
+      score: -8,
+      reasons: [makeContextReason('Format', `Hard to run in ${matchFormat}: the structure this plan needs does not exist at this size.`, 'warning')]
+    };
+  }
+
+  if (SMALL_SIDED_FORMATS.includes(matchFormat)) {
+    if (card.complexity === 'complex') {
+      return {
+        score: -4,
+        reasons: [makeContextReason('Format', `Complex structure is hard to coordinate in ${matchFormat}.`, 'warning')]
+      };
+    }
+    if (card.complexity === 'simple') {
+      return {
+        score: 2,
+        reasons: [makeContextReason('Format', `Simple triggers work well in ${matchFormat}.`)]
+      };
+    }
+    return { score: 0, reasons: [] };
+  }
+
+  if (MEDIUM_SIDED_FORMATS.includes(matchFormat) && card.complexity === 'complex') {
+    return {
+      score: -2,
+      reasons: [makeContextReason('Format', `Needs simplified roles to work in ${matchFormat}.`, 'warning')]
+    };
+  }
+
+  return { score: 0, reasons: [] };
+};
+
+const scoreCoachLens = (
+  card: TacticalStrategyCard,
+  lens: CoachModel | undefined
+): { score: number; reasons: StrategyScoreReason[] } => {
+  if (!lens) return { score: 0, reasons: [] };
+
+  let score = 0;
+  const reasons: StrategyScoreReason[] = [];
+
+  lens.strategyBoosts
+    .filter(boost => boost.strategyId === card.id)
+    .forEach(boost => {
+      score += Math.abs(boost.points);
+      reasons.push(makeContextReason('Coach lens', `${lens.coachName}: ${boost.reason}`));
+    });
+
+  (lens.strategyPenalties ?? [])
+    .filter(penalty => penalty.strategyId === card.id)
+    .forEach(penalty => {
+      score -= Math.abs(penalty.points);
+      reasons.push(makeContextReason('Coach lens', `${lens.coachName}: ${penalty.reason}`, 'warning'));
+    });
+
+  return { score, reasons };
+};
+
+const isPairConflict = (attack: TacticalStrategyCard, defense: TacticalStrategyCard) => (
+  attack.territorialIntent === 'sustained' && defense.blockHeight === 'low'
+);
+
+const PAIR_COHERENCE_MARGIN = 4;
+
+export const pickCoherentPair = (
+  attackScores: RankedStrategyCard[],
+  defenseScores: RankedStrategyCard[]
+): { attack?: RankedStrategyCard; defense?: RankedStrategyCard; coherence: PairCoherence } => {
+  const topAttack = attackScores[0];
+  const topDefense = defenseScores[0];
+
+  if (!topAttack || !topDefense || !isPairConflict(topAttack.card, topDefense.card)) {
+    return { attack: topAttack, defense: topDefense, coherence: { status: 'coherent' } };
+  }
+
+  const altDefense = defenseScores.find(entry => (
+    !isPairConflict(topAttack.card, entry.card) && topDefense.score - entry.score <= PAIR_COHERENCE_MARGIN
+  ));
+  const altAttack = attackScores.find(entry => (
+    !isPairConflict(entry.card, topDefense.card) && topAttack.score - entry.score <= PAIR_COHERENCE_MARGIN
+  ));
+  const defenseCost = altDefense ? topDefense.score - altDefense.score : Number.POSITIVE_INFINITY;
+  const attackCost = altAttack ? topAttack.score - altAttack.score : Number.POSITIVE_INFINITY;
+
+  if (altDefense && defenseCost <= attackCost) {
+    return {
+      attack: topAttack,
+      defense: altDefense,
+      coherence: {
+        status: 'adjusted',
+        note: `Defense adjusted to ${altDefense.card.title}: a deep block cannot support the sustained territorial pressure of ${topAttack.card.title}.`
+      }
+    };
+  }
+
+  if (altAttack) {
+    return {
+      attack: altAttack,
+      defense: topDefense,
+      coherence: {
+        status: 'adjusted',
+        note: `Attack adjusted to ${altAttack.card.title}: a sustained possession attack does not fit behind ${topDefense.card.title}.`
+      }
+    };
+  }
+
+  return {
+    attack: topAttack,
+    defense: topDefense,
+    coherence: {
+      status: 'tension',
+      note: `${topAttack.card.title} wants sustained territory while ${topDefense.card.title} sits deep — pick one intent or assign clear counter outlets.`
+    }
+  };
+};
+
 const getTopContextReasons = (
   attack: RankedStrategyCard | undefined,
   defense: RankedStrategyCard | undefined
@@ -245,8 +392,10 @@ const rankCards = (
   cards: readonly TacticalStrategyCard[],
   our: FormationTraits,
   opponent: FormationTraits,
+  matchFormat: MatchFormat,
   context: StrategyContext,
-  useContext: boolean
+  useContext: boolean,
+  coachLens: CoachModel | undefined
 ): RankedStrategyCard[] => {
   const ourTags = tagsForOurFormation(our);
   const opponentTags = tagsForOpponentFormation(opponent);
@@ -254,10 +403,12 @@ const rankCards = (
     .filter(card => card.status !== 'draft')
     .map(card => {
       const contextScore = scoreContextFit(card, context, useContext);
+      const formatScore = scoreFormatFit(card, matchFormat);
+      const lensScore = scoreCoachLens(card, coachLens);
       return {
         card,
-        score: scoreCard(card, ourTags, opponentTags) + contextScore.score,
-        reasons: contextScore.reasons
+        score: scoreCard(card, ourTags, opponentTags) + contextScore.score + formatScore.score + lensScore.score,
+        reasons: [...formatScore.reasons, ...contextScore.reasons, ...lensScore.reasons]
       };
     })
     .sort((a, b) => b.score - a.score || a.card.title.localeCompare(b.card.title));
@@ -445,21 +596,25 @@ export const recommendMatchupStrategy = ({
   ourFormation,
   opponentFormation,
   matchFormat,
-  context = DEFAULT_STRATEGY_CONTEXT
+  context = DEFAULT_STRATEGY_CONTEXT,
+  coachLensId
 }: {
   ourFormation: string;
   opponentFormation: string;
   matchFormat: MatchFormat;
   context?: StrategyContext;
+  coachLensId?: string;
 }): MatchupRecommendation => {
   const our = analyzeFormation(ourFormation);
   const opponent = analyzeFormation(opponentFormation);
   const useContext = !isDefaultStrategyContext(context);
-  const attackScores = rankCards(ATTACK_STRATEGY_CARDS, our, opponent, context, useContext);
-  const defenseScores = rankCards(DEFENSE_STRATEGY_CARDS, our, opponent, context, useContext);
-  const recommendedAttack = attackScores[0]?.card ?? ATTACK_STRATEGY_CARDS[0];
-  const recommendedDefense = defenseScores[0]?.card ?? DEFENSE_STRATEGY_CARDS[0];
-  const contextReasons = getTopContextReasons(attackScores[0], defenseScores[0]);
+  const coachLens = coachLensId ? findCoachModelById(coachLensId) : undefined;
+  const attackScores = rankCards(ATTACK_STRATEGY_CARDS, our, opponent, matchFormat, context, useContext, coachLens);
+  const defenseScores = rankCards(DEFENSE_STRATEGY_CARDS, our, opponent, matchFormat, context, useContext, coachLens);
+  const coherentPair = pickCoherentPair(attackScores, defenseScores);
+  const recommendedAttack = coherentPair.attack?.card ?? ATTACK_STRATEGY_CARDS[0];
+  const recommendedDefense = coherentPair.defense?.card ?? DEFENSE_STRATEGY_CARDS[0];
+  const contextReasons = getTopContextReasons(coherentPair.attack, coherentPair.defense);
   const opponentThreats = buildOpponentThreats(opponent);
   const exploitableSpaces = buildExploitableSpaces(opponent);
   const playerInstructions = buildPlayerInstructions(recommendedAttack, recommendedDefense, opponent);
@@ -495,6 +650,10 @@ export const recommendMatchupStrategy = ({
     defenseScores,
     context,
     contextReasons,
+    pairCoherence: coherentPair.coherence,
+    coachLens: coachLens
+      ? { id: coachLens.id, coachName: coachLens.coachName, modelName: coachLens.modelName }
+      : null,
     opponentThreats,
     exploitableSpaces,
     playerInstructions,
@@ -503,3 +662,61 @@ export const recommendMatchupStrategy = ({
     explanation: comparisonInsights.map(insight => `${insight.label}: ${insight.value}`).join(' ')
   };
 };
+
+const CURRENT_PLAN_SCORE_MARGIN = 3;
+
+const assessRankedPlan = (
+  scores: RankedStrategyCard[],
+  recommended: TacticalStrategyCard,
+  style: string,
+  phase: CurrentPlanCheck['phase']
+): CurrentPlanCheck | null => {
+  const index = scores.findIndex(entry => entry.card.styleValue === style);
+  if (index === -1) return null;
+
+  const entry = scores[index];
+  const top = scores[0];
+  const warning = entry.reasons.find(reason => reason.tone === 'warning');
+
+  if (entry.card.id === recommended.id) {
+    return {
+      phase,
+      title: entry.card.title,
+      verdict: 'top-pick',
+      note: warning ? `Top choice, but watch: ${warning.value}` : "Matches the engine's top recommendation."
+    };
+  }
+  if (warning) {
+    return { phase, title: entry.card.title, verdict: 'risky', note: warning.value };
+  }
+  if (index <= 2 || top.score - entry.score <= CURRENT_PLAN_SCORE_MARGIN) {
+    return {
+      phase,
+      title: entry.card.title,
+      verdict: 'solid',
+      note: `Close alternative to ${recommended.title} in this context.`
+    };
+  }
+  return {
+    phase,
+    title: entry.card.title,
+    verdict: 'off-context',
+    note: `${recommended.title} fits this matchup and context better.`
+  };
+};
+
+/**
+ * Rate the coach's currently applied playstyle and defensive style against the
+ * ranked recommendations, so the panel can flag when the active plan is risky
+ * or clearly beaten by the current matchup and context. Comparisons reference
+ * the final recommended cards (after pair-coherence adjustment), so the check
+ * never points the coach at a card the engine did not actually recommend.
+ */
+export const assessCurrentPlan = (
+  recommendation: MatchupRecommendation,
+  playstyle: string,
+  defensiveStyle: string
+): { attack: CurrentPlanCheck | null; defense: CurrentPlanCheck | null } => ({
+  attack: assessRankedPlan(recommendation.attackScores, recommendation.recommendedAttack, playstyle, 'attack'),
+  defense: assessRankedPlan(recommendation.defenseScores, recommendation.recommendedDefense, defensiveStyle, 'defense')
+});
