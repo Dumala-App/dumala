@@ -248,6 +248,41 @@ describe('pair coherence', () => {
   });
 });
 
+describe('coach lens', () => {
+  it('applies lens boosts to matching strategy cards with reasons', () => {
+    const base = { ourFormation: '4-4-2', opponentFormation: '4-4-2', matchFormat: '11-a-side' as const };
+    const withoutLens = recommendMatchupStrategy(base);
+    const withLens = recommendMatchupStrategy({ ...base, coachLensId: 'mourinho-pragmatic-transition' });
+
+    const before = withoutLens.attackScores.find(entry => entry.card.id === 'attack-quick-counter')!;
+    const after = withLens.attackScores.find(entry => entry.card.id === 'attack-quick-counter')!;
+    expect(after.score - before.score).toBe(3);
+    expect(after.reasons.some(reason => reason.label === 'Coach lens' && reason.value.includes('Mourinho'))).toBe(true);
+
+    const defenseBefore = withoutLens.defenseScores.find(entry => entry.card.id === 'defense-low-block')!;
+    const defenseAfter = withLens.defenseScores.find(entry => entry.card.id === 'defense-low-block')!;
+    expect(defenseAfter.score - defenseBefore.score).toBe(3);
+
+    expect(withLens.coachLens).toEqual({
+      id: 'mourinho-pragmatic-transition',
+      coachName: 'Jose Mourinho',
+      modelName: 'Compact block and transition attack'
+    });
+    expect(withoutLens.coachLens).toBeNull();
+  });
+
+  it('ignores unknown lens ids and leaves scoring untouched', () => {
+    const base = { ourFormation: '4-3-3', opponentFormation: '3-5-2', matchFormat: '11-a-side' as const };
+    const withoutLens = recommendMatchupStrategy(base);
+    const bogusLens = recommendMatchupStrategy({ ...base, coachLensId: 'not-a-real-model' });
+
+    expect(bogusLens.coachLens).toBeNull();
+    expect(bogusLens.recommendedAttack.id).toBe(withoutLens.recommendedAttack.id);
+    expect(bogusLens.attackScores.map(entry => entry.score)).toEqual(withoutLens.attackScores.map(entry => entry.score));
+    expect(bogusLens.defenseScores.map(entry => entry.score)).toEqual(withoutLens.defenseScores.map(entry => entry.score));
+  });
+});
+
 describe('current plan check', () => {
   const protectLeadTiredContext = {
     ...DEFAULT_STRATEGY_CONTEXT,

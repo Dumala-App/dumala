@@ -44,6 +44,7 @@ import {
   type ShapeImpactCard
 } from '../tactics/recommendations';
 import { suggestTeamCondition } from '../tactics/contextSuggestions';
+import { getActiveCoachModels } from '../tactics/knowledge/coachModels';
 import { ATTACK_STRATEGY_CARDS, DEFENSE_STRATEGY_CARDS } from '../tactics/strategyLibrary';
 import {
   DEFAULT_STRATEGY_CONTEXT,
@@ -458,6 +459,17 @@ export default function TacticsView({
     DEFAULT_STRATEGY_CONTEXT,
     'Tactics strategy context'
   ));
+  const activeCoachModels = useMemo(() => getActiveCoachModels(), []);
+  const [coachLensId, setCoachLensId] = useState<string>(() => readStringStorage(
+    STORAGE_KEYS.coachLensId,
+    stringSchema,
+    '',
+    'Tactics coach lens'
+  ));
+  const effectiveCoachLensId = useMemo(
+    () => (activeCoachModels.some(model => model.id === coachLensId) ? coachLensId : ''),
+    [activeCoachModels, coachLensId]
+  );
 
   const activeFormation = formation;
   const activePlaystyle = playstyle;
@@ -465,8 +477,9 @@ export default function TacticsView({
     ourFormation: formation,
     opponentFormation,
     matchFormat,
-    context: strategyContext
-  }), [formation, opponentFormation, matchFormat, strategyContext]);
+    context: strategyContext,
+    coachLensId: effectiveCoachLensId || undefined
+  }), [formation, opponentFormation, matchFormat, strategyContext, effectiveCoachLensId]);
   const currentPlanCheck = useMemo(
     () => assessCurrentPlan(matchupRecommendation, playstyle, defensiveStyle),
     [matchupRecommendation, playstyle, defensiveStyle]
@@ -493,6 +506,9 @@ export default function TacticsView({
   useEffect(() => {
     writeJsonStorage(STORAGE_KEYS.strategyContext, strategyContext);
   }, [strategyContext]);
+  useEffect(() => {
+    writeStringStorage(STORAGE_KEYS.coachLensId, coachLensId);
+  }, [coachLensId]);
 
   // Highlighting active card index selected (0 to 10 starting slot)
   const [selectedSlotIndex, setSelectedSlotIndex] = useState<number>(6); // Default: Roberto Carlos (LB - index 6 in default list)
@@ -3062,15 +3078,36 @@ export default function TacticsView({
                   <h5 className="text-[10px] font-black uppercase tracking-widest text-slate-300">Strategy Context</h5>
                   <p className="mt-1 text-[11px] leading-relaxed text-slate-500">Tune the match situation before applying a plan.</p>
                 </div>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setStrategyContext(DEFAULT_STRATEGY_CONTEXT)}
-                  className="h-8 w-fit rounded-lg border-slate-700 bg-slate-900 px-2.5 text-[9px] font-black uppercase tracking-widest text-slate-300 hover:bg-slate-800 hover:text-white"
-                >
-                  Reset context
-                </Button>
+                <div className="flex flex-wrap items-center gap-2">
+                  <Select
+                    value={effectiveCoachLensId || EMPTY_SELECT_VALUE}
+                    onValueChange={(value) => setCoachLensId(value === EMPTY_SELECT_VALUE ? '' : value)}
+                  >
+                    <SelectTrigger
+                      aria-label="Coach lens"
+                      className="h-8 w-56 rounded-lg border-slate-800 bg-slate-900 px-2.5 text-[10px] font-black text-violet-100 focus:ring-violet-400/30"
+                    >
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="border-slate-800 bg-slate-950 text-slate-100">
+                      <SelectItem value={EMPTY_SELECT_VALUE} className="text-xs font-bold">Coach lens: Engine default</SelectItem>
+                      {activeCoachModels.map((model) => (
+                        <SelectItem key={model.id} value={model.id} className="text-xs font-bold">
+                          {model.coachName} — {model.modelName}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setStrategyContext(DEFAULT_STRATEGY_CONTEXT)}
+                    className="h-8 w-fit rounded-lg border-slate-700 bg-slate-900 px-2.5 text-[9px] font-black uppercase tracking-widest text-slate-300 hover:bg-slate-800 hover:text-white"
+                  >
+                    Reset context
+                  </Button>
+                </div>
               </div>
               {conditionSuggestion.value !== strategyContext.teamCondition && (
                 <div className="mt-2 flex flex-wrap items-center gap-2 rounded-lg border border-sky-500/20 bg-sky-500/10 px-3 py-2">
@@ -3198,13 +3235,18 @@ export default function TacticsView({
             </section>
 
             <section className={cn(tacticsGlassInsetClass, 'mb-4 p-3.5')}>
-              <div className="border-b border-slate-800 pb-3">
+              <div className="flex flex-col gap-1 border-b border-slate-800 pb-3 sm:flex-row sm:items-start sm:justify-between">
                 <div>
                   <h5 className="text-[10px] font-black uppercase tracking-widest text-slate-300">Matchup Strategy</h5>
                   <p className="mt-1 max-w-xl text-[11px] leading-relaxed text-slate-500">
                     Compare shapes, review the coaching read, then apply only the plan you want to use.
                   </p>
                 </div>
+                {matchupRecommendation.coachLens && (
+                  <span className="w-fit shrink-0 rounded-md border border-violet-400/25 bg-violet-400/10 px-2 py-1 text-[9.5px] font-black text-violet-100">
+                    Lens: {matchupRecommendation.coachLens.coachName}
+                  </span>
+                )}
               </div>
 
               {(currentPlanCheck.attack || currentPlanCheck.defense) && (

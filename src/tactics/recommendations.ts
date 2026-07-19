@@ -1,6 +1,7 @@
 import { ATTACK_STRATEGY_CARDS, DEFENSE_STRATEGY_CARDS, type TacticalStrategyCard } from './strategyLibrary';
 import type { MatchFormat } from './formations';
 import { DEFAULT_STRATEGY_CONTEXT, STRATEGY_CONTEXT_LABELS, type StrategyContext } from './strategyContext';
+import { findCoachModelById, type CoachModel } from './knowledge/coachModels';
 
 export type FormationTraits = {
   formation: string;
@@ -32,6 +33,7 @@ export type MatchupRecommendation = {
   context: StrategyContext;
   contextReasons: StrategyScoreReason[];
   pairCoherence: PairCoherence;
+  coachLens: CoachLensSummary | null;
   opponentThreats: string[];
   exploitableSpaces: string[];
   playerInstructions: string[];
@@ -55,6 +57,12 @@ export type RankedStrategyCard = {
 export type PairCoherence = {
   status: 'coherent' | 'adjusted' | 'tension';
   note?: string;
+};
+
+export type CoachLensSummary = {
+  id: string;
+  coachName: string;
+  modelName: string;
 };
 
 export type CurrentPlanVerdict = 'top-pick' | 'solid' | 'off-context' | 'risky';
@@ -270,6 +278,32 @@ const scoreFormatFit = (
   return { score: 0, reasons: [] };
 };
 
+const scoreCoachLens = (
+  card: TacticalStrategyCard,
+  lens: CoachModel | undefined
+): { score: number; reasons: StrategyScoreReason[] } => {
+  if (!lens) return { score: 0, reasons: [] };
+
+  let score = 0;
+  const reasons: StrategyScoreReason[] = [];
+
+  lens.strategyBoosts
+    .filter(boost => boost.strategyId === card.id)
+    .forEach(boost => {
+      score += Math.abs(boost.points);
+      reasons.push(makeContextReason('Coach lens', `${lens.coachName}: ${boost.reason}`));
+    });
+
+  (lens.strategyPenalties ?? [])
+    .filter(penalty => penalty.strategyId === card.id)
+    .forEach(penalty => {
+      score -= Math.abs(penalty.points);
+      reasons.push(makeContextReason('Coach lens', `${lens.coachName}: ${penalty.reason}`, 'warning'));
+    });
+
+  return { score, reasons };
+};
+
 const isPairConflict = (attack: TacticalStrategyCard, defense: TacticalStrategyCard) => (
   attack.territorialIntent === 'sustained' && defense.blockHeight === 'low'
 );
@@ -360,7 +394,8 @@ const rankCards = (
   opponent: FormationTraits,
   matchFormat: MatchFormat,
   context: StrategyContext,
-  useContext: boolean
+  useContext: boolean,
+  coachLens: CoachModel | undefined
 ): RankedStrategyCard[] => {
   const ourTags = tagsForOurFormation(our);
   const opponentTags = tagsForOpponentFormation(opponent);
@@ -369,10 +404,11 @@ const rankCards = (
     .map(card => {
       const contextScore = scoreContextFit(card, context, useContext);
       const formatScore = scoreFormatFit(card, matchFormat);
+      const lensScore = scoreCoachLens(card, coachLens);
       return {
         card,
-        score: scoreCard(card, ourTags, opponentTags) + contextScore.score + formatScore.score,
-        reasons: [...formatScore.reasons, ...contextScore.reasons]
+        score: scoreCard(card, ourTags, opponentTags) + contextScore.score + formatScore.score + lensScore.score,
+        reasons: [...formatScore.reasons, ...contextScore.reasons, ...lensScore.reasons]
       };
     })
     .sort((a, b) => b.score - a.score || a.card.title.localeCompare(b.card.title));
@@ -560,18 +596,21 @@ export const recommendMatchupStrategy = ({
   ourFormation,
   opponentFormation,
   matchFormat,
-  context = DEFAULT_STRATEGY_CONTEXT
+  context = DEFAULT_STRATEGY_CONTEXT,
+  coachLensId
 }: {
   ourFormation: string;
   opponentFormation: string;
   matchFormat: MatchFormat;
   context?: StrategyContext;
+  coachLensId?: string;
 }): MatchupRecommendation => {
   const our = analyzeFormation(ourFormation);
   const opponent = analyzeFormation(opponentFormation);
   const useContext = !isDefaultStrategyContext(context);
-  const attackScores = rankCards(ATTACK_STRATEGY_CARDS, our, opponent, matchFormat, context, useContext);
-  const defenseScores = rankCards(DEFENSE_STRATEGY_CARDS, our, opponent, matchFormat, context, useContext);
+  const coachLens = coachLensId ? findCoachModelById(coachLensId) : undefined;
+  const attackScores = rankCards(ATTACK_STRATEGY_CARDS, our, opponent, matchFormat, context, useContext, coachLens);
+  const defenseScores = rankCards(DEFENSE_STRATEGY_CARDS, our, opponent, matchFormat, context, useContext, coachLens);
   const coherentPair = pickCoherentPair(attackScores, defenseScores);
   const recommendedAttack = coherentPair.attack?.card ?? ATTACK_STRATEGY_CARDS[0];
   const recommendedDefense = coherentPair.defense?.card ?? DEFENSE_STRATEGY_CARDS[0];
@@ -612,6 +651,9 @@ export const recommendMatchupStrategy = ({
     context,
     contextReasons,
     pairCoherence: coherentPair.coherence,
+    coachLens: coachLens
+      ? { id: coachLens.id, coachName: coachLens.coachName, modelName: coachLens.modelName }
+      : null,
     opponentThreats,
     exploitableSpaces,
     playerInstructions,
