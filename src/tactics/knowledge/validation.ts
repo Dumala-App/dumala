@@ -50,6 +50,8 @@ const validateStrategyCards = (
       if (card.opponentCounters.length === 0) issues.push({ id: card.id, message: 'Active strategies need at least one opponent counter tag.' });
       if (card.cues.length === 0) issues.push({ id: card.id, message: 'Active strategies need at least one cue.' });
       if (!card.watchout.trim()) issues.push({ id: card.id, message: 'Active strategies need a watchout.' });
+      if (card.phase === 'attack' && !card.territorialIntent) issues.push({ id: card.id, message: 'Active attack strategies need a territorial intent for pair coherence.' });
+      if (card.phase === 'defense' && !card.blockHeight) issues.push({ id: card.id, message: 'Active defense strategies need a block height for pair coherence.' });
     }
   });
 

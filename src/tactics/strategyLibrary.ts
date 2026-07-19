@@ -1,7 +1,15 @@
 import type { StrategyContextFit } from './strategyContext';
 import type { StrategyTag } from './knowledge/strategyTags';
+import type { MatchFormat } from './formations';
 
 export type StrategyPhase = 'attack' | 'defense';
+
+/** How much coordinated structure the plan needs. Drives match-format scoring. */
+export type StrategyComplexity = 'simple' | 'moderate' | 'complex';
+/** Where the attack wants to live: sustained territory, balanced, or transition moments. */
+export type AttackTerritorialIntent = 'sustained' | 'balanced' | 'transition';
+/** Where the defensive block engages. */
+export type DefenseBlockHeight = 'high' | 'mid' | 'low';
 
 export type StrategySource = {
   label: string;
@@ -24,6 +32,13 @@ export type TacticalStrategyCard = {
   formationFit: readonly StrategyTag[];
   opponentCounters: readonly StrategyTag[];
   tags: readonly StrategyTag[];
+  complexity: StrategyComplexity;
+  /** Formats where the plan's structure does not exist (e.g. a back five outside 11-a-side). */
+  formatAvoid?: readonly MatchFormat[];
+  /** Attack cards only. */
+  territorialIntent?: AttackTerritorialIntent;
+  /** Defense cards only. */
+  blockHeight?: DefenseBlockHeight;
   contextFit?: StrategyContextFit;
   sourceModelIds?: readonly string[];
   status?: 'draft' | 'reviewed' | 'active';
@@ -34,6 +49,8 @@ export const ATTACK_STRATEGY_CARDS: readonly TacticalStrategyCard[] = [
   {
     id: 'attack-quick-counter',
     phase: 'attack',
+    complexity: 'simple',
+    territorialIntent: 'transition',
     title: 'Quick Counter',
     styleValue: 'Quick Counter',
     intent: 'Win the ball, play forward early, and attack before the opponent resets.',
@@ -62,6 +79,8 @@ export const ATTACK_STRATEGY_CARDS: readonly TacticalStrategyCard[] = [
   {
     id: 'attack-possession-game',
     phase: 'attack',
+    complexity: 'moderate',
+    territorialIntent: 'sustained',
     title: 'Possession Game',
     styleValue: 'Possession Game',
     intent: 'Control tempo with short passing, patient circulation, and overloads around the ball.',
@@ -89,6 +108,8 @@ export const ATTACK_STRATEGY_CARDS: readonly TacticalStrategyCard[] = [
   {
     id: 'attack-third-man-combinations',
     phase: 'attack',
+    complexity: 'simple',
+    territorialIntent: 'sustained',
     title: 'Third-Man Combinations',
     styleValue: 'Third-Man Combinations',
     intent: 'Use bounce passes, lay-offs, and blind-side runners to break compact midfield lines.',
@@ -116,6 +137,9 @@ export const ATTACK_STRATEGY_CARDS: readonly TacticalStrategyCard[] = [
   {
     id: 'attack-long-ball-counter',
     phase: 'attack',
+    complexity: 'simple',
+    territorialIntent: 'transition',
+    formatAvoid: ['5-a-side'],
     title: 'Long Ball Counter',
     styleValue: 'Long Ball Counter',
     intent: 'Bypass pressure quickly and compete for second balls in advanced areas.',
@@ -144,6 +168,9 @@ export const ATTACK_STRATEGY_CARDS: readonly TacticalStrategyCard[] = [
   {
     id: 'attack-inverted-fullback-build',
     phase: 'attack',
+    complexity: 'complex',
+    territorialIntent: 'sustained',
+    formatAvoid: ['7-a-side', '6-a-side', '5-a-side'],
     title: 'Inverted Fullback Build',
     styleValue: 'Inverted Fullback Build',
     intent: 'Step one fullback inside to create a safer rest-defense base and unlock central passing lanes.',
@@ -172,6 +199,9 @@ export const ATTACK_STRATEGY_CARDS: readonly TacticalStrategyCard[] = [
   {
     id: 'attack-out-wide',
     phase: 'attack',
+    complexity: 'moderate',
+    territorialIntent: 'balanced',
+    formatAvoid: ['5-a-side'],
     title: 'Out Wide',
     styleValue: 'Out Wide',
     intent: 'Stretch the field, isolate wide players, and create crossing or cutback chances.',
@@ -199,6 +229,8 @@ export const ATTACK_STRATEGY_CARDS: readonly TacticalStrategyCard[] = [
   {
     id: 'attack-overload-to-isolate',
     phase: 'attack',
+    complexity: 'moderate',
+    territorialIntent: 'sustained',
     title: 'Overload to Isolate',
     styleValue: 'Overload to Isolate',
     intent: 'Draw defenders to one side, then switch quickly to a free wide attacker in space.',
@@ -226,6 +258,8 @@ export const ATTACK_STRATEGY_CARDS: readonly TacticalStrategyCard[] = [
   {
     id: 'attack-cutback-patterns',
     phase: 'attack',
+    complexity: 'moderate',
+    territorialIntent: 'sustained',
     title: 'Cutback Patterns',
     styleValue: 'Cutback Patterns',
     intent: 'Attack the byline and deliver low passes to late runners instead of forcing crowded crosses.',
@@ -253,6 +287,8 @@ export const ATTACK_STRATEGY_CARDS: readonly TacticalStrategyCard[] = [
   {
     id: 'attack-blindside-runners',
     phase: 'attack',
+    complexity: 'simple',
+    territorialIntent: 'sustained',
     title: 'Blind-Side Runners',
     styleValue: 'Blind-Side Runners',
     intent: 'Move defenders with circulation, then attack their blind side with late runs beyond the last line.',
@@ -280,6 +316,9 @@ export const ATTACK_STRATEGY_CARDS: readonly TacticalStrategyCard[] = [
   {
     id: 'attack-false-nine-overload',
     phase: 'attack',
+    complexity: 'complex',
+    territorialIntent: 'sustained',
+    formatAvoid: ['6-a-side', '5-a-side'],
     title: 'False Nine Overload',
     styleValue: 'False Nine Overload',
     intent: 'Drop the striker into midfield to create a free player, then release wide forwards into the vacated channel.',
@@ -308,6 +347,9 @@ export const ATTACK_STRATEGY_CARDS: readonly TacticalStrategyCard[] = [
   {
     id: 'attack-half-space-overload',
     phase: 'attack',
+    complexity: 'complex',
+    territorialIntent: 'sustained',
+    formatAvoid: ['6-a-side', '5-a-side'],
     title: 'Half-Space Overload',
     styleValue: 'Half-Space Overload',
     intent: 'Stack a winger, 8, and fullback around the half-space to pull apart the fullback-center back gap.',
@@ -336,6 +378,8 @@ export const ATTACK_STRATEGY_CARDS: readonly TacticalStrategyCard[] = [
   {
     id: 'attack-press-resistant-build',
     phase: 'attack',
+    complexity: 'moderate',
+    territorialIntent: 'sustained',
     title: 'Press-Resistant Build',
     styleValue: 'Press-Resistant Build',
     intent: 'Invite pressure, create a spare support angle, and escape through the pivot or far-side fullback.',
@@ -363,6 +407,8 @@ export const ATTACK_STRATEGY_CARDS: readonly TacticalStrategyCard[] = [
   {
     id: 'attack-set-piece-pressure',
     phase: 'attack',
+    complexity: 'simple',
+    territorialIntent: 'balanced',
     title: 'Set-Piece Pressure',
     styleValue: 'Set-Piece Pressure',
     intent: 'Use corners, wide free kicks, and second balls as planned attacking phases instead of isolated deliveries.',
@@ -391,6 +437,9 @@ export const ATTACK_STRATEGY_CARDS: readonly TacticalStrategyCard[] = [
   {
     id: 'attack-rotation-box-midfield',
     phase: 'attack',
+    complexity: 'complex',
+    territorialIntent: 'sustained',
+    formatAvoid: ['7-a-side', '6-a-side', '5-a-side'],
     title: 'Box Midfield Rotation',
     styleValue: 'Box Midfield Rotation',
     intent: 'Create a four-player central box so the ball carrier always has two short options and one forward escape.',
@@ -422,6 +471,8 @@ export const DEFENSE_STRATEGY_CARDS: readonly TacticalStrategyCard[] = [
   {
     id: 'defense-high-press',
     phase: 'defense',
+    complexity: 'simple',
+    blockHeight: 'high',
     title: 'High Press',
     styleValue: 'High Press',
     intent: 'Defend forward, trap build-up, and force rushed clearances near goal.',
@@ -449,6 +500,8 @@ export const DEFENSE_STRATEGY_CARDS: readonly TacticalStrategyCard[] = [
   {
     id: 'defense-half-press',
     phase: 'defense',
+    complexity: 'moderate',
+    blockHeight: 'mid',
     title: 'Half Press',
     styleValue: 'Half Press',
     intent: 'Protect the middle third, then press once the opponent enters a trap zone.',
@@ -477,6 +530,8 @@ export const DEFENSE_STRATEGY_CARDS: readonly TacticalStrategyCard[] = [
   {
     id: 'defense-counter-press',
     phase: 'defense',
+    complexity: 'simple',
+    blockHeight: 'high',
     title: 'Counter Press',
     styleValue: 'Counter Press',
     intent: 'React immediately after losing the ball to stop counters before they become attacks.',
@@ -505,6 +560,8 @@ export const DEFENSE_STRATEGY_CARDS: readonly TacticalStrategyCard[] = [
   {
     id: 'defense-man-to-man',
     phase: 'defense',
+    complexity: 'simple',
+    blockHeight: 'mid',
     title: 'Man to Man',
     styleValue: 'Man to Man',
     intent: 'Deny easy receivers by assigning direct pressure across key matchups.',
@@ -531,6 +588,8 @@ export const DEFENSE_STRATEGY_CARDS: readonly TacticalStrategyCard[] = [
   {
     id: 'defense-wide-trap',
     phase: 'defense',
+    complexity: 'moderate',
+    blockHeight: 'mid',
     title: 'Wide Trap',
     styleValue: 'Wide Trap',
     intent: 'Invite passes wide, then lock the touchline with fullback, winger, and nearest midfielder.',
@@ -556,6 +615,8 @@ export const DEFENSE_STRATEGY_CARDS: readonly TacticalStrategyCard[] = [
   {
     id: 'defense-low-block',
     phase: 'defense',
+    complexity: 'simple',
+    blockHeight: 'low',
     title: 'Low Block',
     styleValue: 'Low Block',
     intent: 'Protect the penalty area, close central lanes, and counter from a compact shell.',
@@ -585,6 +646,8 @@ export const DEFENSE_STRATEGY_CARDS: readonly TacticalStrategyCard[] = [
   {
     id: 'defense-zonal-block',
     phase: 'defense',
+    complexity: 'moderate',
+    blockHeight: 'mid',
     title: 'Zonal Block',
     styleValue: 'Zonal Block',
     intent: 'Defend the most dangerous spaces first, passing runners between zones instead of chasing marks.',
@@ -612,6 +675,8 @@ export const DEFENSE_STRATEGY_CARDS: readonly TacticalStrategyCard[] = [
   {
     id: 'defense-rest-defense',
     phase: 'defense',
+    complexity: 'moderate',
+    blockHeight: 'mid',
     title: 'Rest-Defense Net',
     styleValue: 'Rest-Defense Net',
     intent: 'Keep a stable cover structure behind attacks so turnovers are delayed or stopped immediately.',
@@ -640,6 +705,9 @@ export const DEFENSE_STRATEGY_CARDS: readonly TacticalStrategyCard[] = [
   {
     id: 'defense-pressing-from-front-two',
     phase: 'defense',
+    complexity: 'moderate',
+    blockHeight: 'mid',
+    formatAvoid: ['5-a-side'],
     title: 'Front-Two Screen',
     styleValue: 'Front-Two Screen',
     intent: 'Use two forwards to screen central build-up, curve pressure, and force play into predictable wide traps.',
@@ -667,6 +735,9 @@ export const DEFENSE_STRATEGY_CARDS: readonly TacticalStrategyCard[] = [
   {
     id: 'defense-back-five-shift',
     phase: 'defense',
+    complexity: 'complex',
+    blockHeight: 'low',
+    formatAvoid: ['9-a-side', '8-a-side', '7-a-side', '6-a-side', '5-a-side'],
     title: 'Back-Five Shift',
     styleValue: 'Back-Five Shift',
     intent: 'Slide a five-player back line across the box while midfield protects cutbacks and second balls.',
@@ -694,6 +765,9 @@ export const DEFENSE_STRATEGY_CARDS: readonly TacticalStrategyCard[] = [
   {
     id: 'defense-compact-4-5-1',
     phase: 'defense',
+    complexity: 'complex',
+    blockHeight: 'low',
+    formatAvoid: ['9-a-side', '8-a-side', '7-a-side', '6-a-side', '5-a-side'],
     title: 'Compact 4-5-1 Block',
     styleValue: 'Compact 4-5-1 Block',
     intent: 'Drop the wide players into midfield to protect central lanes and make the opponent play around the block.',
@@ -721,6 +795,8 @@ export const DEFENSE_STRATEGY_CARDS: readonly TacticalStrategyCard[] = [
   {
     id: 'defense-cover-shadow-press',
     phase: 'defense',
+    complexity: 'simple',
+    blockHeight: 'high',
     title: 'Cover-Shadow Press',
     styleValue: 'Cover-Shadow Press',
     intent: 'Press the ball while using body shape to block the next dangerous pass.',
@@ -748,6 +824,8 @@ export const DEFENSE_STRATEGY_CARDS: readonly TacticalStrategyCard[] = [
   {
     id: 'defense-anti-overload-slide',
     phase: 'defense',
+    complexity: 'moderate',
+    blockHeight: 'mid',
     title: 'Anti-Overload Slide',
     styleValue: 'Anti-Overload Slide',
     intent: 'Recognize an opponent overload early, slide support across, and leave the least dangerous far-side pass open.',

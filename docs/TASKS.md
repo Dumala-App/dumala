@@ -46,6 +46,10 @@ The FPRDS total includes twenty completed capabilities: the five shipped assessm
 
 ## Recent changes
 
+### Completed: 2026-07-19
+
+- [x] Upgraded the Tactics Strategy Engine with four reasoning improvements: match-format-aware scoring (per-card `complexity` and `formatAvoid` metadata penalizes or excludes structurally unrealistic plans in small-sided formats, with Format reason chips), attack/defense pair-coherence (per-card `territorialIntent`/`blockHeight` metadata detects sustained-attack-plus-deep-block conflicts and swaps to a compatible alternative within a score margin or shows a Plan Pairing warning), a Current Plan Check strip that rates the applied playstyle and defensive style against the final recommendation (Top pick / Good fit / Better options / Risky now), and a calendar-derived Suggested Condition chip that infers team condition from recent match/training load and applies it only on coach confirmation. Added knowledge-validation rules for the new per-phase fields and unit coverage for all four behaviors.
+
 ### Completed: 2026-07-18
 
 - [x] Shipped the Phase 6 **Registration page upgrade** slice. Event registration now supports a direct public tournament page at `#/register/<code>` instead of only a generic code-entry form. League owners can manage registration-page visibility, headline, tournament details, contact notes, and terms from the event page; the public page shows league/event metadata, format, dates, capacity/spots, eligibility rules, required documents, and an embedded no-account team application form. The old `#/register` code-entry flow remains as a fallback. The public lookup payload is designed so a future tournaments directory can list registration-enabled events from multiple League Owners without exposing private operations data.

@@ -37,7 +37,13 @@ import {
   MATCH_FORMAT_CONFIG,
   type MatchFormat
 } from '../tactics/formations';
-import { recommendMatchupStrategy, type ShapeImpactCard } from '../tactics/recommendations';
+import {
+  assessCurrentPlan,
+  recommendMatchupStrategy,
+  type CurrentPlanVerdict,
+  type ShapeImpactCard
+} from '../tactics/recommendations';
+import { suggestTeamCondition } from '../tactics/contextSuggestions';
 import { ATTACK_STRATEGY_CARDS, DEFENSE_STRATEGY_CARDS } from '../tactics/strategyLibrary';
 import {
   DEFAULT_STRATEGY_CONTEXT,
@@ -164,6 +170,13 @@ const SHAPE_IMPACT_TONE_CLASSES: Record<ShapeImpactCard['tone'], {
     label: 'text-rose-200/80',
     value: 'text-rose-100'
   }
+};
+
+const CURRENT_PLAN_VERDICT_META: Record<CurrentPlanVerdict, { label: string; className: string }> = {
+  'top-pick': { label: 'Top pick', className: 'border-emerald-400/25 bg-emerald-400/10 text-emerald-100' },
+  solid: { label: 'Good fit', className: 'border-sky-400/25 bg-sky-400/10 text-sky-100' },
+  'off-context': { label: 'Better options', className: 'border-slate-700 bg-slate-900/60 text-slate-300' },
+  risky: { label: 'Risky now', className: 'border-amber-400/30 bg-amber-400/10 text-amber-100' }
 };
 
 const tacticsGlassPanelClass = 'rounded-2xl border border-slate-700/60 bg-[#081321]/92 text-slate-100 shadow-xl shadow-black/20 backdrop-blur-xl';
@@ -454,6 +467,11 @@ export default function TacticsView({
     matchFormat,
     context: strategyContext
   }), [formation, opponentFormation, matchFormat, strategyContext]);
+  const currentPlanCheck = useMemo(
+    () => assessCurrentPlan(matchupRecommendation, playstyle, defensiveStyle),
+    [matchupRecommendation, playstyle, defensiveStyle]
+  );
+  const conditionSuggestion = useMemo(() => suggestTeamCondition(games), [games]);
 
   const visibleAttackStrategies = ATTACK_STRATEGY_CARDS;
 
@@ -3054,6 +3072,22 @@ export default function TacticsView({
                   Reset context
                 </Button>
               </div>
+              {conditionSuggestion.value !== strategyContext.teamCondition && (
+                <div className="mt-2 flex flex-wrap items-center gap-2 rounded-lg border border-sky-500/20 bg-sky-500/10 px-3 py-2">
+                  <span className="text-[10px] font-bold leading-snug text-sky-100">
+                    Suggested condition: {STRATEGY_CONTEXT_LABELS.teamCondition[conditionSuggestion.value]} — {conditionSuggestion.reason}
+                  </span>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setStrategyContext(prev => ({ ...prev, teamCondition: conditionSuggestion.value }))}
+                    className="h-6 rounded-md border-sky-400/40 bg-sky-500/15 px-2 text-[9px] font-black uppercase tracking-widest text-sky-200 hover:bg-sky-500/25 hover:text-white"
+                  >
+                    Apply
+                  </Button>
+                </div>
+              )}
               <div className="mt-3 grid grid-cols-1 gap-3 lg:grid-cols-2 xl:grid-cols-5">
                 <div className="space-y-1.5">
                   <span className="block text-[8.5px] font-black uppercase tracking-widest text-slate-500">Match state</span>
@@ -3172,6 +3206,42 @@ export default function TacticsView({
                   </p>
                 </div>
               </div>
+
+              {(currentPlanCheck.attack || currentPlanCheck.defense) && (
+                <div className="mt-3 grid grid-cols-1 gap-2 lg:grid-cols-2">
+                  {[currentPlanCheck.attack, currentPlanCheck.defense].map(check => check && (
+                    <div key={check.phase} className={cn('rounded-lg border px-3 py-2', CURRENT_PLAN_VERDICT_META[check.verdict].className)}>
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-[9px] font-black uppercase tracking-widest opacity-80">
+                          Current {check.phase}: {check.title}
+                        </span>
+                        <span className="shrink-0 rounded-md border border-current/20 px-1.5 py-0.5 text-[8.5px] font-black uppercase tracking-wider">
+                          {CURRENT_PLAN_VERDICT_META[check.verdict].label}
+                        </span>
+                      </div>
+                      <p className="mt-1 text-[10.5px] leading-snug opacity-90">{check.note}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {matchupRecommendation.pairCoherence.status !== 'coherent' && matchupRecommendation.pairCoherence.note && (
+                <div
+                  className={cn(
+                    'mt-3 rounded-lg border px-3 py-2',
+                    matchupRecommendation.pairCoherence.status === 'tension'
+                      ? 'border-amber-400/30 bg-amber-400/10'
+                      : 'border-sky-500/20 bg-sky-500/10'
+                  )}
+                >
+                  <span className={cn(
+                    'block text-[8.5px] font-black uppercase tracking-widest',
+                    matchupRecommendation.pairCoherence.status === 'tension' ? 'text-amber-200' : 'text-sky-200'
+                  )}>
+                    Plan pairing
+                  </span>
+                  <p className="mt-1 text-[10.5px] leading-snug text-slate-200">{matchupRecommendation.pairCoherence.note}</p>
+                </div>
+              )}
 
               <div className="mt-3 grid grid-cols-1 gap-3 xl:grid-cols-2">
               <div className="border-l-2 border-indigo-400/70 bg-indigo-500/[0.07] px-4 py-2">
