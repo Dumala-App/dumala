@@ -101,6 +101,14 @@ interface LeagueUpdatesHubViewProps {
   players: Player[];
   onUpdatePlayer: (player: Player) => void;
   highlightStandingTeamName?: string | null;
+  leagueMode?: 'manual' | 'official';
+  officialLeagueContext?: {
+    leagueName: string;
+    competitionName?: string | null;
+    organizerName?: string | null;
+    registrationStatus?: string | null;
+    lastUpdatedAt?: string | null;
+  } | null;
 
 }
 
@@ -168,6 +176,8 @@ export default function LeagueUpdatesHubView(props: LeagueUpdatesHubViewProps) {
             players={props.players}
             onUpdatePlayer={props.onUpdatePlayer}
             highlightStandingTeamName={props.highlightStandingTeamName}
+            leagueMode={props.leagueMode}
+            officialLeagueContext={props.officialLeagueContext}
           />
         )}
 
