@@ -58,6 +58,14 @@ interface StandingsViewProps {
   players: Player[];
   onUpdatePlayer: (updated: Player) => void;
   highlightStandingTeamName?: string | null;
+  leagueMode?: 'manual' | 'official';
+  officialLeagueContext?: {
+    leagueName: string;
+    competitionName?: string | null;
+    organizerName?: string | null;
+    registrationStatus?: string | null;
+    lastUpdatedAt?: string | null;
+  } | null;
 }
 
 type CardType = PlayerOffense['cardType'];
@@ -79,8 +87,12 @@ const CARD_TYPE_BADGE_VARIANTS: Record<CardType, React.ComponentProps<typeof Bad
   'Straight Red': 'destructive'
 };
 const standingsCompactControlClass = 'h-8 rounded-md border-cyan-300/10 bg-[#0b1726]/85 text-[10px] font-medium text-slate-100 placeholder:text-slate-500 focus-visible:border-orange-300/50 focus-visible:ring-orange-300/20 data-[placeholder]:text-slate-300 [&>span]:text-slate-100';
-const standingsPanelControlClass = 'rounded-xl text-xs font-semibold';
+const standingsPanelControlClass = 'rounded-xl border-cyan-300/10 bg-[#0b1726]/85 text-xs font-semibold text-slate-100 placeholder:text-slate-500 focus-visible:border-orange-300/50 focus-visible:ring-orange-300/20 data-[placeholder]:text-slate-300 [&>span]:text-slate-100';
 const standingsPanelInvalidClass = 'border-rose-300 focus-visible:ring-rose-500/25';
+const standingsDarkCardClass = 'rounded-2xl border border-cyan-300/10 bg-[#07111f]/88 shadow-lg shadow-cyan-950/25';
+const standingsDarkInsetClass = 'rounded-xl border border-cyan-300/10 bg-[#0b1726]/78 shadow-sm shadow-black/10';
+const standingsSelectContentClass = 'border-cyan-300/10 bg-[#07111f] text-slate-100 shadow-2xl shadow-black/35';
+const standingsSelectItemClass = 'text-slate-100 focus:bg-cyan-300/10 focus:text-white';
 
 const parseCardType = (value: string): CardType => (
   CARD_TYPES.includes(value as CardType) ? value as CardType : 'Yellow'
@@ -112,7 +124,9 @@ export default function StandingsView({
   onUpdateAllStandings,
   players,
   onUpdatePlayer,
-  highlightStandingTeamName
+  highlightStandingTeamName,
+  leagueMode = 'manual',
+  officialLeagueContext = null
 }: StandingsViewProps) {
   const scoreboardFormRef = useRef<HTMLFormElement | null>(null);
   const addClubFormRef = useRef<HTMLFormElement | null>(null);
@@ -204,6 +218,13 @@ export default function StandingsView({
     if (!row) return;
     row.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }, [highlightStandingTeamName, standings]);
+
+  useEffect(() => {
+    if (leagueMode !== 'official') return;
+    setShowAddClubPanel(false);
+    setShowLogger(false);
+    setEditingTeam(null);
+  }, [leagueMode]);
 
   const startEdit = (team: Standing) => {
     setEditingTeam(team.teamName);
@@ -424,27 +445,83 @@ export default function StandingsView({
   const averageGoals = totalMatchesPlayed > 0 ? (totalGoals / totalMatchesPlayed).toFixed(1) : "0.0";
   const bestAttack = [...sortedStandings].sort((a, b) => b.goalsFor - a.goalsFor)[0];
   const bestDefense = [...sortedStandings].sort((a, b) => a.goalsAgainst - b.goalsAgainst)[0];
+  const isOfficialLeagueMode = leagueMode === 'official';
+  const canEditLeagueRecords = !isOfficialLeagueMode;
+  const leagueSourceTitle = isOfficialLeagueMode ? 'Official league stats' : 'Manual league workspace';
+  const leagueSourceDetail = isOfficialLeagueMode
+    ? `${officialLeagueContext?.organizerName || 'League Owner'} controls standings, discipline, awards, and match records for this registered competition.`
+    : 'Use this local manual league page when your team is not registered in a Dumala League Owner season or tournament.';
 
   return (
     <div id="standings-view-container" className="space-y-6">
+      <div className={cn(
+        'rounded-2xl border p-4',
+        isOfficialLeagueMode
+          ? 'border-emerald-300/20 bg-emerald-300/10'
+          : 'border-cyan-300/10 bg-cyan-300/10'
+      )}>
+        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <div className="flex items-start gap-3">
+            <div className={cn(
+              'flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border',
+              isOfficialLeagueMode
+                ? 'border-emerald-300/20 bg-emerald-300/10'
+                : 'border-cyan-300/20 bg-cyan-300/10'
+            )}>
+              {isOfficialLeagueMode
+                ? <Award size={17} className="text-emerald-200" />
+                : <Sliders size={17} className="text-cyan-200" />}
+            </div>
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">{leagueSourceTitle}</p>
+              <h2 className="mt-1 font-display text-sm font-black text-slate-100">
+                {isOfficialLeagueMode
+                  ? officialLeagueContext?.competitionName || officialLeagueContext?.leagueName || 'Registered competition'
+                  : 'Local fallback table'}
+              </h2>
+              <p className="mt-1 max-w-3xl text-xs leading-relaxed text-slate-400">{leagueSourceDetail}</p>
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Badge className={cn(
+              'rounded-full px-2 py-0.5 text-[10px]',
+              isOfficialLeagueMode
+                ? 'border border-emerald-300/25 bg-emerald-300/10 text-emerald-100'
+                : 'border border-cyan-300/25 bg-cyan-300/10 text-cyan-100'
+            )}>
+              {isOfficialLeagueMode ? 'League Owner supplied' : 'Manual entry'}
+            </Badge>
+            {officialLeagueContext?.registrationStatus && (
+              <Badge className="rounded-full border border-orange-300/25 bg-orange-300/10 px-2 py-0.5 text-[10px] text-orange-100">
+                {officialLeagueContext.registrationStatus}
+              </Badge>
+            )}
+            {officialLeagueContext?.lastUpdatedAt && (
+              <Badge className="rounded-full border border-slate-300/15 bg-white/[0.045] px-2 py-0.5 text-[10px] text-slate-200">
+                Updated {new Date(officialLeagueContext.lastUpdatedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+              </Badge>
+            )}
+          </div>
+        </div>
+      </div>
       
       {/* Standings Header with Info Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         
         {/* League Rank Hero */}
-        <div className="bg-gradient-to-br from-indigo-600 to-blue-700 text-white rounded-2xl p-5 shadow-sm relative overflow-hidden">
+        <div className="relative overflow-hidden rounded-2xl border border-orange-300/10 bg-gradient-to-br from-[#17131d] via-[#0b1422] to-[#061522] p-5 text-white shadow-lg shadow-black/20">
           <div className="absolute right-[-10px] bottom-[-10px] text-white/15">
             <Trophy size={110} />
           </div>
-          <span className="text-[10px] font-bold tracking-widest uppercase text-indigo-100">League Standing</span>
+          <span className="text-[10px] font-bold tracking-widest uppercase text-slate-300">League Standing</span>
           <h3 className="text-2xl font-display font-bold mt-1">
             {isLeader ? "Division Leader! 🏆" : ptsBack <= 3 ? "Within Striking Distance ⚡" : "Chasing First Place 🏃"}
           </h3>
           <div className="mt-4 flex items-baseline gap-2">
             <span id="user-team-rank-display" className="text-5xl font-display font-black text-amber-400">#{userRank}</span>
-            <span className="text-xs text-indigo-100">{userTeamInstance?.teamName || teamName} ({userPoints} pts)</span>
+            <span className="text-xs text-slate-200">{userTeamInstance?.teamName || teamName} ({userPoints} pts)</span>
           </div>
-          <p className="text-xs text-indigo-100/85 mt-2 leading-relaxed">
+          <p className="text-xs text-slate-300 mt-2 leading-relaxed">
             {isLeader 
               ? "You are currently sitting at the top of the league! Keep defending the title in the subsequent weeks." 
               : leaderTeam 
@@ -454,53 +531,77 @@ export default function StandingsView({
         </div>
 
         {/* Action Quick Gates / Config panel */}
-        <div className="bg-white p-5 rounded-2xl shadow-md shadow-slate-100/30 border border-slate-200/60 flex flex-col justify-between">
+        <div className={`${standingsDarkCardClass} flex flex-col justify-between p-5`}>
           <div>
-            <span className="text-[10px] font-bold tracking-widest uppercase text-slate-400 block font-mono">League Managers</span>
-            <h3 className="text-base font-display font-bold text-slate-800 mt-1">Manual Tools</h3>
-            <p className="text-xs text-slate-500 mt-1.5 leading-relaxed">
-              Add competitor clubs and maintain the sample league structure.
+            <span className="text-[10px] font-bold tracking-widest uppercase text-slate-400 block font-mono">
+              {isOfficialLeagueMode ? 'League Source' : 'League Managers'}
+            </span>
+            <h3 className="text-base font-display font-bold text-slate-100 mt-1">
+              {isOfficialLeagueMode ? 'Official Feed' : 'Manual Tools'}
+            </h3>
+            <p className="text-xs text-slate-400 mt-1.5 leading-relaxed">
+              {isOfficialLeagueMode
+                ? 'This table is read from the League Owner competition record. Coach-side manual editing is locked for this registered event.'
+                : 'Add competitor clubs and maintain the sample league structure.'}
             </p>
           </div>
           <div className="flex flex-wrap gap-2 mt-4">
-            <Button
-              id="toggle-add-club-btn"
-              type="button"
-              onClick={() => {
-                setShowAddClubPanel(!showAddClubPanel);
-                setShowLogger(false);
-              }}
-              variant="outline"
-              size="sm"
-              className="rounded-xl border-indigo-100 bg-indigo-50 text-xs font-bold text-indigo-700 hover:bg-indigo-100 hover:text-indigo-800"
-            >
-              <Plus size={13} />
-              Add Club
-            </Button>
+            {isOfficialLeagueMode ? (
+              <Badge className="rounded-xl border border-emerald-300/25 bg-emerald-300/10 px-3 py-1.5 text-[10px] text-emerald-100">
+                League Owner managed
+              </Badge>
+            ) : (
+              <Button
+                id="toggle-add-club-btn"
+                type="button"
+                onClick={() => {
+                  setShowAddClubPanel(!showAddClubPanel);
+                  setShowLogger(false);
+                }}
+                variant="outline"
+                size="sm"
+                className="rounded-xl border-orange-300/35 bg-orange-300/12 text-xs font-bold text-orange-100 hover:bg-orange-300/20 hover:text-white"
+              >
+                <Plus size={13} className="text-orange-200" />
+                Add Club
+              </Button>
+            )}
           </div>
         </div>
 
         {/* Scoreboard Weekly Updater Gate */}
-        <div className="bg-white p-5 rounded-2xl shadow-md shadow-slate-100/30 border border-slate-200/60 flex flex-col justify-between relative overflow-hidden">
+        <div className={`${standingsDarkCardClass} relative flex flex-col justify-between overflow-hidden p-5`}>
           <div>
-            <span className="text-[10px] font-bold tracking-widest uppercase text-slate-400 block font-mono">Matchday Sync</span>
-            <h3 className="text-base font-display font-bold text-slate-800 mt-1">Scoreboard Updater</h3>
-            <p className="text-xs text-slate-500 mt-1.5 leading-relaxed">
-              Instantly log a league match score to automatically crunch the standings numbers, update points, and adjust ranks!
+            <span className="text-[10px] font-bold tracking-widest uppercase text-slate-400 block font-mono">
+              {isOfficialLeagueMode ? 'Matchday Sync' : 'Matchday Sync'}
+            </span>
+            <h3 className="text-base font-display font-bold text-slate-100 mt-1">
+              {isOfficialLeagueMode ? 'Official Results' : 'Scoreboard Updater'}
+            </h3>
+            <p className="text-xs text-slate-400 mt-1.5 leading-relaxed">
+              {isOfficialLeagueMode
+                ? 'Scores and league-table movement come from the League Owner, so coaches can review them here without changing official records.'
+                : 'Instantly log a league match score to automatically crunch the standings numbers, update points, and adjust ranks!'}
             </p>
           </div>
-          <Button
-            id="toggle-scoreboard-logger-btn"
-            type="button"
-            onClick={() => {
-              setShowLogger(!showLogger);
-              setShowAddClubPanel(false);
-            }}
-            className="mt-4 w-full rounded-xl bg-emerald-600 text-xs font-bold text-white shadow-sm hover:bg-emerald-700"
-          >
-            <Calendar size={13} />
-            {showLogger ? "Hide Weekly Updater" : "Open Weekly Scoreboard Updater"}
-          </Button>
+          {isOfficialLeagueMode ? (
+            <Badge className="mt-4 w-max rounded-xl border border-cyan-300/25 bg-cyan-300/10 px-3 py-1.5 text-[10px] text-cyan-100">
+              Read-only official results
+            </Badge>
+          ) : (
+            <Button
+              id="toggle-scoreboard-logger-btn"
+              type="button"
+              onClick={() => {
+                setShowLogger(!showLogger);
+                setShowAddClubPanel(false);
+              }}
+              className="mt-4 w-full rounded-xl border border-emerald-300/20 bg-emerald-600 text-xs font-bold text-white shadow-sm shadow-emerald-950/20 hover:bg-emerald-500"
+            >
+              <Calendar size={13} className="text-emerald-100" />
+              {showLogger ? "Hide Weekly Updater" : "Open Weekly Scoreboard Updater"}
+            </Button>
+          )}
         </div>
 
       </div>
@@ -522,18 +623,18 @@ export default function StandingsView({
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
             transition={{ duration: 0.2 }}
-            className="bg-indigo-50/50 p-5 rounded-2xl border border-indigo-100/80"
+            className="rounded-2xl border border-orange-300/20 bg-white/[0.055] p-5 shadow-lg shadow-black/15"
           >
             <div className="flex justify-between items-center mb-3">
-              <h4 className="font-display font-bold text-xs text-indigo-900 uppercase tracking-wider flex items-center gap-2">
-                <Plus size={14} className="text-indigo-650" /> Add Competitor Club Team
+              <h4 className="font-display font-bold text-xs text-orange-100 uppercase tracking-wider flex items-center gap-2">
+                <Plus size={14} className="text-orange-200" /> Add Competitor Club Team
               </h4>
               <Button
                 type="button"
                 onClick={() => setShowAddClubPanel(false)}
                 variant="ghost"
                 size="icon"
-                className="size-8 text-indigo-400 hover:bg-indigo-100 hover:text-indigo-700"
+                className="size-8 text-slate-400 hover:bg-white/[0.07] hover:text-orange-100"
                 aria-label="Close add club panel"
               >
                 <X size={16} />
@@ -554,18 +655,18 @@ export default function StandingsView({
                   placeholder="e.g. Metro Knights, City Falcons, Vale United..."
                   aria-invalid={Boolean(addClubErrors.clubName)}
                   aria-describedby={addClubErrors.clubName ? 'add-club-name-error' : undefined}
-                  className={cn('bg-white px-4', standingsPanelControlClass, addClubErrors.clubName && standingsPanelInvalidClass)}
+                  className={cn('px-4', standingsPanelControlClass, addClubErrors.clubName && standingsPanelInvalidClass)}
                 />
                 <FieldError id="add-club-name-error" message={addClubErrors.clubName} />
               </div>
               <Button
                 type="submit"
-                className="rounded-xl bg-indigo-600 px-5 text-xs font-bold text-white shadow-sm hover:bg-indigo-700"
+                className="rounded-xl bg-violet-600 px-5 text-xs font-bold text-white shadow-sm hover:bg-violet-500"
               >
-                <CheckCircle size={14} /> Commit Team
+                <CheckCircle size={14} className="text-violet-100" /> Commit Team
               </Button>
             </form>
-            <p className="text-[10px] text-slate-500 mt-2 font-medium">Entering a new club will start them off with 0 played, 0 points. You can modify stats anytime.</p>
+            <p className="text-[10px] text-slate-400 mt-2 font-medium">Entering a new club will start them off with 0 played, 0 points. You can modify stats anytime.</p>
           </motion.div>
         )}
 
@@ -575,18 +676,18 @@ export default function StandingsView({
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
             transition={{ duration: 0.2 }}
-            className="bg-emerald-50/40 p-5 rounded-2xl border border-emerald-100/60"
+            className="rounded-2xl border border-emerald-300/20 bg-white/[0.055] p-5 shadow-lg shadow-black/15"
           >
             <div className="flex justify-between items-center mb-3">
-              <h4 className="font-display font-bold text-xs text-emerald-900 uppercase tracking-wider flex items-center gap-2">
-                <Calendar size={14} className="text-emerald-700" /> Weekly Scoreboard Match Logger
+              <h4 className="font-display font-bold text-xs text-emerald-100 uppercase tracking-wider flex items-center gap-2">
+                <Calendar size={14} className="text-emerald-200" /> Weekly Scoreboard Match Logger
               </h4>
               <Button
                 type="button"
                 onClick={() => setShowLogger(false)}
                 variant="ghost"
                 size="icon"
-                className="size-8 text-emerald-400 hover:bg-emerald-100 hover:text-emerald-700"
+                className="size-8 text-emerald-300 hover:bg-white/[0.07] hover:text-emerald-100"
                 aria-label="Close scoreboard logger"
               >
                 <X size={16} />
@@ -611,13 +712,13 @@ export default function StandingsView({
                       data-validation-field="homeTeam"
                       aria-invalid={Boolean(scoreboardErrors.homeTeam)}
                       aria-describedby={scoreboardErrors.homeTeam ? 'scoreboard-home-team-error' : undefined}
-                      className={cn('bg-white text-slate-800', standingsPanelControlClass, scoreboardErrors.homeTeam && standingsPanelInvalidClass)}
+                      className={cn(standingsPanelControlClass, scoreboardErrors.homeTeam && standingsPanelInvalidClass)}
                     >
                       <SelectValue placeholder="Choose Home Club" />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className={standingsSelectContentClass}>
                       {standings.map(t => (
-                        <SelectItem key={t.teamName} value={t.teamName}>{t.teamName}</SelectItem>
+                        <SelectItem key={t.teamName} value={t.teamName} className={standingsSelectItemClass}>{t.teamName}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -641,7 +742,7 @@ export default function StandingsView({
                       }}
                       aria-invalid={Boolean(scoreboardErrors.homeScore)}
                       aria-describedby={scoreboardErrors.homeScore ? 'scoreboard-home-score-error' : undefined}
-                      className={cn('h-9 w-12 rounded-lg p-2 text-center text-xs font-black text-slate-800', scoreboardErrors.homeScore && standingsPanelInvalidClass)}
+                      className={cn('h-9 w-12 rounded-lg border-cyan-300/10 bg-[#0b1726]/85 p-2 text-center text-xs font-black text-slate-100 focus-visible:border-orange-300/50 focus-visible:ring-orange-300/20', scoreboardErrors.homeScore && standingsPanelInvalidClass)}
                     />
                     <FieldError id="scoreboard-home-score-error" message={scoreboardErrors.homeScore} />
                   </div>
@@ -661,7 +762,7 @@ export default function StandingsView({
                       }}
                       aria-invalid={Boolean(scoreboardErrors.awayScore)}
                       aria-describedby={scoreboardErrors.awayScore ? 'scoreboard-away-score-error' : undefined}
-                      className={cn('h-9 w-12 rounded-lg p-2 text-center text-xs font-black text-slate-800', scoreboardErrors.awayScore && standingsPanelInvalidClass)}
+                      className={cn('h-9 w-12 rounded-lg border-cyan-300/10 bg-[#0b1726]/85 p-2 text-center text-xs font-black text-slate-100 focus-visible:border-orange-300/50 focus-visible:ring-orange-300/20', scoreboardErrors.awayScore && standingsPanelInvalidClass)}
                     />
                     <FieldError id="scoreboard-away-score-error" message={scoreboardErrors.awayScore} />
                   </div>
@@ -681,13 +782,13 @@ export default function StandingsView({
                       data-validation-field="awayTeam"
                       aria-invalid={Boolean(scoreboardErrors.awayTeam)}
                       aria-describedby={scoreboardErrors.awayTeam ? 'scoreboard-away-team-error' : undefined}
-                      className={cn('bg-white text-slate-800', standingsPanelControlClass, scoreboardErrors.awayTeam && standingsPanelInvalidClass)}
+                      className={cn(standingsPanelControlClass, scoreboardErrors.awayTeam && standingsPanelInvalidClass)}
                     >
                       <SelectValue placeholder="Choose Away Club" />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className={standingsSelectContentClass}>
                       {standings.map(t => (
-                        <SelectItem key={t.teamName} value={t.teamName}>{t.teamName}</SelectItem>
+                        <SelectItem key={t.teamName} value={t.teamName} className={standingsSelectItemClass}>{t.teamName}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -697,15 +798,15 @@ export default function StandingsView({
               </div>
 
               <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2">
-                <span className="text-[10px] text-slate-500 font-medium leading-tight">
+                <span className="text-[10px] text-slate-400 font-medium leading-tight">
                   Logs 1 match game. Updates wins, draws, losses, goals scored and conceded, and points automatically for both teams.
                 </span>
                 <Button
                   type="submit"
                   disabled={!logHomeTeam || !logAwayTeam || logHomeTeam === logAwayTeam}
-                  className="w-full rounded-xl bg-emerald-600 px-5 text-xs font-bold text-white shadow-sm hover:bg-emerald-700 sm:w-auto"
+                  className="w-full rounded-xl bg-emerald-600 px-5 text-xs font-bold text-white shadow-sm hover:bg-emerald-500 sm:w-auto"
                 >
-                  <CheckCircle size={14} /> Calculate & Apply Result
+                  <CheckCircle size={14} className="text-emerald-100" /> Calculate & Apply Result
                 </Button>
               </div>
             </form>
@@ -716,7 +817,7 @@ export default function StandingsView({
                   initial={{ opacity: 0, y: 5 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0 }}
-                  className="mt-3 p-2 bg-emerald-100 text-emerald-800 rounded-lg text-xs font-bold font-mono tracking-tight text-center"
+                  className="mt-3 rounded-lg border border-emerald-300/20 bg-emerald-300/10 p-2 text-center font-mono text-xs font-bold tracking-tight text-emerald-100"
                 >
                   {logSuccessMessage}
                 </motion.div>
@@ -734,17 +835,17 @@ export default function StandingsView({
           { label: 'Goals per match', value: averageGoals, detail: bestAttack ? `Best attack: ${bestAttack.teamName}` : 'No results yet' },
           { label: 'Best defense', value: bestDefense?.teamName || 'N/A', detail: bestDefense ? `${bestDefense.goalsAgainst} goals conceded` : 'No results yet' }
         ].map(item => (
-          <div key={item.label} className="bg-white border border-slate-200/70 rounded-2xl p-4 shadow-sm">
+          <div key={item.label} className={`${standingsDarkCardClass} p-4`}>
             <span className="text-[9px] font-black uppercase tracking-widest text-slate-400">{item.label}</span>
-            <strong className="block text-lg font-display font-black text-slate-900 mt-1 truncate">{item.value}</strong>
-            <span className="text-[10px] text-slate-500">{item.detail}</span>
+            <strong className="block text-lg font-display font-black text-slate-100 mt-1 truncate">{item.value}</strong>
+            <span className="text-[10px] text-slate-400">{item.detail}</span>
           </div>
         ))}
       </div>
 
       {/* Main League Rankings Table */}
-      <div className="bg-white rounded-2xl border border-slate-200/60 shadow-md shadow-slate-100/30 overflow-hidden">
-        <div className="p-4 bg-slate-50 border-b border-slate-200/60 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+      <div className={`${standingsDarkCardClass} overflow-hidden`}>
+        <div className="flex flex-col gap-3 border-b border-cyan-300/10 bg-white/[0.035] p-4 sm:flex-row sm:items-center sm:justify-between">
           
           {/* Editable Division / League Name */}
           <div className="flex items-center gap-3">
@@ -762,7 +863,7 @@ export default function StandingsView({
                   type="button"
                   onClick={handleSaveLeagueName}
                   size="sm"
-                  className="h-8 rounded-lg bg-indigo-600 px-2.5 text-[10px] font-bold text-white hover:bg-indigo-700"
+                  className="h-8 rounded-lg bg-violet-600 px-2.5 text-[10px] font-bold text-white hover:bg-violet-500"
                 >
                   Save
                 </Button>
@@ -771,7 +872,7 @@ export default function StandingsView({
                   onClick={() => setIsEditingLeagueName(false)}
                   variant="secondary"
                   size="sm"
-                  className="h-8 rounded-lg px-2.5 text-[10px] font-medium"
+                  className="h-8 rounded-lg border-cyan-300/10 bg-white/[0.045] px-2.5 text-[10px] font-medium text-slate-200 hover:bg-white/[0.07] hover:text-white"
                 >
                   Cancel
                 </Button>
@@ -781,20 +882,22 @@ export default function StandingsView({
                 <h4 className="font-display font-bold text-xs text-slate-100 uppercase tracking-widest flex items-center gap-2">
                   <Trophy size={16} className="text-orange-300 animate-pulse" /> {teamInfo.league || "Regional Premier Division"} Standings
                 </h4>
-                <Button
-                  type="button"
-                  onClick={() => {
-                    setTempLeagueName(teamInfo.league || "Regional Premier Division");
-                    setIsEditingLeagueName(true);
-                  }}
-                  variant="ghost"
-                  size="icon"
-                  className="size-7 text-slate-300 hover:bg-white/[0.07] hover:text-white"
-                  title="Edit League Name"
-                  aria-label="Edit league name"
-                >
-                  <Edit3 size={11} />
-                </Button>
+                {canEditLeagueRecords && (
+                  <Button
+                    type="button"
+                    onClick={() => {
+                      setTempLeagueName(teamInfo.league || "Regional Premier Division");
+                      setIsEditingLeagueName(true);
+                    }}
+                    variant="ghost"
+                    size="icon"
+                    className="size-7 text-slate-300 hover:bg-white/[0.07] hover:text-white"
+                    title="Edit League Name"
+                    aria-label="Edit league name"
+                  >
+                    <Edit3 size={11} className="text-cyan-200" />
+                  </Button>
+                )}
               </div>
             )}
           </div>
@@ -807,7 +910,7 @@ export default function StandingsView({
         <div className="overflow-x-auto overscroll-x-contain">
           <table className="w-full text-left text-xs border-collapse">
             <thead>
-              <tr className="bg-slate-50 text-slate-400 font-bold uppercase border-b border-slate-100">
+              <tr className="border-b border-cyan-300/10 bg-white/[0.045] font-bold uppercase text-slate-400">
                 <th className="py-3 px-4 text-center w-12">Pos</th>
                 <th className="py-3 px-4">Club name</th>
                 <th className="py-3 px-3 text-center">Played</th>
@@ -818,13 +921,13 @@ export default function StandingsView({
                 <th className="py-3 px-3 text-center">GA</th>
                 <th className="py-3 px-3 text-center">GD</th>
                 <th className="py-3 px-4 text-center">Pts</th>
-                <th className="py-3 px-4 text-center w-40">Actions</th>
+                {canEditLeagueRecords && <th className="py-3 px-4 text-center w-40">Actions</th>}
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-cyan-300/10">
               {sortedStandings.length === 0 ? (
                 <tr>
-                  <td colSpan={11} className="py-12 text-center text-slate-400 font-medium">
+                  <td colSpan={canEditLeagueRecords ? 11 : 10} className="py-12 text-center text-slate-400 font-medium">
                     No teams in the division standings list. Add a club above to get started!
                   </td>
                 </tr>
@@ -850,7 +953,7 @@ export default function StandingsView({
                       key={team.teamName}
                       className={`transition-colors ${
                         isIntegrityHighlighted
-                          ? 'bg-amber-50 ring-2 ring-inset ring-amber-200'
+                          ? 'bg-amber-300/10 ring-2 ring-inset ring-amber-300/25'
                           : ''
                       } ${
                         isUser 
@@ -862,7 +965,7 @@ export default function StandingsView({
                       <td id={`standing-rank-${team.rank}`} className="py-3.5 px-4 font-display font-bold text-center text-sm">
                         {team.rank === 1 ? (
                           <div className="flex items-center justify-center text-amber-500" title="First Place League Leader">
-                            <Star size={14} className="fill-amber-400 mr-0.5" /> 1
+                            <Star size={14} className="mr-0.5 fill-amber-400 text-amber-400" /> 1
                           </div>
                         ) : (
                           team.rank
@@ -885,7 +988,7 @@ export default function StandingsView({
                               aria-invalid={Boolean(standingEditErrors.teamName)}
                               aria-describedby={standingEditErrors.teamName ? 'edit-standing-team-name-error' : undefined}
                               className={cn(
-                                'h-8 rounded px-2 py-1 text-xs font-semibold text-slate-800',
+                                'h-8 rounded border-cyan-300/10 bg-[#0b1726]/85 px-2 py-1 text-xs font-semibold text-slate-100',
                                 standingEditErrors.teamName && standingsPanelInvalidClass
                               )}
                               placeholder="Club Name"
@@ -913,7 +1016,7 @@ export default function StandingsView({
                       {editingTeam === team.teamName ? (
                         /* Editing fields row WITH dynamic calculations */
                         <>
-                          <td className="py-3.5 px-3 text-center font-bold text-slate-800">
+                          <td className="py-3.5 px-3 text-center font-bold text-slate-100">
                             {previewWon + previewDrawn + previewLost}
                           </td>
                           <td className="py-3.5 px-3">
@@ -932,7 +1035,7 @@ export default function StandingsView({
                               aria-invalid={Boolean(standingEditErrors.won)}
                               aria-describedby={standingEditErrors.won ? 'edit-standing-won-error' : undefined}
                               className={cn(
-                                'h-8 w-11 rounded p-1 text-center text-xs font-bold text-slate-800',
+                                'h-8 w-11 rounded border-cyan-300/10 bg-[#0b1726]/85 p-1 text-center text-xs font-bold text-slate-100',
                                 standingEditErrors.won && standingsPanelInvalidClass
                               )}
                             />
@@ -954,7 +1057,7 @@ export default function StandingsView({
                               aria-invalid={Boolean(standingEditErrors.drawn)}
                               aria-describedby={standingEditErrors.drawn ? 'edit-standing-drawn-error' : undefined}
                               className={cn(
-                                'h-8 w-11 rounded p-1 text-center text-xs font-bold text-slate-800',
+                                'h-8 w-11 rounded border-cyan-300/10 bg-[#0b1726]/85 p-1 text-center text-xs font-bold text-slate-100',
                                 standingEditErrors.drawn && standingsPanelInvalidClass
                               )}
                             />
@@ -976,7 +1079,7 @@ export default function StandingsView({
                               aria-invalid={Boolean(standingEditErrors.lost)}
                               aria-describedby={standingEditErrors.lost ? 'edit-standing-lost-error' : undefined}
                               className={cn(
-                                'h-8 w-11 rounded p-1 text-center text-xs font-bold text-slate-800',
+                                'h-8 w-11 rounded border-cyan-300/10 bg-[#0b1726]/85 p-1 text-center text-xs font-bold text-slate-100',
                                 standingEditErrors.lost && standingsPanelInvalidClass
                               )}
                             />
@@ -998,7 +1101,7 @@ export default function StandingsView({
                               aria-invalid={Boolean(standingEditErrors.goalsFor)}
                               aria-describedby={standingEditErrors.goalsFor ? 'edit-standing-gf-error' : undefined}
                               className={cn(
-                                'h-8 w-11 rounded p-1 text-center text-xs font-bold text-slate-800',
+                                'h-8 w-11 rounded border-cyan-300/10 bg-[#0b1726]/85 p-1 text-center text-xs font-bold text-slate-100',
                                 standingEditErrors.goalsFor && standingsPanelInvalidClass
                               )}
                             />
@@ -1020,7 +1123,7 @@ export default function StandingsView({
                               aria-invalid={Boolean(standingEditErrors.goalsAgainst)}
                               aria-describedby={standingEditErrors.goalsAgainst ? 'edit-standing-ga-error' : undefined}
                               className={cn(
-                                'h-8 w-11 rounded p-1 text-center text-xs font-bold text-slate-800',
+                                'h-8 w-11 rounded border-cyan-300/10 bg-[#0b1726]/85 p-1 text-center text-xs font-bold text-slate-100',
                                 standingEditErrors.goalsAgainst && standingsPanelInvalidClass
                               )}
                             />
@@ -1036,10 +1139,10 @@ export default function StandingsView({
                           <td id={`standing-won-${team.rank}`} className="py-3.5 px-3 text-center">{team.won}</td>
                           <td id={`standing-drawn-${team.rank}`} className="py-3.5 px-3 text-center">{team.drawn}</td>
                           <td id={`standing-lost-${team.rank}`} className="py-3.5 px-3 text-center">{team.lost}</td>
-                          <td id={`standing-gf-${team.rank}`} className="py-3.5 px-3 text-center text-slate-500">{team.goalsFor}</td>
-                          <td id={`standing-ga-${team.rank}`} className="py-3.5 px-3 text-center text-slate-500">{team.goalsAgainst}</td>
+                          <td id={`standing-gf-${team.rank}`} className="py-3.5 px-3 text-center text-slate-400">{team.goalsFor}</td>
+                          <td id={`standing-ga-${team.rank}`} className="py-3.5 px-3 text-center text-slate-400">{team.goalsAgainst}</td>
                           <td id={`standing-gd-${team.rank}`} className="py-3.5 px-3 text-center">
-                            <span className={gd > 0 ? 'text-emerald-600 font-bold' : gd < 0 ? 'text-rose-500 font-bold' : 'text-slate-400'}>
+                            <span className={gd > 0 ? 'text-emerald-300 font-bold' : gd < 0 ? 'text-rose-300 font-bold' : 'text-slate-400'}>
                               {gd > 0 ? `+${gd}` : gd}
                             </span>
                           </td>
@@ -1050,6 +1153,7 @@ export default function StandingsView({
                       )}
 
                       {/* Actions Cell */}
+                      {canEditLeagueRecords && (
                       <td className="py-3.5 px-4">
                         <div className="flex items-center justify-center gap-2">
                           {editingTeam === team.teamName ? (
@@ -1058,9 +1162,9 @@ export default function StandingsView({
                               type="button"
                               onClick={() => handleSave(team)}
                               size="sm"
-                              className="h-8 rounded-lg bg-emerald-600 px-2.5 text-[10px] font-bold text-white hover:bg-emerald-700"
+                              className="h-8 rounded-lg bg-emerald-600 px-2.5 text-[10px] font-bold text-white hover:bg-emerald-500"
                             >
-                              <Save size={11} /> Save
+                              <Save size={11} className="text-emerald-100" /> Save
                             </Button>
                           ) : (
                             <>
@@ -1072,7 +1176,7 @@ export default function StandingsView({
                                 size="sm"
                                 className="h-8 px-2 text-[10px] font-bold text-slate-100 hover:bg-white/[0.07] hover:text-white"
                               >
-                                <Edit size={11} /> Edit
+                                <Edit size={11} className="text-cyan-200" /> Edit
                               </Button>
                               
                               {/* Allow delete for other clubs, but not user team to protect key app contexts */}
@@ -1083,16 +1187,17 @@ export default function StandingsView({
                                   onClick={() => handleDeleteTeam(team.teamName)}
                                   variant="ghost"
                                   size="sm"
-                                  className="h-8 px-2 text-[10px] font-bold text-rose-600 hover:bg-rose-50 hover:text-rose-700"
+                                  className="h-8 px-2 text-[10px] font-bold text-rose-300 hover:bg-rose-300/10 hover:text-rose-100"
                                   title="Remove from League"
                                 >
-                                  <Trash2 size={11} /> Remove
+                                  <Trash2 size={11} className="text-rose-300" /> Remove
                                 </Button>
                               )}
                             </>
                           )}
                         </div>
                       </td>
+                      )}
 
                     </tr>
                   );
@@ -1103,29 +1208,29 @@ export default function StandingsView({
         </div>
         
         {/* Table Column Meanings and Legends */}
-        <div className="p-4 bg-slate-50/50 border-t border-slate-200/60 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex flex-col justify-between gap-4 border-t border-cyan-300/10 bg-white/[0.035] p-4 md:flex-row md:items-center">
           <div className="flex items-center gap-2 text-slate-500 shrink-0">
-            <Info size={14} className="text-indigo-605 animate-pulse shrink-0" />
+            <Info size={14} className="text-cyan-300 animate-pulse shrink-0" />
             <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 font-mono">Legend & Glossary</span>
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3.5 text-[11px] text-slate-650 w-full md:w-auto">
             <div className="flex flex-col">
-              <span className="font-bold text-slate-800 font-mono">W / D / L</span>
+              <span className="font-bold text-slate-100 font-mono">W / D / L</span>
               <span className="text-slate-400 text-[10px] sm:text-[11px] mt-0.5">Wins / Draws / Losses</span>
             </div>
-            <div className="flex flex-col border-s border-slate-200 pl-3">
-              <span className="font-bold text-slate-800 font-mono">GF</span>
+            <div className="flex flex-col border-s border-cyan-300/10 pl-3">
+              <span className="font-bold text-slate-100 font-mono">GF</span>
               <span className="text-slate-400 text-[10px] sm:text-[11px] mt-0.5">Goals For (Scored)</span>
             </div>
-            <div className="flex flex-col border-s border-slate-200 pl-3">
-              <span className="font-bold text-slate-800 font-mono">GA</span>
+            <div className="flex flex-col border-s border-cyan-300/10 pl-3">
+              <span className="font-bold text-slate-100 font-mono">GA</span>
               <span className="text-slate-400 text-[10px] sm:text-[11px] mt-0.5">Goals Against (Conceded)</span>
             </div>
-            <div className="flex flex-col border-s border-slate-200 pl-3">
-              <span className="font-bold text-slate-800 font-mono">GD</span>
+            <div className="flex flex-col border-s border-cyan-300/10 pl-3">
+              <span className="font-bold text-slate-100 font-mono">GD</span>
               <span className="text-slate-400 text-[10px] sm:text-[11px] mt-0.5">Goal Difference (GF - GA)</span>
             </div>
-            <div className="flex flex-col border-s border-slate-200 pl-3">
+            <div className="flex flex-col border-s border-cyan-300/10 pl-3">
               <span className="font-bold text-slate-100 font-mono">Pts</span>
               <span className="text-slate-400 text-[10px] sm:text-[11px] mt-0.5">Points (Win=3, Draw=1, Loss=0)</span>
             </div>
@@ -1134,22 +1239,24 @@ export default function StandingsView({
       </div>
 
       {/* Standings backup history */}
-      <div className="bg-white border border-slate-200/70 rounded-2xl shadow-sm overflow-hidden">
+      {canEditLeagueRecords ? (
+      <div className={`${standingsDarkCardClass} overflow-hidden`}>
         <div className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center">
-              <Archive size={17} />
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-cyan-300/10 bg-cyan-300/10 text-cyan-200">
+              <Archive size={17} className="text-cyan-200" />
             </div>
             <div>
-              <h4 className="font-display font-black text-sm text-slate-900">Standings Backup Log</h4>
-              <p className="text-[10px] text-slate-500">Save weekly snapshots and restore an earlier league table.</p>
+              <h4 className="font-display font-black text-sm text-slate-100">Standings Backup Log</h4>
+              <p className="text-[10px] text-slate-400">Save weekly snapshots, restore an earlier league table, or delete old records.</p>
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <Label className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-[10px] font-bold normal-case tracking-normal text-slate-600">
+            <Label className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-cyan-300/10 bg-white/[0.045] px-2.5 py-1.5 text-[10px] font-bold normal-case tracking-normal text-slate-200">
               <Checkbox
                 checked={sundayBackupEnabled}
                 onChange={(event) => setSundayBackupEnabled(event.target.checked)}
+                className="border-cyan-300/20 bg-[#0b1726]"
               />
               Auto-save Sundays
             </Label>
@@ -1158,9 +1265,9 @@ export default function StandingsView({
               onClick={() => createStandingsBackup('manual')}
               disabled={standings.length === 0}
               size="sm"
-              className="h-8 rounded-lg bg-indigo-600 px-2.5 text-[10px] font-bold text-white hover:bg-indigo-700 disabled:opacity-40"
+              className="h-8 rounded-lg bg-violet-600 px-2.5 text-[10px] font-bold text-white hover:bg-violet-500 disabled:opacity-40"
             >
-              <Save size={11} />
+              <Save size={11} className="text-violet-100" />
               Save snapshot
             </Button>
             <Button
@@ -1168,16 +1275,16 @@ export default function StandingsView({
               onClick={() => setShowBackupLog(!showBackupLog)}
               variant="outline"
               size="sm"
-              className="h-8 rounded-lg px-2.5 text-[10px] font-bold text-slate-600"
+              className="h-8 rounded-lg border-cyan-300/10 bg-white/[0.035] px-2.5 text-[10px] font-bold text-slate-200 hover:bg-white/[0.07] hover:text-white"
             >
-              <History size={11} />
+              <History size={11} className="text-cyan-200" />
               {showBackupLog ? 'Hide logs' : `View logs (${standingsBackups.length})`}
             </Button>
           </div>
         </div>
 
         {backupNotice && (
-          <div className="mx-4 mb-4 px-3 py-2 bg-emerald-50 border border-emerald-100 rounded-lg text-[10px] font-bold text-emerald-700">
+          <div className="mx-4 mb-4 rounded-lg border border-emerald-300/20 bg-emerald-300/10 px-3 py-2 text-[10px] font-bold text-emerald-100">
             {backupNotice}
           </div>
         )}
@@ -1188,14 +1295,14 @@ export default function StandingsView({
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: 'auto' }}
               exit={{ opacity: 0, height: 0 }}
-              className="border-t border-slate-100 overflow-hidden"
+              className="overflow-hidden border-t border-cyan-300/10"
             >
               {standingsBackups.length === 0 ? (
                 <div className="p-6 text-center text-xs text-slate-400">
                   No standings backups yet. Save a snapshot now or enable Sunday auto-save.
                 </div>
               ) : (
-                <div className="divide-y divide-slate-100">
+                <div className="divide-y divide-cyan-300/10">
                   {standingsBackups.map(backup => {
                     const leader = [...backup.standings].sort((a, b) => b.points - a.points)[0];
                     return (
@@ -1208,9 +1315,9 @@ export default function StandingsView({
                             >
                               {backup.source === 'sunday' ? 'Sunday auto' : 'Manual'}
                             </Badge>
-                            <strong className="text-xs text-slate-800 truncate">{backup.label}</strong>
+                            <strong className="text-xs text-slate-100 truncate">{backup.label}</strong>
                           </div>
-                          <p className="text-[10px] text-slate-500 mt-1">
+                          <p className="text-[10px] text-slate-400 mt-1">
                             {backup.standings.length} clubs
                             {leader ? ` - Leader: ${leader.teamName} (${leader.points} pts)` : ''}
                             {' - '}
@@ -1223,19 +1330,20 @@ export default function StandingsView({
                             onClick={() => restoreStandingsBackup(backup)}
                             variant="ghost"
                             size="sm"
-                            className="h-8 rounded-lg px-2.5 text-[10px] font-bold text-indigo-700 hover:bg-indigo-50 hover:text-indigo-900"
+                            className="h-8 rounded-lg px-2.5 text-[10px] font-bold text-cyan-200 hover:bg-cyan-300/10 hover:text-cyan-100"
                           >
-                            <RotateCcw size={10} /> Restore
+                            <RotateCcw size={10} className="text-cyan-200" /> Restore
                           </Button>
                           <Button
                             type="button"
                             onClick={() => deleteStandingsBackup(backup.id)}
                             variant="ghost"
-                            size="icon"
-                            className="size-8 text-slate-400 hover:bg-rose-50 hover:text-rose-600"
+                            size="sm"
+                            className="h-8 rounded-lg px-2.5 text-[10px] font-bold text-rose-300 hover:bg-rose-300/10 hover:text-rose-100"
                             aria-label={`Delete ${backup.label}`}
                           >
-                            <Trash2 size={12} />
+                            <Trash2 size={11} className="text-rose-300" />
+                            Delete
                           </Button>
                         </div>
                       </div>
@@ -1247,8 +1355,24 @@ export default function StandingsView({
           )}
         </AnimatePresence>
       </div>
+      ) : (
+        <div className={`${standingsDarkCardClass} p-4`}>
+          <div className="flex items-start gap-3">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-emerald-300/20 bg-emerald-300/10">
+              <Archive size={17} className="text-emerald-200" />
+            </div>
+            <div>
+              <h4 className="font-display font-black text-sm text-slate-100">Official Archive</h4>
+              <p className="mt-1 text-xs leading-relaxed text-slate-400">
+                Local standings backups are disabled for official competitions. League Owners keep the source match records, standings history, discipline, and awards for registered events.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Bottom safety controls */}
+      {canEditLeagueRecords && (
       <AlertDialog open={showResetConfirm} onOpenChange={setShowResetConfirm}>
         <div className="flex justify-end">
           <AlertDialogTrigger asChild>
@@ -1257,9 +1381,9 @@ export default function StandingsView({
               type="button"
               variant="outline"
               size="sm"
-              className="h-8 rounded-lg border-rose-200 px-2.5 text-[10px] font-bold text-rose-600 hover:bg-rose-50 hover:text-rose-700"
+              className="h-8 rounded-lg border-rose-300/25 bg-rose-300/10 px-2.5 text-[10px] font-bold text-rose-200 hover:bg-rose-300/15 hover:text-rose-100"
             >
-              <RefreshCw size={11} />
+              <RefreshCw size={11} className="text-rose-200" />
               Clear standings table
             </Button>
           </AlertDialogTrigger>
@@ -1292,12 +1416,14 @@ export default function StandingsView({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      )}
 
       {/* === DISCIPLINARY RECORDS === */}
-      <section className="bg-white rounded-2xl shadow-lg shadow-slate-100/30 border border-slate-200/60 p-5 mt-6">
+      <section className={`${standingsDarkCardClass} mt-6 p-5`}>
         <DisciplinaryRecords 
           players={players} 
           onUpdatePlayer={onUpdatePlayer} 
+          readOnly={isOfficialLeagueMode}
         />
       </section>
 
@@ -1308,10 +1434,12 @@ export default function StandingsView({
 // === DISCIPLINARY RECORDS SUB-COMPONENT ===
 function DisciplinaryRecords({ 
   players, 
-  onUpdatePlayer 
+  onUpdatePlayer,
+  readOnly = false
 }: { 
   players: Player[]; 
   onUpdatePlayer: (updated: Player) => void;
+  readOnly?: boolean;
 }) {
   const activePlayers = players.filter(p => p.registrationStatus === 'Active' && !['Manager', 'Coach', 'Staff', 'Team Owner', 'Founder', 'President', 'Vice President', 'Director of Football', 'Treasurer', 'Secretary', 'Manager / Coach', 'Head Coach', 'Assistant Coach'].includes(p.position));
   
@@ -1433,10 +1561,14 @@ function DisciplinaryRecords({
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="font-display font-black text-slate-800 text-base flex items-center gap-2">
-            <AlertTriangle size={18} className="text-amber-500" /> Discipline & Match Awards
+          <h2 className="font-display font-black text-slate-100 text-base flex items-center gap-2">
+            <AlertTriangle size={18} className="text-amber-300" /> Discipline & Match Awards
           </h2>
-          <p className="text-[11px] text-slate-500 mt-0.5">Log player offences and award Man of the Match honours</p>
+          <p className="text-[11px] text-slate-400 mt-0.5">
+            {readOnly
+              ? 'Official competition discipline and awards are supplied by the League Owner.'
+              : 'Log player offences, delete records, and award Man of the Match honours.'}
+          </p>
         </div>
         <div className="flex items-center gap-2 text-[10px]">
           <Badge variant="warning" className="rounded-full border-amber-300/25 bg-amber-300/10 text-amber-100">Yellow {players.reduce((s, p) => s + (p.yellowCards || 0), 0)}</Badge>
@@ -1454,10 +1586,10 @@ function DisciplinaryRecords({
         <div className="space-y-3">
           <div className="flex items-center justify-between">
             <div>
-              <h3 className="font-display font-black text-slate-800 text-sm flex items-center gap-1.5">
-                <AlertTriangle size={15} className="text-amber-500" /> Disciplinary
+              <h3 className="font-display font-black text-slate-100 text-sm flex items-center gap-1.5">
+                <AlertTriangle size={15} className="text-amber-300" /> Disciplinary
               </h3>
-              <p className="text-[10px] text-slate-500">Log player offences - yellow & red cards</p>
+              <p className="text-[10px] text-slate-400">Log player offences - yellow & red cards</p>
             </div>
             <div className="flex items-center gap-1.5 text-[9px]">
               <Badge variant="warning" className="rounded border-amber-300/25 bg-amber-300/10 text-amber-100">Yellow {players.reduce((s, p) => s + (p.yellowCards || 0), 0)}</Badge>
@@ -1466,9 +1598,10 @@ function DisciplinaryRecords({
           </div>
 
           {/* Offence Logger Form */}
-          <div className="bg-slate-50 rounded-xl p-3 border border-slate-200">
-            <h4 className="text-[9px] font-mono font-black uppercase tracking-wider text-slate-400 mb-2 flex items-center gap-1">
-              <ClipboardList size={11} className="text-indigo-600" /> Log New Offence
+          {!readOnly ? (
+          <div className={`${standingsDarkInsetClass} p-3`}>
+            <h4 className="text-[9px] font-mono font-black uppercase tracking-wider text-slate-300 mb-2 flex items-center gap-1">
+              <ClipboardList size={11} className="text-cyan-200" /> Log New Offence
             </h4>
             <div className="grid grid-cols-2 gap-1.5 mb-2">
               <div>
@@ -1477,8 +1610,8 @@ function DisciplinaryRecords({
                   <SelectTrigger className={standingsCompactControlClass}>
                     <SelectValue placeholder="Select..." />
                   </SelectTrigger>
-                  <SelectContent>
-                    {activePlayers.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
+                  <SelectContent className={standingsSelectContentClass}>
+                    {activePlayers.map(p => <SelectItem key={p.id} value={p.id} className={standingsSelectItemClass}>{p.name}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
@@ -1492,8 +1625,8 @@ function DisciplinaryRecords({
                   <SelectTrigger className={standingsCompactControlClass}>
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent>
-                    {CARD_TYPES.map(type => <SelectItem key={type} value={type}>{CARD_TYPE_LABELS[type]}</SelectItem>)}
+                  <SelectContent className={standingsSelectContentClass}>
+                    {CARD_TYPES.map(type => <SelectItem key={type} value={type} className={standingsSelectItemClass}>{CARD_TYPE_LABELS[type]}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
@@ -1510,10 +1643,20 @@ function DisciplinaryRecords({
                 <Input type="text" placeholder="Reckless tackle..." value={reason} onChange={e => setReason(e.target.value)} className={standingsCompactControlClass} />
               </div>
             </div>
-            <Button type="button" onClick={handleLogOffense} disabled={!selectedPlayerId || !reason.trim()} size="sm" className="h-8 rounded-md bg-amber-500 px-3 text-[9px] font-bold text-white hover:bg-amber-600">
-              <Plus size={10} /> Record Offence
+            <Button type="button" onClick={handleLogOffense} disabled={!selectedPlayerId || !reason.trim()} size="sm" className="h-8 rounded-md bg-amber-600 px-3 text-[9px] font-bold text-white hover:bg-amber-500">
+              <Plus size={10} className="text-amber-50" /> Record Offence
             </Button>
           </div>
+          ) : (
+            <div className={`${standingsDarkInsetClass} p-3`}>
+              <h4 className="mb-1 flex items-center gap-1 font-mono text-[9px] font-black uppercase tracking-wider text-slate-300">
+                <ClipboardList size={11} className="text-cyan-200" /> Official Discipline Feed
+              </h4>
+              <p className="text-[10px] leading-relaxed text-slate-400">
+                Coaches can review discipline here when the League Owner feed is connected. Record and delete actions stay locked to the official competition admin.
+              </p>
+            </div>
+          )}
 
           {/* Player Card Tally */}
           {playersWithCards.length > 0 && (
@@ -1540,7 +1683,7 @@ function DisciplinaryRecords({
               <div className="overflow-x-auto max-h-64 overflow-y-auto">
                 <table className="w-full text-left text-[10px]">
                   <thead>
-                    <tr className="border-b border-slate-200 text-[8px] font-black text-slate-400 uppercase tracking-wider sticky top-0 bg-white">
+                    <tr className="sticky top-0 border-b border-cyan-300/10 bg-[#07111f] text-[8px] font-black uppercase tracking-wider text-slate-400">
                       <th className="pb-1.5 pr-1.5">Date</th>
                       <th className="pb-1.5 pr-1.5">Player</th>
                       <th className="pb-1.5 pr-1.5">Card</th>
@@ -1549,22 +1692,25 @@ function DisciplinaryRecords({
                       <th className="pb-1.5 pl-1 w-5"></th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-50">
+                  <tbody className="divide-y divide-cyan-300/10">
                     {allOffenses.map((o) => (
-                      <tr key={o.id} className="hover:bg-slate-50/50 group">
-                        <td className="py-1.5 pr-1.5 text-[9px] font-mono text-slate-500 whitespace-nowrap">{new Date(o.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</td>
-                        <td className="py-1.5 pr-1.5 text-[9px] font-bold text-slate-700 whitespace-nowrap">{o.playerName}</td>
+                      <tr key={o.id} className="group hover:bg-white/[0.045]">
+                        <td className="py-1.5 pr-1.5 text-[9px] font-mono text-slate-400 whitespace-nowrap">{new Date(o.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</td>
+                        <td className="py-1.5 pr-1.5 text-[9px] font-bold text-slate-100 whitespace-nowrap">{o.playerName}</td>
                         <td className="py-1.5 pr-1.5 whitespace-nowrap">
-                          <Badge variant={CARD_TYPE_BADGE_VARIANTS[o.cardType]} className={cn('rounded px-1 py-0 text-[8px]', o.cardType === 'Second Yellow' && 'border-orange-100 bg-orange-50 text-orange-800')}>
+                          <Badge variant={CARD_TYPE_BADGE_VARIANTS[o.cardType]} className={cn('rounded px-1 py-0 text-[8px]', o.cardType === 'Second Yellow' && 'border-orange-300/25 bg-orange-300/10 text-orange-100')}>
                             {CARD_TYPE_LABELS[o.cardType]}
                           </Badge>
                         </td>
                         <td className="py-1.5 pr-1.5 text-[9px] font-mono text-slate-400 whitespace-nowrap">{o.matchMinute ? `${o.matchMinute}'` : '-'}</td>
-                        <td className="py-1.5 text-[9px] text-slate-600 max-w-[140px] truncate">{o.reason}</td>
+                        <td className="py-1.5 text-[9px] text-slate-300 max-w-[140px] truncate">{o.reason}</td>
                         <td className="py-1.5 pl-1 text-center">
-                          <Button type="button" onClick={() => handleDeleteOffense(o.id, o.playerId)} variant="ghost" size="icon" className="size-6 text-slate-400 opacity-0 hover:text-rose-600 group-hover:opacity-100" title="Delete offence" aria-label={`Delete offence for ${o.playerName}`}>
-                            <Trash2 size={10} />
-                          </Button>
+                          {!readOnly && (
+                            <Button type="button" onClick={() => handleDeleteOffense(o.id, o.playerId)} variant="ghost" size="sm" className="h-7 rounded-md px-2 text-[9px] font-bold text-rose-300 hover:bg-rose-300/10 hover:text-rose-100" title="Delete offence" aria-label={`Delete offence for ${o.playerName}`}>
+                              <Trash2 size={10} className="text-rose-300" />
+                              Delete
+                            </Button>
+                          )}
                         </td>
                       </tr>
                     ))}
@@ -1579,18 +1725,19 @@ function DisciplinaryRecords({
         <div className="space-y-3">
           <div className="flex items-center justify-between">
             <div>
-              <h3 className="font-display font-black text-slate-800 text-sm flex items-center gap-1.5">
-                <Star size={15} className="text-amber-500" /> Man of the Match
+              <h3 className="font-display font-black text-slate-100 text-sm flex items-center gap-1.5">
+                <Star size={15} className="text-amber-300" /> Man of the Match
               </h3>
-              <p className="text-[10px] text-slate-500">Award match MVP to standout performers</p>
+              <p className="text-[10px] text-slate-400">Award match MVP to standout performers</p>
             </div>
             <Badge variant="warning" className="rounded border-amber-300/25 bg-amber-300/10 text-amber-100">MVP {players.reduce((s, p) => s + (p.mvpAwards || 0), 0)} Total</Badge>
           </div>
 
           {/* MVP Award Form */}
-          <div className="bg-slate-50 rounded-xl p-3 border border-slate-200">
-            <h4 className="text-[9px] font-mono font-black uppercase tracking-wider text-slate-400 mb-2 flex items-center gap-1">
-              <Award size={11} className="text-amber-500" /> Award Man of the Match
+          {!readOnly ? (
+          <div className={`${standingsDarkInsetClass} p-3`}>
+            <h4 className="text-[9px] font-mono font-black uppercase tracking-wider text-slate-300 mb-2 flex items-center gap-1">
+              <Award size={11} className="text-amber-300" /> Award Man of the Match
             </h4>
             <div className="grid grid-cols-2 gap-1.5 mb-2">
               <div>
@@ -1599,8 +1746,8 @@ function DisciplinaryRecords({
                   <SelectTrigger className={standingsCompactControlClass}>
                     <SelectValue placeholder="Select..." />
                   </SelectTrigger>
-                  <SelectContent>
-                    {activePlayers.map(p => <SelectItem key={p.id} value={p.id}>{p.name} MVP {p.mvpAwards || 0}</SelectItem>)}
+                  <SelectContent className={standingsSelectContentClass}>
+                    {activePlayers.map(p => <SelectItem key={p.id} value={p.id} className={standingsSelectItemClass}>{p.name} MVP {p.mvpAwards || 0}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
@@ -1617,10 +1764,20 @@ function DisciplinaryRecords({
                 <Input type="text" placeholder="Hat-trick, clean sheet..." value={mvpNote} onChange={e => setMvpNote(e.target.value)} className={standingsCompactControlClass} />
               </div>
             </div>
-            <Button type="button" onClick={handleAwardMVP} disabled={!mvpPlayerId} size="sm" className="h-8 rounded-md bg-amber-500 px-3 text-[9px] font-bold text-white hover:bg-amber-600">
-              <Award size={10} /> Award MVP
+            <Button type="button" onClick={handleAwardMVP} disabled={!mvpPlayerId} size="sm" className="h-8 rounded-md bg-amber-600 px-3 text-[9px] font-bold text-white hover:bg-amber-500">
+              <Award size={10} className="text-amber-50" /> Award MVP
             </Button>
           </div>
+          ) : (
+            <div className={`${standingsDarkInsetClass} p-3`}>
+              <h4 className="mb-1 flex items-center gap-1 font-mono text-[9px] font-black uppercase tracking-wider text-slate-300">
+                <Award size={11} className="text-amber-300" /> Official Match Awards
+              </h4>
+              <p className="text-[10px] leading-relaxed text-slate-400">
+                MVP and match awards come from the registered league or tournament record. Award actions become available here only for manual league tracking.
+              </p>
+            </div>
+          )}
 
           {/* MVP Leaderboard */}
           {activePlayers.filter(p => (p.mvpAwards || 0) > 0).length > 0 && (
@@ -1647,7 +1804,7 @@ function DisciplinaryRecords({
               <div className="overflow-x-auto max-h-64 overflow-y-auto">
                 <table className="w-full text-left text-[10px]">
                   <thead>
-                    <tr className="border-b border-slate-200 text-[8px] font-black text-slate-400 uppercase tracking-wider sticky top-0 bg-white">
+                    <tr className="sticky top-0 border-b border-cyan-300/10 bg-[#07111f] text-[8px] font-black uppercase tracking-wider text-slate-400">
                       <th className="pb-1.5 pr-1.5">Date</th>
                       <th className="pb-1.5 pr-1.5">Player</th>
                       <th className="pb-1.5 pr-1.5">Opponent</th>
@@ -1655,25 +1812,28 @@ function DisciplinaryRecords({
                       <th className="pb-1.5 pl-1 w-5"></th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-50">
+                  <tbody className="divide-y divide-cyan-300/10">
                     {allMvpAwards.map((m) => (
-                      <tr key={m.id} className="hover:bg-slate-50/50 group">
-                        <td className="py-1.5 pr-1.5 text-[9px] font-mono text-slate-500 whitespace-nowrap">{new Date(m.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</td>
-                        <td className="py-1.5 pr-1.5 text-[9px] font-bold text-slate-700 whitespace-nowrap">{m.playerName}</td>
-                        <td className="py-1.5 pr-1.5 text-[9px] text-slate-500 whitespace-nowrap">{m.opponent || '-'}</td>
-                        <td className="py-1.5 text-[9px] text-slate-600 max-w-[160px] truncate">{m.note || '-'}</td>
+                      <tr key={m.id} className="group hover:bg-white/[0.045]">
+                        <td className="py-1.5 pr-1.5 text-[9px] font-mono text-slate-400 whitespace-nowrap">{new Date(m.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</td>
+                        <td className="py-1.5 pr-1.5 text-[9px] font-bold text-slate-100 whitespace-nowrap">{m.playerName}</td>
+                        <td className="py-1.5 pr-1.5 text-[9px] text-slate-400 whitespace-nowrap">{m.opponent || '-'}</td>
+                        <td className="py-1.5 text-[9px] text-slate-300 max-w-[160px] truncate">{m.note || '-'}</td>
                         <td className="py-1.5 pl-1 text-center">
-                          <Button
-                            type="button"
-                            onClick={() => handleDeleteMvp(m.id, m.playerId)}
-                            variant="ghost"
-                            size="icon"
-                            className="size-6 text-slate-400 opacity-0 hover:text-rose-600 group-hover:opacity-100"
-                            title="Delete this MVP award"
-                            aria-label={`Delete MVP award for ${m.playerName}`}
-                          >
-                            <Trash2 size={10} />
-                          </Button>
+                          {!readOnly && (
+                            <Button
+                              type="button"
+                              onClick={() => handleDeleteMvp(m.id, m.playerId)}
+                              variant="ghost"
+                              size="sm"
+                              className="h-7 rounded-md px-2 text-[9px] font-bold text-rose-300 hover:bg-rose-300/10 hover:text-rose-100"
+                              title="Delete this MVP award"
+                              aria-label={`Delete MVP award for ${m.playerName}`}
+                            >
+                              <Trash2 size={10} className="text-rose-300" />
+                              Delete
+                            </Button>
+                          )}
                         </td>
                       </tr>
                     ))}
