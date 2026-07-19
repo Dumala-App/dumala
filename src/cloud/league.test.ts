@@ -170,7 +170,8 @@ describe('event roster helpers', () => {
   });
   const player = (status: EventRosterPlayer['status']): EventRosterPlayer => ({
     id: `${status}-${Math.random()}`, event_id: 'e', league_id: 'l', team_id: 'a', registration_id: null,
-    full_name: 'Player', birthdate: null, shirt_number: null, status, transfer_note: null, created_at: '', updated_at: ''
+    transfer_from_team_id: null, full_name: 'Player', birthdate: null, shirt_number: null, status,
+    transfer_note: null, transferred_at: null, created_at: '', updated_at: ''
   });
 
   it('summarizes roster statuses, locks, and season windows', () => {
@@ -212,11 +213,11 @@ describe('event roster helpers', () => {
 
   it('returns only active players for a team ordered by shirt number then name', () => {
     const players: EventRosterPlayer[] = [
-      { id: 'p3', event_id: 'e', league_id: 'l', team_id: 'a', registration_id: null, full_name: 'Zed', birthdate: null, shirt_number: null, status: 'active', transfer_note: null, created_at: '', updated_at: '' },
-      { id: 'p1', event_id: 'e', league_id: 'l', team_id: 'a', registration_id: null, full_name: 'Ari', birthdate: null, shirt_number: 7, status: 'active', transfer_note: null, created_at: '', updated_at: '' },
-      { id: 'p2', event_id: 'e', league_id: 'l', team_id: 'a', registration_id: null, full_name: 'Bea', birthdate: null, shirt_number: 7, status: 'active', transfer_note: null, created_at: '', updated_at: '' },
-      { id: 'p4', event_id: 'e', league_id: 'l', team_id: 'a', registration_id: null, full_name: 'Released', birthdate: null, shirt_number: 1, status: 'released', transfer_note: null, created_at: '', updated_at: '' },
-      { id: 'p5', event_id: 'e', league_id: 'l', team_id: 'b', registration_id: null, full_name: 'Other', birthdate: null, shirt_number: 2, status: 'active', transfer_note: null, created_at: '', updated_at: '' }
+      { id: 'p3', event_id: 'e', league_id: 'l', team_id: 'a', transfer_from_team_id: null, registration_id: null, full_name: 'Zed', birthdate: null, shirt_number: null, status: 'active', transfer_note: null, transferred_at: null, created_at: '', updated_at: '' },
+      { id: 'p1', event_id: 'e', league_id: 'l', team_id: 'a', transfer_from_team_id: null, registration_id: null, full_name: 'Ari', birthdate: null, shirt_number: 7, status: 'active', transfer_note: null, transferred_at: null, created_at: '', updated_at: '' },
+      { id: 'p2', event_id: 'e', league_id: 'l', team_id: 'a', transfer_from_team_id: null, registration_id: null, full_name: 'Bea', birthdate: null, shirt_number: 7, status: 'active', transfer_note: null, transferred_at: null, created_at: '', updated_at: '' },
+      { id: 'p4', event_id: 'e', league_id: 'l', team_id: 'a', transfer_from_team_id: null, registration_id: null, full_name: 'Released', birthdate: null, shirt_number: 1, status: 'released', transfer_note: null, transferred_at: null, created_at: '', updated_at: '' },
+      { id: 'p5', event_id: 'e', league_id: 'l', team_id: 'b', transfer_from_team_id: null, registration_id: null, full_name: 'Other', birthdate: null, shirt_number: 2, status: 'active', transfer_note: null, transferred_at: null, created_at: '', updated_at: '' }
     ];
 
     expect(activeRosterForTeam(players, 'a').map(p => p.full_name)).toEqual(['Ari', 'Bea', 'Zed']);
@@ -426,7 +427,8 @@ describe('matchday readiness helper', () => {
     fixture.away_team_id = 'away';
     const roster = (teamId: string, status: EventRosterPlayer['status'] = 'active'): EventRosterPlayer => ({
       id: `${teamId}-${status}-${Math.random()}`, event_id: 'e', league_id: 'l', team_id: teamId, registration_id: null,
-      full_name: 'Player', birthdate: null, shirt_number: null, status, transfer_note: null, created_at: '', updated_at: ''
+      transfer_from_team_id: null, full_name: 'Player', birthdate: null, shirt_number: null, status,
+      transfer_note: null, transferred_at: null, created_at: '', updated_at: ''
     });
     const stat = (fixtureId: string, type: FixtureStatEvent['stat_type']): FixtureStatEvent => ({
       id: `${fixtureId}-${type}-${Math.random()}`, fixture_id: fixtureId, event_id: 'e', league_id: 'l',
@@ -904,6 +906,19 @@ describe('cloud league repository', () => {
       player_id: 'player-1',
       next_status: 'transferred',
       note: 'Moved after approval'
+    });
+  });
+
+  it('transfers a roster player to another team through the guarded RPC', async () => {
+    const saved = { id: 'player-1', team_id: 'team-2', transfer_from_team_id: 'team-1' };
+    const { client, rpc } = createTableStub(saved);
+    await expect(
+      createCloudDataAccess(client).league.transferEventRosterPlayer('player-1', 'team-2', ' Approved clearance ')
+    ).resolves.toEqual(saved);
+    expect(rpc).toHaveBeenCalledWith('transfer_event_roster_player', {
+      player_id: 'player-1',
+      destination_team_id: 'team-2',
+      note: 'Approved clearance'
     });
   });
 

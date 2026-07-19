@@ -897,12 +897,14 @@ export interface EventRosterPlayer {
   event_id: string;
   league_id: string;
   team_id: string;
+  transfer_from_team_id: string | null;
   registration_id: string | null;
   full_name: string;
   birthdate: string | null;
   shirt_number: number | null;
   status: EventRosterPlayerStatus;
   transfer_note: string | null;
+  transferred_at: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -1459,6 +1461,24 @@ export const markEventRosterPlayerStatus = async (
     }),
     'ROSTER_PLAYER_STATUS_FAILED',
     'Failed to update the roster player'
+  ) as EventRosterPlayer;
+};
+
+export const transferEventRosterPlayer = async (
+  client: DumalaSupabaseClient,
+  playerId: string,
+  destinationTeamId: string,
+  note?: string | null
+): Promise<EventRosterPlayer> => {
+  const supabase = asUntypedClient(client);
+  return expectNoError(
+    await supabase.rpc('transfer_event_roster_player', {
+      player_id: playerId,
+      destination_team_id: destinationTeamId,
+      note: note?.trim() || null
+    }),
+    'ROSTER_PLAYER_TRANSFER_FAILED',
+    'Failed to transfer the roster player'
   ) as EventRosterPlayer;
 };
 
