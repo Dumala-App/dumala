@@ -15,6 +15,7 @@ import {
   FileJson,
   FileText,
   Gauge,
+  HelpCircle,
   Activity,
   AlertTriangle,
   Archive,
@@ -126,6 +127,7 @@ import {
   DARK_GLASS_DASHBOARD_SURFACE_STYLE
 } from '../../theme/darkGlassTheme';
 import { CloudAccountGate } from '../CloudAccountGate';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
 
 interface LeagueAppProps {
   runtime: Extract<CloudRuntime, { enabled: true }>;
@@ -177,6 +179,7 @@ const registrationTone: Record<EventRegistrationStatus, string> = {
 const panel = 'rounded-[1.4rem] border border-white/10 bg-slate-950/55 shadow-[0_20px_70px_rgba(2,6,23,0.28)] backdrop-blur-xl';
 const subtleCard = 'rounded-xl bg-white/[0.035] shadow-[inset_0_1px_0_rgba(255,255,255,0.035)]';
 const quietRow = 'border-t border-white/10 first:border-t-0';
+const quietSurface = 'rounded-[1.25rem] border border-white/[0.07] bg-white/[0.03]';
 const sectionHeader = 'flex items-center gap-2 border-b border-white/10 px-4 py-3';
 const inputClass = 'h-10 w-full rounded-xl border border-white/10 bg-slate-950/70 px-3 text-sm text-slate-100 outline-none transition placeholder:text-slate-500 focus:border-sky-300/50 focus:ring-2 focus:ring-sky-400/15';
 const selectClass = `${inputClass} pr-8`;
@@ -267,6 +270,38 @@ const StatTile = ({ label: tileLabel, value, detail }: { label: string; value: s
     <p className="mt-1 truncate font-display text-2xl font-black text-white">{value}</p>
     <p className="mt-1 text-xs text-slate-400">{detail}</p>
   </div>
+);
+
+const OverviewMetric = ({ label: metricLabel, value, detail }: { label: string; value: string | number; detail: string }) => (
+  <div className="min-w-0 border-t border-white/[0.08] pt-4 sm:border-l sm:border-t-0 sm:pl-5 sm:pt-0">
+    <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-500">{metricLabel}</p>
+    <p className="mt-1 break-words font-display text-xl font-black text-white sm:text-2xl">{value}</p>
+    <p className="mt-1 text-xs text-slate-400">{detail}</p>
+  </div>
+);
+
+const InlineMetric = ({ label: metricLabel, value }: { label: string; value: string | number }) => (
+  <span className="min-w-0">
+    <span className="block text-[10px] font-black uppercase tracking-wide text-slate-500">{metricLabel}</span>
+    <span className="mt-0.5 block font-display text-base font-black text-white">{value}</span>
+  </span>
+);
+
+const HelpTooltip = ({ content, label: ariaLabel = 'More guidance' }: { content: string; label?: string }) => (
+  <Tooltip>
+    <TooltipTrigger asChild>
+      <button
+        type="button"
+        aria-label={ariaLabel}
+        className="inline-flex h-5 w-5 items-center justify-center rounded-full text-slate-500 transition hover:bg-white/[0.06] hover:text-sky-100 focus:outline-none focus:ring-2 focus:ring-sky-300/30"
+      >
+        <HelpCircle size={13} />
+      </button>
+    </TooltipTrigger>
+    <TooltipContent className="max-w-64 bg-slate-100 text-slate-950">
+      {content}
+    </TooltipContent>
+  </Tooltip>
 );
 
 const ProgressMeter = ({ value, label: meterLabel }: { value: number; label: string }) => {
@@ -375,7 +410,8 @@ const LeagueApp = ({ runtime, userId, authController, preview = false }: LeagueA
   };
 
   return (
-    <div
+    <TooltipProvider delayDuration={150}>
+      <div
       className="relative min-h-screen bg-[#05070d] text-slate-100"
       style={{
         ...DARK_GLASS_THEME_STYLE,
@@ -384,10 +420,10 @@ const LeagueApp = ({ runtime, userId, authController, preview = false }: LeagueA
       }}
     >
       <div className="mx-auto min-h-screen max-w-7xl px-4 py-5 sm:px-6 lg:px-8" style={DARK_GLASS_DASHBOARD_SURFACE_STYLE}>
-        <header className="mb-5 flex flex-wrap items-center justify-between gap-4 rounded-[1.75rem] border border-white/10 bg-white/[0.045] px-4 py-4 shadow-[0_24px_90px_rgba(2,6,23,0.25)] backdrop-blur-xl sm:px-5">
+        <header className="mb-5 flex flex-wrap items-center justify-between gap-4 rounded-[1.75rem] border border-white/[0.08] bg-white/[0.035] px-4 py-4 shadow-[0_20px_70px_rgba(2,6,23,0.22)] backdrop-blur-xl sm:px-5">
           <div className="flex items-center gap-3">
-            <span className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-2xl border border-white/10 bg-white/[0.07] p-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
-              <img src="/dumalaglass.png" alt="Dumala" className="h-full w-full object-contain drop-shadow-[0_8px_18px_rgba(125,211,252,0.18)]" />
+            <span className="flex h-12 w-12 items-center justify-center">
+              <img src="/dumalaglass.png" alt="Dumala" className="h-12 w-12 object-contain drop-shadow-[0_10px_22px_rgba(125,211,252,0.22)]" />
             </span>
             <div>
               <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-sky-200/85">Dumala League</p>
@@ -442,7 +478,6 @@ const LeagueApp = ({ runtime, userId, authController, preview = false }: LeagueA
           <>
             {section === 'overview' && (
               <OverviewSection
-                preview={preview}
                 league={activeLeague}
                 seasons={seasons}
                 venues={venues}
@@ -461,16 +496,26 @@ const LeagueApp = ({ runtime, userId, authController, preview = false }: LeagueA
             )}
             {section === 'seasons' && (
               <SeasonsSection
+                preview={preview}
                 seasons={seasons}
+                events={events}
+                eventTeams={eventTeams}
+                fixtures={leagueFixtures}
+                venues={venues}
                 onCreate={input => withError(async () => { await league.createSeason(activeLeague.id, input); await loadLeagueData(activeLeague.id); })}
                 onAdvance={(seasonId, next) => withError(async () => { await league.advanceSeasonStatus(seasonId, next); await loadLeagueData(activeLeague.id); })}
+                onGoToEvents={() => setSection('events')}
               />
             )}
             {section === 'events' && (
               <EventsSection
                 league={league}
+                preview={preview}
                 events={events}
                 seasons={seasons}
+                eventTeams={eventTeams}
+                fixtures={leagueFixtures}
+                venues={venues}
                 runError={withError}
                 onCreate={input => withError(async () => { await league.createEvent(activeLeague.id, input); await loadLeagueData(activeLeague.id); })}
                 onAdvance={(eventId, next) => withError(async () => { await league.advanceEventStatus(eventId, next); await loadLeagueData(activeLeague.id); })}
@@ -558,14 +603,14 @@ const LeagueApp = ({ runtime, userId, authController, preview = false }: LeagueA
           </>
         )}
       </div>
-    </div>
+      </div>
+    </TooltipProvider>
   );
 };
 
 // --- Overview ----------------------------------------------------------------
 
-const OverviewSection = ({ preview, league, seasons, venues, events, ledger, invoices, eventTeams, fixtures, statEvents, onAdvance, onGoToSeasons, onGoToEvents, onGoToVenues, onGoToFinance }: {
-  preview: boolean;
+const OverviewSection = ({ league, seasons, venues, events, ledger, invoices, eventTeams, fixtures, statEvents, onAdvance, onGoToSeasons, onGoToEvents, onGoToVenues, onGoToFinance }: {
   league: League;
   seasons: LeagueSeason[];
   venues: LeagueVenue[];
@@ -660,9 +705,9 @@ const OverviewSection = ({ preview, league, seasons, venues, events, ledger, inv
 
   return (
     <div className="space-y-5">
-      <section className="grid gap-4 lg:grid-cols-[1.3fr_0.7fr]">
-        <div className={`${panel} overflow-hidden p-5 sm:p-6`}>
-          <div className="flex flex-wrap items-start justify-between gap-4">
+      <section className={`${panel} overflow-hidden p-5 sm:p-6`}>
+        <div className="grid gap-6 lg:grid-cols-[1.35fr_0.65fr] lg:items-start">
+          <div>
             <div className="max-w-2xl">
               <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-sky-200/80">Operations overview</p>
               <h2 className="mt-2 font-display text-3xl font-black tracking-normal text-white sm:text-4xl">
@@ -672,24 +717,20 @@ const OverviewSection = ({ preview, league, seasons, venues, events, ledger, inv
                 {league.description || 'Control seasons, tournaments, venues, finance, registration, and match-day operations from one league workspace.'}
               </p>
             </div>
-            <span className="rounded-full border border-white/10 bg-white/[0.06] px-3 py-1.5 text-xs font-bold text-slate-200">
-              {league.currency} workspace
-            </span>
+            <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              <OverviewMetric label="Seasons" value={seasons.length} detail={`${activeSeasons} active`} />
+              <OverviewMetric label="Events" value={events.length} detail={`${activeEvents.length} live now`} />
+              <OverviewMetric label="Registration" value={openEvents.length} detail="Events open to clubs" />
+              <OverviewMetric label="Net balance" value={formatMoney(finance.netCents, league.currency)} detail={`${formatMoney(finance.outstandingCents, league.currency)} outstanding`} />
+            </div>
           </div>
-          <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            <StatTile label="Seasons" value={seasons.length} detail={`${activeSeasons} active`} />
-            <StatTile label="Events" value={events.length} detail={`${activeEvents.length} live now`} />
-            <StatTile label="Registration" value={openEvents.length} detail="Events open to clubs" />
-            <StatTile label="Net balance" value={formatMoney(finance.netCents, league.currency)} detail={`${formatMoney(finance.outstandingCents, league.currency)} outstanding`} />
-          </div>
-        </div>
 
-        <section className={`${panel} overflow-hidden`}>
-          <div className={sectionHeader}>
-            <Activity size={16} className="text-sky-200" />
-            <h2 className="font-display text-sm font-black text-white">Priority actions</h2>
-          </div>
-          <div className="space-y-2 p-4">
+          <aside className={`${quietSurface} p-4`}>
+            <div className="flex items-center gap-2">
+              <Activity size={16} className="text-sky-200" />
+              <h2 className="font-display text-sm font-black text-white">Priority actions</h2>
+            </div>
+            <div className="mt-4 space-y-2">
             {nextActions.length === 0 ? (
               <p className="rounded-2xl border border-emerald-300/20 bg-emerald-400/10 px-4 py-3 text-sm text-emerald-100">
                 Your league setup looks calm. Keep reviewing registrations, fixtures, and finance as events progress.
@@ -710,16 +751,17 @@ const OverviewSection = ({ preview, league, seasons, venues, events, ledger, inv
                 </button>
               ))
             )}
-          </div>
-        </section>
+            </div>
+          </aside>
+        </div>
       </section>
 
-      <section className={panel}>
-        <div className={sectionHeader}>
+      <section className="rounded-[1.25rem] bg-white/[0.025] p-4">
+        <div className="flex items-center gap-2">
           <CalendarRange size={16} className="text-sky-200" />
           <h2 className="font-display text-sm font-black text-white">Current season</h2>
         </div>
-        <div className="p-4">
+        <div className="mt-4">
           {focus ? (
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
@@ -743,17 +785,6 @@ const OverviewSection = ({ preview, league, seasons, venues, events, ledger, inv
 
       {competition.hasActivity && (
         <LiveCompetitionSection league={league} competition={competition} onGoToEvents={onGoToEvents} />
-      )}
-
-      {preview && (
-        <SeasonSamplePanel
-          season={focus}
-          events={events}
-          teams={eventTeams}
-          fixtures={fixtures}
-          venues={venues}
-          onGoToEvents={onGoToEvents}
-        />
       )}
 
       <section className="grid gap-4 lg:grid-cols-[1fr_0.9fr]">
@@ -925,13 +956,15 @@ const OverviewSection = ({ preview, league, seasons, venues, events, ledger, inv
   );
 };
 
-const SeasonSamplePanel = ({ season, events, teams, fixtures, venues, onGoToEvents }: {
+const SeasonSamplePanel = ({ season, events, teams, fixtures, venues, onGoToEvents, onOpenEvent, compact = false }: {
   season: LeagueSeason | null;
   events: LeagueEvent[];
   teams: EventTeam[];
   fixtures: EventFixture[];
   venues: LeagueVenue[];
   onGoToEvents: () => void;
+  onOpenEvent?: (eventId: string) => void;
+  compact?: boolean;
 }) => {
   const sampleEvents = events
     .filter(event => event.season_id === season?.id && event.status !== 'archived')
@@ -954,6 +987,75 @@ const SeasonSamplePanel = ({ season, events, teams, fixtures, venues, onGoToEven
     { label: 'Match window', value: season?.starts_on && season.ends_on ? `${formatShortDate(season.starts_on)} to ${formatShortDate(season.ends_on)}` : 'Dates TBD' },
     { label: 'Finals', value: sampleEvents.find(event => event.format !== 'round_robin')?.ends_on ? formatShortDate(sampleEvents.find(event => event.format !== 'round_robin')?.ends_on) : 'After qualifiers' }
   ];
+
+  if (compact) {
+    return (
+      <section className={`${quietSurface} p-4`}>
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div className="min-w-0">
+            <div className="flex items-center gap-2">
+              <FileJson size={15} className="text-sky-200" />
+              <p className="text-[11px] font-black uppercase tracking-[0.18em] text-sky-100">Preview data</p>
+            </div>
+            <h3 className="mt-2 font-display text-lg font-black text-white">Grassroots league mock data</h3>
+            <p className="mt-1 max-w-3xl text-sm leading-6 text-slate-400">
+              The demo season includes sample registrations, teams, fixtures, results, rosters, and finance for UI review.
+            </p>
+          </div>
+          <div className="grid w-full grid-cols-3 gap-5 border-t border-white/[0.08] pt-3 sm:w-auto sm:border-l sm:border-t-0 sm:pl-5 sm:pt-0">
+            <InlineMetric label="Clubs" value={teamCount} />
+            <InlineMetric label="Events" value={sampleEvents.length} />
+            <InlineMetric label="Results" value={completedFixtures} />
+          </div>
+        </div>
+        {(sampleEvents.length > 0 || sampleFixtures.length > 0) && (
+          <div className="mt-4 grid gap-4 xl:grid-cols-2">
+            {sampleEvents.length > 0 && (
+              <div className="space-y-2">
+                <p className="text-[10px] font-black uppercase tracking-wide text-slate-500">Event path</p>
+                <div className="divide-y divide-white/[0.08]">
+                  {sampleEvents.slice(0, 4).map(event => (
+                    <button
+                      key={event.id}
+                      type="button"
+                      onClick={() => onOpenEvent ? onOpenEvent(event.id) : onGoToEvents()}
+                      className="flex min-w-0 items-center justify-between gap-3 py-2 text-left transition hover:text-sky-100"
+                    >
+                      <span className="min-w-0">
+                        <span className="block truncate text-xs font-black text-white">{event.name}</span>
+                        <span className="mt-0.5 block truncate text-[11px] text-slate-500">{EVENT_FORMAT_LABELS[event.format]} / {event.category ?? 'Open'}</span>
+                      </span>
+                      <EventStatusBadge status={event.status} />
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+            {sampleFixtures.length > 0 && (
+              <div className="space-y-2">
+                <p className="text-[10px] font-black uppercase tracking-wide text-slate-500">Match-day sample</p>
+                <div className="divide-y divide-white/[0.08]">
+                  {sampleFixtures.slice(0, 4).map(fixture => (
+                    <div key={fixture.id} className="py-2">
+                      <div className="flex items-center justify-between gap-2 text-xs">
+                        <span className="min-w-0 truncate font-bold text-white">{teamName(fixture.home_team_id)} v {teamName(fixture.away_team_id)}</span>
+                        <span className="shrink-0 font-black text-slate-300">
+                          {fixture.status === 'completed' ? `${fixture.home_score}-${fixture.away_score}` : `R${fixture.round}`}
+                        </span>
+                      </div>
+                      <p className="mt-0.5 truncate text-[11px] text-slate-500">
+                        {fixture.kickoff_at ? formatShortDate(fixture.kickoff_at.slice(0, 10)) : 'Unscheduled'} / {venueName(fixture.venue_id)}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </section>
+    );
+  }
 
   return (
     <section className={panel}>
@@ -1227,10 +1329,77 @@ const SeasonAdvance = ({ season, onAdvance }: { season: LeagueSeason; onAdvance:
 
 // --- Seasons -----------------------------------------------------------------
 
-const SeasonsSection = ({ seasons, onCreate, onAdvance }: {
+const SEASON_SETUP_STAGES = [
+  {
+    label: 'Name it',
+    detail: 'Use the public season name coaches will recognize.',
+    tip: 'Keep this stable because it appears on events, registrations, and archived records.'
+  },
+  {
+    label: 'Set dates',
+    detail: 'Add a start and end window before scheduling events.',
+    tip: 'Dates can be approximate at first. They help the dashboard build timelines and readiness checks.'
+  },
+  {
+    label: 'Create events',
+    detail: 'Add leagues, cups, or tournament brackets inside the season.',
+    tip: 'Every event belongs to one season. Create the season first, then build each competition from Events.'
+  },
+  {
+    label: 'Add venues',
+    detail: 'Prepare fields before generating fixtures.',
+    tip: 'Venue inventory makes scheduling smoother and avoids match-day location gaps.'
+  },
+  {
+    label: 'Open registration',
+    detail: 'Advance the season when the structure is ready.',
+    tip: 'Opening registration makes the season available for club onboarding. Later lifecycle steps are one-way.'
+  }
+] as const;
+
+const SeasonSetupGuide = () => (
+  <section className="rounded-[1.25rem] bg-white/[0.035] p-4">
+    <div className="flex flex-wrap items-start justify-between gap-3">
+      <div>
+        <p className="text-[11px] font-black uppercase tracking-[0.2em] text-sky-100">Coach setup guide</p>
+        <h3 className="mt-1 font-display text-lg font-black text-white">Build the season in five calm steps</h3>
+      </div>
+      <p className="max-w-xl text-sm leading-6 text-slate-400">
+        Start with the season shell, then add the operating pieces coaches need before you invite teams.
+      </p>
+    </div>
+    <ol className="mt-4 grid gap-3 md:grid-cols-5">
+      {SEASON_SETUP_STAGES.map((stage, index) => (
+        <li key={stage.label} className="min-w-0 border-t border-white/[0.08] pt-3 md:border-l md:border-t-0 md:pl-4 md:pt-0">
+          <div className="flex items-center gap-2">
+            <span className="font-display text-sm font-black text-sky-100">{index + 1}</span>
+            <span className="truncate text-sm font-black text-white">{stage.label}</span>
+            <HelpTooltip content={stage.tip} label={`Guidance for ${stage.label}`} />
+          </div>
+          <p className="mt-1 text-xs leading-5 text-slate-400">{stage.detail}</p>
+        </li>
+      ))}
+    </ol>
+  </section>
+);
+
+const FieldLabel = ({ children, tip }: { children: React.ReactNode; tip: string }) => (
+  <label className={`${label} flex items-center gap-1.5`}>
+    <span>{children}</span>
+    <HelpTooltip content={tip} label="Field guidance" />
+  </label>
+);
+
+const SeasonsSection = ({ preview, seasons, events, eventTeams, fixtures, venues, onCreate, onAdvance, onGoToEvents }: {
+  preview: boolean;
   seasons: LeagueSeason[];
+  events: LeagueEvent[];
+  eventTeams: EventTeam[];
+  fixtures: EventFixture[];
+  venues: LeagueVenue[];
   onCreate: (input: { name: string; year?: number | null; startsOn?: string | null; endsOn?: string | null }) => void;
   onAdvance: (seasonId: string, next: LeagueSeasonStatus) => void;
+  onGoToEvents: () => void;
 }) => {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState('');
@@ -1245,31 +1414,72 @@ const SeasonsSection = ({ seasons, onCreate, onAdvance }: {
   };
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h2 className="font-display text-sm font-black uppercase tracking-wide text-white">Seasons</h2>
+    <div className="space-y-5">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h2 className="font-display text-sm font-black uppercase tracking-wide text-white">Seasons</h2>
+          <p className="mt-1 text-sm text-slate-400">Create the season shell first, then build events, venues, and registrations around it.</p>
+        </div>
         <button type="button" className={primaryBtn} onClick={() => setOpen(v => !v)}><Plus size={14} /> New season</button>
       </div>
 
+      <SeasonSetupGuide />
+
+      {preview && (
+        <SeasonSamplePanel
+          season={seasons.find(s => s.status === 'active') ?? seasons[0] ?? null}
+          events={events}
+          teams={eventTeams}
+          fixtures={fixtures}
+          venues={venues}
+          onGoToEvents={onGoToEvents}
+          compact
+        />
+      )}
+
       {open && (
-        <form onSubmit={submit} className={`${panel} space-y-3 p-4`}>
-          <p className="text-xs text-slate-400">Every new season starts empty — no clubs, rosters, or rules are copied forward.</p>
-          <div className="grid gap-3 sm:grid-cols-2">
-            <div className="space-y-1"><label className={label}>Season name</label><input className={inputClass} required value={name} onChange={e => setName(e.target.value)} placeholder="Season 2026" /></div>
-            <div className="space-y-1"><label className={label}>Year</label><input className={inputClass} type="number" value={year} onChange={e => setYear(e.target.value)} placeholder="2026" /></div>
-            <div className="space-y-1"><label className={label}>Starts on</label><input className={inputClass} type="date" value={startsOn} onChange={e => setStartsOn(e.target.value)} /></div>
-            <div className="space-y-1"><label className={label}>Ends on</label><input className={inputClass} type="date" value={endsOn} onChange={e => setEndsOn(e.target.value)} /></div>
+        <form onSubmit={submit} className="rounded-[1.25rem] bg-slate-950/45 p-4 shadow-[0_18px_50px_rgba(2,6,23,0.18)]">
+          <div className="flex flex-wrap items-start justify-between gap-3 border-b border-white/[0.08] pb-4">
+            <div>
+              <p className="text-[11px] font-black uppercase tracking-[0.18em] text-sky-100">New season</p>
+              <h3 className="mt-1 font-display text-lg font-black text-white">Create the season shell</h3>
+            </div>
+            <p className="max-w-lg text-sm leading-6 text-slate-400">Every new season starts empty. Clubs, rosters, and rules are added after the shell exists.</p>
           </div>
-          <button type="submit" className={primaryBtn}><Save size={14} /> Create season</button>
+          {/*
+          <p className="text-xs text-slate-400">Every new season starts empty — no clubs, rosters, or rules are copied forward.</p>
+          */}
+          <div className="mt-4 grid gap-4 sm:grid-cols-2">
+            <div className="space-y-1.5">
+              <FieldLabel tip="Use the name coaches and clubs will see in registration links and reports.">Season name</FieldLabel>
+              <input className={inputClass} required value={name} onChange={e => setName(e.target.value)} placeholder="Season 2026" />
+            </div>
+            <div className="space-y-1.5">
+              <FieldLabel tip="The year helps sort seasons and keeps archived records easy to scan.">Year</FieldLabel>
+              <input className={inputClass} type="number" value={year} onChange={e => setYear(e.target.value)} placeholder="2026" />
+            </div>
+            <div className="space-y-1.5">
+              <FieldLabel tip="Set the first planned competition or registration operating date. You can leave it blank if the calendar is not final.">Starts on</FieldLabel>
+              <input className={inputClass} type="date" value={startsOn} onChange={e => setStartsOn(e.target.value)} />
+            </div>
+            <div className="space-y-1.5">
+              <FieldLabel tip="Use the target completion date for the season. This powers timeline and readiness guidance.">Ends on</FieldLabel>
+              <input className={inputClass} type="date" value={endsOn} onChange={e => setEndsOn(e.target.value)} />
+            </div>
+          </div>
+          <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+            <p className="text-xs leading-5 text-slate-500">Next: create events, add venues, then advance registration when the season is ready.</p>
+            <button type="submit" className={primaryBtn}><Save size={14} /> Create season</button>
+          </div>
         </form>
       )}
 
       {seasons.length === 0 ? (
-        <p className={`${panel} p-6 text-center text-sm text-slate-400`}>No seasons yet.</p>
+        <p className="rounded-[1.25rem] bg-white/[0.025] p-6 text-center text-sm text-slate-400">No seasons yet.</p>
       ) : (
-        <ul className="space-y-2">
+        <ul className="divide-y divide-white/[0.08] rounded-[1.25rem] bg-white/[0.025] px-4">
           {seasons.map(season => (
-            <li key={season.id} className={`${panel} flex flex-wrap items-center justify-between gap-3 p-4`}>
+            <li key={season.id} className="flex flex-wrap items-center justify-between gap-3 py-4">
               <div>
                 <div className="flex items-center gap-2">
                   <span className="font-display text-sm font-black text-white">{season.name}</span>
@@ -1338,10 +1548,14 @@ interface EventCreateInput {
   endsOn?: string | null;
 }
 
-const EventsSection = ({ league, events, seasons, runError, onCreate, onAdvance, onAfterReview, onGoToSeasons }: {
+const EventsSection = ({ league, preview, events, seasons, eventTeams, fixtures, venues, runError, onCreate, onAdvance, onAfterReview, onGoToSeasons }: {
   league: CloudLeagueRepository;
+  preview: boolean;
   events: LeagueEvent[];
   seasons: LeagueSeason[];
+  eventTeams: EventTeam[];
+  fixtures: EventFixture[];
+  venues: LeagueVenue[];
   runError: (fn: () => Promise<unknown>) => Promise<void>;
   onCreate: (input: EventCreateInput) => void;
   onAdvance: (eventId: string, next: LeagueEventStatus) => void;
@@ -1371,8 +1585,12 @@ const EventsSection = ({ league, events, seasons, runError, onCreate, onAdvance,
 
   return (
     <EventsList
+      preview={preview}
       events={liveEvents}
       seasons={seasons}
+      eventTeams={eventTeams}
+      fixtures={fixtures}
+      venues={venues}
       onCreate={onCreate}
       onOpen={setSelectedId}
       onGoToSeasons={onGoToSeasons}
@@ -1502,9 +1720,13 @@ const ArchivedSection = ({ league, events, seasons, runError, onAdvance, onAfter
   );
 };
 
-const EventsList = ({ events, seasons, onCreate, onOpen, onGoToSeasons }: {
+const EventsList = ({ preview, events, seasons, eventTeams, fixtures, venues, onCreate, onOpen, onGoToSeasons }: {
+  preview: boolean;
   events: LeagueEvent[];
   seasons: LeagueSeason[];
+  eventTeams: EventTeam[];
+  fixtures: EventFixture[];
+  venues: LeagueVenue[];
   onCreate: (input: EventCreateInput) => void;
   onOpen: (eventId: string) => void;
   onGoToSeasons: () => void;
@@ -1535,6 +1757,19 @@ const EventsList = ({ events, seasons, onCreate, onOpen, onGoToSeasons }: {
           <button type="button" className={primaryBtn} onClick={() => setOpen(v => !v)}><Plus size={14} /> New event</button>
         )}
       </div>
+
+      {preview && seasons.length > 0 && (
+        <SeasonSamplePanel
+          season={seasons.find(s => s.status === 'active') ?? seasons[0] ?? null}
+          events={events}
+          teams={eventTeams}
+          fixtures={fixtures}
+          venues={venues}
+          onGoToEvents={() => undefined}
+          onOpenEvent={onOpen}
+          compact
+        />
+      )}
 
       {seasons.length === 0 ? (
         <p className={`${panel} p-6 text-center text-sm text-slate-400`}>
