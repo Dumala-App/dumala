@@ -4,6 +4,7 @@ import { createCloudDataAccess } from './dataAccess';
 import {
   CloudLeagueError,
   EVENT_STATUS_LABELS,
+  activeRosterForTeam,
   autoScheduleFixtures,
   buildFixtureCalendar,
   buildStatDatabase,
@@ -13,6 +14,7 @@ import {
   computeScorers,
   computeStandings,
   drawGroups,
+  fixtureAdvancementTarget,
   formatMoney,
   groupStageFixtureSpecs,
   groupStageStandings,
@@ -23,6 +25,7 @@ import {
   singleEliminationBracket,
   nextEventStatuses,
   nextSeasonStatuses,
+  summarizeMatchSheet,
   roundRobinRounds,
   SEASON_STATUS_LABELS,
   spotsRemaining,
@@ -32,6 +35,7 @@ import {
   summarizeCompetition,
   summarizeLedger,
   summarizeMatchday,
+  type EventIncident,
   type EventFixture,
   type EventInvoice,
   type EventRosterPlayer,
@@ -205,6 +209,19 @@ describe('event roster helpers', () => {
     expect(summary.rosterWindowOpen).toBe(false);
     expect(summary.transferWindowOpen).toBe(false);
   });
+
+  it('returns only active players for a team ordered by shirt number then name', () => {
+    const players: EventRosterPlayer[] = [
+      { id: 'p3', event_id: 'e', league_id: 'l', team_id: 'a', registration_id: null, full_name: 'Zed', birthdate: null, shirt_number: null, status: 'active', transfer_note: null, created_at: '', updated_at: '' },
+      { id: 'p1', event_id: 'e', league_id: 'l', team_id: 'a', registration_id: null, full_name: 'Ari', birthdate: null, shirt_number: 7, status: 'active', transfer_note: null, created_at: '', updated_at: '' },
+      { id: 'p2', event_id: 'e', league_id: 'l', team_id: 'a', registration_id: null, full_name: 'Bea', birthdate: null, shirt_number: 7, status: 'active', transfer_note: null, created_at: '', updated_at: '' },
+      { id: 'p4', event_id: 'e', league_id: 'l', team_id: 'a', registration_id: null, full_name: 'Released', birthdate: null, shirt_number: 1, status: 'released', transfer_note: null, created_at: '', updated_at: '' },
+      { id: 'p5', event_id: 'e', league_id: 'l', team_id: 'b', registration_id: null, full_name: 'Other', birthdate: null, shirt_number: 2, status: 'active', transfer_note: null, created_at: '', updated_at: '' }
+    ];
+
+    expect(activeRosterForTeam(players, 'a').map(p => p.full_name)).toEqual(['Ari', 'Bea', 'Zed']);
+    expect(activeRosterForTeam(players, null)).toEqual([]);
+  });
 });
 
 describe('knockout bracket helpers', () => {
@@ -259,6 +276,37 @@ describe('knockout bracket helpers', () => {
     expect(bracketWinnerId(fixture('a', 'b', 0, 3))).toBe('b');
     expect(bracketWinnerId(fixture('a', 'b', 1, 1))).toBeNull();
     expect(bracketWinnerId(fixture('a', 'b', null, null, 'scheduled'))).toBeNull();
+  });
+
+  it('describes the next knockout slot for a decisive result', () => {
+    const opening = fixture('a', 'b', 2, 1);
+    opening.id = 'semi-1';
+    opening.sequence = 1;
+    const otherSemi = fixture('c', 'd', 0, 3);
+    otherSemi.id = 'semi-2';
+    otherSemi.sequence = 2;
+    const final = fixture(null, null, null, null, 'scheduled');
+    final.id = 'final';
+    final.round = 2;
+    final.sequence = 1;
+
+    expect(fixtureAdvancementTarget(opening, [opening, otherSemi, final])).toEqual({
+      winnerId: 'a',
+      nextFixtureId: 'final',
+      nextRound: 2,
+      nextSequence: 1,
+      slot: 'home'
+    });
+    expect(fixtureAdvancementTarget(otherSemi, [opening, otherSemi, final])?.slot).toBe('away');
+    expect(fixtureAdvancementTarget(final, [opening, otherSemi, final])).toBeNull();
+  });
+
+  it('does not expose advancement for group-stage matches or draws', () => {
+    const group = fixture('a', 'b', 2, 1);
+    group.stage = 'group';
+    const draw = fixture('a', 'b', 1, 1);
+    expect(fixtureAdvancementTarget(group, [group])).toBeNull();
+    expect(fixtureAdvancementTarget(draw, [draw])).toBeNull();
   });
 
   it('names rounds from the end of the bracket', () => {
@@ -369,6 +417,40 @@ describe('matchday readiness helper', () => {
       fx('scheduled', false, false), // awaiting
       fx('cancelled', false, false)  // ignored
     ])).toEqual({ total: 5, completed: 1, ready: 1, awaitingCheckin: 2 });
+  });
+
+  it('summarizes one match sheet from roster, stats, and incidents', () => {
+    const fixture = fx('scheduled', true, true);
+    fixture.id = 'fixture-1';
+    fixture.home_team_id = 'home';
+    fixture.away_team_id = 'away';
+    const roster = (teamId: string, status: EventRosterPlayer['status'] = 'active'): EventRosterPlayer => ({
+      id: `${teamId}-${status}-${Math.random()}`, event_id: 'e', league_id: 'l', team_id: teamId, registration_id: null,
+      full_name: 'Player', birthdate: null, shirt_number: null, status, transfer_note: null, created_at: '', updated_at: ''
+    });
+    const stat = (fixtureId: string, type: FixtureStatEvent['stat_type']): FixtureStatEvent => ({
+      id: `${fixtureId}-${type}-${Math.random()}`, fixture_id: fixtureId, event_id: 'e', league_id: 'l',
+      team_id: 'home', player_name: 'Player', stat_type: type, minute: null, note: null, created_at: '', updated_at: ''
+    });
+    const incident = (fixtureId: string | null): EventIncident => ({
+      id: `${fixtureId ?? 'none'}-${Math.random()}`, event_id: 'e', league_id: 'l', fixture_id: fixtureId,
+      team_id: null, kind: 'delay', summary: 'Delay', occurred_at: '', created_at: '', updated_at: ''
+    });
+
+    expect(summarizeMatchSheet(
+      fixture,
+      [roster('home'), roster('home', 'released'), roster('away'), roster('away')],
+      [stat('fixture-1', 'goal'), stat('fixture-1', 'own_goal'), stat('fixture-1', 'assist'), stat('fixture-1', 'yellow_card'), stat('fixture-1', 'red_card'), stat('other', 'goal')],
+      [incident('fixture-1'), incident(null)]
+    )).toEqual({
+      homeActiveRoster: 1,
+      awayActiveRoster: 2,
+      goals: 2,
+      assists: 1,
+      yellowCards: 1,
+      redCards: 1,
+      incidents: 1
+    });
   });
 });
 

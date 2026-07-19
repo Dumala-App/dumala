@@ -910,6 +910,19 @@ export interface EventRosterPlayerInput {
   shirtNumber?: number | null;
 }
 
+export const activeRosterForTeam = (
+  players: EventRosterPlayer[],
+  teamId: string | null
+): EventRosterPlayer[] => {
+  if (!teamId) return [];
+  return players
+    .filter(player => player.team_id === teamId && player.status === 'active')
+    .slice()
+    .sort((a, b) =>
+      (a.shirt_number ?? 9999) - (b.shirt_number ?? 9999) ||
+      a.full_name.localeCompare(b.full_name));
+};
+
 export interface RosterSummary {
   active: number;
   transferred: number;
@@ -1175,6 +1188,40 @@ export const bracketWinnerId = (fixture: EventFixture): string | null => {
   if (fixture.status !== 'completed' || fixture.home_score === null || fixture.away_score === null) return null;
   if (fixture.home_score === fixture.away_score) return null;
   return fixture.home_score > fixture.away_score ? fixture.home_team_id : fixture.away_team_id;
+};
+
+export interface FixtureAdvancementTarget {
+  winnerId: string;
+  nextFixtureId: string;
+  nextRound: number;
+  nextSequence: number | null;
+  slot: 'home' | 'away';
+}
+
+export const fixtureAdvancementTarget = (
+  fixture: EventFixture,
+  fixtures: EventFixture[]
+): FixtureAdvancementTarget | null => {
+  if (fixture.stage === 'group') return null;
+  const sequence = fixture.sequence ?? 0;
+  if (sequence <= 0) return null;
+  const winnerId = bracketWinnerId(fixture);
+  if (!winnerId) return null;
+  const nextRound = fixture.round + 1;
+  const nextSequence = Math.ceil(sequence / 2);
+  const nextFixture = fixtures.find(candidate =>
+    candidate.event_id === fixture.event_id &&
+    candidate.round === nextRound &&
+    (candidate.sequence ?? 0) === nextSequence &&
+    (candidate.stage ?? 'knockout') === 'knockout');
+  if (!nextFixture) return null;
+  return {
+    winnerId,
+    nextFixtureId: nextFixture.id,
+    nextRound,
+    nextSequence: nextFixture.sequence,
+    slot: sequence % 2 === 1 ? 'home' : 'away'
+  };
 };
 
 /** Human label for a knockout round given the total number of rounds. */
@@ -2017,6 +2064,16 @@ export interface MatchdaySummary {
   awaitingCheckin: number;
 }
 
+export interface MatchSheetSummary {
+  homeActiveRoster: number;
+  awayActiveRoster: number;
+  goals: number;
+  assists: number;
+  yellowCards: number;
+  redCards: number;
+  incidents: number;
+}
+
 export const INCIDENT_KIND_LABELS: Record<IncidentKind, string> = {
   injury: 'Injury',
   misconduct: 'Misconduct',
@@ -2039,6 +2096,24 @@ export const summarizeMatchday = (fixtures: EventFixture[]): MatchdaySummary => 
     else awaitingCheckin += 1;
   }
   return { total: fixtures.length, completed, ready, awaitingCheckin };
+};
+
+export const summarizeMatchSheet = (
+  fixture: EventFixture,
+  rosterPlayers: EventRosterPlayer[],
+  statEvents: FixtureStatEvent[],
+  incidents: EventIncident[]
+): MatchSheetSummary => {
+  const fixtureStats = statEvents.filter(event => event.fixture_id === fixture.id);
+  return {
+    homeActiveRoster: activeRosterForTeam(rosterPlayers, fixture.home_team_id).length,
+    awayActiveRoster: activeRosterForTeam(rosterPlayers, fixture.away_team_id).length,
+    goals: fixtureStats.filter(event => event.stat_type === 'goal' || event.stat_type === 'own_goal').length,
+    assists: fixtureStats.filter(event => event.stat_type === 'assist').length,
+    yellowCards: fixtureStats.filter(event => event.stat_type === 'yellow_card').length,
+    redCards: fixtureStats.filter(event => event.stat_type === 'red_card').length,
+    incidents: incidents.filter(incident => incident.fixture_id === fixture.id).length
+  };
 };
 
 // --- Owner: fixture match-day ops --------------------------------------------

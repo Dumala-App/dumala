@@ -56,9 +56,11 @@ import {
   SEASON_STATUS_LABELS,
   INCIDENT_KIND_LABELS,
   STAT_TYPE_LABELS,
+  activeRosterForTeam,
   computeDiscipline,
   computeScorers,
   computeStandings,
+  fixtureAdvancementTarget,
   formatMoney,
   isEventFinished,
   nextEventStatuses,
@@ -72,6 +74,7 @@ import {
   groupStageStandings,
   DEFAULT_MATCH_MINUTES,
   suggestAwards,
+  summarizeMatchSheet,
   summarizeCoachSeats,
   summarizeCompetition,
   summarizeLedger,
@@ -373,8 +376,8 @@ const LeagueApp = ({ runtime, userId, authController, preview = false }: LeagueA
       <div className="mx-auto min-h-screen max-w-7xl px-4 py-5 sm:px-6 lg:px-8" style={DARK_GLASS_DASHBOARD_SURFACE_STYLE}>
         <header className="mb-5 flex flex-wrap items-center justify-between gap-4 rounded-[1.75rem] border border-white/10 bg-white/[0.045] px-4 py-4 shadow-[0_24px_90px_rgba(2,6,23,0.25)] backdrop-blur-xl sm:px-5">
           <div className="flex items-center gap-3">
-            <span className="flex h-11 w-11 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.07] text-sky-200 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
-              <Trophy size={18} />
+            <span className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-2xl border border-white/10 bg-white/[0.07] p-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
+              <img src="/dumalaglass.png" alt="Dumala" className="h-full w-full object-contain drop-shadow-[0_8px_18px_rgba(125,211,252,0.18)]" />
             </span>
             <div>
               <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-sky-200/85">Dumala League</p>
@@ -429,6 +432,7 @@ const LeagueApp = ({ runtime, userId, authController, preview = false }: LeagueA
           <>
             {section === 'overview' && (
               <OverviewSection
+                preview={preview}
                 league={activeLeague}
                 seasons={seasons}
                 venues={venues}
@@ -550,7 +554,8 @@ const LeagueApp = ({ runtime, userId, authController, preview = false }: LeagueA
 
 // --- Overview ----------------------------------------------------------------
 
-const OverviewSection = ({ league, seasons, venues, events, ledger, invoices, eventTeams, fixtures, statEvents, onAdvance, onGoToSeasons, onGoToEvents, onGoToVenues, onGoToFinance }: {
+const OverviewSection = ({ preview, league, seasons, venues, events, ledger, invoices, eventTeams, fixtures, statEvents, onAdvance, onGoToSeasons, onGoToEvents, onGoToVenues, onGoToFinance }: {
+  preview: boolean;
   league: League;
   seasons: LeagueSeason[];
   venues: LeagueVenue[];
@@ -730,6 +735,17 @@ const OverviewSection = ({ league, seasons, venues, events, ledger, invoices, ev
         <LiveCompetitionSection league={league} competition={competition} onGoToEvents={onGoToEvents} />
       )}
 
+      {preview && (
+        <SeasonSamplePanel
+          season={focus}
+          events={events}
+          teams={eventTeams}
+          fixtures={fixtures}
+          venues={venues}
+          onGoToEvents={onGoToEvents}
+        />
+      )}
+
       <section className="grid gap-4 lg:grid-cols-[1fr_0.9fr]">
         <div className={panel}>
           <div className={sectionHeader}>
@@ -896,6 +912,114 @@ const OverviewSection = ({ league, seasons, venues, events, ledger, invoices, ev
         </div>
       </section>
     </div>
+  );
+};
+
+const SeasonSamplePanel = ({ season, events, teams, fixtures, venues, onGoToEvents }: {
+  season: LeagueSeason | null;
+  events: LeagueEvent[];
+  teams: EventTeam[];
+  fixtures: EventFixture[];
+  venues: LeagueVenue[];
+  onGoToEvents: () => void;
+}) => {
+  const sampleEvents = events
+    .filter(event => event.season_id === season?.id && event.status !== 'archived')
+    .slice()
+    .sort((a, b) => (a.starts_on ?? '9999-12-31').localeCompare(b.starts_on ?? '9999-12-31'))
+    .slice(0, 4);
+  const sampleFixtures = fixtures
+    .filter(fixture => sampleEvents.some(event => event.id === fixture.event_id))
+    .filter(fixture => fixture.status !== 'cancelled')
+    .slice()
+    .sort((a, b) => (a.kickoff_at ?? '9999-12-31').localeCompare(b.kickoff_at ?? '9999-12-31') || a.round - b.round)
+    .slice(0, 4);
+  const teamCount = new Set(teams.filter(team => sampleEvents.some(event => event.id === team.event_id)).map(team => team.id)).size;
+  const completedFixtures = fixtures.filter(fixture => sampleEvents.some(event => event.id === fixture.event_id) && fixture.status === 'completed').length;
+  const venueName = (venueId: string | null) => venueId ? venues.find(venue => venue.id === venueId)?.name ?? 'Venue TBD' : 'Venue TBD';
+  const teamName = (teamId: string | null) => teamId ? teams.find(team => team.id === teamId)?.name ?? 'TBD' : 'TBD';
+  const phases = [
+    { label: 'Registration', value: season?.registration_closes_on ? `Closes ${formatShortDate(season.registration_closes_on)}` : 'Application window' },
+    { label: 'Roster lock', value: season?.roster_deadline ? formatShortDate(season.roster_deadline) : 'Open roster' },
+    { label: 'Match window', value: season?.starts_on && season.ends_on ? `${formatShortDate(season.starts_on)} to ${formatShortDate(season.ends_on)}` : 'Dates TBD' },
+    { label: 'Finals', value: sampleEvents.find(event => event.format !== 'round_robin')?.ends_on ? formatShortDate(sampleEvents.find(event => event.format !== 'round_robin')?.ends_on) : 'After qualifiers' }
+  ];
+
+  return (
+    <section className={panel}>
+      <div className={`${sectionHeader} justify-between`}>
+        <div className="flex items-center gap-2">
+          <FileJson size={16} className="text-sky-200" />
+          <h2 className="font-display text-sm font-black text-white">Sample season dashboard</h2>
+        </div>
+        <span className="rounded-full border border-sky-300/25 bg-sky-400/10 px-2 py-0.5 text-[11px] font-bold text-sky-100">Preview data</span>
+      </div>
+      <div className="grid gap-4 p-4 xl:grid-cols-[0.85fr_1.15fr]">
+        <div className="space-y-3">
+          <div>
+            <p className="text-[11px] font-black uppercase tracking-wide text-slate-400">{season?.name ?? 'Sample season'}</p>
+            <h3 className="mt-1 font-display text-xl font-black text-white">Grassroots league season mockup</h3>
+            <p className="mt-2 text-sm leading-6 text-slate-400">
+              A filled example of registration, rosters, scheduling, live match sheets, knockout advancement, and finance moving through one season.
+            </p>
+          </div>
+          <div className="grid gap-2 sm:grid-cols-3">
+            <MiniStat label="Clubs" value={teamCount} />
+            <MiniStat label="Events" value={sampleEvents.length} />
+            <MiniStat label="Results" value={completedFixtures} />
+          </div>
+          <div className="grid gap-2 sm:grid-cols-2">
+            {phases.map(phase => (
+              <div key={phase.label} className="rounded-xl border border-white/10 bg-black/15 px-3 py-2">
+                <p className="text-[10px] font-black uppercase tracking-wide text-slate-500">{phase.label}</p>
+                <p className="mt-0.5 text-xs font-bold text-slate-200">{phase.value}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="grid gap-3 lg:grid-cols-2">
+          <div className="rounded-2xl border border-white/10 bg-white/[0.035] p-3">
+            <h3 className="font-display text-xs font-black uppercase tracking-wide text-white">Event path</h3>
+            <div className="mt-3 space-y-2">
+              {sampleEvents.map(event => (
+                <button
+                  key={event.id}
+                  type="button"
+                  onClick={onGoToEvents}
+                  className="flex w-full items-center justify-between gap-2 rounded-xl border border-white/[0.06] bg-black/15 px-3 py-2 text-left transition hover:border-sky-300/35 hover:bg-sky-300/10"
+                >
+                  <span className="min-w-0">
+                    <span className="block truncate text-xs font-black text-white">{event.name}</span>
+                    <span className="mt-0.5 block text-[11px] text-slate-500">{EVENT_FORMAT_LABELS[event.format]} / {event.category ?? 'Open'}</span>
+                  </span>
+                  <EventStatusBadge status={event.status} />
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-white/10 bg-white/[0.035] p-3">
+            <h3 className="font-display text-xs font-black uppercase tracking-wide text-white">Match-day sample</h3>
+            <div className="mt-3 space-y-2">
+              {sampleFixtures.map(fixture => (
+                <div key={fixture.id} className="rounded-xl border border-white/[0.06] bg-black/15 px-3 py-2">
+                  <div className="flex items-center justify-between gap-2 text-xs">
+                    <span className="min-w-0 truncate font-bold text-white">{teamName(fixture.home_team_id)} v {teamName(fixture.away_team_id)}</span>
+                    <span className="shrink-0 font-black text-slate-300">
+                      {fixture.status === 'completed' ? `${fixture.home_score}-${fixture.away_score}` : `R${fixture.round}`}
+                    </span>
+                  </div>
+                  <p className="mt-0.5 truncate text-[11px] text-slate-500">
+                    {fixture.kickoff_at ? formatShortDate(fixture.kickoff_at.slice(0, 10)) : 'Unscheduled'} / {venueName(fixture.venue_id)}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
   );
 };
 
@@ -1530,7 +1654,7 @@ const EventDetail = ({ league, event, season, runError, onBack, onAdvance, onAft
   const registerUrl = typeof window !== 'undefined' ? `${window.location.origin}/#/register` : '/#/register';
   const registrationPageUrl = typeof window !== 'undefined' ? `${window.location.origin}/#/register/${event.registration_code}` : `/#/register/${event.registration_code}`;
   const publicUrl = typeof window !== 'undefined' ? `${window.location.origin}/#/l/${event.registration_code}` : `/#/l/${event.registration_code}`;
-  const teamName = (id: string) => teams.find(t => t.id === id)?.name ?? 'TBD';
+  const teamName = (id: string | null) => id ? teams.find(t => t.id === id)?.name ?? 'TBD' : 'TBD';
   const [publicCopied, setPublicCopied] = useState(false);
   const [registrationCopied, setRegistrationCopied] = useState(false);
 
@@ -1760,9 +1884,16 @@ const EventDetail = ({ league, event, season, runError, onBack, onAdvance, onAft
           )}
           {tab === 'matchday' && (
             <MatchdayPanel
+              eventFormat={event.format}
+              teams={teams}
               fixtures={fixtures}
+              rosterPlayers={rosterPlayers}
+              statEvents={statEvents}
               incidents={incidents}
               teamName={teamName}
+              onRecord={recordResult}
+              onAddStat={addStat}
+              onDeleteStat={deleteStat}
               onSetOps={setFixtureOps}
               onAddIncident={addIncident}
               onDeleteIncident={deleteIncident}
@@ -2793,16 +2924,30 @@ const AwardsCard = ({ awards, teams, teamName, suggestions, onAdd, onDelete }: {
 
 const INCIDENT_KINDS: IncidentKind[] = ['injury', 'misconduct', 'dispute', 'delay', 'other'];
 
-const MatchdayPanel = ({ fixtures, incidents, teamName, onSetOps, onAddIncident, onDeleteIncident }: {
+const MatchdayPanel = ({ eventFormat, teams, fixtures, rosterPlayers, statEvents, incidents, teamName, onRecord, onAddStat, onDeleteStat, onSetOps, onAddIncident, onDeleteIncident }: {
+  eventFormat: LeagueEventFormat;
+  teams: EventTeam[];
   fixtures: EventFixture[];
+  rosterPlayers: EventRosterPlayer[];
+  statEvents: FixtureStatEvent[];
   incidents: EventIncident[];
-  teamName: (id: string) => string;
+  teamName: (id: string | null) => string;
+  onRecord: (fixtureId: string, home: number, away: number) => void;
+  onAddStat: (input: FixtureStatInput) => void;
+  onDeleteStat: (statEventId: string) => void;
   onSetOps: (fixtureId: string, patch: FixtureOpsPatch) => void;
   onAddIncident: (input: EventIncidentInput) => void;
   onDeleteIncident: (incidentId: string) => void;
 }) => {
   const summary = summarizeMatchday(fixtures);
   const active = fixtures.filter(f => f.status !== 'cancelled');
+  const [selectedFixtureId, setSelectedFixtureId] = useState(active[0]?.id ?? fixtures[0]?.id ?? '');
+  const selectedFixture = fixtures.find(f => f.id === selectedFixtureId) ?? active[0] ?? fixtures[0] ?? null;
+
+  useEffect(() => {
+    if (selectedFixtureId && fixtures.some(f => f.id === selectedFixtureId)) return;
+    setSelectedFixtureId(active[0]?.id ?? fixtures[0]?.id ?? '');
+  }, [active, fixtures, selectedFixtureId]);
 
   return (
     <div className="space-y-4">
@@ -2813,19 +2958,47 @@ const MatchdayPanel = ({ fixtures, incidents, teamName, onSetOps, onAddIncident,
         <StatTile label="Awaiting" value={summary.awaitingCheckin} detail="Check-in pending" />
       </div>
 
-      <section className={panel}>
-        <div className={sectionHeader}>
-          <Activity size={16} className="text-sky-200" />
-          <h2 className="font-display text-sm font-black text-white">Command center</h2>
-        </div>
-        <div className="space-y-2 p-4">
-          {active.length === 0 ? (
-            <p className="text-sm text-slate-400">Generate fixtures to run match-day check-in.</p>
-          ) : (
-            active.map(fixture => <FixtureOpsCard key={fixture.id} fixture={fixture} teamName={teamName} onSetOps={onSetOps} />)
-          )}
-        </div>
-      </section>
+      <div className="grid gap-4 xl:grid-cols-[0.95fr_1.45fr]">
+        <section className={panel}>
+          <div className={sectionHeader}>
+            <Activity size={16} className="text-sky-200" />
+            <h2 className="font-display text-sm font-black text-white">Command center</h2>
+          </div>
+          <div className="space-y-2 p-4">
+            {active.length === 0 ? (
+              <p className="text-sm text-slate-400">Generate fixtures to run match-day check-in.</p>
+            ) : (
+              active.map(fixture => (
+                <FixtureOpsCard
+                  key={fixture.id}
+                  fixture={fixture}
+                  selected={fixture.id === selectedFixture?.id}
+                  teamName={teamName}
+                  onSelect={() => setSelectedFixtureId(fixture.id)}
+                  onSetOps={onSetOps}
+                />
+              ))
+            )}
+          </div>
+        </section>
+
+        <MatchSheetPanel
+          eventFormat={eventFormat}
+          teams={teams}
+          fixtures={fixtures}
+          fixture={selectedFixture}
+          rosterPlayers={rosterPlayers}
+          statEvents={statEvents}
+          incidents={incidents}
+          teamName={teamName}
+          onRecord={onRecord}
+          onAddStat={onAddStat}
+          onDeleteStat={onDeleteStat}
+          onSetOps={onSetOps}
+          onAddIncident={onAddIncident}
+          onDeleteIncident={onDeleteIncident}
+        />
+      </div>
 
       <section className={panel}>
         <div className={sectionHeader}>
@@ -2860,6 +3033,266 @@ const MatchdayPanel = ({ fixtures, incidents, teamName, onSetOps, onAddIncident,
   );
 };
 
+const MatchSheetPanel = ({ eventFormat, teams, fixtures, fixture, rosterPlayers, statEvents, incidents, teamName, onRecord, onAddStat, onDeleteStat, onSetOps, onAddIncident, onDeleteIncident }: {
+  eventFormat: LeagueEventFormat;
+  teams: EventTeam[];
+  fixtures: EventFixture[];
+  fixture: EventFixture | null;
+  rosterPlayers: EventRosterPlayer[];
+  statEvents: FixtureStatEvent[];
+  incidents: EventIncident[];
+  teamName: (id: string | null) => string;
+  onRecord: (fixtureId: string, home: number, away: number) => void;
+  onAddStat: (input: FixtureStatInput) => void;
+  onDeleteStat: (statEventId: string) => void;
+  onSetOps: (fixtureId: string, patch: FixtureOpsPatch) => void;
+  onAddIncident: (input: EventIncidentInput) => void;
+  onDeleteIncident: (incidentId: string) => void;
+}) => {
+  const [home, setHome] = useState('');
+  const [away, setAway] = useState('');
+  const [incidentSummary, setIncidentSummary] = useState('');
+  const [incidentKind, setIncidentKind] = useState<IncidentKind>('misconduct');
+  const [incidentTeamId, setIncidentTeamId] = useState('');
+  const [quickTeamId, setQuickTeamId] = useState('');
+  const [quickPlayerName, setQuickPlayerName] = useState('');
+  const [quickStatType, setQuickStatType] = useState<FixtureStatType>('goal');
+  const [quickMinute, setQuickMinute] = useState('');
+
+  useEffect(() => {
+    setHome(fixture?.home_score?.toString() ?? '');
+    setAway(fixture?.away_score?.toString() ?? '');
+    setIncidentSummary('');
+    setIncidentTeamId('');
+    setQuickTeamId(fixture?.home_team_id ?? '');
+    setQuickPlayerName('');
+    setQuickMinute('');
+  }, [fixture?.id, fixture?.home_score, fixture?.away_score]);
+
+  if (!fixture) {
+    return (
+      <section className={panel}>
+        <div className={sectionHeader}>
+          <FileText size={16} className="text-sky-200" />
+          <h2 className="font-display text-sm font-black text-white">Match sheet</h2>
+        </div>
+        <div className="p-4 text-sm text-slate-400">Select a fixture to open its match sheet.</div>
+      </section>
+    );
+  }
+
+  const homeRoster = activeRosterForTeam(rosterPlayers, fixture.home_team_id);
+  const awayRoster = activeRosterForTeam(rosterPlayers, fixture.away_team_id);
+  const fixtureStats = statEvents.filter(s => s.fixture_id === fixture.id);
+  const fixtureIncidents = incidents.filter(i => i.fixture_id === fixture.id);
+  const fixtureTeams = teams.filter(t => t.id === fixture.home_team_id || t.id === fixture.away_team_id);
+  const sheetSummary = summarizeMatchSheet(fixture, rosterPlayers, statEvents, incidents);
+  const isKnockoutMatch = eventFormat === 'single_elimination' || fixture.stage === 'knockout';
+  const scoreDirty = home !== (fixture.home_score?.toString() ?? '') || away !== (fixture.away_score?.toString() ?? '');
+  const equal = home !== '' && away !== '' && Number(home) === Number(away);
+  const canRecord = fixture.home_team_id !== null && fixture.away_team_id !== null && home !== '' && away !== '' && scoreDirty && (!isKnockoutMatch || !equal);
+  const advancement = fixtureAdvancementTarget(fixture, fixtures);
+  const scoreInput = 'h-10 w-16 rounded-xl border border-white/10 bg-[#0b1726]/85 text-center font-display text-base font-black text-white disabled:opacity-40';
+
+  const addRosterStat = (teamId: string | null, playerName: string, statType: FixtureStatType) => {
+    if (!teamId || !playerName.trim()) return;
+    onAddStat({ fixtureId: fixture.id, teamId, playerName, statType, minute: quickMinute ? Number(quickMinute) : null });
+  };
+
+  const submitQuickStat = (e: FormEvent) => {
+    e.preventDefault();
+    if (!quickTeamId || !quickPlayerName.trim()) return;
+    onAddStat({
+      fixtureId: fixture.id,
+      teamId: quickTeamId,
+      playerName: quickPlayerName,
+      statType: quickStatType,
+      minute: quickMinute ? Number(quickMinute) : null
+    });
+    setQuickPlayerName('');
+  };
+
+  const submitIncident = (e: FormEvent) => {
+    e.preventDefault();
+    if (!incidentSummary.trim()) return;
+    onAddIncident({
+      fixtureId: fixture.id,
+      teamId: incidentTeamId || null,
+      kind: incidentKind,
+      summary: incidentSummary
+    });
+    setIncidentSummary('');
+  };
+
+  return (
+    <section className={panel}>
+      <div className={`${sectionHeader} justify-between`}>
+        <div className="flex items-center gap-2">
+          <FileText size={16} className="text-sky-200" />
+          <h2 className="font-display text-sm font-black text-white">Match sheet</h2>
+        </div>
+        <span className="rounded-full border border-white/10 bg-white/[0.04] px-2 py-0.5 text-[11px] font-bold text-slate-300">
+          Round {fixture.round}{fixture.stage ? ` · ${fixture.stage}` : ''}
+        </span>
+      </div>
+      <div className="space-y-4 p-4">
+        <div className="grid gap-3 lg:grid-cols-[1fr_auto_1fr] lg:items-center">
+          <CheckinButton name={teamName(fixture.home_team_id)} checked={fixture.home_checked_in} onClick={() => onSetOps(fixture.id, { homeCheckedIn: !fixture.home_checked_in })} />
+          <div className="flex items-center justify-center gap-2">
+            <input aria-label="Match sheet home score" type="number" min={0} disabled={!fixture.home_team_id || !fixture.away_team_id} className={scoreInput} value={home} onChange={e => setHome(e.target.value)} />
+            <span className="text-xs font-bold text-slate-500">v</span>
+            <input aria-label="Match sheet away score" type="number" min={0} disabled={!fixture.home_team_id || !fixture.away_team_id} className={scoreInput} value={away} onChange={e => setAway(e.target.value)} />
+            <button type="button" className={`${primaryBtn} !px-3`} disabled={!canRecord} onClick={() => onRecord(fixture.id, Number(home), Number(away))}>
+              <Save size={14} /> Save
+            </button>
+          </div>
+          <CheckinButton name={teamName(fixture.away_team_id)} checked={fixture.away_checked_in} onClick={() => onSetOps(fixture.id, { awayCheckedIn: !fixture.away_checked_in })} />
+        </div>
+        {isKnockoutMatch && equal && <p className="text-center text-xs text-amber-300">A knockout match sheet needs a decisive winner before advancement.</p>}
+        {advancement && (
+          <p className="rounded-xl border border-emerald-300/20 bg-emerald-400/10 px-3 py-2 text-xs text-emerald-100">
+            Winner advancement: {teamName(advancement.winnerId)} feeds the {advancement.slot} slot of round {advancement.nextRound} after the result syncs.
+          </p>
+        )}
+
+        <div className="grid gap-2 sm:grid-cols-5">
+          <MiniStat label="Home roster" value={sheetSummary.homeActiveRoster} />
+          <MiniStat label="Away roster" value={sheetSummary.awayActiveRoster} />
+          <MiniStat label="Goals" value={sheetSummary.goals} />
+          <MiniStat label="Cards" value={`${sheetSummary.yellowCards}Y / ${sheetSummary.redCards}R`} />
+          <MiniStat label="Incidents" value={sheetSummary.incidents} />
+        </div>
+
+        <OfficialInput value={fixture.official_name} onSave={name => onSetOps(fixture.id, { officialName: name })} />
+
+        <form onSubmit={submitQuickStat} className="grid gap-2 rounded-2xl border border-white/10 bg-white/[0.035] p-3 sm:grid-cols-2 lg:grid-cols-[1fr_1.35fr_1fr_0.8fr_auto] lg:items-end">
+          <div className="space-y-1">
+            <label className={label}>Team</label>
+            <select className={`${selectClass} h-9 text-xs`} value={quickTeamId} onChange={e => setQuickTeamId(e.target.value)}>
+              {fixtureTeams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+            </select>
+          </div>
+          <div className="space-y-1">
+            <label className={label}>Player</label>
+            <input className={`${inputClass} h-9 text-xs`} value={quickPlayerName} onChange={e => setQuickPlayerName(e.target.value)} placeholder="Type or tap from roster" />
+          </div>
+          <div className="space-y-1">
+            <label className={label}>Event</label>
+            <select className={`${selectClass} h-9 text-xs`} value={quickStatType} onChange={e => setQuickStatType(e.target.value as FixtureStatType)}>
+              {STAT_TYPES.map(t => <option key={t} value={t}>{STAT_TYPE_LABELS[t]}</option>)}
+            </select>
+          </div>
+          <div className="space-y-1">
+            <label className={label}>Minute</label>
+            <input className={`${inputClass} h-9 text-xs`} type="number" min={0} value={quickMinute} onChange={e => setQuickMinute(e.target.value)} placeholder="Optional" />
+          </div>
+          <button type="submit" className={`${primaryBtn} !px-3`} disabled={!quickTeamId || !quickPlayerName.trim()}><Plus size={14} /> Add</button>
+        </form>
+
+        <div className="grid gap-3 lg:grid-cols-2">
+          <RosterColumn title={teamName(fixture.home_team_id)} teamId={fixture.home_team_id} players={homeRoster} onSelectPlayer={setQuickPlayerName} onAddStat={addRosterStat} />
+          <RosterColumn title={teamName(fixture.away_team_id)} teamId={fixture.away_team_id} players={awayRoster} onSelectPlayer={setQuickPlayerName} onAddStat={addRosterStat} />
+        </div>
+
+        <div className="grid gap-3 lg:grid-cols-2">
+          <section className="rounded-2xl border border-white/10 bg-white/[0.035] p-3">
+            <h3 className="font-display text-xs font-black uppercase tracking-wide text-white">Cards and stats</h3>
+            {fixtureStats.length === 0 ? (
+              <p className="mt-2 text-xs text-slate-500">No player events on this match sheet.</p>
+            ) : (
+              <ul className="mt-2 space-y-1.5">
+                {fixtureStats.map(s => (
+                  <li key={s.id} className="flex items-center justify-between gap-2 text-xs">
+                    <span className="truncate text-slate-300">
+                      <span className="font-bold text-white">{s.player_name}</span> · {teamName(s.team_id)} · {STAT_TYPE_LABELS[s.stat_type]}
+                    </span>
+                    <button type="button" aria-label="Remove match sheet stat" className="flex h-7 w-7 items-center justify-center rounded-lg text-slate-500 hover:text-rose-300" onClick={() => onDeleteStat(s.id)}>
+                      <X size={13} />
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+
+          <section className="rounded-2xl border border-white/10 bg-white/[0.035] p-3">
+            <h3 className="font-display text-xs font-black uppercase tracking-wide text-white">Match incidents</h3>
+            <form onSubmit={submitIncident} className="mt-2 grid gap-2">
+              <div className="grid gap-2 sm:grid-cols-2">
+                <select className={`${selectClass} h-9 text-xs`} value={incidentKind} onChange={e => setIncidentKind(e.target.value as IncidentKind)}>
+                  {INCIDENT_KINDS.map(k => <option key={k} value={k}>{INCIDENT_KIND_LABELS[k]}</option>)}
+                </select>
+                <select className={`${selectClass} h-9 text-xs`} value={incidentTeamId} onChange={e => setIncidentTeamId(e.target.value)}>
+                  <option value="">No team</option>
+                  {fixtureTeams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+                </select>
+              </div>
+              <div className="flex gap-2">
+                <input className={`${inputClass} h-9 text-xs`} value={incidentSummary} onChange={e => setIncidentSummary(e.target.value)} placeholder="Brief incident note" />
+                <button type="submit" className={`${primaryBtn} !px-3`}><Plus size={14} /> Log</button>
+              </div>
+            </form>
+            {fixtureIncidents.length > 0 && (
+              <ul className="mt-3 space-y-1.5">
+                {fixtureIncidents.map(inc => (
+                  <li key={inc.id} className="flex items-center justify-between gap-2 text-xs">
+                    <span className="truncate text-slate-300">
+                      <span className="font-bold text-white">{INCIDENT_KIND_LABELS[inc.kind]}</span> · {inc.team_id ? `${teamName(inc.team_id)} · ` : ''}{inc.summary}
+                    </span>
+                    <button type="button" aria-label="Remove match incident" className="flex h-7 w-7 items-center justify-center rounded-lg text-slate-500 hover:text-rose-300" onClick={() => onDeleteIncident(inc.id)}>
+                      <Trash2 size={13} />
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+        </div>
+      </div>
+    </section>
+  );
+};
+
+const MiniStat = ({ label: statLabel, value }: { label: string; value: string | number }) => (
+  <div className="rounded-xl border border-white/10 bg-black/15 px-3 py-2">
+    <p className="text-[10px] font-black uppercase tracking-wide text-slate-500">{statLabel}</p>
+    <p className="mt-0.5 font-display text-sm font-black text-white">{value}</p>
+  </div>
+);
+
+const RosterColumn = ({ title, teamId, players, onSelectPlayer, onAddStat }: {
+  title: string;
+  teamId: string | null;
+  players: EventRosterPlayer[];
+  onSelectPlayer: (playerName: string) => void;
+  onAddStat: (teamId: string | null, playerName: string, statType: FixtureStatType) => void;
+}) => (
+  <section className="rounded-2xl border border-white/10 bg-white/[0.035] p-3">
+    <h3 className="font-display text-xs font-black uppercase tracking-wide text-white">{title}</h3>
+    {players.length === 0 ? (
+      <p className="mt-2 text-xs text-slate-500">No active roster players.</p>
+    ) : (
+      <ul className="mt-2 space-y-1.5">
+        {players.map(player => (
+          <li key={player.id} className="flex items-center justify-between gap-2 rounded-xl border border-white/[0.06] bg-black/15 px-2 py-2">
+            <button type="button" className="min-w-0 truncate text-left text-xs font-bold text-white hover:text-sky-200" onClick={() => onSelectPlayer(player.full_name)}>
+              {player.shirt_number !== null && <span className="mr-2 text-slate-500">#{player.shirt_number}</span>}
+              {player.full_name}
+            </button>
+            <span className="flex shrink-0 items-center gap-1">
+              <button type="button" className="rounded border border-emerald-300/25 bg-emerald-400/10 px-1.5 py-0.5 text-[10px] font-black text-emerald-100" onClick={() => onAddStat(teamId, player.full_name, 'goal')}>G</button>
+              <button type="button" className="rounded border border-sky-300/25 bg-sky-400/10 px-1.5 py-0.5 text-[10px] font-black text-sky-100" onClick={() => onAddStat(teamId, player.full_name, 'assist')}>A</button>
+              <button type="button" className="rounded border border-yellow-200/25 bg-yellow-300/10 px-1.5 py-0.5 text-[10px] font-black text-yellow-100" onClick={() => onAddStat(teamId, player.full_name, 'yellow_card')}>Y</button>
+              <button type="button" className="rounded border border-rose-400/35 bg-rose-400/15 px-1.5 py-0.5 text-[10px] font-black text-rose-100" onClick={() => onAddStat(teamId, player.full_name, 'red_card')}>R</button>
+              <button type="button" className="rounded border border-slate-300/20 bg-white/[0.045] px-1.5 py-0.5 text-[10px] font-black text-slate-200" onClick={() => onAddStat(teamId, player.full_name, 'own_goal')}>OG</button>
+            </span>
+          </li>
+        ))}
+      </ul>
+    )}
+  </section>
+);
+
 const CheckinButton = ({ name, checked, onClick }: { name: string; checked: boolean; onClick: () => void }) => (
   <button
     type="button"
@@ -2870,9 +3303,11 @@ const CheckinButton = ({ name, checked, onClick }: { name: string; checked: bool
   </button>
 );
 
-const FixtureOpsCard = ({ fixture, teamName, onSetOps }: {
+const FixtureOpsCard = ({ fixture, selected, teamName, onSelect, onSetOps }: {
   fixture: EventFixture;
-  teamName: (id: string) => string;
+  selected: boolean;
+  teamName: (id: string | null) => string;
+  onSelect: () => void;
   onSetOps: (fixtureId: string, patch: FixtureOpsPatch) => void;
 }) => {
   const ready = fixture.home_checked_in && fixture.away_checked_in;
@@ -2883,10 +3318,10 @@ const FixtureOpsCard = ({ fixture, teamName, onSetOps }: {
       : { text: 'Awaiting', tone: 'border-slate-300/20 bg-white/[0.045] text-slate-300' };
 
   return (
-    <div className="space-y-2 rounded-xl border border-white/10 bg-white/[0.035] p-3">
+    <div className={`space-y-2 rounded-xl border p-3 ${selected ? 'border-sky-300/45 bg-sky-300/10' : 'border-white/10 bg-white/[0.035]'}`}>
       <div className="flex items-center justify-between gap-2">
         <CheckinButton name={teamName(fixture.home_team_id)} checked={fixture.home_checked_in} onClick={() => onSetOps(fixture.id, { homeCheckedIn: !fixture.home_checked_in })} />
-        <span className={`shrink-0 rounded-full border px-2 py-0.5 text-[11px] font-bold ${statusPill.tone}`}>{statusPill.text}</span>
+        <button type="button" className={`shrink-0 rounded-full border px-2 py-0.5 text-[11px] font-bold ${statusPill.tone}`} onClick={onSelect}>{statusPill.text}</button>
         <CheckinButton name={teamName(fixture.away_team_id)} checked={fixture.away_checked_in} onClick={() => onSetOps(fixture.id, { awayCheckedIn: !fixture.away_checked_in })} />
       </div>
       <OfficialInput value={fixture.official_name} onSave={name => onSetOps(fixture.id, { officialName: name })} />
