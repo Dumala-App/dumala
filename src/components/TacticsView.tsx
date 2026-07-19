@@ -1,6 +1,6 @@
-import React, { useState, useMemo, useEffect, useRef } from 'react';
+import React, { lazy, Suspense, useState, useMemo, useEffect, useRef } from 'react';
 import { Game, GamePlan, Player, StaffMember } from '../types';
-import { STAFF_PLACEHOLDER } from '../playerPlaceholders';
+import { getPlayerPlaceholder, STAFF_PLACEHOLDER } from '../playerPlaceholders';
 import { Shield, Crown, Star, Flame, Target, Trophy, Zap, Search, RefreshCw, UserCheck, Play, Save, ChevronRight, HelpCircle, User, Info, BarChart2, Edit, Trash2, Plus, Check, Filter, Tag, BookOpen, Maximize2, Minimize2, ClipboardList, Users, SlidersHorizontal } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import {
@@ -56,7 +56,6 @@ import {
   type StrategyRiskLevel,
   type StrategyTeamCondition
 } from '../tactics/strategyContext';
-import { CoachKnowledgeBase } from './CoachKnowledgeBase';
 import { Badge } from './ui/badge';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
@@ -77,7 +76,10 @@ import {
 import footballIconUrl from '../assets/tactics/football-icon.png';
 import wallImageUrl from '../assets/tactics/wall.png';
 
-export { CoachKnowledgeBase as TacticsKnowledgeBase } from './CoachKnowledgeBase';
+// Loaded on demand so the Coaching Library content stays out of the tactics board chunk.
+const CoachKnowledgeBase = lazy(() =>
+  import('./CoachKnowledgeBase').then(module => ({ default: module.CoachKnowledgeBase }))
+);
 
 type PlayerStatus = 'starting' | 'substitute' | 'injured';
 type PlayerStatusExtras = Record<string, {
@@ -705,7 +707,9 @@ export default function TacticsView({
           rating: avg,
           position: p.position === 'Forward' ? 'CF' : p.position === 'Midfielder' ? 'AMF' : p.position === 'Defender' ? 'CB' : 'GK',
           condition: 'B' as const,
-          photoUrl: p.photoUrl,
+          // An empty src makes the browser re-request the page URL per card;
+          // fall back to the role placeholder instead.
+          photoUrl: p.photoUrl || getPlayerPlaceholder(p.position),
           isLegend: false,
           attributes: tacticsAttributes,
           number: p.number,
@@ -753,6 +757,15 @@ export default function TacticsView({
   const activeDragPointerIdRef = useRef<number | null>(null);
   const dragStartPointRef = useRef<{ x: number; y: number } | null>(null);
   const isDragMovingRef = useRef(false);
+  // Pointer events fire faster than frames; commit at most one drag update per frame.
+  const dragFrameRef = useRef<number | null>(null);
+  const pendingDragCommitRef = useRef<(() => void) | null>(null);
+
+  useEffect(() => () => {
+    if (dragFrameRef.current !== null) {
+      cancelAnimationFrame(dragFrameRef.current);
+    }
+  }, []);
 
   // Drawing tools state
   const [isDrawingMode, setIsDrawingMode] = useState<boolean>(false);
@@ -1244,7 +1257,18 @@ export default function TacticsView({
     return [storedPoint.left, storedPoint.top];
   };
 
+  const flushPendingDragCommit = () => {
+    if (dragFrameRef.current !== null) {
+      cancelAnimationFrame(dragFrameRef.current);
+      dragFrameRef.current = null;
+    }
+    const commit = pendingDragCommitRef.current;
+    pendingDragCommitRef.current = null;
+    commit?.();
+  };
+
   const finishDragInteraction = (e?: React.PointerEvent) => {
+    flushPendingDragCommit();
     activeDragItemRef.current = null;
     activeDragPointerIdRef.current = null;
     dragStartPointRef.current = null;
@@ -1373,14 +1397,23 @@ export default function TacticsView({
     
     if (dragItem.type === 'player' && dragItem.index !== undefined) {
       const idx = dragItem.index;
-      setDraggedPositions(prev => ({
+      pendingDragCommitRef.current = () => setDraggedPositions(prev => ({
         ...prev,
         [idx]: storedPosition
       }));
     } else if (dragItem.type === 'ball') {
-      setBallPos(storedPosition);
+      pendingDragCommitRef.current = () => setBallPos(storedPosition);
     } else if (dragItem.type === 'wall') {
-      setWallPos(storedPosition);
+      pendingDragCommitRef.current = () => setWallPos(storedPosition);
+    }
+
+    if (dragFrameRef.current === null) {
+      dragFrameRef.current = requestAnimationFrame(() => {
+        dragFrameRef.current = null;
+        const commit = pendingDragCommitRef.current;
+        pendingDragCommitRef.current = null;
+        commit?.();
+      });
     }
   };
 
@@ -1410,6 +1443,88 @@ export default function TacticsView({
     }
     return allEligiblePool.filter(p => !activeLineupIds.has(p.id));
   }, [allEligiblePool, lineup, matchFormat]);
+
+  // These card lists only change with the active selection; memoizing them keeps
+  // note keystrokes and board drag frames from re-rendering ~27 detailed cards.
+  const attackingPlanSection = useMemo(() => (
+    <section className={cn(tacticsGlassCardClass, 'flex min-h-0 flex-col p-4 md:p-5 xl:max-h-[42rem]')}>
+      <div className="mb-3">
+        <h5 className="text-[10px] font-black tracking-widest text-slate-300 uppercase">Attacking Plan</h5>
+        <p className="mt-1 text-[11px] text-slate-500">Select how the team should create chances after winning or keeping the ball.</p>
+      </div>
+      <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto pr-1">
+        {visibleAttackStrategies.map((guidance) => {
+          const selected = playstyle === guidance.styleValue;
+          return (
+            <button
+              id={`btn-playstyle-${guidance.styleValue.replaceAll(' ', '-')}`}
+              key={guidance.id}
+              type="button"
+              onClick={() => setPlaystyle(guidance.styleValue)}
+              className={`block w-full min-w-0 shrink-0 whitespace-normal rounded-lg border border-l-2 px-4 py-3 text-left align-top transition ${
+                selected
+                ? 'border-indigo-300 bg-indigo-500/15 shadow-sm shadow-indigo-500/10'
+                  : 'border-slate-700/60 bg-[#0b1726]/66 hover:border-cyan-300/30 hover:bg-cyan-300/[0.08]'
+              }`}
+            >
+              <div className="flex min-w-0 items-start justify-between gap-3">
+                <span className="min-w-0 text-base font-black leading-snug text-white">{guidance.title}</span>
+                {selected && <Badge className="shrink-0 rounded bg-indigo-500 px-2 py-0.5 text-[9px] text-white">Active</Badge>}
+              </div>
+              <p className="mt-2 text-sm leading-relaxed text-slate-200">{guidance.intent}</p>
+              <p className="mt-2 text-[11px] leading-relaxed text-slate-500"><strong className="text-slate-400">Best for:</strong> {guidance.bestFor}</p>
+              <div className="mt-3 flex flex-wrap gap-1.5">
+                {guidance.cues.map((cue) => (
+                  <span key={cue} className="rounded-md border border-indigo-500/20 bg-indigo-500/10 px-2 py-1 text-[10px] font-bold leading-tight text-indigo-200">{cue}</span>
+                ))}
+              </div>
+              <p className="mt-3 text-[11px] leading-relaxed text-rose-200/85">Watch: {guidance.watchout}</p>
+            </button>
+          );
+        })}
+      </div>
+    </section>
+  ), [playstyle, visibleAttackStrategies]);
+
+  const defensivePlanSection = useMemo(() => (
+    <section className={cn(tacticsGlassCardClass, 'flex min-h-0 flex-col p-4 md:p-5 xl:max-h-[42rem]')}>
+      <div className="mb-3">
+        <h5 className="text-[10px] font-black tracking-widest text-slate-300 uppercase">Defensive Plan</h5>
+        <p className="mt-1 text-[11px] text-slate-500">Define the team trigger, line height, and first recovery behavior out of possession.</p>
+      </div>
+      <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto pr-1">
+        {DEFENSE_STRATEGY_CARDS.map((guidance) => {
+          const selected = defensiveStyle === guidance.styleValue;
+          return (
+            <button
+              id={`btn-defstyle-${guidance.styleValue.replaceAll(' ', '-')}`}
+              key={guidance.id}
+              type="button"
+              onClick={() => setDefensiveStyle(guidance.styleValue)}
+              className={`block w-full min-w-0 shrink-0 whitespace-normal rounded-lg border border-l-2 px-4 py-3 text-left align-top transition ${
+                selected
+                ? 'border-emerald-300 bg-emerald-500/15 shadow-sm shadow-emerald-500/10'
+                  : 'border-slate-700/60 bg-[#0b1726]/66 hover:border-cyan-300/30 hover:bg-cyan-300/[0.08]'
+              }`}
+            >
+              <div className="flex min-w-0 items-start justify-between gap-3">
+                <span className="min-w-0 text-base font-black leading-snug text-white">{guidance.title}</span>
+                {selected && <Badge className="shrink-0 rounded bg-emerald-500 px-2 py-0.5 text-[9px] text-slate-950">Active</Badge>}
+              </div>
+              <p className="mt-2 text-sm leading-relaxed text-slate-200">{guidance.intent}</p>
+              <p className="mt-2 text-[11px] leading-relaxed text-slate-500"><strong className="text-slate-400">Best for:</strong> {guidance.bestFor}</p>
+              <div className="mt-3 flex flex-wrap gap-1.5">
+                {guidance.cues.map((cue) => (
+                  <span key={cue} className="rounded-md border border-emerald-500/20 bg-emerald-500/10 px-2 py-1 text-[10px] font-bold leading-tight text-emerald-200">{cue}</span>
+                ))}
+              </div>
+              <p className="mt-3 text-[11px] leading-relaxed text-rose-200/85">Watch: {guidance.watchout}</p>
+            </button>
+          );
+        })}
+      </div>
+    </section>
+  ), [defensiveStyle]);
 
   const renderSetPieceLeadership = () => (
     <div>
@@ -3388,81 +3503,8 @@ export default function TacticsView({
             </section>
 
             <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
-                <section className={cn(tacticsGlassCardClass, 'flex min-h-0 flex-col p-4 md:p-5 xl:max-h-[42rem]')}>
-                  <div className="mb-3">
-                    <h5 className="text-[10px] font-black tracking-widest text-slate-300 uppercase">Attacking Plan</h5>
-                    <p className="mt-1 text-[11px] text-slate-500">Select how the team should create chances after winning or keeping the ball.</p>
-                  </div>
-                  <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto pr-1">
-                    {visibleAttackStrategies.map((guidance) => {
-                      const selected = playstyle === guidance.styleValue;
-                      return (
-                        <button
-                          id={`btn-playstyle-${guidance.styleValue.replaceAll(' ', '-')}`}
-                          key={guidance.id}
-                          type="button"
-                          onClick={() => setPlaystyle(guidance.styleValue)}
-                          className={`block w-full min-w-0 shrink-0 whitespace-normal rounded-lg border border-l-2 px-4 py-3 text-left align-top transition ${
-                            selected
-                            ? 'border-indigo-300 bg-indigo-500/15 shadow-sm shadow-indigo-500/10'
-                              : 'border-slate-700/60 bg-[#0b1726]/66 hover:border-cyan-300/30 hover:bg-cyan-300/[0.08]'
-                          }`}
-                        >
-                          <div className="flex min-w-0 items-start justify-between gap-3">
-                            <span className="min-w-0 text-base font-black leading-snug text-white">{guidance.title}</span>
-                            {selected && <Badge className="shrink-0 rounded bg-indigo-500 px-2 py-0.5 text-[9px] text-white">Active</Badge>}
-                          </div>
-                          <p className="mt-2 text-sm leading-relaxed text-slate-200">{guidance.intent}</p>
-                          <p className="mt-2 text-[11px] leading-relaxed text-slate-500"><strong className="text-slate-400">Best for:</strong> {guidance.bestFor}</p>
-                          <div className="mt-3 flex flex-wrap gap-1.5">
-                            {guidance.cues.map((cue) => (
-                              <span key={cue} className="rounded-md border border-indigo-500/20 bg-indigo-500/10 px-2 py-1 text-[10px] font-bold leading-tight text-indigo-200">{cue}</span>
-                            ))}
-                          </div>
-                          <p className="mt-3 text-[11px] leading-relaxed text-rose-200/85">Watch: {guidance.watchout}</p>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </section>
-
-                <section className={cn(tacticsGlassCardClass, 'flex min-h-0 flex-col p-4 md:p-5 xl:max-h-[42rem]')}>
-                  <div className="mb-3">
-                    <h5 className="text-[10px] font-black tracking-widest text-slate-300 uppercase">Defensive Plan</h5>
-                    <p className="mt-1 text-[11px] text-slate-500">Define the team trigger, line height, and first recovery behavior out of possession.</p>
-                  </div>
-                  <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto pr-1">
-                    {DEFENSE_STRATEGY_CARDS.map((guidance) => {
-                      const selected = defensiveStyle === guidance.styleValue;
-                      return (
-                        <button
-                          id={`btn-defstyle-${guidance.styleValue.replaceAll(' ', '-')}`}
-                          key={guidance.id}
-                          type="button"
-                          onClick={() => setDefensiveStyle(guidance.styleValue)}
-                          className={`block w-full min-w-0 shrink-0 whitespace-normal rounded-lg border border-l-2 px-4 py-3 text-left align-top transition ${
-                            selected
-                            ? 'border-emerald-300 bg-emerald-500/15 shadow-sm shadow-emerald-500/10'
-                              : 'border-slate-700/60 bg-[#0b1726]/66 hover:border-cyan-300/30 hover:bg-cyan-300/[0.08]'
-                          }`}
-                        >
-                          <div className="flex min-w-0 items-start justify-between gap-3">
-                            <span className="min-w-0 text-base font-black leading-snug text-white">{guidance.title}</span>
-                            {selected && <Badge className="shrink-0 rounded bg-emerald-500 px-2 py-0.5 text-[9px] text-slate-950">Active</Badge>}
-                          </div>
-                          <p className="mt-2 text-sm leading-relaxed text-slate-200">{guidance.intent}</p>
-                          <p className="mt-2 text-[11px] leading-relaxed text-slate-500"><strong className="text-slate-400">Best for:</strong> {guidance.bestFor}</p>
-                          <div className="mt-3 flex flex-wrap gap-1.5">
-                            {guidance.cues.map((cue) => (
-                              <span key={cue} className="rounded-md border border-emerald-500/20 bg-emerald-500/10 px-2 py-1 text-[10px] font-bold leading-tight text-emerald-200">{cue}</span>
-                            ))}
-                          </div>
-                          <p className="mt-3 text-[11px] leading-relaxed text-rose-200/85">Watch: {guidance.watchout}</p>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </section>
+                {attackingPlanSection}
+                {defensivePlanSection}
               </div>
           </motion.div>
         )}
@@ -3830,7 +3872,15 @@ export default function TacticsView({
 
         </>
       ) : (
-        <CoachKnowledgeBase />
+        <Suspense
+          fallback={
+            <div className={cn(tacticsGlassPanelClass, 'flex min-h-[16rem] items-center justify-center p-6')}>
+              <span className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Loading coaching library…</span>
+            </div>
+          }
+        >
+          <CoachKnowledgeBase />
+        </Suspense>
       )}
 
     </div>
