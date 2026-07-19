@@ -19,6 +19,7 @@ import {
   Activity,
   AlertTriangle,
   Archive,
+  ArrowRightLeft,
   ImagePlus,
   ArrowDownLeft,
   ArrowUpRight,
@@ -136,13 +137,14 @@ interface LeagueAppProps {
   preview?: boolean;
 }
 
-type LeagueSection = 'overview' | 'seasons' | 'events' | 'archived' | 'calendar' | 'statistics' | 'coaches' | 'compliance' | 'venues' | 'finance' | 'settings';
+type LeagueSection = 'overview' | 'seasons' | 'events' | 'archived' | 'transfers' | 'calendar' | 'statistics' | 'coaches' | 'compliance' | 'venues' | 'finance' | 'settings';
 
 const NAV: Array<{ id: LeagueSection; label: string; icon: React.ComponentType<{ size?: number; className?: string }> }> = [
   { id: 'overview', label: 'Overview', icon: Gauge },
   { id: 'seasons', label: 'Seasons', icon: CalendarRange },
   { id: 'events', label: 'Events', icon: Trophy },
   { id: 'archived', label: 'Archived', icon: Archive },
+  { id: 'transfers', label: 'Transfers', icon: ArrowRightLeft },
   { id: 'calendar', label: 'Calendar', icon: CalendarClock },
   { id: 'statistics', label: 'Statistics', icon: Database },
   { id: 'coaches', label: 'Coaches', icon: UserCheck },
@@ -348,6 +350,7 @@ const LeagueApp = ({ runtime, userId, authController, preview = false }: LeagueA
   const [ledger, setLedger] = useState<LedgerEntry[]>([]);
   const [invoices, setInvoices] = useState<EventInvoice[]>([]);
   const [eventTeams, setEventTeams] = useState<EventTeam[]>([]);
+  const [leagueRosterPlayers, setLeagueRosterPlayers] = useState<EventRosterPlayer[]>([]);
   const [leagueFixtures, setLeagueFixtures] = useState<EventFixture[]>([]);
   const [leagueStats, setLeagueStats] = useState<FixtureStatEvent[]>([]);
   const [eligibilityRules, setEligibilityRules] = useState<LeagueEligibilityRule[]>([]);
@@ -371,12 +374,14 @@ const LeagueApp = ({ runtime, userId, authController, preview = false }: LeagueA
       league.listEligibilityRules(leagueId),
       league.listDocumentRequirements(leagueId)
     ]);
+    const nextRosterPlayers = (await Promise.all(nextEvents.map(event => league.listEventRosterPlayers(event.id)))).flat();
     setSeasons(nextSeasons);
     setVenues(nextVenues);
     setEvents(nextEvents);
     setLedger(nextLedger);
     setInvoices(nextInvoices);
     setEventTeams(nextTeams);
+    setLeagueRosterPlayers(nextRosterPlayers);
     setLeagueFixtures(nextFixtures);
     setLeagueStats(nextStats);
     setEligibilityRules(nextRules);
@@ -390,7 +395,7 @@ const LeagueApp = ({ runtime, userId, authController, preview = false }: LeagueA
     setActiveLeagueId(target?.id ?? null);
     if (target) await loadLeagueData(target.id);
     else {
-      setSeasons([]); setVenues([]); setEvents([]); setLedger([]); setInvoices([]); setEventTeams([]);
+      setSeasons([]); setVenues([]); setEvents([]); setLedger([]); setInvoices([]); setEventTeams([]); setLeagueRosterPlayers([]);
       setLeagueFixtures([]); setLeagueStats([]); setEligibilityRules([]); setDocumentRequirements([]);
     }
   }, [league, activeLeagueId, loadLeagueData]);
@@ -543,6 +548,23 @@ const LeagueApp = ({ runtime, userId, authController, preview = false }: LeagueA
                 venues={venues}
                 runError={withError}
                 onAfter={() => loadLeagueData(activeLeague.id)}
+              />
+            )}
+            {section === 'transfers' && (
+              <TransferWindowSection
+                seasons={seasons}
+                events={events}
+                teams={eventTeams}
+                rosterPlayers={leagueRosterPlayers}
+                runError={withError}
+                onTransfer={(playerId, destinationTeamId, note) => withError(async () => {
+                  await league.transferEventRosterPlayer(playerId, destinationTeamId, note);
+                  await loadLeagueData(activeLeague.id);
+                })}
+                onMarkStatus={(playerId, status, note) => withError(async () => {
+                  await league.markEventRosterPlayerStatus(playerId, status, note);
+                  await loadLeagueData(activeLeague.id);
+                })}
               />
             )}
             {section === 'statistics' && (
@@ -2520,6 +2542,206 @@ const RosterTeamControls = ({ team, players, rosterWindowOpen, transferWindowOpe
   );
 };
 
+const TransferWindowSection = ({ seasons, events, teams, rosterPlayers, onTransfer, onMarkStatus }: {
+  seasons: LeagueSeason[];
+  events: LeagueEvent[];
+  teams: EventTeam[];
+  rosterPlayers: EventRosterPlayer[];
+  runError: (fn: () => Promise<unknown>) => Promise<void>;
+  onTransfer: (playerId: string, destinationTeamId: string, note: string | null) => Promise<void>;
+  onMarkStatus: (playerId: string, status: Exclude<EventRosterPlayerStatus, 'active'>, note: string | null) => Promise<void>;
+}) => {
+  const visibleEvents = events.filter(event => !isEventFinished(event.status));
+  const [eventId, setEventId] = useState(visibleEvents[0]?.id ?? events[0]?.id ?? '');
+  const [playerId, setPlayerId] = useState('');
+  const [destinationTeamId, setDestinationTeamId] = useState('');
+  const [departurePlayerId, setDeparturePlayerId] = useState('');
+  const [departureStatus, setDepartureStatus] = useState<Exclude<EventRosterPlayerStatus, 'active'>>('released');
+  const [note, setNote] = useState('');
+  const [departureNote, setDepartureNote] = useState('');
+
+  useEffect(() => {
+    if (eventId && events.some(event => event.id === eventId)) return;
+    setEventId(visibleEvents[0]?.id ?? events[0]?.id ?? '');
+  }, [eventId, events, visibleEvents]);
+
+  const selectedEvent = events.find(event => event.id === eventId) ?? null;
+  const selectedSeason = seasons.find(season => season.id === selectedEvent?.season_id) ?? null;
+  const eventTeams = teams.filter(team => team.event_id === eventId);
+  const eventRoster = rosterPlayers.filter(player => player.event_id === eventId);
+  const summary = summarizeRoster(eventTeams, eventRoster, selectedSeason);
+  const teamName = (id: string | null) => eventTeams.find(team => team.id === id)?.name ?? teams.find(team => team.id === id)?.name ?? 'Unknown team';
+  const activePlayers = eventRoster
+    .filter(player => player.status === 'active')
+    .slice()
+    .sort((a, b) => teamName(a.team_id).localeCompare(teamName(b.team_id)) || a.full_name.localeCompare(b.full_name));
+  const selectedPlayer = activePlayers.find(player => player.id === playerId) ?? null;
+  const destinationTeams = selectedPlayer
+    ? eventTeams.filter(team => team.id !== selectedPlayer.team_id)
+    : eventTeams;
+  const transferHistory = eventRoster
+    .filter(player => player.transfer_from_team_id || player.status !== 'active' || player.transfer_note)
+    .slice()
+    .sort((a, b) => (b.transferred_at ?? b.updated_at).localeCompare(a.transferred_at ?? a.updated_at));
+
+  useEffect(() => {
+    if (playerId && activePlayers.some(player => player.id === playerId)) return;
+    setPlayerId(activePlayers[0]?.id ?? '');
+  }, [activePlayers, playerId]);
+
+  useEffect(() => {
+    if (departurePlayerId && eventRoster.some(player => player.id === departurePlayerId && player.status === 'active')) return;
+    setDeparturePlayerId(activePlayers[0]?.id ?? '');
+  }, [activePlayers, departurePlayerId, eventRoster]);
+
+  useEffect(() => {
+    if (destinationTeamId && destinationTeams.some(team => team.id === destinationTeamId)) return;
+    setDestinationTeamId(destinationTeams[0]?.id ?? '');
+  }, [destinationTeamId, destinationTeams]);
+
+  const submitTransfer = (e: FormEvent) => {
+    e.preventDefault();
+    if (!playerId || !destinationTeamId || !summary.transferWindowOpen) return;
+    void onTransfer(playerId, destinationTeamId, note || null).then(() => setNote(''));
+  };
+
+  const submitDeparture = (e: FormEvent) => {
+    e.preventDefault();
+    if (!departurePlayerId || !summary.transferWindowOpen) return;
+    void onMarkStatus(departurePlayerId, departureStatus, departureNote || null).then(() => setDepartureNote(''));
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h2 className="font-display text-sm font-black uppercase tracking-wide text-white">Transfer window</h2>
+          <p className="mt-1 text-xs text-slate-400">Review player movement, clear departures, and keep each decision tied to the event roster.</p>
+        </div>
+        <div className="w-full max-w-sm space-y-1 sm:w-72">
+          <label className={label}>Competition</label>
+          <select className={selectClass} value={eventId} onChange={e => setEventId(e.target.value)}>
+            {[...visibleEvents, ...events.filter(event => isEventFinished(event.status))].map(event => (
+              <option key={event.id} value={event.id}>{event.name}</option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <StatTile label="Window" value={summary.transferWindowOpen ? 'Open' : 'Closed'} detail={selectedSeason?.transfer_window_closes_on ? `Closes ${formatShortDate(selectedSeason.transfer_window_closes_on)}` : 'No close date'} />
+        <StatTile label="Active players" value={summary.active} detail={`${eventTeams.length} teams`} />
+        <StatTile label="Documented moves" value={transferHistory.length} detail="Transfers and departures" />
+        <StatTile label="Locked rosters" value={`${summary.lockedTeams} / ${summary.totalTeams}`} detail="Cannot move locked teams" />
+      </div>
+
+      {!selectedEvent ? (
+        <div className={`${panel} p-8 text-center`}>
+          <ArrowRightLeft size={22} className="mx-auto text-slate-500" />
+          <p className="mt-3 text-sm font-bold text-white">No competitions yet</p>
+          <p className="mx-auto mt-1 max-w-md text-xs leading-5 text-slate-400">Create an event and add teams before opening transfer administration.</p>
+        </div>
+      ) : (
+        <div className="grid gap-4 lg:grid-cols-[1.15fr_0.85fr]">
+          <section className={panel}>
+            <div className={sectionHeader}>
+              <ArrowRightLeft size={16} className="text-sky-200" />
+              <h3 className="font-display text-sm font-black text-white">Move player between teams</h3>
+            </div>
+            <form onSubmit={submitTransfer} className="space-y-3 p-4">
+              {!summary.transferWindowOpen && (
+                <p className="rounded-xl border border-amber-300/20 bg-amber-400/10 px-3 py-2 text-xs text-amber-100">The transfer window is closed for this season.</p>
+              )}
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="space-y-1">
+                  <label className={label}>Player</label>
+                  <select className={selectClass} value={playerId} onChange={e => setPlayerId(e.target.value)} disabled={activePlayers.length === 0}>
+                    {activePlayers.map(player => <option key={player.id} value={player.id}>{player.full_name} / {teamName(player.team_id)}</option>)}
+                  </select>
+                </div>
+                <div className="space-y-1">
+                  <label className={label}>Destination team</label>
+                  <select className={selectClass} value={destinationTeamId} onChange={e => setDestinationTeamId(e.target.value)} disabled={!selectedPlayer || destinationTeams.length === 0}>
+                    {destinationTeams.map(team => <option key={team.id} value={team.id}>{team.name}{team.roster_locked ? ' (locked)' : ''}</option>)}
+                  </select>
+                </div>
+              </div>
+              <div className="space-y-1">
+                <label className={label}>Decision note</label>
+                <textarea className={`${inputClass} h-auto min-h-20 py-2`} value={note} onChange={e => setNote(e.target.value)} maxLength={1000} placeholder="Clearance reference, parent/club approval, or league ruling." />
+              </div>
+              <button type="submit" className={primaryBtn} disabled={!summary.transferWindowOpen || !playerId || !destinationTeamId}>
+                <ArrowRightLeft size={14} /> Record transfer
+              </button>
+            </form>
+          </section>
+
+          <section className={panel}>
+            <div className={sectionHeader}>
+              <FileText size={16} className="text-sky-200" />
+              <h3 className="font-display text-sm font-black text-white">Release or mark departed</h3>
+            </div>
+            <form onSubmit={submitDeparture} className="space-y-3 p-4">
+              <div className="space-y-1">
+                <label className={label}>Player</label>
+                <select className={selectClass} value={departurePlayerId} onChange={e => setDeparturePlayerId(e.target.value)} disabled={activePlayers.length === 0}>
+                  {activePlayers.map(player => <option key={player.id} value={player.id}>{player.full_name} / {teamName(player.team_id)}</option>)}
+                </select>
+              </div>
+              <div className="space-y-1">
+                <label className={label}>Decision</label>
+                <select className={selectClass} value={departureStatus} onChange={e => setDepartureStatus(e.target.value as Exclude<EventRosterPlayerStatus, 'active'>)}>
+                  <option value="released">Released</option>
+                  <option value="transferred">Transferred out</option>
+                </select>
+              </div>
+              <div className="space-y-1">
+                <label className={label}>Decision note</label>
+                <textarea className={`${inputClass} h-auto min-h-20 py-2`} value={departureNote} onChange={e => setDepartureNote(e.target.value)} maxLength={1000} placeholder="Reason, clearance details, or admin reference." />
+              </div>
+              <button type="submit" className={ghostBtn} disabled={!summary.transferWindowOpen || !departurePlayerId}>
+                <Save size={14} /> Save departure
+              </button>
+            </form>
+          </section>
+        </div>
+      )}
+
+      <section className={panel}>
+        <div className={sectionHeader}>
+          <ClipboardCheck size={16} className="text-sky-200" />
+          <h3 className="font-display text-sm font-black text-white">Transfer register</h3>
+          <span className="ml-auto text-[11px] font-bold text-slate-500">{transferHistory.length}</span>
+        </div>
+        {transferHistory.length === 0 ? (
+          <div className="p-4 text-sm text-slate-400">No transfer decisions have been recorded for this event.</div>
+        ) : (
+          <ul className="divide-y divide-white/10">
+            {transferHistory.map(player => (
+              <li key={player.id} className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="font-display text-sm font-black text-white">{player.full_name}</span>
+                    <span className={`rounded-full border px-2 py-0.5 text-[10px] font-bold ${rosterTone[player.status]}`}>{ROSTER_PLAYER_STATUS_LABELS[player.status]}</span>
+                  </div>
+                  <p className="mt-1 text-xs text-slate-400">
+                    {player.transfer_from_team_id
+                      ? `${teamName(player.transfer_from_team_id)} to ${teamName(player.team_id)}`
+                      : teamName(player.team_id)}
+                    {player.transferred_at ? ` / ${formatShortDate(player.transferred_at.slice(0, 10))}` : ''}
+                  </p>
+                  {player.transfer_note && <p className="mt-1 text-xs text-slate-500">{player.transfer_note}</p>}
+                </div>
+                <span className="text-[11px] font-bold uppercase tracking-wide text-slate-500">{selectedEvent?.name}</span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+    </div>
+  );
+};
+
 const FixturesPanel = ({ fixtures, teamCount, teamName, onGenerate, onClear, onRecord }: {
   fixtures: EventFixture[];
   teamCount: number;
@@ -3710,6 +3932,22 @@ const formatDayHeading = (dateKey: string): string => {
   if (Number.isNaN(d.getTime())) return dateKey;
   return new Intl.DateTimeFormat(undefined, { weekday: 'short', month: 'short', day: 'numeric' }).format(d);
 };
+const formatMonthHeading = (monthKey: string): string => {
+  const d = new Date(`${monthKey}-01T00:00:00`);
+  if (Number.isNaN(d.getTime())) return monthKey;
+  return new Intl.DateTimeFormat(undefined, { month: 'long', year: 'numeric' }).format(d);
+};
+const localDateKey = (date: Date): string => {
+  const p = (n: number) => `${n}`.padStart(2, '0');
+  return `${date.getFullYear()}-${p(date.getMonth() + 1)}-${p(date.getDate())}`;
+};
+const localMonthKey = (date: Date): string => localDateKey(date).slice(0, 7);
+const shiftMonth = (monthKey: string, delta: number): string => {
+  const d = new Date(`${monthKey}-01T00:00:00`);
+  if (Number.isNaN(d.getTime())) return localMonthKey(new Date());
+  d.setMonth(d.getMonth() + delta);
+  return localMonthKey(d);
+};
 
 const CalendarSection = ({ league, fixtures, teams, events, venues, runError, onAfter }: {
   league: CloudLeagueRepository;
@@ -3731,6 +3969,12 @@ const CalendarSection = ({ league, fixtures, teams, events, venues, runError, on
   const [autoLast, setAutoLast] = useState('17:00');
   const [autoMinutes, setAutoMinutes] = useState(String(DEFAULT_MATCH_MINUTES));
   const [autoScope, setAutoScope] = useState<'unscheduled' | 'all'>('unscheduled');
+  const [monthKey, setMonthKey] = useState(() => calendar.days[0]?.date.slice(0, 7) ?? localMonthKey(new Date()));
+
+  useEffect(() => {
+    if (calendar.days.some(day => day.date.startsWith(monthKey))) return;
+    if (calendar.days[0]) setMonthKey(calendar.days[0].date.slice(0, 7));
+  }, [calendar.days, monthKey]);
 
   const runAutoSchedule = () =>
     runError(async () => {
@@ -3821,6 +4065,28 @@ const CalendarSection = ({ league, fixtures, teams, events, venues, runError, on
   };
 
   const noFixtures = fixtures.length === 0;
+  const monthItems = useMemo(() => {
+    const map = new Map<string, CalendarFixtureItem[]>();
+    for (const day of calendar.days) map.set(day.date, day.items);
+    return map;
+  }, [calendar.days]);
+  const monthCells = useMemo(() => {
+    const first = new Date(`${monthKey}-01T00:00:00`);
+    if (Number.isNaN(first.getTime())) return [];
+    const start = new Date(first);
+    start.setDate(start.getDate() - start.getDay());
+    return Array.from({ length: 42 }, (_, index) => {
+      const d = new Date(start);
+      d.setDate(start.getDate() + index);
+      const date = localDateKey(d);
+      return {
+        date,
+        dayNumber: d.getDate(),
+        inMonth: date.startsWith(monthKey),
+        items: monthItems.get(date) ?? []
+      };
+    });
+  }, [monthItems, monthKey]);
 
   return (
     <div className="space-y-4">
@@ -3891,6 +4157,44 @@ const CalendarSection = ({ league, fixtures, teams, events, venues, runError, on
               Add venues in the Venues tab to assign them to matches and enable double-booking checks.
             </p>
           )}
+
+          <section className={panel}>
+            <div className={`${sectionHeader} justify-between`}>
+              <div className="flex items-center gap-2">
+                <CalendarRange size={16} className="text-sky-200" />
+                <h2 className="font-display text-sm font-black text-white">{formatMonthHeading(monthKey)}</h2>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <button type="button" aria-label="Previous month" className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-300 hover:bg-white/[0.06] hover:text-white" onClick={() => setMonthKey(shiftMonth(monthKey, -1))}>
+                  <ChevronLeft size={16} />
+                </button>
+                <button type="button" aria-label="Next month" className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-300 hover:bg-white/[0.06] hover:text-white" onClick={() => setMonthKey(shiftMonth(monthKey, 1))}>
+                  <ChevronRight size={16} />
+                </button>
+              </div>
+            </div>
+            <div className="grid grid-cols-7 border-b border-white/10 text-center text-[10px] font-black uppercase tracking-wide text-slate-500">
+              {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => <span key={day} className="py-2">{day}</span>)}
+            </div>
+            <div className="grid grid-cols-7">
+              {monthCells.map(cell => (
+                <div key={cell.date} className={`min-h-24 border-b border-r border-white/[0.06] p-2 last:border-r-0 ${cell.inMonth ? 'bg-white/[0.02]' : 'bg-black/20 text-slate-700'}`}>
+                  <div className="flex items-center justify-between gap-2">
+                    <span className={`font-display text-xs font-black ${cell.inMonth ? 'text-white' : 'text-slate-600'}`}>{cell.dayNumber}</span>
+                    {cell.items.length > 0 && <span className="rounded-full border border-sky-300/25 bg-sky-400/10 px-1.5 py-0.5 text-[10px] font-black text-sky-100">{cell.items.length}</span>}
+                  </div>
+                  <div className="mt-2 space-y-1">
+                    {cell.items.slice(0, 2).map(item => (
+                      <div key={item.fixtureId} className={`truncate rounded-md border px-1.5 py-1 text-[10px] font-bold ${item.conflict ? 'border-rose-300/35 bg-rose-400/10 text-rose-100' : 'border-white/10 bg-black/20 text-slate-300'}`}>
+                        {formatClock(item.kickoffAt)} {item.homeTeamName} v {item.awayTeamName}
+                      </div>
+                    ))}
+                    {cell.items.length > 2 && <p className="text-[10px] font-bold text-slate-500">+{cell.items.length - 2} more</p>}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
 
           {calendar.days.map(day => (
             <section key={day.date} className={panel}>

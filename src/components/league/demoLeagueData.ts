@@ -244,35 +244,43 @@ const buildDemoLeagueRepository = (): CloudLeagueRepository => {
   let rosterPlayers: EventRosterPlayer[] = [
     {
       id: 'demo-roster-1', event_id: 'demo-event-1', league_id: LEAGUE_ID, team_id: 'demo-team-1', registration_id: 'demo-reg-1',
-      full_name: 'Marco Santos', birthdate: '2013-04-12', shirt_number: 9, status: 'active', transfer_note: null, created_at: now(), updated_at: now()
+      transfer_from_team_id: null, full_name: 'Marco Santos', birthdate: '2013-04-12', shirt_number: 9,
+      status: 'active', transfer_note: null, transferred_at: null, created_at: now(), updated_at: now()
     },
     {
       id: 'demo-roster-2', event_id: 'demo-event-1', league_id: LEAGUE_ID, team_id: 'demo-team-1', registration_id: 'demo-reg-1',
-      full_name: 'Luis Reyes', birthdate: '2013-10-03', shirt_number: 6, status: 'active', transfer_note: null, created_at: now(), updated_at: now()
+      transfer_from_team_id: null, full_name: 'Luis Reyes', birthdate: '2013-10-03', shirt_number: 6,
+      status: 'active', transfer_note: null, transferred_at: null, created_at: now(), updated_at: now()
     },
     {
-      id: 'demo-roster-3', event_id: 'demo-event-1', league_id: LEAGUE_ID, team_id: 'demo-team-1', registration_id: 'demo-reg-1',
-      full_name: 'Javi Cruz', birthdate: '2013-01-19', shirt_number: 7, status: 'active', transfer_note: null, created_at: now(), updated_at: now()
+      id: 'demo-roster-3', event_id: 'demo-event-1', league_id: LEAGUE_ID, team_id: 'demo-team-2', registration_id: null,
+      transfer_from_team_id: 'demo-team-1', full_name: 'Javi Cruz', birthdate: '2013-01-19', shirt_number: 7,
+      status: 'active', transfer_note: 'Clearance approved after parent confirmation.', transferred_at: '2026-07-16T09:00:00.000Z', created_at: now(), updated_at: now()
     },
     {
       id: 'demo-roster-4', event_id: 'demo-event-1', league_id: LEAGUE_ID, team_id: 'demo-team-2', registration_id: null,
-      full_name: 'Miguel Lim', birthdate: '2012-12-02', shirt_number: 10, status: 'active', transfer_note: null, created_at: now(), updated_at: now()
+      transfer_from_team_id: null, full_name: 'Miguel Lim', birthdate: '2012-12-02', shirt_number: 10,
+      status: 'active', transfer_note: null, transferred_at: null, created_at: now(), updated_at: now()
     },
     {
       id: 'demo-roster-5', event_id: 'demo-event-1', league_id: LEAGUE_ID, team_id: 'demo-team-2', registration_id: null,
-      full_name: 'Noah Tan', birthdate: '2013-08-08', shirt_number: 4, status: 'active', transfer_note: null, created_at: now(), updated_at: now()
+      transfer_from_team_id: null, full_name: 'Noah Tan', birthdate: '2013-08-08', shirt_number: 4,
+      status: 'active', transfer_note: null, transferred_at: null, created_at: now(), updated_at: now()
     },
     {
       id: 'demo-roster-6', event_id: 'demo-event-1', league_id: LEAGUE_ID, team_id: 'demo-team-3', registration_id: 'demo-reg-3',
-      full_name: 'Rafi Dizon', birthdate: '2013-06-22', shirt_number: 11, status: 'active', transfer_note: null, created_at: now(), updated_at: now()
+      transfer_from_team_id: null, full_name: 'Rafi Dizon', birthdate: '2013-06-22', shirt_number: 11,
+      status: 'active', transfer_note: null, transferred_at: null, created_at: now(), updated_at: now()
     },
     {
       id: 'demo-roster-7', event_id: 'demo-event-1', league_id: LEAGUE_ID, team_id: 'demo-team-3', registration_id: 'demo-reg-3',
-      full_name: 'Enzo Garcia', birthdate: '2013-03-11', shirt_number: 8, status: 'active', transfer_note: null, created_at: now(), updated_at: now()
+      transfer_from_team_id: null, full_name: 'Enzo Garcia', birthdate: '2013-03-11', shirt_number: 8,
+      status: 'active', transfer_note: null, transferred_at: null, created_at: now(), updated_at: now()
     },
     {
       id: 'demo-roster-8', event_id: 'demo-event-1', league_id: LEAGUE_ID, team_id: 'demo-team-4', registration_id: 'demo-reg-4',
-      full_name: 'Paolo Soriano', birthdate: '2012-11-28', shirt_number: 9, status: 'active', transfer_note: null, created_at: now(), updated_at: now()
+      transfer_from_team_id: null, full_name: 'Paolo Soriano', birthdate: '2012-11-28', shirt_number: 9,
+      status: 'active', transfer_note: null, transferred_at: null, created_at: now(), updated_at: now()
     }
   ];
 
@@ -796,12 +804,14 @@ const buildDemoLeagueRepository = (): CloudLeagueRepository => {
         event_id: team.event_id,
         league_id: team.league_id,
         team_id: team.id,
+        transfer_from_team_id: null,
         registration_id: team.registration_id,
         full_name: input.fullName.trim(),
         birthdate: input.birthdate || null,
         shirt_number: input.shirtNumber ?? null,
         status: 'active',
         transfer_note: null,
+        transferred_at: null,
         created_at: now(),
         updated_at: now()
       };
@@ -828,7 +838,38 @@ const buildDemoLeagueRepository = (): CloudLeagueRepository => {
       if (season?.transfer_window_opens_on && new Date(`${season.transfer_window_opens_on}T00:00:00`) > today) throw new Error('TRANSFER_WINDOW_CLOSED');
       if (season?.transfer_window_closes_on && new Date(`${season.transfer_window_closes_on}T00:00:00`) < today) throw new Error('TRANSFER_WINDOW_CLOSED');
       rosterPlayers = rosterPlayers.map(p => p.id === playerId
-        ? { ...p, status, transfer_note: note?.trim() || null, updated_at: now() }
+        ? { ...p, status, transfer_note: note?.trim() || null, transferred_at: now(), updated_at: now() }
+        : p);
+      return rosterPlayers.find(p => p.id === playerId)!;
+    },
+    transferEventRosterPlayer: async (playerId, destinationTeamId, note) => {
+      const player = rosterPlayers.find(p => p.id === playerId);
+      if (!player) throw new Error('ROSTER_PLAYER_NOT_FOUND');
+      if (player.status !== 'active') throw new Error('PLAYER_NOT_ACTIVE');
+      const source = teams.find(t => t.id === player.team_id);
+      const destination = teams.find(t => t.id === destinationTeamId);
+      if (!destination || destination.event_id !== player.event_id || destination.league_id !== player.league_id) {
+        throw new Error('DESTINATION_TEAM_MISMATCH');
+      }
+      if (destination.id === player.team_id) throw new Error('DESTINATION_TEAM_UNCHANGED');
+      if (source?.roster_locked) throw new Error('SOURCE_ROSTER_LOCKED');
+      if (destination.roster_locked) throw new Error('DESTINATION_ROSTER_LOCKED');
+      const event = events.find(e => e.id === player.event_id);
+      const season = seasons.find(s => s.id === event?.season_id);
+      const today = new Date();
+      if (season?.transfer_window_opens_on && new Date(`${season.transfer_window_opens_on}T00:00:00`) > today) throw new Error('TRANSFER_WINDOW_CLOSED');
+      if (season?.transfer_window_closes_on && new Date(`${season.transfer_window_closes_on}T00:00:00`) < today) throw new Error('TRANSFER_WINDOW_CLOSED');
+      rosterPlayers = rosterPlayers.map(p => p.id === playerId
+        ? {
+          ...p,
+          team_id: destination.id,
+          registration_id: destination.registration_id,
+          transfer_from_team_id: player.team_id,
+          status: 'active',
+          transfer_note: note?.trim() || null,
+          transferred_at: now(),
+          updated_at: now()
+        }
         : p);
       return rosterPlayers.find(p => p.id === playerId)!;
     },

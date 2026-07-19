@@ -2,7 +2,7 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 
-select plan(14);
+select plan(17);
 
 insert into auth.users (id, aud, role, email, email_confirmed_at, created_at, updated_at)
 values
@@ -84,6 +84,25 @@ select throws_ok(
   '23505',
   null,
   'duplicate active player names on one team are blocked'
+);
+
+insert into public.event_teams (id, event_id, league_id, name)
+values ('de000000-0000-4000-8000-000000000402', 'de000000-0000-4000-8000-000000000201', 'de000000-0000-4000-8000-00000000000a', 'Destination Team');
+
+select lives_ok(
+  $$ select public.transfer_event_roster_player((select id from public.event_roster_players where full_name = 'Player One'), 'de000000-0000-4000-8000-000000000402', 'Approved clearance') $$,
+  'an owner can transfer an active player to another event team'
+);
+select is(
+  (select transfer_from_team_id from public.event_roster_players where full_name = 'Player One'),
+  (select id from public.event_teams where registration_id = 'de000000-0000-4000-8000-000000000301'),
+  'the transfer records the source team'
+);
+select throws_ok(
+  $$ select public.transfer_event_roster_player((select id from public.event_roster_players where full_name = 'Player One'), 'de000000-0000-4000-8000-000000000402', 'Same team') $$,
+  '22023',
+  null,
+  'a player cannot be transferred to the current team'
 );
 
 select lives_ok(

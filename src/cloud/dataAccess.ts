@@ -243,6 +243,7 @@ import {
   recordFixtureResult,
   lockEventTeamRoster,
   markEventRosterPlayerStatus,
+  transferEventRosterPlayer,
   resolveLeagueOrgInvite,
   reviewCoachMembership,
   reviewRegistration,
@@ -521,6 +522,7 @@ export interface CloudLeagueRepository {
   removeEventRosterPlayer(playerId: string): Promise<void>;
   lockEventTeamRoster(teamId: string): Promise<EventTeam>;
   markEventRosterPlayerStatus(playerId: string, status: Exclude<EventRosterPlayerStatus, 'active'>, note?: string | null): Promise<EventRosterPlayer>;
+  transferEventRosterPlayer(playerId: string, destinationTeamId: string, note?: string | null): Promise<EventRosterPlayer>;
   listFixtures(eventId: string): Promise<EventFixture[]>;
   generateFixtures(leagueId: string, eventId: string): Promise<EventFixture[]>;
   generateBracket(leagueId: string, eventId: string): Promise<EventFixture[]>;
@@ -770,6 +772,7 @@ export const createCloudDataAccess = (client: DumalaSupabaseClient): CloudDataAc
     removeEventRosterPlayer: playerId => removeEventRosterPlayer(client, playerId),
     lockEventTeamRoster: teamId => lockEventTeamRoster(client, teamId),
     markEventRosterPlayerStatus: (playerId, status, note) => markEventRosterPlayerStatus(client, playerId, status, note),
+    transferEventRosterPlayer: (playerId, destinationTeamId, note) => transferEventRosterPlayer(client, playerId, destinationTeamId, note),
     listFixtures: eventId => listFixtures(client, eventId),
     generateFixtures: (leagueId, eventId) => generateFixtures(client, leagueId, eventId),
     generateBracket: (leagueId, eventId) => generateBracket(client, leagueId, eventId),
