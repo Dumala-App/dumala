@@ -56,7 +56,7 @@ const buildDemoLeagueRepository = (): CloudLeagueRepository => {
       logo_color: '#f97316',
       contact_email: 'ops@metroyouth.example',
       location: 'Metro Manila, PH',
-      description: 'Grassroots youth football across the metro.',
+      description: 'A sample grassroots season with registration, rosters, match-day sheets, knockout advancement, venues, and finance already populated.',
       timezone: 'Asia/Manila',
       currency: 'PHP',
       state: 'active',
@@ -71,7 +71,7 @@ const buildDemoLeagueRepository = (): CloudLeagueRepository => {
     {
       id: 'demo-season-1',
       league_id: LEAGUE_ID,
-      name: 'Season 2026',
+      name: '2026 Metro Youth League Sample Season',
       year: 2026,
       status: 'active',
       starts_on: '2026-06-01',
@@ -81,7 +81,7 @@ const buildDemoLeagueRepository = (): CloudLeagueRepository => {
       roster_deadline: '2026-08-25',
       transfer_window_opens_on: '2026-07-01',
       transfer_window_closes_on: '2026-08-31',
-      notes: null,
+      notes: 'Preview season used to demonstrate the full league owner dashboard.',
       created_at: now(),
       updated_at: now()
     },
@@ -123,7 +123,9 @@ const buildDemoLeagueRepository = (): CloudLeagueRepository => {
 
   let venues: LeagueVenue[] = [
     { id: 'demo-venue-1', league_id: LEAGUE_ID, name: 'Rizal Memorial Pitch A', address: 'Malate, Manila', capacity: 4000, notes: null, created_at: now(), updated_at: now() },
-    { id: 'demo-venue-2', league_id: LEAGUE_ID, name: 'McKinley Field 2', address: 'Taguig', capacity: 800, notes: 'Artificial turf', created_at: now(), updated_at: now() }
+    { id: 'demo-venue-2', league_id: LEAGUE_ID, name: 'McKinley Field 2', address: 'Taguig', capacity: 800, notes: 'Artificial turf', created_at: now(), updated_at: now() },
+    { id: 'demo-venue-3', league_id: LEAGUE_ID, name: 'Circuit Community Pitch', address: 'Makati', capacity: 500, notes: 'Evening slots available', created_at: now(), updated_at: now() },
+    { id: 'demo-venue-4', league_id: LEAGUE_ID, name: 'Alabang Training Ground', address: 'Muntinlupa', capacity: 350, notes: 'Backup rain venue', created_at: now(), updated_at: now() }
   ];
 
   let eligibilityRules: LeagueEligibilityRule[] = [
@@ -212,7 +214,19 @@ const buildDemoLeagueRepository = (): CloudLeagueRepository => {
       category: 'U14', contact_name: 'Coach Lim', contact_email: 'lim@northstars.example', roster_size: 14,
       message: null, status: 'submitted', review_note: null, reviewed_by: null, reviewed_at: null,
       created_at: now(), updated_at: now()
-    }
+    },
+    {
+      id: 'demo-reg-3', event_id: 'demo-event-1', league_id: LEAGUE_ID, club_name: 'Metro United', team_name: 'Metro United U14',
+      category: 'U14', contact_name: 'Coach Dizon', contact_email: 'dizon@metrounited.example', roster_size: 15,
+      message: 'Roster documents are ready for review.', status: 'approved', review_note: null,
+      reviewed_by: 'preview-owner', reviewed_at: now(), created_at: now(), updated_at: now()
+    },
+    {
+      id: 'demo-reg-4', event_id: 'demo-event-1', league_id: LEAGUE_ID, club_name: 'Harbour City', team_name: 'Harbour City Juniors',
+      category: 'U14', contact_name: 'Coach Soriano', contact_email: 'soriano@harbourcity.example', roster_size: 13,
+      message: 'Requesting an afternoon kickoff where possible.', status: 'waitlisted', review_note: 'Hold until venue slots are final.',
+      reviewed_by: 'preview-owner', reviewed_at: now(), created_at: now(), updated_at: now()
+    },
   ];
 
   const teamRow = (id: string, name: string, registrationId: string | null): EventTeam => ({
@@ -223,8 +237,8 @@ const buildDemoLeagueRepository = (): CloudLeagueRepository => {
   let teams: EventTeam[] = [
     teamRow('demo-team-1', 'Bayside FC', 'demo-reg-1'),
     teamRow('demo-team-2', 'North Stars', null),
-    teamRow('demo-team-3', 'Metro United', null),
-    teamRow('demo-team-4', 'Harbour City', null)
+    teamRow('demo-team-3', 'Metro United', 'demo-reg-3'),
+    teamRow('demo-team-4', 'Harbour City', 'demo-reg-4')
   ];
   let rosterPlayers: EventRosterPlayer[] = [
     {
@@ -234,6 +248,30 @@ const buildDemoLeagueRepository = (): CloudLeagueRepository => {
     {
       id: 'demo-roster-2', event_id: 'demo-event-1', league_id: LEAGUE_ID, team_id: 'demo-team-1', registration_id: 'demo-reg-1',
       full_name: 'Luis Reyes', birthdate: '2013-10-03', shirt_number: 6, status: 'active', transfer_note: null, created_at: now(), updated_at: now()
+    },
+    {
+      id: 'demo-roster-3', event_id: 'demo-event-1', league_id: LEAGUE_ID, team_id: 'demo-team-1', registration_id: 'demo-reg-1',
+      full_name: 'Javi Cruz', birthdate: '2013-01-19', shirt_number: 7, status: 'active', transfer_note: null, created_at: now(), updated_at: now()
+    },
+    {
+      id: 'demo-roster-4', event_id: 'demo-event-1', league_id: LEAGUE_ID, team_id: 'demo-team-2', registration_id: null,
+      full_name: 'Miguel Lim', birthdate: '2012-12-02', shirt_number: 10, status: 'active', transfer_note: null, created_at: now(), updated_at: now()
+    },
+    {
+      id: 'demo-roster-5', event_id: 'demo-event-1', league_id: LEAGUE_ID, team_id: 'demo-team-2', registration_id: null,
+      full_name: 'Noah Tan', birthdate: '2013-08-08', shirt_number: 4, status: 'active', transfer_note: null, created_at: now(), updated_at: now()
+    },
+    {
+      id: 'demo-roster-6', event_id: 'demo-event-1', league_id: LEAGUE_ID, team_id: 'demo-team-3', registration_id: 'demo-reg-3',
+      full_name: 'Rafi Dizon', birthdate: '2013-06-22', shirt_number: 11, status: 'active', transfer_note: null, created_at: now(), updated_at: now()
+    },
+    {
+      id: 'demo-roster-7', event_id: 'demo-event-1', league_id: LEAGUE_ID, team_id: 'demo-team-3', registration_id: 'demo-reg-3',
+      full_name: 'Enzo Garcia', birthdate: '2013-03-11', shirt_number: 8, status: 'active', transfer_note: null, created_at: now(), updated_at: now()
+    },
+    {
+      id: 'demo-roster-8', event_id: 'demo-event-1', league_id: LEAGUE_ID, team_id: 'demo-team-4', registration_id: 'demo-reg-4',
+      full_name: 'Paolo Soriano', birthdate: '2012-11-28', shirt_number: 9, status: 'active', transfer_note: null, created_at: now(), updated_at: now()
     }
   ];
 
@@ -241,14 +279,18 @@ const buildDemoLeagueRepository = (): CloudLeagueRepository => {
   // the Fixtures list and the live table are populated on first open.
   const seededResults: Record<string, [number, number]> = {
     'demo-team-1|demo-team-2': [2, 1],
-    'demo-team-3|demo-team-4': [0, 0]
+    'demo-team-3|demo-team-4': [0, 0],
+    'demo-team-1|demo-team-3': [1, 1]
   };
   // Pre-schedule the first few fixtures onto match day. The first two share a
   // venue an hour apart, so the calendar surfaces a venue double-booking.
   const seededSchedule: Record<number, { at: string; venue: string }> = {
     0: { at: '2026-08-15T09:00:00', venue: 'demo-venue-1' },
     1: { at: '2026-08-15T10:00:00', venue: 'demo-venue-1' },
-    2: { at: '2026-08-15T13:00:00', venue: 'demo-venue-2' }
+    2: { at: '2026-08-15T13:00:00', venue: 'demo-venue-2' },
+    3: { at: '2026-08-22T09:00:00', venue: 'demo-venue-3' },
+    4: { at: '2026-08-22T11:00:00', venue: 'demo-venue-4' },
+    5: { at: '2026-08-29T09:00:00', venue: 'demo-venue-2' }
   };
   let fixtures: EventFixture[] = roundRobinRounds(teams.map(t => t.id)).map((p, index) => {
     const key = `${p.homeTeamId}|${p.awayTeamId}`;
@@ -356,17 +398,28 @@ const buildDemoLeagueRepository = (): CloudLeagueRepository => {
   }));
   fixtures = [...fixtures, ...gkKnockoutFixtures];
 
-  const statRow = (teamId: string, playerName: string, statType: FixtureStatEvent['stat_type']): FixtureStatEvent => ({
-    id: newId(), fixture_id: 'demo-fixture-1', event_id: 'demo-event-1', league_id: LEAGUE_ID,
-    team_id: teamId, player_name: playerName, stat_type: statType, minute: null, note: null,
+  const statRow = (
+    teamId: string,
+    playerName: string,
+    statType: FixtureStatEvent['stat_type'],
+    fixtureId = 'demo-fixture-1',
+    minute: number | null = null
+  ): FixtureStatEvent => ({
+    id: newId(), fixture_id: fixtureId, event_id: 'demo-event-1', league_id: LEAGUE_ID,
+    team_id: teamId, player_name: playerName, stat_type: statType, minute, note: null,
     created_at: now(), updated_at: now()
   });
   let statEvents: FixtureStatEvent[] = [
-    statRow('demo-team-1', 'A. Ramos', 'goal'),
-    statRow('demo-team-1', 'A. Ramos', 'goal'),
-    statRow('demo-team-1', 'J. Cruz', 'assist'),
-    statRow('demo-team-2', 'M. Lim', 'goal'),
-    statRow('demo-team-2', 'M. Lim', 'yellow_card')
+    statRow('demo-team-1', 'Marco Santos', 'goal', 'demo-fixture-1', 12),
+    statRow('demo-team-1', 'Marco Santos', 'goal', 'demo-fixture-1', 38),
+    statRow('demo-team-1', 'Javi Cruz', 'assist', 'demo-fixture-1', 12),
+    statRow('demo-team-2', 'Miguel Lim', 'goal', 'demo-fixture-1', 44),
+    statRow('demo-team-2', 'Miguel Lim', 'yellow_card', 'demo-fixture-1', 51),
+    statRow('demo-team-3', 'Rafi Dizon', 'yellow_card', 'demo-fixture-2', 23),
+    statRow('demo-team-4', 'Paolo Soriano', 'red_card', 'demo-fixture-2', 58),
+    statRow('demo-team-1', 'Luis Reyes', 'goal', 'demo-fixture-3', 31),
+    statRow('demo-team-3', 'Enzo Garcia', 'goal', 'demo-fixture-3', 49),
+    statRow('demo-team-3', 'Rafi Dizon', 'assist', 'demo-fixture-3', 49)
   ];
 
   let awards: EventAward[] = [
@@ -391,6 +444,16 @@ const buildDemoLeagueRepository = (): CloudLeagueRepository => {
       id: 'demo-ledger-3', league_id: LEAGUE_ID, season_id: 'demo-season-1', event_id: 'demo-event-1', invoice_id: null,
       direction: 'expense', category: 'Venue', description: 'Rizal Memorial hire', amount_cents: 900000,
       occurred_on: '2026-07-06', created_at: now(), updated_at: now()
+    },
+    {
+      id: 'demo-ledger-4', league_id: LEAGUE_ID, season_id: 'demo-season-1', event_id: 'demo-event-3', invoice_id: null,
+      direction: 'income', category: 'Gate receipts', description: 'Knockout cup opening weekend', amount_cents: 420000,
+      occurred_on: '2026-09-02', created_at: now(), updated_at: now()
+    },
+    {
+      id: 'demo-ledger-5', league_id: LEAGUE_ID, season_id: 'demo-season-1', event_id: 'demo-event-4', invoice_id: null,
+      direction: 'expense', category: 'Medical cover', description: 'Finals day standby team', amount_cents: 180000,
+      occurred_on: '2026-10-01', created_at: now(), updated_at: now()
     }
   ];
 
@@ -404,6 +467,11 @@ const buildDemoLeagueRepository = (): CloudLeagueRepository => {
       id: 'demo-invoice-2', league_id: LEAGUE_ID, event_id: 'demo-event-1', team_id: 'demo-team-2', registration_id: null,
       bill_to: 'North Stars', description: 'Metro Cup registration', amount_cents: 500000, due_on: '2026-07-20',
       status: 'unpaid', paid_on: null, created_at: now(), updated_at: now()
+    },
+    {
+      id: 'demo-invoice-3', league_id: LEAGUE_ID, event_id: 'demo-event-1', team_id: 'demo-team-3', registration_id: 'demo-reg-3',
+      bill_to: 'Metro United', description: 'Metro Cup registration', amount_cents: 500000, due_on: '2026-07-20',
+      status: 'paid', paid_on: '2026-07-10', created_at: now(), updated_at: now()
     }
   ];
 
@@ -411,6 +479,16 @@ const buildDemoLeagueRepository = (): CloudLeagueRepository => {
     {
       id: 'demo-incident-1', event_id: 'demo-event-1', league_id: LEAGUE_ID, fixture_id: 'demo-fixture-1', team_id: 'demo-team-1',
       kind: 'injury', summary: 'Bayside #7 subbed off after a knock — cleared by medics.',
+      occurred_at: now(), created_at: now(), updated_at: now()
+    },
+    {
+      id: 'demo-incident-2', event_id: 'demo-event-1', league_id: LEAGUE_ID, fixture_id: 'demo-fixture-2', team_id: null,
+      kind: 'delay', summary: 'Kickoff moved back ten minutes while the previous match cleared the pitch.',
+      occurred_at: now(), created_at: now(), updated_at: now()
+    },
+    {
+      id: 'demo-incident-3', event_id: 'demo-event-1', league_id: LEAGUE_ID, fixture_id: 'demo-fixture-3', team_id: 'demo-team-3',
+      kind: 'misconduct', summary: 'Bench warning recorded after repeated dissent.',
       occurred_at: now(), created_at: now(), updated_at: now()
     }
   ];
