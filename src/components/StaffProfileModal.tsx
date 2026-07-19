@@ -4,6 +4,7 @@ import { motion } from 'motion/react';
 import type { StaffMember } from '../types';
 import { STAFF_POSITIONS } from '../types';
 import { useDialogAccessibility } from '../hooks/useDialogAccessibility';
+import { STAFF_PLACEHOLDER } from '../playerPlaceholders';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
@@ -95,7 +96,7 @@ export default function StaffProfileModal({ staff, onClose, onUpdate, onRemove }
             <X size={18} />
           </Button>
           <div className="flex items-center gap-4 pr-10">
-            <img src={photoUrl} alt={name} className="h-20 w-20 rounded-lg border border-white/15 object-cover" />
+            <img src={photoUrl || STAFF_PLACEHOLDER} alt={name} className="h-20 w-20 rounded-lg border border-white/15 object-cover" />
             <div className="min-w-0">
               <p className="text-[10px] font-black uppercase text-amber-300">Management & Staff</p>
               <h2 id="staff-profile-title" className="truncate font-display text-2xl font-black">{name}</h2>
