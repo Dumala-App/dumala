@@ -531,6 +531,7 @@ export interface LeagueEvent {
   registration_details?: string | null;
   registration_contact_note?: string | null;
   registration_terms?: string | null;
+  registration_field_photo?: string | null;
   notes: string | null;
   created_at: string;
   updated_at: string;
@@ -549,6 +550,7 @@ export interface LeagueEventInput {
   registrationDetails?: string | null;
   registrationContactNote?: string | null;
   registrationTerms?: string | null;
+  registrationFieldPhoto?: string | null;
   notes?: string | null;
 }
 
@@ -602,6 +604,7 @@ export interface EventRegistrationLookup {
   details?: string | null;
   contactNote?: string | null;
   terms?: string | null;
+  fieldPhoto?: string | null;
   eligibilityRules?: Array<{
     id: string;
     target: LeagueRequirementTarget;
@@ -683,6 +686,7 @@ const eventRow = (input: LeagueEventInput) => ({
   registration_details: input.registrationDetails?.trim() || null,
   registration_contact_note: input.registrationContactNote?.trim() || null,
   registration_terms: input.registrationTerms?.trim() || null,
+  registration_field_photo: input.registrationFieldPhoto || null,
   notes: input.notes?.trim() || null
 });
 

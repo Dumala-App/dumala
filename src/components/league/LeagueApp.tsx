@@ -1,4 +1,5 @@
 import React, { FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import {
   CalendarClock,
   CalendarRange,
@@ -18,6 +19,7 @@ import {
   Activity,
   AlertTriangle,
   Archive,
+  ImagePlus,
   ArrowDownLeft,
   ArrowUpRight,
   Award,
@@ -119,6 +121,7 @@ import {
   type LedgerEntry
 } from '../../cloud/league';
 import { renderStatDatabaseReportHtml } from '../../cloud/leagueStatsReport';
+import { LocalImageUploadError, prepareLocalImageDataUrl } from '../../images/localImageUpload';
 import {
   DARK_GLASS_THEME_STYLE,
   DARK_GLASS_DASHBOARD_SURFACE_STYLE
@@ -174,7 +177,8 @@ const registrationTone: Record<EventRegistrationStatus, string> = {
 };
 
 const panel = 'rounded-[1.4rem] border border-white/10 bg-slate-950/55 shadow-[0_20px_70px_rgba(2,6,23,0.28)] backdrop-blur-xl';
-const subtleCard = 'rounded-2xl border border-white/10 bg-white/[0.045] shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]';
+const subtleCard = 'rounded-xl bg-white/[0.035] shadow-[inset_0_1px_0_rgba(255,255,255,0.035)]';
+const quietRow = 'border-t border-white/10 first:border-t-0';
 const quietSurface = 'rounded-[1.25rem] border border-white/[0.07] bg-white/[0.03]';
 const sectionHeader = 'flex items-center gap-2 border-b border-white/10 px-4 py-3';
 const inputClass = 'h-10 w-full rounded-xl border border-white/10 bg-slate-950/70 px-3 text-sm text-slate-100 outline-none transition placeholder:text-slate-500 focus:border-sky-300/50 focus:ring-2 focus:ring-sky-400/15';
@@ -185,6 +189,10 @@ const navItemActive = 'border-white/20 bg-white text-slate-950 shadow-[0_12px_40
 const navItemIdle = 'border-white/10 bg-white/[0.035] text-slate-300 hover:border-sky-300/35 hover:bg-white/[0.07] hover:text-white';
 const label = 'block text-[11px] font-bold uppercase tracking-wide text-slate-400';
 const inlineLink = 'font-bold text-sky-200 transition hover:text-white';
+const FIELD_PHOTO_MAX_DIMENSION = 1280;
+const FIELD_PHOTO_MAX_BYTES = 220 * 1024;
+
+const estimateDataUrlKb = (dataUrl: string) => Math.round((dataUrl.length * 3) / 4 / 1024);
 
 const StatusBadge = ({ status }: { status: LeagueSeasonStatus }) => (
   <span className={`rounded-full border px-2 py-0.5 text-[11px] font-bold ${statusTone[status]}`}>
@@ -226,15 +234,15 @@ const ConfirmAdvanceDialog = ({ title, warning, confirmLabel, onConfirm, onCance
     return () => window.removeEventListener('keydown', onKey);
   }, [onCancel]);
 
-  return (
+  const dialog = (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/75 p-4 backdrop-blur-sm"
+      className="fixed inset-0 z-[1000] flex items-start justify-center overflow-y-auto bg-slate-950/80 p-4 pt-[12vh] backdrop-blur-sm sm:items-center sm:pt-4"
       role="dialog"
       aria-modal="true"
       aria-labelledby="confirm-advance-title"
       onClick={onCancel}
     >
-      <div className={`${panel} w-full max-w-md p-5`} onClick={e => e.stopPropagation()}>
+      <div className={`${panel} max-h-[calc(100vh-2rem)] w-full max-w-md overflow-y-auto p-5`} onClick={e => e.stopPropagation()}>
         <div className="flex items-start gap-3">
           <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-amber-300/30 bg-amber-400/10 text-amber-200">
             <AlertTriangle size={16} />
@@ -245,19 +253,21 @@ const ConfirmAdvanceDialog = ({ title, warning, confirmLabel, onConfirm, onCance
             <p className="mt-2 text-xs font-bold text-slate-400">This cannot be undone from the dashboard.</p>
           </div>
         </div>
-        <div className="mt-5 flex justify-end gap-2">
+        <div className="mt-5 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
           <button type="button" className={ghostBtn} onClick={onCancel}>Cancel</button>
           <button type="button" className={primaryBtn} autoFocus onClick={onConfirm}>{confirmLabel}</button>
         </div>
       </div>
     </div>
   );
+
+  return typeof document === 'undefined' ? dialog : createPortal(dialog, document.body);
 };
 
 const StatTile = ({ label: tileLabel, value, detail }: { label: string; value: string | number; detail: string }) => (
-  <div className={`${subtleCard} p-4`}>
+  <div className="min-w-0 border-t border-white/10 py-3 first:border-t-0 sm:border-l sm:border-t-0 sm:pl-4 sm:first:border-l-0 sm:first:pl-0">
     <p className="text-[11px] font-bold uppercase tracking-wide text-slate-400">{tileLabel}</p>
-    <p className="mt-1 font-display text-2xl font-black text-white">{value}</p>
+    <p className="mt-1 truncate font-display text-2xl font-black text-white">{value}</p>
     <p className="mt-1 text-xs text-slate-400">{detail}</p>
   </div>
 );
@@ -814,7 +824,7 @@ const OverviewSection = ({ league, seasons, venues, events, ledger, invoices, ev
             <Wallet size={16} className="text-sky-200" />
             <h2 className="font-display text-sm font-black text-white">Finance pulse</h2>
           </div>
-          <div className="grid gap-3 p-4 sm:grid-cols-2">
+          <div className="grid p-4 sm:grid-cols-2 sm:gap-y-2">
             <StatTile label="Income" value={formatMoney(finance.incomeCents, league.currency)} detail="Recorded" />
             <StatTile label="Expenses" value={formatMoney(finance.expenseCents, league.currency)} detail="Recorded" />
             <StatTile label="Collected" value={formatMoney(finance.collectedCents, league.currency)} detail="Invoices paid" />
@@ -830,13 +840,13 @@ const OverviewSection = ({ league, seasons, venues, events, ledger, invoices, ev
           </div>
           <div className="space-y-4 p-4">
             <ProgressMeter value={readinessScore} label="Setup health" />
-            <div className="space-y-2">
+            <div className="divide-y divide-white/10">
               {readinessItems.map(item => (
                 <button
                   key={item.label}
                   type="button"
                   onClick={item.action}
-                  className={`${subtleCard} flex w-full items-start gap-3 px-4 py-3 text-left transition hover:border-sky-300/35 hover:bg-sky-300/10`}
+                  className="flex w-full items-start gap-3 py-3 text-left transition hover:bg-sky-300/5"
                 >
                   <span className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border ${item.ready ? 'border-emerald-300/35 bg-emerald-400/10 text-emerald-100' : 'border-white/15 bg-white/[0.04] text-slate-400'}`}>
                     {item.ready ? <Check size={12} /> : <Clock size={12} />}
@@ -860,7 +870,7 @@ const OverviewSection = ({ league, seasons, venues, events, ledger, invoices, ev
             {timeline.length === 0 ? (
               <p className="text-sm text-slate-400">Add season and event dates to build your league operating calendar.</p>
             ) : (
-              <ol className="space-y-3">
+              <ol className="divide-y divide-white/10">
                 {timeline.map(item => {
                   const diff = daysUntil(item.date);
                   const timing = diff === null
@@ -871,7 +881,7 @@ const OverviewSection = ({ league, seasons, venues, events, ledger, invoices, ev
                         ? `${diff} day${diff === 1 ? '' : 's'} away`
                         : `${Math.abs(diff)} day${Math.abs(diff) === 1 ? '' : 's'} ago`;
                   return (
-                    <li key={`${item.date}-${item.title}`} className={`${subtleCard} grid gap-3 px-4 py-3 sm:grid-cols-[5rem_1fr_auto] sm:items-center`}>
+                    <li key={`${item.date}-${item.title}`} className="grid gap-3 py-3 sm:grid-cols-[5rem_1fr_auto] sm:items-center">
                       <span className="font-display text-sm font-black text-sky-100">{formatShortDate(item.date)}</span>
                       <span>
                         <span className="block text-sm font-black text-white">{item.title}</span>
@@ -1913,6 +1923,7 @@ const EventDetail = ({ league, event, season, runError, onBack, onAdvance, onAft
     details?: string | null;
     contactNote?: string | null;
     terms?: string | null;
+    fieldPhoto?: string | null;
   }) =>
     runError(async () => {
       await league.updateEvent(event.id, {
@@ -1928,7 +1939,8 @@ const EventDetail = ({ league, event, season, runError, onBack, onAdvance, onAft
         registrationHeadline: input.headline ?? null,
         registrationDetails: input.details ?? null,
         registrationContactNote: input.contactNote ?? null,
-        registrationTerms: input.terms ?? null
+        registrationTerms: input.terms ?? null,
+        registrationFieldPhoto: input.fieldPhoto ?? null
       });
       await refresh();
       onAfterReview();
@@ -1997,20 +2009,21 @@ const EventDetail = ({ league, event, season, runError, onBack, onAdvance, onAft
           <EventStatusBadge status={event.status} />
         </div>
         <div className="space-y-4 p-4">
-          <div className="grid gap-3 sm:grid-cols-3">
+          <div className="grid sm:grid-cols-3">
             <StatTile label="Registered" value={`${approvedCount}${event.team_cap ? ` / ${event.team_cap}` : ''}`} detail={spots === null ? 'No cap' : `${spots} spots left`} />
             <StatTile label="Teams" value={teams.length} detail="In this event" />
             <StatTile label="Format" value={EVENT_FORMAT_LABELS[event.format]} detail={event.category ?? 'All ages'} />
           </div>
 
-          <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-white/10 bg-white/[0.035] p-4">
-            <div>
-              <p className="text-[11px] font-black uppercase text-slate-400">Registration code</p>
+          <div className={`${quietRow} flex flex-wrap items-center justify-between gap-3 py-4`}>
+            <div className="min-w-0">
+              <p className="text-[11px] font-black uppercase tracking-wide text-slate-400">Tournament application link</p>
               <p className="mt-1 font-display text-xl font-black tracking-[0.2em] text-white">{event.registration_code}</p>
-              <p className="mt-1 text-xs text-slate-400">
+              <p className="mt-1 max-w-3xl text-xs leading-5 text-slate-400">
                 {event.status === 'registration_open'
-                  ? <>Share <span className="text-sky-200">{registrationPageUrl}</span> with clubs, or use <span className="text-sky-200">{registerUrl}</span> as the code-entry fallback.</>
+                  ? <>Share <span className="break-all text-sky-200">{registrationPageUrl}</span> with clubs. This is a no-account event application; coach-account affiliation uses the Coaches invite link.</>
                   : 'Applications open only while the event is in Registration open.'}
+                <span className="block text-slate-500">Fallback code-entry page: <span className="break-all text-slate-300">{registerUrl}</span>.</span>
               </p>
             </div>
             <div className="flex items-center gap-2">
@@ -2025,7 +2038,7 @@ const EventDetail = ({ league, event, season, runError, onBack, onAdvance, onAft
 
           <RegistrationPagePanel event={event} pageUrl={registrationPageUrl} onSave={saveRegistrationPage} />
 
-          <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-white/10 bg-white/[0.035] p-4">
+          <div className={`${quietRow} flex flex-wrap items-center justify-between gap-3 py-4`}>
             <div className="min-w-0">
               <p className="flex items-center gap-2 text-[11px] font-black uppercase text-slate-400">
                 Public results page
@@ -2143,13 +2156,16 @@ const EventDetail = ({ league, event, season, runError, onBack, onAdvance, onAft
 const RegistrationPagePanel = ({ event, pageUrl, onSave }: {
   event: LeagueEvent;
   pageUrl: string;
-  onSave: (input: { enabled: boolean; headline?: string | null; details?: string | null; contactNote?: string | null; terms?: string | null }) => void;
+  onSave: (input: { enabled: boolean; headline?: string | null; details?: string | null; contactNote?: string | null; terms?: string | null; fieldPhoto?: string | null }) => void;
 }) => {
   const [enabled, setEnabled] = useState(event.registration_page_enabled ?? true);
   const [headline, setHeadline] = useState(event.registration_headline ?? '');
   const [details, setDetails] = useState(event.registration_details ?? '');
   const [contactNote, setContactNote] = useState(event.registration_contact_note ?? '');
   const [terms, setTerms] = useState(event.registration_terms ?? '');
+  const [fieldPhoto, setFieldPhoto] = useState<string | null>(event.registration_field_photo ?? null);
+  const [photoStatus, setPhotoStatus] = useState<'idle' | 'working'>('idle');
+  const [photoError, setPhotoError] = useState('');
 
   useEffect(() => {
     setEnabled(event.registration_page_enabled ?? true);
@@ -2157,7 +2173,27 @@ const RegistrationPagePanel = ({ event, pageUrl, onSave }: {
     setDetails(event.registration_details ?? '');
     setContactNote(event.registration_contact_note ?? '');
     setTerms(event.registration_terms ?? '');
-  }, [event.id, event.registration_page_enabled, event.registration_headline, event.registration_details, event.registration_contact_note, event.registration_terms]);
+    setFieldPhoto(event.registration_field_photo ?? null);
+    setPhotoError('');
+  }, [event.id, event.registration_page_enabled, event.registration_headline, event.registration_details, event.registration_contact_note, event.registration_terms, event.registration_field_photo]);
+
+  const uploadFieldPhoto = async (file: File | undefined) => {
+    if (!file) return;
+    setPhotoStatus('working');
+    setPhotoError('');
+    try {
+      const dataUrl = await prepareLocalImageDataUrl(file, {
+        maxDimension: FIELD_PHOTO_MAX_DIMENSION,
+        maxBytes: FIELD_PHOTO_MAX_BYTES,
+        outputType: 'image/webp'
+      });
+      setFieldPhoto(dataUrl);
+    } catch (error) {
+      setPhotoError(error instanceof LocalImageUploadError ? error.message : 'That photo could not be processed. Try a different image.');
+    } finally {
+      setPhotoStatus('idle');
+    }
+  };
 
   const submit = (e: FormEvent) => {
     e.preventDefault();
@@ -2166,12 +2202,13 @@ const RegistrationPagePanel = ({ event, pageUrl, onSave }: {
       headline: headline || null,
       details: details || null,
       contactNote: contactNote || null,
-      terms: terms || null
+      terms: terms || null,
+      fieldPhoto
     });
   };
 
   return (
-    <form onSubmit={submit} className="rounded-2xl border border-white/10 bg-white/[0.035] p-4">
+    <form onSubmit={submit} className={`${quietRow} py-4`}>
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <p className="flex items-center gap-2 text-[11px] font-black uppercase text-slate-400">
@@ -2180,7 +2217,7 @@ const RegistrationPagePanel = ({ event, pageUrl, onSave }: {
               {enabled ? 'Published' : 'Hidden'}
             </span>
           </p>
-          <p className="mt-1 text-xs text-slate-400">A shareable tournament page where coaches can review details and apply directly.</p>
+          <p className="mt-1 text-xs text-slate-400">A shareable tournament page where coaches can review details and submit an event application. It does not create a coach account.</p>
           <p className="mt-1 break-all text-xs text-sky-200">{pageUrl}</p>
         </div>
         <label className="flex items-center gap-2 text-xs font-bold text-slate-300">
@@ -2189,22 +2226,55 @@ const RegistrationPagePanel = ({ event, pageUrl, onSave }: {
         </label>
       </div>
 
-      <div className="mt-4 grid gap-3 sm:grid-cols-2">
-        <div className="space-y-1 sm:col-span-2">
-          <label className={label}>Headline</label>
-          <input className={inputClass} maxLength={180} value={headline} onChange={e => setHeadline(e.target.value)} placeholder="Register for the Metro Cup Qualifiers" />
+      <div className="mt-4 grid gap-4 lg:grid-cols-[minmax(0,1fr)_18rem]">
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div className="space-y-1 sm:col-span-2">
+            <label className={label}>Headline</label>
+            <input className={inputClass} maxLength={180} value={headline} onChange={e => setHeadline(e.target.value)} placeholder="Register for the Metro Cup Qualifiers" />
+          </div>
+          <div className="space-y-1 sm:col-span-2">
+            <label className={label}>Tournament details</label>
+            <textarea className={`${inputClass} h-auto min-h-20 py-2`} rows={4} maxLength={4000} value={details} onChange={e => setDetails(e.target.value)} placeholder="Who can enter, when matches run, and what coaches should know before applying." />
+          </div>
+          <div className="space-y-1">
+            <label className={label}>Contact note</label>
+            <textarea className={`${inputClass} h-auto min-h-16 py-2`} rows={3} maxLength={1000} value={contactNote} onChange={e => setContactNote(e.target.value)} placeholder="Questions, contact person, or league email." />
+          </div>
+          <div className="space-y-1">
+            <label className={label}>Terms / acknowledgement</label>
+            <textarea className={`${inputClass} h-auto min-h-16 py-2`} rows={3} maxLength={2000} value={terms} onChange={e => setTerms(e.target.value)} placeholder="Application review, roster deadlines, fee acknowledgement, or waiver expectations." />
+          </div>
         </div>
-        <div className="space-y-1 sm:col-span-2">
-          <label className={label}>Tournament details</label>
-          <textarea className={inputClass} rows={4} maxLength={4000} value={details} onChange={e => setDetails(e.target.value)} placeholder="Who can enter, when matches run, and what coaches should know before applying." />
-        </div>
-        <div className="space-y-1">
-          <label className={label}>Contact note</label>
-          <textarea className={inputClass} rows={3} maxLength={1000} value={contactNote} onChange={e => setContactNote(e.target.value)} placeholder="Questions, contact person, or league email." />
-        </div>
-        <div className="space-y-1">
-          <label className={label}>Terms / acknowledgement</label>
-          <textarea className={inputClass} rows={3} maxLength={2000} value={terms} onChange={e => setTerms(e.target.value)} placeholder="Application review, roster deadlines, fee acknowledgement, or waiver expectations." />
+        <div className="space-y-2">
+          <p className={label}>Field photo</p>
+          {fieldPhoto ? (
+            <div className="overflow-hidden rounded-xl border border-white/10 bg-white/[0.035]">
+              <img src={fieldPhoto} alt="Tournament field preview" className="h-40 w-full object-cover" />
+              <div className="flex items-center justify-between gap-2 px-3 py-2">
+                <span className="text-[11px] font-semibold text-slate-400">~{estimateDataUrlKb(fieldPhoto)} KB</span>
+                <button type="button" className={`${ghostBtn} !px-2 !py-1.5 text-[11px] text-rose-200`} onClick={() => setFieldPhoto(null)}>
+                  <Trash2 size={13} /> Remove
+                </button>
+              </div>
+            </div>
+          ) : (
+            <label className="flex h-40 cursor-pointer flex-col items-center justify-center rounded-xl border border-dashed border-white/15 bg-white/[0.025] px-4 text-center transition hover:border-sky-300/35 hover:bg-sky-300/5">
+              {photoStatus === 'working' ? <Loader2 size={18} className="animate-spin text-slate-400" /> : <ImagePlus size={18} className="text-slate-400" />}
+              <span className="mt-2 text-xs font-bold text-slate-300">{photoStatus === 'working' ? 'Preparing photo...' : 'Upload field photo'}</span>
+              <span className="mt-1 text-[11px] leading-4 text-slate-500">Shown at the top of the public registration page.</span>
+              <input
+                type="file"
+                accept="image/*"
+                className="hidden"
+                disabled={photoStatus === 'working'}
+                onChange={e => {
+                  void uploadFieldPhoto(e.target.files?.[0]);
+                  e.target.value = '';
+                }}
+              />
+            </label>
+          )}
+          {photoError && <p className="text-[11px] font-semibold text-amber-300">{photoError}</p>}
         </div>
       </div>
       <button type="submit" className={`${primaryBtn} mt-4`}><Save size={14} /> Save registration page</button>
@@ -3904,6 +3974,7 @@ const CoachesSection = ({ league, activeLeague, runError }: {
   const pending = memberships.filter(m => m.status === 'pending');
   const activeCoaches = memberships.filter(m => m.status === 'active');
   const inviteUrl = typeof window !== 'undefined' ? `${window.location.origin}/#/join-league` : '/#/join-league';
+  const inviteLink = `${inviteUrl}?code=${inviteCode}`;
   const filledPct = seatLimit > 0 ? Math.round((seats.active / seatLimit) * 100) : 0;
 
   const copy = async (text: string, which: 'code' | 'link') => {
@@ -3985,15 +4056,16 @@ const CoachesSection = ({ league, activeLeague, runError }: {
               <button type="button" className={ghostBtn} onClick={() => copy(inviteCode, 'code')}>
                 {copied === 'code' ? <><Check size={14} /> Copied</> : <><Copy size={14} /> Copy code</>}
               </button>
-              <button type="button" className={ghostBtn} onClick={() => copy(`${inviteUrl}?code=${inviteCode}`, 'link')}>
+              <button type="button" className={ghostBtn} onClick={() => copy(inviteLink, 'link')}>
                 {copied === 'link' ? <><Check size={14} /> Copied</> : <><Copy size={14} /> Copy link</>}
               </button>
               <button type="button" className={ghostBtn} onClick={rotate}>
                 <RefreshCw size={14} /> Rotate
               </button>
             </div>
+            <p className="break-all text-xs font-bold text-sky-200">{inviteLink}</p>
             <p className="text-[11px] leading-4 text-slate-500">
-              Share <span className="text-sky-200">{inviteUrl}</span> and this code. A coach — new or existing — opens it from their Dumala coach account and applies; you approve each one below. Rotating invalidates the old link.
+              A coach signs in or creates a Dumala coach account from this link, then applies to join this league organization. You approve each one below. Rotating invalidates the old link.
             </p>
           </div>
         </div>
