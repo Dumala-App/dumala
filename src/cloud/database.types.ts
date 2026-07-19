@@ -2365,6 +2365,7 @@ export type Database = {
           name: string
           notes: string | null
           registration_code: string
+          registration_field_photo: string | null
           season_id: string
           starts_on: string | null
           status: Database["public"]["Enums"]["league_event_status"]
@@ -2382,6 +2383,7 @@ export type Database = {
           name: string
           notes?: string | null
           registration_code?: string
+          registration_field_photo?: string | null
           season_id: string
           starts_on?: string | null
           status?: Database["public"]["Enums"]["league_event_status"]
@@ -2399,6 +2401,7 @@ export type Database = {
           name?: string
           notes?: string | null
           registration_code?: string
+          registration_field_photo?: string | null
           season_id?: string
           starts_on?: string | null
           status?: Database["public"]["Enums"]["league_event_status"]

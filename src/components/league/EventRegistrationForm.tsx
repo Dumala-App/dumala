@@ -31,8 +31,9 @@ import { createPreviewLeagueRuntime } from './demoLeagueData';
 
 const label = 'block text-[11px] font-black uppercase tracking-wide text-cyan-100/65';
 const inputClass = DARK_GLASS_CLASSES.input;
-const primaryBtn = `inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-xs font-bold ${DARK_GLASS_CLASSES.reviewButton}`;
-const secondaryBtn = 'inline-flex items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] px-4 py-2.5 text-xs font-bold text-slate-200 transition hover:border-white/20 hover:bg-white/[0.08]';
+const compactInputClass = `${inputClass} h-8 rounded-lg`;
+const primaryBtn = `inline-flex items-center justify-center gap-2 rounded-lg px-3.5 py-2 text-xs font-bold ${DARK_GLASS_CLASSES.reviewButton}`;
+const secondaryBtn = 'inline-flex items-center justify-center gap-2 rounded-lg border border-white/10 bg-white/[0.04] px-3.5 py-2 text-xs font-bold text-slate-200 transition hover:border-white/20 hover:bg-white/[0.08]';
 const panel = DARK_GLASS_CLASSES.panel;
 
 type IconComponent = React.ComponentType<{ size?: number; className?: string }>;
@@ -89,12 +90,12 @@ const leagueLine = (event: EventRegistrationLookup) =>
   [event.leagueName, event.leagueLocation].filter(Boolean).join(' / ') || 'League organizer';
 
 const DetailTile = ({ icon: Icon, label: tileLabel, value }: { icon: IconComponent; label: string; value: string }) => (
-  <div className="rounded-xl border border-white/10 bg-white/[0.045] p-3">
-    <div className="flex items-center gap-2 text-slate-400">
-      <Icon size={14} className="text-orange-300" />
-      <span className="text-[10px] font-black uppercase tracking-wide">{tileLabel}</span>
+  <div className="min-w-0 border-t border-white/[0.08] py-3 first:border-t-0 sm:border-l sm:border-t-0 sm:pl-4 sm:first:border-l-0 sm:first:pl-0">
+    <div className="flex items-center gap-2 text-slate-500">
+      <Icon size={13} className="text-orange-300" />
+      <span className="text-[9px] font-black uppercase tracking-widest">{tileLabel}</span>
     </div>
-    <p className="mt-1 min-h-[1.25rem] text-sm font-black text-white">{value}</p>
+    <p className="mt-1 text-sm font-black leading-snug text-white">{value}</p>
   </div>
 );
 
@@ -114,39 +115,42 @@ const StatusBadge = ({ event }: { event: EventRegistrationLookup }) => {
 const TournamentSummary = ({ event }: { event: EventRegistrationLookup }) => {
   const heroTitle = event.headline?.trim() || event.name || 'Tournament registration';
   return (
-    <section className={`${panel} overflow-hidden`}>
-      <div className="relative p-5 sm:p-6">
-        <div aria-hidden="true" className="absolute inset-x-0 top-0 h-36 bg-gradient-to-b from-orange-400/14 to-transparent" />
-        <div className="relative space-y-5">
-          <div className="flex flex-wrap items-center gap-2">
-            <StatusBadge event={event} />
-            {event.category && (
-              <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-[11px] font-black uppercase tracking-wide text-slate-300">
-                {event.category}
-              </span>
-            )}
-          </div>
+    <section className="space-y-4">
+      {event.fieldPhoto && (
+        <img
+          src={event.fieldPhoto}
+          alt={`${event.name ?? 'Tournament'} field`}
+          className="max-h-[360px] w-full rounded-2xl border border-cyan-300/10 object-cover"
+        />
+      )}
 
-          <div>
-            <p className="text-[11px] font-black uppercase tracking-[0.24em] text-orange-300">{event.leagueName ?? 'Dumala League'}</p>
-            <h2 className="mt-2 max-w-3xl font-display text-3xl font-black leading-tight text-white sm:text-4xl">
-              {heroTitle}
-            </h2>
-            {event.details ? (
-              <p className="mt-3 max-w-3xl whitespace-pre-line text-sm leading-6 text-slate-300">{event.details}</p>
-            ) : (
-              <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-300">
-                Review the tournament details, confirm your team information, and send the application directly to the league owner.
-              </p>
-            )}
-          </div>
+      <div className="rounded-2xl border border-orange-300/12 bg-[linear-gradient(145deg,rgba(249,115,22,0.12),rgba(14,165,233,0.06)_45%,rgba(7,17,31,0.64))] p-5 sm:p-6">
+        <div className="flex flex-wrap items-center gap-2">
+          <StatusBadge event={event} />
+          {event.category && (
+            <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-[11px] font-black uppercase tracking-wide text-slate-300">
+              {event.category}
+            </span>
+          )}
+        </div>
 
-          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-            <DetailTile icon={Trophy} label="Format" value={eventFormat(event)} />
-            <DetailTile icon={CalendarDays} label="Schedule" value={eventDates(event) || 'Dates TBD'} />
-            <DetailTile icon={Users} label="Capacity" value={eventCapacity(event)} />
-            <DetailTile icon={MapPin} label="League" value={leagueLine(event)} />
-          </div>
+        <p className="mt-5 text-[11px] font-black uppercase tracking-[0.24em] text-orange-300">{event.leagueName ?? 'Dumala League'}</p>
+        <h2 className="mt-2 max-w-3xl font-display text-3xl font-black leading-tight text-white sm:text-5xl">
+          {heroTitle}
+        </h2>
+        {event.details ? (
+          <p className="mt-4 max-w-3xl whitespace-pre-line text-sm leading-6 text-slate-300">{event.details}</p>
+        ) : (
+          <p className="mt-4 max-w-3xl text-sm leading-6 text-slate-300">
+            Review the tournament details, confirm your team information, and send the application directly to the league owner.
+          </p>
+        )}
+
+        <div className="mt-5 grid sm:grid-cols-4">
+          <DetailTile icon={Trophy} label="Format" value={eventFormat(event)} />
+          <DetailTile icon={CalendarDays} label="Schedule" value={eventDates(event) || 'Dates TBD'} />
+          <DetailTile icon={Users} label="Capacity" value={eventCapacity(event)} />
+          <DetailTile icon={MapPin} label="League" value={leagueLine(event)} />
         </div>
       </div>
     </section>
@@ -159,16 +163,16 @@ const RequirementsPanel = ({ event }: { event: EventRegistrationLookup }) => {
   if (rules.length === 0 && docs.length === 0 && !event.contactNote && !event.terms) return null;
 
   return (
-    <section className={`${panel} p-5`}>
-      <div className="grid gap-5 lg:grid-cols-2">
+    <section className="rounded-2xl border border-cyan-300/10 bg-[#0b1726]/58 p-4">
+      <div className="grid gap-6 lg:grid-cols-2">
         {rules.length > 0 && (
           <div>
-            <div className="mb-3 flex items-center gap-2 text-sm font-black text-white">
+            <div className="mb-2 flex items-center gap-2 text-sm font-black text-white">
               <ShieldCheck size={16} className="text-orange-300" /> Eligibility
             </div>
-            <ul className="space-y-2">
+            <ul className="divide-y divide-white/[0.07]">
               {rules.map(rule => (
-                <li key={rule.id} className="rounded-xl border border-white/10 bg-white/[0.035] px-3 py-2 text-xs text-slate-300">
+                <li key={rule.id} className="py-2 text-xs text-slate-300">
                   <span className="font-black text-white">{rule.title}</span>
                   <span className="ml-2 text-slate-500">{REQUIREMENT_TARGET_LABELS[rule.target]}</span>
                   {rule.description && <span className="mt-1 block leading-5 text-slate-400">{rule.description}</span>}
@@ -180,12 +184,12 @@ const RequirementsPanel = ({ event }: { event: EventRegistrationLookup }) => {
 
         {docs.length > 0 && (
           <div>
-            <div className="mb-3 flex items-center gap-2 text-sm font-black text-white">
+            <div className="mb-2 flex items-center gap-2 text-sm font-black text-white">
               <FileText size={16} className="text-orange-300" /> Documents
             </div>
-            <ul className="space-y-2">
+            <ul className="divide-y divide-white/[0.07]">
               {docs.map(doc => (
-                <li key={doc.id} className="rounded-xl border border-white/10 bg-white/[0.035] px-3 py-2 text-xs text-slate-300">
+                <li key={doc.id} className="py-2 text-xs text-slate-300">
                   <span className="font-black text-white">{doc.title}</span>
                   {doc.required && <span className="ml-2 text-orange-200">Required</span>}
                   {doc.instructions && <span className="mt-1 block leading-5 text-slate-400">{doc.instructions}</span>}
@@ -197,15 +201,15 @@ const RequirementsPanel = ({ event }: { event: EventRegistrationLookup }) => {
       </div>
 
       {(event.contactNote || event.terms) && (
-        <div className="mt-5 grid gap-3">
+        <div className="mt-4 grid gap-2 border-t border-cyan-300/10 pt-4">
           {event.contactNote && (
-            <p className="rounded-xl border border-cyan-300/15 bg-cyan-300/10 p-3 text-xs leading-5 text-cyan-100">
+            <p className="text-xs font-semibold leading-5 text-cyan-100">
               <Mail size={14} className="mr-1 inline text-cyan-200" />
               {event.contactNote}
             </p>
           )}
           {event.terms && (
-            <p className="rounded-xl border border-white/10 bg-white/[0.035] p-3 text-xs leading-5 text-slate-300">
+            <p className="text-xs leading-5 text-slate-300">
               <ClipboardCheck size={14} className="mr-1 inline text-orange-300" />
               {event.terms}
             </p>
@@ -254,53 +258,53 @@ const ApplicationForm = ({
   onSubmit: (e: FormEvent) => void;
   onChangeCode: () => void;
 }) => (
-  <form onSubmit={onSubmit} className={`${panel} space-y-4 p-5 lg:sticky lg:top-6`} aria-label="Event registration">
-    <div>
-      <div className="flex items-center gap-2">
-        <Send size={16} className="text-orange-300" />
-        <h3 className="font-display text-base font-black text-white">Team application</h3>
+  <form onSubmit={onSubmit} className="rounded-2xl border border-cyan-300/10 bg-[#07111f]/88 p-4 text-slate-100 shadow-lg shadow-black/20 backdrop-blur-xl lg:sticky lg:top-6" aria-label="Event registration">
+    <div className="mb-3 flex items-start justify-between gap-3 border-b border-cyan-300/10 pb-3">
+      <div>
+        <div className="flex items-center gap-2">
+          <Send size={15} className="text-orange-300" />
+          <h3 className="font-display text-base font-black text-white">Team application</h3>
+        </div>
+        <p className="mt-1 text-[11px] leading-4 text-slate-400">
+          {event.name} <span className="font-display tracking-wide text-orange-200">{code}</span>
+        </p>
       </div>
-      <p className="mt-1 text-xs leading-5 text-slate-400">
-        Applying for <span className="font-bold text-slate-200">{event.name}</span> with code <span className="font-display tracking-wide text-orange-200">{code}</span>.
-      </p>
     </div>
 
-    <div className="grid gap-3">
+    <div className="grid gap-2.5 sm:grid-cols-2">
       <div className="space-y-1">
         <label className={label}>Club name</label>
-        <input className={inputClass} required value={form.clubName} onChange={e => onFormChange('clubName', e.target.value)} placeholder="Rovers FC" />
+        <input className={compactInputClass} required value={form.clubName} onChange={e => onFormChange('clubName', e.target.value)} placeholder="Rovers FC" />
       </div>
       <div className="space-y-1">
         <label className={label}>Team name <span className="text-slate-500">(optional)</span></label>
-        <input className={inputClass} value={form.teamName} onChange={e => onFormChange('teamName', e.target.value)} placeholder="Rovers U14" />
+        <input className={compactInputClass} value={form.teamName} onChange={e => onFormChange('teamName', e.target.value)} placeholder="Rovers U14" />
       </div>
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
-        <div className="space-y-1">
-          <label className={label}>Age group</label>
-          <input className={inputClass} value={form.category} onChange={e => onFormChange('category', e.target.value)} placeholder="U14" />
-        </div>
-        <div className="space-y-1">
-          <label className={label}>Roster size <span className="text-slate-500">(optional)</span></label>
-          <input className={inputClass} type="number" min={0} value={form.rosterSize} onChange={e => onFormChange('rosterSize', e.target.value)} />
-        </div>
+      <div className="space-y-1">
+        <label className={label}>Age group</label>
+        <input className={compactInputClass} value={form.category} onChange={e => onFormChange('category', e.target.value)} placeholder="U14" />
+      </div>
+      <div className="space-y-1">
+        <label className={label}>Roster size <span className="text-slate-500">(optional)</span></label>
+        <input className={compactInputClass} type="number" min={0} value={form.rosterSize} onChange={e => onFormChange('rosterSize', e.target.value)} />
       </div>
       <div className="space-y-1">
         <label className={label}>Contact name</label>
-        <input className={inputClass} required value={form.contactName} onChange={e => onFormChange('contactName', e.target.value)} placeholder="Coach name" autoComplete="name" />
+        <input className={compactInputClass} required value={form.contactName} onChange={e => onFormChange('contactName', e.target.value)} placeholder="Coach name" autoComplete="name" />
       </div>
       <div className="space-y-1">
         <label className={label}>Contact email</label>
-        <input className={inputClass} type="email" required value={form.contactEmail} onChange={e => onFormChange('contactEmail', e.target.value)} placeholder="coach@example.com" autoComplete="email" />
+        <input className={compactInputClass} type="email" required value={form.contactEmail} onChange={e => onFormChange('contactEmail', e.target.value)} placeholder="coach@example.com" autoComplete="email" />
       </div>
-      <div className="space-y-1">
+      <div className="space-y-1 sm:col-span-2">
         <label className={label}>Message <span className="text-slate-500">(optional)</span></label>
-        <textarea className={inputClass} rows={4} maxLength={1000} value={form.message} onChange={e => onFormChange('message', e.target.value)} placeholder="Anything the league should know" />
+        <textarea className={`${inputClass} h-16 rounded-lg py-2`} rows={2} maxLength={1000} value={form.message} onChange={e => onFormChange('message', e.target.value)} placeholder="Anything the league should know" />
       </div>
     </div>
 
     {feedback && <p className="text-sm text-amber-300" role="alert">{feedback}</p>}
 
-    <div className="flex flex-col gap-2 sm:flex-row lg:flex-col xl:flex-row">
+    <div className="mt-4 flex flex-col gap-2 sm:flex-row">
       <button type="submit" disabled={status === 'working'} className={primaryBtn}>
         {status === 'working' ? <Loader2 size={16} className="animate-spin" /> : <Send size={14} />} Submit application
       </button>
@@ -463,7 +467,7 @@ const RegistrationForm = ({ league, initialCode = '' }: { league: CloudLeagueRep
 
   if (step === 'apply' && event) {
     return (
-      <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(360px,420px)]">
+      <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(360px,420px)]">
         <div className="space-y-5">
           <TournamentSummary event={event} />
           <RequirementsPanel event={event} />

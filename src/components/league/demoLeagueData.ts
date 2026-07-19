@@ -170,34 +170,35 @@ const buildDemoLeagueRepository = (): CloudLeagueRepository => {
       registration_details: 'Open to grassroots clubs with U14 teams. Matches run on weekends across approved Metro Youth League venues, with standings updated publicly after results are verified.',
       registration_contact_note: 'Questions before applying? Contact the league operations desk at ops@metroyouth.example.',
       registration_terms: 'Applications are reviewed by the league owner. Approved teams must complete roster confirmation before the published roster deadline.',
+      registration_field_photo: null,
       notes: 'Open to all metro clubs. Share the code below to invite teams.', created_at: now(), updated_at: now()
     },
     {
       id: 'demo-event-2', league_id: LEAGUE_ID, season_id: 'demo-season-1', name: 'Founders Invitational',
       format: 'round_robin', category: 'U16', status: 'draft', team_cap: 6,
       starts_on: null, ends_on: null, registration_code: 'FOUNDERS1', is_public: false,
-      registration_page_enabled: true, registration_headline: null, registration_details: null, registration_contact_note: null, registration_terms: null,
+      registration_page_enabled: true, registration_headline: null, registration_details: null, registration_contact_note: null, registration_terms: null, registration_field_photo: null,
       notes: null, created_at: now(), updated_at: now()
     },
     {
       id: 'demo-event-3', league_id: LEAGUE_ID, season_id: 'demo-season-1', name: 'Metro Knockout Cup',
       format: 'single_elimination', category: 'U16', status: 'active', team_cap: 8,
       starts_on: '2026-09-01', ends_on: '2026-09-15', registration_code: 'KNOCKOUT', is_public: true,
-      registration_page_enabled: true, registration_headline: null, registration_details: null, registration_contact_note: null, registration_terms: null,
+      registration_page_enabled: true, registration_headline: null, registration_details: null, registration_contact_note: null, registration_terms: null, registration_field_photo: null,
       notes: null, created_at: now(), updated_at: now()
     },
     {
       id: 'demo-event-4', league_id: LEAGUE_ID, season_id: 'demo-season-1', name: 'Metro Champions Cup',
       format: 'group_knockout', category: 'U18', status: 'active', team_cap: 8,
       starts_on: '2026-10-01', ends_on: '2026-10-20', registration_code: 'CHAMPIONS', is_public: true,
-      registration_page_enabled: true, registration_headline: null, registration_details: null, registration_contact_note: null, registration_terms: null,
+      registration_page_enabled: true, registration_headline: null, registration_details: null, registration_contact_note: null, registration_terms: null, registration_field_photo: null,
       notes: null, created_at: now(), updated_at: now()
     },
     {
       id: 'demo-event-0', league_id: LEAGUE_ID, season_id: 'demo-season-0', name: 'Metro Cup Qualifiers 2025',
       format: 'round_robin', category: 'U14', status: 'archived', team_cap: 8,
       starts_on: '2025-08-01', ends_on: '2025-08-30', registration_code: 'METRO2025', is_public: true,
-      registration_page_enabled: false, registration_headline: null, registration_details: null, registration_contact_note: null, registration_terms: null,
+      registration_page_enabled: false, registration_headline: null, registration_details: null, registration_contact_note: null, registration_terms: null, registration_field_photo: null,
       notes: 'Last season — kept for reference.', created_at: now(), updated_at: now()
     }
   ];
@@ -640,6 +641,7 @@ const buildDemoLeagueRepository = (): CloudLeagueRepository => {
         registration_details: input.registrationDetails?.trim() || null,
         registration_contact_note: input.registrationContactNote?.trim() || null,
         registration_terms: input.registrationTerms?.trim() || null,
+        registration_field_photo: input.registrationFieldPhoto || null,
         notes: input.notes?.trim() || null, created_at: now(), updated_at: now()
       };
       events = [row, ...events];
@@ -655,6 +657,7 @@ const buildDemoLeagueRepository = (): CloudLeagueRepository => {
         registration_details: input.registrationDetails?.trim() || null,
         registration_contact_note: input.registrationContactNote?.trim() || null,
         registration_terms: input.registrationTerms?.trim() || null,
+        registration_field_photo: input.registrationFieldPhoto || null,
         notes: input.notes?.trim() || null, updated_at: now()
       } : e);
       return events.find(e => e.id === eventId)!;
@@ -722,6 +725,7 @@ const buildDemoLeagueRepository = (): CloudLeagueRepository => {
         spotsRemaining: spotsRemaining(event.team_cap, approved), status: event.status,
         startsOn: event.starts_on, endsOn: event.ends_on, headline: event.registration_headline,
         details: event.registration_details, contactNote: event.registration_contact_note, terms: event.registration_terms,
+        fieldPhoto: event.registration_field_photo,
         eligibilityRules: scopedRules.map(r => ({ id: r.id, target: r.target, title: r.title, description: r.description, minAge: r.min_age, maxAge: r.max_age })),
         documentRequirements: scopedDocs.map(d => ({ id: d.id, target: d.target, title: d.title, instructions: d.instructions, required: d.required, expires: d.expires }))
       };
