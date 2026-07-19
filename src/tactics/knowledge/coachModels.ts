@@ -29,6 +29,14 @@ export type CoachModel = {
   status: 'draft' | 'reviewed' | 'active';
 };
 
+export const getActiveCoachModels = (): readonly CoachModel[] => (
+  COACH_MODELS.filter(model => model.status === 'active')
+);
+
+export const findCoachModelById = (id: string): CoachModel | undefined => (
+  COACH_MODELS.find(model => model.id === id && model.status === 'active')
+);
+
 export const COACH_MODELS: readonly CoachModel[] = [
   {
     id: 'guardiola-barcelona-2008-2012',

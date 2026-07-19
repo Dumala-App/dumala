@@ -54,7 +54,24 @@ export default defineConfig({
         skipWaiting: false,
         navigateFallback: null,
         globPatterns: ['**/*.{js,css,html,ico,png,svg,webp,woff,woff2,json,webmanifest}'],
-        globIgnores: ['**/dumala-free-kick.html', '**/dumala-free-kick.css', '**/dumala-free-kick.js', '**/free-kick-wall-*.webp'],
+        // Heavy media stays out of the precache: the runtime CacheFirst image
+        // route below caches it on demand instead. Precaching it forced every
+        // first visit (and every deploy) to download ~19 MB up front.
+        globIgnores: [
+          '**/dumala-free-kick.html',
+          '**/dumala-free-kick.css',
+          '**/dumala-free-kick.js',
+          '**/free-kick-wall-*.webp',
+          '**/placeholders/wall-albiceleste-*.png',
+          '**/illustrations/**',
+          '**/dumalaglass.png',
+          '**/dumala-onboarding-logo.png',
+          '**/assets/storm-*.png',
+          '**/assets/rain-*.png',
+          '**/assets/fog-*.png',
+          '**/assets/cloudy-*.png',
+          '**/assets/clear-*.png',
+        ],
         runtimeCaching: [
           {
             urlPattern: ({url}) =>
@@ -105,6 +122,22 @@ export default defineConfig({
               },
               expiration: {
                 maxEntries: 80,
+                maxAgeSeconds: 60 * 60 * 24 * 30,
+              },
+            },
+          },
+          {
+            urlPattern: ({request, url}) =>
+              url.origin === globalThis.location.origin && request.destination === 'audio',
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'dumala-local-audio',
+              rangeRequests: true,
+              cacheableResponse: {
+                statuses: [0, 200],
+              },
+              expiration: {
+                maxEntries: 4,
                 maxAgeSeconds: 60 * 60 * 24 * 30,
               },
             },

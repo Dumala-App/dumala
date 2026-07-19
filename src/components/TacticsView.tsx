@@ -1,6 +1,6 @@
-import React, { useState, useMemo, useEffect, useRef } from 'react';
+import React, { lazy, Suspense, useState, useMemo, useEffect, useRef } from 'react';
 import { Game, GamePlan, Player, StaffMember } from '../types';
-import { STAFF_PLACEHOLDER } from '../playerPlaceholders';
+import { getPlayerPlaceholder, STAFF_PLACEHOLDER } from '../playerPlaceholders';
 import { Shield, Crown, Star, Flame, Target, Trophy, Zap, Search, RefreshCw, UserCheck, Play, Save, ChevronRight, HelpCircle, User, Info, BarChart2, Edit, Trash2, Plus, Check, Filter, Tag, BookOpen, Maximize2, Minimize2, ClipboardList, Users, SlidersHorizontal } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import {
@@ -37,7 +37,14 @@ import {
   MATCH_FORMAT_CONFIG,
   type MatchFormat
 } from '../tactics/formations';
-import { recommendMatchupStrategy, type ShapeImpactCard } from '../tactics/recommendations';
+import {
+  assessCurrentPlan,
+  recommendMatchupStrategy,
+  type CurrentPlanVerdict,
+  type ShapeImpactCard
+} from '../tactics/recommendations';
+import { suggestTeamCondition } from '../tactics/contextSuggestions';
+import { getActiveCoachModels } from '../tactics/knowledge/coachModels';
 import { ATTACK_STRATEGY_CARDS, DEFENSE_STRATEGY_CARDS } from '../tactics/strategyLibrary';
 import {
   DEFAULT_STRATEGY_CONTEXT,
@@ -49,7 +56,6 @@ import {
   type StrategyRiskLevel,
   type StrategyTeamCondition
 } from '../tactics/strategyContext';
-import { CoachKnowledgeBase } from './CoachKnowledgeBase';
 import { Badge } from './ui/badge';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
@@ -70,7 +76,10 @@ import {
 import footballIconUrl from '../assets/tactics/football-icon.png';
 import wallImageUrl from '../assets/tactics/wall.png';
 
-export { CoachKnowledgeBase as TacticsKnowledgeBase } from './CoachKnowledgeBase';
+// Loaded on demand so the Coaching Library content stays out of the tactics board chunk.
+const CoachKnowledgeBase = lazy(() =>
+  import('./CoachKnowledgeBase').then(module => ({ default: module.CoachKnowledgeBase }))
+);
 
 type PlayerStatus = 'starting' | 'substitute' | 'injured';
 type PlayerStatusExtras = Record<string, {
@@ -164,6 +173,13 @@ const SHAPE_IMPACT_TONE_CLASSES: Record<ShapeImpactCard['tone'], {
     label: 'text-rose-200/80',
     value: 'text-rose-100'
   }
+};
+
+const CURRENT_PLAN_VERDICT_META: Record<CurrentPlanVerdict, { label: string; className: string }> = {
+  'top-pick': { label: 'Top pick', className: 'border-emerald-400/25 bg-emerald-400/10 text-emerald-100' },
+  solid: { label: 'Good fit', className: 'border-sky-400/25 bg-sky-400/10 text-sky-100' },
+  'off-context': { label: 'Better options', className: 'border-slate-700 bg-slate-900/60 text-slate-300' },
+  risky: { label: 'Risky now', className: 'border-amber-400/30 bg-amber-400/10 text-amber-100' }
 };
 
 const tacticsGlassPanelClass = 'rounded-2xl border border-slate-700/60 bg-[#081321]/92 text-slate-100 shadow-xl shadow-black/20 backdrop-blur-xl';
@@ -445,6 +461,17 @@ export default function TacticsView({
     DEFAULT_STRATEGY_CONTEXT,
     'Tactics strategy context'
   ));
+  const activeCoachModels = useMemo(() => getActiveCoachModels(), []);
+  const [coachLensId, setCoachLensId] = useState<string>(() => readStringStorage(
+    STORAGE_KEYS.coachLensId,
+    stringSchema,
+    '',
+    'Tactics coach lens'
+  ));
+  const effectiveCoachLensId = useMemo(
+    () => (activeCoachModels.some(model => model.id === coachLensId) ? coachLensId : ''),
+    [activeCoachModels, coachLensId]
+  );
 
   const activeFormation = formation;
   const activePlaystyle = playstyle;
@@ -452,8 +479,14 @@ export default function TacticsView({
     ourFormation: formation,
     opponentFormation,
     matchFormat,
-    context: strategyContext
-  }), [formation, opponentFormation, matchFormat, strategyContext]);
+    context: strategyContext,
+    coachLensId: effectiveCoachLensId || undefined
+  }), [formation, opponentFormation, matchFormat, strategyContext, effectiveCoachLensId]);
+  const currentPlanCheck = useMemo(
+    () => assessCurrentPlan(matchupRecommendation, playstyle, defensiveStyle),
+    [matchupRecommendation, playstyle, defensiveStyle]
+  );
+  const conditionSuggestion = useMemo(() => suggestTeamCondition(games), [games]);
 
   const visibleAttackStrategies = ATTACK_STRATEGY_CARDS;
 
@@ -475,6 +508,9 @@ export default function TacticsView({
   useEffect(() => {
     writeJsonStorage(STORAGE_KEYS.strategyContext, strategyContext);
   }, [strategyContext]);
+  useEffect(() => {
+    writeStringStorage(STORAGE_KEYS.coachLensId, coachLensId);
+  }, [coachLensId]);
 
   // Highlighting active card index selected (0 to 10 starting slot)
   const [selectedSlotIndex, setSelectedSlotIndex] = useState<number>(6); // Default: Roberto Carlos (LB - index 6 in default list)
@@ -671,7 +707,9 @@ export default function TacticsView({
           rating: avg,
           position: p.position === 'Forward' ? 'CF' : p.position === 'Midfielder' ? 'AMF' : p.position === 'Defender' ? 'CB' : 'GK',
           condition: 'B' as const,
-          photoUrl: p.photoUrl,
+          // An empty src makes the browser re-request the page URL per card;
+          // fall back to the role placeholder instead.
+          photoUrl: p.photoUrl || getPlayerPlaceholder(p.position),
           isLegend: false,
           attributes: tacticsAttributes,
           number: p.number,
@@ -719,6 +757,15 @@ export default function TacticsView({
   const activeDragPointerIdRef = useRef<number | null>(null);
   const dragStartPointRef = useRef<{ x: number; y: number } | null>(null);
   const isDragMovingRef = useRef(false);
+  // Pointer events fire faster than frames; commit at most one drag update per frame.
+  const dragFrameRef = useRef<number | null>(null);
+  const pendingDragCommitRef = useRef<(() => void) | null>(null);
+
+  useEffect(() => () => {
+    if (dragFrameRef.current !== null) {
+      cancelAnimationFrame(dragFrameRef.current);
+    }
+  }, []);
 
   // Drawing tools state
   const [isDrawingMode, setIsDrawingMode] = useState<boolean>(false);
@@ -1210,7 +1257,18 @@ export default function TacticsView({
     return [storedPoint.left, storedPoint.top];
   };
 
+  const flushPendingDragCommit = () => {
+    if (dragFrameRef.current !== null) {
+      cancelAnimationFrame(dragFrameRef.current);
+      dragFrameRef.current = null;
+    }
+    const commit = pendingDragCommitRef.current;
+    pendingDragCommitRef.current = null;
+    commit?.();
+  };
+
   const finishDragInteraction = (e?: React.PointerEvent) => {
+    flushPendingDragCommit();
     activeDragItemRef.current = null;
     activeDragPointerIdRef.current = null;
     dragStartPointRef.current = null;
@@ -1339,14 +1397,23 @@ export default function TacticsView({
     
     if (dragItem.type === 'player' && dragItem.index !== undefined) {
       const idx = dragItem.index;
-      setDraggedPositions(prev => ({
+      pendingDragCommitRef.current = () => setDraggedPositions(prev => ({
         ...prev,
         [idx]: storedPosition
       }));
     } else if (dragItem.type === 'ball') {
-      setBallPos(storedPosition);
+      pendingDragCommitRef.current = () => setBallPos(storedPosition);
     } else if (dragItem.type === 'wall') {
-      setWallPos(storedPosition);
+      pendingDragCommitRef.current = () => setWallPos(storedPosition);
+    }
+
+    if (dragFrameRef.current === null) {
+      dragFrameRef.current = requestAnimationFrame(() => {
+        dragFrameRef.current = null;
+        const commit = pendingDragCommitRef.current;
+        pendingDragCommitRef.current = null;
+        commit?.();
+      });
     }
   };
 
@@ -1376,6 +1443,88 @@ export default function TacticsView({
     }
     return allEligiblePool.filter(p => !activeLineupIds.has(p.id));
   }, [allEligiblePool, lineup, matchFormat]);
+
+  // These card lists only change with the active selection; memoizing them keeps
+  // note keystrokes and board drag frames from re-rendering ~27 detailed cards.
+  const attackingPlanSection = useMemo(() => (
+    <section className={cn(tacticsGlassCardClass, 'flex min-h-0 flex-col p-4 md:p-5 xl:max-h-[42rem]')}>
+      <div className="mb-3">
+        <h5 className="text-[10px] font-black tracking-widest text-slate-300 uppercase">Attacking Plan</h5>
+        <p className="mt-1 text-[11px] text-slate-500">Select how the team should create chances after winning or keeping the ball.</p>
+      </div>
+      <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto pr-1">
+        {visibleAttackStrategies.map((guidance) => {
+          const selected = playstyle === guidance.styleValue;
+          return (
+            <button
+              id={`btn-playstyle-${guidance.styleValue.replaceAll(' ', '-')}`}
+              key={guidance.id}
+              type="button"
+              onClick={() => setPlaystyle(guidance.styleValue)}
+              className={`block w-full min-w-0 shrink-0 whitespace-normal rounded-lg border border-l-2 px-4 py-3 text-left align-top transition ${
+                selected
+                ? 'border-indigo-300 bg-indigo-500/15 shadow-sm shadow-indigo-500/10'
+                  : 'border-slate-700/60 bg-[#0b1726]/66 hover:border-cyan-300/30 hover:bg-cyan-300/[0.08]'
+              }`}
+            >
+              <div className="flex min-w-0 items-start justify-between gap-3">
+                <span className="min-w-0 text-base font-black leading-snug text-white">{guidance.title}</span>
+                {selected && <Badge className="shrink-0 rounded bg-indigo-500 px-2 py-0.5 text-[9px] text-white">Active</Badge>}
+              </div>
+              <p className="mt-2 text-sm leading-relaxed text-slate-200">{guidance.intent}</p>
+              <p className="mt-2 text-[11px] leading-relaxed text-slate-500"><strong className="text-slate-400">Best for:</strong> {guidance.bestFor}</p>
+              <div className="mt-3 flex flex-wrap gap-1.5">
+                {guidance.cues.map((cue) => (
+                  <span key={cue} className="rounded-md border border-indigo-500/20 bg-indigo-500/10 px-2 py-1 text-[10px] font-bold leading-tight text-indigo-200">{cue}</span>
+                ))}
+              </div>
+              <p className="mt-3 text-[11px] leading-relaxed text-rose-200/85">Watch: {guidance.watchout}</p>
+            </button>
+          );
+        })}
+      </div>
+    </section>
+  ), [playstyle, visibleAttackStrategies]);
+
+  const defensivePlanSection = useMemo(() => (
+    <section className={cn(tacticsGlassCardClass, 'flex min-h-0 flex-col p-4 md:p-5 xl:max-h-[42rem]')}>
+      <div className="mb-3">
+        <h5 className="text-[10px] font-black tracking-widest text-slate-300 uppercase">Defensive Plan</h5>
+        <p className="mt-1 text-[11px] text-slate-500">Define the team trigger, line height, and first recovery behavior out of possession.</p>
+      </div>
+      <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto pr-1">
+        {DEFENSE_STRATEGY_CARDS.map((guidance) => {
+          const selected = defensiveStyle === guidance.styleValue;
+          return (
+            <button
+              id={`btn-defstyle-${guidance.styleValue.replaceAll(' ', '-')}`}
+              key={guidance.id}
+              type="button"
+              onClick={() => setDefensiveStyle(guidance.styleValue)}
+              className={`block w-full min-w-0 shrink-0 whitespace-normal rounded-lg border border-l-2 px-4 py-3 text-left align-top transition ${
+                selected
+                ? 'border-emerald-300 bg-emerald-500/15 shadow-sm shadow-emerald-500/10'
+                  : 'border-slate-700/60 bg-[#0b1726]/66 hover:border-cyan-300/30 hover:bg-cyan-300/[0.08]'
+              }`}
+            >
+              <div className="flex min-w-0 items-start justify-between gap-3">
+                <span className="min-w-0 text-base font-black leading-snug text-white">{guidance.title}</span>
+                {selected && <Badge className="shrink-0 rounded bg-emerald-500 px-2 py-0.5 text-[9px] text-slate-950">Active</Badge>}
+              </div>
+              <p className="mt-2 text-sm leading-relaxed text-slate-200">{guidance.intent}</p>
+              <p className="mt-2 text-[11px] leading-relaxed text-slate-500"><strong className="text-slate-400">Best for:</strong> {guidance.bestFor}</p>
+              <div className="mt-3 flex flex-wrap gap-1.5">
+                {guidance.cues.map((cue) => (
+                  <span key={cue} className="rounded-md border border-emerald-500/20 bg-emerald-500/10 px-2 py-1 text-[10px] font-bold leading-tight text-emerald-200">{cue}</span>
+                ))}
+              </div>
+              <p className="mt-3 text-[11px] leading-relaxed text-rose-200/85">Watch: {guidance.watchout}</p>
+            </button>
+          );
+        })}
+      </div>
+    </section>
+  ), [defensiveStyle]);
 
   const renderSetPieceLeadership = () => (
     <div>
@@ -3044,16 +3193,53 @@ export default function TacticsView({
                   <h5 className="text-[10px] font-black uppercase tracking-widest text-slate-300">Strategy Context</h5>
                   <p className="mt-1 text-[11px] leading-relaxed text-slate-500">Tune the match situation before applying a plan.</p>
                 </div>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setStrategyContext(DEFAULT_STRATEGY_CONTEXT)}
-                  className="h-8 w-fit rounded-lg border-slate-700 bg-slate-900 px-2.5 text-[9px] font-black uppercase tracking-widest text-slate-300 hover:bg-slate-800 hover:text-white"
-                >
-                  Reset context
-                </Button>
+                <div className="flex flex-wrap items-center gap-2">
+                  <Select
+                    value={effectiveCoachLensId || EMPTY_SELECT_VALUE}
+                    onValueChange={(value) => setCoachLensId(value === EMPTY_SELECT_VALUE ? '' : value)}
+                  >
+                    <SelectTrigger
+                      aria-label="Coach lens"
+                      className="h-8 w-56 rounded-lg border-slate-800 bg-slate-900 px-2.5 text-[10px] font-black text-violet-100 focus:ring-violet-400/30"
+                    >
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="border-slate-800 bg-slate-950 text-slate-100">
+                      <SelectItem value={EMPTY_SELECT_VALUE} className="text-xs font-bold">Coach lens: Engine default</SelectItem>
+                      {activeCoachModels.map((model) => (
+                        <SelectItem key={model.id} value={model.id} className="text-xs font-bold">
+                          {model.coachName} — {model.modelName}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setStrategyContext(DEFAULT_STRATEGY_CONTEXT)}
+                    className="h-8 w-fit rounded-lg border-slate-700 bg-slate-900 px-2.5 text-[9px] font-black uppercase tracking-widest text-slate-300 hover:bg-slate-800 hover:text-white"
+                  >
+                    Reset context
+                  </Button>
+                </div>
               </div>
+              {conditionSuggestion.value !== strategyContext.teamCondition && (
+                <div className="mt-2 flex flex-wrap items-center gap-2 rounded-lg border border-sky-500/20 bg-sky-500/10 px-3 py-2">
+                  <span className="text-[10px] font-bold leading-snug text-sky-100">
+                    Suggested condition: {STRATEGY_CONTEXT_LABELS.teamCondition[conditionSuggestion.value]} — {conditionSuggestion.reason}
+                  </span>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setStrategyContext(prev => ({ ...prev, teamCondition: conditionSuggestion.value }))}
+                    className="h-6 rounded-md border-sky-400/40 bg-sky-500/15 px-2 text-[9px] font-black uppercase tracking-widest text-sky-200 hover:bg-sky-500/25 hover:text-white"
+                  >
+                    Apply
+                  </Button>
+                </div>
+              )}
               <div className="mt-3 grid grid-cols-1 gap-3 lg:grid-cols-2 xl:grid-cols-5">
                 <div className="space-y-1.5">
                   <span className="block text-[8.5px] font-black uppercase tracking-widest text-slate-500">Match state</span>
@@ -3164,14 +3350,55 @@ export default function TacticsView({
             </section>
 
             <section className={cn(tacticsGlassInsetClass, 'mb-4 p-3.5')}>
-              <div className="border-b border-slate-800 pb-3">
+              <div className="flex flex-col gap-1 border-b border-slate-800 pb-3 sm:flex-row sm:items-start sm:justify-between">
                 <div>
                   <h5 className="text-[10px] font-black uppercase tracking-widest text-slate-300">Matchup Strategy</h5>
                   <p className="mt-1 max-w-xl text-[11px] leading-relaxed text-slate-500">
                     Compare shapes, review the coaching read, then apply only the plan you want to use.
                   </p>
                 </div>
+                {matchupRecommendation.coachLens && (
+                  <span className="w-fit shrink-0 rounded-md border border-violet-400/25 bg-violet-400/10 px-2 py-1 text-[9.5px] font-black text-violet-100">
+                    Lens: {matchupRecommendation.coachLens.coachName}
+                  </span>
+                )}
               </div>
+
+              {(currentPlanCheck.attack || currentPlanCheck.defense) && (
+                <div className="mt-3 grid grid-cols-1 gap-2 lg:grid-cols-2">
+                  {[currentPlanCheck.attack, currentPlanCheck.defense].map(check => check && (
+                    <div key={check.phase} className={cn('rounded-lg border px-3 py-2', CURRENT_PLAN_VERDICT_META[check.verdict].className)}>
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-[9px] font-black uppercase tracking-widest opacity-80">
+                          Current {check.phase}: {check.title}
+                        </span>
+                        <span className="shrink-0 rounded-md border border-current/20 px-1.5 py-0.5 text-[8.5px] font-black uppercase tracking-wider">
+                          {CURRENT_PLAN_VERDICT_META[check.verdict].label}
+                        </span>
+                      </div>
+                      <p className="mt-1 text-[10.5px] leading-snug opacity-90">{check.note}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {matchupRecommendation.pairCoherence.status !== 'coherent' && matchupRecommendation.pairCoherence.note && (
+                <div
+                  className={cn(
+                    'mt-3 rounded-lg border px-3 py-2',
+                    matchupRecommendation.pairCoherence.status === 'tension'
+                      ? 'border-amber-400/30 bg-amber-400/10'
+                      : 'border-sky-500/20 bg-sky-500/10'
+                  )}
+                >
+                  <span className={cn(
+                    'block text-[8.5px] font-black uppercase tracking-widest',
+                    matchupRecommendation.pairCoherence.status === 'tension' ? 'text-amber-200' : 'text-sky-200'
+                  )}>
+                    Plan pairing
+                  </span>
+                  <p className="mt-1 text-[10.5px] leading-snug text-slate-200">{matchupRecommendation.pairCoherence.note}</p>
+                </div>
+              )}
 
               <div className="mt-3 grid grid-cols-1 gap-3 xl:grid-cols-2">
               <div className="border-l-2 border-indigo-400/70 bg-indigo-500/[0.07] px-4 py-2">
@@ -3276,81 +3503,8 @@ export default function TacticsView({
             </section>
 
             <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
-                <section className={cn(tacticsGlassCardClass, 'flex min-h-0 flex-col p-4 md:p-5 xl:max-h-[42rem]')}>
-                  <div className="mb-3">
-                    <h5 className="text-[10px] font-black tracking-widest text-slate-300 uppercase">Attacking Plan</h5>
-                    <p className="mt-1 text-[11px] text-slate-500">Select how the team should create chances after winning or keeping the ball.</p>
-                  </div>
-                  <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto pr-1">
-                    {visibleAttackStrategies.map((guidance) => {
-                      const selected = playstyle === guidance.styleValue;
-                      return (
-                        <button
-                          id={`btn-playstyle-${guidance.styleValue.replaceAll(' ', '-')}`}
-                          key={guidance.id}
-                          type="button"
-                          onClick={() => setPlaystyle(guidance.styleValue)}
-                          className={`block w-full min-w-0 shrink-0 whitespace-normal rounded-lg border border-l-2 px-4 py-3 text-left align-top transition ${
-                            selected
-                            ? 'border-indigo-300 bg-indigo-500/15 shadow-sm shadow-indigo-500/10'
-                              : 'border-slate-700/60 bg-[#0b1726]/66 hover:border-cyan-300/30 hover:bg-cyan-300/[0.08]'
-                          }`}
-                        >
-                          <div className="flex min-w-0 items-start justify-between gap-3">
-                            <span className="min-w-0 text-base font-black leading-snug text-white">{guidance.title}</span>
-                            {selected && <Badge className="shrink-0 rounded bg-indigo-500 px-2 py-0.5 text-[9px] text-white">Active</Badge>}
-                          </div>
-                          <p className="mt-2 text-sm leading-relaxed text-slate-200">{guidance.intent}</p>
-                          <p className="mt-2 text-[11px] leading-relaxed text-slate-500"><strong className="text-slate-400">Best for:</strong> {guidance.bestFor}</p>
-                          <div className="mt-3 flex flex-wrap gap-1.5">
-                            {guidance.cues.map((cue) => (
-                              <span key={cue} className="rounded-md border border-indigo-500/20 bg-indigo-500/10 px-2 py-1 text-[10px] font-bold leading-tight text-indigo-200">{cue}</span>
-                            ))}
-                          </div>
-                          <p className="mt-3 text-[11px] leading-relaxed text-rose-200/85">Watch: {guidance.watchout}</p>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </section>
-
-                <section className={cn(tacticsGlassCardClass, 'flex min-h-0 flex-col p-4 md:p-5 xl:max-h-[42rem]')}>
-                  <div className="mb-3">
-                    <h5 className="text-[10px] font-black tracking-widest text-slate-300 uppercase">Defensive Plan</h5>
-                    <p className="mt-1 text-[11px] text-slate-500">Define the team trigger, line height, and first recovery behavior out of possession.</p>
-                  </div>
-                  <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto pr-1">
-                    {DEFENSE_STRATEGY_CARDS.map((guidance) => {
-                      const selected = defensiveStyle === guidance.styleValue;
-                      return (
-                        <button
-                          id={`btn-defstyle-${guidance.styleValue.replaceAll(' ', '-')}`}
-                          key={guidance.id}
-                          type="button"
-                          onClick={() => setDefensiveStyle(guidance.styleValue)}
-                          className={`block w-full min-w-0 shrink-0 whitespace-normal rounded-lg border border-l-2 px-4 py-3 text-left align-top transition ${
-                            selected
-                            ? 'border-emerald-300 bg-emerald-500/15 shadow-sm shadow-emerald-500/10'
-                              : 'border-slate-700/60 bg-[#0b1726]/66 hover:border-cyan-300/30 hover:bg-cyan-300/[0.08]'
-                          }`}
-                        >
-                          <div className="flex min-w-0 items-start justify-between gap-3">
-                            <span className="min-w-0 text-base font-black leading-snug text-white">{guidance.title}</span>
-                            {selected && <Badge className="shrink-0 rounded bg-emerald-500 px-2 py-0.5 text-[9px] text-slate-950">Active</Badge>}
-                          </div>
-                          <p className="mt-2 text-sm leading-relaxed text-slate-200">{guidance.intent}</p>
-                          <p className="mt-2 text-[11px] leading-relaxed text-slate-500"><strong className="text-slate-400">Best for:</strong> {guidance.bestFor}</p>
-                          <div className="mt-3 flex flex-wrap gap-1.5">
-                            {guidance.cues.map((cue) => (
-                              <span key={cue} className="rounded-md border border-emerald-500/20 bg-emerald-500/10 px-2 py-1 text-[10px] font-bold leading-tight text-emerald-200">{cue}</span>
-                            ))}
-                          </div>
-                          <p className="mt-3 text-[11px] leading-relaxed text-rose-200/85">Watch: {guidance.watchout}</p>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </section>
+                {attackingPlanSection}
+                {defensivePlanSection}
               </div>
           </motion.div>
         )}
@@ -3718,7 +3872,15 @@ export default function TacticsView({
 
         </>
       ) : (
-        <CoachKnowledgeBase />
+        <Suspense
+          fallback={
+            <div className={cn(tacticsGlassPanelClass, 'flex min-h-[16rem] items-center justify-center p-6')}>
+              <span className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Loading coaching library…</span>
+            </div>
+          }
+        >
+          <CoachKnowledgeBase />
+        </Suspense>
       )}
 
     </div>

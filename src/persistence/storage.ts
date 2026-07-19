@@ -65,6 +65,7 @@ export const STORAGE_KEYS = {
   cornerTakerId: 'squad_corner_taker_id',
   defensiveStyle: 'squad_defensive_style',
   strategyContext: 'squad_strategy_context',
+  coachLensId: 'squad_coach_lens_id',
   playerExtras: 'stack_squad_player_extras',
   lineup: 'stack_squad_lineup',
   tacticsNotes: 'stack_tactics_quick_notes',
@@ -117,6 +118,7 @@ export const storageSchemas = {
   [STORAGE_KEYS.cornerTakerId]: stringSchema,
   [STORAGE_KEYS.defensiveStyle]: stringSchema,
   [STORAGE_KEYS.strategyContext]: strategyContextSchema,
+  [STORAGE_KEYS.coachLensId]: stringSchema,
   [STORAGE_KEYS.playerExtras]: playerExtrasSchema,
   [STORAGE_KEYS.lineup]: tacticsLineupSchema,
   [STORAGE_KEYS.tacticsNotes]: tacticsNotesSchema,
@@ -182,6 +184,7 @@ const STORAGE_SECTIONS: Record<string, string> = {
   [STORAGE_KEYS.cornerTakerId]: 'Tactics roles',
   [STORAGE_KEYS.defensiveStyle]: 'Tactics defense',
   [STORAGE_KEYS.strategyContext]: 'Tactics strategy context',
+  [STORAGE_KEYS.coachLensId]: 'Tactics coach lens',
   [STORAGE_KEYS.playerExtras]: 'Tactics player status',
   [STORAGE_KEYS.lineup]: 'Tactics lineup',
   [STORAGE_KEYS.tacticsNotes]: 'Tactics notes',
@@ -212,7 +215,8 @@ const STRING_STORAGE_KEYS = new Set<string>([
   STORAGE_KEYS.penaltyTakerId,
   STORAGE_KEYS.freeKickTakerId,
   STORAGE_KEYS.cornerTakerId,
-  STORAGE_KEYS.defensiveStyle
+  STORAGE_KEYS.defensiveStyle,
+  STORAGE_KEYS.coachLensId
 ]);
 
 const recoveryWarnings: RecoveryWarning[] = [];
