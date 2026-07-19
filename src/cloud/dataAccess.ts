@@ -206,6 +206,7 @@ import {
   createSeason,
   createVenue,
   deleteAward,
+  deleteArchivedSeason,
   deleteDocumentRequirement,
   deleteEligibilityRule,
   deleteEventTeam,
@@ -235,6 +236,7 @@ import {
   listLeagues,
   listLeagueStatEvents,
   listLedgerEntries,
+  loadLeagueMockData,
   listRegistrations,
   listSeasons,
   listStatEvents,
@@ -296,6 +298,7 @@ import {
   type LeagueEventInput,
   type LeagueEventStatus,
   type LeagueInput,
+  type LeagueMockDataResult,
   type LeagueSeason,
   type LeagueSeasonInput,
   type LeagueSeasonStatus,
@@ -484,6 +487,8 @@ export interface CloudLeagueRepository {
   createSeason(leagueId: string, input: LeagueSeasonInput): Promise<LeagueSeason>;
   updateSeason(seasonId: string, input: LeagueSeasonInput): Promise<LeagueSeason>;
   advanceSeasonStatus(seasonId: string, nextStatus: LeagueSeasonStatus): Promise<LeagueSeasonStatus>;
+  deleteArchivedSeason(seasonId: string): Promise<void>;
+  loadMockData(leagueId: string): Promise<LeagueMockDataResult>;
   listVenues(leagueId: string): Promise<LeagueVenue[]>;
   createVenue(leagueId: string, input: LeagueVenueInput): Promise<LeagueVenue>;
   updateVenue(venueId: string, input: LeagueVenueInput): Promise<LeagueVenue>;
@@ -737,6 +742,8 @@ export const createCloudDataAccess = (client: DumalaSupabaseClient): CloudDataAc
     createSeason: (leagueId, input) => createSeason(client, leagueId, input),
     updateSeason: (seasonId, input) => updateSeason(client, seasonId, input),
     advanceSeasonStatus: (seasonId, nextStatus) => advanceSeasonStatus(client, seasonId, nextStatus),
+    deleteArchivedSeason: seasonId => deleteArchivedSeason(client, seasonId),
+    loadMockData: leagueId => loadLeagueMockData(client, leagueId),
     listVenues: leagueId => listVenues(client, leagueId),
     createVenue: (leagueId, input) => createVenue(client, leagueId, input),
     updateVenue: (venueId, input) => updateVenue(client, venueId, input),

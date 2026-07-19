@@ -310,6 +310,252 @@ export const advanceSeasonStatus = async (
   return (typeof data === 'string' ? data : nextStatus) as LeagueSeasonStatus;
 };
 
+export const deleteArchivedSeason = async (
+  client: DumalaSupabaseClient,
+  seasonId: string
+): Promise<void> => {
+  const supabase = asUntypedClient(client);
+  expectNoError(
+    await supabase.rpc('delete_archived_league_season', { season_id: seasonId }),
+    'SEASON_DELETE_FAILED',
+    'Failed to delete the archived season'
+  );
+};
+
+export interface LeagueMockDataResult {
+  seasonId: string;
+  archivedSeasonId: string;
+  eventIds: string[];
+}
+
+const mockCode = (prefix: string): string =>
+  `${prefix}${Math.random().toString(36).slice(2, 8)}`.toUpperCase().slice(0, 16);
+
+export const loadLeagueMockData = async (
+  client: DumalaSupabaseClient,
+  leagueId: string
+): Promise<LeagueMockDataResult> => {
+  const supabase = asUntypedClient(client);
+  const stamp = new Date().toISOString().slice(0, 10);
+
+  const [season, archivedSeason] = expectNoError(
+    await supabase.from('league_seasons').insert([
+      {
+        league_id: leagueId,
+        name: `Sample Season ${stamp}`,
+        year: 2026,
+        status: 'active',
+        starts_on: '2026-06-01',
+        ends_on: '2026-11-30',
+        registration_opens_on: '2026-04-01',
+        registration_closes_on: '2026-05-15',
+        roster_deadline: '2026-08-25',
+        transfer_window_opens_on: '2026-07-01',
+        transfer_window_closes_on: '2026-08-31',
+        notes: 'Loaded sample season for reviewing the League dashboard with your own account.'
+      },
+      {
+        league_id: leagueId,
+        name: `Sample Archived Season ${stamp}`,
+        year: 2025,
+        status: 'archived',
+        starts_on: '2025-06-01',
+        ends_on: '2025-11-30',
+        registration_opens_on: '2025-04-01',
+        registration_closes_on: '2025-05-15',
+        roster_deadline: '2025-05-25',
+        notes: 'Loaded archived sample season. You can delete this from the Archived tab.'
+      }
+    ]).select('*'),
+    'MOCK_SEASON_CREATE_FAILED',
+    'Failed to create sample seasons'
+  ) as LeagueSeason[];
+
+  const venues = expectNoError(
+    await supabase.from('league_venues').insert([
+      { league_id: leagueId, name: 'Sample Pitch A', address: 'Main sports complex', capacity: 1200, notes: 'Primary match venue' },
+      { league_id: leagueId, name: 'Sample Pitch B', address: 'Community field', capacity: 600, notes: 'Backup field' },
+      { league_id: leagueId, name: 'Sample Training Ground', address: 'North district', capacity: 350, notes: 'Warm-up and weekday fixtures' }
+    ]).select('*'),
+    'MOCK_VENUE_CREATE_FAILED',
+    'Failed to create sample venues'
+  ) as LeagueVenue[];
+
+  const [qualifier, knockout, archivedEvent] = expectNoError(
+    await supabase.from('league_events').insert([
+      {
+        league_id: leagueId,
+        season_id: season.id,
+        name: 'Sample Cup Qualifiers',
+        format: 'round_robin',
+        category: 'U14',
+        status: 'registration_open',
+        team_cap: 8,
+        starts_on: '2026-08-01',
+        ends_on: '2026-08-30',
+        registration_code: mockCode('SAMPLE'),
+        is_public: true,
+        registration_page_enabled: true,
+        registration_headline: 'Sample tournament registration page',
+        registration_details: 'A seeded event for reviewing applications, teams, rosters, fixtures, calendar, stats, finance, and compliance.',
+        registration_contact_note: 'Use this sample to explore owner workflows.',
+        registration_terms: 'Sample clubs must complete roster confirmation before the roster deadline.',
+        notes: 'Loaded sample round-robin event.'
+      },
+      {
+        league_id: leagueId,
+        season_id: season.id,
+        name: 'Sample Knockout Cup',
+        format: 'single_elimination',
+        category: 'U16',
+        status: 'active',
+        team_cap: 4,
+        starts_on: '2026-09-01',
+        ends_on: '2026-09-15',
+        registration_code: mockCode('KNOCK'),
+        is_public: true,
+        registration_page_enabled: true,
+        notes: 'Loaded sample knockout event.'
+      },
+      {
+        league_id: leagueId,
+        season_id: archivedSeason.id,
+        name: 'Sample Archived Cup',
+        format: 'round_robin',
+        category: 'U14',
+        status: 'archived',
+        team_cap: 4,
+        starts_on: '2025-08-01',
+        ends_on: '2025-08-30',
+        registration_code: mockCode('ARCH'),
+        is_public: false,
+        registration_page_enabled: false,
+        notes: 'Archived sample event.'
+      }
+    ]).select('*'),
+    'MOCK_EVENT_CREATE_FAILED',
+    'Failed to create sample events'
+  ) as LeagueEvent[];
+
+  const teams = expectNoError(
+    await supabase.from('event_teams').insert([
+      { league_id: leagueId, event_id: qualifier.id, name: 'Bayside FC', seed: 1 },
+      { league_id: leagueId, event_id: qualifier.id, name: 'North Stars', seed: 2 },
+      { league_id: leagueId, event_id: qualifier.id, name: 'Metro United', seed: 3 },
+      { league_id: leagueId, event_id: qualifier.id, name: 'Harbour City', seed: 4 }
+    ]).select('*'),
+    'MOCK_TEAM_CREATE_FAILED',
+    'Failed to create sample teams'
+  ) as EventTeam[];
+
+  const teamByName = new Map(teams.map(team => [team.name, team]));
+  const rosterRows = [
+    ['Bayside FC', 'Marco Santos', 9],
+    ['Bayside FC', 'Luis Reyes', 6],
+    ['North Stars', 'Miguel Lim', 10],
+    ['North Stars', 'Noah Tan', 4],
+    ['Metro United', 'Rafi Dizon', 11],
+    ['Metro United', 'Enzo Garcia', 8],
+    ['Harbour City', 'Paolo Soriano', 9],
+    ['Harbour City', 'Kai Ramos', 5]
+  ].map(([teamName, fullName, shirt]) => ({
+    league_id: leagueId,
+    event_id: qualifier.id,
+    team_id: teamByName.get(String(teamName))?.id,
+    full_name: String(fullName),
+    shirt_number: Number(shirt),
+    status: 'active'
+  }));
+  expectNoError(
+    await supabase.from('event_roster_players').insert(rosterRows),
+    'MOCK_ROSTER_CREATE_FAILED',
+    'Failed to create sample rosters'
+  );
+
+  const pairings = roundRobinRounds(teams.map(team => team.id));
+  const fixtureRows = pairings.map((pairing, index) => {
+    const score = index === 0 ? [2, 1] : index === 1 ? [0, 0] : index === 2 ? [1, 1] : null;
+    return {
+      league_id: leagueId,
+      event_id: qualifier.id,
+      round: pairing.round,
+      sequence: pairing.sequence,
+      home_team_id: pairing.homeTeamId,
+      away_team_id: pairing.awayTeamId,
+      status: score ? 'completed' : 'scheduled',
+      home_score: score?.[0] ?? null,
+      away_score: score?.[1] ?? null,
+      kickoff_at: index < 4 ? `2026-08-${index < 2 ? '15' : '22'}T${index % 2 === 0 ? '09' : '11'}:00:00+08:00` : null,
+      venue_id: venues[index % venues.length]?.id ?? null,
+      home_checked_in: index < 2,
+      away_checked_in: index < 2,
+      official_name: index < 2 ? 'Sample Official' : null
+    };
+  });
+  const fixtures = expectNoError(
+    await supabase.from('event_fixtures').insert(fixtureRows).select('*'),
+    'MOCK_FIXTURE_CREATE_FAILED',
+    'Failed to create sample fixtures'
+  ) as EventFixture[];
+
+  const firstFixture = fixtures[0];
+  const secondFixture = fixtures[1];
+  expectNoError(
+    await supabase.from('fixture_stat_events').insert([
+      { league_id: leagueId, event_id: qualifier.id, fixture_id: firstFixture.id, team_id: firstFixture.home_team_id, player_name: 'Marco Santos', stat_type: 'goal', minute: 12 },
+      { league_id: leagueId, event_id: qualifier.id, fixture_id: firstFixture.id, team_id: firstFixture.home_team_id, player_name: 'Marco Santos', stat_type: 'goal', minute: 38 },
+      { league_id: leagueId, event_id: qualifier.id, fixture_id: firstFixture.id, team_id: firstFixture.away_team_id, player_name: 'Miguel Lim', stat_type: 'goal', minute: 44 },
+      { league_id: leagueId, event_id: qualifier.id, fixture_id: secondFixture.id, team_id: secondFixture.home_team_id, player_name: 'Rafi Dizon', stat_type: 'yellow_card', minute: 23 }
+    ]),
+    'MOCK_STAT_CREATE_FAILED',
+    'Failed to create sample statistics'
+  );
+
+  expectNoError(
+    await supabase.from('event_awards').insert([
+      { league_id: leagueId, event_id: qualifier.id, title: 'Sample Group Leader', recipient_type: 'team', team_id: firstFixture.home_team_id, note: 'Auto-loaded sample award' }
+    ]),
+    'MOCK_AWARD_CREATE_FAILED',
+    'Failed to create sample awards'
+  );
+
+  expectNoError(
+    await supabase.from('league_ledger_entries').insert([
+      { league_id: leagueId, season_id: season.id, event_id: qualifier.id, direction: 'income', category: 'Sponsorship', description: 'Sample sponsor support', amount_cents: 2500000, occurred_on: '2026-07-15' },
+      { league_id: leagueId, season_id: season.id, event_id: qualifier.id, direction: 'expense', category: 'Venue', description: 'Sample venue booking', amount_cents: 850000, occurred_on: '2026-08-01' }
+    ]),
+    'MOCK_LEDGER_CREATE_FAILED',
+    'Failed to create sample ledger entries'
+  );
+
+  expectNoError(
+    await supabase.from('event_invoices').insert([
+      { league_id: leagueId, event_id: qualifier.id, team_id: teamByName.get('Bayside FC')?.id, bill_to: 'Bayside FC', description: 'Sample event fee', amount_cents: 500000, due_on: '2026-08-01', status: 'paid', paid_on: '2026-07-20' },
+      { league_id: leagueId, event_id: qualifier.id, team_id: teamByName.get('North Stars')?.id, bill_to: 'North Stars', description: 'Sample event fee', amount_cents: 500000, due_on: '2026-08-01', status: 'unpaid' }
+    ]),
+    'MOCK_INVOICE_CREATE_FAILED',
+    'Failed to create sample invoices'
+  );
+
+  expectNoError(
+    await supabase.from('league_eligibility_rules').insert([
+      { league_id: leagueId, season_id: season.id, scope: 'season', target: 'player', title: 'Sample U14 age window', description: 'Players must be inside the sample U14 age band.', min_age: 11, max_age: 14, effective_from: '2026-06-01', effective_until: '2026-11-30' }
+    ]),
+    'MOCK_RULE_CREATE_FAILED',
+    'Failed to create sample eligibility rules'
+  );
+  expectNoError(
+    await supabase.from('league_document_requirements').insert([
+      { league_id: leagueId, season_id: season.id, scope: 'season', target: 'player', title: 'Sample proof of age', instructions: 'Birth certificate, passport, or school ID with birth date.', required: true, expires: false },
+      { league_id: leagueId, event_id: qualifier.id, scope: 'event', target: 'team', title: 'Sample tournament waiver', instructions: 'Signed waiver before first match.', required: true, expires: true }
+    ]),
+    'MOCK_DOCUMENT_CREATE_FAILED',
+    'Failed to create sample document requirements'
+  );
+
+  return { seasonId: season.id, archivedSeasonId: archivedSeason.id, eventIds: [qualifier.id, knockout.id, archivedEvent.id] };
+};
+
 // --- Venues ------------------------------------------------------------------
 
 const venueRow = (input: LeagueVenueInput) => ({

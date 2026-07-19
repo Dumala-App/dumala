@@ -2,7 +2,7 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 
-select plan(28);
+select plan(31);
 
 -- Actors -----------------------------------------------------------------------
 insert into auth.users (id, aud, role, email, email_confirmed_at, created_at, updated_at)
@@ -109,6 +109,20 @@ select throws_ok(
   '22023',
   null,
   'a season cannot move backwards'
+);
+select throws_ok(
+  $$ select public.delete_archived_league_season('da000000-0000-4000-8000-000000000101') $$,
+  '22023',
+  null,
+  'an active season cannot be deleted through the archived-season RPC'
+);
+select lives_ok(
+  $$ insert into public.league_seasons (id, league_id, name, status) values ('da000000-0000-4000-8000-000000000103', 'da000000-0000-4000-8000-00000000000a', 'Archived Season', 'archived') $$,
+  'an archived season can exist for deletion testing'
+);
+select lives_ok(
+  $$ select public.delete_archived_league_season('da000000-0000-4000-8000-000000000103') $$,
+  'an owner can delete an archived season'
 );
 
 -- === Revoked League Owner entitlement loses access ===========================

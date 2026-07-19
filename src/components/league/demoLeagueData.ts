@@ -562,6 +562,70 @@ const buildDemoLeagueRepository = (): CloudLeagueRepository => {
       } : s);
       return seasons.find(s => s.id === seasonId)!;
     },
+    deleteArchivedSeason: async seasonId => {
+      const season = seasons.find(s => s.id === seasonId);
+      if (!season) throw new Error('SEASON_NOT_FOUND');
+      if (season.status !== 'archived') throw new Error('SEASON_NOT_ARCHIVED');
+      seasons = seasons.filter(s => s.id !== seasonId);
+      const eventIds = new Set(events.filter(e => e.season_id === seasonId).map(e => e.id));
+      events = events.filter(e => e.season_id !== seasonId);
+      teams = teams.filter(t => !eventIds.has(t.event_id));
+      rosterPlayers = rosterPlayers.filter(p => !eventIds.has(p.event_id));
+      fixtures = fixtures.filter(f => !eventIds.has(f.event_id));
+      statEvents = statEvents.filter(s => !eventIds.has(s.event_id));
+      awards = awards.filter(a => !eventIds.has(a.event_id));
+      invoices = invoices.filter(i => !eventIds.has(i.event_id));
+      ledger = ledger.map(entry => entry.season_id === seasonId ? { ...entry, season_id: null, event_id: eventIds.has(entry.event_id ?? '') ? null : entry.event_id } : entry);
+      eligibilityRules = eligibilityRules.filter(rule => rule.season_id !== seasonId && !eventIds.has(rule.event_id ?? ''));
+      documentRequirements = documentRequirements.filter(req => req.season_id !== seasonId && !eventIds.has(req.event_id ?? ''));
+      incidents = incidents.filter(incident => !eventIds.has(incident.event_id));
+    },
+    loadMockData: async leagueId => {
+      const season = await createDemoLeagueRepository().createSeason(leagueId, {
+        name: `Loaded Sample Season ${new Date().toISOString().slice(0, 10)}`,
+        year: 2026,
+        startsOn: '2026-06-01',
+        endsOn: '2026-11-30',
+        registrationOpensOn: '2026-04-01',
+        registrationClosesOn: '2026-05-15',
+        rosterDeadline: '2026-08-25',
+        transferWindowOpensOn: '2026-07-01',
+        transferWindowClosesOn: '2026-08-31',
+        notes: 'Loaded mock data from preview mode.'
+      });
+      seasons = seasons.map(s => s.id === season.id ? { ...s, status: 'active' } : s);
+      const archived = await createDemoLeagueRepository().createSeason(leagueId, {
+        name: `Loaded Archived Sample ${new Date().toISOString().slice(0, 10)}`,
+        year: 2025,
+        startsOn: '2025-06-01',
+        endsOn: '2025-11-30',
+        notes: 'Loaded archived mock season.'
+      });
+      seasons = seasons.map(s => s.id === archived.id ? { ...s, status: 'archived' } : s);
+      const event = await createDemoLeagueRepository().createEvent(leagueId, {
+        seasonId: season.id,
+        name: 'Loaded Sample Cup',
+        format: 'round_robin',
+        category: 'U14',
+        teamCap: 4,
+        startsOn: '2026-08-01',
+        endsOn: '2026-08-30',
+        notes: 'Loaded sample event.'
+      });
+      const createdTeams = await Promise.all(['Bayside FC', 'North Stars', 'Metro United', 'Harbour City'].map(name =>
+        createDemoLeagueRepository().addEventTeam(leagueId, event.id, { name })
+      ));
+      const generated = roundRobinRounds(createdTeams.map(team => team.id)).map((pairing, index) => ({
+        id: newId(), event_id: event.id, league_id: leagueId, round: pairing.round, sequence: pairing.sequence,
+        home_team_id: pairing.homeTeamId, away_team_id: pairing.awayTeamId, status: 'scheduled' as const,
+        home_score: null, away_score: null, kickoff_at: index < 2 ? `2026-08-15T${index === 0 ? '09' : '11'}:00:00.000Z` : null,
+        venue_id: venues[index % venues.length]?.id ?? null,
+        home_checked_in: false, away_checked_in: false, official_name: null, stage: null, group_label: null,
+        created_at: now(), updated_at: now()
+      }));
+      fixtures = [...fixtures, ...generated];
+      return { seasonId: season.id, archivedSeasonId: archived.id, eventIds: [event.id] };
+    },
     advanceSeasonStatus: async (seasonId, nextStatus) => {
       const season = seasons.find(s => s.id === seasonId);
       if (!season || !nextSeasonStatuses(season.status).includes(nextStatus)) {

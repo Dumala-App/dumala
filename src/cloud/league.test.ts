@@ -896,6 +896,12 @@ describe('cloud league repository', () => {
     });
   });
 
+  it('deletes archived seasons through the guarded RPC', async () => {
+    const { client, rpc } = createTableStub(null);
+    await expect(createCloudDataAccess(client).league.deleteArchivedSeason('season-1')).resolves.toBeUndefined();
+    expect(rpc).toHaveBeenCalledWith('delete_archived_league_season', { season_id: 'season-1' });
+  });
+
   it('marks a roster player transferred through the guarded RPC', async () => {
     const saved = { id: 'player-1', status: 'transferred' };
     const { client, rpc } = createTableStub(saved);
