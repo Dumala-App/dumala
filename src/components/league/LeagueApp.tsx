@@ -535,6 +535,7 @@ const LeagueApp = ({ runtime, userId, authController, preview = false }: LeagueA
                 seasons={seasons}
                 runError={withError}
                 onAdvance={(eventId, next) => withError(async () => { await league.advanceEventStatus(eventId, next); await loadLeagueData(activeLeague.id); })}
+                onDeleteSeason={(seasonId) => withError(async () => { await league.deleteArchivedSeason(seasonId); await loadLeagueData(activeLeague.id); })}
                 onAfterReview={() => loadLeagueData(activeLeague.id)}
                 onGoToEvents={() => setSection('events')}
               />
@@ -620,6 +621,11 @@ const LeagueApp = ({ runtime, userId, authController, preview = false }: LeagueA
               <SettingsSection
                 league={activeLeague}
                 onSave={input => withError(async () => { await league.updateLeague(activeLeague.id, input); await reload(); })}
+                onLoadMockData={preview ? undefined : () => withError(async () => {
+                  await league.loadMockData(activeLeague.id);
+                  await loadLeagueData(activeLeague.id);
+                  setSection('overview');
+                })}
               />
             )}
           </>
@@ -1626,16 +1632,18 @@ const EventsSection = ({ league, preview, events, seasons, eventTeams, fixtures,
 // view as live ones -- fixtures, tables, and stats all stay reviewable -- but
 // the lifecycle button there is spent, so nothing can be advanced back out.
 
-const ArchivedSection = ({ league, events, seasons, runError, onAdvance, onAfterReview, onGoToEvents }: {
+const ArchivedSection = ({ league, events, seasons, runError, onAdvance, onDeleteSeason, onAfterReview, onGoToEvents }: {
   league: CloudLeagueRepository;
   events: LeagueEvent[];
   seasons: LeagueSeason[];
   runError: (fn: () => Promise<unknown>) => Promise<void>;
   onAdvance: (eventId: string, next: LeagueEventStatus) => void;
+  onDeleteSeason: (seasonId: string) => Promise<void>;
   onAfterReview: () => void;
   onGoToEvents: () => void;
 }) => {
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [deleteSeasonId, setDeleteSeasonId] = useState<string | null>(null);
   const archivedEvents = useMemo(
     () => events.filter(e => e.status === 'archived').slice().sort((a, b) => (b.starts_on ?? '').localeCompare(a.starts_on ?? '')),
     [events]
@@ -1718,6 +1726,24 @@ const ArchivedSection = ({ league, events, seasons, runError, onAdvance, onAfter
             <ul className="space-y-2">
               {archivedSeasons.map(season => {
                 const seasonEvents = events.filter(e => e.season_id === season.id).length;
+                const deleting = deleteSeasonId === season.id;
+                const deleteControls = deleting ? (
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-xs font-bold text-rose-100">Delete archived season?</span>
+                    <button type="button" className={`${ghostBtn} !px-2.5`} onClick={() => setDeleteSeasonId(null)}>Cancel</button>
+                    <button
+                      type="button"
+                      className="inline-flex items-center justify-center gap-2 rounded-xl border border-rose-300/30 bg-rose-400/15 px-3 py-2 text-xs font-bold text-rose-100 transition hover:bg-rose-400/25"
+                      onClick={() => { void onDeleteSeason(season.id).then(() => setDeleteSeasonId(null)); }}
+                    >
+                      <Trash2 size={14} /> Delete
+                    </button>
+                  </div>
+                ) : (
+                  <button type="button" className={`${ghostBtn} !px-2.5 text-slate-300 hover:text-rose-100`} onClick={() => setDeleteSeasonId(season.id)}>
+                    <Trash2 size={14} /> Delete
+                  </button>
+                );
                 return (
                   <li key={season.id} className={`${subtleCard} flex flex-wrap items-center justify-between gap-3 p-4`}>
                     <div>
@@ -1731,6 +1757,7 @@ const ArchivedSection = ({ league, events, seasons, runError, onAdvance, onAfter
                         {` · ${seasonEvents} event${seasonEvents === 1 ? '' : 's'}`}
                       </p>
                     </div>
+                    {deleteControls}
                   </li>
                 );
               })}
@@ -5277,10 +5304,33 @@ const LeagueForm = ({ initial, submitLabel, onSubmit }: { initial?: League; subm
   );
 };
 
-const SettingsSection = ({ league, onSave }: { league: League; onSave: (v: LeagueFormValues) => void }) => (
+const SettingsSection = ({ league, onSave, onLoadMockData }: {
+  league: League;
+  onSave: (v: LeagueFormValues) => void;
+  onLoadMockData?: () => Promise<void>;
+}) => (
   <div className="space-y-4">
     <h2 className="font-display text-sm font-black uppercase tracking-wide text-white">League settings</h2>
     <LeagueForm initial={league} submitLabel="Save league" onSubmit={onSave} />
+    {onLoadMockData && (
+      <section className={panel}>
+        <div className={sectionHeader}>
+          <Database size={16} className="text-sky-200" />
+          <h3 className="font-display text-sm font-black text-white">Mock data</h3>
+        </div>
+        <div className="flex flex-wrap items-center justify-between gap-3 p-4">
+          <div className="max-w-2xl">
+            <p className="text-sm font-bold text-white">Load a sample league season into this account</p>
+            <p className="mt-1 text-xs leading-5 text-slate-400">
+              Adds a sample season, archived season, events, venues, teams, fixtures, roster players, finance, statistics, awards, eligibility rules, and document requirements. Existing data is not replaced.
+            </p>
+          </div>
+          <button type="button" className={primaryBtn} onClick={() => { void onLoadMockData(); }}>
+            <Database size={14} /> Load mock data
+          </button>
+        </div>
+      </section>
+    )}
   </div>
 );
 
