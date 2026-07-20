@@ -288,6 +288,29 @@ export interface StaffMember {
   status: 'Active' | 'Inactive';
 }
 
+export type AttendanceStatus = 'present' | 'absent' | 'late' | 'excused';
+
+export type AttendanceSessionType = 'Training' | 'Match' | 'Meeting' | 'Other';
+
+export interface AttendanceEntry {
+  playerId: string;
+  playerNameSnapshot: string;
+  status: AttendanceStatus;
+  note?: string;
+}
+
+export interface AttendanceSession {
+  id: string;
+  date: string; // YYYY-MM-DD
+  type: AttendanceSessionType;
+  title?: string;
+  gameId?: string;
+  note?: string;
+  entries: AttendanceEntry[];
+  createdAt: string;
+  updatedAt?: string;
+}
+
 export type PaymentLedgerEntryType = 'charge' | 'payment' | 'waiver' | 'refund' | 'adjustment';
 
 export type PaymentLedgerCategory =

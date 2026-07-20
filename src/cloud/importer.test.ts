@@ -252,6 +252,37 @@ describe('cloud importer', () => {
     });
   });
 
+  it('uploads attendance sessions before their entries', async () => {
+    const storage = createStorage();
+    storage.setItem(STORAGE_KEYS.attendance, JSON.stringify([{
+      id: 'attendance-1',
+      date: '2026-06-20',
+      type: 'Match',
+      gameId: 'game-1',
+      entries: [{ playerId: 'player-1', playerNameSnapshot: 'Ari Santos', status: 'present' }],
+      createdAt: '2026-06-20T00:00:00.000Z'
+    }]));
+    const payload = createPayload(core, storage);
+    const { client, operations } = createClient();
+
+    await expect(importCloudPayload(client, payload, {
+      appVersion: '0.0.0'
+    })).resolves.toMatchObject({ state: 'complete' });
+
+    const upsertedTables = operations.filter(operation => operation.type === 'upsert').map(operation => operation.table);
+    expect(upsertedTables.indexOf('attendance_entries')).toBeGreaterThan(upsertedTables.indexOf('attendance_sessions'));
+
+    const entryWrite = operations.find(operation =>
+      operation.type === 'upsert' && operation.table === 'attendance_entries'
+    );
+    expect(entryWrite?.rows?.[0]).toMatchObject({
+      player_name_snapshot: 'Ari Santos',
+      status: 'present',
+      created_by: '11111111-1111-4111-8111-111111111111',
+      origin_device_id: toCloudUuid(payload.importId, 'devices', payload.manifest.sourceDeviceId)
+    });
+  });
+
   it('reuses an existing owner membership instead of upserting through RLS-protected owner updates', async () => {
     const payload = createPayload();
     const { client, operations } = createClient({

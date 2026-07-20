@@ -1,6 +1,6 @@
 import React, { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import './index.css';
-import { Player, Game, Standing, Announcement, TeamInfo, AssessmentSession, StaffMember, PaymentLedgerEntry } from './types';
+import { Player, Game, Standing, Announcement, TeamInfo, AssessmentSession, StaffMember, PaymentLedgerEntry, AttendanceSession } from './types';
 
 import ViewLoadingFallback from './components/ViewLoadingFallback';
 import PwaInstallControl from './components/PwaInstallControl';
@@ -21,6 +21,7 @@ import { addAssessmentToWorkspace, deleteAssessmentFromWorkspace } from './fprds
 import {
   announcementsSchema,
   assessmentsSchema,
+  attendanceSessionsSchema,
   gamesSchema,
   migrateLegacyRoster,
   paymentLedgerSchema,
@@ -243,6 +244,7 @@ const readPersistedWorkspaceState = () => {
   const announcements = readJsonStorage(STORAGE_KEYS.announcements, announcementsSchema, [], 'Bulletins');
   const assessments = readJsonStorage(STORAGE_KEYS.assessments, assessmentsSchema, [], 'Assessments') as AssessmentSession[];
   const paymentLedger = readJsonStorage(STORAGE_KEYS.paymentLedger, paymentLedgerSchema, [], 'Payment ledger') as PaymentLedgerEntry[];
+  const attendanceSessions = readJsonStorage(STORAGE_KEYS.attendance, attendanceSessionsSchema, [], 'Attendance records') as AttendanceSession[];
   const onboarded = readBooleanStorage(STORAGE_KEYS.onboarded, false, 'Onboarding');
 
   return {
@@ -254,6 +256,7 @@ const readPersistedWorkspaceState = () => {
     announcements,
     assessments,
     paymentLedger,
+    attendanceSessions,
     isOnboarded: onboarded || teamInfo !== null
   };
 };
@@ -286,6 +289,7 @@ export default function App() {
         announcements: [],
         assessments: [] as AssessmentSession[],
         paymentLedger: [] as PaymentLedgerEntry[],
+        attendanceSessions: [] as AttendanceSession[],
         isOnboarded: false,
         workspaces: managed.workspaces,
         activeWorkspaceId: managed.activeWorkspaceId,
@@ -333,6 +337,7 @@ export default function App() {
   const [announcements, setAnnouncements] = useState<Announcement[]>(initialWorkspace.announcements);
   const [assessments, setAssessments] = useState<AssessmentSession[]>(initialWorkspace.assessments);
   const [paymentLedger, setPaymentLedger] = useState<PaymentLedgerEntry[]>(initialWorkspace.paymentLedger);
+  const [attendanceSessions, setAttendanceSessions] = useState<AttendanceSession[]>(initialWorkspace.attendanceSessions);
   const [workspaces, setWorkspaces] = useState<WorkspaceSummary[]>(initialWorkspace.workspaces);
   const [activeWorkspaceId, setActiveWorkspaceId] = useState<string | null>(initialWorkspace.activeWorkspaceId);
   const [activationFlags, setActivationFlags] = useState<Record<string, string>>(() => readActivationFlags());
@@ -378,6 +383,7 @@ export default function App() {
     setAnnouncements(next.announcements);
     setAssessments(next.assessments);
     setPaymentLedger(next.paymentLedger);
+    setAttendanceSessions(next.attendanceSessions);
     setIsOnboarded(next.isOnboarded);
     setActivationFlags(readActivationFlags());
     setSelectedPlayer(null);
@@ -445,6 +451,11 @@ export default function App() {
 
   useEffect(() => {
     if (startupRecoveryIssues.length > 0) return;
+    writeJsonStorage(STORAGE_KEYS.attendance, attendanceSessions);
+  }, [attendanceSessions, startupRecoveryIssues.length]);
+
+  useEffect(() => {
+    if (startupRecoveryIssues.length > 0) return;
     let active = true;
 
     void estimateStorageHealth().then(health => {
@@ -457,6 +468,7 @@ export default function App() {
   }, [
     announcements,
     assessments,
+    attendanceSessions,
     games,
     paymentLedger,
     players,
@@ -567,6 +579,19 @@ export default function App() {
         }
       : item
     ));
+  };
+
+  const handleSaveAttendanceSession = (session: AttendanceSession) => {
+    setAttendanceSessions(current => {
+      const exists = current.some(item => item.id === session.id);
+      return exists
+        ? current.map(item => item.id === session.id ? session : item)
+        : [session, ...current];
+    });
+  };
+
+  const handleDeleteAttendanceSession = (sessionId: string) => {
+    setAttendanceSessions(current => current.filter(item => item.id !== sessionId));
   };
 
   const handleAddStaff = (newStaff: StaffMember) => {
@@ -913,6 +938,7 @@ export default function App() {
     setAnnouncements(backup.core.announcements);
     setAssessments(backup.core.assessments as AssessmentSession[]);
     setPaymentLedger(backup.core.paymentLedger);
+    setAttendanceSessions(backup.featureState.attendance);
     setIsOnboarded(true);
     setPrimaryTab('squad');
     return summarizeBackup(backup, sourceVersion);
@@ -1055,6 +1081,7 @@ export default function App() {
       setAnnouncements([]);
       setAssessments([]);
       setPaymentLedger([]);
+      setAttendanceSessions([]);
       setPreselectedAssessmentsPlayerId(null);
     }
     setShowResetConfirm(false);
@@ -1075,6 +1102,7 @@ export default function App() {
     setAnnouncements([]);
     setAssessments([]);
     setPaymentLedger([]);
+    setAttendanceSessions([]);
     setSelectedPlayer(null);
     setSelectedStaff(null);
     setPreselectedAssessmentsPlayerId(null);
@@ -1210,6 +1238,7 @@ export default function App() {
     setAnnouncements([]);
     setAssessments([]);
     setPaymentLedger([]);
+    setAttendanceSessions([]);
     setIsOnboarded(true);
     setSelectedPlayer(null);
     setSelectedStaff(null);
@@ -1328,6 +1357,7 @@ export default function App() {
       writeJsonStorage(STORAGE_KEYS.announcements, []);
       writeJsonStorage(STORAGE_KEYS.assessments, []);
       writeJsonStorage(STORAGE_KEYS.paymentLedger, []);
+      writeJsonStorage(STORAGE_KEYS.attendance, []);
     }
 
     loadWorkspaceStateFromStorage();
@@ -1401,6 +1431,7 @@ export default function App() {
         setAnnouncements([]);
         setAssessments([]);
         setPaymentLedger([]);
+        setAttendanceSessions([]);
       }
     }
   };
@@ -1813,6 +1844,10 @@ export default function App() {
                   onAddBulkPaymentLedgerEntries={handleAddBulkPaymentLedgerEntries}
                   onUpdatePaymentLedgerEntry={handleUpdatePaymentLedgerEntry}
                   onVoidPaymentLedgerEntry={handleVoidPaymentLedgerEntry}
+                  games={games}
+                  attendanceSessions={attendanceSessions}
+                  onSaveAttendanceSession={handleSaveAttendanceSession}
+                  onDeleteAttendanceSession={handleDeleteAttendanceSession}
                   cloudClubId={activeWorkspace?.cloudClubId ?? null}
                   teamName={teamInfo?.name || 'Apex Rangers'}
                 />
@@ -1888,6 +1923,7 @@ export default function App() {
               onUpdate={handleUpdatePlayer}
               onRemove={handleRemovePlayer}
               assessments={assessments}
+              attendanceSessions={attendanceSessions}
               onOpenAssessments={(playerId: string) => {
                 setPreselectedAssessmentsPlayerId(playerId);
                 setPrimaryTab('development');

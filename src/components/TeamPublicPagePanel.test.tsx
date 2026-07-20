@@ -54,11 +54,11 @@ describe('TeamPublicPagePanel', () => {
 });
 
 describe('squad section tabs', () => {
-  it('adds the Public Page tab between Staff and Payments when the flag is on', () => {
-    expect(getSquadSectionOptions(true).map(option => option.label)).toEqual(['Players', 'Staff', 'Public Page', 'Payments']);
+  it('adds the Public Page tab between Attendance and Payments when the flag is on', () => {
+    expect(getSquadSectionOptions(true).map(option => option.label)).toEqual(['Players', 'Staff', 'Attendance', 'Public Page', 'Payments']);
   });
 
   it('keeps the original tabs when the flag is off', () => {
-    expect(getSquadSectionOptions(false).map(option => option.label)).toEqual(['Players', 'Staff', 'Payments']);
+    expect(getSquadSectionOptions(false).map(option => option.label)).toEqual(['Players', 'Staff', 'Attendance', 'Payments']);
   });
 });

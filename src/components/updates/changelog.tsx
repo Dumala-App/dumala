@@ -1,5 +1,5 @@
 import React from 'react';
-import { Award, Brain, Calculator, Cloud, Download, FlaskConical, Globe, Hash, Megaphone, Sparkles, Target, Trophy, TrendingUp, Users, type LucideIcon } from 'lucide-react';
+import { Award, Brain, Calculator, CalendarCheck, ClipboardList, Cloud, Download, FlaskConical, Globe, Hash, Link2, Megaphone, Sparkles, Target, Trophy, TrendingUp, UserCheck, Users, type LucideIcon } from 'lucide-react';
 
 // The devlog is published to two places: coaches read it in League & Updates,
 // and the public reads it at #/devlog. Both surfaces render this one list, so
@@ -40,6 +40,69 @@ export const getChangelogBadgeClass = (badge: string) =>
   changelogBadgeStyles[badge] ?? 'border-slate-400/40 bg-slate-400/15 text-slate-100';
 
 export const changelogEntries: ChangelogEntry[] = [
+  {
+    id: 'july_20_attendance_tracker',
+    date: '2026-07-20',
+    title: 'Attendance Tracker: Mark Who Missed, Not Everyone Who Came',
+    badge: 'New Features Added',
+    summary: 'The Squad now has an Attendance tab. Everyone is marked present by default, so taking attendance is just tapping the players who did not show. Sessions can link to a scheduled match, and each player gets a running attendance rate that also appears on their profile.',
+    accent: 'border-emerald-400/20 bg-slate-950/90 text-slate-100',
+    renderContent: () => (
+      <div className="space-y-4">
+        <p className="text-sm text-slate-300 leading-relaxed">
+          Coaches asked for a fast way to keep attendance without ticking off a whole roster every session. Open the new Attendance tab under Squad, hit Take attendance, and the entire squad starts marked present — you only touch the players who were absent, late, or excused. Save it and the record joins each player's history.
+        </p>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          {[
+            {
+              icon: CalendarCheck,
+              title: 'Absence-first by design',
+              desc: 'Every player defaults to present when you open a session. Tap a name to cycle present → absent → late → excused, or use the quick buttons — no more marking a full roster one by one.'
+            },
+            {
+              icon: Link2,
+              title: 'Linked to your schedule',
+              desc: 'Taking attendance on a match day? Link the session to a scheduled fixture in one tap and it is filed as a Match, so training and game records stay organized.'
+            },
+            {
+              icon: UserCheck,
+              title: 'A record for every player',
+              desc: 'Each player gets an attendance rate that counts present and late as attended and sets excused sessions aside. The player list sorts the most-missed to the top so nobody slips through.'
+            },
+            {
+              icon: ClipboardList,
+              title: 'Editable session history',
+              desc: 'Every session is saved with its date, type, and note. Reopen any record to fix a status, add a late arrival, or delete it — newly registered players are folded in automatically.'
+            },
+            {
+              icon: TrendingUp,
+              title: 'On the player profile',
+              desc: 'Open any player and their attendance rate and present/absent/late/excused split sit right beside their season stats and latest assessment.'
+            },
+            {
+              icon: Download,
+              title: 'In every backup',
+              desc: 'Attendance travels with your Full Workspace export and restore, and stays scoped to the team workspace it belongs to — same as payments and the rest of your data.'
+            }
+          ].map(item => {
+            const Icon = item.icon;
+
+            return (
+              <div key={item.title} className="rounded-xl border border-emerald-400/20 bg-slate-900/80 p-4 shadow-sm shadow-black/20">
+                <div className="mb-2 flex items-center gap-2">
+                  <span className="flex h-8 w-8 items-center justify-center rounded-lg border border-emerald-400/30 bg-emerald-400/10 text-emerald-200">
+                    <Icon size={16} aria-hidden="true" />
+                  </span>
+                  <h5 className="text-xs font-black uppercase tracking-wider text-emerald-100">{item.title}</h5>
+                </div>
+                <p className="text-xs text-slate-400 leading-relaxed">{item.desc}</p>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    )
+  },
   {
     id: 'july_17_public_team_page',
     date: '2026-07-17',
@@ -1851,7 +1914,7 @@ export const changelogEntries: ChangelogEntry[] = [
             status: 'Long Term',
             objective: 'Club operations expansion',
             deliverables: [
-              'Add attendance, player availability history, season archives, and richer operational reports.',
+              'Attendance tracking shipped; still planned: player availability history, season archives, and richer operational reports.',
               'Support calendar export and scheduled team reminders.',
               'Manage multiple squads or age groups inside one club workspace.',
               'Provide season-to-season continuity for records, reports, and development history.'

@@ -155,7 +155,7 @@ Status: **Long Term**
 
 ### Planned deliverables
 
-- Add attendance, availability history, season archives, and richer reports.
+- Attendance tracking shipped (absence-first Squad register with per-player records, match linking, backup coverage, and cloud sync mapping); still to come: availability history, season archives, and richer reports.
 - Support calendar export and scheduled reminders.
 - Manage multiple local teams now; later expand this into multiple squads or age groups inside one shared club.
 - Preserve records and development history across seasons.

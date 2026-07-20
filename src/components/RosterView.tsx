@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { PaymentLedgerEntry, Player, StaffMember, SPECIALTY_TRAITS, SpecialtyTrait, POSITION_ATTRIBUTES_MAP } from '../types';
+import { AttendanceSession, Game, PaymentLedgerEntry, Player, StaffMember, SPECIALTY_TRAITS, SpecialtyTrait, POSITION_ATTRIBUTES_MAP } from '../types';
 import { 
   UserPlus, Search, Shield, Plus, AlertCircle, Download, Upload,
   Award, ArrowLeftRight, ArrowRight, Mail, Phone, Calendar, ReceiptText
@@ -17,6 +17,7 @@ import {
   parseIntegerInput
 } from '../forms/validation';
 import SquadPaymentsPanel from './SquadPaymentsPanel';
+import SquadAttendancePanel from './SquadAttendancePanel';
 import PlayerLinkRequestsPanel from './PlayerLinkRequestsPanel';
 import TeamPublicPagePanel from './TeamPublicPagePanel';
 import { useCloudRuntime } from '../hooks/useCloudRuntime';
@@ -60,18 +61,23 @@ interface RosterViewProps {
   onAddBulkPaymentLedgerEntries: (entries: PaymentLedgerEntry[]) => void;
   onUpdatePaymentLedgerEntry: (entry: PaymentLedgerEntry) => void;
   onVoidPaymentLedgerEntry: (entryId: string, reason: string) => void;
+  games: Game[];
+  attendanceSessions: AttendanceSession[];
+  onSaveAttendanceSession: (session: AttendanceSession) => void;
+  onDeleteAttendanceSession: (sessionId: string) => void;
   cloudClubId?: string | null;
   teamName?: string;
 }
 
 type PlayerFormField = 'name' | 'number' | 'position' | 'age' | 'height' | 'weight';
-type SquadSection = 'players' | 'staff' | 'page' | 'payments';
+type SquadSection = 'players' | 'staff' | 'attendance' | 'page' | 'payments';
 
 // The Public Page tab is feature-flagged (VITE_DUMALA_TEAM_PAGE_ENABLED) and
 // filtered out of this list until the flag is on.
 const SQUAD_SECTION_OPTIONS: Array<SegmentedTabOption<SquadSection>> = [
   { value: 'players', label: 'Players' },
   { value: 'staff', label: 'Staff' },
+  { value: 'attendance', label: 'Attendance' },
   { value: 'page', label: 'Public Page' },
   { value: 'payments', label: 'Payments' }
 ];
@@ -118,6 +124,10 @@ export default function RosterView({
   onAddPaymentLedgerEntry,
   onAddBulkPaymentLedgerEntries,
   onVoidPaymentLedgerEntry,
+  games,
+  attendanceSessions,
+  onSaveAttendanceSession,
+  onDeleteAttendanceSession,
   cloudClubId,
   teamName
 }: RosterViewProps) {
@@ -510,7 +520,7 @@ export default function RosterView({
                 size="sm"
                 onClick={onExportBackup}
                 className="gap-1.5 rounded-xl border-white/[0.14] bg-white/[0.04] px-2.5 text-[10px] text-[#DDE4EF] shadow-[inset_0_1px_0_rgba(255,255,255,.10),0_1px_2px_rgba(0,0,0,.3)] hover:border-white/[0.26] hover:bg-white/[0.07] hover:text-white"
-                title="Export roster, assessments, tactics, training, notes, availability, payments, and standings history"
+                title="Export roster, assessments, tactics, training, notes, availability, attendance, payments, and standings history"
               >
                 <Download size={12} className="stroke-[2.5]" />
                 <span>Export</span>
@@ -1336,6 +1346,16 @@ export default function RosterView({
 
         {activeSection === 'page' && (
           <TeamPublicPagePanel clubId={cloudClubId} teamName={teamName || 'Your team'} />
+        )}
+
+        {activeSection === 'attendance' && (
+          <SquadAttendancePanel
+            players={players}
+            games={games}
+            sessions={attendanceSessions}
+            onSaveSession={onSaveAttendanceSession}
+            onDeleteSession={onDeleteAttendanceSession}
+          />
         )}
 
         {activeSection === 'payments' && (
