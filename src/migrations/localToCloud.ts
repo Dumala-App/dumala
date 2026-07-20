@@ -32,6 +32,8 @@ export interface CloudMigrationCounts {
   assessments: number;
   assessmentPlanWeeks: number;
   paymentLedgerEntries: number;
+  attendanceSessions: number;
+  attendanceEntries: number;
   availabilityGroups: number;
   availabilityResponses: number;
   coachNotes: number;
@@ -141,6 +143,8 @@ const countsSchema: z.ZodType<CloudMigrationCounts> = z.object({
   assessments: z.number().int().nonnegative(),
   assessmentPlanWeeks: z.number().int().nonnegative(),
   paymentLedgerEntries: z.number().int().nonnegative(),
+  attendanceSessions: z.number().int().nonnegative(),
+  attendanceEntries: z.number().int().nonnegative(),
   availabilityGroups: z.number().int().nonnegative(),
   availabilityResponses: z.number().int().nonnegative(),
   coachNotes: z.number().int().nonnegative(),
@@ -251,6 +255,10 @@ export const countCloudMigrationRecords = (backup: WorkspaceBackupV4): CloudMigr
     (total, drills) => total + drills.length,
     0
   );
+  const attendanceEntries = backup.featureState.attendance.reduce(
+    (total, session) => total + session.entries.length,
+    0
+  );
 
   return {
     players: backup.core.players.length,
@@ -274,6 +282,8 @@ export const countCloudMigrationRecords = (backup: WorkspaceBackupV4): CloudMigr
       0
     ),
     paymentLedgerEntries: backup.core.paymentLedger.length,
+    attendanceSessions: backup.featureState.attendance.length,
+    attendanceEntries,
     availabilityGroups,
     availabilityResponses,
     coachNotes: Object.keys(backup.featureState.coachNotes).length,
@@ -569,6 +579,43 @@ export const createCloudImportPayload = (
     }));
   }
 
+  // Snapshot lookups so attendance foreign keys only point at rows this import
+  // actually creates. Entries for players who have left the roster (or sessions
+  // linked to a since-deleted game) fall back to null and lean on the name
+  // snapshot, exactly as scorers and lineup assignments do.
+  const importedPlayerIds = new Set(validated.core.players.map(player => player.id));
+  const importedGameIds = new Set(validated.core.games.map(game => game.id));
+
+  for (const session of validated.featureState.attendance) {
+    const sessionId = mapId('attendance_sessions', session.id)!;
+    const linkedGameId = session.gameId && importedGameIds.has(session.gameId)
+      ? mapId('games', session.gameId)
+      : undefined;
+    records.push(record(importId, 'attendance_sessions', session.id, {
+      id: sessionId,
+      club_id: clubId,
+      session_date: session.date,
+      session_type: session.type.toLowerCase(),
+      title: session.title,
+      game_id: linkedGameId,
+      note: session.note
+    }));
+
+    for (const entry of session.entries) {
+      const entrySourceId = `${session.id}:${entry.playerId}`;
+      const entryId = mapId('attendance_entries', entrySourceId)!;
+      records.push(record(importId, 'attendance_entries', entrySourceId, {
+        id: entryId,
+        club_id: clubId,
+        attendance_session_id: sessionId,
+        player_id: importedPlayerIds.has(entry.playerId) ? mapId('players', entry.playerId) : undefined,
+        player_name_snapshot: entry.playerNameSnapshot,
+        status: entry.status,
+        note: entry.note
+      }));
+    }
+  }
+
   for (const [eventId, responses] of Object.entries(validated.featureState.availability)) {
     for (const [playerId, status] of Object.entries(responses)) {
       const sourceId = `${eventId}:${playerId}`;
@@ -800,6 +847,8 @@ export const verifyCloudMigrationPackage = (
     ['assessments', 'assessment_sessions'],
     ['assessmentPlanWeeks', 'assessment_development_plan_weeks'],
     ['paymentLedgerEntries', 'payment_ledger_entries'],
+    ['attendanceSessions', 'attendance_sessions'],
+    ['attendanceEntries', 'attendance_entries'],
     ['availabilityResponses', 'player_availability'],
     ['coachNotes', 'coach_notes'],
     ['standingsSnapshots', 'standings_snapshots'],

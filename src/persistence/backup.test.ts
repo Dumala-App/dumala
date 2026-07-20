@@ -193,6 +193,19 @@ const paymentEntry = {
   createdAt: '2026-06-21T00:00:00.000Z'
 };
 
+const attendanceSessions = [{
+  id: 'att-1',
+  date: '2026-06-21',
+  type: 'Training' as const,
+  entries: [{
+    playerId: 'p1',
+    playerNameSnapshot: 'Test Player',
+    status: 'absent' as const,
+    note: 'Family trip'
+  }],
+  createdAt: '2026-06-21T00:00:00.000Z'
+}];
+
 const weeklySchedule = {
   Monday: [{
     id: 'scheduled-drill-1',
@@ -300,6 +313,7 @@ const core = {
 describe('workspace backup V4', () => {
   it('round-trips core and feature state', () => {
     const storage = new MemoryStorage();
+    storage.setItem(STORAGE_KEYS.attendance, JSON.stringify(attendanceSessions));
     storage.setItem(STORAGE_KEYS.availability, JSON.stringify({ g1: { p1: 'yes' } }));
     storage.setItem(STORAGE_KEYS.coachNotes, JSON.stringify({ g1: 'Press early' }));
     storage.setItem(STORAGE_KEYS.weeklySchedule, JSON.stringify(weeklySchedule));
@@ -347,6 +361,7 @@ describe('workspace backup V4', () => {
     }]));
     const backup = createWorkspaceBackup(core, storage, '2026-06-21T00:00:00.000Z');
     expect(workspaceBackupV4Schema.parse(backup)).toEqual(backup);
+    expect(backup.featureState.attendance).toEqual(attendanceSessions);
     expect(backup.featureState.weeklyScheduleWeeks).toEqual(weeklyScheduleWeeks);
     expect(backup.featureState.weeklyScheduleCadence).toBe('mwf');
     expect(backup.featureState.trainingSessionMeta).toEqual(trainingSessionMeta);
@@ -360,6 +375,7 @@ describe('workspace backup V4', () => {
     expect(JSON.parse(restored.getItem(STORAGE_KEYS.players)!)).toHaveLength(1);
     expect(JSON.parse(restored.getItem(STORAGE_KEYS.staff)!)).toEqual([staff]);
     expect(JSON.parse(restored.getItem(STORAGE_KEYS.paymentLedger)!)).toEqual([paymentEntry]);
+    expect(JSON.parse(restored.getItem(STORAGE_KEYS.attendance)!)).toEqual(attendanceSessions);
     expect(JSON.parse(restored.getItem(STORAGE_KEYS.availability)!)).toEqual({ g1: { p1: 'yes' } });
     expect(JSON.parse(restored.getItem(STORAGE_KEYS.coachNotes)!)).toEqual({ g1: 'Press early' });
     expect(JSON.parse(restored.getItem(STORAGE_KEYS.weeklySchedule)!).Monday).toHaveLength(1);
@@ -400,6 +416,21 @@ describe('workspace backup V4', () => {
 
     expect(sourceVersion).toBe('4');
     expect(JSON.parse(target.getItem(STORAGE_KEYS.paymentLedger)!)).toEqual([paymentEntry]);
+  });
+
+  it('defaults attendance to empty for backups exported before attendance shipped', () => {
+    const backup = createWorkspaceBackup(core, new MemoryStorage(), '2026-06-21T00:00:00.000Z');
+    const { attendance: _attendance, ...preAttendanceFeatureState } = backup.featureState;
+    const preAttendanceBackup = { ...backup, featureState: preAttendanceFeatureState };
+
+    const result = parseWorkspaceBackup(preAttendanceBackup, collectFeatureState(new MemoryStorage()));
+    expect(result.sourceVersion).toBe('4');
+    expect(result.backup.featureState.attendance).toEqual([]);
+
+    const restored = new MemoryStorage();
+    restored.setItem(STORAGE_KEYS.attendance, JSON.stringify(attendanceSessions));
+    applyWorkspaceBackup(result.backup, restored);
+    expect(JSON.parse(restored.getItem(STORAGE_KEYS.attendance)!)).toEqual([]);
   });
 
   it('labels V4 as the current full-workspace format in restore copy', () => {

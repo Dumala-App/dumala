@@ -585,6 +585,165 @@ export type Database = {
         }
         Relationships: []
       }
+      attendance_entries: {
+        Row: {
+          attendance_session_id: string
+          client_created_at: string | null
+          club_id: string
+          created_at: string
+          created_by: string | null
+          deleted_at: string | null
+          id: string
+          note: string | null
+          origin_device_id: string | null
+          player_id: string | null
+          player_name_snapshot: string
+          status: Database["public"]["Enums"]["attendance_status"]
+          updated_at: string
+          updated_by: string | null
+          version: number
+        }
+        Insert: {
+          attendance_session_id: string
+          client_created_at?: string | null
+          club_id: string
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          id: string
+          note?: string | null
+          origin_device_id?: string | null
+          player_id?: string | null
+          player_name_snapshot: string
+          status: Database["public"]["Enums"]["attendance_status"]
+          updated_at?: string
+          updated_by?: string | null
+          version?: number
+        }
+        Update: {
+          attendance_session_id?: string
+          client_created_at?: string | null
+          club_id?: string
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          id?: string
+          note?: string | null
+          origin_device_id?: string | null
+          player_id?: string | null
+          player_name_snapshot?: string
+          status?: Database["public"]["Enums"]["attendance_status"]
+          updated_at?: string
+          updated_by?: string | null
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "attendance_entries_attendance_session_id_fkey"
+            columns: ["attendance_session_id"]
+            isOneToOne: false
+            referencedRelation: "attendance_sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "attendance_entries_club_id_fkey"
+            columns: ["club_id"]
+            isOneToOne: false
+            referencedRelation: "clubs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "attendance_entries_origin_device_id_fkey"
+            columns: ["origin_device_id"]
+            isOneToOne: false
+            referencedRelation: "devices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "attendance_entries_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: false
+            referencedRelation: "players"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      attendance_sessions: {
+        Row: {
+          client_created_at: string | null
+          club_id: string
+          created_at: string
+          created_by: string | null
+          deleted_at: string | null
+          game_id: string | null
+          id: string
+          note: string | null
+          origin_device_id: string | null
+          session_date: string
+          session_type: Database["public"]["Enums"]["attendance_session_type"]
+          title: string | null
+          updated_at: string
+          updated_by: string | null
+          version: number
+        }
+        Insert: {
+          client_created_at?: string | null
+          club_id: string
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          game_id?: string | null
+          id: string
+          note?: string | null
+          origin_device_id?: string | null
+          session_date: string
+          session_type: Database["public"]["Enums"]["attendance_session_type"]
+          title?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          version?: number
+        }
+        Update: {
+          client_created_at?: string | null
+          club_id?: string
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          game_id?: string | null
+          id?: string
+          note?: string | null
+          origin_device_id?: string | null
+          session_date?: string
+          session_type?: Database["public"]["Enums"]["attendance_session_type"]
+          title?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "attendance_sessions_club_id_fkey"
+            columns: ["club_id"]
+            isOneToOne: false
+            referencedRelation: "clubs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "attendance_sessions_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "games"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "attendance_sessions_origin_device_id_fkey"
+            columns: ["origin_device_id"]
+            isOneToOne: false
+            referencedRelation: "devices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       bulletins: {
         Row: {
           author_snapshot: string
@@ -5437,6 +5596,8 @@ export type Database = {
       age_group: "u12" | "u15" | "u18" | "adult"
       app_admin_role: "owner" | "support" | "fprds_reviewer" | "billing"
       assessment_type: "full" | "quick"
+      attendance_session_type: "training" | "match" | "meeting" | "other"
+      attendance_status: "present" | "absent" | "late" | "excused"
       audit_event_type:
         | "account_created"
         | "sign_in"

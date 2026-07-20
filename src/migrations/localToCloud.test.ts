@@ -261,6 +261,18 @@ const createStorage = () => {
   storage.setItem(STORAGE_KEYS.playerExtras, JSON.stringify({
     'player-1': { status: 'starting', yellowCards: 0, redCards: 0 }
   }));
+  storage.setItem(STORAGE_KEYS.attendance, JSON.stringify([{
+    id: 'attendance-1',
+    date: '2026-06-20',
+    type: 'Match',
+    gameId: 'game-1',
+    note: 'League opener',
+    entries: [
+      { playerId: 'player-1', playerNameSnapshot: 'Test Player', status: 'present' },
+      { playerId: 'departed-player', playerNameSnapshot: 'Departed Player', status: 'absent' }
+    ],
+    createdAt: '2026-06-20T00:00:00.000Z'
+  }]));
   return storage;
 };
 
@@ -303,6 +315,8 @@ describe('local-to-cloud migration package', () => {
       assessments: 1,
       assessmentPlanWeeks: 2,
       paymentLedgerEntries: 1,
+      attendanceSessions: 1,
+      attendanceEntries: 2,
       availabilityGroups: 1,
       availabilityResponses: 1,
       coachNotes: 1,
@@ -333,6 +347,8 @@ describe('local-to-cloud migration package', () => {
     expect(byTable('match_scorer_contributions')).toHaveLength(1);
     expect(byTable('assessment_development_plan_weeks')).toHaveLength(2);
     expect(byTable('payment_ledger_entries')).toHaveLength(1);
+    expect(byTable('attendance_sessions')).toHaveLength(1);
+    expect(byTable('attendance_entries')).toHaveLength(2);
     expect(byTable('tactics_lineup_assignments')).toHaveLength(1);
 
     expect(byTable('match_results')[0].sourceId).toBe('game-1:result');
@@ -342,6 +358,43 @@ describe('local-to-cloud migration package', () => {
       id: mappedClubId,
       name: 'Dumala Test FC',
       source_team_info: true
+    });
+  });
+
+  it('maps attendance sessions and entries, guarding foreign keys for departed players', () => {
+    const migration = createCloudMigrationPackage(core, createStorage(), options);
+    const byTable = (table: string) => migration.payload.records.filter(item => item.table === table);
+    const sessionCloudId = toCloudUuid(options.targetClubId, 'attendance_sessions', 'attendance-1');
+    const gameCloudId = toCloudUuid(options.targetClubId, 'games', 'game-1');
+    const playerCloudId = toCloudUuid(options.targetClubId, 'players', 'player-1');
+
+    const sessionRow = byTable('attendance_sessions')[0];
+    expect(sessionRow.idempotencyKey).toBe('import-1:attendance_sessions:attendance-1');
+    expect(sessionRow.data).toMatchObject({
+      id: sessionCloudId,
+      club_id: migration.payload.clubId,
+      session_date: '2026-06-20',
+      session_type: 'match',
+      game_id: gameCloudId,
+      note: 'League opener'
+    });
+
+    const entries = byTable('attendance_entries');
+    const rosterEntry = entries.find(item => item.sourceId === 'attendance-1:player-1')!.data;
+    const departedEntry = entries.find(item => item.sourceId === 'attendance-1:departed-player')!.data;
+
+    expect(rosterEntry).toMatchObject({
+      attendance_session_id: sessionCloudId,
+      player_id: playerCloudId,
+      player_name_snapshot: 'Test Player',
+      status: 'present'
+    });
+    // A player no longer on the roster keeps the name snapshot but drops the FK.
+    expect(departedEntry.player_id).toBeUndefined();
+    expect(departedEntry).toMatchObject({
+      attendance_session_id: sessionCloudId,
+      player_name_snapshot: 'Departed Player',
+      status: 'absent'
     });
   });
 

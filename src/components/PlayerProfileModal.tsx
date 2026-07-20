@@ -1,5 +1,5 @@
 import React, { useMemo, useRef, useState } from 'react';
-import { AssessmentSession, Player, SPECIALTY_TRAITS, SpecialtyTrait, STAFF_POSITIONS } from '../types';
+import { AssessmentSession, AttendanceSession, Player, SPECIALTY_TRAITS, SpecialtyTrait, STAFF_POSITIONS } from '../types';
 import { Briefcase, Calendar, Edit2, Mail, Phone, Save, Shield, Trash2, User, X, Zap } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useDialogAccessibility } from '../hooks/useDialogAccessibility';
@@ -34,6 +34,7 @@ import {
   Tooltip
 } from 'recharts';
 import { LocalImageUploadError, prepareLocalImageDataUrl } from '../images/localImageUpload';
+import { summarizePlayerAttendance } from '../attendance/attendance';
 
 type PlayerProgressPoint = {
   name: string;
@@ -129,10 +130,11 @@ interface PlayerProfileModalProps {
   onUpdate: (updatedPlayer: Player) => void;
   onRemove: (playerId: string) => void;
   assessments: AssessmentSession[];
+  attendanceSessions?: AttendanceSession[];
   onOpenAssessments: (playerId: string) => void;
 }
 
-export default function PlayerProfileModal({ player, onClose, onUpdate, onRemove, assessments, onOpenAssessments }: PlayerProfileModalProps) {
+export default function PlayerProfileModal({ player, onClose, onUpdate, onRemove, assessments, attendanceSessions = [], onOpenAssessments }: PlayerProfileModalProps) {
   const dialogRef = useRef<HTMLDivElement | null>(null);
   useDialogAccessibility(dialogRef, true, onClose);
   const isStaff = false;
@@ -195,6 +197,11 @@ export default function PlayerProfileModal({ player, onClose, onUpdate, onRemove
         return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
       })[0];
   }, [assessments, player.id]);
+
+  const attendanceSummary = useMemo(
+    () => summarizePlayerAttendance(attendanceSessions, player),
+    [attendanceSessions, player]
+  );
 
   const parsedPoints = Number.parseInt(points, 10);
   const parsedCleanSheets = Number.parseInt(cleanSheetsOrRebounds, 10);
@@ -1277,6 +1284,25 @@ export default function PlayerProfileModal({ player, onClose, onUpdate, onRemove
                         <span className="text-xs font-black text-indigo-100">
                           {latestAssessment.labels.ovrTierLabel} {latestAssessment.ovr}
                         </span>
+                      </div>
+                    )}
+                    {attendanceSummary.sessionsTracked > 0 && (
+                      <div className="mt-3 border-t border-white/[0.06] pt-3">
+                        <div className="flex items-center justify-between gap-3">
+                          <span className="text-[9px] font-black uppercase tracking-widest text-slate-500">Attendance</span>
+                          <span className={cn(
+                            'text-xs font-black',
+                            attendanceSummary.attendanceRate === null ? 'text-slate-400'
+                              : attendanceSummary.attendanceRate >= 85 ? 'text-emerald-200'
+                                : attendanceSummary.attendanceRate >= 60 ? 'text-amber-200'
+                                  : 'text-rose-200'
+                          )}>
+                            {attendanceSummary.attendanceRate === null ? '—' : `${attendanceSummary.attendanceRate}%`}
+                          </span>
+                        </div>
+                        <p className="mt-1 text-[9px] font-bold uppercase tracking-wider text-slate-600">
+                          {attendanceSummary.present}P · {attendanceSummary.absent}A · {attendanceSummary.late}L · {attendanceSummary.excused}E across {attendanceSummary.sessionsTracked} session{attendanceSummary.sessionsTracked === 1 ? '' : 's'}
+                        </p>
                       </div>
                     )}
                     <div className="mt-3 border-t border-white/[0.06] pt-3">

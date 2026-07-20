@@ -158,6 +158,26 @@ export const paymentLedgerEntrySchema = z.object({
 }).strict();
 export const paymentLedgerSchema = z.array(paymentLedgerEntrySchema);
 
+const attendanceEntrySchema = z.object({
+  playerId: z.string().min(1),
+  playerNameSnapshot: z.string().min(1),
+  status: z.enum(['present', 'absent', 'late', 'excused']),
+  note: z.string().optional()
+});
+
+export const attendanceSessionSchema = z.object({
+  id: z.string().min(1),
+  date: z.string().min(1),
+  type: z.enum(['Training', 'Match', 'Meeting', 'Other']),
+  title: z.string().optional(),
+  gameId: z.string().optional(),
+  note: z.string().optional(),
+  entries: z.array(attendanceEntrySchema),
+  createdAt: z.string().min(1),
+  updatedAt: z.string().optional()
+});
+export const attendanceSessionsSchema = z.array(attendanceSessionSchema);
+
 export const migrateLegacyRoster = (
   records: Player[]
 ): { players: Player[]; staff: StaffMember[] } => records.reduce<{ players: Player[]; staff: StaffMember[] }>(

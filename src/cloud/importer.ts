@@ -51,6 +51,8 @@ const IMPORT_ORDER = [
   'assessment_sessions',
   'assessment_development_plan_weeks',
   'payment_ledger_entries',
+  'attendance_sessions',
+  'attendance_entries',
   'player_availability',
   'coach_notes',
   'weekly_training_schedules',

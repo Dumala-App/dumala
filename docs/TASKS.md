@@ -398,7 +398,8 @@ Full plan: `docs/PLAYER_AND_LEAGUE_PLATFORM_EXPANSION.md`. Each item is independ
 ## Future Expansion: Club operations
 
 - [x] **Done:** Add local multi-team workspace management in one browser.
-- [ ] **Long Term:** Add attendance and availability history.
+- [x] **Done:** Add attendance tracking (absence-first Squad register, per-player records, match linking, backup coverage, and cloud sync mapping with RLS).
+- [ ] **Long Term:** Add availability history.
 - [ ] **Long Term:** Add season archives and richer reports.
 - [ ] **Long Term:** Add calendar export and scheduled reminders.
 - [ ] **Long Term:** Add multiple squads and age groups.

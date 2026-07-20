@@ -4,6 +4,7 @@ import {
   activationFlagsSchema,
   announcementsSchema,
   assessmentsSchema,
+  attendanceSessionsSchema,
   availabilitySchema,
   booleanSchema,
   coachNotesSchema,
@@ -71,6 +72,8 @@ const tacticsSchema = z.object({
 });
 
 const featureStateSchema = z.object({
+  // Added after V4 shipped; defaults keep every earlier backup restorable.
+  attendance: attendanceSessionsSchema.default([]),
   availability: availabilitySchema,
   coachNotes: coachNotesSchema,
   weeklyTraining: weeklyScheduleSchema,
@@ -186,6 +189,7 @@ const defaultTactics = {
 };
 
 export const collectFeatureState = (storage: StorageLike = window.localStorage): WorkspaceBackupV4['featureState'] => ({
+  attendance: readJsonStorage(STORAGE_KEYS.attendance, attendanceSessionsSchema, [], 'Attendance records', storage),
   availability: readJsonStorage(STORAGE_KEYS.availability, availabilitySchema, {}, 'Match availability', storage),
   coachNotes: readJsonStorage(STORAGE_KEYS.coachNotes, coachNotesSchema, {}, 'Coach notes', storage),
   weeklyTraining: readJsonStorage(STORAGE_KEYS.weeklySchedule, weeklyScheduleSchema, emptyWeeklySchedule, 'Weekly training', storage),
@@ -327,6 +331,7 @@ const writesForBackup = (backup: WorkspaceBackupV4): Array<[string, unknown, 'js
   [STORAGE_KEYS.announcements, backup.core.announcements, 'json'],
   [STORAGE_KEYS.assessments, backup.core.assessments, 'json'],
   [STORAGE_KEYS.paymentLedger, backup.core.paymentLedger, 'json'],
+  [STORAGE_KEYS.attendance, backup.featureState.attendance, 'json'],
   [STORAGE_KEYS.availability, backup.featureState.availability, 'json'],
   [STORAGE_KEYS.coachNotes, backup.featureState.coachNotes, 'json'],
   [STORAGE_KEYS.weeklySchedule, backup.featureState.weeklyTraining, 'json'],
