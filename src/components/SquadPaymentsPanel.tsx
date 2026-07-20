@@ -97,9 +97,12 @@ const formatMonthLabel = (monthKey: string): string => {
 
 const roundMoney = (value: number): number => Math.round((value + Number.EPSILON) * 100) / 100;
 
+// Colour groups statuses by whether the coach needs to act: settled (paid),
+// still owes (partial/due), overdue, or nothing recorded yet. This keeps the
+// status column to three meaningful hues instead of a five-colour rainbow.
 const paymentStatusVariant: Record<string, React.ComponentProps<typeof Badge>['variant']> = {
   paid: 'success',
-  partial: 'info',
+  partial: 'warning',
   due: 'warning',
   overdue: 'destructive',
   no_activity: 'secondary'
@@ -306,19 +309,22 @@ export default function SquadPaymentsPanel({
     <div id="squad-payments-panel" className="space-y-5">
       <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
         {[
-          { label: 'Charged', value: totals.charged, icon: ReceiptText, tone: 'text-slate-100' },
-          { label: 'Collected', value: totals.paid, icon: Banknote, tone: 'text-success' },
-          { label: 'Outstanding', value: totals.outstanding, icon: CircleDollarSign, tone: 'text-orange-200' },
-          { label: 'Overdue', value: totals.overdue, icon: AlertCircle, tone: 'text-destructive' }
+          { label: 'Charged', value: totals.charged, icon: ReceiptText, alert: false },
+          { label: 'Collected', value: totals.paid, icon: Banknote, alert: false },
+          { label: 'Outstanding', value: totals.outstanding, icon: CircleDollarSign, alert: false },
+          { label: 'Overdue', value: totals.overdue, icon: AlertCircle, alert: true }
         ].map(metric => {
           const Icon = metric.icon;
+          // Colour is reserved for the one number a coach must act on: money that is overdue.
+          const isAlert = metric.alert && metric.value > 0;
+          const tone = isAlert ? 'text-destructive' : 'text-slate-100';
           return (
             <div key={metric.label} className={paymentStatCardClass}>
               <div className="flex items-center justify-between gap-3">
                 <p className={paymentLabelClass}>{metric.label}</p>
-                <Icon size={16} className={metric.tone} aria-hidden="true" />
+                <Icon size={16} className={isAlert ? 'text-destructive' : 'text-slate-500'} aria-hidden="true" />
               </div>
-              <p className={`mt-2 text-xl font-black ${metric.tone}`}>{formatPeso(metric.value)}</p>
+              <p className={`mt-2 text-xl font-black ${tone}`}>{formatPeso(metric.value)}</p>
             </div>
           );
         })}
@@ -329,7 +335,7 @@ export default function SquadPaymentsPanel({
           <div className={paymentCardClass}>
             <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
               <div>
-                <p className="text-[11px] font-black uppercase tracking-widest text-orange-300">Main workspace</p>
+                <p className={paymentLabelClass}>Main workspace</p>
                 <h3 className={`mt-1 ${paymentTitleClass}`}>Player balances</h3>
                 <p className={paymentDescriptionClass}>Review who is paid, partial, overdue, or still missing activity.</p>
               </div>
@@ -380,9 +386,9 @@ export default function SquadPaymentsPanel({
                     <tr key={summary.playerId} className="text-slate-100">
                       <td className="px-3 py-3 font-black">{summary.playerName}</td>
                       <td className="px-3 py-3 font-semibold">{formatPeso(summary.charged)}</td>
-                      <td className="px-3 py-3 font-semibold text-success">{formatPeso(summary.paid)}</td>
+                      <td className="px-3 py-3 font-semibold">{formatPeso(summary.paid)}</td>
                       <td className="px-3 py-3 font-semibold">{formatPeso(summary.waived)}</td>
-                      <td className="px-3 py-3 font-black">{formatPeso(summary.balance)}</td>
+                      <td className={`px-3 py-3 font-black ${summary.balance > 0 ? 'text-destructive' : 'text-slate-100'}`}>{formatPeso(summary.balance)}</td>
                       <td className="px-3 py-3 font-semibold text-slate-400">{summary.lastPaymentDate ?? '-'}</td>
                       <td className="px-3 py-3">
                         <Badge variant={paymentStatusVariant[summary.status]}>
@@ -531,20 +537,20 @@ export default function SquadPaymentsPanel({
                   {formatMonthLabel(currentMonthKey)}
                 </h3>
               </div>
-              <CalendarClock size={18} className="text-orange-300" aria-hidden="true" />
+              <CalendarClock size={18} className="text-slate-500" aria-hidden="true" />
             </div>
             <div className="mt-4 grid grid-cols-2 gap-2 text-xs">
               <div className={paymentSubtleCardClass}>
                 <p className={paymentLabelClass}>Charged</p>
                 <p className="mt-1 font-black text-slate-100">{formatPeso(currentMonthSummary?.charged ?? 0)}</p>
               </div>
-              <div className="rounded-xl border border-emerald-300/20 bg-emerald-300/10 p-3">
-                <p className="text-[11px] font-black uppercase tracking-widest text-success">Collected</p>
-                <p className="mt-1 font-black text-success">{formatPeso(currentMonthSummary?.paid ?? 0)}</p>
+              <div className={paymentSubtleCardClass}>
+                <p className={paymentLabelClass}>Collected</p>
+                <p className="mt-1 font-black text-slate-100">{formatPeso(currentMonthSummary?.paid ?? 0)}</p>
               </div>
-              <div className="rounded-xl border border-orange-300/25 bg-orange-300/10 p-3">
-                <p className="text-[11px] font-black uppercase tracking-widest text-orange-200">Remaining</p>
-                <p className="mt-1 font-black text-orange-200">{formatPeso(Math.max(currentMonthSummary?.balance ?? 0, 0))}</p>
+              <div className={paymentSubtleCardClass}>
+                <p className={paymentLabelClass}>Remaining</p>
+                <p className={`mt-1 font-black ${(currentMonthSummary?.balance ?? 0) > 0 ? 'text-destructive' : 'text-slate-100'}`}>{formatPeso(Math.max(currentMonthSummary?.balance ?? 0, 0))}</p>
               </div>
               <div className={paymentSubtleCardClass}>
                 <p className={paymentLabelClass}>Entries</p>
@@ -557,7 +563,7 @@ export default function SquadPaymentsPanel({
                 <span>{currentMonthRate}%</span>
               </div>
               <div className="h-2 overflow-hidden rounded-full bg-white/10">
-                <div className="h-full rounded-full bg-success transition-all" style={{ width: `${currentMonthRate}%` }} />
+                <div className="h-full rounded-full bg-slate-300 transition-all" style={{ width: `${currentMonthRate}%` }} />
               </div>
             </div>
           </div>
@@ -571,9 +577,9 @@ export default function SquadPaymentsPanel({
                 </h3>
               </div>
               {activeAction === 'record' ? (
-                <Plus size={18} className="shrink-0 text-orange-300" aria-hidden="true" />
+                <Plus size={18} className="shrink-0 text-slate-500" aria-hidden="true" />
               ) : (
-                <ReceiptText size={18} className="shrink-0 text-slate-100" aria-hidden="true" />
+                <ReceiptText size={18} className="shrink-0 text-slate-500" aria-hidden="true" />
               )}
             </div>
 
@@ -828,7 +834,7 @@ export default function SquadPaymentsPanel({
                     )}
                   </Button>
                 )}
-                <TrendingUp size={18} className="text-success" aria-hidden="true" />
+                <TrendingUp size={18} className="text-slate-500" aria-hidden="true" />
               </div>
             </div>
             {visibleMonthlyHistory.length > 0 ? (
@@ -839,8 +845,8 @@ export default function SquadPaymentsPanel({
                     type="button"
                     onClick={() => setMonthFilter(month.monthKey)}
                     variant="ghost"
-                    className={`h-auto min-h-[6.75rem] w-full flex-col items-stretch justify-start gap-0 whitespace-normal rounded-xl border p-2.5 text-left transition-colors hover:border-orange-300/30 hover:bg-orange-300/10 ${
-                      monthFilter === month.monthKey ? 'border-orange-300/35 bg-orange-300/10' : 'border-cyan-300/10 bg-[#0b1726]/66'
+                    className={`h-auto min-h-[6.75rem] w-full flex-col items-stretch justify-start gap-0 whitespace-normal rounded-xl border p-2.5 text-left transition-colors hover:border-slate-100/20 hover:bg-white/[0.04] ${
+                      monthFilter === month.monthKey ? 'border-slate-100/25 bg-white/[0.06]' : 'border-cyan-300/10 bg-[#0b1726]/66'
                     }`}
                   >
                     <div className="flex items-center justify-between gap-2">
@@ -853,12 +859,12 @@ export default function SquadPaymentsPanel({
                         <p className="mt-0.5 font-black text-slate-100">{formatPeso(month.charged)}</p>
                       </div>
                       <div>
-                        <p className="font-black uppercase tracking-widest text-success">Paid</p>
-                        <p className="mt-0.5 font-black text-success">{formatPeso(month.paid)}</p>
+                        <p className="font-black uppercase tracking-widest text-slate-400">Paid</p>
+                        <p className="mt-0.5 font-black text-slate-100">{formatPeso(month.paid)}</p>
                       </div>
                       <div>
-                        <p className="font-black uppercase tracking-widest text-orange-200">Open</p>
-                        <p className="mt-0.5 font-black text-orange-200">{formatPeso(Math.max(month.balance, 0))}</p>
+                        <p className="font-black uppercase tracking-widest text-slate-400">Open</p>
+                        <p className={`mt-0.5 font-black ${Math.max(month.balance, 0) > 0 ? 'text-destructive' : 'text-slate-100'}`}>{formatPeso(Math.max(month.balance, 0))}</p>
                       </div>
                     </div>
                   </Button>
