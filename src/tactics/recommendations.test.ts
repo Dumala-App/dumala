@@ -3,6 +3,7 @@ import { DEFAULT_STRATEGY_CONTEXT, type StrategyContext } from './strategyContex
 import {
   analyzeFormation,
   assessCoachLensFit,
+  cardRiskProfile,
   assessCurrentPlan,
   pickCoherentPair,
   recommendMatchupStrategy,
@@ -442,6 +443,143 @@ describe('coach lens fit', () => {
     expect(bogusLens.recommendedAttack.id).toBe(withoutLens.recommendedAttack.id);
     expect(bogusLens.attackScores.map(entry => entry.score)).toEqual(withoutLens.attackScores.map(entry => entry.score));
     expect(bogusLens.defenseScores.map(entry => entry.score)).toEqual(withoutLens.defenseScores.map(entry => entry.score));
+  });
+});
+
+describe('alternatives', () => {
+  const base = { ourFormation: '4-3-3', opponentFormation: '3-5-2', matchFormat: '11-a-side' as const };
+
+  it('offers a safer and a more aggressive option beside the recommendation', () => {
+    const { alternatives, recommendedAttack, recommendedDefense } = recommendMatchupStrategy(base);
+
+    expect(alternatives.attack.safe).not.toBeNull();
+    expect(alternatives.attack.aggressive).not.toBeNull();
+    expect(cardRiskProfile(alternatives.attack.safe!.card)).toBe('safe');
+    expect(cardRiskProfile(alternatives.attack.aggressive!.card)).toBe('aggressive');
+    expect(cardRiskProfile(alternatives.defense.safe!.card)).toBe('safe');
+    expect(cardRiskProfile(alternatives.defense.aggressive!.card)).toBe('aggressive');
+
+    expect(alternatives.attack.safe!.card.id).not.toBe(recommendedAttack.id);
+    expect(alternatives.attack.aggressive!.card.id).not.toBe(recommendedAttack.id);
+    expect(alternatives.defense.safe!.card.id).not.toBe(recommendedDefense.id);
+    expect(alternatives.attack.safe!.rationale).toContain(recommendedAttack.title);
+  });
+
+  it('never offers an alternative the match format rules out', () => {
+    (['5-a-side', '6-a-side', '7-a-side', '9-a-side'] as const).forEach(matchFormat => {
+      const { alternatives } = recommendMatchupStrategy({ ...base, matchFormat });
+      [
+        alternatives.attack.safe,
+        alternatives.attack.aggressive,
+        alternatives.defense.safe,
+        alternatives.defense.aggressive
+      ]
+        .filter((alternative): alternative is NonNullable<typeof alternative> => alternative !== null)
+        .forEach(alternative => {
+          expect(alternative.card.formatAvoid ?? []).not.toContain(matchFormat);
+        });
+    });
+  });
+
+  it('never offers an alternative that breaks the pairing with the other phase', () => {
+    const { alternatives, recommendedAttack, recommendedDefense } = recommendMatchupStrategy(base);
+
+    const attackAlternatives = [alternatives.attack.safe, alternatives.attack.aggressive]
+      .filter((alternative): alternative is NonNullable<typeof alternative> => alternative !== null);
+    const defenseAlternatives = [alternatives.defense.safe, alternatives.defense.aggressive]
+      .filter((alternative): alternative is NonNullable<typeof alternative> => alternative !== null);
+
+    attackAlternatives.forEach(alternative => {
+      const conflict = alternative.card.territorialIntent === 'sustained' && recommendedDefense.blockHeight === 'low';
+      expect(conflict).toBe(false);
+    });
+    defenseAlternatives.forEach(alternative => {
+      const conflict = recommendedAttack.territorialIntent === 'sustained' && alternative.card.blockHeight === 'low';
+      expect(conflict).toBe(false);
+    });
+  });
+
+  it('names the plan the lens pushed off the top', () => {
+    // Guardiola's model penalises the long-ball counter, which is the engine's
+    // own top attacking pick in this matchup, so the lens visibly displaces it.
+    const evenMatchup = { ourFormation: '4-3-3', opponentFormation: '4-3-3', matchFormat: '11-a-side' as const };
+    const withoutLens = recommendMatchupStrategy(evenMatchup);
+    const withLens = recommendMatchupStrategy({ ...evenMatchup, coachLensId: 'guardiola-barcelona-2008-2012' });
+
+    expect(withoutLens.alternatives.attack.lensDemoted).toBeNull();
+    expect(withoutLens.alternatives.defense.lensDemoted).toBeNull();
+
+    const demoted = withLens.alternatives.attack.lensDemoted;
+    expect(demoted).not.toBeNull();
+    expect(demoted!.kind).toBe('lens-demoted');
+    expect(demoted!.rationale).toContain('Pep Guardiola');
+    expect(demoted!.card.id).toBe(withoutLens.attackScores[0].card.id);
+    expect(demoted!.card.id).not.toBe(withLens.recommendedAttack.id);
+  });
+
+  it('never lists the same plan in two alternative slots', () => {
+    getActiveCoachModels().forEach(model => {
+      ['4-3-3', '4-4-2', '4-2-3-1'].forEach(ourFormation => {
+        const { alternatives } = recommendMatchupStrategy({
+          ourFormation,
+          opponentFormation: '4-3-3',
+          matchFormat: '11-a-side',
+          coachLensId: model.id
+        });
+
+        [alternatives.attack, alternatives.defense].forEach(phase => {
+          const ids = [phase.lensDemoted, phase.safe, phase.aggressive]
+            .filter((alternative): alternative is NonNullable<typeof alternative> => alternative !== null)
+            .map(alternative => alternative.card.id);
+          expect(new Set(ids).size, `${model.id} ${ourFormation} ${phase.phase}`).toBe(ids.length);
+        });
+      });
+    });
+  });
+
+  it('leaves the demoted slot empty when the lens does not change the top pick', () => {
+    const { alternatives } = recommendMatchupStrategy({ ...base, coachLensId: 'mourinho-pragmatic-transition' });
+
+    // This matchup's own signals outrank the lens, which is the intended
+    // ceiling: nothing was demoted, so nothing is claimed to have been.
+    expect(alternatives.attack.lensDemoted).toBeNull();
+    expect(alternatives.defense.lensDemoted).toBeNull();
+  });
+});
+
+describe('coach lens in the coach read', () => {
+  const base = { ourFormation: '4-3-3', opponentFormation: '3-5-2', matchFormat: '11-a-side' as const };
+
+  it('leaves the coach read unchanged without a lens', () => {
+    const { comparisonInsights, explanation } = recommendMatchupStrategy(base);
+
+    expect(comparisonInsights.map(insight => insight.label)).not.toContain('Coach lens');
+    expect(explanation).not.toContain('Coach lens');
+  });
+
+  it('records the lens and its weight in the text that travels with the plan', () => {
+    const { comparisonInsights, explanation } = recommendMatchupStrategy({
+      ...base,
+      context: { ...DEFAULT_STRATEGY_CONTEXT, matchState: 'chasing-goal', riskLevel: 'aggressive' },
+      coachLensId: 'ferguson-manchester-united-tempo'
+    });
+
+    const insight = comparisonInsights.find(item => item.label === 'Coach lens');
+    expect(insight).toBeDefined();
+    expect(insight!.value).toContain('Sir Alex Ferguson');
+    expect(insight!.value).toContain('Tempo, wing play, and late pressure');
+    expect(explanation).toContain('Sir Alex Ferguson');
+  });
+
+  it('states the reduced weight when the lens is used outside its situation', () => {
+    const { comparisonInsights } = recommendMatchupStrategy({
+      ...base,
+      context: { ...DEFAULT_STRATEGY_CONTEXT, matchState: 'chasing-goal', riskLevel: 'aggressive' },
+      coachLensId: 'mourinho-pragmatic-transition'
+    });
+
+    const insight = comparisonInsights.find(item => item.label === 'Coach lens')!;
+    expect(insight.value).toContain('heavily reduced weight');
   });
 });
 

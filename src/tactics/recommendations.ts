@@ -1,6 +1,11 @@
 import { ATTACK_STRATEGY_CARDS, DEFENSE_STRATEGY_CARDS, type TacticalStrategyCard } from './strategyLibrary';
 import type { MatchFormat } from './formations';
-import { DEFAULT_STRATEGY_CONTEXT, STRATEGY_CONTEXT_LABELS, type StrategyContext } from './strategyContext';
+import {
+  DEFAULT_STRATEGY_CONTEXT,
+  STRATEGY_CONTEXT_LABELS,
+  type StrategyContext,
+  type StrategyRiskLevel
+} from './strategyContext';
 import { findCoachModelById, type CoachModel } from './knowledge/coachModels';
 
 export type FormationTraits = {
@@ -34,6 +39,7 @@ export type MatchupRecommendation = {
   contextReasons: StrategyScoreReason[];
   pairCoherence: PairCoherence;
   coachLens: CoachLensSummary | null;
+  alternatives: { attack: PhaseAlternatives; defense: PhaseAlternatives };
   opponentThreats: string[];
   exploitableSpaces: string[];
   playerInstructions: string[];
@@ -82,6 +88,30 @@ export type CoachLensSummary = {
   coachName: string;
   modelName: string;
   fit: CoachLensFit;
+};
+
+/**
+ * Why an alternative is worth showing. `safe` and `aggressive` give the coach
+ * the two directions they can move from the recommendation; `lens-demoted`
+ * names the plan the engine would have picked without the active coach lens,
+ * so a lens never quietly buries the default answer.
+ */
+export type StrategyAlternativeKind = 'safe' | 'aggressive' | 'lens-demoted';
+
+export type StrategyAlternative = {
+  kind: StrategyAlternativeKind;
+  card: TacticalStrategyCard;
+  score: number;
+  /** Points behind the recommended plan. Zero means it is level on score. */
+  scoreGap: number;
+  rationale: string;
+};
+
+export type PhaseAlternatives = {
+  phase: 'attack' | 'defense';
+  safe: StrategyAlternative | null;
+  aggressive: StrategyAlternative | null;
+  lensDemoted: StrategyAlternative | null;
 };
 
 export type CurrentPlanVerdict = 'top-pick' | 'solid' | 'off-context' | 'risky';
@@ -332,6 +362,13 @@ const contextValueLabel = <K extends keyof StrategyContext>(key: K, value: Strat
 
 const NEUTRAL_LENS_FIT: CoachLensFit = { status: 'unset', weight: 1, matched: [], diverged: [] };
 
+export const LENS_WEIGHT_SUMMARY: Record<CoachLensFitStatus, string> = {
+  unset: 'Applied at full weight; no match context was set.',
+  aligned: 'Applied at full weight for this context.',
+  partial: 'Applied at reduced weight because the context differs from the model.',
+  diverged: 'Applied at heavily reduced weight; this is not the situation the model assumes.'
+};
+
 /**
  * Compare the situation a coach model was built for against the situation the
  * coach has actually described. A lens borrowed from a different game state is
@@ -494,6 +531,111 @@ export const pickCoherentPair = (
   };
 };
 
+/**
+ * Where a plan sits on the risk scale. The card's own context fit is the
+ * authority; structural metadata is the fallback for cards that do not declare
+ * a risk range, so every card can still be offered as an alternative.
+ */
+export const cardRiskProfile = (card: TacticalStrategyCard): StrategyRiskLevel => {
+  const levels = card.contextFit?.riskLevel;
+  if (levels && levels.length > 0) {
+    const safe = levels.includes('safe');
+    const aggressive = levels.includes('aggressive');
+    if (safe && !aggressive) return 'safe';
+    if (aggressive && !safe) return 'aggressive';
+    return 'balanced';
+  }
+
+  if (card.phase === 'defense') {
+    if (card.blockHeight === 'high') return 'aggressive';
+    if (card.blockHeight === 'low') return 'safe';
+    return 'balanced';
+  }
+
+  if (card.territorialIntent === 'sustained') return 'aggressive';
+  if (card.territorialIntent === 'transition') return 'safe';
+  return 'balanced';
+};
+
+const describeGap = (scoreGap: number, recommendedTitle: string): string => {
+  if (scoreGap <= 0) return `Level with ${recommendedTitle} on score`;
+  return `${scoreGap} point${scoreGap === 1 ? '' : 's'} behind ${recommendedTitle}`;
+};
+
+const conflictsWithCounterpart = (
+  phase: 'attack' | 'defense',
+  card: TacticalStrategyCard,
+  counterpart: TacticalStrategyCard | undefined
+): boolean => {
+  if (!counterpart) return false;
+  return phase === 'attack' ? isPairConflict(card, counterpart) : isPairConflict(counterpart, card);
+};
+
+/**
+ * Offer the coach one safer and one more aggressive option beside the
+ * recommendation, plus whatever an active lens pushed off the top. Candidates
+ * that the match format rules out, or that would break the pairing with the
+ * other phase's recommended plan, are left out: an alternative the coach cannot
+ * actually run is noise.
+ */
+export const buildPhaseAlternatives = ({
+  phase,
+  scores,
+  baselineScores,
+  recommended,
+  counterpart,
+  matchFormat,
+  coachLens
+}: {
+  phase: 'attack' | 'defense';
+  scores: RankedStrategyCard[];
+  baselineScores: RankedStrategyCard[] | null;
+  recommended: TacticalStrategyCard;
+  counterpart: TacticalStrategyCard | undefined;
+  matchFormat: MatchFormat;
+  coachLens: CoachModel | undefined;
+}): PhaseAlternatives => {
+  const recommendedScore = scores.find(entry => entry.card.id === recommended.id)?.score ?? 0;
+
+  let lensDemoted: StrategyAlternative | null = null;
+  const baselineTop = baselineScores?.[0];
+  if (coachLens && baselineTop && scores[0] && baselineTop.card.id !== scores[0].card.id) {
+    const currentScore = scores.find(entry => entry.card.id === baselineTop.card.id)?.score ?? baselineTop.score;
+    lensDemoted = {
+      kind: 'lens-demoted',
+      card: baselineTop.card,
+      score: currentScore,
+      scoreGap: Math.max(0, recommendedScore - currentScore),
+      rationale: `Without the ${coachLens.coachName} lens this was the top ${phase} pick. ${baselineTop.card.intent}`
+    };
+  }
+
+  const eligible = scores.filter(entry => (
+    entry.card.id !== recommended.id
+    // Already listed as the demoted plan; showing it twice reads as two options.
+    && entry.card.id !== lensDemoted?.card.id
+    && !entry.card.formatAvoid?.includes(matchFormat)
+    && !conflictsWithCounterpart(phase, entry.card, counterpart)
+  ));
+
+  const pick = (kind: 'safe' | 'aggressive'): StrategyAlternative | null => {
+    const entry = eligible.find(candidate => cardRiskProfile(candidate.card) === kind);
+    if (!entry) return null;
+
+    const scoreGap = Math.max(0, recommendedScore - entry.score);
+    const lead = kind === 'safe' ? 'Safer option' : 'More aggressive option';
+    return {
+      kind,
+      card: entry.card,
+      score: entry.score,
+      scoreGap,
+      rationale: `${lead}. ${describeGap(scoreGap, recommended.title)}. ${entry.card.intent}`
+    };
+  };
+
+  return { phase, safe: pick('safe'), aggressive: pick('aggressive'), lensDemoted };
+};
+
 const getTopContextReasons = (
   attack: RankedStrategyCard | undefined,
   defense: RankedStrategyCard | undefined
@@ -607,7 +749,9 @@ const buildComparisonInsights = (
   defense: TacticalStrategyCard,
   opponentThreats: string[],
   exploitableSpaces: string[],
-  playerInstructions: string[]
+  playerInstructions: string[],
+  coachLens: CoachModel | undefined,
+  lensFit: CoachLensFit
 ) => [
   {
     label: 'Shape read',
@@ -624,7 +768,16 @@ const buildComparisonInsights = (
   {
     label: 'Coach priority',
     value: playerInstructions[0]
-  }
+  },
+  // The lens belongs in the coach read, not only on a badge: this is the text
+  // that travels with the saved plan, so a plan ranked through Ferguson has to
+  // still say so after the fact.
+  ...(coachLens
+    ? [{
+      label: 'Coach lens',
+      value: `Ranked through ${coachLens.coachName} — ${coachLens.modelName}. ${LENS_WEIGHT_SUMMARY[lensFit.status]}`
+    }]
+    : [])
 ];
 
 const describeOurStructure = (our: FormationTraits): string => {
@@ -748,6 +901,34 @@ export const recommendMatchupStrategy = ({
   const coherentPair = pickCoherentPair(attackScores, defenseScores);
   const recommendedAttack = coherentPair.attack?.card ?? ATTACK_STRATEGY_CARDS[0];
   const recommendedDefense = coherentPair.defense?.card ?? DEFENSE_STRATEGY_CARDS[0];
+  // Only ranked a second time when a lens is active, purely to answer "what
+  // would the engine have said on its own?" for the demoted alternative.
+  const baselineAttackScores = coachLens
+    ? rankCards(ATTACK_STRATEGY_CARDS, our, opponent, matchFormat, context, useContext, undefined, NEUTRAL_LENS_FIT)
+    : null;
+  const baselineDefenseScores = coachLens
+    ? rankCards(DEFENSE_STRATEGY_CARDS, our, opponent, matchFormat, context, useContext, undefined, NEUTRAL_LENS_FIT)
+    : null;
+  const alternatives = {
+    attack: buildPhaseAlternatives({
+      phase: 'attack',
+      scores: attackScores,
+      baselineScores: baselineAttackScores,
+      recommended: recommendedAttack,
+      counterpart: recommendedDefense,
+      matchFormat,
+      coachLens
+    }),
+    defense: buildPhaseAlternatives({
+      phase: 'defense',
+      scores: defenseScores,
+      baselineScores: baselineDefenseScores,
+      recommended: recommendedDefense,
+      counterpart: recommendedAttack,
+      matchFormat,
+      coachLens
+    })
+  };
   const contextReasons = getTopContextReasons(coherentPair.attack, coherentPair.defense);
   const opponentThreats = buildOpponentThreats(opponent);
   const exploitableSpaces = buildExploitableSpaces(opponent);
@@ -772,7 +953,9 @@ export const recommendMatchupStrategy = ({
     recommendedDefense,
     opponentThreats,
     exploitableSpaces,
-    playerInstructions
+    playerInstructions,
+    coachLens,
+    lensFit
   );
 
   return {
@@ -788,6 +971,7 @@ export const recommendMatchupStrategy = ({
     coachLens: coachLens
       ? { id: coachLens.id, coachName: coachLens.coachName, modelName: coachLens.modelName, fit: lensFit }
       : null,
+    alternatives,
     opponentThreats,
     exploitableSpaces,
     playerInstructions,

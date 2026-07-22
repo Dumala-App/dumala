@@ -1426,7 +1426,17 @@ export default function DashboardView({
 
               <section className="relative min-h-0 overflow-hidden rounded-2xl border border-cyan-300/10 bg-[linear-gradient(135deg,rgba(99,102,241,0.1),rgba(16,185,129,0.08)_45%,rgba(7,17,31,0.86))] p-5 lg:col-span-5">
                 <div className="pointer-events-none absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-cyan-200/40 to-transparent" />
-                <span className="text-[9px] font-black uppercase tracking-widest text-cyan-100">Match strategy</span>
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <span className="text-[9px] font-black uppercase tracking-widest text-cyan-100">Match strategy</span>
+                  {nextMatchGamePlan.recommendation.coachLens && (
+                    <span
+                      className="rounded-full border border-violet-300/25 bg-violet-300/10 px-2.5 py-1 text-[9px] font-black text-violet-100"
+                      title={nextMatchGamePlan.recommendation.coachLens.fitNote}
+                    >
+                      Lens: {nextMatchGamePlan.recommendation.coachLens.coachName}
+                    </span>
+                  )}
+                </div>
                 <div className="mt-4 grid gap-5">
                   <div className="border-l-2 border-indigo-300/35 pl-4">
                     <span className="text-[9px] font-black uppercase tracking-widest text-indigo-200">Attack</span>

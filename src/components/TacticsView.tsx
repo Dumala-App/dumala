@@ -42,6 +42,9 @@ import {
   recommendMatchupStrategy,
   type CoachLensFitStatus,
   type CurrentPlanVerdict,
+  type PhaseAlternatives,
+  type StrategyAlternative,
+  type StrategyAlternativeKind,
   type ShapeImpactCard
 } from '../tactics/recommendations';
 import { suggestTeamCondition } from '../tactics/contextSuggestions';
@@ -205,6 +208,16 @@ const COACH_LENS_FIT_META: Record<CoachLensFitStatus, { badgeLabel: string; badg
     noteClassName: 'border-amber-400/30 bg-amber-400/10 text-amber-100'
   }
 };
+
+const STRATEGY_ALTERNATIVE_META: Record<StrategyAlternativeKind, { label: string; className: string }> = {
+  safe: { label: 'Safer', className: 'border-sky-400/25 bg-sky-400/10 text-sky-100' },
+  aggressive: { label: 'More aggressive', className: 'border-rose-400/25 bg-rose-400/10 text-rose-100' },
+  'lens-demoted': { label: 'Engine default', className: 'border-violet-400/25 bg-violet-400/10 text-violet-100' }
+};
+
+const hasAlternatives = (alternatives: PhaseAlternatives): boolean => (
+  alternatives.safe !== null || alternatives.aggressive !== null || alternatives.lensDemoted !== null
+);
 
 const tacticsGlassPanelClass = 'rounded-2xl border border-slate-700/60 bg-[#081321]/92 text-slate-100 shadow-xl shadow-black/20 backdrop-blur-xl';
 const tacticsGlassCardClass = 'rounded-xl border border-slate-700/55 bg-[#0d1a2a]/72 text-slate-100 shadow-sm shadow-black/10 backdrop-blur-sm';
@@ -1205,7 +1218,18 @@ export default function TacticsView({
           ...matchupRecommendation.recommendedAttack.cues.slice(0, 3),
           ...matchupRecommendation.recommendedDefense.cues.slice(0, 3)
         ],
-        watchout: matchupRecommendation.recommendedAttack.watchout
+        watchout: matchupRecommendation.recommendedAttack.watchout,
+        ...(matchupRecommendation.coachLens
+          ? {
+            coachLens: {
+              id: matchupRecommendation.coachLens.id,
+              coachName: matchupRecommendation.coachLens.coachName,
+              modelName: matchupRecommendation.coachLens.modelName,
+              fitStatus: matchupRecommendation.coachLens.fit.status,
+              fitNote: matchupRecommendation.coachLens.fit.note
+            }
+          }
+          : {})
       },
       lineup: lineupPlan,
       roles: {
@@ -3495,6 +3519,61 @@ export default function TacticsView({
                   <p className="mt-2 text-[10px] leading-relaxed text-rose-200/80">Watch: {matchupRecommendation.recommendedDefense.watchout}</p>
                 </div>
               </div>
+
+              {(hasAlternatives(matchupRecommendation.alternatives.attack)
+                || hasAlternatives(matchupRecommendation.alternatives.defense)) && (
+                <div className="mt-3 rounded-lg border border-slate-800 bg-slate-900/40 p-3">
+                  <div className="flex flex-col gap-0.5 sm:flex-row sm:items-baseline sm:justify-between">
+                    <span className="text-[9px] font-black uppercase tracking-widest text-slate-300">Alternatives</span>
+                    <span className="text-[10px] leading-snug text-slate-500">
+                      The recommendation is a starting point — these are the other plans the engine ranked highly.
+                    </span>
+                  </div>
+                  <div className="mt-3 grid grid-cols-1 gap-3 xl:grid-cols-2">
+                    {[matchupRecommendation.alternatives.attack, matchupRecommendation.alternatives.defense]
+                      .filter(hasAlternatives)
+                      .map((phaseAlternatives) => (
+                        <div key={phaseAlternatives.phase} className="space-y-2">
+                          <span className="block text-[8.5px] font-black uppercase tracking-widest text-slate-500">
+                            {phaseAlternatives.phase === 'attack' ? 'Instead of the attack plan' : 'Instead of the defense plan'}
+                          </span>
+                          {[phaseAlternatives.lensDemoted, phaseAlternatives.safe, phaseAlternatives.aggressive]
+                            .filter((alternative): alternative is StrategyAlternative => alternative !== null)
+                            .map((alternative) => {
+                              const meta = STRATEGY_ALTERNATIVE_META[alternative.kind];
+                              return (
+                                <div
+                                  key={`${phaseAlternatives.phase}-${alternative.kind}`}
+                                  className={cn('rounded-lg border px-3 py-2', meta.className)}
+                                >
+                                  <div className="flex items-start justify-between gap-2">
+                                    <div className="min-w-0">
+                                      <span className="block text-[8.5px] font-black uppercase tracking-widest opacity-75">{meta.label}</span>
+                                      <h6 className="mt-0.5 truncate text-xs font-black text-white">{alternative.card.title}</h6>
+                                    </div>
+                                    <Button
+                                      type="button"
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => (
+                                        phaseAlternatives.phase === 'attack'
+                                          ? setPlaystyle(alternative.card.styleValue)
+                                          : setDefensiveStyle(alternative.card.styleValue)
+                                      )}
+                                      className="h-6 shrink-0 rounded-md border-current/30 bg-slate-950/40 px-2 text-[9px] font-black uppercase tracking-widest hover:bg-slate-900"
+                                    >
+                                      Use
+                                    </Button>
+                                  </div>
+                                  <p className="mt-1 text-[10.5px] leading-snug opacity-90">{alternative.rationale}</p>
+                                </div>
+                              );
+                            })}
+                        </div>
+                      ))}
+                  </div>
+                </div>
+              )}
 
               <div className="mt-3 grid grid-cols-1 gap-2 lg:grid-cols-3">
                 <div className="rounded-lg border border-slate-800 bg-slate-900/50 px-3 py-2">
