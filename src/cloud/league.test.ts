@@ -20,6 +20,7 @@ import {
   groupStageStandings,
   isEventFinished,
   qualifiers,
+  resolveGroupQualifiers,
   nextPowerOfTwo,
   seedPositions,
   singleEliminationBracket,
@@ -359,6 +360,32 @@ describe('group stage helpers', () => {
     expect(qualifiers(standings, 2)).toEqual(['a', 'c', 'b', 'd']);
     // Advance 1 per group → just the winners.
     expect(qualifiers(standings, 1)).toEqual(['a', 'c']);
+  });
+
+  it('marks qualification ties explicit instead of using name order as a tiebreaker', () => {
+    const teams = ['a', 'b', 'c', 'd'].map(id => team(id, id.toUpperCase()));
+    const standings = groupStageStandings(teams, [
+      groupFixture('A', 'a', 'b', 1, 1),
+      groupFixture('B', 'c', 'd', 2, 0)
+    ]);
+
+    expect(resolveGroupQualifiers(standings, 1)).toEqual({
+      qualifierIds: [],
+      ties: [{ groupLabel: 'A', position: 1, teamIds: ['a', 'b'] }]
+    });
+  });
+
+  it('returns qualifiers when qualification places are decisive', () => {
+    const teams = ['a', 'b', 'c', 'd'].map(id => team(id, id.toUpperCase()));
+    const standings = groupStageStandings(teams, [
+      groupFixture('A', 'a', 'b', 2, 1),
+      groupFixture('B', 'c', 'd', 1, 0)
+    ]);
+
+    expect(resolveGroupQualifiers(standings, 1)).toEqual({
+      qualifierIds: ['a', 'c'],
+      ties: []
+    });
   });
 });
 

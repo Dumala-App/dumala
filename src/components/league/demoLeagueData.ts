@@ -8,6 +8,7 @@ import {
   nextEventStatuses,
   nextSeasonStatuses,
   qualifiers,
+  resolveGroupQualifiers,
   roundRobinRounds,
   singleEliminationBracket,
   spotsRemaining,
@@ -987,7 +988,9 @@ const buildDemoLeagueRepository = (): CloudLeagueRepository => {
       const groupFixtures = fixtures.filter(f => f.event_id === eventId && f.stage === 'group');
       if (groupFixtures.length === 0) throw new Error('NO_GROUP_STAGE');
       if (groupFixtures.some(f => f.status !== 'completed')) throw new Error('GROUP_STAGE_INCOMPLETE');
-      const qualifierIds = qualifiers(groupStageStandings(eventTeams, groupFixtures), advancePerGroup);
+      const resolved = resolveGroupQualifiers(groupStageStandings(eventTeams, groupFixtures), advancePerGroup);
+      if (resolved.ties.length > 0) throw new Error('QUALIFIER_TIE');
+      const qualifierIds = resolved.qualifierIds;
       if (qualifierIds.length < 2) throw new Error('NOT_ENOUGH_QUALIFIERS');
       fixtures = fixtures.filter(f => !(f.event_id === eventId && f.stage === 'knockout'));
       const generated: EventFixture[] = singleEliminationBracket(qualifierIds).map(spec => ({
