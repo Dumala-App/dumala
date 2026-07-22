@@ -467,7 +467,15 @@ export const gamePlanSchema = z.object({
     defenseTitle: z.string(),
     defenseIntent: z.string(),
     cues: z.array(z.string()),
-    watchout: z.string()
+    watchout: z.string(),
+    /** Optional: plans saved before the Coach Lens shipped have no lens record. */
+    coachLens: z.object({
+      id: z.string().min(1),
+      coachName: z.string(),
+      modelName: z.string(),
+      fitStatus: z.enum(['unset', 'aligned', 'partial', 'diverged']),
+      fitNote: z.string().optional()
+    }).optional()
   }),
   lineup: z.array(z.object({
     slot: finiteNumber,

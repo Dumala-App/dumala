@@ -491,6 +491,14 @@ export interface GamePlan {
     defenseIntent: string;
     cues: string[];
     watchout: string;
+    /** Absent on plans saved before the Coach Lens shipped. */
+    coachLens?: {
+      id: string;
+      coachName: string;
+      modelName: string;
+      fitStatus: 'unset' | 'aligned' | 'partial' | 'diverged';
+      fitNote?: string;
+    };
   };
   lineup: GamePlanLineupPlayer[];
   roles: {
