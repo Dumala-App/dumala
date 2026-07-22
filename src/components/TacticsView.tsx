@@ -40,6 +40,7 @@ import {
 import {
   assessCurrentPlan,
   recommendMatchupStrategy,
+  type CoachLensFitStatus,
   type CurrentPlanVerdict,
   type ShapeImpactCard
 } from '../tactics/recommendations';
@@ -180,6 +181,29 @@ const CURRENT_PLAN_VERDICT_META: Record<CurrentPlanVerdict, { label: string; cla
   solid: { label: 'Good fit', className: 'border-sky-400/25 bg-sky-400/10 text-sky-100' },
   'off-context': { label: 'Better options', className: 'border-slate-700 bg-slate-900/60 text-slate-300' },
   risky: { label: 'Risky now', className: 'border-amber-400/30 bg-amber-400/10 text-amber-100' }
+};
+
+const COACH_LENS_FIT_META: Record<CoachLensFitStatus, { badgeLabel: string; badgeClassName: string; noteClassName: string }> = {
+  unset: {
+    badgeLabel: '',
+    badgeClassName: 'border-violet-400/25 bg-violet-400/10 text-violet-100',
+    noteClassName: 'border-violet-400/25 bg-violet-400/10 text-violet-100'
+  },
+  aligned: {
+    badgeLabel: 'full weight',
+    badgeClassName: 'border-violet-400/25 bg-violet-400/10 text-violet-100',
+    noteClassName: 'border-violet-400/25 bg-violet-400/10 text-violet-100'
+  },
+  partial: {
+    badgeLabel: 'reduced',
+    badgeClassName: 'border-sky-400/30 bg-sky-400/10 text-sky-100',
+    noteClassName: 'border-sky-400/25 bg-sky-400/10 text-sky-100'
+  },
+  diverged: {
+    badgeLabel: 'off-model',
+    badgeClassName: 'border-amber-400/30 bg-amber-400/10 text-amber-100',
+    noteClassName: 'border-amber-400/30 bg-amber-400/10 text-amber-100'
+  }
 };
 
 const tacticsGlassPanelClass = 'rounded-2xl border border-slate-700/60 bg-[#081321]/92 text-slate-100 shadow-xl shadow-black/20 backdrop-blur-xl';
@@ -3358,11 +3382,33 @@ export default function TacticsView({
                   </p>
                 </div>
                 {matchupRecommendation.coachLens && (
-                  <span className="w-fit shrink-0 rounded-md border border-violet-400/25 bg-violet-400/10 px-2 py-1 text-[9.5px] font-black text-violet-100">
+                  <span
+                    className={cn(
+                      'w-fit shrink-0 rounded-md border px-2 py-1 text-[9.5px] font-black',
+                      COACH_LENS_FIT_META[matchupRecommendation.coachLens.fit.status].badgeClassName
+                    )}
+                  >
                     Lens: {matchupRecommendation.coachLens.coachName}
+                    {COACH_LENS_FIT_META[matchupRecommendation.coachLens.fit.status].badgeLabel && (
+                      <span className="ml-1 opacity-75">
+                        ({COACH_LENS_FIT_META[matchupRecommendation.coachLens.fit.status].badgeLabel})
+                      </span>
+                    )}
                   </span>
                 )}
               </div>
+
+              {matchupRecommendation.coachLens?.fit.note && (
+                <div
+                  className={cn(
+                    'mt-3 rounded-lg border px-3 py-2',
+                    COACH_LENS_FIT_META[matchupRecommendation.coachLens.fit.status].noteClassName
+                  )}
+                >
+                  <span className="block text-[8.5px] font-black uppercase tracking-widest opacity-80">Lens fit</span>
+                  <p className="mt-1 text-[10.5px] leading-snug opacity-95">{matchupRecommendation.coachLens.fit.note}</p>
+                </div>
+              )}
 
               {(currentPlanCheck.attack || currentPlanCheck.defense) && (
                 <div className="mt-3 grid grid-cols-1 gap-2 lg:grid-cols-2">

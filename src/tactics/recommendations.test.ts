@@ -1,13 +1,17 @@
 import { describe, expect, it } from 'vitest';
-import { DEFAULT_STRATEGY_CONTEXT } from './strategyContext';
+import { DEFAULT_STRATEGY_CONTEXT, type StrategyContext } from './strategyContext';
 import {
   analyzeFormation,
+  assessCoachLensFit,
   assessCurrentPlan,
   pickCoherentPair,
   recommendMatchupStrategy,
+  FORMAT_EXCLUSION_PENALTY,
+  LENS_MAX_CONTRIBUTION,
   type RankedStrategyCard
 } from './recommendations';
 import { ATTACK_STRATEGY_CARDS, DEFENSE_STRATEGY_CARDS } from './strategyLibrary';
+import { COACH_MODELS, getActiveCoachModels } from './knowledge/coachModels';
 
 describe('formation analysis', () => {
   it('detects common formation traits', () => {
@@ -263,12 +267,170 @@ describe('coach lens', () => {
     const defenseAfter = withLens.defenseScores.find(entry => entry.card.id === 'defense-low-block')!;
     expect(defenseAfter.score - defenseBefore.score).toBe(3);
 
-    expect(withLens.coachLens).toEqual({
+    expect(withLens.coachLens).toMatchObject({
       id: 'mourinho-pragmatic-transition',
       coachName: 'Jose Mourinho',
       modelName: 'Compact block and transition attack'
     });
+    expect(withLens.coachLens?.fit.status).toBe('unset');
     expect(withoutLens.coachLens).toBeNull();
+  });
+
+  it('applies lens penalties so a lens expresses what it avoids', () => {
+    const base = { ourFormation: '4-4-2', opponentFormation: '4-4-2', matchFormat: '11-a-side' as const };
+    const withoutLens = recommendMatchupStrategy(base);
+    const withLens = recommendMatchupStrategy({ ...base, coachLensId: 'mourinho-pragmatic-transition' });
+
+    const before = withoutLens.attackScores.find(entry => entry.card.id === 'attack-possession-game')!;
+    const after = withLens.attackScores.find(entry => entry.card.id === 'attack-possession-game')!;
+
+    expect(after.score - before.score).toBe(-3);
+    expect(after.reasons.some(reason => (
+      reason.label === 'Coach lens' && reason.tone === 'warning' && reason.value.includes('Mourinho')
+    ))).toBe(true);
+  });
+
+  it('keeps every lens contribution inside the magnitude cap', () => {
+    const base = { ourFormation: '4-3-3', opponentFormation: '4-4-2', matchFormat: '11-a-side' as const };
+    const withoutLens = recommendMatchupStrategy(base);
+    const baseline = new Map(
+      [...withoutLens.attackScores, ...withoutLens.defenseScores].map(entry => [entry.card.id, entry.score])
+    );
+
+    getActiveCoachModels().forEach(model => {
+      const withLens = recommendMatchupStrategy({ ...base, coachLensId: model.id });
+      [...withLens.attackScores, ...withLens.defenseScores].forEach(entry => {
+        const delta = entry.score - baseline.get(entry.card.id)!;
+        expect(Math.abs(delta)).toBeLessThanOrEqual(LENS_MAX_CONTRIBUTION);
+      });
+    });
+  });
+
+  it('cannot rescue a plan the match format rules out', () => {
+    // The format hard-exclusion penalty must outweigh the strongest possible lens
+    // boost, so no lens can promote a plan that cannot physically be run.
+    expect(LENS_MAX_CONTRIBUTION).toBeLessThan(FORMAT_EXCLUSION_PENALTY);
+
+    const excluded = ATTACK_STRATEGY_CARDS.find(card => card.formatAvoid?.includes('5-a-side'));
+    expect(excluded).toBeDefined();
+
+    const lensedModel = getActiveCoachModels().find(model => (
+      model.strategyBoosts.some(boost => boost.strategyId === excluded!.id)
+    ));
+
+    if (lensedModel) {
+      const result = recommendMatchupStrategy({
+        ourFormation: '4-3-3',
+        opponentFormation: '4-4-2',
+        matchFormat: '5-a-side',
+        coachLensId: lensedModel.id
+      });
+      expect(result.recommendedAttack.id).not.toBe(excluded!.id);
+    }
+  });
+
+  it('gives every active lens an opinion on both attack and defense', () => {
+    const base = { ourFormation: '4-3-3', opponentFormation: '4-4-2', matchFormat: '11-a-side' as const };
+    const withoutLens = recommendMatchupStrategy(base);
+
+    getActiveCoachModels().forEach(model => {
+      const withLens = recommendMatchupStrategy({ ...base, coachLensId: model.id });
+      const attackMoved = withLens.attackScores.some(entry => (
+        entry.score !== withoutLens.attackScores.find(other => other.card.id === entry.card.id)!.score
+      ));
+      const defenseMoved = withLens.defenseScores.some(entry => (
+        entry.score !== withoutLens.defenseScores.find(other => other.card.id === entry.card.id)!.score
+      ));
+
+      expect(attackMoved, `${model.id} should move attack scores`).toBe(true);
+      expect(defenseMoved, `${model.id} should move defense scores`).toBe(true);
+    });
+  });
+});
+
+describe('coach lens fit', () => {
+  const mourinho = COACH_MODELS.find(model => model.id === 'mourinho-pragmatic-transition')!;
+
+  it('treats a default context as nothing to disagree with', () => {
+    const fit = assessCoachLensFit(mourinho, DEFAULT_STRATEGY_CONTEXT, false);
+
+    expect(fit.status).toBe('unset');
+    expect(fit.weight).toBe(1);
+    expect(fit.note).toBeUndefined();
+  });
+
+  it('reports an aligned lens at full weight', () => {
+    const fit = assessCoachLensFit(
+      mourinho,
+      { ...DEFAULT_STRATEGY_CONTEXT, matchState: 'protect-lead', riskLevel: 'safe' },
+      true
+    );
+
+    expect(fit.status).toBe('aligned');
+    expect(fit.weight).toBe(1);
+    expect(fit.diverged).toHaveLength(0);
+    expect(fit.note).toContain('full weight');
+  });
+
+  it('flags a partially divergent context and reduces lens weight', () => {
+    const fit = assessCoachLensFit(
+      mourinho,
+      { ...DEFAULT_STRATEGY_CONTEXT, matchState: 'chasing-goal', riskLevel: 'safe' },
+      true
+    );
+
+    expect(fit.status).toBe('partial');
+    expect(fit.weight).toBeLessThan(1);
+    expect(fit.diverged.map(item => item.key)).toEqual(['matchState']);
+    expect(fit.note).toContain('protect lead');
+    expect(fit.note).toContain('chasing goal');
+  });
+
+  it('flags a fully divergent context and heavily reduces lens weight', () => {
+    const fit = assessCoachLensFit(
+      mourinho,
+      { ...DEFAULT_STRATEGY_CONTEXT, matchState: 'chasing-goal', riskLevel: 'aggressive' },
+      true
+    );
+
+    expect(fit.status).toBe('diverged');
+    expect(fit.weight).toBeLessThan(0.6);
+    expect(fit.diverged).toHaveLength(2);
+  });
+
+  it('shrinks the scoring effect of a lens used outside its situation', () => {
+    const alignedContext = { ...DEFAULT_STRATEGY_CONTEXT, matchState: 'protect-lead' as const, riskLevel: 'safe' as const };
+    const divergedContext = { ...DEFAULT_STRATEGY_CONTEXT, matchState: 'chasing-goal' as const, riskLevel: 'aggressive' as const };
+    const base = { ourFormation: '4-4-2', opponentFormation: '4-4-2', matchFormat: '11-a-side' as const };
+
+    const lensDelta = (context: StrategyContext) => {
+      const withoutLens = recommendMatchupStrategy({ ...base, context });
+      const withLens = recommendMatchupStrategy({ ...base, context, coachLensId: mourinho.id });
+      const before = withoutLens.defenseScores.find(entry => entry.card.id === 'defense-low-block')!;
+      const after = withLens.defenseScores.find(entry => entry.card.id === 'defense-low-block')!;
+      return after.score - before.score;
+    };
+
+    expect(lensDelta(alignedContext)).toBe(3);
+    expect(lensDelta(divergedContext)).toBeLessThan(lensDelta(alignedContext));
+    expect(lensDelta(divergedContext)).toBeGreaterThan(0);
+  });
+
+  it('surfaces a lens fit warning on cards the lens moved', () => {
+    const recommendation = recommendMatchupStrategy({
+      ourFormation: '4-4-2',
+      opponentFormation: '4-4-2',
+      matchFormat: '11-a-side',
+      context: { ...DEFAULT_STRATEGY_CONTEXT, matchState: 'chasing-goal', riskLevel: 'aggressive' },
+      coachLensId: mourinho.id
+    });
+
+    const moved = recommendation.defenseScores.find(entry => entry.card.id === 'defense-low-block')!;
+    const untouched = recommendation.defenseScores.find(entry => entry.card.id === 'defense-man-to-man')!;
+
+    expect(moved.reasons.some(reason => reason.label === 'Lens fit' && reason.tone === 'warning')).toBe(true);
+    expect(untouched.reasons.some(reason => reason.label === 'Lens fit')).toBe(false);
+    expect(recommendation.coachLens?.fit.status).toBe('diverged');
   });
 
   it('ignores unknown lens ids and leaves scoring untouched', () => {

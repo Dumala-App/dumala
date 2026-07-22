@@ -59,10 +59,29 @@ export type PairCoherence = {
   note?: string;
 };
 
+export type CoachLensFitStatus = 'unset' | 'aligned' | 'partial' | 'diverged';
+
+export type CoachLensDivergence = {
+  key: keyof StrategyContext;
+  label: string;
+  expected: string;
+  actual: string;
+};
+
+export type CoachLensFit = {
+  status: CoachLensFitStatus;
+  /** Multiplier applied to the lens contribution before the cap is enforced. */
+  weight: number;
+  matched: string[];
+  diverged: CoachLensDivergence[];
+  note?: string;
+};
+
 export type CoachLensSummary = {
   id: string;
   coachName: string;
   modelName: string;
+  fit: CoachLensFit;
 };
 
 export type CurrentPlanVerdict = 'top-pick' | 'solid' | 'off-context' | 'risky';
@@ -238,6 +257,12 @@ const scoreContextFit = (
   return { score, reasons };
 };
 
+/**
+ * Penalty for a plan the match format structurally rules out. Kept above
+ * LENS_MAX_CONTRIBUTION so no coach lens can promote an unrunnable plan.
+ */
+export const FORMAT_EXCLUSION_PENALTY = 8;
+
 const SMALL_SIDED_FORMATS: readonly MatchFormat[] = ['7-a-side', '6-a-side', '5-a-side'];
 const MEDIUM_SIDED_FORMATS: readonly MatchFormat[] = ['9-a-side', '8-a-side'];
 
@@ -247,7 +272,7 @@ const scoreFormatFit = (
 ): { score: number; reasons: StrategyScoreReason[] } => {
   if (card.formatAvoid?.includes(matchFormat)) {
     return {
-      score: -8,
+      score: -FORMAT_EXCLUSION_PENALTY,
       reasons: [makeContextReason('Format', `Hard to run in ${matchFormat}: the structure this plan needs does not exist at this size.`, 'warning')]
     };
   }
@@ -278,28 +303,135 @@ const scoreFormatFit = (
   return { score: 0, reasons: [] };
 };
 
+/**
+ * Hard ceiling on how far a coach lens can move any single card. The engine's
+ * own signals stay decisive: a format hard-exclusion is -8, so a lens can never
+ * rescue a plan the match format rules out, and matchup scoring keeps its
+ * weight. The lens colors the ranking, it does not take it over.
+ */
+export const LENS_MAX_CONTRIBUTION = 6;
+
+const LENS_FIT_WEIGHTS: Record<CoachLensFitStatus, number> = {
+  unset: 1,
+  aligned: 1,
+  partial: 0.6,
+  diverged: 0.3
+};
+
+const CONTEXT_KEY_LABELS: Record<keyof StrategyContext, string> = {
+  matchState: 'Match state',
+  matchPhase: 'Phase',
+  teamCondition: 'Team condition',
+  opponentBehavior: 'Opponent behavior',
+  riskLevel: 'Risk'
+};
+
+const contextValueLabel = <K extends keyof StrategyContext>(key: K, value: StrategyContext[K]): string => (
+  (STRATEGY_CONTEXT_LABELS[key] as Record<string, string>)[value] ?? String(value)
+);
+
+const NEUTRAL_LENS_FIT: CoachLensFit = { status: 'unset', weight: 1, matched: [], diverged: [] };
+
+/**
+ * Compare the situation a coach model was built for against the situation the
+ * coach has actually described. A lens borrowed from a different game state is
+ * still useful, but it should not dictate the ranking, so divergence reduces
+ * the lens weight and surfaces an explicit warning instead of applying silently.
+ *
+ * Fit is only assessed once the coach has moved off the default context. With a
+ * default context there is nothing to disagree with, so the lens keeps full
+ * weight rather than being penalised for a situation nobody described.
+ */
+export const assessCoachLensFit = (
+  lens: CoachModel | undefined,
+  context: StrategyContext,
+  useContext: boolean
+): CoachLensFit => {
+  if (!lens) return NEUTRAL_LENS_FIT;
+
+  const keys = (Object.keys(lens.preferredContexts) as (keyof StrategyContext)[])
+    .filter(key => lens.preferredContexts[key] !== undefined);
+
+  if (!useContext || keys.length === 0) {
+    return { ...NEUTRAL_LENS_FIT, matched: keys.map(key => CONTEXT_KEY_LABELS[key]) };
+  }
+
+  const matched: string[] = [];
+  const diverged: CoachLensDivergence[] = [];
+
+  keys.forEach(key => {
+    const expected = lens.preferredContexts[key]!;
+    if (context[key] === expected) {
+      matched.push(CONTEXT_KEY_LABELS[key]);
+      return;
+    }
+    diverged.push({
+      key,
+      label: CONTEXT_KEY_LABELS[key],
+      expected: contextValueLabel(key, expected),
+      actual: contextValueLabel(key, context[key])
+    });
+  });
+
+  if (diverged.length === 0) {
+    return {
+      status: 'aligned',
+      weight: LENS_FIT_WEIGHTS.aligned,
+      matched,
+      diverged,
+      note: `${lens.coachName}'s model was built for exactly this situation, so the lens applies at full weight.`
+    };
+  }
+
+  const status: CoachLensFitStatus = matched.length === 0 ? 'diverged' : 'partial';
+  const expectedText = diverged.map(item => `${item.label.toLowerCase()} ${item.expected.toLowerCase()}`).join(', ');
+  const actualText = diverged.map(item => item.actual.toLowerCase()).join(', ');
+  const note = status === 'diverged'
+    ? `${lens.coachName}'s model assumes ${expectedText}, but you are set to ${actualText}. The lens still ranks, at heavily reduced weight — the matchup itself is the stronger signal here.`
+    : `${lens.coachName}'s model assumes ${expectedText}, but you are set to ${actualText}. The lens applies at reduced weight for this context.`;
+
+  return { status, weight: LENS_FIT_WEIGHTS[status], matched, diverged, note };
+};
+
 const scoreCoachLens = (
   card: TacticalStrategyCard,
-  lens: CoachModel | undefined
+  lens: CoachModel | undefined,
+  fit: CoachLensFit
 ): { score: number; reasons: StrategyScoreReason[] } => {
   if (!lens) return { score: 0, reasons: [] };
 
-  let score = 0;
+  let raw = 0;
   const reasons: StrategyScoreReason[] = [];
 
   lens.strategyBoosts
     .filter(boost => boost.strategyId === card.id)
     .forEach(boost => {
-      score += Math.abs(boost.points);
+      raw += Math.abs(boost.points);
       reasons.push(makeContextReason('Coach lens', `${lens.coachName}: ${boost.reason}`));
     });
 
   (lens.strategyPenalties ?? [])
     .filter(penalty => penalty.strategyId === card.id)
     .forEach(penalty => {
-      score -= Math.abs(penalty.points);
+      raw -= Math.abs(penalty.points);
       reasons.push(makeContextReason('Coach lens', `${lens.coachName}: ${penalty.reason}`, 'warning'));
     });
+
+  if (raw === 0) return { score: 0, reasons };
+
+  const capped = Math.max(-LENS_MAX_CONTRIBUTION, Math.min(LENS_MAX_CONTRIBUTION, raw));
+  const score = Math.round(capped * fit.weight);
+
+  // Short form on the card: the full explanation lives once in the Lens fit
+  // strip, so repeating it per card would just crowd the reason chips.
+  if (fit.status === 'partial' || fit.status === 'diverged') {
+    const weightText = fit.status === 'diverged' ? 'heavily reduced' : 'reduced';
+    reasons.push(makeContextReason(
+      'Lens fit',
+      `Counted at ${weightText} weight: not the situation ${lens.coachName}'s model assumes.`,
+      'warning'
+    ));
+  }
 
   return { score, reasons };
 };
@@ -395,7 +527,8 @@ const rankCards = (
   matchFormat: MatchFormat,
   context: StrategyContext,
   useContext: boolean,
-  coachLens: CoachModel | undefined
+  coachLens: CoachModel | undefined,
+  lensFit: CoachLensFit
 ): RankedStrategyCard[] => {
   const ourTags = tagsForOurFormation(our);
   const opponentTags = tagsForOpponentFormation(opponent);
@@ -404,7 +537,7 @@ const rankCards = (
     .map(card => {
       const contextScore = scoreContextFit(card, context, useContext);
       const formatScore = scoreFormatFit(card, matchFormat);
-      const lensScore = scoreCoachLens(card, coachLens);
+      const lensScore = scoreCoachLens(card, coachLens, lensFit);
       return {
         card,
         score: scoreCard(card, ourTags, opponentTags) + contextScore.score + formatScore.score + lensScore.score,
@@ -609,8 +742,9 @@ export const recommendMatchupStrategy = ({
   const opponent = analyzeFormation(opponentFormation);
   const useContext = !isDefaultStrategyContext(context);
   const coachLens = coachLensId ? findCoachModelById(coachLensId) : undefined;
-  const attackScores = rankCards(ATTACK_STRATEGY_CARDS, our, opponent, matchFormat, context, useContext, coachLens);
-  const defenseScores = rankCards(DEFENSE_STRATEGY_CARDS, our, opponent, matchFormat, context, useContext, coachLens);
+  const lensFit = assessCoachLensFit(coachLens, context, useContext);
+  const attackScores = rankCards(ATTACK_STRATEGY_CARDS, our, opponent, matchFormat, context, useContext, coachLens, lensFit);
+  const defenseScores = rankCards(DEFENSE_STRATEGY_CARDS, our, opponent, matchFormat, context, useContext, coachLens, lensFit);
   const coherentPair = pickCoherentPair(attackScores, defenseScores);
   const recommendedAttack = coherentPair.attack?.card ?? ATTACK_STRATEGY_CARDS[0];
   const recommendedDefense = coherentPair.defense?.card ?? DEFENSE_STRATEGY_CARDS[0];
@@ -652,7 +786,7 @@ export const recommendMatchupStrategy = ({
     contextReasons,
     pairCoherence: coherentPair.coherence,
     coachLens: coachLens
-      ? { id: coachLens.id, coachName: coachLens.coachName, modelName: coachLens.modelName }
+      ? { id: coachLens.id, coachName: coachLens.coachName, modelName: coachLens.modelName, fit: lensFit }
       : null,
     opponentThreats,
     exploitableSpaces,
