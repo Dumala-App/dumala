@@ -235,18 +235,37 @@ const getCalendarEventStartMs = (game: Game) => {
   return Number.isNaN(timestamp) ? Number.POSITIVE_INFINITY : timestamp;
 };
 
-export const selectMatchDayPrepEvent = (
+// Actual matches only — Training and Meeting entries belong in the Training panel,
+// never in Match Prep.
+export const isMatchEvent = (game: Game): boolean =>
+  game.type === 'League' || game.type === 'Cup' || game.type === 'Friendly';
+
+// Shared "next upcoming calendar event" query, narrowed by a type predicate so
+// matches and non-match events (Training / Meeting) route to their own panels.
+const selectNextUpcomingEvent = (
   games: Game[],
-  now = new Date()
+  now: Date,
+  predicate: (game: Game) => boolean
 ): Game | undefined => {
   const todayKey = toDateKey(now);
 
   return games
-    .filter(game => game.status === 'Upcoming')
+    .filter(game => game.status === 'Upcoming' && predicate(game))
     .map(game => ({ game, startsAt: getCalendarEventStartMs(game) }))
     .filter(item => item.game.date >= todayKey)
     .sort((a, b) => a.startsAt - b.startsAt)[0]?.game;
 };
+
+export const selectMatchDayPrepEvent = (
+  games: Game[],
+  now = new Date()
+): Game | undefined => selectNextUpcomingEvent(games, now, isMatchEvent);
+
+// Training panel companion: the next upcoming non-match event (Training, Meeting).
+export const selectNextTrainingEvent = (
+  games: Game[],
+  now = new Date()
+): Game | undefined => selectNextUpcomingEvent(games, now, game => !isMatchEvent(game));
 
 const formatCalendarEventDateTime = (game: Game) => {
   const timestamp = getCalendarEventStartMs(game);
@@ -279,7 +298,7 @@ const getEventTypeLabel = (event: Game) => (
   event.type === 'Training' ? 'Practice' : event.type === 'Meeting' ? 'Meeting' : 'Matchday'
 );
 
-const getMatchPrepChecklist = (event: Game) => {
+const getEventPrepChecklist = (event: Game) => {
   if (event.type === 'Training') {
     return ['Confirm attendance', 'Set drill blocks', 'Prep equipment'];
   }
@@ -831,6 +850,7 @@ export default function DashboardView({
   };
   
   const nextMatch = useMemo(() => selectMatchDayPrepEvent(games), [games]);
+  const nextTrainingEvent = useMemo(() => selectNextTrainingEvent(games), [games]);
   const todayDateKey = useMemo(() => toDateKey(new Date()), []);
   const weeklyTrainingSummaries = useMemo(
     () => selectWeeklyTrainingSummaries(new Date()),
@@ -840,7 +860,10 @@ export default function DashboardView({
   const nextTrainingSummary = weeklyTrainingSummaries.find(summary => summary.dateStr >= todayDateKey);
   const dashboardTrainingSummary = todayTrainingSummary ?? nextTrainingSummary;
   const dashboardTrainingDay = dashboardTrainingSummary?.day ?? null;
-  const activeDailyPrepPanel = dashboardTrainingSummary && (dailyPrepPanel === 'training' || !nextMatch)
+  // Training panel shows the structured session sheet or, failing that, the next
+  // non-match calendar event (Training / Meeting). Either counts as content.
+  const hasTrainingContent = Boolean(dashboardTrainingSummary || nextTrainingEvent);
+  const activeDailyPrepPanel = hasTrainingContent && (dailyPrepPanel === 'training' || !nextMatch)
     ? 'training'
     : 'match';
 
@@ -1155,9 +1178,15 @@ export default function DashboardView({
     : undefined;
   const activePlayersCount = players.filter(player => player.registrationStatus === 'Active').length;
   const unavailablePlayersCount = Math.max(0, players.length - activePlayersCount);
-  const nextMatchChecklist = nextMatch ? getMatchPrepChecklist(nextMatch) : [];
+  const nextMatchChecklist = nextMatch ? getEventPrepChecklist(nextMatch) : [];
   const nextMatchCountdown = nextMatch ? getCalendarEventCountdown(nextMatch) : '';
   const nextMatchDateTime = nextMatch ? formatCalendarEventDateTime(nextMatch) : '';
+  const nextTrainingEventChecklist = nextTrainingEvent ? getEventPrepChecklist(nextTrainingEvent) : [];
+  const nextTrainingEventCountdown = nextTrainingEvent ? getCalendarEventCountdown(nextTrainingEvent) : '';
+  const nextTrainingEventDateTime = nextTrainingEvent ? formatCalendarEventDateTime(nextTrainingEvent) : '';
+  const nextTrainingEventTone = nextTrainingEvent?.type === 'Meeting'
+    ? 'Staff and player briefing event'
+    : `${activePlayersCount} active players available for session planning`;
   const savedGamePlans = useMemo(() => (
     readJsonStorage(STORAGE_KEYS.gamePlans, gamePlansSchema, [], 'Tactics game plans') as GamePlan[]
   ), [gamePlanStorageRefreshKey]);
@@ -1168,13 +1197,9 @@ export default function DashboardView({
         && plan.gameDate === nextMatch.date
       ))
     : undefined;
-  const nextMatchPrepTone = nextMatch && nextMatch.type !== 'Training' && nextMatch.type !== 'Meeting'
-    ? nextOpponentStanding
-      ? `Opponent sits #${nextOpponentStanding.rank} with ${nextOpponentStanding.points} pts`
-      : 'Add opponent to League table for deeper intel'
-    : nextMatch?.type === 'Training'
-      ? `${activePlayersCount} active players available for session planning`
-      : 'Staff and player briefing event';
+  const nextMatchPrepTone = nextOpponentStanding
+    ? `Opponent sits #${nextOpponentStanding.rank} with ${nextOpponentStanding.points} pts`
+    : 'Add opponent to League table for deeper intel';
   
   // Calculate team's point trend over the last 10 games played
   const userCompletedGames = games
@@ -1777,7 +1802,8 @@ export default function DashboardView({
               </div>
             </div>
 
-            {activeDailyPrepPanel === 'training' && dashboardTrainingSummary ? (
+            {activeDailyPrepPanel === 'training' ? (
+              dashboardTrainingSummary ? (
               <div className="mt-4 overflow-hidden rounded-3xl border border-emerald-300/16 bg-[radial-gradient(circle_at_top_left,rgba(52,211,153,0.2),transparent_34%),linear-gradient(135deg,rgba(7,17,31,0.96),rgba(7,38,36,0.9)_54%,rgba(14,24,38,0.96))] shadow-lg shadow-black/20">
                 <div className="grid gap-4 px-4 py-3.5 sm:px-5 lg:grid-cols-[minmax(0,1fr)_18rem] lg:items-stretch">
                   <div className="min-w-0">
@@ -1852,6 +1878,87 @@ export default function DashboardView({
                   </div>
                 </div>
               </div>
+              ) : nextTrainingEvent ? (
+              <div className="mt-4 overflow-hidden rounded-3xl border border-emerald-300/16 bg-[radial-gradient(circle_at_top_left,rgba(52,211,153,0.2),transparent_34%),linear-gradient(135deg,rgba(7,17,31,0.96),rgba(7,38,36,0.9)_54%,rgba(14,24,38,0.96))] shadow-lg shadow-black/20">
+                <div className="grid lg:grid-cols-[minmax(0,1fr)_15.75rem]">
+                  <section className="relative min-w-0 px-4 py-3.5 sm:px-5">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Badge variant="warning" className={dashboardWarningBadgeClass}>
+                        <Clock size={11} aria-hidden="true" /> T-{nextTrainingEventCountdown}
+                      </Badge>
+                      <Badge variant="outline" className={dashboardBadgeClass}>
+                        {getEventTypeLabel(nextTrainingEvent)}
+                      </Badge>
+                      <span className="hidden h-px flex-1 bg-gradient-to-r from-emerald-200/25 to-transparent sm:block" />
+                    </div>
+
+                    <div className="mt-4 min-w-0">
+                      <span className="text-[10px] font-black uppercase tracking-wider text-emerald-100/70">Scheduled event</span>
+                      <h4 className="mt-0.5 truncate font-display text-3xl font-black tracking-tight text-white">
+                        {nextTrainingEvent.opponent}
+                      </h4>
+                      <p className="mt-1 max-w-xl text-sm font-semibold leading-relaxed text-slate-300">{nextTrainingEventTone}</p>
+                    </div>
+
+                    <dl className="mt-4 grid gap-x-5 gap-y-2.5 border-y border-white/[0.07] py-3 sm:grid-cols-2">
+                      {[
+                        { label: 'Date & time', value: nextTrainingEventDateTime, icon: Calendar, id: 'next-training-datetime' },
+                        { label: 'Venue', value: nextTrainingEvent.location, icon: MapPin, id: 'next-training-loc' },
+                        { label: 'Squad pool', value: `${activePlayersCount} active`, icon: Users },
+                        { label: 'Availability', value: unavailablePlayersCount > 0 ? `${unavailablePlayersCount} unavailable` : 'All clear', icon: AlertCircle }
+                      ].map(({ label, value, icon: Icon, id }) => (
+                        <div key={label} className="grid grid-cols-[auto_minmax(0,1fr)] gap-2">
+                          <Icon size={13} className="mt-0.5 text-emerald-200" aria-hidden="true" />
+                          <div className="min-w-0">
+                            <dt className="text-[9px] font-black uppercase tracking-wider text-slate-500">{label}</dt>
+                            <dd id={id} className="mt-0.5 truncate text-sm font-black text-slate-100">{value}</dd>
+                          </div>
+                        </div>
+                      ))}
+                    </dl>
+
+                    <div className="mt-3 flex items-start gap-3">
+                      <span className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-full bg-emerald-300/12 text-emerald-200">
+                        <Megaphone size={15} aria-hidden="true" />
+                      </span>
+                      <div className="min-w-0">
+                        <strong className="block text-sm font-black text-slate-50">{(teamInfo?.coach || 'Coach')}'s prep directive</strong>
+                        <p className="mt-1 line-clamp-1 text-sm font-semibold leading-relaxed text-slate-300">
+                          {nextTrainingEvent.notes || (
+                            nextTrainingEvent.type === 'Meeting'
+                              ? 'Review tactical clips, player assignments, and next-session responsibilities.'
+                              : 'Focus on high-intensity workloads, technical precision, and attendance discipline.'
+                          )}
+                        </p>
+                      </div>
+                    </div>
+                  </section>
+
+                  <aside className="border-t border-white/[0.07] bg-slate-950/24 px-4 py-3.5 lg:border-l lg:border-t-0">
+                    <span className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider text-emerald-100/75">
+                      <ClipboardList size={13} aria-hidden="true" /> Prep flow
+                    </span>
+                    <div className="mt-3 grid gap-2">
+                      {nextTrainingEventChecklist.map((item) => (
+                        <div key={item} className="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-2.5">
+                          <span className="flex size-5 items-center justify-center rounded-full bg-emerald-300 text-[10px] font-black text-slate-950">
+                            <Check size={12} aria-hidden="true" />
+                          </span>
+                          <span className="min-w-0 truncate text-xs font-bold leading-snug text-slate-200">{item}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </aside>
+                </div>
+              </div>
+              ) : (
+              <div className="flex flex-col items-center justify-center space-y-3 py-12 text-center text-sm text-muted-foreground">
+                <span>No training or events scheduled for this week.</span>
+                <span className="cursor-pointer text-emerald-200 hover:text-emerald-100 hover:underline" onClick={() => onNavigate({ primary: 'development', developmentTab: 'training' })}>
+                  Plan training week
+                </span>
+              </div>
+              )
             ) : nextMatch ? (
               <div className="mt-4 overflow-hidden rounded-3xl border border-orange-300/16 bg-[radial-gradient(circle_at_top_left,rgba(251,146,60,0.2),transparent_34%),linear-gradient(135deg,rgba(7,17,31,0.96),rgba(8,28,42,0.9)_54%,rgba(14,24,38,0.96))] shadow-lg shadow-black/20">
                 <div className="grid lg:grid-cols-[minmax(0,1fr)_15.75rem]">
@@ -1869,7 +1976,7 @@ export default function DashboardView({
                     <div className="mt-4 grid gap-4 md:grid-cols-[minmax(0,1fr)_auto] md:items-end">
                       <div className="min-w-0">
                         <span className="text-[10px] font-black uppercase tracking-wider text-orange-100/70">
-                          {nextMatch.type === 'Training' || nextMatch.type === 'Meeting' ? 'Scheduled event' : 'Next opponent'}
+                          Next opponent
                         </span>
                         <h4 id="next-match-opponent-slug" className="mt-0.5 truncate font-display text-3xl font-black tracking-tight text-white">
                           {nextMatch.opponent}
@@ -1877,13 +1984,11 @@ export default function DashboardView({
                         <p className="mt-1 max-w-xl text-sm font-semibold leading-relaxed text-slate-300">{nextMatchPrepTone}</p>
                       </div>
 
-                      {nextMatch.type !== 'Training' && nextMatch.type !== 'Meeting' && (
-                        <div className="flex shrink-0 items-center gap-2 rounded-full border border-white/[0.08] bg-slate-950/36 px-2.5 py-2 text-xs shadow-inner shadow-black/20">
-                          <span className="max-w-[7rem] truncate font-black text-slate-100">{teamInfo?.name || 'Our Team'}</span>
-                          <span className="rounded-full bg-orange-300 px-2 py-0.5 text-[9px] font-black text-slate-950">VS</span>
-                          <span className="max-w-[7rem] truncate font-black text-orange-100">{nextMatch.opponent}</span>
-                        </div>
-                      )}
+                      <div className="flex shrink-0 items-center gap-2 rounded-full border border-white/[0.08] bg-slate-950/36 px-2.5 py-2 text-xs shadow-inner shadow-black/20">
+                        <span className="max-w-[7rem] truncate font-black text-slate-100">{teamInfo?.name || 'Our Team'}</span>
+                        <span className="rounded-full bg-orange-300 px-2 py-0.5 text-[9px] font-black text-slate-950">VS</span>
+                        <span className="max-w-[7rem] truncate font-black text-orange-100">{nextMatch.opponent}</span>
+                      </div>
                     </div>
 
                     <dl className="mt-4 grid gap-x-5 gap-y-2.5 border-y border-white/[0.07] py-3 sm:grid-cols-2">
@@ -1910,13 +2015,7 @@ export default function DashboardView({
                       <div className="min-w-0">
                         <strong className="block text-sm font-black text-slate-50">{(teamInfo?.coach || 'Coach')}'s prep directive</strong>
                         <p className="mt-1 line-clamp-1 text-sm font-semibold leading-relaxed text-slate-300">
-                          {nextMatch.notes || (
-                            nextMatch.type === 'Training'
-                              ? 'Focus on high-intensity workloads, technical precision, and attendance discipline.'
-                              : nextMatch.type === 'Meeting'
-                                ? 'Review tactical clips, player assignments, and next-session responsibilities.'
-                                : 'Confirm squad readiness, review the opponent profile, and lock travel plus warm-up timing.'
-                          )}
+                          {nextMatch.notes || 'Confirm squad readiness, review the opponent profile, and lock travel plus warm-up timing.'}
                         </p>
                       </div>
                     </div>
@@ -1980,10 +2079,7 @@ export default function DashboardView({
               </div>
             ) : (
               <div className="flex flex-col items-center justify-center space-y-3 py-12 text-center text-sm text-muted-foreground">
-                <span>No training or match prep scheduled for this week.</span>
-                <span className="cursor-pointer text-emerald-200 hover:text-emerald-100 hover:underline" onClick={() => onNavigate({ primary: 'development', developmentTab: 'training' })}>
-                  Plan training week
-                </span>
+                <span>No upcoming matches scheduled.</span>
                 <span className="cursor-pointer text-orange-200 hover:text-orange-100 hover:underline" onClick={() => onNavigate({ primary: 'home', homeTab: 'game_week' })}>
                   Add games
                 </span>
@@ -2002,8 +2098,12 @@ export default function DashboardView({
               id="dash-go-schedule"
               type="button"
               onClick={() => {
-                if (activeDailyPrepPanel === 'training' && dashboardTrainingDay) {
-                  onOpenTrainingSession(dashboardTrainingDay);
+                if (activeDailyPrepPanel === 'training') {
+                  if (dashboardTrainingDay) {
+                    onOpenTrainingSession(dashboardTrainingDay);
+                  } else {
+                    onNavigate({ primary: 'home', homeTab: 'game_week' });
+                  }
                   return;
                 }
                 setGamePlanOpen(true);
@@ -2014,7 +2114,7 @@ export default function DashboardView({
                   : 'bg-orange-300 shadow-orange-950/20 hover:bg-orange-200'
               }`}
             >
-              {activeDailyPrepPanel === 'training' ? 'Open Session' : 'Game Plan'} <ArrowRight size={13} />
+              {activeDailyPrepPanel === 'training' ? (dashboardTrainingDay ? 'Open Session' : 'View Schedule') : 'Game Plan'} <ArrowRight size={13} />
             </Button>
           </div>
         </div>
