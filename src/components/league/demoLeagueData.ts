@@ -822,6 +822,33 @@ const buildDemoLeagueRepository = (): CloudLeagueRepository => {
       registrations = [...registrations, row];
       return row.id;
     },
+    claimApprovedEventTeam: async registrationId => {
+      const registration = registrations.find(r => r.id === registrationId);
+      if (!registration) throw new Error('REGISTRATION_NOT_FOUND');
+      if (registration.status !== 'approved') return { status: 'pending', registrationId };
+      const teamName = registration.team_name?.trim() || registration.club_name.trim();
+      let team = teams.find(t => t.event_id === registration.event_id && t.registration_id === registration.id);
+      if (!team) {
+        team = {
+          id: newId(), event_id: registration.event_id, league_id: registration.league_id,
+          registration_id: registration.id, club_id: 'preview-coach-workspace', name: teamName, seed: null,
+          created_at: now(), updated_at: now()
+        };
+        teams = [...teams, team];
+      } else {
+        team = { ...team, club_id: team.club_id ?? 'preview-coach-workspace', name: teamName, updated_at: now() };
+        teams = teams.map(existing => existing.id === team?.id ? team as typeof existing : existing);
+      }
+      return {
+        status: 'linked',
+        registrationId,
+        teamId: team.id,
+        clubId: team.club_id ?? 'preview-coach-workspace',
+        teamName: team.name,
+        eventId: team.event_id,
+        leagueId: team.league_id
+      };
+    },
     listEventTeams: async eventId => teams.filter(t => t.event_id === eventId),
     listEventRosterPlayers: async eventId => rosterPlayers.filter(p => p.event_id === eventId),
     listLeagueEventTeams: async leagueId => teams.filter(t => t.league_id === leagueId),

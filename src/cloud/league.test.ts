@@ -904,6 +904,22 @@ describe('cloud league repository', () => {
     }));
   });
 
+  it('claims an approved event team through the guarded RPC', async () => {
+    const claim = {
+      status: 'linked',
+      registrationId: 'registration-1',
+      teamId: 'team-1',
+      clubId: 'club-1',
+      teamName: 'Rovers U14'
+    };
+    const { client, rpc } = createTableStub(claim);
+
+    await expect(
+      createCloudDataAccess(client).league.claimApprovedEventTeam('registration-1')
+    ).resolves.toEqual(claim);
+    expect(rpc).toHaveBeenCalledWith('claim_approved_event_team', { registration_id: 'registration-1' });
+  });
+
   it('adds a roster player through the guarded RPC', async () => {
     const saved = { id: 'player-1', full_name: 'Player One' };
     const { client, rpc } = createTableStub(saved);

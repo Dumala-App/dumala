@@ -1116,6 +1116,31 @@ export const submitEventRegistration = async (
   ) as string;
 };
 
+export type EventTeamClaimStatus = 'linked' | 'pending';
+
+export interface EventTeamClaimResult {
+  status: EventTeamClaimStatus;
+  registrationId: string;
+  teamId?: string;
+  clubId?: string;
+  teamName?: string;
+  eventId?: string;
+  leagueId?: string;
+}
+
+export const claimApprovedEventTeam = async (
+  client: DumalaSupabaseClient,
+  registrationId: string
+): Promise<EventTeamClaimResult> => {
+  const supabase = asUntypedClient(client);
+  const data = expectNoError(
+    await supabase.rpc('claim_approved_event_team', { registration_id: registrationId }),
+    'EVENT_TEAM_CLAIM_FAILED',
+    'Failed to link the approved team'
+  );
+  return data as EventTeamClaimResult;
+};
+
 // --- Tournament engine: teams, fixtures, results -----------------------------
 // A round-robin backbone. Standings are derived from results by a pure helper
 // (computeStandings) rather than stored, so there is nothing to keep in sync.
@@ -1127,6 +1152,7 @@ export interface EventTeam {
   event_id: string;
   league_id: string;
   registration_id: string | null;
+  club_id?: string | null;
   name: string;
   seed: number | null;
   roster_locked?: boolean;
