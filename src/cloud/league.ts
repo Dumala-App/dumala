@@ -1510,6 +1510,17 @@ export interface GroupStanding {
   rows: StandingRow[];
 }
 
+export interface GroupQualificationTie {
+  groupLabel: string;
+  position: number;
+  teamIds: string[];
+}
+
+export interface GroupQualifierResolution {
+  qualifierIds: string[];
+  ties: GroupQualificationTie[];
+}
+
 /** Distribute (seed-ordered) teams across `groupCount` groups, round-robin style. */
 export const drawGroups = (teamIds: string[], groupCount: number): GroupDraw[] => {
   const maxGroups = Math.max(1, Math.floor(teamIds.length / 2));
@@ -1572,6 +1583,43 @@ export const qualifiers = (standings: GroupStanding[], advancePerGroup: number):
     }
   }
   return out;
+};
+
+const sameQualificationRecord = (a: StandingRow, b: StandingRow): boolean =>
+  a.points === b.points &&
+  a.goalDifference === b.goalDifference &&
+  a.goalsFor === b.goalsFor;
+
+/**
+ * Returns qualifiers only when every qualification cutoff is decisive. The
+ * standings sort falls back to team name, but knockout seeding should not use
+ * that fallback to break meaningful football ties.
+ */
+export const resolveGroupQualifiers = (
+  standings: GroupStanding[],
+  advancePerGroup: number
+): GroupQualifierResolution => {
+  const advance = Math.max(0, Math.floor(advancePerGroup));
+  const ties: GroupQualificationTie[] = [];
+  for (const group of standings) {
+    for (let pos = 0; pos < Math.min(advance, group.rows.length); pos += 1) {
+      const row = group.rows[pos];
+      const next = group.rows[pos + 1];
+      if (row && next && sameQualificationRecord(row, next)) {
+        const tiedRows = group.rows.filter(candidate => sameQualificationRecord(row, candidate));
+        ties.push({
+          groupLabel: group.label,
+          position: pos + 1,
+          teamIds: tiedRows.map(candidate => candidate.teamId)
+        });
+        break;
+      }
+    }
+  }
+  return {
+    qualifierIds: ties.length > 0 ? [] : qualifiers(standings, advance),
+    ties
+  };
 };
 
 // --- Owner: teams ------------------------------------------------------------
@@ -1855,7 +1903,11 @@ export const generateKnockoutFromGroups = async (
   if (groupFixtures.some(f => f.status !== 'completed')) {
     throw new CloudLeagueError('Finish every group match before generating the knockout.', 'GROUP_STAGE_INCOMPLETE');
   }
-  const qualifierIds = qualifiers(groupStageStandings(teams, groupFixtures), advancePerGroup);
+  const resolved = resolveGroupQualifiers(groupStageStandings(teams, groupFixtures), advancePerGroup);
+  if (resolved.ties.length > 0) {
+    throw new CloudLeagueError('Resolve tied qualification places before building the knockout.', 'QUALIFIER_TIE');
+  }
+  const qualifierIds = resolved.qualifierIds;
   if (qualifierIds.length < 2) {
     throw new CloudLeagueError('Not enough qualifiers to build a knockout.', 'NOT_ENOUGH_QUALIFIERS');
   }

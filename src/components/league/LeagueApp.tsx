@@ -76,6 +76,7 @@ import {
   buildFixtureCalendar,
   buildStatDatabase,
   groupStageStandings,
+  resolveGroupQualifiers,
   DEFAULT_MATCH_MINUTES,
   suggestAwards,
   summarizeMatchSheet,
@@ -3016,7 +3017,7 @@ const GroupStandingsTable = ({ rows, teamName }: { rows: ReturnType<typeof compu
   </div>
 );
 
-const GroupKnockoutPanel = ({ fixtures, teams, teamCount, teamName, onDrawGroups, onGenerateKnockout, onClear, onRecord }: {
+export const GroupKnockoutPanel = ({ fixtures, teams, teamCount, teamName, onDrawGroups, onGenerateKnockout, onClear, onRecord }: {
   fixtures: EventFixture[];
   teams: EventTeam[];
   teamCount: number;
@@ -3028,15 +3029,17 @@ const GroupKnockoutPanel = ({ fixtures, teams, teamCount, teamName, onDrawGroups
 }) => {
   const groupFixtures = fixtures.filter(f => f.stage === 'group');
   const knockoutFixtures = fixtures.filter(f => f.stage === 'knockout');
+  const [groupCount, setGroupCount] = useState(2);
+  const [advance, setAdvance] = useState(2);
   const standings = useMemo(() => groupStageStandings(teams, groupFixtures), [teams, groupFixtures]);
+  const qualifierResolution = useMemo(() => resolveGroupQualifiers(standings, advance), [standings, advance]);
   const groupComplete = groupFixtures.length > 0 && groupFixtures.every(f => f.status === 'completed');
+  const qualifiersReady = groupComplete && qualifierResolution.ties.length === 0;
   const minGroupSize = standings.length ? Math.min(...standings.map(g => g.rows.length)) : 0;
   const maxGroups = Math.max(2, Math.floor(teamCount / 2));
   const koRounds = [...new Set(knockoutFixtures.map(f => f.round))].sort((a, b) => a - b);
   const koTotalRounds = koRounds.length ? Math.max(...koRounds) : 0;
 
-  const [groupCount, setGroupCount] = useState(2);
-  const [advance, setAdvance] = useState(2);
   const advanceOptions = Array.from({ length: Math.max(1, minGroupSize) }, (_, i) => i + 1);
 
   if (groupFixtures.length === 0) {
@@ -3099,12 +3102,34 @@ const GroupKnockoutPanel = ({ fixtures, teams, teamCount, teamName, onDrawGroups
           )}
         </div>
         <div className="p-4">
+          {groupComplete && qualifierResolution.ties.length > 0 && (
+            <div className="mb-4 rounded-2xl border border-amber-300/30 bg-amber-400/10 p-4 text-left">
+              <div className="flex items-start gap-2">
+                <AlertTriangle size={16} className="mt-0.5 shrink-0 text-amber-200" />
+                <div>
+                  <p className="text-sm font-black text-amber-100">Qualification tie needs a decision</p>
+                  <p className="mt-1 text-xs leading-5 text-amber-100/80">
+                    Record an agreed tiebreaker result before generating the knockout. Tied places are not broken by team name.
+                  </p>
+                  <ul className="mt-2 space-y-1 text-xs text-amber-50/90">
+                    {qualifierResolution.ties.map(tie => (
+                      <li key={`${tie.groupLabel}-${tie.position}`}>
+                        Group {tie.groupLabel}, place {tie.position}: {tie.teamIds.map(teamName).join(' / ')}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            </div>
+          )}
           {knockoutFixtures.length === 0 ? (
             <div className="space-y-3 text-center">
               <p className="text-sm text-slate-400">
-                {groupComplete
+                {qualifiersReady
                   ? 'Group stage complete. Choose how many advance from each group and build the bracket.'
-                  : 'Finish every group match to unlock the knockout draw.'}
+                  : groupComplete
+                    ? 'Resolve the qualification tie to unlock the knockout draw.'
+                    : 'Finish every group match to unlock the knockout draw.'}
               </p>
               <div className="flex flex-wrap items-center justify-center gap-2">
                 <label className={label}>Advance</label>
@@ -3112,7 +3137,7 @@ const GroupKnockoutPanel = ({ fixtures, teams, teamCount, teamName, onDrawGroups
                   {advanceOptions.map(n => <option key={n} value={n}>{n}</option>)}
                 </select>
                 <span className="text-xs text-slate-500">per group</span>
-                <button type="button" className={primaryBtn} disabled={!groupComplete} onClick={() => onGenerateKnockout(advance)}><Shuffle size={14} /> Generate knockout</button>
+                <button type="button" className={primaryBtn} disabled={!qualifiersReady} onClick={() => onGenerateKnockout(advance)}><Shuffle size={14} /> Generate knockout</button>
               </div>
             </div>
           ) : (
