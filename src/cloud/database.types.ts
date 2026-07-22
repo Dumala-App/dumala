@@ -1623,6 +1623,7 @@ export type Database = {
       }
       event_teams: {
         Row: {
+          club_id: string | null
           created_at: string
           event_id: string
           id: string
@@ -1633,6 +1634,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          club_id?: string | null
           created_at?: string
           event_id: string
           id?: string
@@ -1643,6 +1645,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          club_id?: string | null
           created_at?: string
           event_id?: string
           id?: string
@@ -1653,6 +1656,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "event_teams_club_id_fkey"
+            columns: ["club_id"]
+            isOneToOne: false
+            referencedRelation: "clubs"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "event_teams_event_id_fkey"
             columns: ["event_id"]
@@ -5170,6 +5180,10 @@ export type Database = {
       can_access_team_chat: {
         Args: { target_club_id: string }
         Returns: boolean
+      }
+      claim_approved_event_team: {
+        Args: { registration_id: string }
+        Returns: Json
       }
       delete_team_chat_message: {
         Args: { message_id: string }

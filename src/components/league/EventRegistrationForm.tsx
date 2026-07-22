@@ -13,16 +13,20 @@ import {
   ShieldCheck,
   Sparkles,
   Trophy,
+  UserPlus,
   Users
 } from 'lucide-react';
 import { useCloudRuntime } from '../../hooks/useCloudRuntime';
 import type { CloudLeagueRepository } from '../../cloud/dataAccess';
+import type { AccountBootstrapResult } from '../../cloud/account';
+import type { CloudRuntime } from '../../cloud/runtime';
 import {
   EVENT_FORMAT_LABELS,
   EVENT_STATUS_LABELS,
   REQUIREMENT_TARGET_LABELS,
   type EventRegistrationLookup
 } from '../../cloud/league';
+import CloudAccountGate from '../CloudAccountGate';
 import { DARK_GLASS_CLASSES, DARK_GLASS_THEME_STYLE } from '../../theme/darkGlassTheme';
 import { createPreviewLeagueRuntime } from './demoLeagueData';
 
@@ -48,6 +52,36 @@ interface ApplicationFormState {
   message: string;
 }
 
+interface PendingTeamClaim {
+  registrationId: string;
+  code: string;
+  eventName: string;
+  clubName: string;
+}
+
+const pendingClaimKey = (code: string) => `dumala_event_registration_claim:${code.trim().toUpperCase()}`;
+
+const readPendingTeamClaim = (code: string): PendingTeamClaim | null => {
+  if (typeof window === 'undefined' || !code.trim()) return null;
+  try {
+    const parsed = JSON.parse(window.localStorage.getItem(pendingClaimKey(code)) ?? 'null') as Partial<PendingTeamClaim> | null;
+    if (!parsed?.registrationId || !parsed.code || !parsed.clubName) return null;
+    return {
+      registrationId: parsed.registrationId,
+      code: parsed.code,
+      clubName: parsed.clubName,
+      eventName: parsed.eventName || 'this tournament'
+    };
+  } catch {
+    return null;
+  }
+};
+
+const storePendingTeamClaim = (claim: PendingTeamClaim) => {
+  if (typeof window === 'undefined') return;
+  window.localStorage.setItem(pendingClaimKey(claim.code), JSON.stringify(claim));
+};
+
 const friendlyError = (error: unknown): string => {
   const message = error instanceof Error ? error.message : String(error);
   if (message.includes('ALREADY_REGISTERED')) return 'A registration from this email already exists for this event.';
@@ -57,6 +91,15 @@ const friendlyError = (error: unknown): string => {
   if (message.includes('CONTACT_NAME_REQUIRED')) return 'Please enter a contact name.';
   if (message.includes('CONTACT_EMAIL_INVALID')) return 'Please enter a valid contact email.';
   return message || 'Something went wrong. Please try again.';
+};
+
+const friendlyClaimError = (error: unknown): string => {
+  const message = error instanceof Error ? error.message : String(error);
+  if (message.includes('CONTACT_EMAIL_MISMATCH')) return 'Sign in with the same email used on the event application.';
+  if (message.includes('COACH_WORKSPACE_REQUIRED')) return 'Finish creating your free Coach workspace, then try linking again.';
+  if (message.includes('TEAM_ALREADY_LINKED')) return 'This event team is already linked to another Coach workspace.';
+  if (message.includes('AUTH_REQUIRED')) return 'Sign in to your Coach account before linking this team.';
+  return message || 'The approved team could not be linked yet.';
 };
 
 const getRegistrationCode = (): string => {
@@ -367,12 +410,97 @@ const DirectLinkLoading = () => (
   </div>
 );
 
-const RegistrationForm = ({ league, initialCode = '' }: { league: CloudLeagueRepository; initialCode?: string }) => {
-  const [step, setStep] = useState<'lookup' | 'apply' | 'done'>(initialCode ? 'apply' : 'lookup');
+const ClaimApprovedTeamPanel = ({
+  runtime,
+  registrationId,
+  clubName
+}: {
+  runtime: CloudRuntime;
+  registrationId: string;
+  clubName: string;
+}) => {
+  const [claimState, setClaimState] = useState<'idle' | 'checking' | 'pending' | 'linked' | 'error'>('idle');
+  const [message, setMessage] = useState('');
+
+  const tryClaim = async () => {
+    if (!runtime.enabled) return;
+    setClaimState('checking');
+    setMessage('');
+    try {
+      const result = await runtime.dataAccess.league.claimApprovedEventTeam(registrationId);
+      if (result.status === 'linked') {
+        setClaimState('linked');
+        setMessage(`${result.teamName ?? 'Your approved team'} is linked to your Coach workspace.`);
+      } else {
+        setClaimState('pending');
+        setMessage('Your account is ready. The team will link after the league approves the application.');
+      }
+    } catch (error) {
+      setClaimState('error');
+      setMessage(friendlyClaimError(error));
+    }
+  };
+
+  const handleBootstrapComplete = (_result: AccountBootstrapResult) => {
+    void tryClaim();
+  };
+
+  if (!runtime.enabled) return null;
+
+  const redirectTo = typeof window === 'undefined' ? undefined : window.location.href;
+
+  return (
+    <section className="mt-4 rounded-xl border border-cyan-300/15 bg-[#07111f]/88 p-4 text-slate-100">
+      <div className="flex items-start gap-3">
+        <div className="rounded-lg border border-cyan-300/20 bg-cyan-300/10 p-2 text-cyan-100">
+          <UserPlus size={16} />
+        </div>
+        <div className="min-w-0 flex-1">
+          <h3 className="font-display text-sm font-black text-white">Create your free Coach account</h3>
+          <p className="mt-1 text-xs leading-5 text-slate-400">
+            Optional: keep this no-account application as-is, or create a Coach account so the approved event team can link to your workspace after the league confirms it.
+          </p>
+          <div className="mt-3">
+            <CloudAccountGate
+              runtime={runtime}
+              clubName={clubName}
+              redirectTo={redirectTo}
+              tone="dark"
+              layout="compact"
+              audience="coach"
+              onBootstrapComplete={handleBootstrapComplete}
+            />
+          </div>
+
+          {message && (
+            <p className={`mt-3 text-xs font-semibold ${claimState === 'linked' ? 'text-emerald-200' : claimState === 'error' ? 'text-rose-200' : 'text-amber-200'}`} role="status">
+              {message}
+            </p>
+          )}
+
+          <button
+            type="button"
+            className={`${secondaryBtn} mt-3`}
+            onClick={() => void tryClaim()}
+            disabled={claimState === 'checking'}
+          >
+            {claimState === 'checking' ? <Loader2 size={14} className="animate-spin" /> : <ShieldCheck size={14} />}
+            Check approval and link team
+          </button>
+        </div>
+      </div>
+    </section>
+  );
+};
+
+const RegistrationForm = ({ league, runtime, initialCode = '' }: { league: CloudLeagueRepository; runtime: CloudRuntime; initialCode?: string }) => {
+  const [pendingClaim, setPendingClaim] = useState<PendingTeamClaim | null>(() => readPendingTeamClaim(initialCode));
+  const [step, setStep] = useState<'lookup' | 'apply' | 'done'>(pendingClaim ? 'done' : initialCode ? 'apply' : 'lookup');
   const [code, setCode] = useState(initialCode);
   const [event, setEvent] = useState<EventRegistrationLookup | null>(null);
-  const [status, setStatus] = useState<'idle' | 'working'>(initialCode ? 'working' : 'idle');
+  const [status, setStatus] = useState<'idle' | 'working'>(initialCode && !pendingClaim ? 'working' : 'idle');
   const [feedback, setFeedback] = useState('');
+  const [submittedRegistrationId, setSubmittedRegistrationId] = useState<string | null>(null);
 
   const [form, setForm] = useState({
     clubName: '',
@@ -389,6 +517,7 @@ const RegistrationForm = ({ league, initialCode = '' }: { league: CloudLeagueRep
   const resetToLookup = () => {
     setStep('lookup');
     setEvent(null);
+    setPendingClaim(null);
     setFeedback('');
   };
 
@@ -417,9 +546,9 @@ const RegistrationForm = ({ league, initialCode = '' }: { league: CloudLeagueRep
   };
 
   useEffect(() => {
-    if (initialCode) void lookupCode(initialCode);
+    if (initialCode && !pendingClaim) void lookupCode(initialCode);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [initialCode, league]);
+  }, [initialCode, league, pendingClaim]);
 
   const lookup = async (e: FormEvent) => {
     e.preventDefault();
@@ -432,7 +561,7 @@ const RegistrationForm = ({ league, initialCode = '' }: { league: CloudLeagueRep
     setStatus('working');
     setFeedback('');
     try {
-      await league.submitEventRegistration({
+      const registrationId = await league.submitEventRegistration({
         code,
         clubName: form.clubName,
         teamName: form.teamName || null,
@@ -442,6 +571,15 @@ const RegistrationForm = ({ league, initialCode = '' }: { league: CloudLeagueRep
         rosterSize: form.rosterSize ? Number(form.rosterSize) : null,
         message: form.message || null
       });
+      const claim = {
+        registrationId,
+        code,
+        eventName: event.name ?? 'this tournament',
+        clubName: form.teamName.trim() || form.clubName.trim() || 'Dumala Club'
+      };
+      setSubmittedRegistrationId(registrationId);
+      setPendingClaim(claim);
+      storePendingTeamClaim(claim);
       setStep('done');
     } catch (error) {
       setFeedback(friendlyError(error));
@@ -451,14 +589,27 @@ const RegistrationForm = ({ league, initialCode = '' }: { league: CloudLeagueRep
   };
 
   if (step === 'done') {
+    const claimRegistrationId = submittedRegistrationId ?? pendingClaim?.registrationId ?? null;
+    const claimClubName = pendingClaim?.clubName ?? (form.teamName.trim() || form.clubName.trim() || 'Dumala Club');
+    const eventName = event?.name ?? pendingClaim?.eventName ?? 'this tournament';
     return (
       <div className="mx-auto max-w-2xl rounded-xl border border-emerald-400/30 bg-emerald-400/10 px-5 py-6 text-emerald-100">
         <div className="flex items-center gap-2 text-sm font-black uppercase tracking-wide">
           <CheckCircle2 size={18} /> Application submitted
         </div>
         <p className="mt-2 text-sm leading-relaxed text-emerald-200/90">
-          Thanks. Your registration for <span className="font-bold">{event?.name}</span> is in. The league will review it and confirm your club's place.
+          Thanks. Your registration for <span className="font-bold">{eventName}</span> is in. The league will review it and confirm your club's place.
         </p>
+        {claimRegistrationId && (
+          <ClaimApprovedTeamPanel
+            runtime={runtime}
+            registrationId={claimRegistrationId}
+            clubName={claimClubName}
+          />
+        )}
+        <button type="button" className={`${secondaryBtn} mt-4`} onClick={resetToLookup}>
+          <Search size={14} /> Use a different code
+        </button>
       </div>
     );
   }
@@ -533,7 +684,7 @@ const EventRegistrationView = () => {
         </header>
 
         {league ? (
-          <RegistrationForm league={league} initialCode={directCode} />
+          <RegistrationForm league={league} runtime={runtime} initialCode={directCode} />
         ) : (
           <p className={`${panel} p-6 text-sm text-slate-300`}>
             Registration needs a cloud connection. Please open this link on an online device.

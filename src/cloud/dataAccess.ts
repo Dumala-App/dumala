@@ -198,6 +198,7 @@ import {
   advanceSeasonStatus,
   applyFixtureSchedules,
   applyToLeagueOrg,
+  claimApprovedEventTeam,
   clearFixtures,
   createEvent,
   createDocumentRequirement,
@@ -278,6 +279,7 @@ import {
   type EventRosterPlayer,
   type EventRosterPlayerInput,
   type EventRosterPlayerStatus,
+  type EventTeamClaimResult,
   type EventTeam,
   type FixtureOpsPatch,
   type FixtureSchedulePatch,
@@ -515,6 +517,7 @@ export interface CloudLeagueRepository {
   ): Promise<EventRegistrationStatus>;
   lookupEventRegistration(code: string): Promise<EventRegistrationLookup>;
   submitEventRegistration(input: EventRegistrationInput): Promise<string>;
+  claimApprovedEventTeam(registrationId: string): Promise<EventTeamClaimResult>;
   listEventTeams(eventId: string): Promise<EventTeam[]>;
   listEventRosterPlayers(eventId: string): Promise<EventRosterPlayer[]>;
   listLeagueEventTeams(leagueId: string): Promise<EventTeam[]>;
@@ -767,6 +770,7 @@ export const createCloudDataAccess = (client: DumalaSupabaseClient): CloudDataAc
       reviewRegistration(client, registrationId, nextStatus, note),
     lookupEventRegistration: code => lookupEventRegistration(client, code),
     submitEventRegistration: input => submitEventRegistration(client, input),
+    claimApprovedEventTeam: registrationId => claimApprovedEventTeam(client, registrationId),
     listEventTeams: eventId => listEventTeams(client, eventId),
     listEventRosterPlayers: eventId => listEventRosterPlayers(client, eventId),
     listLeagueEventTeams: leagueId => listLeagueEventTeams(client, leagueId),
