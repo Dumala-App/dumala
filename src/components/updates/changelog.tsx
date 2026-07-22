@@ -1,5 +1,5 @@
 import React from 'react';
-import { Award, Brain, Calculator, CalendarCheck, ClipboardList, Cloud, Download, FlaskConical, Globe, Hash, Link2, Megaphone, Sparkles, Target, Trophy, TrendingUp, UserCheck, Users, type LucideIcon } from 'lucide-react';
+import { Award, Brain, Calculator, CalendarCheck, ClipboardList, Cloud, Download, FlaskConical, Globe, Hash, Link2, Megaphone, SlidersHorizontal, Sparkles, Target, Trophy, TrendingUp, UserCheck, Users, type LucideIcon } from 'lucide-react';
 
 // The devlog is published to two places: coaches read it in League & Updates,
 // and the public reads it at #/devlog. Both surfaces render this one list, so
@@ -40,6 +40,59 @@ export const getChangelogBadgeClass = (badge: string) =>
   changelogBadgeStyles[badge] ?? 'border-slate-400/40 bg-slate-400/15 text-slate-100';
 
 export const changelogEntries: ChangelogEntry[] = [
+  {
+    id: 'july_22_matchup_strategy_clarity',
+    date: '2026-07-22',
+    title: 'Matchup Strategy Is Easier To Read',
+    badge: 'UX Polish',
+    summary: 'The Matchup Strategy section now puts the recommended attack and defense first, explains the coach lens in plain context, and keeps backup options collapsed until a coach wants to compare them.',
+    accent: 'border-sky-400/20 bg-slate-950/90 text-slate-100',
+    renderContent: () => (
+      <div className="space-y-4">
+        <p className="text-sm text-slate-300 leading-relaxed">
+          Match preparation should feel like a coaching read, not a wall of competing cards. This update reduces the visual noise in Matchup Strategy so coaches can see the main recommendation first and only open the extra options when they need a different risk level.
+        </p>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          {[
+            {
+              icon: Target,
+              title: 'Recommendation first',
+              desc: 'The suggested attack and defense now sit in calmer primary cards, with the key details shown as readable rows instead of several nested mini boxes.'
+            },
+            {
+              icon: Brain,
+              title: 'Coach lens clarified',
+              desc: 'The old upper-corner lens badge is now a quiet context line, so it reads as style influence rather than another decision the coach has to decode.'
+            },
+            {
+              icon: SlidersHorizontal,
+              title: 'Backup options tucked away',
+              desc: 'Alternatives are now labeled as Backup options and collapsed by default. Open them only when you want a safer or more direct version of the main plan.'
+            },
+            {
+              icon: Sparkles,
+              title: 'Less color noise',
+              desc: 'The section uses fewer competing colors and boxes, so warnings, cues, current-plan checks, and alternatives no longer fight the main recommendation.'
+            }
+          ].map(item => {
+            const Icon = item.icon;
+
+            return (
+              <div key={item.title} className="rounded-xl border border-sky-400/20 bg-slate-900/80 p-4 shadow-sm shadow-black/20">
+                <div className="mb-2 flex items-center gap-2">
+                  <span className="flex h-8 w-8 items-center justify-center rounded-lg border border-sky-400/30 bg-sky-400/10 text-sky-200">
+                    <Icon size={16} aria-hidden="true" />
+                  </span>
+                  <h5 className="text-xs font-black uppercase tracking-wider text-sky-100">{item.title}</h5>
+                </div>
+                <p className="text-xs text-slate-400 leading-relaxed">{item.desc}</p>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    )
+  },
   {
     id: 'july_20_attendance_tracker',
     date: '2026-07-20',
