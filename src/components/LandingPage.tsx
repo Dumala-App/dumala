@@ -293,6 +293,7 @@ export default function LandingPage() {
             <button type="button" onClick={() => scrollToId('fit')} className="dc-nav-link">Why Dumala</button>
             <a href="#/devlog" className="dc-nav-link" style={{ textDecoration: 'none' }}>Devlog</a>
           </nav>
+          <a href="#/login" className="dc-signin">Sign in</a>
           <a href="#/app" className="dc-openapp">Open app</a>
         </div>
       </header>
@@ -610,6 +611,7 @@ export default function LandingPage() {
           <div style={{ marginTop: 40, paddingTop: 22, borderTop: '1px solid rgba(255,255,255,.06)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
             <p style={{ margin: 0, fontSize: 12, color: '#43506B' }}>© {new Date().getFullYear()} Dumala. Built for coaches.</p>
             <div style={{ display: 'flex', gap: 18, flexWrap: 'wrap' }}>
+              <a href="#/login" className="dc-foot-link">Sign in</a>
               <a href="#/app" className="dc-foot-link">Open app</a>
               <button type="button" onClick={goTop} className="dc-foot-link">Back to top</button>
             </div>

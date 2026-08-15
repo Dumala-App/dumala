@@ -90,6 +90,7 @@ export default function DevlogPage() {
             ))}
             <a href="#/devlog" aria-current="page" className="dc-nav-link" style={{ textDecoration: 'none', color: '#F5F7FB' }}>Devlog</a>
           </nav>
+          <a href="#/login" className="dc-signin">Sign in</a>
           <a href="#/app" className="dc-openapp">Open app</a>
         </div>
       </header>
@@ -165,6 +166,7 @@ export default function DevlogPage() {
           <p style={{ margin: 0, fontSize: 12, color: '#43506B' }}>© {new Date().getFullYear()} Dumala. Built for coaches.</p>
           <div style={{ display: 'flex', gap: 18, flexWrap: 'wrap' }}>
             <a href="#/" className="dc-foot-link" style={{ textDecoration: 'none' }}>Back to home</a>
+            <a href="#/login" className="dc-foot-link" style={{ textDecoration: 'none' }}>Sign in</a>
             <a href="#/app" className="dc-foot-link" style={{ textDecoration: 'none' }}>Open app</a>
           </div>
         </div>

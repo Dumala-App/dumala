@@ -23,6 +23,13 @@ describe('LandingPage Premium CTA', () => {
     expect(html).toContain('Devlog</a>');
   });
 
+  it('exposes a dedicated sign-in route for registered coaches', () => {
+    const html = renderToStaticMarkup(<LandingPage />);
+
+    expect(html).toContain('href="#/login"');
+    expect(html).toContain('Sign in</a>');
+  });
+
   it('does not render account access below the hero', () => {
     const html = renderToStaticMarkup(<LandingPage />);
 

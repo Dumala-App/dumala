@@ -38,6 +38,7 @@ describe('RootRouter', () => {
 
   it('loads the workspace for app and authentication callback routes', () => {
     expect(shouldLoadWorkspace('app', '', null)).toBe(true);
+    expect(shouldLoadWorkspace('login', '', null)).toBe(true);
     expect(shouldLoadWorkspace('', '?dumalaAuth=app', null)).toBe(true);
     expect(shouldLoadWorkspace('', '?dumalaAuth=player', null)).toBe(true);
     expect(shouldLoadWorkspace('', '?dumalaAuth=league', null)).toBe(true);
