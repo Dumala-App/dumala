@@ -138,6 +138,9 @@ const getHashRoute = () => typeof window === 'undefined' ? '' : window.location.
 // Phase 6 persona apps live under their own hash roots (#/player, #/league).
 const isPlayerRoute = (route: string) => route === 'player' || route.startsWith('player/') || route.startsWith('player?');
 const isLeagueRoute = (route: string) => route === 'league' || route.startsWith('league/');
+// The public marketing site links returning coaches to #/login so the shared
+// account-first screen opens in sign-in mode instead of defaulting to signup.
+const isCoachLoginRoute = (route: string) => route === 'login' || route.startsWith('login?');
 // Public event registration (a coach applies with a code — no account).
 const isRegisterRoute = (route: string) => route === 'register' || route.startsWith('register/');
 // Public coach-org join (a coach applies to a league organization with a code).
@@ -1648,7 +1651,7 @@ export default function App() {
               cloudAuthController={cloudAuthController}
               onCloudWorkspaceReady={handleCloudWorkspaceReady}
               onCloudOnboardingComplete={handleCloudOnboardingComplete}
-              isReturningUser={workspaces.length > 0}
+              isReturningUser={workspaces.length > 0 || isCoachLoginRoute(hashRoute)}
             />
           </ViewErrorBoundary>
         </Suspense>
